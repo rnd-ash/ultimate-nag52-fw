@@ -33,6 +33,10 @@ void send_note(uint8_t channel, uint32_t freq, uint32_t dur, uint32_t total_dur)
 }
 
 void start_beep_task(void* pvParams) {
+  vTaskDelete(NULL); // Goodbye
+}
+
+[[noreturn]] void print_task(void* pvParams) {
   send_note(spkr_channel, 660, 100, 150);
   send_note(spkr_channel, 660, 100, 300);
   send_note(spkr_channel, 660, 100, 300);
@@ -41,10 +45,6 @@ void start_beep_task(void* pvParams) {
   send_note(spkr_channel, 770, 100, 550);
   send_note(spkr_channel, 380, 100, 575);
   ledcWriteTone(spkr_channel, 0);
-  vTaskDelete(NULL); // Goodbye
-}
-
-[[noreturn]] void print_task(void* pvParams) {
   while(true) {
     char buf[128];
 
@@ -52,16 +52,19 @@ void start_beep_task(void* pvParams) {
     float l1 = 100.f - ((float)min(ticks_core1, (uint64_t)TICKS_IDLE_PER_SECOND) / TICKS_IDLE_PER_SECOND) * 100.f;
 
     sprintf(buf, "CORE 0: %.1f%% CORE 1: %.1f%%. Free heap: %lu, Free PSRAM: %lu", l0, l1, ESP.getFreeHeap(), ESP.getFreePsram());
+    float n2 = Sensors::read_n2_rpm();
+    float n3 = Sensors::read_n3_rpm();
+    //ledcWriteTone(spkr_channel, (n2+n3)/2);
     ticks_core0 = 0;
     ticks_core1 = 0;
     Serial.println(buf);
     Serial.print("N2: ");
-    Serial.print(Sensors::read_n2_rpm());
+    Serial.print(n2);
     Serial.print(" N3: ");
-    Serial.print(Sensors::read_n3_rpm());
+    Serial.print(n3);
     Serial.print(" ATF: ");
     Serial.println(Sensors::read_atf_temp());
-    vTaskDelay(500 / portTICK_RATE_MS);
+    vTaskDelay(50 / portTICK_RATE_MS);
   }
 }
 

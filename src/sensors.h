@@ -55,7 +55,7 @@ namespace Sensors {
      * It is the callers responsibility to remove any outliers which may
      * result due to signal noise or a faulty speed sensor.
      */
-    uint16_t read_n2_rpm();
+    uint32_t read_n2_rpm();
 
     /**
      * Reads the speed sensor of the N3 input shaft (At front input carrier gear)
@@ -65,7 +65,7 @@ namespace Sensors {
      * It is the callers responsibility to remove any outliers which may
      * result due to signal noise or a faulty speed sensor.
      */
-    uint16_t read_n3_rpm();
+    uint32_t read_n3_rpm();
 
     uint16_t read_atf_temp();
 

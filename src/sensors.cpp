@@ -2,34 +2,50 @@
 #include "pwm_channels/channels.h"
 #include "driver/pcnt.h"
 
-#define TURN_DIVIDER 4
-
-volatile uint16_t n2_rpm = 0;
-volatile uint16_t n3_rpm = 0;
-
-volatile uint16_t n2_pulses = 0;
-volatile uint16_t n3_pulses = 0;
-
-volatile uint64_t last_quater_revolution_n2 = micros();
-volatile uint64_t last_quater_revolution_n3 = micros();
-
+#define SAMPLES_PER_REV 8 // measure 8 times per revolution...
+#define AVG_SAMPLES 8 // ...and average over 8 samples
 
 bool n2_ok = true; // If false DTC is thrown
 bool n3_ok = true; // If false DTC is thrown
 
-uint32_t __read_n3(); // Forward decleration
-uint32_t __read_n2();
-
 static uint32_t base_solenoid_readings[6] = {0,0,0,0,0,0}; // Offsets from ADC
 
-static void IRAM_ATTR rpm_interrupt_n2(void *arg) {
-    n2_pulses += 1;
-    last_quater_revolution_n2 = micros();
-}
+uint64_t last_n2_time = 0; // Last time interrupt was called
+uint64_t last_n3_time = 0; // Last time interrupt was called
 
-static void IRAM_ATTR rpm_interrupt_n3(void *arg) {
-    n3_pulses += 1;
-    last_quater_revolution_n3 = micros();
+uint64_t n2_deltas[AVG_SAMPLES];
+uint8_t n2_sample_id = 0;
+uint64_t n2_total = 0;
+
+uint64_t n3_deltas[AVG_SAMPLES];
+uint8_t n3_sample_id = 0;
+uint64_t n3_total = 0;
+
+portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
+
+static void IRAM_ATTR onOverflow(void *args) {
+    int unit = (int)args;
+    uint64_t now = micros();
+    if (unit == PCNT_UNIT_0) { // N2
+        portENTER_CRITICAL(&n2_mux);
+        n2_total = n2_total - n2_deltas[n2_sample_id];
+        uint64_t delta = (now - last_n2_time);
+        last_n2_time = now;
+        n2_deltas[n2_sample_id] = delta;
+        n2_total += delta;
+        n2_sample_id = (n2_sample_id+1) % AVG_SAMPLES;
+        portEXIT_CRITICAL(&n2_mux);
+    } else if (unit == PCNT_UNIT_1) { // N3
+        portENTER_CRITICAL(&n3_mux);
+        n3_total -= n3_deltas[n3_sample_id];
+        uint64_t delta = (now - last_n3_time);
+        last_n3_time = now;
+        n3_deltas[n3_sample_id] = delta;
+        n3_total += delta;
+        n3_sample_id = (n3_sample_id+1) % AVG_SAMPLES;
+        portEXIT_CRITICAL(&n3_mux);
+    }
 }
 
 
@@ -75,7 +91,7 @@ void Sensors::configure_sensor_pins() {
         .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
         .pos_mode = PCNT_COUNT_DIS,   // Don't count on positive edge
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
-        .counter_h_lim = N2_PULSES_PER_REV/10, // interrupt will fire on 1/10'th rev
+        .counter_h_lim = N2_PULSES_PER_REV/SAMPLES_PER_REV,
         .counter_l_lim = 0,
         .unit = PCNT_UNIT_0, // N2 is unit 0
         .channel = PCNT_CHANNEL_0,
@@ -90,7 +106,7 @@ void Sensors::configure_sensor_pins() {
         .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
         .pos_mode = PCNT_COUNT_DIS,   // Don't count on positive edge
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
-        .counter_h_lim = N2_PULSES_PER_REV/10, // interrupt will fire on 1/2 revolution
+        .counter_h_lim = N3_PULSES_PER_REV/SAMPLES_PER_REV,
         .counter_l_lim = 0,
         .unit = PCNT_UNIT_1, // N3 is unit 1
         .channel = PCNT_CHANNEL_0,
@@ -111,16 +127,15 @@ void Sensors::configure_sensor_pins() {
     pcnt_filter_enable(PCNT_UNIT_0);
     pcnt_filter_enable(PCNT_UNIT_1);
 
+    pcnt_isr_service_install(0);
+
+    pcnt_isr_handler_add(PCNT_UNIT_0, &onOverflow, (void*)PCNT_UNIT_0);
+    pcnt_isr_handler_add(PCNT_UNIT_1, &onOverflow, (void*)PCNT_UNIT_1);
+
+
     pcnt_event_enable(PCNT_UNIT_0, pcnt_evt_type_t::PCNT_EVT_H_LIM);
     pcnt_event_enable(PCNT_UNIT_1, pcnt_evt_type_t::PCNT_EVT_H_LIM);
 
-    pcnt_isr_service_install(0);
-
-    pcnt_isr_handler_add(PCNT_UNIT_0, &rpm_interrupt_n2, nullptr);
-    pcnt_isr_handler_add(PCNT_UNIT_1, &rpm_interrupt_n3, nullptr);
-
-    pcnt_intr_enable(PCNT_UNIT_0);
-    pcnt_intr_enable(PCNT_UNIT_1);
     // Resume counting!
     pcnt_counter_resume(PCNT_UNIT_0);
     pcnt_counter_resume(PCNT_UNIT_1);
@@ -132,49 +147,33 @@ uint16_t Sensors::read_vbatt() {
     return (uint16_t)(analogRead(PIN_V_SENSE) * 0.4) + 200;
 }
 
-uint64_t last_measure_n2 = micros();
-uint16_t Sensors::read_n2_rpm() {
-    uint64_t gap = micros() - last_measure_n2;
-    uint64_t gap_signal = micros() - last_quater_revolution_n2;
-    if (gap_signal > 500000) {
-        n2_rpm = 0;
+uint32_t Sensors::read_n2_rpm() {
+    uint64_t now = micros();
+
+    portENTER_CRITICAL(&n2_mux);
+    if (now - last_n2_time > 100000) {
+        portEXIT_CRITICAL(&n2_mux);
         return 0;
     }
 
-    if (gap < 20000) {
-        return n2_rpm; // Too fast
-    }
-
-    // How much of 1 second has it been
-    float gap_as_second = 1000000.f / (float)gap;
-    uint16_t rpm_est = n2_pulses*(N3_PULSES_PER_REV/10)*gap_as_second;
-    last_measure_n2 = micros();
-    n2_pulses = 0;
-    n2_rpm = rpm_est;
-    return n2_rpm;
+    uint32_t avg = n2_total / AVG_SAMPLES;
+    float freq = (1000000 * (N2_PULSES_PER_REV / SAMPLES_PER_REV)) / avg;
+    portEXIT_CRITICAL(&n2_mux);
+    return freq;
 }
 
-
-uint64_t last_measure_n3 = micros();
-uint16_t Sensors::read_n3_rpm() {
-    uint64_t gap = micros() - last_measure_n3;
-    uint64_t gap_signal = micros() - last_quater_revolution_n3;
-    if (gap_signal > 500000) {
-        n3_rpm = 0;
+uint32_t Sensors::read_n3_rpm() {
+    uint64_t now = micros();
+    portENTER_CRITICAL(&n3_mux);
+    if (now - last_n3_time > 100000) { // 100ms timeout
+        portEXIT_CRITICAL(&n3_mux);
         return 0;
     }
 
-    if (gap < 20000) {
-        return n3_rpm; // Too fast
-    }
-
-    // How much of 1 second has it been
-    float gap_as_second = 1000000.f / (float)gap;
-    uint16_t rpm_est = n3_pulses*(N2_PULSES_PER_REV/10)*gap_as_second;
-    last_measure_n3 = micros();
-    n3_pulses = 0;
-    n3_rpm = rpm_est;
-    return n3_rpm;
+    uint32_t avg = n3_total / AVG_SAMPLES;
+    float freq = (1000000 * (N3_PULSES_PER_REV / SAMPLES_PER_REV)) / avg;
+    portEXIT_CRITICAL(&n3_mux);
+    return freq;
 }
 
 uint32_t Sensors::read_solenoid_current(Solenoid sol) {
@@ -208,16 +207,4 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
 
 uint16_t Sensors::read_atf_temp() {
     return analogReadMilliVolts(PIN_ATF_SENSE);
-}
-
-uint32_t __read_n2() {
-    uint32_t tmp = n2_rpm;
-    n2_rpm = 0;
-    return tmp;
-}
-
-uint32_t __read_n3() {
-    uint32_t tmp = n3_rpm;
-    n3_rpm = 0;
-    return tmp;
 }

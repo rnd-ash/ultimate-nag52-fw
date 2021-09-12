@@ -1,5 +1,5 @@
 #include <sensors.h>
-
+#include "pwm_channels/channels.h"
 
 volatile uint64_t n2_times[2] = {0, 0}; // {First interrupt, Period Count}
 volatile uint64_t n3_times[2] = {0, 0}; // {First interrupt, Period Count}
@@ -37,8 +37,8 @@ void Sensors::configure_sensor_pins() {
     // Gearbox sensors
     pinMode(PIN_V_SENSE, INPUT);
     pinMode(PIN_ATF_SENSE, INPUT);
-    pinMode(PIN_N2_SENSE, INPUT);
-    pinMode(PIN_N3_SENSE, INPUT);
+    pinMode(PIN_N2_SENSE, INPUT_PULLUP);
+    pinMode(PIN_N3_SENSE, INPUT_PULLUP);
 
     // Solenoid current inputs
     pinMode(PIN_Y3_SENSE, INPUT);
@@ -57,10 +57,14 @@ void Sensors::configure_sensor_pins() {
     base_solenoid_readings[(uint8_t)Solenoid::SPC] = analogReadMilliVolts(PIN_SPC_SENSE);
     base_solenoid_readings[(uint8_t)Solenoid::TCC] = analogReadMilliVolts(PIN_TCC_SENSE);
 
+    // Now apply 40% to MPC and SPC
+    
+
     // Now check. According to ESP and testing, we shouldn't see more than 300mV at resting current.
     // If we do, we can assume there is a short somewhere and the MOSFET no longer has control
     // over that solenoid
-
+    //mpc_pwm.write_pwm(128);
+    //spc_pwm.write_pwm(102);
 
 
     // Init N2 and N3 HW timers
@@ -130,4 +134,8 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
     return raw;
     // 0-3V = 0-6A with 0.05Ohm resistor, so easy calculation!
     return (raw - base_solenoid_readings[(uint8_t)sol]) * 2;
+}
+
+uint16_t Sensors::read_atf_temp() {
+    return analogReadMilliVolts(PIN_ATF_SENSE);
 }

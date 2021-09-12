@@ -25,14 +25,23 @@ static bool idle_core1() {
   return false;
 }
 
+void send_note(uint8_t channel, uint32_t freq, uint32_t dur, uint32_t total_dur) {
+  ledcWriteTone(spkr_channel, freq);
+  vTaskDelay(dur);
+  ledcWriteTone(spkr_channel, 0);
+  vTaskDelay(total_dur - dur);
+}
 
-uint8_t duty = 10;
-
-void y3_test(void* pvParams) {
-  while(true) {
-    tcc_pwm.write_pwm(duty);
-    vTaskDelay(10);
-  }
+void start_beep_task(void* pvParams) {
+  send_note(spkr_channel, 660, 100, 150);
+  send_note(spkr_channel, 660, 100, 300);
+  send_note(spkr_channel, 660, 100, 300);
+  send_note(spkr_channel, 510, 100, 100);
+  send_note(spkr_channel, 660, 100, 300);
+  send_note(spkr_channel, 770, 100, 550);
+  send_note(spkr_channel, 380, 100, 575);
+  ledcWriteTone(spkr_channel, 0);
+  vTaskDelete(NULL); // Goodbye
 }
 
 [[noreturn]] void print_task(void* pvParams) {
@@ -46,25 +55,12 @@ void y3_test(void* pvParams) {
     ticks_core0 = 0;
     ticks_core1 = 0;
     
-    Serial.println(buf);
-    Serial.print("Y3:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::Y3));
-    Serial.print(" mA, ");
-    Serial.print("Y4:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::Y4));
-    Serial.print(" mA, ");
-    Serial.print("Y5:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::Y5));
-    Serial.print(" mA, ");
-    Serial.print("MPC:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::MPC));
-    Serial.print(" mA, ");
-    Serial.print("SPC:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::SPC));
-    Serial.print(" mA, ");
-    Serial.print("TCC:");
-    Serial.print(Sensors::read_solenoid_current(Solenoid::TCC));
-    Serial.println(" mA");
+    Serial.print("N2: ");
+    Serial.print(Sensors::read_n2_rpm());
+    Serial.print(" N3: ");
+    Serial.print(Sensors::read_n3_rpm());
+    Serial.print(" ATF: ");
+    Serial.println(Sensors::read_atf_temp());
     vTaskDelay(1000 / portTICK_RATE_MS);
   }
 }
@@ -81,7 +77,7 @@ void setup() {
   esp_register_freertos_idle_hook_for_cpu(idle_core0, 0);
   esp_register_freertos_idle_hook_for_cpu(idle_core1, 1);
   xTaskCreate(&print_task, "printer", 4096, nullptr, 1, nullptr);
-  xTaskCreate(&y3_test, "test", 512, nullptr, 1, nullptr);
+  xTaskCreate(&start_beep_task, "spkr", 512, nullptr, 1, nullptr);
 }
 
 

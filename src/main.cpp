@@ -54,14 +54,14 @@ void start_beep_task(void* pvParams) {
     sprintf(buf, "CORE 0: %.1f%% CORE 1: %.1f%%. Free heap: %lu, Free PSRAM: %lu", l0, l1, ESP.getFreeHeap(), ESP.getFreePsram());
     ticks_core0 = 0;
     ticks_core1 = 0;
-    
+    Serial.println(buf);
     Serial.print("N2: ");
     Serial.print(Sensors::read_n2_rpm());
     Serial.print(" N3: ");
     Serial.print(Sensors::read_n3_rpm());
     Serial.print(" ATF: ");
     Serial.println(Sensors::read_atf_temp());
-    vTaskDelay(1000 / portTICK_RATE_MS);
+    vTaskDelay(500 / portTICK_RATE_MS);
   }
 }
 
@@ -77,7 +77,7 @@ void setup() {
   esp_register_freertos_idle_hook_for_cpu(idle_core0, 0);
   esp_register_freertos_idle_hook_for_cpu(idle_core1, 1);
   xTaskCreate(&print_task, "printer", 4096, nullptr, 1, nullptr);
-  xTaskCreate(&start_beep_task, "spkr", 512, nullptr, 1, nullptr);
+  xTaskCreate(&start_beep_task, "spkr", 1024, nullptr, 1, nullptr);
 }
 
 

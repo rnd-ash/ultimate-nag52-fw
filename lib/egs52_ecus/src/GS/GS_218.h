@@ -15,7 +15,7 @@ enum class GS_218H_GIC {
     D1 = 1, /** actual gear "1" */
     D2 = 2, /** actual gear "2" */
     D3 = 3, /** actual gear "3" */
-    ​​D4 = 4, /** actual gear "4" */
+    D4 = 4, /** actual gear "4" */
     D5 = 5, /** actual gear "5" */
     D6 = 6, /** actual gear "6" */
     D7 = 7, /** actual gear "7" */
@@ -34,7 +34,7 @@ enum class GS_218H_GZC {
     D1 = 1, /** target gear "1" */
     D2 = 2, /** target gear "2" */
     D3 = 3, /** target gear "3" */
-    ​​D4 = 4, /** target gear "4" */
+    D4 = 4, /** target gear "4" */
     D5 = 5, /** target gear "5" */
     D6 = 6, /** target gear "6" */
     D7 = 7, /** target gear "7" */

@@ -67,7 +67,23 @@ namespace Sensors {
      */
     uint32_t read_n3_rpm();
 
-    uint16_t read_atf_temp();
+    /**
+     * Reads the ATF temperature from the gearbox.
+     * 
+     * If read_park_lock returns true, this function CANNOT be used
+     * as it'll give a false reading.
+     */
+    int16_t read_atf_temp();
+
+    /**
+     * Reads the park lock status within the gearbox
+     * 
+     * If this function returns true, then reading ATF temp should not occur
+     * and instead the gearbox should substitute engine temp for gearbox ATF temp.
+     * When false, it means the gearbox is either in R or D, starting the engine
+     * is not allowed, and the function read_atf_temp can be used as normal
+     */
+    bool read_park_lock();
 
     /**
      * Returns the current amperage being read from the solenoid circuit.

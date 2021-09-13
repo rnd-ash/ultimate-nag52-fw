@@ -1,3 +1,6 @@
+#ifndef CONFIG_H_
+#define CONFIG_H_
+
 /// ---------------------------------------------------------------------------------- ///
 ///                                 SAFE ZONE                                          ///
 ///                                                                                    ///
@@ -167,3 +170,7 @@
  */
 
  #define BEEP_MANUAL_UPSHIFT false
+
+
+
+ #endif // CONFIG_H_

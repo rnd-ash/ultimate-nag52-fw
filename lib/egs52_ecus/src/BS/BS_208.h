@@ -37,7 +37,7 @@ enum class BS_208H_SLV_ESP {
     SKL1 = 1, /** switching characteristic "1" */
     SKL2 = 2, /** switching characteristic "2" */
     SKL3 = 3, /** switching characteristic "3" */
-    ​​SKL4 = 4, /** switching characteristic "4" */
+    SKL4 = 4, /** switching characteristic "4" */
     SKL5 = 5, /** switching characteristic "5" */
     SKL6 = 6, /** switching characteristic "6" */
     SKL7 = 7, /** switching characteristic "7" */

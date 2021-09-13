@@ -5,6 +5,9 @@
 #define SAMPLES_PER_REV 8 // measure 8 times per revolution...
 #define AVG_SAMPLES 8 // ...and average over 8 samples
 
+const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0; // N2 RPM uses PCNT unit 0
+const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1; // N3 RPM uses PCNT unit 1
+
 bool n2_ok = true; // If false DTC is thrown
 bool n3_ok = true; // If false DTC is thrown
 
@@ -12,6 +15,15 @@ static uint32_t base_solenoid_readings[6] = {0,0,0,0,0,0}; // Offsets from ADC
 
 uint64_t last_n2_time = 0; // Last time interrupt was called
 uint64_t last_n3_time = 0; // Last time interrupt was called
+
+
+/**
+ * To prevent random spikes in RPM, we smooth out the readings
+ * for N2 and N3 RPM sensor
+ * 
+ * This is done by keeping track of the past AVG_SAMPLES RPM measurements
+ * in a moving average fashion
+ */
 
 uint64_t n2_deltas[AVG_SAMPLES];
 uint8_t n2_sample_id = 0;
@@ -21,13 +33,14 @@ uint64_t n3_deltas[AVG_SAMPLES];
 uint8_t n3_sample_id = 0;
 uint64_t n3_total = 0;
 
+// Muxes for interrupts
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
 static void IRAM_ATTR onOverflow(void *args) {
-    int unit = (int)args;
+    int unit = (int)args; // PCNT unit we are working with
     uint64_t now = micros();
-    if (unit == PCNT_UNIT_0) { // N2
+    if (unit == PCNT_N2_RPM) { // N2
         portENTER_CRITICAL(&n2_mux);
         n2_total = n2_total - n2_deltas[n2_sample_id];
         uint64_t delta = (now - last_n2_time);
@@ -36,7 +49,7 @@ static void IRAM_ATTR onOverflow(void *args) {
         n2_total += delta;
         n2_sample_id = (n2_sample_id+1) % AVG_SAMPLES;
         portEXIT_CRITICAL(&n2_mux);
-    } else if (unit == PCNT_UNIT_1) { // N3
+    } else if (unit == PCNT_N3_RPM) { // N3
         portENTER_CRITICAL(&n3_mux);
         n3_total -= n3_deltas[n3_sample_id];
         uint64_t delta = (now - last_n3_time);
@@ -93,7 +106,7 @@ void Sensors::configure_sensor_pins() {
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
         .counter_h_lim = N2_PULSES_PER_REV/SAMPLES_PER_REV,
         .counter_l_lim = 0,
-        .unit = PCNT_UNIT_0, // N2 is unit 0
+        .unit = PCNT_N2_RPM,
         .channel = PCNT_CHANNEL_0,
     };
     pcnt_unit_config(&pcnt_config_n2);
@@ -108,37 +121,37 @@ void Sensors::configure_sensor_pins() {
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
         .counter_h_lim = N3_PULSES_PER_REV/SAMPLES_PER_REV,
         .counter_l_lim = 0,
-        .unit = PCNT_UNIT_1, // N3 is unit 1
+        .unit = PCNT_N3_RPM,
         .channel = PCNT_CHANNEL_0,
     };
     pcnt_unit_config(&pcnt_config_n3);
 
     // Stop counting and clear. We haven't setup ISR or filter yet
-    pcnt_counter_pause(PCNT_UNIT_0);
-    pcnt_counter_pause(PCNT_UNIT_1);
+    pcnt_counter_pause(PCNT_N2_RPM);
+    pcnt_counter_pause(PCNT_N3_RPM);
 
-    pcnt_counter_clear(PCNT_UNIT_0);
-    pcnt_counter_clear(PCNT_UNIT_1);
+    pcnt_counter_clear(PCNT_N2_RPM);
+    pcnt_counter_clear(PCNT_N3_RPM);
 
     // Setup filter and ISR
-    pcnt_set_filter_value(PCNT_UNIT_0, 40); // 40us or more counts as a pulse (Works upto 10,000 RPM)
-    pcnt_set_filter_value(PCNT_UNIT_1, 40);
+    pcnt_set_filter_value(PCNT_N2_RPM, 40); // 40us or more counts as a pulse (Works upto 10,000 RPM)
+    pcnt_set_filter_value(PCNT_N3_RPM, 40);
 
-    pcnt_filter_enable(PCNT_UNIT_0);
-    pcnt_filter_enable(PCNT_UNIT_1);
+    pcnt_filter_enable(PCNT_N2_RPM);
+    pcnt_filter_enable(PCNT_N3_RPM);
 
     pcnt_isr_service_install(0);
 
-    pcnt_isr_handler_add(PCNT_UNIT_0, &onOverflow, (void*)PCNT_UNIT_0);
-    pcnt_isr_handler_add(PCNT_UNIT_1, &onOverflow, (void*)PCNT_UNIT_1);
+    pcnt_isr_handler_add(PCNT_N2_RPM, &onOverflow, (void*)PCNT_N2_RPM);
+    pcnt_isr_handler_add(PCNT_N3_RPM, &onOverflow, (void*)PCNT_N3_RPM);
 
-
-    pcnt_event_enable(PCNT_UNIT_0, pcnt_evt_type_t::PCNT_EVT_H_LIM);
-    pcnt_event_enable(PCNT_UNIT_1, pcnt_evt_type_t::PCNT_EVT_H_LIM);
+    // Enable interrupt when we hit H Lim of the counters
+    pcnt_event_enable(PCNT_N2_RPM, pcnt_evt_type_t::PCNT_EVT_H_LIM);
+    pcnt_event_enable(PCNT_N3_RPM, pcnt_evt_type_t::PCNT_EVT_H_LIM);
 
     // Resume counting!
-    pcnt_counter_resume(PCNT_UNIT_0);
-    pcnt_counter_resume(PCNT_UNIT_1);
+    pcnt_counter_resume(PCNT_N2_RPM);
+    pcnt_counter_resume(PCNT_N3_RPM);
 
 }
 
@@ -151,7 +164,7 @@ uint32_t Sensors::read_n2_rpm() {
     uint64_t now = micros();
 
     portENTER_CRITICAL(&n2_mux);
-    if (now - last_n2_time > 100000) {
+    if (now - last_n2_time > 100000) { // 100ms timeout
         portEXIT_CRITICAL(&n2_mux);
         return 0;
     }
@@ -205,6 +218,10 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
     return (raw - base_solenoid_readings[(uint8_t)sol]) * 2;
 }
 
-uint16_t Sensors::read_atf_temp() {
+int16_t Sensors::read_atf_temp() {
     return analogReadMilliVolts(PIN_ATF_SENSE);
+}
+
+bool Sensors::read_park_lock() {
+    return analogReadMilliVolts(PIN_ATF_SENSE) > 3000;
 }

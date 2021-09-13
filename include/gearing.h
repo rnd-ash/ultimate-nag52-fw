@@ -1,3 +1,6 @@
+#ifndef GEARING_H_
+#define GEARING_H_
+
 #include <config.h>
 
 
@@ -26,3 +29,6 @@
 #define GEAR_R2 -1.8986
 
 #endif
+
+
+ #endif // GEARING_H_

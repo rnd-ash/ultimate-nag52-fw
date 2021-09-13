@@ -15,7 +15,7 @@ enum class GS_418H_FSC {
     ONE = 49, /** speed step "1" */
     TWO = 50, /** speed step "2" */
     THREE = 51, /** speed step "3" */
-    ​​FOUR = 52, /** speed step "4" */
+    FOUR = 52, /** speed step "4" */
     FUENF = 53, /** speed step "5" */
     SIX = 54, /** speed step "6" */
     SEVEN = 55, /** speed step "7" */
@@ -84,7 +84,7 @@ enum class GS_418H_GIC {
     D1 = 1, /** actual gear "1" */
     D2 = 2, /** actual gear "2" */
     D3 = 3, /** actual gear "3" */
-    ​​D4 = 4, /** actual gear "4" */
+    D4 = 4, /** actual gear "4" */
     D5 = 5, /** actual gear "5" */
     D6 = 6, /** actual gear "6" */
     D7 = 7, /** actual gear "7" */
@@ -103,7 +103,7 @@ enum class GS_418H_GZC {
     D1 = 1, /** target gear "1" */
     D2 = 2, /** target gear "2" */
     D3 = 3, /** target gear "3" */
-    ​​D4 = 4, /** target gear "4" */
+    D4 = 4, /** target gear "4" */
     D5 = 5, /** target gear "5" */
     D6 = 6, /** target gear "6" */
     D7 = 7, /** target gear "7" */

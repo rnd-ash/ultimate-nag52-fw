@@ -5,7 +5,6 @@
 #define ULTIMATE_NAG52_FW_ISO_TP_H
 
 #include <cstdint>
-#include <esp32_can.h>
 
 class IsoTpServer {
 public:

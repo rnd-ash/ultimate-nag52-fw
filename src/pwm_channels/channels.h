@@ -2,14 +2,17 @@
 #define PWM_CHANNELS_H_
 
 #include <stdint.h>
+#include <driver/ledc.h>
 
 class PwmChannel {
 public:
-    PwmChannel(uint8_t channel_id, uint32_t freq, uint8_t pin, uint8_t initial_pwm);
+    PwmChannel(ledc_channel_t channel, uint32_t freq, uint8_t pin, uint8_t initial_pwm);
     void write_pwm(uint8_t value);
     uint8_t get_pwm();
+    void change_freq(uint32_t f);
 private:
-    uint8_t channel_id;
+    ledc_channel_t channel;
+    uint8_t duty = 0;
 };
 
 extern PwmChannel y3_pwm;

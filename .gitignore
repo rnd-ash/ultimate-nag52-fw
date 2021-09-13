@@ -32,5 +32,8 @@
 *.app
 
 .vscode/**
+CMakeCache.txt
+CMakeFiles/**
 
 .pio/build/**
+.idea/**

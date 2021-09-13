@@ -3,7 +3,6 @@
 //
 
 #include <config.h>
-#include <Arduino.h>
 #include "pwm_channels/channels.h"
 
 #ifndef ULTIMATE_NAG52_FW_GEARBOX_H
@@ -25,7 +24,7 @@ public:
     uint8_t get_atf_temp();
 
 private:
-    xTaskHandle* updater;
+    //xTaskHandle* updater;
     uint32_t n2_rpm;
     uint32_t n3_rpm;
     bool safe_to_start;

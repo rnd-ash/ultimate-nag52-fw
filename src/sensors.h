@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 #include <pins.h>
-#include <Arduino.h>
+#include <driver/adc.h>
+#include "esp_adc_cal.h"
 
 /**
  * Number of teeth on the N2 carrier gear
@@ -14,6 +15,33 @@
  * Number of teeth on the N3 carrier gear
  */
 #define N3_PULSES_PER_REV 60
+
+
+/** 
+ * ADC1 channels for solenoid current monitoring
+ */
+#define ADC_CHANNEL_Y3 adc1_channel_t::ADC1_CHANNEL_4
+#define ADC_CHANNEL_Y4 adc1_channel_t::ADC1_CHANNEL_5
+#define ADC_CHANNEL_Y5 adc2_channel_t::ADC2_CHANNEL_9
+
+#define ADC_CHANNEL_SPC adc2_channel_t::ADC2_CHANNEL_7
+#define ADC_CHANNEL_MPC adc2_channel_t::ADC2_CHANNEL_8
+#define ADC_CHANNEL_TCC adc2_channel_t::ADC2_CHANNEL_6
+
+#define ADC_CHANNEL_VSENSE adc1_channel_t::ADC1_CHANNEL_0
+#define ADC_CHANNEL_ATF adc1_channel_t::ADC1_CHANNEL_3
+
+
+enum class ADC_Reading {
+    Y3,
+    Y4,
+    Y5,
+    MPC,
+    SPC,
+    TCC,
+    ATF,
+    V_SENSE
+};
 
 /**
  * Solenoids on the gearbox

@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <Arduino.h>
 #include "iso_tp.h"
 
 #define MAX_DATA_SIZE 4096
@@ -37,5 +36,5 @@ class KwpServer {
     ~KwpServer();
 private:
     KwpDataHandler* handler;
-    TaskHandle_t server_handler;
+    // server_handler;
 };

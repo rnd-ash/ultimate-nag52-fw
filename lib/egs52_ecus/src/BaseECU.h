@@ -1,5 +1,5 @@
 
-#include <esp32_can.h>
+#include <driver/can.h>
 
 /**
  * Abstracted layer for all ECUs that will be talking to EGS52
@@ -35,5 +35,5 @@ class BaseECU {
          * 
          * Returns true if the frame is for THIS ECU, meaning the CAN class can stop trying insert it to other ECUs.
          */
-        virtual bool import_can_frame(CAN_FRAME *f, uint64_t timestamp);
+        virtual bool import_can_frame(can_message_t *f, uint64_t timestamp);
 };

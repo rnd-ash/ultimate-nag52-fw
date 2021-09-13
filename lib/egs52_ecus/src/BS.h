@@ -22,22 +22,22 @@ class BS_ECU : public BaseECU {
             }
         }
 
-        bool import_can_frame(CAN_FRAME *f, uint64_t timestamp) {
-            switch (f->id) {
+        bool import_can_frame(can_message_t *f, uint64_t timestamp) {
+            switch (f->identifier) {
                 case BS_200_ID:
-                    this->bs200.import_frame(f->id, f->data.uint8, f->length);
+                    this->bs200.import_frame(f->identifier, f->data, f->data_length_code);
                     update_framestatus(&this->bs200_status, timestamp);
                     return true;
                 case BS_208_ID:
-                    this->bs208.import_frame(f->id, f->data.uint8, f->length);
+                    this->bs208.import_frame(f->identifier, f->data, f->data_length_code);
                     update_framestatus(&this->bs208_status, timestamp);
                     return true;
                 case BS_270_ID:
-                    this->bs270.import_frame(f->id, f->data.uint8, f->length);
+                    this->bs270.import_frame(f->identifier, f->data, f->data_length_code);
                     update_framestatus(&this->bs270_status, timestamp);
                     return true;
                 case BS_300_ID:
-                    this->bs300.import_frame(f->id, f->data.uint8, f->length);
+                    this->bs300.import_frame(f->identifier, f->data, f->data_length_code);
                     update_framestatus(&this->bs300_status, timestamp);
                     return true;
                 default:

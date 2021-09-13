@@ -16,7 +16,6 @@ static uint32_t base_solenoid_readings[6] = {0,0,0,0,0,0}; // Offsets from ADC
 uint64_t last_n2_time = 0; // Last time interrupt was called
 uint64_t last_n3_time = 0; // Last time interrupt was called
 
-
 /**
  * To prevent random spikes in RPM, we smooth out the readings
  * for N2 and N3 RPM sensor
@@ -37,9 +36,45 @@ uint64_t n3_total = 0;
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
+esp_adc_cal_characteristics_t adc1_cal = esp_adc_cal_characteristics_t{};
+esp_adc_cal_characteristics_t adc2_cal = esp_adc_cal_characteristics_t{};
+
+
+uint32_t read_pin_mv(ADC_Reading req_pin) {
+    uint32_t raw = 0;
+    switch (req_pin) {
+        case ADC_Reading::Y3:
+            raw = adc1_get_raw(ADC_CHANNEL_Y3);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+        case ADC_Reading::Y4:
+            raw = adc1_get_raw(ADC_CHANNEL_Y4);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+        case ADC_Reading::Y5:
+            adc2_get_raw(ADC_CHANNEL_Y5, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+        case ADC_Reading::MPC:
+            adc2_get_raw(ADC_CHANNEL_MPC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+        case ADC_Reading::SPC:
+            adc2_get_raw(ADC_CHANNEL_SPC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+        case ADC_Reading::TCC:
+            adc2_get_raw(ADC_CHANNEL_TCC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+        case ADC_Reading::ATF:
+            raw = adc1_get_raw(ADC_CHANNEL_ATF);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+        case ADC_Reading::V_SENSE:
+            raw = adc1_get_raw(ADC_CHANNEL_VSENSE);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+        default:
+            return 0;
+    }
+}
+
 static void IRAM_ATTR onOverflow(void *args) {
     int unit = (int)args; // PCNT unit we are working with
-    uint64_t now = micros();
+    uint64_t now = esp_timer_get_time();
     if (unit == PCNT_N2_RPM) { // N2
         portENTER_CRITICAL(&n2_mux);
         n2_total = n2_total - n2_deltas[n2_sample_id];
@@ -65,27 +100,50 @@ static void IRAM_ATTR onOverflow(void *args) {
 
 void Sensors::configure_sensor_pins() {
     // Gearbox sensors
-    pinMode(PIN_V_SENSE, INPUT);
-    pinMode(PIN_ATF_SENSE, INPUT);
-    pinMode(PIN_N3_SENSE, INPUT_PULLUP);
-    pinMode(PIN_N2_SENSE, INPUT_PULLUP);
+
+    gpio_set_direction(PIN_V_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_ATF_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_N3_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_N2_SENSE, GPIO_MODE_INPUT);
+
+    gpio_set_pull_mode(PIN_N3_SENSE, GPIO_PULLUP_ONLY);
+    gpio_set_pull_mode(PIN_N2_SENSE, GPIO_PULLUP_ONLY);
 
     // Solenoid current inputs
-    pinMode(PIN_Y3_SENSE, INPUT);
-    pinMode(PIN_Y4_SENSE, INPUT);
-    pinMode(PIN_Y5_SENSE, INPUT);
-    pinMode(PIN_SPC_SENSE, INPUT);
-    pinMode(PIN_MPC_SENSE, INPUT);
-    pinMode(PIN_TCC_SENSE, INPUT);
+    gpio_set_direction(PIN_Y3_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_Y4_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_Y5_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_SPC_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_MPC_SENSE, GPIO_MODE_INPUT);
+    gpio_set_direction(PIN_TCC_SENSE, GPIO_MODE_INPUT);
+
+
+    // Configure ADC
+    adc1_config_width(ADC_WIDTH_12Bit);
+    adc1_config_channel_atten(ADC_CHANNEL_VSENSE, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_Y3, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_Y4, ADC_ATTEN_11db);
+
+    adc2_config_channel_atten(ADC_CHANNEL_Y5, ADC_ATTEN_11db);
+    adc2_config_channel_atten(ADC_CHANNEL_SPC, ADC_ATTEN_11db);
+    adc2_config_channel_atten(ADC_CHANNEL_MPC, ADC_ATTEN_11db);
+    adc2_config_channel_atten(ADC_CHANNEL_TCC, ADC_ATTEN_11db);
+
+    // Read ADC calibration
+    esp_adc_cal_value_t type = esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_12Bit, 0, &adc1_cal);
+    type = esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, ADC_ATTEN_11db, ADC_WIDTH_12Bit, 0, &adc2_cal);
+
+    adc1_get_raw(adc1_channel_t::ADC1_CHANNEL_0);
 
     // Read all solenoids now to get resting current (PWM hasn't started yet!)
     // This is our base measurement
-    base_solenoid_readings[(uint8_t)Solenoid::Y3] = analogReadMilliVolts(PIN_Y3_SENSE);
-    base_solenoid_readings[(uint8_t)Solenoid::Y4] = analogReadMilliVolts(PIN_Y4_SENSE);
-    base_solenoid_readings[(uint8_t)Solenoid::Y5] = analogReadMilliVolts(PIN_Y5_SENSE);
-    base_solenoid_readings[(uint8_t)Solenoid::MPC] = analogReadMilliVolts(PIN_MPC_SENSE);
-    base_solenoid_readings[(uint8_t)Solenoid::SPC] = analogReadMilliVolts(PIN_SPC_SENSE);
-    base_solenoid_readings[(uint8_t)Solenoid::TCC] = analogReadMilliVolts(PIN_TCC_SENSE);
+    base_solenoid_readings[(uint8_t)Solenoid::Y3] = read_pin_mv(ADC_Reading::Y3);
+    base_solenoid_readings[(uint8_t)Solenoid::Y4] = read_pin_mv(ADC_Reading::Y4);
+    base_solenoid_readings[(uint8_t)Solenoid::Y5] = read_pin_mv(ADC_Reading::Y5);
+    base_solenoid_readings[(uint8_t)Solenoid::MPC] = read_pin_mv(ADC_Reading::MPC);
+    base_solenoid_readings[(uint8_t)Solenoid::SPC] = read_pin_mv(ADC_Reading::SPC);
+    base_solenoid_readings[(uint8_t)Solenoid::TCC] = read_pin_mv(ADC_Reading::TCC);
 
     // Now apply 40% to MPC and SPC
     
@@ -100,11 +158,11 @@ void Sensors::configure_sensor_pins() {
         // Set PCNT input signal and control GPIOs
         .pulse_gpio_num = PIN_N2_SENSE, // N2 RPM
         .ctrl_gpio_num = PCNT_PIN_NOT_USED, // No control
-        .lctrl_mode = PCNT_MODE_KEEP, // Reverse counting direction if low
-        .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
+        .lctrl_mode = PCNT_MODE_KEEP, // Ignore control
+        .hctrl_mode = PCNT_MODE_KEEP,    // Ignore control
         .pos_mode = PCNT_COUNT_DIS,   // Don't count on positive edge
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
-        .counter_h_lim = N2_PULSES_PER_REV/SAMPLES_PER_REV,
+        .counter_h_lim = N2_PULSES_PER_REV/SAMPLES_PER_REV, // HLim is pulses per rev (60 for N2) / number of samples per rev
         .counter_l_lim = 0,
         .unit = PCNT_N2_RPM,
         .channel = PCNT_CHANNEL_0,
@@ -113,13 +171,13 @@ void Sensors::configure_sensor_pins() {
 
     const pcnt_config_t pcnt_config_n3 {
         // Set PCNT input signal and control GPIOs
-        .pulse_gpio_num = PIN_N3_SENSE, // N2 RPM
+        .pulse_gpio_num = PIN_N3_SENSE, // N3 RPM
         .ctrl_gpio_num = PCNT_PIN_NOT_USED, // No control
-        .lctrl_mode = PCNT_MODE_KEEP, // Reverse counting direction if low
-        .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
+        .lctrl_mode = PCNT_MODE_KEEP, // Ignore control
+        .hctrl_mode = PCNT_MODE_KEEP, // Ignore control
         .pos_mode = PCNT_COUNT_DIS,   // Don't count on positive edge
         .neg_mode = PCNT_COUNT_INC,   // Count on calling edge
-        .counter_h_lim = N3_PULSES_PER_REV/SAMPLES_PER_REV,
+        .counter_h_lim = N3_PULSES_PER_REV/SAMPLES_PER_REV,  // HLim is pulses per rev (60 for N2) / number of samples per rev
         .counter_l_lim = 0,
         .unit = PCNT_N3_RPM,
         .channel = PCNT_CHANNEL_0,
@@ -157,11 +215,11 @@ void Sensors::configure_sensor_pins() {
 
 
 uint16_t Sensors::read_vbatt() {
-    return (uint16_t)(analogRead(PIN_V_SENSE) * 0.4) + 200;
+    return (uint16_t)(read_pin_mv(ADC_Reading::V_SENSE) * 0.4) + 200;
 }
 
 uint32_t Sensors::read_n2_rpm() {
-    uint64_t now = micros();
+    uint64_t now = esp_timer_get_time();
 
     portENTER_CRITICAL(&n2_mux);
     if (now - last_n2_time > 100000) { // 100ms timeout
@@ -176,7 +234,7 @@ uint32_t Sensors::read_n2_rpm() {
 }
 
 uint32_t Sensors::read_n3_rpm() {
-    uint64_t now = micros();
+    uint64_t now = esp_timer_get_time();
     portENTER_CRITICAL(&n3_mux);
     if (now - last_n3_time > 100000) { // 100ms timeout
         portEXIT_CRITICAL(&n3_mux);
@@ -193,22 +251,22 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
     uint32_t raw = 0;
     switch(sol) {
         case Solenoid::Y3:
-            raw = analogReadMilliVolts(PIN_Y3_SENSE);
+            raw = read_pin_mv(ADC_Reading::Y3);
             break;
         case Solenoid::Y4:
-            raw = analogReadMilliVolts(PIN_Y4_SENSE);
+            raw = read_pin_mv(ADC_Reading::Y4);
             break;
         case Solenoid::Y5:
-            raw = analogReadMilliVolts(PIN_Y5_SENSE);
+            raw = read_pin_mv(ADC_Reading::Y5);
             break;
         case Solenoid::MPC:
-            raw = analogReadMilliVolts(PIN_MPC_SENSE);
+            raw = read_pin_mv(ADC_Reading::MPC);
             break;
         case Solenoid::SPC:
-            raw = analogReadMilliVolts(PIN_SPC_SENSE);
+            raw = read_pin_mv(ADC_Reading::SPC);
             break;
         case Solenoid::TCC:
-            raw = analogReadMilliVolts(PIN_TCC_SENSE);
+            raw = read_pin_mv(ADC_Reading::TCC);
             break;
         default:
             break;
@@ -219,9 +277,9 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
 }
 
 int16_t Sensors::read_atf_temp() {
-    return analogReadMilliVolts(PIN_ATF_SENSE);
+    return read_pin_mv(ADC_Reading::ATF);
 }
 
 bool Sensors::read_park_lock() {
-    return analogReadMilliVolts(PIN_ATF_SENSE) > 3000;
+    return read_pin_mv(ADC_Reading::ATF) > 3000;
 }

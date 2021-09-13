@@ -1,6 +1,4 @@
 #include "egs52_can.h"
-#include <Arduino.h>
-#include <esp32_can.h>
 #include <pins.h>
 
 GS_218 gs218;
@@ -29,15 +27,14 @@ Egs52Can::Egs52Can() : AbstractCanHandler()
     gs418.set_FRONT(false);
     gs418.set_ALL_WHEEL(false);
 
+    // Setup CANbus
 
+    can_general_config_t g_config = CAN_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, CAN_MODE_NORMAL);
+    can_timing_config_t t_config = CAN_TIMING_CONFIG_500KBITS();
+    can_filter_config_t f_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
 
-    CAN0.setCANPins(PIN_CAN_RX, PIN_CAN_TX);
-    CAN0.begin(500000);
-
-    CAN0.watchFor(BS_200_ID);
-    CAN0.watchFor(BS_208_ID);
-    CAN0.watchFor(BS_270_ID);
-    CAN0.watchFor(BS_300_ID);
+    can_driver_install(&g_config, &t_config, &f_config);
+    can_start();
 }
 
 Egs52Can::~Egs52Can()
@@ -64,38 +61,41 @@ void Egs52Can::start_tx_rx_loop() {
 }
 
 void Egs52Can::rx_loop() {
-    CAN_FRAME rx;
+    can_message_t rx;
     while(true) {
-        uint64_t now = millis();
-        while (CAN0.available()) {
-READ_FRAME:
-            if (CAN0.read(rx)) {
-                if (this->bsECU.import_can_frame(&rx, now)) { goto READ_FRAME; };
+        if (can_receive(&rx, pdMS_TO_TICKS(10) == ESP_OK)) {
+            uint64_t now = esp_timer_get_time() / 1000;
+            if (this->bsECU.import_can_frame(&rx, now)) { 
+                vTaskDelay(10 / portTICK_PERIOD_MS); // No data
             }
+        } else {
+            vTaskDelay(10 / portTICK_PERIOD_MS); // No data
         }
-        vTaskDelay(5);
     }
     vTaskDelete(this->task_handler_rx);
 }
 
 void Egs52Can::tx_loop() {
-    CAN_FRAME tx;
+    can_message_t tx;
+    tx.flags = CAN_MSG_FLAG_NONE; // For Mercs
     bool positive = false;
     while(true) {
-        gs218.export_frame(&tx.id, tx.data.uint8, &tx.length);
-        CAN0.sendFrame(tx);
-        gs338.export_frame(&tx.id, tx.data.uint8, &tx.length);
-        CAN0.sendFrame(tx);
-        gs418.export_frame(&tx.id, tx.data.uint8, &tx.length);
-        CAN0.sendFrame(tx);
+        uint64_t now = esp_timer_get_time();
+        gs218.export_frame(&tx.identifier, tx.data, &tx.data_length_code);
+        can_transmit(&tx, pdMS_TO_TICKS(10));
+        gs338.export_frame(&tx.identifier, tx.data, &tx.data_length_code);
+        can_transmit(&tx, pdMS_TO_TICKS(10));
+        gs418.export_frame(&tx.identifier, tx.data, &tx.data_length_code);
+        can_transmit(&tx, pdMS_TO_TICKS(10));
+        uint64_t elapsed_ms = (esp_timer_get_time() - now) / 1000;
+        vTaskDelay(elapsed_ms / portTICK_RATE_MS);
         positive = !positive;
-        vTaskDelay(this->can_tx_ms);
     }
     vTaskDelete(this->task_handler_tx);
 }
 
 uint16_t Egs52Can::get_engine_rpm() {
-    
+    return 0;
 }
 
 void Egs52Can::get_rr_rpm(WheelRotation *dest) {
@@ -159,51 +159,51 @@ void Egs52Can::get_fl_rpm(WheelRotation *dest) {
 }
 
 int16_t Egs52Can::get_steering_angle() {
-    
+    return 0;
 }
 
 int16_t Egs52Can::get_ambient_temp() {
-    
+    return 0;
 }
 
 int16_t Egs52Can::get_engine_temp() {
-    
+    return 0;
 }
 
 bool Egs52Can::is_profile_toggle_pressed() {
-    
+    return false;
 }
 
 Gear Egs52Can::get_abs_target_lower_gear() {
-    
+    return Gear::PASSIVE;
 }
 
 Gear Egs52Can::get_abs_target_upper_gear() {
-    
+    return Gear::PASSIVE;
 }
 
 bool Egs52Can::get_abs_request_downshift() {
-    
+    return false;
 }
 
 bool Egs52Can::get_abs_request_gear_forced() {
-    
+    return false;
 }
 
 uint16_t Egs52Can::get_engine_static_torque() {
-    
+    return 0;
 }
 
 uint16_t Egs52Can::get_engine_max_torque_dyno() {
-    
+    return 0;
 }
 
 uint16_t Egs52Can::get_engine_max_torque() {
-    
+    return 0;
 }
 
 uint16_t Egs52Can::get_engine_min_torque() {
-    
+    return 0;
 }
 
 void Egs52Can::set_is_safe_start(bool can_start) {

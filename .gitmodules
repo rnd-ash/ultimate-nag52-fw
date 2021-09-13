@@ -1,6 +1,0 @@
-[submodule "lib/can_common"]
-	path = lib/can_common
-	url = https://github.com/collin80/can_common
-[submodule "lib/esp32_can"]
-	path = lib/esp32_can
-	url = https://github.com/collin80/esp32_can

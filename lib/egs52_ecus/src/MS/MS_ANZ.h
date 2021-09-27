@@ -56,12 +56,12 @@ typedef union {
     uint64_t raw;
 
     // Sets number of the ASS status message
-    void set_MS_ANZ_ASS_DSPL(uint8_t value){ raw = (raw & 0xfffff0ffffffffff) | ((uint64_t)value & 0xf) << 40; }
+    void set_MS_ANZ_ASS_DSPL(MS_ANZ_ASS_DSPL value){ raw = (raw & 0xfffff0ffffffffff) | ((uint64_t)value & 0xf) << 40; }
     // Gets number of the ASS status message
     MS_ANZ_ASS_DSPL get_ASS_DSPL() { return (MS_ANZ_ASS_DSPL)(raw >> 40 & 0xf); }
 
     // Sets number of the ASS warning message
-    void set_MS_ANZ_ASS_WARN(uint8_t value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
+    void set_MS_ANZ_ASS_WARN(MS_ANZ_ASS_WARN value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
     // Gets number of the ASS warning message
     MS_ANZ_ASS_WARN get_ASS_WARN() { return (MS_ANZ_ASS_WARN)(raw >> 44 & 0xf); }
 

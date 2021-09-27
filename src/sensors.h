@@ -20,17 +20,16 @@
 /** 
  * ADC1 channels for solenoid current monitoring
  */
-#define ADC_CHANNEL_Y3 adc1_channel_t::ADC1_CHANNEL_4
-#define ADC_CHANNEL_Y4 adc1_channel_t::ADC1_CHANNEL_5
-#define ADC_CHANNEL_Y5 adc2_channel_t::ADC2_CHANNEL_9
+#define ADC_CHANNEL_Y3 adc1_channel_t::ADC1_CHANNEL_0
+#define ADC_CHANNEL_Y4 adc1_channel_t::ADC1_CHANNEL_3
+#define ADC_CHANNEL_Y5 adc1_channel_t::ADC1_CHANNEL_7
 
-#define ADC_CHANNEL_SPC adc2_channel_t::ADC2_CHANNEL_7
-#define ADC_CHANNEL_MPC adc2_channel_t::ADC2_CHANNEL_8
-#define ADC_CHANNEL_TCC adc2_channel_t::ADC2_CHANNEL_6
+#define ADC_CHANNEL_SPC adc1_channel_t::ADC1_CHANNEL_4
+#define ADC_CHANNEL_MPC adc1_channel_t::ADC1_CHANNEL_6
+#define ADC_CHANNEL_TCC adc1_channel_t::ADC1_CHANNEL_5
 
-#define ADC_CHANNEL_VSENSE adc1_channel_t::ADC1_CHANNEL_0
-#define ADC_CHANNEL_ATF adc1_channel_t::ADC1_CHANNEL_3
-
+#define ADC_CHANNEL_VSENSE adc2_channel_t::ADC2_CHANNEL_8
+#define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
 
 enum class ADC_Reading {
     Y3,
@@ -62,6 +61,7 @@ enum class Solenoid {
 };
 
 namespace Sensors {
+    extern uint32_t isr_count;
     /**
      * Run this once on startup to configure all the sensor pins
      */

@@ -1,6 +1,7 @@
 #include <sensors.h>
 #include "pwm_channels/channels.h"
 #include "driver/pcnt.h"
+#include "driver/i2s.h"
 
 #define SAMPLES_PER_REV 8 // measure 8 times per revolution...
 #define AVG_SAMPLES 8 // ...and average over 8 samples
@@ -39,6 +40,7 @@ portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 esp_adc_cal_characteristics_t adc1_cal = esp_adc_cal_characteristics_t{};
 esp_adc_cal_characteristics_t adc2_cal = esp_adc_cal_characteristics_t{};
 
+uint16_t read_mv = 0;
 
 uint32_t read_pin_mv(ADC_Reading req_pin) {
     uint32_t raw = 0;
@@ -50,27 +52,28 @@ uint32_t read_pin_mv(ADC_Reading req_pin) {
             raw = adc1_get_raw(ADC_CHANNEL_Y4);
             return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
         case ADC_Reading::Y5:
-            adc2_get_raw(ADC_CHANNEL_Y5, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
-            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+            raw = adc1_get_raw(ADC_CHANNEL_Y5);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
         case ADC_Reading::MPC:
-            adc2_get_raw(ADC_CHANNEL_MPC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            raw = adc1_get_raw(ADC_CHANNEL_Y4);
             return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
         case ADC_Reading::SPC:
-            adc2_get_raw(ADC_CHANNEL_SPC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
-            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+            raw = adc1_get_raw(ADC_CHANNEL_Y4);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
         case ADC_Reading::TCC:
-            adc2_get_raw(ADC_CHANNEL_TCC, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
-            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+            raw = adc1_get_raw(ADC_CHANNEL_Y4);
+            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
         case ADC_Reading::ATF:
-            raw = adc1_get_raw(ADC_CHANNEL_ATF);
-            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+            adc2_get_raw(ADC_CHANNEL_ATF, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
         case ADC_Reading::V_SENSE:
-            raw = adc1_get_raw(ADC_CHANNEL_VSENSE);
-            return esp_adc_cal_raw_to_voltage(raw, &adc1_cal);
+            adc2_get_raw(ADC_CHANNEL_VSENSE, adc_bits_width_t::ADC_WIDTH_BIT_12, (int*)&raw);
+            return esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
         default:
             return 0;
     }
 }
+
 
 static void IRAM_ATTR onOverflow(void *args) {
     int unit = (int)args; // PCNT unit we are working with
@@ -96,8 +99,6 @@ static void IRAM_ATTR onOverflow(void *args) {
     }
 }
 
-
-
 void Sensors::configure_sensor_pins() {
     // Gearbox sensors
 
@@ -118,17 +119,32 @@ void Sensors::configure_sensor_pins() {
     gpio_set_direction(PIN_TCC_SENSE, GPIO_MODE_INPUT);
 
 
+
     // Configure ADC
     adc1_config_width(ADC_WIDTH_12Bit);
-    adc1_config_channel_atten(ADC_CHANNEL_VSENSE, ADC_ATTEN_11db);
-    adc1_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db);
     adc1_config_channel_atten(ADC_CHANNEL_Y3, ADC_ATTEN_11db);
     adc1_config_channel_atten(ADC_CHANNEL_Y4, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_Y5, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_MPC, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_SPC, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC_CHANNEL_TCC, ADC_ATTEN_11db);
 
-    adc2_config_channel_atten(ADC_CHANNEL_Y5, ADC_ATTEN_11db);
-    adc2_config_channel_atten(ADC_CHANNEL_SPC, ADC_ATTEN_11db);
-    adc2_config_channel_atten(ADC_CHANNEL_MPC, ADC_ATTEN_11db);
-    adc2_config_channel_atten(ADC_CHANNEL_TCC, ADC_ATTEN_11db);
+    adc2_config_channel_atten(ADC_CHANNEL_VSENSE, ADC_ATTEN_11db);
+    adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db);
+
+    /*
+    i2s_config_t i2s_config = {
+        .mode = I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN,
+        .sample_rate = 20000,
+        .bits_per_sample = i2s_bits_per_sample_t::I2S_BITS_PER_SAMPLE_16BIT,
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .communication_format = I2S_COMM_FORMAT_I2S,
+        .dma_buf_count = 2,
+        .dma_buf_len = 1024,
+        .use_apll = true,
+        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1
+    };
+    */
 
     // Read ADC calibration
     esp_adc_cal_value_t type = esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_12Bit, 0, &adc1_cal);
@@ -151,8 +167,6 @@ void Sensors::configure_sensor_pins() {
     // Now check. According to ESP and testing, we shouldn't see more than 300mV at resting current.
     // If we do, we can assume there is a short somewhere and the MOSFET no longer has control
     // over that solenoid
-    //mpc_pwm.write_pwm(128);
-    //spc_pwm.write_pwm(102);
 
     const pcnt_config_t pcnt_config_n2 {
         // Set PCNT input signal and control GPIOs
@@ -215,7 +229,7 @@ void Sensors::configure_sensor_pins() {
 
 
 uint16_t Sensors::read_vbatt() {
-    return (uint16_t)(read_pin_mv(ADC_Reading::V_SENSE) * 0.4) + 200;
+    return (uint16_t)(read_pin_mv(ADC_Reading::V_SENSE) * 0.5) + 100;
 }
 
 uint32_t Sensors::read_n2_rpm() {
@@ -266,8 +280,10 @@ uint32_t Sensors::read_solenoid_current(Solenoid sol) {
             raw = read_pin_mv(ADC_Reading::SPC);
             break;
         case Solenoid::TCC:
-            raw = read_pin_mv(ADC_Reading::TCC);
-            break;
+            return 0;
+            //return delta_us;
+            //return read_mv;
+            //break;
         default:
             break;
     }
@@ -283,3 +299,5 @@ int16_t Sensors::read_atf_temp() {
 bool Sensors::read_park_lock() {
     return read_pin_mv(ADC_Reading::ATF) > 3000;
 }
+
+uint32_t Sensors::isr_count = 0;

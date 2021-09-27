@@ -50,7 +50,7 @@ def get_param_text(name: str, desc: str, offset: int, length: int, is_enum: bool
         enum_name = "{}_{}".format(frame_name.upper(), name)
         string = ""
         string =  "    // Sets {}\n".format(desc)
-        string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | ((uint64_t)value & 0x{:x}) << {}; }}\n".format(enum_name, get_data_type(length), mask, f_mask, 64-length-offset, fill='0')
+        string += "    void set_{}({} value){{ raw = (raw & 0x{:{fill}16x}) | ((uint64_t)value & 0x{:x}) << {}; }}\n".format(enum_name, enum_name, mask, f_mask, 64-length-offset, fill='0')
         string += "    // Gets {}\n".format(desc)
         string += "    {} get_{}() {{ return ({})(raw >> {} & 0x{:x}); }}\n".format(enum_name, name, enum_name, 64-length-offset, f_mask)
     else: # Normal integer / Boolean

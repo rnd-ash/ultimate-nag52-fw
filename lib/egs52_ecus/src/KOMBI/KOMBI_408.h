@@ -102,7 +102,7 @@ typedef union {
     short get_KM16() { return raw >> 8 & 0xffff; }
 
     // Sets maximum winter tire speed with 4 bits
-    void set_KOMBI_408_WRC(uint8_t value){ raw = (raw & 0xfffffffffffffff8) | ((uint64_t)value & 0x7) << 0; }
+    void set_KOMBI_408_WRC(KOMBI_408_WRC value){ raw = (raw & 0xfffffffffffffff8) | ((uint64_t)value & 0x7) << 0; }
     // Gets maximum winter tire speed with 4 bits
     KOMBI_408_WRC get_WRC() { return (KOMBI_408_WRC)(raw >> 0 & 0x7); }
 

@@ -97,7 +97,7 @@
 
 /**
  * If enabled, the car will automatically start in Winter mode if outside air temperature
- * is below 0C.
+ * is below 4C.
  * 
  * Default: true
  */

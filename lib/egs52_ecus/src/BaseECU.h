@@ -1,3 +1,6 @@
+#ifndef __BASE_ECU_H_
+#define __BASE_ECU_H_
+
 
 #include <driver/can.h>
 
@@ -7,7 +10,6 @@
 
 
 struct FrameStatus {
-    uint64_t raw;
     uint64_t last_rx_timestamp;
     bool is_valid;
 };
@@ -37,3 +39,5 @@ class BaseECU {
          */
         virtual bool import_can_frame(can_message_t *f, uint64_t timestamp);
 };
+
+#endif

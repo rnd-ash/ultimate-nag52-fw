@@ -115,6 +115,7 @@ public:
     virtual int16_t get_ambient_temp();
     virtual int16_t get_engine_temp();
     virtual bool is_profile_toggle_pressed();
+    virtual ShifterPosition get_shifter_position();
 
     virtual Gear get_abs_target_lower_gear();
     virtual Gear get_abs_target_upper_gear();

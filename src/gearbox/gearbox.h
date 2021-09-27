@@ -1,34 +1,39 @@
-//
-// Created by ashcon on 9/13/21.
-//
+#ifndef __GEARBOX_H_
+#define __GEARBOX_H_
+
 
 #include <config.h>
-#include "pwm_channels/channels.h"
+#include "sensors.h"
+#include "../canbus/abstract_can.h"
+#include <freertos/task.h>
 
-#ifndef ULTIMATE_NAG52_FW_GEARBOX_H
-#define ULTIMATE_NAG52_FW_GEARBOX_H
+enum ShiftResult {
+    Failed,
+    ShiftAlreadyPending,
+    OK
+}
 
-enum class Profile {
-    Agility,
-    Winter,
-    Manual,
-    Standard,
-    Comfort,
-    Fail
-};
 
-class gearbox {
-public:
-    gearbox();
-    ~gearbox();
-    uint8_t get_atf_temp();
 
-private:
-    //xTaskHandle* updater;
-    uint32_t n2_rpm;
-    uint32_t n3_rpm;
-    bool safe_to_start;
-    uint8_t atf_temp;
-};
+class Gearbox {
+    public:
+        Gearbox();
+        ~Gearbox();
+    private:
+        /**
+         * @brief Task handler for the task which switches gears
+         * 
+         */
+        TaskHandle_t* shifter_task = nullptr;
 
-#endif //ULTIMATE_NAG52_FW_GEARBOX_H
+        /**
+         * @brief Task handler for the gearbox's logic loop
+         * 
+         */
+        TaskHandle_t* logic_loop = nullptr;
+
+        Gear target_gear;
+        Gear actual_gear;
+}
+
+#endif // __GEARBOX_H_

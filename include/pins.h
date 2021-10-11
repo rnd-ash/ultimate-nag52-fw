@@ -1,33 +1,39 @@
-#ifndef PINS_H_
-#define PINS_H_
+#ifndef __PINS_H_
+#define __PINS_H_
 
-#define PIN_CAN_TX gpio_num_t::GPIO_NUM_5
-#define PIN_CAN_RX gpio_num_t::GPIO_NUM_4
+/**
+ * Pin configuration
+ * 
+ * Current board. V1.0
+ */
 
-#define PIN_SPKR gpio_num_t::GPIO_NUM_15
-#define PIN_5V_ENABLE gpio_num_t::GPIO_NUM_2
+#define PIN_CAN_TX gpio_num_t::GPIO_NUM_5 // CAN TWAI Tx
+#define PIN_CAN_RX gpio_num_t::GPIO_NUM_4 // CAN TWAI Rx
 
-// Sensors
-#define PIN_V_SENSE gpio_num_t::GPIO_NUM_25 // Voltage monitor
-#define PIN_ATF_SENSE gpio_num_t::GPIO_NUM_26 // ATF / lockout sensor
-#define PIN_N3_SENSE gpio_num_t::GPIO_NUM_27 // N3 input RPM
-#define PIN_N2_SENSE gpio_num_t::GPIO_NUM_14 // N2 input RPM
+#define PIN_SPKR gpio_num_t::GPIO_NUM_15 // Piezo speaker
+#define PIN_5V_EN gpio_num_t::GPIO_NUM_2 // 5V enable circuit for sensors
 
-// Solenoid current feedback
-#define PIN_Y3_SENSE gpio_num_t::GPIO_NUM_36
-#define PIN_Y4_SENSE gpio_num_t::GPIO_NUM_39
-#define PIN_Y5_SENSE gpio_num_t::GPIO_NUM_35
-#define PIN_MPC_SENSE gpio_num_t::GPIO_NUM_34
-#define PIN_SPC_SENSE gpio_num_t::GPIO_NUM_32
-#define PIN_TCC_SENSE gpio_num_t::GPIO_NUM_33
+#define PIN_VBATT gpio_num_t::GPIO_NUM_25 // Battery voltage feedback
+#define PIN_ATF gpio_num_t::GPIO_NUM_26 // ATF temp sensor and lockout
+#define PIN_N3 gpio_num_t::GPIO_NUM_27 // N3 speed sensor
+#define PIN_N2 gpio_num_t::GPIO_NUM_14 // N3 speed sensor
 
-// Solenoid PWM outputs
-#define PIN_Y3_PWM gpio_num_t::GPIO_NUM_23  
-#define PIN_Y4_PWM gpio_num_t::GPIO_NUM_22
-#define PIN_Y5_PWM gpio_num_t::GPIO_NUM_19
-#define PIN_MPC_PWM gpio_num_t::GPIO_NUM_21
-#define PIN_SPC_PWM gpio_num_t::GPIO_NUM_12
-#define PIN_TCC_PWM gpio_num_t::GPIO_NUM_13
+#define PIN_Y3_SENSE gpio_num_t::GPIO_NUM_36 // Y3 (1-2/4-5) shift solenoid (Current feedback)
+#define PIN_Y3_PWM gpio_num_t::GPIO_NUM_23 // Y3 (1-2/4-5) shift solenoid (PWM output)
 
+#define PIN_Y4_SENSE gpio_num_t::GPIO_NUM_39 // Y4 (3-4) shift solenoid (Current feedback)
+#define PIN_Y4_PWM gpio_num_t::GPIO_NUM_22 // Y4 (3-4) shift solenoid (PWM output)
 
-#endif // PINS_H_
+#define PIN_Y5_SENSE gpio_num_t::GPIO_NUM_35 // Y5 (2-3) shift solenoid (Current feedback)
+#define PIN_Y5_PWM gpio_num_t::GPIO_NUM_19 // Y5 (2-3) shift solenoid (PWM output)
+
+#define PIN_MPC_SENSE gpio_num_t::GPIO_NUM_34 // Modulating pressure solenoid (Current feedback)
+#define PIN_MPC_PWM gpio_num_t::GPIO_NUM_21 // Modulating pressure solenoid (PWM output)
+
+#define PIN_SPC_SENSE gpio_num_t::GPIO_NUM_32 // Shift pressure solenoid (Current feedback)
+#define PIN_SPC_PWM gpio_num_t::GPIO_NUM_12 // Shift pressure solenoid (PWM output)
+
+#define PIN_TCC_SENSE gpio_num_t::GPIO_NUM_33 // Torque converter solenoid(Current feedback)
+#define PIN_TCC_PWM gpio_num_t::GPIO_NUM_13 // Torque converter solenoid (PWM output)
+
+#endif // __PINS_H_

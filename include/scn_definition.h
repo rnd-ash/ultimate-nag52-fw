@@ -1451,7 +1451,7 @@
 // #define SCN_VARIANT_NAME AP51 // 203.007 with config 'W203 OM646red DE22 LA not Taiwan Rear diff ratio=2.870'
 // #define SCN_VARIANT_NAME BP55 // 203.007 with config 'W203 OM646red DE22 LA Rear diff ratio=2.870'
 // #define SCN_VARIANT_NAME BP56 // 203.007 with config 'W203 OM646red DE22 LA with LST without M-Prog USA Rear diff ratio=2.870'
-#define SCN_VARIANT_NAME BP57 // 203.007 with config 'W203 OM646red DE22 LA with LST with M-Prog. not USA Rear diff ratio=2.870'
+// #define SCN_VARIANT_NAME BP57 // 203.007 with config 'W203 OM646red DE22 LA with LST with M-Prog. not USA Rear diff ratio=2.870'
 // #define SCN_VARIANT_NAME AP58 // 203.007 with config 'W203 OM646red DE22 LA without M-Prog. with LST USA Rear diff ratio=2.870'
 // #define SCN_VARIANT_NAME AP59 // 203.007 with config 'W203 OM646red DE22 LA with LST with M-Prog. not Taiwan/USA Rear diff ratio=2.870'
 // #define SCN_VARIANT_NAME BP55 // 203.007 with config 'W203 OM646red DE22 LA not Taxi Rear diff ratio=2.870'

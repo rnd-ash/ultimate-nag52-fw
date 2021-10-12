@@ -8,6 +8,8 @@
 * CAN Defintiion for ECU 'EZS'
 */
 
+#ifdef EGS52_MODE
+
 #ifndef __ECU_EZS_H_
 #define __ECU_EZS_H_
 
@@ -484,7 +486,7 @@ class ECU_EZS {
         bool get_EZS_240(uint64_t now, uint64_t max_expire_time, EZS_240* dest) {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (LAST_FRAME_TIMES[0] - now > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 return dest->raw = FRAME_DATA[0];
@@ -501,7 +503,7 @@ class ECU_EZS {
         bool get_ZGW_248(uint64_t now, uint64_t max_expire_time, ZGW_248* dest) {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (LAST_FRAME_TIMES[1] - now > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 return dest->raw = FRAME_DATA[1];
@@ -518,7 +520,7 @@ class ECU_EZS {
         bool get_ZGW_24C(uint64_t now, uint64_t max_expire_time, ZGW_24C* dest) {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (LAST_FRAME_TIMES[2] - now > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 return dest->raw = FRAME_DATA[2];
@@ -535,7 +537,7 @@ class ECU_EZS {
         bool get_KLA_410(uint64_t now, uint64_t max_expire_time, KLA_410* dest) {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (LAST_FRAME_TIMES[3] - now > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 return dest->raw = FRAME_DATA[3];
@@ -547,3 +549,5 @@ class ECU_EZS {
 		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_EZS_H_
+
+#endif // EGS52_MODE

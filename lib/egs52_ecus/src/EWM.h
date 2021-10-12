@@ -8,6 +8,8 @@
 * CAN Defintiion for ECU 'EWM'
 */
 
+#ifdef EGS52_MODE
+
 #ifndef __ECU_EWM_H_
 #define __ECU_EWM_H_
 
@@ -100,7 +102,7 @@ class ECU_EWM {
         bool get_EWM_230(uint64_t now, uint64_t max_expire_time, EWM_230* dest) {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (LAST_FRAME_TIMES[0] - now > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 return dest->raw = FRAME_DATA[0];
@@ -112,3 +114,5 @@ class ECU_EWM {
 		uint64_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_EWM_H_
+
+#endif // EGS52_MODE

@@ -1,0 +1,1855 @@
+# --RAND_ASH--
+#
+# Parsed by parse_dat_v4.py on 11/10/21, translated from 'DE' to 'EN' via googletrans
+# Source file: 204_POWERTRAIN_SB.dat
+
+ECU ECM
+	FRAME CTRL_U_A2 (0x00000015)
+		SIGNAL SwIllLvl, OFFSET: 0, LEN: 8, DESC: Switch Illumination Level (Term 58D) / Search Lighting (class 58D), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DispBrt_IC, OFFSET: 8, LEN: 8, DESC: Display Brightness Instrument Cluster / Display Brightness Combination Strument, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DispBrt_HU_V2, OFFSET: 16, LEN: 8, DESC: Display Brightness Headunit / Display Brightness Headunit, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL DispBrt_NV, OFFSET: 24, LEN: 8, DESC: Display Brightness Night View / Display Brightness Night View, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ECM_A1 (0x0000030D)
+		SIGNAL EngCoolTemp, OFFSET: 0, LEN: 8, DESC: Engine Coolant Temperature / Motor Coolant Temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: -40.0)
+		SIGNAL IntkAirTemp, OFFSET: 8, LEN: 8, DESC: Intake Air Temperature / intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: -40.0)
+		SIGNAL EngOilTemp, OFFSET: 16, LEN: 8, DESC: Engine OIL Temperature / Engine Oil Temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: -40.0)
+		SIGNAL EngOilLvl, OFFSET: 24, LEN: 8, DESC: Engine Oil Level / Engine Oil Level, DATA TYPE NUMBER(_MULTIPLIER_: 0.31496062874794006, _OFFSET_: 0.0)
+		SIGNAL EngOilQual, OFFSET: 32, LEN: 8, DESC: Engine Oil Quality / Engine Oil Quality, DATA TYPE NUMBER(_MULTIPLIER_: 0.019685039296746254, _OFFSET_: 1.0)
+		SIGNAL FuelCons, OFFSET: 40, LEN: 16, DESC: Fuel Consumption / Consumption, DATA TYPE NUMBER(_MULTIPLIER_: 0.21668142080307007, _OFFSET_: 0.0)
+		SIGNAL AirPress_Outsd, OFFSET: 56, LEN: 8, DESC: Outside Air Pressure / outdoor air pressure, DATA TYPE NUMBER(_MULTIPLIER_: 7.795275688171387, _OFFSET_: 0.0)
+	FRAME ECM_A2 (0x00000349)
+		SIGNAL AddWtrPmp_On_Rq_ECM, OFFSET: 0, LEN: 1, DESC: Additional Water Pump on Request (by Engine Control Module) / Turn on auxiliary water pump, DATA TYPE BOOL
+		SIGNAL HtPwr_Stat, OFFSET: 6, LEN: 2, DESC: Heating Power State / Status Heating power, DATA TYPE ENUM
+			ENUM CLS, RAW: 0, DESC: Heating Cutoff Valve is closed
+			ENUM OPN, RAW: 1, DESC: Heating Cutoff Valve is open
+			ENUM CYC, RAW: 2, DESC: Heating Cutoff Valve is Cyclic Clocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL HVAC_CompTrq_Max, OFFSET: 8, LEN: 8, DESC: Maximum Aircon Compressor Crackish Torque / Limit Momper (Crankshaft) Climate Compressor, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: 0.0)
+		SIGNAL Clutch_Disengg, OFFSET: 24, LEN: 1, DESC: Clutch is disengaged / clutch, DATA TYPE BOOL
+		SIGNAL FuelPmp_On_Rq, OFFSET: 25, LEN: 1, DESC: Fuel Pump on Request / Switch-on request Fuel pump, DATA TYPE BOOL
+		SIGNAL EngIdleRPM_Dsr, OFFSET: 26, LEN: 14, DESC: Desired Engine Idle Speed / Motorle Read Rate, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL EngEff, OFFSET: 40, LEN: 8, DESC: Actual Engine Efficiency / Efficiency Combustion Engine, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL FSCM_Alive, OFFSET: 48, LEN: 1, DESC: Fuel System Control Module Alive / FSCM Life Sign, DATA TYPE BOOL
+		SIGNAL EngTrqInc_Enbl_TCM, OFFSET: 50, LEN: 1, DESC: Enable Engine Torque Increase Request / Enable Engine Torque Increase TCM, DATA TYPE BOOL
+		SIGNAL EngTrqIncChk_Avl, OFFSET: 51, LEN: 1, DESC: Engine Torque Increase Plausibility Check Available / Plausibility Check for Engine Torque Increase available, DATA TYPE BOOL
+		SIGNAL ParticleFltrCorrOffset, OFFSET: 52, LEN: 4, DESC: Particle Filter Correction Offset on EngtrqMaxCorrfCTR / Particle FilterCorrection value, DATA TYPE NUMBER(_MULTIPLIER_: 0.029999999329447746, _OFFSET_: 0.0)
+		SIGNAL FuelPress_Rq, OFFSET: 56, LEN: 8, DESC: Fuel Pressure Request / Request Fuel Pressure, DATA TYPE NUMBER(_MULTIPLIER_: 0.05000000074505806, _OFFSET_: 0.0)
+	FRAME EIS_A1 (0x00000001)
+		SIGNAL TxPkPosn_Rq_SBC_Enbl, OFFSET: 0, LEN: 1, DESC: Transmission Parking Position Request Enable / SBC request: "P" allowed, DATA TYPE BOOL
+		SIGNAL TxPkPosnAuto_Enbl, OFFSET: 1, LEN: 1, DESC: Transmission Parking Position Auto Enable / Auto- "P" Enabled, DATA TYPE BOOL
+		SIGNAL TxPkPosn_Emg_Rq, OFFSET: 2, LEN: 1, DESC: Transmission Parking Position Emergency Request / Request Not- "P", DATA TYPE BOOL
+		SIGNAL TxPkPosn_Rq, OFFSET: 3, LEN: 1, DESC: Transmission Parking Position Request / Ice Wish: "P", DATA TYPE BOOL
+		SIGNAL Ign_On_StProc_Inact, OFFSET: 4, LEN: 1, DESC: Ignition is on and starting procedure IS INACTIVE (15x) / Ignition AN / motor start, DATA TYPE BOOL
+		SIGNAL ISw_Stat, OFFSET: 5, LEN: 3, DESC: Ignition Switch State / Terminal Status, DATA TYPE ENUM
+			ENUM IGN_LOCK, RAW: 0, DESC: Ignition Lock (0)
+			ENUM IGN_OFF, RAW: 1, DESC: Ignition Off (15c)
+			ENUM IGN_ACC, RAW: 2, DESC: Ignition Accessory (15R)
+			ENUM IGN_ON, RAW: 4, DESC: Ignition on (15)
+			ENUM IGN_START, RAW: 5, DESC: Ignition Start (50)
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL AutoDrLk_Rq_Src, OFFSET: 8, LEN: 2, DESC: Automatic Door Lock Request Source / Source of the requirement Automatic door lock, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLKS_INSD_SW, RAW: 1, DESC: Source IS Central Locking System Inside Switch
+			ENUM MENU, RAW: 2, DESC: Source Is Settings Menu
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL KG_SevKeysDet, OFFSET: 12, LEN: 1, DESC: Several keys detected / multiple keys detected, DATA TYPE BOOL
+		SIGNAL KG_StSw_Psd, OFFSET: 13, LEN: 1, DESC: Keyless Go Start Switch Pressed / Keyless Go Start Button, DATA TYPE BOOL
+		SIGNAL EngSt_Enbl_Rq_KG, OFFSET: 14, LEN: 1, DESC: Enable Engine Start Request / Keyles Go Ready Conditions, DATA TYPE BOOL
+		SIGNAL KG_IgnCtrl_Actv, OFFSET: 15, LEN: 1, DESC: Keyless Go Ignition Control Active / Keyless Go Terminal Control Active, DATA TYPE BOOL
+		SIGNAL ProfMd_Stat, OFFSET: 16, LEN: 2, DESC: Profile Mode State / Profile Mode Actual value, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM ON, RAW: 1, DESC: profiles on
+			ENUM OFF, RAW: 2, DESC: Profiles Off
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL AutoDrLk_Stat, OFFSET: 18, LEN: 2, DESC: Automatic Door Lock State / Status Automatic door lock, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Prof_Stat, OFFSET: 20, LEN: 4, DESC: Actual Profile / News Profile, DATA TYPE ENUM
+			ENUM P1, RAW: 0, DESC: Profile 1
+			ENUM P2, RAW: 1, DESC: Profile 2
+			ENUM P3, RAW: 2, DESC: Profile 3
+			ENUM P4, RAW: 3, DESC: Profile 4
+			ENUM DEFAULT, RAW: 4, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 5, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 6, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 7, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 8, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 9, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 10, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 11, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 12, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 13, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 14, DESC: Default Profiles
+			ENUM DEFAULT, RAW: 15, DESC: Default Profiles
+		SIGNAL CLkS_Gas_Dr_Stat, OFFSET: 24, LEN: 2, DESC: Central Locking System Gas Door State / ZV Status Tank Flap, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_DL_Stat, OFFSET: 26, LEN: 2, DESC: Central Locking System Deck Lid State / ZV Status Tail Cover, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_Lk_Stat, OFFSET: 28, LEN: 2, DESC: Central Locking System Lock State / Condition Central Locking, DATA TYPE ENUM
+			ENUM UNLK, RAW: 0, DESC: Vehicle Unlocked
+			ENUM INT_LK, RAW: 1, DESC: Vehicle Internal Locked
+			ENUM EXT_LK, RAW: 2, DESC: Vehicle External Locked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_Dr_RR_Stat, OFFSET: 32, LEN: 2, DESC: Central Locking System Door Rear Right State / ZV Status Door Rear Right, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_Dr_RL_Stat, OFFSET: 34, LEN: 2, DESC: Central Locking System Door Rear Left State / ZV Status Door Rear Left, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_Dr_FR_Stat, OFFSET: 36, LEN: 2, DESC: Central Locking System Door Front Right State / ZV Status Door Front Right, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CLkS_Dr_FL_Stat, OFFSET: 38, LEN: 2, DESC: Central Locking System Door Front Left State / ZV Status Door Front Left, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LOCK, RAW: 1, DESC: Locked
+			ENUM UNLOCK, RAW: 2, DESC: Unlocked
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL KeyLine8_Appr, OFFSET: 40, LEN: 1, DESC: Keyline 8 Approved for Keyless Go / Keyline 8 Released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine7_Appr, OFFSET: 41, LEN: 1, DESC: Keyline 7 Approved for Keyless GO / Keyline 7 released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine6_Appr, OFFSET: 42, LEN: 1, DESC: Keyline 6 Approved for Keyless Go / Keyline 6 Released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine5_Appr, OFFSET: 43, LEN: 1, DESC: Keyline 5 Approved for Keyless Go / Keyline 5 released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine4_Appr, OFFSET: 44, LEN: 1, DESC: Keyline 4 Approved for Keyless Go / Keyline 4 released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine3_Appr, OFFSET: 45, LEN: 1, DESC: Keyline 3 Approved for Keyless Go / Keyline 3 Released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine2_Appr, OFFSET: 46, LEN: 1, DESC: Keyline 2 Approved for Keyless Go / Keyline 2 Released for kg, DATA TYPE BOOL
+		SIGNAL KeyLine1_Appr, OFFSET: 47, LEN: 1, DESC: Keyline 1 Approved for Keyless Go / Keyline 1 released for kg, DATA TYPE BOOL
+		SIGNAL MC_EIS_A1, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CLkS_Lk_Stat3, OFFSET: 53, LEN: 3, DESC: Central Locking System Lock State / Condition Central Locking, DATA TYPE ENUM
+			ENUM UNLK, RAW: 0, DESC: Vehicle Unlocked
+			ENUM INT_LK, RAW: 1, DESC: Vehicle Internal Locked
+			ENUM EXT_LK, RAW: 2, DESC: Vehicle External Locked
+			ENUM SEL_UNLK, RAW: 3, DESC: Vehicle Selective Unlocked
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL CRC_EIS_A1, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME IC_A1 (0x0000019F)
+		SIGNAL VehSpd_Disp, OFFSET: 4, LEN: 12, DESC: Displayed Vehicle Speed (Without Attenuation) / Displayed Speed (without pointer attenuation), DATA TYPE NUMBER(_MULTIPLIER_: 0.10000000149011612, _OFFSET_: 0.0)
+		SIGNAL AirTemp_Outsd_Disp, OFFSET: 16, LEN: 8, DESC: Displayed Outside Air Temperature / Displayed Outdoor Air Temperature, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: -40.0)
+		SIGNAL PTS_Disp_Stat_IC, OFFSET: 24, LEN: 2, DESC: PTS DISPLAY STATE FROM IC / PTS Display state, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: No Error
+			ENUM TIMEOUT, RAW: 1, DESC: Timeout
+			ENUM FATAL, RAW: 2, DESC: Fatal Error
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL HiBm_Enbl, OFFSET: 26, LEN: 2, DESC: HIGH BEAM ENABLE / TRANSPORT LIGHT, DATA TYPE ENUM
+			ENUM DSABL, RAW: 0, DESC: Disable
+			ENUM ENBL, RAW: 1, DESC: Enable
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL EngShutOffTm, OFFSET: 28, LEN: 12, DESC: Engine Shut-Off Time / Motor Storage Time, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Odo, OFFSET: 40, LEN: 24, DESC: Odometer (for Everyone, Fffffeh: Signal Invalid) / Mileage (for all, Fffffeheh: signal invalid), DATA TYPE NUMBER(_MULTIPLIER_: 0.10000000149011612, _OFFSET_: 0.0)
+	FRAME IC_A3 (0x000003E1)
+		SIGNAL RadarSensMd_Rq, OFFSET: 0, LEN: 2, DESC: Radar Sensor Mode Request / Request Radar Sensoric Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DRLt_On_Rq, OFFSET: 2, LEN: 2, DESC: Daytime Running Lamps on Request / Request Switch on daytime running light, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TPM_Actv_Rq_V2, OFFSET: 4, LEN: 2, DESC: Tire Pressure Module Activate Request / Request Tire Pressure Control Activate, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM ACTIVATE, RAW: 1, DESC: Activate
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL FTW_On_Rq, OFFSET: 6, LEN: 2, DESC: Flat Tire Warning On Request / Request PlatRollwarner, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM OFF, RAW: 1, DESC: FTW OFF
+			ENUM ON, RAW: 2, DESC: FTW RE-ACTIVATE
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TaxiToneMd_Rq, OFFSET: 8, LEN: 2, DESC: Taxi Tone Fashion Request / Request Taxiton Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TaxiRoofLmpMd_Rq, OFFSET: 10, LEN: 2, DESC: Taxi Roof Lamps Fashion Request / Request Roof Sign Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TaxiMd_Rq, OFFSET: 12, LEN: 2, DESC: Taxi Fashion Request / Request Taximodus, DATA TYPE ENUM
+			ENUM PRIVATE, RAW: 0, DESC: Private
+			ENUM BUSINESS, RAW: 1, DESC: on business
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DataRadioMenu_Stat, OFFSET: 14, LEN: 2, DESC: Data Radio Menu State / Status Data Feature Menu, DATA TYPE ENUM
+			ENUM NA, RAW: 0, DESC: NOT AVAILABLE
+			ENUM AVL, RAW: 1, DESC: Available
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL UnitTemp_Rq, OFFSET: 16, LEN: 2, DESC: Temperature Unit / Temperature Unit, DATA TYPE ENUM
+			ENUM CELSIUS, RAW: 0, DESC: Celsius
+			ENUM FAHRENHEIT, RAW: 1, DESC: Fahrenheit
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DRVM_AudioMd_Rq, OFFSET: 18, LEN: 2, DESC: DRVM Audio Mode Request / Request DRVM Audiomodus, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DRVM_SysMd_Rq, OFFSET: 20, LEN: 2, DESC: DRVM System Mode Request / Request DRVM System Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TAX_Rq, OFFSET: 22, LEN: 2, DESC: Taximeter Request / Request Taximeter, DATA TYPE ENUM
+			ENUM NO_RQ, RAW: 0, DESC: No Request
+			ENUM TAX_RQ, RAW: 1, DESC: Tax Request
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL IHC_Md_Rq, OFFSET: 24, LEN: 2, DESC: IHC Mode Request / Request IHC Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ECO_Md_Rq, OFFSET: 26, LEN: 2, DESC: Eco Mode Request / Request ECO Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL AFS_Md_Rq, OFFSET: 28, LEN: 2, DESC: AFS Mode Request / Request AFS Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL UnitPress_Rq, OFFSET: 30, LEN: 2, DESC: Pressure Unit / Pressure Unit, DATA TYPE ENUM
+			ENUM BAR, RAW: 0, DESC: bar
+			ENUM PSI, RAW: 1, DESC: PSI
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SLA_WarnLvl_Rq, OFFSET: 32, LEN: 3, DESC: Speed ​​Limit Assist Warning Level Request / Warning Spring Request Speed ​​Limitation Assistant, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Warning
+			ENUM LVL1, RAW: 1, DESC: Warning Level 1
+			ENUM LVL2, RAW: 2, DESC: Warning Level 2
+			ENUM LVL3, RAW: 3, DESC: Warning Level 3
+			ENUM LVL4, RAW: 4, DESC: Warning Level 4
+			ENUM LVL5, RAW: 5, DESC: Warning Level 5
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL SLA_Md_Rq, OFFSET: 35, LEN: 2, DESC: SPEED LIMIT ASSIST MODE REQUEST / MODE DESCRIPTION SPEED LIMITATION WATER, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Speed ​​Limit Assist Off
+			ENUM ON_NO_WARN, RAW: 1, DESC: Speed ​​Limit Assist on Without Warning
+			ENUM ON_WARN, RAW: 2, DESC: Speed ​​Limit Assist on with Warning
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ALDW_Md_Rq, OFFSET: 37, LEN: 3, DESC: ALDW Fashion Request / Request ALDW mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: ALDW OFF
+			ENUM EARLY, RAW: 1, DESC: Aldw on, Warning Level Early
+			ENUM MID, RAW: 2, DESC: Aldw on, Warning Level Mid
+			ENUM LATE, RAW: 3, DESC: Aldw on, Warning Level Late
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL BSM_Md_Rq, OFFSET: 40, LEN: 2, DESC: BSM Mode Request / Request BSM Mode, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM PERM, RAW: 1, DESC: System Active (permanently)
+			ENUM AUTO, RAW: 2, DESC: System Active (Automatically)
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BSM_AcustWarn_Enbl, OFFSET: 42, LEN: 2, DESC: BSM Acoustical Warning Enable / BSM Acoustic Warning allowed, DATA TYPE ENUM
+			ENUM DSABL, RAW: 0, DESC: Disable
+			ENUM ENBL, RAW: 1, DESC: Enable
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL PTS_Md_Rq, OFFSET: 44, LEN: 2, DESC: Parktronic Mode Request / Parktronic Mode Set, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL PTS_AcustWarn_Enbl, OFFSET: 46, LEN: 2, DESC: Parktronic Acoustic Warning Enable / PTS acoustic warning released, DATA TYPE ENUM
+			ENUM ENBL, RAW: 0, DESC: Enable
+			ENUM DSABL, RAW: 1, DESC: Disable
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys4_Md_Rq, OFFSET: 48, LEN: 2, DESC: Vehicle Driving Program Fashion Request - Steering / Driving Program for Steering, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys3_Md_Rq, OFFSET: 50, LEN: 2, DESC: Vehicle Driving Program Fashion Request - Drive / Drive Program for powertrain, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys2_Md_Rq, OFFSET: 52, LEN: 2, DESC: Vehicle Driving Program Fashion Request - Brake / Driving program for brake, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys1_Md_Rq, OFFSET: 54, LEN: 2, DESC: Vehicle Driving Program Fashion Request - Suspension / Driving Program for Suspension, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys8_Md_Rq, OFFSET: 56, LEN: 2, DESC: Vehicle Driving Program Fashion Request / Driving Program for, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys7_Md_Rq, OFFSET: 58, LEN: 2, DESC: Vehicle Driving Program Fashion Request / Driving Program for, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys6_Md_Rq, OFFSET: 60, LEN: 2, DESC: Vehicle Driving Program Fashion Request - DTR / Driving program for DISTRONIC, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehDrvProgSys5_Md_Rq, OFFSET: 62, LEN: 2, DESC: Vehicle Driving Program Fashion Request - ESP / Driving Program for ESP, DATA TYPE ENUM
+			ENUM COMFORT, RAW: 0, DESC: Comfort Fashion
+			ENUM SPORT, RAW: 1, DESC: Sport Fashion
+			ENUM MANUAL, RAW: 2, DESC: Manual fashion
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+	FRAME LM_A1 (0x00000069)
+		SIGNAL NS_Ill_Actv, OFFSET: 0, LEN: 1, DESC: Night Security Illumination Active / Headlight Cable, DATA TYPE BOOL
+		SIGNAL ADL_Actv, OFFSET: 1, LEN: 1, DESC: Automatic Driving Light Activated by Light Sensor / AFL activated by light sensor, DATA TYPE BOOL
+		SIGNAL FogLmp_R_On_Rq, OFFSET: 2, LEN: 1, DESC: FOG LAMPS REAR ON REQUEST / NUTLE FLIGHT LIGHT, DATA TYPE BOOL
+		SIGNAL FogLmp_Ft_On_Rq, OFFSET: 3, LEN: 1, DESC: Turn on Fog Lamps Front On Request / Fog Light, DATA TYPE BOOL
+		SIGNAL LoBm_On_Rq, OFFSET: 4, LEN: 1, DESC: Switch on Low Beam On Request / Low Light, DATA TYPE BOOL
+		SIGNAL PosnLmp_On_Rq, OFFSET: 5, LEN: 1, DESC: Position Lamps on Request / Power Land, DATA TYPE BOOL
+		SIGNAL PkLmp_Rt_On_Rq, OFFSET: 6, LEN: 1, DESC: Parking Lamps Right Side On Request / Parking Light On the right, DATA TYPE BOOL
+		SIGNAL PkLmp_Lt_On_Rq, OFFSET: 7, LEN: 1, DESC: Parking LAMPS LEFT SIDE ON REQUEST / PARK LIGHT Turn on the left, DATA TYPE BOOL
+		SIGNAL PosnLmp_IndLmp_On_Rq, OFFSET: 9, LEN: 1, DESC: Position LAMP Indication Lamp On Request / Landlight Turn on Control Lamp, DATA TYPE BOOL
+		SIGNAL FogLmp_R_IndLmp_On_Rq, OFFSET: 10, LEN: 1, DESC: Fog Lamps Rear Indication Lamp On Request / Nebula Ficklets Turn on Control Lamp, DATA TYPE BOOL
+		SIGNAL IHC_Stat, OFFSET: 11, LEN: 2, DESC: Intelligent Headlight Control State / State Intelligent Headlight Control, DATA TYPE ENUM
+			ENUM IHC_ACTV, RAW: 0, DESC: IHC Activated
+			ENUM IHC_FLT, RAW: 1, DESC: IHC Fault
+			ENUM TEMP_NAVL, RAW: 2, DESC: IHC Temporarily Not Available
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL LoBm_IndLmp_On_Rq, OFFSET: 13, LEN: 1, DESC: Low Beam Indication Lamp On Request / Switch on Control Lamp, DATA TYPE BOOL
+		SIGNAL FogLmp_Ft_IndLmp_On_Rq, OFFSET: 14, LEN: 1, DESC: Fog Lamps Front Indication Lamp On Request / Fog Light Control Lamp, DATA TYPE BOOL
+		SIGNAL SwIll_Off_Rq, OFFSET: 15, LEN: 1, DESC: Switch Illumination Off Request / Request Search Lighting, DATA TYPE BOOL
+	FRAME SPC_A3 (0x00000379)
+		SIGNAL SPC_Msg2_Disp_Rq, OFFSET: 2, LEN: 1, DESC: Display Message # 2: "Level Selection Cleared" / Message 2: "Level selection deleted", DATA TYPE BOOL
+		SIGNAL SPC_Msg1_Disp_Rq, OFFSET: 3, LEN: 1, DESC: Display Message # 1: "Vehicle Lifts Up" / Message 1: "Vehicle Lifts", DATA TYPE BOOL
+		SIGNAL SPC_ErrMsg4_Disp_Rq, OFFSET: 4, LEN: 1, DESC: Display Error Message # 4: "Shut Down Vehicle" / Error 4: "Stopping vehicle", DATA TYPE BOOL
+		SIGNAL SPC_ErrMsg3_Disp_Rq, OFFSET: 5, LEN: 1, DESC: Display Error Message # 3: "Seek Service Soon" / Error 3: "Check the workshop", DATA TYPE BOOL
+		SIGNAL SPC_ErrMsg2_Disp_Rq, OFFSET: 6, LEN: 1, DESC: Display Error Message # 2: "Please wait, Vehicle lifts up" (ASP), "Steering Oil" (ABC) / Error 2: "Please wait, vehicle lifts" (ASP), "Steering Oil" (ABC), DATA TYPE BOOL
+		SIGNAL SPC_ErrMsg1_Disp_Rq, OFFSET: 7, LEN: 1, DESC: Display Error Message # 1: "Stop, Vehicle to Low" / Error 1: "Stop, car too deep", DATA TYPE BOOL
+		SIGNAL VehLvlCtrl_Stat, OFFSET: 10, LEN: 1, DESC: Vehicle Level Control State / Status Level Regulation, DATA TYPE BOOL
+		SIGNAL ADC_Stat, OFFSET: 11, LEN: 1, DESC: Active Damping Control State / Status Active Damping Control, DATA TYPE BOOL
+		SIGNAL ADC_SwLED_Rq, OFFSET: 12, LEN: 2, DESC: Active Damping Control Switch LED Request / Request LED Button Active Damping Control, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM CONT, RAW: 1, DESC: Continuous Light
+			ENUM BLINK, RAW: 2, DESC: Blinking Light
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SuspLvlAdjSwLED_Rq, OFFSET: 14, LEN: 2, DESC: Suspension Level Adjustment Switch LED Request / Request LED Vehicle Level Button, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM CONT, RAW: 1, DESC: Continuous Light
+			ENUM BLINK, RAW: 2, DESC: Blinking Light
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+	FRAME STW_ANGL_STAT (0x00000003)
+		SIGNAL StW_Angl, OFFSET: 2, LEN: 14, DESC: Steering Wheel Angle / steering wheel angle, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: -2048.0)
+		SIGNAL StW_AnglSpd, OFFSET: 18, LEN: 14, DESC: Steering Wheel Angle Speed / Steering Wheel Speed, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: -2048.0)
+		SIGNAL StW_AnglSens_Id, OFFSET: 36, LEN: 2, DESC: Steering Wheel Angle Sensor Identification / Identification Steering wheel angle sensor, DATA TYPE ENUM
+			ENUM INIT_PSBL, RAW: 0, DESC: Steering Wheel Angle Sensor Can Be Initialized
+			ENUM INIT_SELF, RAW: 1, DESC: Steering Wheel Angle Sensor is self-initializing
+			ENUM INIT_MUST, RAW: 2, DESC: (Steering Wheel Angle Sensor Must Initialized)
+		SIGNAL StW_AnglSens_Stat, OFFSET: 38, LEN: 2, DESC: Steering Wheel Angle Sensor State / Status Steering wheel angle sensor, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Steering Wheel Angle Sensor OK
+			ENUM INI, RAW: 1, DESC: Steering Wheel Angle Sensor Not Initialized
+			ENUM ERR, RAW: 2, DESC: Steering Wheel Angle Sensor Fault
+			ENUM ERR_INI, RAW: 3, DESC: Steering Wheel Angle Sensor Fault and Not Initialized
+		SIGNAL MC_STW_ANGL_STAT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_STW_ANGL_STAT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME BRK_STAT (0x00000005)
+		SIGNAL PkBrk_Rq_SBC, OFFSET: 0, LEN: 2, DESC: Parking Brake Request / parking brake request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM ENGG, RAW: 1, DESC: Engage Request
+			ENUM RELS, RAW: 2, DESC: Release Request
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BrkPdl_Stat, OFFSET: 2, LEN: 2, DESC: Brake Pedal State / Status Brake Pedal, DATA TYPE ENUM
+			ENUM UPSTOP, RAW: 0, DESC: Pedal upstopped
+			ENUM PSD, RAW: 1, DESC: Pedal Pressed
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SPCR_Sp_Stat, OFFSET: 4, LEN: 2, DESC: Stop Coordinator Stop State / Status Standstill, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Vehicle Not Stoped, Or Not Held by Assistance System
+			ENUM STOP, RAW: 1, DESC: Vehicle Stopped and Held by Assistance System (Using Service Brake)
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Brk_Stat, OFFSET: 6, LEN: 2, DESC: Brake State / Status Brake, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Braking
+			ENUM BRAKING, RAW: 1, DESC: Braking
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL FullBrk_Actv, OFFSET: 8, LEN: 1, DESC: Full Braking (ABS Regulates All Wheels) / Full Braking (ABS regulates all 4 wheels), DATA TYPE BOOL
+		SIGNAL EmgBrk_Actv, OFFSET: 9, LEN: 1, DESC: Emergency Braking / Emergency Braking, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Enbl, OFFSET: 11, LEN: 1, DESC: Brake Intervention enabled / brake intervention allowed, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_EPKB, OFFSET: 12, LEN: 1, DESC: Brake Intervention by EPKB Active / EPKB brake intervention active, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_AS, OFFSET: 13, LEN: 1, DESC: Brake Intervention by Assistance System Active / Assistance System Brake Intervention, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_ESP, OFFSET: 15, LEN: 1, DESC: Brake Intervention by ESP Active / ESP brake intervention active, DATA TYPE BOOL
+		SIGNAL SPCR_Md_V3, OFFSET: 16, LEN: 4, DESC: Stop Coordinator Mode / Mode Standstill Coordinator, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: normal surgery
+			ENUM HOLD, RAW: 1, DESC: HOLD MODE ACTIVE
+			ENUM GO, RAW: 2, DESC: Go Mode Active
+			ENUM SLP, RAW: 4, DESC: Vehicle Slips
+			ENUM SPCR_ACTV, RAW: 8, DESC: Stop Coordinator Active
+			ENUM SPCR_ACTV_HOLD, RAW: 9, DESC: SPCR in Activity and Hold Mode Active
+			ENUM SPCR_ACTV_GO, RAW: 10, DESC: SPCR in Activity and Go Mode Active
+			ENUM SPCR_ACTV_SLP, RAW: 12, DESC: SPCR in Activity and Vehicle Slips
+			ENUM SPCR_PSV, RAW: 15, DESC: SPCR Passive
+		SIGNAL BrkTrq, OFFSET: 20, LEN: 12, DESC: Actual Brake Torque / set braking torque, DATA TYPE NUMBER(_MULTIPLIER_: 3.0, _OFFSET_: 0.0)
+		SIGNAL TxPkPosn_Rq_SBC, OFFSET: 32, LEN: 1, DESC: Transmission Parking Position Request / SBC request: "P", DATA TYPE BOOL
+		SIGNAL SPCR_Veh_Immo, OFFSET: 33, LEN: 1, DESC: Vehicle Immobilized by Stop Coordinator / Standstill Coordinator has secured vehicle, DATA TYPE BOOL
+		SIGNAL SPCR_Excpt_Rq, OFFSET: 34, LEN: 2, DESC: Stop Coordinator Exception Request / Standstill Coordinator Exception Request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM SPDCTRLLVR_DSABL, RAW: 1, DESC: Disable Speed ​​Control Lever Request (Driver Door Open)
+			ENUM AS_DSABL, RAW: 2, DESC: Disable Assistance System Request (Engine Hood / Deck Lid Open)
+			ENUM SPDCTRLLVR_AS_DSABLE, RAW: 3, DESC: Disable Speed ​​Control Lever and Assistance System Request
+		SIGNAL StTrq_Stat, OFFSET: 36, LEN: 2, DESC: Starting Torque State (to Release Parking Brake) / Status Tracking Torque (for loosening parking brake), DATA TYPE ENUM
+			ENUM HOLD, RAW: 0, DESC: NOT ENOUGH STARTING TORQUE AVAILABLE
+			ENUM RELS, RAW: 1, DESC: Enough Starting Torque Available
+			ENUM UNDET, RAW: 2, DESC: Starting Torque undetermined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ESP_Sys_Stat, OFFSET: 38, LEN: 2, DESC: ESP System State / ESP system condition, DATA TYPE ENUM
+			ENUM ERR, RAW: 0, DESC: System Error
+			ENUM NORM, RAW: 1, DESC: normal surgery
+			ENUM DIAG, RAW: 2, DESC: Diagnostics
+			ENUM EMT, RAW: 3, DESC: Exhaust Emission Test
+		SIGNAL MC_BRK_STAT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL SPCR_AS_Off_Rq, OFFSET: 52, LEN: 2, DESC: Assistance System Off Request / Request Assistance System, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM AS_TMP_OFF, RAW: 1, DESC: Assistance System Temporary Off, Enabling Not Allowed
+			ENUM AS_CNTS_OFF, RAW: 2, DESC: Assistance System Continously Off, Enabling Not Allowed
+			ENUM SPCR_NA, RAW: 3, DESC: Stop Coordinator Not Available, Enabling Not Allowed
+		SIGNAL SPCR_AS_Dsabl, OFFSET: 54, LEN: 2, DESC: Disable Assistance System / Shutdown Assistance System, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM AS_NOT_ENBL, RAW: 1, DESC: Enabling Assistance System Not Allowed (Temperature)
+			ENUM AS_DSABL, RAW: 2, DESC: Disable Assistance System Request (Temperature)
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CRC_BRK_STAT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME CGW_STAT (0x0000000F)
+		SIGNAL BusFlt_PrmntActv, OFFSET: 5, LEN: 1, DESC: Bus Faulty, permanent active / bus faulty, permanent active, DATA TYPE BOOL
+		SIGNAL CGW_Rout_Stat, OFFSET: 6, LEN: 2, DESC: CGW Routing Status / CGW Routing Status, DATA TYPE ENUM
+			ENUM ACTIVE, RAW: 0, DESC: Source Can Active
+			ENUM DSABL_TO_MON, RAW: 1, DESC: Source Can Inactive, Disable Timeout Monitoring
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+	FRAME BRK_STAT2 (0x0000005F)
+		SIGNAL BrkTrq_D, OFFSET: 4, LEN: 12, DESC: Brake Torque Requested by Driver / Driver requested braking torque, DATA TYPE NUMBER(_MULTIPLIER_: 3.0, _OFFSET_: 0.0)
+		SIGNAL BrkTrqGrdnt_D, OFFSET: 20, LEN: 12, DESC: Brake Torque Gradient Requested by Driver / Driver requested braking torque gradient, DATA TYPE NUMBER(_MULTIPLIER_: 97.67977905273438, _OFFSET_: -200048.0)
+		SIGNAL MC_BRK_STAT2, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_BRK_STAT2, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SBW_RQ_SCCM (0x0000006D)
+		SIGNAL MsgTxmtId, OFFSET: 0, LEN: 2, DESC: Message Transmitter Identification / Transmitter ID, DATA TYPE ENUM
+			ENUM EWM, RAW: 0, DESC: EWM
+			ENUM SCCM, RAW: 1, DESC: SCCM
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL StW_Sw_Stat3, OFFSET: 5, LEN: 3, DESC: State Steering Wheel Switch ("+", "-") / steering wheel keys "+", "-" actuated, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Nothing pressed
+			ENUM PLUS, RAW: 1, DESC: "+" pressed
+			ENUM MINUS, RAW: 2, DESC: "-" pressed
+			ENUM PLUS_MINUS, RAW: 3, DESC: "+" and "-" pressed
+			ENUM NDEF4, RAW: 4, DESC: Not Defined
+			ENUM NDEF5, RAW: 5, DESC: Not Defined
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL TSL_Sgnl_Id_StW, OFFSET: 8, LEN: 2, DESC: Transmission Selector Lever Signal Identification (Steering Wheel) / Gear Select Lever Signal ID (steering wheel), DATA TYPE ENUM
+			ENUM OLD, RAW: 0, DESC: OLD signal "TSL_POSN_STW"
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM OLD_ERR_RES, RAW: 2, DESC: Reserved for Old Signal: Errors in SCCM
+			ENUM NEW, RAW: 3, DESC: New Signals "TSL_P_PSD_STW" AND "TSL_RND_POSN_STW"
+		SIGNAL TSL_P_Psd_StW, OFFSET: 10, LEN: 2, DESC: Transmission Selector Lever "P" Switch Actuated (Steering Wheel) / Gear Select Lever "P", DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Transmission Selector Lever "P" Not Pressed
+			ENUM PSD, RAW: 1, DESC: Transmission Selector Lever "P" pressed
+			ENUM INI, RAW: 2, DESC: Transmission Selector Lever "P" Switch Not Initialized
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TSL_RND_Posn_StW, OFFSET: 12, LEN: 4, DESC: Transmission Selector Lever RND Position (Steering Wheel) / Gear Selection Lever RND position (steering wheel), DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Transmission Selector Lever in idle position
+			ENUM R, RAW: 1, DESC: Transmission Selector Lever in position "R"
+			ENUM N_UP, RAW: 2, DESC: Transmission Selector Lever in position "N UP"
+			ENUM N_DOWN, RAW: 4, DESC: Transmission Selector Lever in position "N Down"
+			ENUM INI, RAW: 6, DESC: Transmission Selector Lever Not Initialized
+			ENUM D, RAW: 8, DESC: Transmission Selector Lever in position "D"
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL MC_SBW_RQ_SCCM, OFFSET: 16, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_SBW_RQ_SCCM, OFFSET: 24, LEN: 8, DESC: CRC Checksum Byte 1 to 3 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 3 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME EPKB_STAT (0x000000DD)
+		SIGNAL PkBrkSw_Stat, OFFSET: 0, LEN: 2, DESC: Parking Brake Switch State / parking brake switch state, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Not pressed
+			ENUM ENGG, RAW: 1, DESC: Apply (Engage Pushed)
+			ENUM RELS, RAW: 2, DESC: Release (Release Pulled)
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL EPkBrk_Stat, OFFSET: 2, LEN: 3, DESC: Electrical Parking Brake System State / Status EPKB, DATA TYPE ENUM
+			ENUM ERR, RAW: 0, DESC: Fatal System Error
+			ENUM NORM, RAW: 1, DESC: normal surgery
+			ENUM DIAG, RAW: 2, DESC: Diagnostics
+			ENUM INIT, RAW: 3, DESC: Initialization
+			ENUM PART, RAW: 4, DESC: Partial surgery
+			ENUM NO_ENGG, RAW: 5, DESC: Partial Operation, Engaging Not Possible
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL PkBrk_Stat, OFFSET: 5, LEN: 3, DESC: Parking Brake State / Status parking brake, DATA TYPE ENUM
+			ENUM NO_END_POSN, RAW: 0, DESC: No end position
+			ENUM INC, RAW: 1, DESC: InCreasing Tensioning Force
+			ENUM DEC, RAW: 2, DESC: Decreasing Tensioning Force
+			ENUM ENGG, RAW: 3, DESC: Parking Brake is engaged
+			ENUM RELS, RAW: 4, DESC: Parking Brake Is Released
+			ENUM NDEF5, RAW: 5, DESC: Not Defined
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL SBC_Enbl_Rq_EPKB, OFFSET: 8, LEN: 1, DESC: Enable SBC Request / SBC request allowed, DATA TYPE BOOL
+		SIGNAL DynBrkMd, OFFSET: 10, LEN: 2, DESC: Dynamic Braking Fashion / Mode Dynamic Brakes, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Dynamic Braking
+			ENUM SBC, RAW: 1, DESC: Dynamic Braking Via SBC
+			ENUM EPKB, RAW: 2, DESC: Dynamic Braking Via EPKB
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BrkTrq_Rq_EPKB, OFFSET: 12, LEN: 12, DESC: Brake Torque Request / EPKB requested braking torque, DATA TYPE NUMBER(_MULTIPLIER_: 3.0, _OFFSET_: 0.0)
+		SIGNAL BatCplSw_Rq_EPKB, OFFSET: 26, LEN: 2, DESC: Battery Coupling Switch Request / Request Battery Coupling Switch, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM CLOSE, RAW: 1, DESC: Close Battery Coupling Switch
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TxPkPosn_Rq_EPKB, OFFSET: 28, LEN: 2, DESC: Transmission Parking Position Request / EPKB request: "P", DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM P_ENGG, RAW: 1, DESC: Engage Transmission Parking Position
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BrkLgt_On_Rq, OFFSET: 30, LEN: 2, DESC: Turn on Brake Light on Request / Brake light, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL MC_EPKB_STAT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_EPKB_STAT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME HVAC_RS1 (0x000000F9)
+		SIGNAL HVAC_Comp_Ft_On, OFFSET: 0, LEN: 1, DESC: Aircon Compressor Front On / Climate Compressor for Front On, DATA TYPE BOOL
+		SIGNAL HVAC_AuxHt_Enbl, OFFSET: 1, LEN: 1, DESC: Auxiliary Heater Enabled / Switch on, DATA TYPE BOOL
+		SIGNAL HVAC_EngIdleRPM_Inc_Rq, OFFSET: 2, LEN: 1, DESC: Engine Idle Speed ​​Increase Request / Idle Speed ​​Lifting to Cooling Elevation, DATA TYPE BOOL
+		SIGNAL HVAC_Recup_Enbl_Rq, OFFSET: 3, LEN: 1, DESC: HVAC Enable Recuperation Request / Recuperation enable, DATA TYPE BOOL
+		SIGNAL SSA_Enbl_Rq_HVAC, OFFSET: 4, LEN: 1, DESC: ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE, DATA TYPE BOOL
+		SIGNAL SSA_EngSt_Rq_HVAC, OFFSET: 5, LEN: 1, DESC: STOP / START AUTOMATIC Engine Start Request / ASS Motorstart Request, DATA TYPE BOOL
+		SIGNAL HVAC_TxShftPointHt_Inc_Rq, OFFSET: 6, LEN: 1, DESC: Transmission Shift Point Increase Request for Thermal Comfort (Heating) / Raise of the gear switching point for climate summary increase (heating), DATA TYPE BOOL
+		SIGNAL HVAC_TxShftPoint_Inc_Rq, OFFSET: 7, LEN: 1, DESC: Transmission Shift Point Increase Request for Thermal Comfort (Cooling) / Raising of the gear switching point for climate domestic enhancement (cooling), DATA TYPE BOOL
+		SIGNAL HVAC_CompTrq_Ft, OFFSET: 8, LEN: 8, DESC: Actual Front Aircon Compressor Crackish Torque / Climate Compressor Tour For Front, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: 0.0)
+		SIGNAL EngFanRPM_Rq_HVAC, OFFSET: 16, LEN: 8, DESC: Engine Fan RPM Request / Motor Heater Setpoint Speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL AirTemp_Outsd_HtMgt, OFFSET: 24, LEN: 8, DESC: Outside Air Temperature for Heating Management / Outdoor air temperature for thermal management, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: -40.0)
+		SIGNAL HtPwr_Ft_Rq, OFFSET: 32, LEN: 8, DESC: Heating Power Front Request / Request Heating Power Front, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MC_HVAC_RS1, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_HVAC_RS1, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME TX_RQ_SBC (0x00000104)
+		SIGNAL GrMinMax_Rq_DTR, OFFSET: 1, LEN: 1, DESC: Gear Limit Request from DTR / Sprocket Request for DTR, DATA TYPE BOOL
+		SIGNAL GrMax_Rq_SBC, OFFSET: 2, LEN: 3, DESC: Requested Gear, Upper Limit / Sprocket, Upper Border, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Passive Value
+			ENUM G1, RAW: 1, DESC: Requested Gear, Upper Limit = 1
+			ENUM G2, RAW: 2, DESC: Requested Gear, Upper Limit = 2
+			ENUM G3, RAW: 3, DESC: Requested Gear, Upper Limit = 3
+			ENUM G4, RAW: 4, DESC: Requested Gear, Upper Limit = 4
+			ENUM G5, RAW: 5, DESC: Requested Gear, Upper Limit = 5
+			ENUM G6, RAW: 6, DESC: Requested Gear, Upper Limit = 6
+			ENUM G7, RAW: 7, DESC: Requested Gear, Upper Limit = 7
+		SIGNAL GrMin_Rq_SBC, OFFSET: 5, LEN: 3, DESC: Requested Gear, Lower Limit / Sprocket, Lower Border, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Passive Value
+			ENUM G1, RAW: 1, DESC: Requested Gear, Lower Limit = 1
+			ENUM G2, RAW: 2, DESC: Requested Gear, Lower Limit = 2
+			ENUM G3, RAW: 3, DESC: Requested Gear, Lower Limit = 3
+			ENUM G4, RAW: 4, DESC: Requested Gear, Lower Limit = 4
+			ENUM G5, RAW: 5, DESC: Requested Gear, Lower Limit = 5
+			ENUM G6, RAW: 6, DESC: Requested Gear, Lower Limit = 6
+			ENUM G7, RAW: 7, DESC: Requested Gear, Lower Limit = 7
+		SIGNAL DynFLDS_Supp_Rq_SBC, OFFSET: 8, LEN: 1, DESC: Suppression of Dynamic Full Load Down Shift Request / Suppression Dynamic Full Determination, DATA TYPE BOOL
+		SIGNAL ActvDnShift_Rq_SBC, OFFSET: 9, LEN: 1, DESC: Active Down Shift / Active Record, DATA TYPE BOOL
+		SIGNAL ShftChrDsp_Rq_SBC, OFFSET: 12, LEN: 4, DESC: Shift Characteristic Displacement Request / Request Switching Shift, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Shift Characteristic Displacement "0"
+			ENUM SKL1, RAW: 1, DESC: Shift Characteristic Displacement "1"
+			ENUM SKL2, RAW: 2, DESC: Shift Characteristic Displacement "2"
+			ENUM SKL3, RAW: 3, DESC: Shift Characteristic Displacement "3"
+			ENUM SKL4, RAW: 4, DESC: Shift Characteristic Displacement "4"
+			ENUM SKL5, RAW: 5, DESC: Shift Characteristic Displacement "5"
+			ENUM SKL6, RAW: 6, DESC: Shift Characteristic Displacement "6"
+			ENUM SKL7, RAW: 7, DESC: Shift Characteristic Displacement "7"
+			ENUM SKL8, RAW: 8, DESC: Shift Characteristic Displacement "8"
+			ENUM SKL9, RAW: 9, DESC: Shift Characteristic Displacement "9"
+			ENUM SKL10, RAW: 10, DESC: Shift Characteristic Displacement "10"
+		SIGNAL NoGrN_Rq, OFFSET: 21, LEN: 1, DESC: No Gear "N" Request (Only for Office During SBC Additional Value Active) / SBC-S / H active, ASG must not switch to "n", DATA TYPE BOOL
+		SIGNAL GrN_Rq_SBC, OFFSET: 22, LEN: 2, DESC: Request Neutral Gear by SBC / SBC wish: "neutral", DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM RQ_N, RAW: 1, DESC: Request "neutral"
+			ENUM IDLE, RAW: 2, DESC: No Request
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TxRatioMin_Rq_SBC, OFFSET: 24, LEN: 8, DESC: Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL TxRatioMax_Rq_SBC, OFFSET: 32, LEN: 8, DESC: Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL MC_TX_RQ_SBC, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_TX_RQ_SBC, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RS3_PT (0x00000105)
+		SIGNAL KickDnSw_Psd, OFFSET: 0, LEN: 1, DESC: KICKDOWN SWITCH PRESSED / KICKDOWN OPERATED, DATA TYPE BOOL
+		SIGNAL PreHt_Stat, OFFSET: 1, LEN: 1, DESC: Proheating State / Preheating Status, DATA TYPE BOOL
+		SIGNAL EngRPM, OFFSET: 2, LEN: 14, DESC: Actual Engine RPM / engine speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL EngTrqMaxCorrFctr, OFFSET: 16, LEN: 8, DESC: Correction Factor of Maximum Engine Torque Depending On Falling Atmospheric Pressure / Factor for Abwert.d.Max. Mom. At Aufneh.A.Print, DATA TYPE NUMBER(_MULTIPLIER_: 0.007795275654643774, _OFFSET_: 0.0)
+		SIGNAL AccelPdlPosn, OFFSET: 24, LEN: 8, DESC: Accelerator Pedal Position / Pedal Value, DATA TYPE NUMBER(_MULTIPLIER_: 0.4000000059604645, _OFFSET_: 0.0)
+		SIGNAL AccelPdlPosn_Raw, OFFSET: 32, LEN: 8, DESC: Accelerator Pedal Position Raw Value / Pedal Value Driver, DATA TYPE NUMBER(_MULTIPLIER_: 0.4000000059604645, _OFFSET_: 0.0)
+		SIGNAL Term61_Actv, OFFSET: 40, LEN: 1, DESC: Terminal 61 Active / Clamp 61 active, DATA TYPE BOOL
+		SIGNAL AddPwrCnsmr_On_Rq, OFFSET: 41, LEN: 1, DESC: Additional Power Consumers on Request / Request Additional power consumers, DATA TYPE BOOL
+		SIGNAL GenLoad, OFFSET: 42, LEN: 6, DESC: Actual Generator Load / Generator utilization, DATA TYPE NUMBER(_MULTIPLIER_: 3.225806474685669, _OFFSET_: 0.0)
+		SIGNAL MC_ENG_RS3_PT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL AccelPdlPosnSens_Flt, OFFSET: 52, LEN: 1, DESC: Accelerator Pedal Position Sensor Fault / Error pedal value transmitter, DATA TYPE BOOL
+		SIGNAL EngRun_Stat, OFFSET: 53, LEN: 3, DESC: Engine Running State / Status Engine Circulation, DATA TYPE ENUM
+			ENUM STOP, RAW: 0, DESC: Engine is stopped
+			ENUM START, RAW: 1, DESC: Engine starting
+			ENUM IDLE_UNSTBL, RAW: 2, DESC: Engine Idling, Unstable
+			ENUM IDLE_STBL, RAW: 3, DESC: Engine Idling, Stable
+			ENUM UNLIMITED, RAW: 4, DESC: Engine Running, Unlimited RPM
+			ENUM LIMITED, RAW: 5, DESC: Engine Running, Limited RPM
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL CRC_ENG_RS3_PT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RS2_PT (0x0000014B)
+		SIGNAL EngTrqStatic, OFFSET: 3, LEN: 13, DESC: Actual Static Engine Torque / Motor Tour Static, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL EngTrqMaxETC, OFFSET: 19, LEN: 13, DESC: ACTUAL Maximum Engine Torque Including Dynamic Exhaust Turbocharger Torque / Maximum Moment Burner with Exhaust Turbocharger, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL FullOFC_Actv, OFFSET: 32, LEN: 1, DESC: Fully Overrun Fuel Cutoff Active / push shutdown full, DATA TYPE BOOL
+		SIGNAL PartOFC_Actv, OFFSET: 33, LEN: 1, DESC: Partly Overrun Fuel Cutoff Active / Part Number Shutdown, DATA TYPE BOOL
+		SIGNAL EngTrqMinTTC, OFFSET: 35, LEN: 13, DESC: Actual Mimimum Engine Torque Including Trailing Throttle Component / Motor Torque Minimal including thrust, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL MC_ENG_RS2_PT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_ENG_RS2_PT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME TX_RQ_ECM (0x0000017D)
+		SIGNAL GrMax_Rq_ECM, OFFSET: 2, LEN: 3, DESC: Requested Gear, Upper Limit / Sprocket, Upper Border, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Passive Value
+			ENUM G1, RAW: 1, DESC: Requested Gear, Upper Limit = 1
+			ENUM G2, RAW: 2, DESC: Requested Gear, Upper Limit = 2
+			ENUM G3, RAW: 3, DESC: Requested Gear, Upper Limit = 3
+			ENUM G4, RAW: 4, DESC: Requested Gear, Upper Limit = 4
+			ENUM G5, RAW: 5, DESC: Requested Gear, Upper Limit = 5
+			ENUM G6, RAW: 6, DESC: Requested Gear, Upper Limit = 6
+			ENUM G7, RAW: 7, DESC: Requested Gear, Upper Limit = 7
+		SIGNAL GrMin_Rq_ECM, OFFSET: 5, LEN: 3, DESC: Requested Gear, Lower Limit / Sprocket, Lower Border, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Passive Value
+			ENUM G1, RAW: 1, DESC: Requested Gear, Lower Limit = 1
+			ENUM G2, RAW: 2, DESC: Requested Gear, Lower Limit = 2
+			ENUM G3, RAW: 3, DESC: Requested Gear, Lower Limit = 3
+			ENUM G4, RAW: 4, DESC: Requested Gear, Lower Limit = 4
+			ENUM G5, RAW: 5, DESC: Requested Gear, Lower Limit = 5
+			ENUM G6, RAW: 6, DESC: Requested Gear, Lower Limit = 6
+			ENUM G7, RAW: 7, DESC: Requested Gear, Lower Limit = 7
+		SIGNAL SSA_EngSp, OFFSET: 8, LEN: 1, DESC: STOP / START AUTOMATIC HAS Engine Stopped / ass MotorStop, 1 = Stop, 0 = normal operation, DATA TYPE BOOL
+		SIGNAL SSA_Sp_Warn, OFFSET: 9, LEN: 1, DESC: STOP / START AUTOMATIC PRE-WARNING ENGINE STOP / ASS Pre-warning engine stop, DATA TYPE BOOL
+		SIGNAL Creep_Off_Rq, OFFSET: 10, LEN: 1, DESC: Creep Mode Off Request / Crawl Off, DATA TYPE BOOL
+		SIGNAL Gr1_Rq_ECM, OFFSET: 11, LEN: 1, DESC: Request Driveaway with 1st Gear by ECM / MS-Wish: "Attraction 1st gear", DATA TYPE BOOL
+		SIGNAL ShftChrDsp_Rq, OFFSET: 12, LEN: 4, DESC: Shift Characteristic Displacement Request / Request Switching Shift, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Shift Characteristic Displacement "0"
+			ENUM SKL1, RAW: 1, DESC: Shift Characteristic Displacement "1"
+			ENUM SKL2, RAW: 2, DESC: Shift Characteristic Displacement "2"
+			ENUM SKL3, RAW: 3, DESC: Shift Characteristic Displacement "3"
+			ENUM SKL4, RAW: 4, DESC: Shift Characteristic Displacement "4"
+			ENUM SKL5, RAW: 5, DESC: Shift Characteristic Displacement "5"
+			ENUM SKL6, RAW: 6, DESC: Shift Characteristic Displacement "6"
+			ENUM SKL7, RAW: 7, DESC: Shift Characteristic Displacement "7"
+			ENUM SKL8, RAW: 8, DESC: Shift Characteristic Displacement "8"
+			ENUM SKL9, RAW: 9, DESC: Shift Characteristic Displacement "9"
+			ENUM SKL10, RAW: 10, DESC: Shift Characteristic Displacement "10"
+		SIGNAL TxRatioMin_Rq_ECM, OFFSET: 16, LEN: 8, DESC: Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL TxRatioMax_Rq_ECM, OFFSET: 24, LEN: 8, DESC: Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL TCC_Rq, OFFSET: 32, LEN: 2, DESC: Torque Converter Lockup Clutch Request / Kueb setpoint open / slipping, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Request
+			ENUM DISENGG, RAW: 1, DESC: Lockup Clutch Disengage
+			ENUM ENGG, RAW: 2, DESC: Lockup Clutch Engage
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL TxSlpRPM_Rq_ECM, OFFSET: 34, LEN: 14, DESC: Transmission Slip RPM Request / Request Slip speed., DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MC_TX_RQ_ECM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL ECM_LHOM, OFFSET: 52, LEN: 1, DESC: Engine Control Modules in Limp-Home Operation Fashion / ECM in emergency operation, DATA TYPE BOOL
+		SIGNAL EngExhstAfterTreat_Actv, OFFSET: 54, LEN: 1, DESC: Engine Exhaust-Gas Aftertreatment Active (Diesel) / Engine Exhaust Aftertreatment Active (Diesel), DATA TYPE BOOL
+		SIGNAL EngRPM_Sens_LHOM, OFFSET: 55, LEN: 1, DESC: Engine RPM Sensor in LIMP-Home Operation Fashion / engine speed sensor in emergency operation, DATA TYPE BOOL
+		SIGNAL CRC_TX_RQ_ECM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RS1_PT (0x000001CD)
+		SIGNAL CC_Encode_ECM, OFFSET: 1, LEN: 1, DESC: Engine Control Module Has Cruise Control Encoded / SerentemPomat is Variant Coded, DATA TYPE BOOL
+		SIGNAL EngTrq_Enbl_Rq_AS, OFFSET: 2, LEN: 1, DESC: Enable Engine Torque Request / Enable Torque Request AS, DATA TYPE BOOL
+		SIGNAL EngTrqSel_D_TTC, OFFSET: 3, LEN: 13, DESC: Selected Torque by Driver Including Trailing Throttle Component / Preset Tame Driver including Schubrank, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL EngTrqAdjFast_Enbl, OFFSET: 17, LEN: 1, DESC: Enable Fast Engine Torque Adjustment / Enable Fast torque setting, DATA TYPE BOOL
+		SIGNAL EngTrq_Enbl_Rq_SBC, OFFSET: 18, LEN: 1, DESC: Enable Engine Torque Request / Enable Torque Requirement SBC, DATA TYPE BOOL
+		SIGNAL EngTrqSel_AS_TTC, OFFSET: 19, LEN: 13, DESC: Selected Torque By AS Including Trailing Throttle Component / Property Toment AS including thrust, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL EngTrq_Ack_ECM, OFFSET: 33, LEN: 1, DESC: Engine Torque Request AcknowledgeGement / acknowledgment Torque requirement, DATA TYPE BOOL
+		SIGNAL EngTrq_Enbl_Rq_TCM, OFFSET: 34, LEN: 1, DESC: Enable Engine Torque Request / Enable Tomentic Request TCM, DATA TYPE BOOL
+		SIGNAL EngTrqSel_SBC_TTC, OFFSET: 35, LEN: 13, DESC: Selected Torque by SBC Including Trailing Throttle Component / Preset Tame SBC including thrust, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL MC_ENG_RS1_PT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_ENG_RS1_PT, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME DPM_STAT (0x00000200)
+		SIGNAL DPM_ExtMd_Enbl_Rq, OFFSET: 4, LEN: 2, DESC: Decentral Power Management External Fashion Enable Request / Release External Fashion by Decentralized Power Management, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM NO_EXT, RAW: 1, DESC: DPM External Fashion Not Allowed
+			ENUM EXT, RAW: 2, DESC: DPM External Fashion Allowed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DPM_MdLmt_Rq, OFFSET: 6, LEN: 2, DESC: Decentral Power Management Fashion Limit Request / Mode Handle Decentralized Power Management, DATA TYPE ENUM
+			ENUM SLEEP, RAW: 0, DESC: DPM LIMIT SLEEP MODE
+			ENUM LOCAL, RAW: 1, DESC: DPM LIMIT Local Mode
+			ENUM EXT, RAW: 2, DESC: DPM Limit External Mode
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+	FRAME WHL_STAT1 (0x00000201)
+		SIGNAL WhlPlsCnt_FL, OFFSET: 0, LEN: 8, DESC: Wheel Pulse Counter Front Left (96 by rotation) / pulse ring counter wheel front left (96 per revolution), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL WhlPlsCnt_FR, OFFSET: 8, LEN: 8, DESC: Wheel Pulse Counter Front Right (96 Per Rotation) / Pulse Ring Counter Wheel Front Right (96 per Revolution), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL WhlPlsCnt_RL, OFFSET: 16, LEN: 8, DESC: Wheel Pulse Counter Rear Left (96 by rotation) / pulse ring counter wheel rear left (96 per revolution), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL WhlPlsCnt_RR, OFFSET: 24, LEN: 8, DESC: Wheel Pulse Counter Rear Right (96 by rotation) / pulse ring counter wheel rear right (96 per revolution), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MC_WHL_STAT1, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_WHL_STAT1, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME WHL_STAT2 (0x00000203)
+		SIGNAL WhlDir_FL_Stat, OFFSET: 0, LEN: 2, DESC: DIRECTION OF ROTATION OF FRONT LEFT Wheel / direction of rotation Wheel front left, DATA TYPE ENUM
+			ENUM VOID, RAW: 0, DESC: NO DETECTION OF DIRECTION
+			ENUM FORWARD, RAW: 1, DESC: DIRECTION FORWARD
+			ENUM BACKWARD, RAW: 2, DESC: DIRECTION BACKWARD
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL WhlRPM_FL, OFFSET: 2, LEN: 14, DESC: Wheel RPM Front Left / Wheel Speed Front Left, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL WhlDir_FR_Stat, OFFSET: 16, LEN: 2, DESC: DIRECTION OF ROTATION OF FRONT RIGHT Wheel / direction of rotation Wheel front right, DATA TYPE ENUM
+			ENUM VOID, RAW: 0, DESC: NO DETECTION OF DIRECTION
+			ENUM FORWARD, RAW: 1, DESC: DIRECTION FORWARD
+			ENUM BACKWARD, RAW: 2, DESC: DIRECTION BACKWARD
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL WhlRPM_FR, OFFSET: 18, LEN: 14, DESC: Wheel RPM Front Right / wheel speed front right, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL WhlDir_RL_Stat, OFFSET: 32, LEN: 2, DESC: DIRECTION OF ROTATION OF REAR LEFT Wheel / direction of rotation Wheel rear left, DATA TYPE ENUM
+			ENUM VOID, RAW: 0, DESC: NO DETECTION OF DIRECTION
+			ENUM FORWARD, RAW: 1, DESC: DIRECTION FORWARD
+			ENUM BACKWARD, RAW: 2, DESC: DIRECTION BACKWARD
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL WhlRPM_RL, OFFSET: 34, LEN: 14, DESC: Wheel RPM REAR Left / wheel speed rear left, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL WhlDir_RR_Stat, OFFSET: 48, LEN: 2, DESC: DIRECTION OF ROTATION OF REAR RIGHT Wheel / direction of rotation Wheel rear right, DATA TYPE ENUM
+			ENUM VOID, RAW: 0, DESC: NO DETECTION OF DIRECTION
+			ENUM FORWARD, RAW: 1, DESC: DIRECTION FORWARD
+			ENUM BACKWARD, RAW: 2, DESC: DIRECTION BACKWARD
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL WhlRPM_RR, OFFSET: 50, LEN: 14, DESC: Wheel RPM Rear Right / Rear Rear Right Right, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+	FRAME PN14_STAT (0x00000205)
+		SIGNAL PN14_SPCR_AfterRun_Avl, OFFSET: 0, LEN: 1, DESC: Stop Coordinator Afterrun Function Available / Navail Function Standstill Coordinator available, DATA TYPE BOOL
+		SIGNAL PN14_SBC_Add_Off_Rq, OFFSET: 1, LEN: 1, DESC: SBC Additional Value Off Request / SBC Added value, DATA TYPE BOOL
+		SIGNAL PN14_RevBltTns_Off_Rq, OFFSET: 2, LEN: 1, DESC: Reversible Belt Tensioner Off Request / GurtStraffer Turn off, DATA TYPE BOOL
+		SIGNAL PN14_RemPerm, OFFSET: 3, LEN: 1, DESC: Remote Functions Permission / Remote Control Functions allowed, DATA TYPE BOOL
+		SIGNAL PN14_BackupBat_Flt, OFFSET: 5, LEN: 1, DESC: Backup Battery Fault / Backup Battery faulty, DATA TYPE BOOL
+		SIGNAL PN14_BatCplSw_Stat, OFFSET: 6, LEN: 2, DESC: Battery Coupling Switch State / State Battery Coupling Switch, DATA TYPE ENUM
+			ENUM CLS, RAW: 0, DESC: Battery Coupling Switch Closed
+			ENUM PREOPN, RAW: 1, DESC: Battery Coupling Switch Open in 2 sec
+			ENUM OPN, RAW: 2, DESC: Battery Coupling Switch Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL PN14_SupBat_Volt, OFFSET: 8, LEN: 8, DESC: Supply Battery Voltage / Supply Battery IST voltage, DATA TYPE NUMBER(_MULTIPLIER_: 0.10000000149011612, _OFFSET_: 0.0)
+		SIGNAL PN14_SupBatCutSw_Stat, OFFSET: 22, LEN: 2, DESC: Supply Battery Cutoff Switch State / Status Battery Separation Switch, DATA TYPE ENUM
+			ENUM CLS, RAW: 0, DESC: Battery Cutoff Switch is closed
+			ENUM PREOPN, RAW: 1, DESC: Battery Cutoff Switch Opens in 300 sec
+			ENUM OPN, RAW: 2, DESC: Battery Cutoff Switch is open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL PN14_LHC_Actv, OFFSET: 24, LEN: 1, DESC: 14 V PowerNet Limp-Home Cutoff Active / 14V-BN emergency shutdown active, DATA TYPE BOOL
+		SIGNAL LHC_IntFan_F_50_Rq, OFFSET: 32, LEN: 1, DESC: LIMP-HOME Cutoff Front Interior Fan to 50% Request / Emergency Shot In front to 50%, DATA TYPE BOOL
+		SIGNAL LHC_IntFan_R_50_Rq, OFFSET: 33, LEN: 1, DESC: LIMP-HOME Cutoff Rear Interior Fan to 50% Request / Emergency Shot Inner fan back to 50%, DATA TYPE BOOL
+		SIGNAL LHC_PTC1_Rq, OFFSET: 34, LEN: 1, DESC: LIMP-HOME Cutoff PTC 1st Branch Request / Notification PTC 1. Branch, DATA TYPE BOOL
+		SIGNAL LHC_PTC2_Rq, OFFSET: 35, LEN: 1, DESC: LIMP-Home Cutoff PTC 2nd Branch Request / Notification PTC 2. Branch, DATA TYPE BOOL
+		SIGNAL LHC_PTC3_Rq, OFFSET: 36, LEN: 1, DESC: LIMP-Home Cutoff PTC 3rd Branch Request / Notification PTC 3. Branch, DATA TYPE BOOL
+		SIGNAL LHC_PTC4_Rq, OFFSET: 37, LEN: 1, DESC: LIMP-Home Cutoff PTC 4th Branch Request / Notification PTC 4. Branch, DATA TYPE BOOL
+		SIGNAL LHC_PTC5_Rq, OFFSET: 38, LEN: 1, DESC: LIMP-Home Cutoff PTC 5th Branch Request / Notification PTC 5. Branch, DATA TYPE BOOL
+		SIGNAL LHC_PTC6_Rq, OFFSET: 39, LEN: 1, DESC: LIMP-Home Cutoff PTC 6th Branch Request / Notification PTC 6. Branch, DATA TYPE BOOL
+		SIGNAL LHC_TrlrSock_Rq, OFFSET: 40, LEN: 1, DESC: LIMP-Home Cutoff Trailer Socket Request / Emergency Shot Towers, DATA TYPE BOOL
+		SIGNAL LHC_Tlm_Rq, OFFSET: 41, LEN: 1, DESC: LIMP-Home Cutoff Telematics / Audio / Phone / GPS Request / Notification Telematics / Audio / Phone / GPS, DATA TYPE BOOL
+		SIGNAL LHC_SeatVn_Rq, OFFSET: 42, LEN: 1, DESC: LIMP-Home Cutoff Seat Ventilation Request / Emergency Shot Seat Ventilation, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg1_Rq, OFFSET: 43, LEN: 1, DESC: LIMP-Home Cutoff Seat Heating Stage 1 Request / Emergency Shot Seat Heating Level 1, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg2_Rq, OFFSET: 44, LEN: 1, DESC: LIMP-Home Cutoff Seat Heating Stage 2 Request / Emergency Shot Seat Heating Level 2, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg3_Rq, OFFSET: 45, LEN: 1, DESC: LIMP-Home Cutoff Seat Heating Stage 3 Request / Emergency Shot Seat Heating Level 3, DATA TYPE BOOL
+		SIGNAL LHC_DSH_Stg1_Rq, OFFSET: 46, LEN: 1, DESC: LIMP-Home Cutoff Door Surface Heating Stage 1 Request / Emergency Shot Door surface heating Level 1, DATA TYPE BOOL
+		SIGNAL LHC_DSH_Stg2_Rq, OFFSET: 47, LEN: 1, DESC: LIMP-Home Cutoff Door Surface Heating Stage 2 Request / Emergency Shot Door surface heating Level 2, DATA TYPE BOOL
+		SIGNAL LHC_FogLmp_Ft_Rq, OFFSET: 48, LEN: 1, DESC: LIMP-Home Cutoff Fog Lamps Front Request / Emergency Shot Fog Light, DATA TYPE BOOL
+		SIGNAL LHC_EngFan_50_Rq, OFFSET: 49, LEN: 1, DESC: LIMP-Home Cutoff Engine Fan to 50% Request / Emergency Shot Engineer Fan to 50%, DATA TYPE BOOL
+		SIGNAL LHC_CoolBox_R_Rq, OFFSET: 50, LEN: 1, DESC: LIMP-Home Cutoff Rear Cooler Box Request / Emergency Shot Fund Cooler, DATA TYPE BOOL
+		SIGNAL LHC_MirrHt_Rq, OFFSET: 51, LEN: 1, DESC: LIMP-Home Cutoff Mirror Heater Request / emergency shutdown Exterior mirror heating, DATA TYPE BOOL
+		SIGNAL LHC_WShHt_Rq, OFFSET: 52, LEN: 1, DESC: LIMP-Home Cutoff Windshield Heater Request / Emergency Shutters Windscreen Heating, DATA TYPE BOOL
+		SIGNAL LHC_StW_Ht_Rq, OFFSET: 53, LEN: 1, DESC: LIMP-HOME Cutoff Steering Wheel Heater Request / Emergency Shot Steering Wheeling, DATA TYPE BOOL
+		SIGNAL LHC_EBL_Rq, OFFSET: 54, LEN: 1, DESC: LIMP-Home Cutoff Electric Backlite Heater Request / Emergency Shot Rear Disc Heating, DATA TYPE BOOL
+		SIGNAL LHC_WprPkHt_Rq, OFFSET: 55, LEN: 1, DESC: LIMP-HOME Cutoff Wiper Park Position Heater Request / Emergency Shuttle Wiper Dashing, DATA TYPE BOOL
+		SIGNAL PN14_LHC_Taxi_Rq, OFFSET: 59, LEN: 1, DESC: LIMP-Home Cutoff Taxi RoofSign / Printer Request / Emergency Shot TaxidAchach, DATA TYPE BOOL
+		SIGNAL LHC_ICH_Rq, OFFSET: 60, LEN: 1, DESC: LIMP-HOME Cutoff Independant Car Heater Request / Emergency shutdown, DATA TYPE BOOL
+		SIGNAL LHC_RHU_Rq, OFFSET: 61, LEN: 1, DESC: LIMP-Home Cutoff Residual Heat Utilization Request / Notification Residual heat use, DATA TYPE BOOL
+		SIGNAL LHC_ComfLmp_Rq, OFFSET: 62, LEN: 1, DESC: LIMP-Home Cutoff Comfort Lamps Request / Notification for Comfort Lamps, DATA TYPE BOOL
+		SIGNAL LHC_TrkSock_Rq, OFFSET: 63, LEN: 1, DESC: LIMP-HOME Cutoff Trunk Socket / Cigarette Lighter Request / Emergency Shot Coffee Socket / Cigar Lighter, DATA TYPE BOOL
+	FRAME CVI (0x00000207)
+		SIGNAL Country, OFFSET: 0, LEN: 4, DESC: Country Code / Country Code, DATA TYPE ENUM
+			ENUM ROW, RAW: 0, DESC: Remain of the World
+			ENUM USA, RAW: 1, DESC: USA
+			ENUM CAN, RAW: 2, DESC: Canada
+			ENUM JAP, RAW: 3, DESC: Japan
+			ENUM SWI, RAW: 4, DESC: Switzerland
+			ENUM AUS, RAW: 5, DESC: Australia
+			ENUM GULF, RAW: 6, DESC: Gulf States
+			ENUM UK, RAW: 7, DESC: United Kingdom (Not 221/216)
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL Group, OFFSET: 4, LEN: 4, DESC: DC Group / DC Group, DATA TYPE ENUM
+			ENUM MB, RAW: 0, DESC: Mercedes Benz, Maybach
+			ENUM SMART, RAW: 1, DESC: Smart
+			ENUM CG, RAW: 2, DESC: Chrysler Group
+			ENUM MMC, RAW: 3, DESC: Mitsubishi
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL Guard, OFFSET: 8, LEN: 2, DESC: Guard Level / Guard Level, DATA TYPE ENUM
+			ENUM NO, RAW: 0, DESC: No Armoring
+			ENUM B4, RAW: 1, DESC: Armoring Class B4
+			ENUM B6, RAW: 2, DESC: Armoring Class B6 / B7
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VehLine, OFFSET: 10, LEN: 6, DESC: Vehicle Line / Series, DATA TYPE ENUM
+			ENUM BR221, RAW: 0, DESC: BR 221
+			ENUM BR231, RAW: 1, DESC: BR 231
+			ENUM BR212, RAW: 2, DESC: BR 212
+			ENUM BR204, RAW: 3, DESC: BR 204
+			ENUM BR207, RAW: 9, DESC: BR 207
+			ENUM BR251, RAW: 17, DESC: BR 251
+			ENUM BR164, RAW: 19, DESC: BR 164
+			ENUM BR216, RAW: 22, DESC: BR 216
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL VehLineYear, OFFSET: 17, LEN: 5, DESC: Vehicle Line version: Year / change year: year, DATA TYPE ENUM
+			ENUM NDEF30, RAW: 30, DESC: Not Defined
+			ENUM START, RAW: 31, DESC: Start of Vehicle Line
+		SIGNAL VehLinePack, OFFSET: 22, LEN: 2, DESC: Vehicle Line version: Package / change year: package, DATA TYPE ENUM
+			ENUM PACK0, RAW: 0, DESC: Package "/ 0"
+			ENUM PACK1, RAW: 1, DESC: Package "/ 1"
+			ENUM PACK2, RAW: 2, DESC: Package "/ 2"
+			ENUM PACKX, RAW: 3, DESC: Package "/ X" OR START OF VEHICLE LINE
+		SIGNAL StStyle, OFFSET: 25, LEN: 2, DESC: Steering Variant / Steering Variant, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM LHD, RAW: 1, DESC: LEFT Hand Drive
+			ENUM RHD, RAW: 2, DESC: Right hand drive
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BodyStyle, OFFSET: 27, LEN: 5, DESC: Vehicle Body Style / Body Variante, DATA TYPE ENUM
+			ENUM W, RAW: 0, DESC: W - Sedan
+			ENUM V, RAW: 1, DESC: V - Stretched Sedan
+			ENUM C, RAW: 2, DESC: C - Coupe
+			ENUM S, RAW: 3, DESC: S - Station Wagon
+			ENUM A, RAW: 4, DESC: A - convertible
+			ENUM R, RAW: 5, DESC: R - Roadster
+			ENUM CL, RAW: 6, DESC: CL - Sports Coupe
+			ENUM VV, RAW: 7, DESC: VV - Extra Streched Sedan
+			ENUM VF, RAW: 8, DESC: VF - Stretched chassis
+			ENUM F, RAW: 9, DESC: F - Chassis
+			ENUM G, RAW: 10, DESC: G - Off-Road Vehicle
+			ENUM GV, RAW: 11, DESC: GV - Stretched Off-Road Vehicle
+			ENUM T, RAW: 12, DESC: T - Multi Sports Tourer
+			ENUM X, RAW: 13, DESC: X - Sports Utility Tourer
+			ENUM SNA, RAW: 31, DESC: Signal Not Available
+		SIGNAL EngStyle, OFFSET: 32, LEN: 8, DESC: Engine (Bit 7: Otto Engine => 0, Diesel Engine => 1) / Engine (Bit 7: Gasoline => 0, Diesel => 1), DATA TYPE ENUM
+			ENUM M275E55, RAW: 0, DESC: M275 E55 [ME2.7.2]
+			ENUM M273E55, RAW: 1, DESC: M273 E55 [ME9.7]
+			ENUM M273E46, RAW: 2, DESC: M273 E46 [ME9.7]
+			ENUM M272E35, RAW: 3, DESC: M272 E35 [ME9.7]
+			ENUM M272E30, RAW: 4, DESC: M272 E30 [ME9.7]
+			ENUM M272E25, RAW: 5, DESC: M272 E25 [ME9.7]
+			ENUM M273E55DE, RAW: 7, DESC: M273 E55 DE [ME9.7]
+			ENUM M273E46DE, RAW: 8, DESC: M273 E46 DE [ME9.7]
+			ENUM M272E35DE, RAW: 9, DESC: M272 E35 DE [ME9.7]
+			ENUM M272E30DE, RAW: 10, DESC: M272 E30 DE [ME9.7]
+			ENUM M272E25DE, RAW: 11, DESC: M272 E25 DE [ME9.7]
+			ENUM M271E18ML135ATT, RAW: 12, DESC: M271 E18 ml Attrac. (135 kW) [SIM271KE]
+			ENUM M271E18ML115ATT, RAW: 13, DESC: M271 E18 ml Attrac. (115 kW) [SIM271KE]
+			ENUM M272E35_221, RAW: 14, DESC: M272 E35 (221 kW) [ME9.7]
+			ENUM AMGM156E63HP, RAW: 123, DESC: AMG M156 E63 HP [ME9.7]
+			ENUM AMGM275E60LA, RAW: 124, DESC: AMG M275 E60 LA [ME2.7.2]
+			ENUM AMGM157E60LA, RAW: 125, DESC: AMG M157 E60 LA [ME9.7]
+			ENUM AMGM156E63, RAW: 126, DESC: AMG M156 E63 [ME9.7]
+			ENUM OM642DE30LA160, RAW: 129, DESC: OM642 DE30 LA (155/160 kW) [CR5 / CR6]
+			ENUM OM629DE40LA, RAW: 130, DESC: OM629 DE40 LA [CR5]
+			ENUM OM642DE30LA140, RAW: 131, DESC: OM642 DE30 LA RED. (140 kW) [CR6]
+			ENUM OM646EVODE22LA125, RAW: 132, DESC: OM646EVO DE22 LA (120/125 kW) [CRD]
+			ENUM OM646EVODE22LA100, RAW: 133, DESC: OM646EVO DE22 LA RED. (100 kW) [CRD]
+			ENUM OM646EVODE22LA85, RAW: 134, DESC: OM646EVO DE22 LA (85 kW) [CRD]
+			ENUM OM651DE22LA150, RAW: 135, DESC: OM651 DE22 LA (150 kW) [CRD2]
+			ENUM OM651DE22LA120, RAW: 136, DESC: OM651 DE22 LA (120 kW) [CRD2]
+			ENUM OM651DE22LA100, RAW: 137, DESC: OM651 DE22 LA (100 kW) [CRD2]
+			ENUM OM651DE22LA80, RAW: 138, DESC: OM651 DE22 LA (80 kW) [CRD2]
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL RainSens_Avl, OFFSET: 40, LEN: 1, DESC: Rain Sensor Available / Rain Sensor available, DATA TYPE BOOL
+		SIGNAL LgtSens_Avl, OFFSET: 41, LEN: 1, DESC: Light Sensor Available / Light Sensor available, DATA TYPE BOOL
+		SIGNAL ICH_Avl, OFFSET: 42, LEN: 1, DESC: Independent Car Heater Available / parking heater available, DATA TYPE BOOL
+		SIGNAL PCD_Avl, OFFSET: 43, LEN: 1, DESC: Passenger Compartment Detection Available / Interior protection available, DATA TYPE BOOL
+		SIGNAL VTA_Avl, OFFSET: 44, LEN: 1, DESC: Vehicle Theft Alarm Available / EDW available, DATA TYPE BOOL
+		SIGNAL TrlrHtch_Avl, OFFSET: 45, LEN: 1, DESC: Trailer Hitch available / trailer hitch available, DATA TYPE BOOL
+		SIGNAL HVAC_Avl, OFFSET: 46, LEN: 1, DESC: Air Condition Available / KLA available, DATA TYPE BOOL
+		SIGNAL TCM_Avl, OFFSET: 47, LEN: 1, DESC: Transmission Control Available / Transmission Control available, DATA TYPE BOOL
+		SIGNAL RoofStyle, OFFSET: 48, LEN: 3, DESC: Vehicle Roof Style / Roof Variant, DATA TYPE ENUM
+			ENUM NORM, RAW: 0, DESC: normal roof
+			ENUM TSSR, RAW: 1, DESC: Tilt / Slide Sunroof
+			ENUM EXTRUN_TSSR, RAW: 2, DESC: Exterior Running Tilt / Slide Sunroof
+			ENUM TSSR_RCLS, RAW: 3, DESC: Tilt / Slide Sunroof with Rain Closure (Not 221/216)
+			ENUM EXTRUN_TSSR_CLS, RAW: 4, DESC: Exterior Running Tilt / Slide SUNROOF WITH RAIN Closure
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL Cplt_SL_Enbl, OFFSET: 51, LEN: 1, DESC: Complete Substitution Lights Enabled / Complete replacement light allowed, DATA TYPE BOOL
+		SIGNAL VehOPTPack, OFFSET: 52, LEN: 2, DESC: Vehicle Options Package / Vehicle Features Package, DATA TYPE ENUM
+			ENUM CLASSIC, RAW: 0, DESC: Classic
+			ENUM ELEGANCE, RAW: 1, DESC: Elegance
+			ENUM AVANTGARDE, RAW: 2, DESC: avant-garde
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL HVACStyle, OFFSET: 54, LEN: 2, DESC: HVAC STYLE / KLA Variant, DATA TYPE ENUM
+			ENUM ONE_ZONE, RAW: 0, DESC: One Zone Hvac
+			ENUM TWO_ZONE, RAW: 1, DESC: Two Zone Hvac
+			ENUM THREE_ZONE, RAW: 2, DESC: Three Zone Hvac
+			ENUM FOUR_ZONE, RAW: 3, DESC: Four Zone Hvac
+		SIGNAL CRC_CVI, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME VEH_DYN_STAT (0x00000245)
+		SIGNAL VehYawRate_Raw, OFFSET: 0, LEN: 16, DESC: Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means Left) / Rohsignal Gierrate Without Calculation / Filtering (+ = Left), DATA TYPE NUMBER(_MULTIPLIER_: 0.009999999776482582, _OFFSET_: -327.67999267578125)
+		SIGNAL VehYawRateOffset, OFFSET: 16, LEN: 8, DESC: Offset of Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means LEFT) / Offset of the Raw Signal Greeding rate without reconciliation / filtering (+ = left), DATA TYPE NUMBER(_MULTIPLIER_: 0.07999999821186066, _OFFSET_: -10.239999771118164)
+		SIGNAL VehAccel_X_Offset, OFFSET: 24, LEN: 8, DESC: Offset of Vehicle Longitudinal Acceleration (+ Means Forward) / Offset of vehicle longitudinal acceleration (+ = forward), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: -2.559999942779541)
+		SIGNAL VehAccel_X, OFFSET: 32, LEN: 8, DESC: Vehicle Longitudinal Acceleration (+ Means Forward) / vehicle longitudinal acceleration (+ = forward), DATA TYPE NUMBER(_MULTIPLIER_: 0.07999999821186066, _OFFSET_: -10.239999771118164)
+		SIGNAL VehAccel_Y, OFFSET: 40, LEN: 8, DESC: Vehicle Lateral Acceleration (+ Means LEFT, Specific to Center of Gravity, Offset Corrected) / Vehicle Cross Acceleration in Focus (+ = Left, Focus-related, Offset Corrected), DATA TYPE NUMBER(_MULTIPLIER_: 0.07999999821186066, _OFFSET_: -10.239999771118164)
+		SIGNAL MC_VEH_DYN_STAT, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL VehAccel_Y_Offset, OFFSET: 56, LEN: 8, DESC: Offset of Vehicle Lateral Acceleration (+ Means Left) / Offset of vehicle cross-acceleration in focus (+ = left), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: -2.559999942779541)
+	FRAME BODY_R1 (0x00000283)
+		SIGNAL DrRLtch_RR_Stat, OFFSET: 0, LEN: 2, DESC: Rotary Latch Door Rear Right State / Status Swivel Fall Door Rear Right, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Door Closed
+			ENUM OPN, RAW: 2, DESC: Door Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DrRLtch_RL_Stat, OFFSET: 2, LEN: 2, DESC: Rotary Latch Door Rear Left State / Status Swivel Fall Door Rear Left, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Door Closed
+			ENUM OPN, RAW: 2, DESC: Door Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DrRLtch_FR_Stat, OFFSET: 4, LEN: 2, DESC: Rotary Latch Door Front Right State / Status Swivel Fall Door Front Right, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Door Closed
+			ENUM OPN, RAW: 2, DESC: Door Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DrRLtch_FL_Stat, OFFSET: 6, LEN: 2, DESC: Rotary Latch Door Front Left State / Status Swivel Fall Door Front Left, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Door Closed
+			ENUM OPN, RAW: 2, DESC: Door Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL EF_On_Rq, OFFSET: 8, LEN: 2, DESC: Emergency Flasher on Request / Warning Blink Light, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ON, RAW: 1, DESC: ON
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL VTA_Alm_Actv, OFFSET: 10, LEN: 1, DESC: Alarm Activated by Vehicle Theft Alarm / EDW alarm triggered, DATA TYPE BOOL
+		SIGNAL ICH_HtVn_Actv, OFFSET: 11, LEN: 1, DESC: Independent Car Heater / Ventilation Active / Stand heater / ventilation active, DATA TYPE BOOL
+		SIGNAL EngHd_Stat, OFFSET: 12, LEN: 2, DESC: Engine Hood State / Status Bonnet, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Rotary Latch Closed
+			ENUM OPN, RAW: 2, DESC: Rotary Latch Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL DL_RLtch_Stat, OFFSET: 14, LEN: 2, DESC: Deck Lid Rotary Latch State / Status Swivel Fall Tail Cover, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM CLS, RAW: 1, DESC: Rotary Latch Closed
+			ENUM OPN, RAW: 2, DESC: Rotary Latch Open
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ADL_LoBm_On_Rq, OFFSET: 16, LEN: 1, DESC: Low Beam On Request by Automatic Driving Light / AFL Request: Switch on low beam, DATA TYPE BOOL
+		SIGNAL LgtSens_Night, OFFSET: 17, LEN: 1, DESC: Light Sensor Detect's Night Fashion / Light Sensor Actual value, DATA TYPE BOOL
+		SIGNAL LgtSens_Flt, OFFSET: 18, LEN: 1, DESC: Light Sensor Fault / Light Sensor Defective, DATA TYPE BOOL
+		SIGNAL LgtSens_Tunnel, OFFSET: 19, LEN: 1, DESC: Light sensor "Tunnel" Detected / Light Sensor: Tunnel Detected, DATA TYPE BOOL
+		SIGNAL LgtSens_SNA, OFFSET: 20, LEN: 1, DESC: Light Sensor Information Not available / Values ​​of light sensor not available, DATA TYPE BOOL
+		SIGNAL LgtSens_Twlgt, OFFSET: 21, LEN: 3, DESC: Twilight State Light Sensor / Twilight Light Sensor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Tire_LHOM, OFFSET: 25, LEN: 1, DESC: Tire in Limp-Home Operation Fashion / Mature Need, DATA TYPE BOOL
+		SIGNAL WprOutsdPkPosn, OFFSET: 26, LEN: 1, DESC: Wiper Outside Park Position / Wiper Outside Parking, DATA TYPE BOOL
+		SIGNAL MPkBrk_Stat, OFFSET: 27, LEN: 1, DESC: Mech. Parking Brake State / Status Mech. Parking brake, DATA TYPE BOOL
+		SIGNAL Term54_Actv, OFFSET: 28, LEN: 1, DESC: Terminal 54 (Brake Light) Active (FROM SAM_R) / Terminal 54 (Brake light) Feedback from SAM_R, DATA TYPE BOOL
+		SIGNAL Hrn_On, OFFSET: 29, LEN: 1, DESC: Horn is on / signal horn is switched on, DATA TYPE BOOL
+		SIGNAL Trlr_Stat, OFFSET: 30, LEN: 2, DESC: trailer detected / trailer operation detected, DATA TYPE ENUM
+			ENUM NONE, RAW: 0, DESC: Trailer Not Detected
+			ENUM OK, RAW: 1, DESC: trailer detected
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL RevGr_Engg, OFFSET: 32, LEN: 2, DESC: Reverse Gear Engaged / reverse input, DATA TYPE ENUM
+			ENUM DISENGG, RAW: 0, DESC: disengaged
+			ENUM ENGG, RAW: 1, DESC: engaged
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL LoBm_P_Rt_Flt, OFFSET: 34, LEN: 1, DESC: Low Beam Passenger Side Or Right (Depending On Vehicle Line) Fault / Downlight passenger side or right (depending on the series) defective, DATA TYPE BOOL
+		SIGNAL LoBm_D_Lt_Flt, OFFSET: 35, LEN: 1, DESC: Low Beam Driver Side Or Left (Depending On Vehicle Line) Fault / Dimensioned Driver's side or left (depending on the series) defective, DATA TYPE BOOL
+		SIGNAL IrLmp_P_Rt_Flt, OFFSET: 36, LEN: 1, DESC: Infrared Lamp Passenger Side Or Right (Depending On Vehicle Line) Fault / IR headlight passenger side or right (depending on the series) defective, DATA TYPE BOOL
+		SIGNAL IrLmp_D_Lt_Flt, OFFSET: 37, LEN: 1, DESC: Infrared Lamp Driver Side Or Right (Depending On Vehicle Line) Fault / IR headlight driver's side or left (depending on the series) defective, DATA TYPE BOOL
+		SIGNAL HiBm_On, OFFSET: 38, LEN: 1, DESC: High beam is on / high beam is switched on, DATA TYPE BOOL
+		SIGNAL LoBm_On_Rq, OFFSET: 39, LEN: 1, DESC: Switch on Low Beam On Request / Low Light, DATA TYPE BOOL
+		SIGNAL AirTemp_Insd, OFFSET: 40, LEN: 8, DESC: Inside Air Temperature / Inn temperature, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: 0.0)
+		SIGNAL StW_Cond_Stat, OFFSET: 48, LEN: 2, DESC: Steering Wheel Conditioning State / Status Steering Cool Climatization, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: LED Steering Wheel Conditioning Off
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM ON, RAW: 2, DESC: LED Steering Wheel Conditioning On
+			ENUM BLINK, RAW: 3, DESC: LED Steering Wheel Conditioning Blinks Cause of Fault
+		SIGNAL Bckl_Sw_RM_Stat_SAM_R, OFFSET: 50, LEN: 2, DESC: BUCKLE SWITCH REAR MIDDLE STATE (by SAM_R) / Status Belt Slip Rear Center, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Seatbelt Fasted
+			ENUM NOT, RAW: 1, DESC: Seatbelt Not Fasted
+			ENUM FLT, RAW: 2, DESC: BUCKLE SWITCH FAULT
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Bckl_Sw_RR_Stat_SAM_R, OFFSET: 52, LEN: 2, DESC: BUCKLE SWITCH REAR RIGHT STATE (by SAM_R) / status Belt lock right, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Seatbelt Fasted
+			ENUM NOT, RAW: 1, DESC: Seatbelt Not Fasted
+			ENUM FLT, RAW: 2, DESC: BUCKLE SWITCH FAULT
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Bckl_Sw_RL_Stat_SAM_R, OFFSET: 54, LEN: 2, DESC: BUCKLE SWITCH REAR LEFT STATE (by SAM_R) / Status Curtle Rear Left, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Seatbelt Fasted
+			ENUM NOT, RAW: 1, DESC: Seatbelt Not Fasted
+			ENUM FLT, RAW: 2, DESC: BUCKLE SWITCH FAULT
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL AirTemp_Outsd, OFFSET: 56, LEN: 8, DESC: Outside Air Temperature / Outdoor Air Temperature, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: -40.0)
+	FRAME DAC_TCM (0x000002EB)
+		SIGNAL DAC_TCM, OFFSET: 0, LEN: 64, DESC: Driving Authorization Checker / FBS Embassy to TCM, DATA TYPE ISO_TP
+	FRAME DAC_ISM (0x000002FE)
+		SIGNAL DAC_ISM, OFFSET: 0, LEN: 64, DESC: Driving Authorization Checker / FBS Embassy to ISM, DATA TYPE ISO_TP
+	FRAME BODY_R2 (0x000003C5)
+		SIGNAL VehDrvProgSw_Psd, OFFSET: 0, LEN: 2, DESC: Vehicle Driving Program Switch Pressed / Button Driving Program, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL StW_Cond_Actv, OFFSET: 2, LEN: 2, DESC: Steering Wheel Conditioning Active / steering wheel climatization active, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Stearing Wheel Conditioning Off
+			ENUM HEAT, RAW: 1, DESC: Stearing Wheel Heating Active
+			ENUM COOL, RAW: 2, DESC: Stearing Wheel Cooling Active
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SuspLvlAdjSw_Psd, OFFSET: 6, LEN: 2, DESC: Suspension Level Adjustment Switch Pressed / Vehicle Level Buttock, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL PTS_Sw_Psd, OFFSET: 8, LEN: 2, DESC: Switch Parktronic / City Assistant Pressed / Button Parktronic / CAS Actuated, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL NV_Sw_Psd, OFFSET: 12, LEN: 2, DESC: NightView Switch Pressed / NightView Button, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ESP_Sw_Psd, OFFSET: 14, LEN: 2, DESC: Electronic Stability Program Switch Pressed / ESP Button, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL CoolIndLmp_On_Rq, OFFSET: 16, LEN: 1, DESC: Indication Lamp On Request, Coolant Level Too Low / Cooler Spring To Switch on to low control lamp, DATA TYPE BOOL
+		SIGNAL DL_Sw_Psd, OFFSET: 17, LEN: 1, DESC: Deck Lid Switch Pushed / Tail Cover Button, DATA TYPE BOOL
+		SIGNAL TX_Actv, OFFSET: 18, LEN: 1, DESC: Transmission Active (Data / Voice) / Transmission Active (Data / Language), DATA TYPE BOOL
+		SIGNAL PKAS_Sw_Psd, OFFSET: 22, LEN: 2, DESC: Parking Assistance Switch Pressed / Parking Assist Taster, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL RLS_PosnLmp_Posn, OFFSET: 24, LEN: 1, DESC: Rotary Light Switch On "Position LAMPS" position / LDS contact parking light, DATA TYPE BOOL
+		SIGNAL RLS_FogLmp_R_Posn, OFFSET: 25, LEN: 1, DESC: Rotary Light Switch On "Fog Lamps Rear" Position / LDS Contact Fog Light Light, DATA TYPE BOOL
+		SIGNAL RLS_FogLmp_Ft_Posn, OFFSET: 26, LEN: 1, DESC: Rotary Light Switch On "Fog Lamps Front" Position / LDS Contact Fog Light, DATA TYPE BOOL
+		SIGNAL RLS_Red, OFFSET: 27, LEN: 1, DESC: Rotary Light Switch Redundancy / LDS Contact Redundancy, DATA TYPE BOOL
+		SIGNAL RLS_LoBm_Posn, OFFSET: 28, LEN: 1, DESC: Rotary Light Switch On "Low Beam" Position / LDS Contact Driving Light, DATA TYPE BOOL
+		SIGNAL RLS_PkLmp_Posn_Lt, OFFSET: 29, LEN: 1, DESC: Rotary Light Switch On "Parking Lamps Left" Position / LDS Contact Parking Left, DATA TYPE BOOL
+		SIGNAL RLS_PkLmp_Posn_Rt, OFFSET: 30, LEN: 1, DESC: Rotary Light Switch on "Parking Lamps Right" position / LDS contact parking light right, DATA TYPE BOOL
+		SIGNAL RLS_AutoPosn, OFFSET: 31, LEN: 1, DESC: Rotary Light Switch on "Automatic" position / LDS contact autom.speed light, DATA TYPE BOOL
+		SIGNAL BSM_WarnUnit_Rt_Stat, OFFSET: 32, LEN: 2, DESC: BSM War Unit Right State / Status BSM Warning Unit right, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM OK, RAW: 1, DESC: BSM Warnunit OK
+			ENUM ERROR, RAW: 2, DESC: BSM Warnunit Error
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL BSM_WarnUnit_Lt_Stat, OFFSET: 34, LEN: 2, DESC: BSM Warn Unit Left State / Status BSM Warning Unit Links, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM OK, RAW: 1, DESC: BSM Warnunit OK
+			ENUM ERROR, RAW: 2, DESC: BSM Warnunit Error
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL RLS_Init_Actv, OFFSET: 39, LEN: 1, DESC: Rotary Light Switch Initialization Avive / LDS Initialization, DATA TYPE BOOL
+		SIGNAL DSR_Sw_Psd, OFFSET: 40, LEN: 2, DESC: Downhill Speed ​​Regulation Switch Pressed / Downhave Speed ​​Control Button, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Tlm_Sw_Psd, OFFSET: 42, LEN: 2, DESC: Telematics Switches pressed / telematics switch operated, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM PSD, RAW: 1, DESC: pressed
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL Phonecall_SDS_Actv, OFFSET: 44, LEN: 2, DESC: Phone Call OR Speech Dialogue System Active / Telephone Disconnection or Language Conditioning System, DATA TYPE ENUM
+			ENUM INACT, RAW: 0, DESC: Inactive
+			ENUM ACTV, RAW: 1, DESC: Phone Call OR SDS Active
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ADC_Sw_Psd, OFFSET: 46, LEN: 2, DESC: Active Damping Control Switch Pressed / Button Active Damping Control, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM PSD, RAW: 1, DESC: pressed
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SuspLvlAdjSw_Psd_CTRL_L, OFFSET: 50, LEN: 2, DESC: Suspension Level Adjustment Switch Pressed / Vehicle Level Buttock, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL ADC_Sw_Psd_CTRL_L, OFFSET: 52, LEN: 2, DESC: Active Damping Control Switch Pressed / Button Active Damping Control, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM PSD, RAW: 1, DESC: pressed
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL OffRoadSw_Psd, OFFSET: 54, LEN: 2, DESC: Off Road Switch Pressed / Off Road Button, DATA TYPE ENUM
+			ENUM NPSD, RAW: 0, DESC: Not pressed
+			ENUM NDEF1, RAW: 1, DESC: Not Defined
+			ENUM PSD, RAW: 2, DESC: pressed
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+	FRAME ECM_OBD (0x000003D0)
+		SIGNAL AccelPdlPosn_OBD, OFFSET: 0, LEN: 8, DESC: Accelerator Pedal Position / Pedal Value, DATA TYPE NUMBER(_MULTIPLIER_: 0.3921568691730499, _OFFSET_: 0.0)
+		SIGNAL EngLoad_OBD, OFFSET: 8, LEN: 8, DESC: Engine Load / Motorload, DATA TYPE NUMBER(_MULTIPLIER_: 0.3921568691730499, _OFFSET_: 0.0)
+		SIGNAL AirTemp_Outsd_Sens_Flt, OFFSET: 23, LEN: 1, DESC: Outside Air Temperature Sensor Fault / Error Outdoor Air Temperature Sensor, DATA TYPE BOOL
+		SIGNAL OBD_IgnCycCntCond_Stat, OFFSET: 27, LEN: 2, DESC: Conditions for Ignition Cycle Counter (RBM) State / Status Conditions for Ignition Cycle Counter (RBM), DATA TYPE ENUM
+			ENUM INACT, RAW: 0, DESC: Conditions Not Fulfilled
+			ENUM ACTV, RAW: 1, DESC: Conditions Fulfilled
+			ENUM FLT, RAW: 2, DESC: Fault
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL OBD_GnrlDenCond_Stat, OFFSET: 29, LEN: 2, DESC: Conditions for General Denominator (RBM) State / Status Conditions for General Denominator (RBM), DATA TYPE ENUM
+			ENUM INACT, RAW: 0, DESC: Conditions Not Fulfilled
+			ENUM ACTV, RAW: 1, DESC: Conditions Fulfilled
+			ENUM FLT, RAW: 2, DESC: Fault
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL OBD_WarmupCond_Actv, OFFSET: 31, LEN: 1, DESC: Conditions for warm-up fulfilled / conditions for warm-up fulfilled, DATA TYPE BOOL
+	FRAME APPL_SG_FSCM (0x000006FC)
+		SIGNAL APPL_SG_FSCM, OFFSET: 0, LEN: 64, DESC: External Application to ECU / External application to control unit, DATA TYPE ISO_TP
+	FRAME APPL_SG_ISM (0x000006EC)
+		SIGNAL APPL_SG_ISM, OFFSET: 0, LEN: 64, DESC: External Application to ECU / External application to control unit, DATA TYPE ISO_TP
+	FRAME APPL_SG_TCM (0x000006E4)
+		SIGNAL APPL_SG_TCM, OFFSET: 0, LEN: 64, DESC: External Application to ECU / External application to control unit, DATA TYPE ISO_TP
+	FRAME D_RQ_FSCM (0x000006FA)
+		SIGNAL D_RQ_FSCM, OFFSET: 0, LEN: 64, DESC: Diagnostic Request / Diagnostic Request, DATA TYPE ISO_TP
+	FRAME D_RQ_ISM (0x000006EA)
+		SIGNAL D_RQ_ISM, OFFSET: 0, LEN: 64, DESC: Diagnostic Request / Diagnostic Request, DATA TYPE ISO_TP
+	FRAME D_RQ_SSP (0x000006F2)
+		SIGNAL D_RQ_SSP, OFFSET: 0, LEN: 64, DESC: Diagnostic Request / Diagnostic Request, DATA TYPE ISO_TP
+	FRAME D_RQ_TCM (0x000007E1)
+		SIGNAL D_RQ_TCM, OFFSET: 0, LEN: 64, DESC: Diagnostic Request / Diagnostic Request, DATA TYPE ISO_TP
+	FRAME D_RQ_TSLM (0x0000077A)
+		SIGNAL D_RQ_TSLM, OFFSET: 0, LEN: 64, DESC: Diagnostic Request / Diagnostic Request, DATA TYPE ISO_TP
+	FRAME DG_RQ_GLOBAL (0x00000440)
+		SIGNAL DG_RQ_GLOBAL, OFFSET: 0, LEN: 64, DESC: Functional Diagnostic Request (KWP2000) / Functional Diagnostic Request (KWP2000), DATA TYPE ISO_TP
+	FRAME DG_RQ_GLOBAL_UDS (0x00000441)
+		SIGNAL DG_RQ_GLOBAL_UDS, OFFSET: 0, LEN: 64, DESC: Functional Diagnostic Request (UDS) / Functional Diagnostic Request (UDS), DATA TYPE ISO_TP
+	FRAME DG_RQ_OBD (0x000007DF)
+		SIGNAL DG_RQ_OBD, OFFSET: 0, LEN: 64, DESC: Functional Diagnostic Request for OBDII / Functional Diagnostic Request Obiodii, DATA TYPE ISO_TP
+	FRAME NM_ECM (0x00000429)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_ECM, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM CHASSIS, RAW: 11, DESC: Wakeup by Chassis Can
+			ENUM POWERTRAIN, RAW: 13, DESC: Wakeup by Powertrain Can
+			ENUM TERM_15, RAW: 130, DESC: Wakeup by Discrete Terminal 15 Signal
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+ECU TCM
+	FRAME TCM_A1 (0x000002F1)
+		SIGNAL TxOilTemp, OFFSET: 0, LEN: 8, DESC: Transmission Oil Temperature / Gear Oil Temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: -50.0)
+		SIGNAL TCC_NoLoad, OFFSET: 8, LEN: 1, DESC: Torque Converter Lockup Clutch No Load / Converter Bridging Clutch Load, DATA TYPE BOOL
+		SIGNAL Clutch_Stat, OFFSET: 9, LEN: 3, DESC: State (Torque Converter Lockup) Clutch / Status (Converter Bridging) Clutch, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM ENGG, RAW: 1, DESC: engaged
+			ENUM DISENGG, RAW: 2, DESC: disengaged
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+			ENUM SLIP, RAW: 4, DESC: SLIPPING
+			ENUM SLIP_ENGG, RAW: 5, DESC: Between Slipping and Engaged
+			ENUM DISENGG_SLIP, RAW: 6, DESC: Between Disgaged and Slipping
+			ENUM NDEF7, RAW: 7, DESC: Not Defined
+		SIGNAL TCM_LHOM, OFFSET: 12, LEN: 1, DESC: Transmission Control in Limp-Home Operation Fashion / transmission control in emergency, DATA TYPE BOOL
+		SIGNAL BasShftProg_Ok, OFFSET: 13, LEN: 1, DESC: Basic Shifting Program OK / Basic Switching Program O.K., DATA TYPE BOOL
+		SIGNAL DrvRst_Hi, OFFSET: 14, LEN: 1, DESC: Drive Resistance High / driving resistance high, DATA TYPE BOOL
+		SIGNAL TxTemp_Excess, OFFSET: 15, LEN: 1, DESC: Excessive Transmission Temperature / Overtemperature Transmission, DATA TYPE BOOL
+		SIGNAL TxOffRd_Actv, OFFSET: 16, LEN: 1, DESC: Transmission off-road active / terrain active, DATA TYPE BOOL
+		SIGNAL TSL_Posn_TCM, OFFSET: 17, LEN: 3, DESC: Transmission Selector Lever Position / Transmission Logging, DATA TYPE ENUM
+			ENUM P, RAW: 0, DESC: TRANMMISSION SELECTOR LEVER IN PARKING POSITION
+			ENUM R, RAW: 1, DESC: TRANMMISSION SELECTOR LEVER IN REVERSE POSITION
+			ENUM N, RAW: 2, DESC: TRANMMISSION SELECTOR LEVER IN NEUTRAL POSITION
+			ENUM D, RAW: 4, DESC: TRANMMISSION SELECTOR LEVER IN NORMAL DRIVING POSITION
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL TxDrvProgMan_Actv, OFFSET: 20, LEN: 1, DESC: Transmission Driving Program "Manual" Active / Driving Program "Manual" active, DATA TYPE BOOL
+		SIGNAL VehDrvProg_TCM_V2, OFFSET: 21, LEN: 3, DESC: Actual Vehicle Driving Program (ie Sent During Txdrvprogman_Activ = 1) / Driving Program Transmission (is also sent to TXDRVPROGMAN_ACTV = 1), DATA TYPE ENUM
+			ENUM SPORT, RAW: 0, DESC: Sports (standard)
+			ENUM COMFORT, RAW: 1, DESC: Comfort
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+			ENUM NDEF4, RAW: 4, DESC: Not Defined
+			ENUM NDEF5, RAW: 5, DESC: Not Defined
+			ENUM OFFROAD, RAW: 6, DESC: off-road
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL StBrk_Rq_TCM, OFFSET: 24, LEN: 1, DESC: Brake During Start Request / Create brake when switched on, DATA TYPE BOOL
+		SIGNAL TxDrvTrqAbsVal, OFFSET: 32, LEN: 16, DESC: Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME TCM_A2 (0x000002E2)
+		SIGNAL CurrDtyCyc_Rq, OFFSET: 0, LEN: 8, DESC: Requested Current Duty Cycle / Soll Current (duty cycle), DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL TxTurbineRPM, OFFSET: 18, LEN: 14, DESC: Actual Transmission Turbine RPM / Current turbine speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MIL_On_Rq_TCM, OFFSET: 32, LEN: 1, DESC: Malfunction Indicator Lamp on Request (OBD II) / Diagnosis Control Lamp (OBD II), DATA TYPE BOOL
+		SIGNAL TxSlpRPM_Dsr, OFFSET: 34, LEN: 14, DESC: Desired Transmission Slip RPM / Slip Speed should, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCM_Data, OFFSET: 48, LEN: 8, DESC: Calid / CVN Data Byte / Calid / CVN DataByte, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCM_ErrChk_Stat, OFFSET: 56, LEN: 2, DESC: Error Check State / Status Error Check, DATA TYPE ENUM
+			ENUM WAIT, RAW: 0, DESC: Error Test Not Yet Finished
+			ENUM OK, RAW: 1, DESC: Error Test Finished, result is ok
+			ENUM ERROR, RAW: 2, DESC: Error Detected, Record Actual Data
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL TCM_CALID_CVN_Actv, OFFSET: 58, LEN: 1, DESC: CALID / CVN Transmission Active / Calid / CVN transmission active, DATA TYPE BOOL
+		SIGNAL TCM_CALID_CVN_ErrNum, OFFSET: 59, LEN: 5, DESC: Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RQ1_TCM (0x000000F1)
+		SIGNAL EngTrqMin_Rq_TCM, OFFSET: 0, LEN: 1, DESC: Engine Torque Request Minimum / Motor Moment Request Min, DATA TYPE BOOL
+		SIGNAL EngTrqMax_Rq_TCM, OFFSET: 1, LEN: 1, DESC: Engine Torque Request Maximum / Engine Motor Toment Request Max, DATA TYPE BOOL
+		SIGNAL EngTrq_Rq_TCM, OFFSET: 3, LEN: 13, DESC: Engine Torque Request / Ford. Engine torque, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL IntrvntnMd_TCM, OFFSET: 16, LEN: 2, DESC: Intervention fashion / intervention mode, DATA TYPE ENUM
+			ENUM MFC, RAW: 0, DESC: Intervention Fashion Minimum Fuel Consumption
+			ENUM FAST, RAW: 1, DESC: Intervention Fashion Fastest
+			ENUM RATE_DEC, RAW: 2, DESC: Intervention Fashion Fastest With Rate Action - Torque Decreasing
+			ENUM RATE_INC, RAW: 3, DESC: Intervention Fashion Fastest With Rate Action - Torque Increasing
+		SIGNAL TxDnShiftMd, OFFSET: 18, LEN: 3, DESC: Transmission Downshift Mode / Rewish Mode Transmission, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Downshift Without Engine Torque Increase
+			ENUM SINGLE, RAW: 1, DESC: Single Downshift With Engine Torque Increase
+			ENUM MULTI, RAW: 2, DESC: Multiple Downshift with Engine Torque Increase
+			ENUM INTRVNTN_MON, RAW: 3, DESC: Intervention Monitoring by TCM
+		SIGNAL EngRPM_SyncTm_Rq_TCM, OFFSET: 24, LEN: 8, DESC: Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine, DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL SSA_Enbl_Rq_TCM, OFFSET: 32, LEN: 1, DESC: ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE, DATA TYPE BOOL
+		SIGNAL EngRPM_Rq_TCM, OFFSET: 34, LEN: 14, DESC: Engine RPM Request / Target Speed ​​Engine, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MC_ENG_RQ1_TCM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL EngSt_Enbl_Rq_TCM, OFFSET: 52, LEN: 1, DESC: Enable Engine Start Request / Using Release Transmission, DATA TYPE BOOL
+		SIGNAL EngEmgOff_Rq, OFFSET: 53, LEN: 1, DESC: Engine Emergency Off Request / Engine Emergency Off, DATA TYPE BOOL
+		SIGNAL JmpSt_Actv, OFFSET: 54, LEN: 1, DESC: JUMP START ACTIVE / BARMSTART, DATA TYPE BOOL
+		SIGNAL CRC_ENG_RQ1_TCM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RQ2_TCM (0x000000F3)
+		SIGNAL Gr_Target, OFFSET: 0, LEN: 4, DESC: Target Gear / Target Gear, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Target Gear "N"
+			ENUM D1, RAW: 1, DESC: Target Gear "1"
+			ENUM D2, RAW: 2, DESC: Target Gear "2"
+			ENUM D3, RAW: 3, DESC: Target Gear "3"
+			ENUM D4, RAW: 4, DESC: Target Gear "4"
+			ENUM D5, RAW: 5, DESC: Target Gear "5"
+			ENUM D6, RAW: 6, DESC: Target Gear "6"
+			ENUM D7, RAW: 7, DESC: Target Gear "7"
+			ENUM D_CVT, RAW: 8, DESC: Target Gear "Continuously Forward"
+			ENUM R_CVT, RAW: 9, DESC: Target Gear "Continuously Backward"
+			ENUM R3, RAW: 10, DESC: Target Gear "R3"
+			ENUM R, RAW: 11, DESC: Target Gear "R"
+			ENUM R2, RAW: 12, DESC: Target Gear "R2"
+			ENUM P, RAW: 13, DESC: Target Gear "P"
+			ENUM ABORT, RAW: 14, DESC: Gear Shift Abortion
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL Gr, OFFSET: 4, LEN: 4, DESC: Actual Gear / Actual Gang, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Actual Gear "N"
+			ENUM D1, RAW: 1, DESC: Actual Gear "1"
+			ENUM D2, RAW: 2, DESC: Actual Gear "2"
+			ENUM D3, RAW: 3, DESC: Actual Gear "3"
+			ENUM D4, RAW: 4, DESC: Actual Gear "4"
+			ENUM D5, RAW: 5, DESC: Actual Gear "5"
+			ENUM D6, RAW: 6, DESC: Actual Gear "6"
+			ENUM D7, RAW: 7, DESC: Actual Gear "7"
+			ENUM D_CVT, RAW: 8, DESC: Actual Gear "Continuously Forward"
+			ENUM R_CVT, RAW: 9, DESC: Actual Gear "Continuously Backward"
+			ENUM R3, RAW: 10, DESC: Actual Gear "R3"
+			ENUM R, RAW: 11, DESC: Actual Gear "R"
+			ENUM R2, RAW: 12, DESC: Actual Gear "R2"
+			ENUM P, RAW: 13, DESC: Actual Gear "P"
+			ENUM PWRFREE, RAW: 14, DESC: Power Free
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL TxRatio, OFFSET: 8, LEN: 8, DESC: Actual Transmission Ratio (CVT) / Translation Translation (CVT), DATA TYPE NUMBER(_MULTIPLIER_: 0.019999999552965164, _OFFSET_: 0.0)
+		SIGNAL EngWhlTrqRatio_TCM, OFFSET: 18, LEN: 14, DESC: Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque, DATA TYPE NUMBER(_MULTIPLIER_: 0.009999999776482582, _OFFSET_: 0.0)
+		SIGNAL TxTrqLoss, OFFSET: 32, LEN: 8, DESC: Transmission Crankly Torque Loss / Loss Torque, DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: 0.0)
+		SIGNAL VehDrvStyle, OFFSET: 40, LEN: 2, DESC: Vehicle Drive Style / Drive Variant, DATA TYPE ENUM
+			ENUM REAR, RAW: 0, DESC: Rear Wheel Driven
+			ENUM FRONT, RAW: 1, DESC: Front Wheel Driven
+			ENUM ALL, RAW: 2, DESC: All Wheel Driven
+			ENUM ALL, RAW: 3, DESC: All Wheel Driven
+		SIGNAL TxStyle, OFFSET: 42, LEN: 2, DESC: Transmission Variant / Gear Variant, DATA TYPE ENUM
+			ENUM SAT, RAW: 0, DESC: Stepped Automatic Transmission
+			ENUM CVT, RAW: 1, DESC: Continously Variable Automatic Transmission
+			ENUM AMT, RAW: 2, DESC: Automated Manual Transmission
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL TxMechStyle, OFFSET: 44, LEN: 2, DESC: Transmission Mechanics Style / Gear Mechanic Variant, DATA TYPE ENUM
+			ENUM LARGE, RAW: 0, DESC: NAG, Large Gear
+			ENUM SMALL, RAW: 1, DESC: NAG, Small Gear
+			ENUM LARGE2, RAW: 2, DESC: NAG2, Large Gear
+			ENUM SMALL2, RAW: 3, DESC: NAG2, Small Gear
+		SIGNAL TxShiftStyle, OFFSET: 46, LEN: 2, DESC: Transmission Shifting Style / Transmission Circuit Variant, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Not Defined
+			ENUM SBW, RAW: 1, DESC: Shift by Wire (ISM)
+			ENUM MS, RAW: 2, DESC: Mechanical Shifting (EWM)
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL MC_ENG_RQ2_TCM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_ENG_RQ2_TCM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ENG_RQ3_TCM (0x000000F4)
+		SIGNAL DrvAccelMax_Stat, OFFSET: 1, LEN: 2, DESC: Driveaway with Maximum Acceleration State / Status Attachment With Maximum Acceleration, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: OFF
+			ENUM ENBL, RAW: 1, DESC: Enabled
+			ENUM ACTV, RAW: 2, DESC: Active
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL WetDrvClutchTrq, OFFSET: 3, LEN: 13, DESC: Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive), DATA TYPE NUMBER(_MULTIPLIER_: 0.25, _OFFSET_: -500.0)
+		SIGNAL MC_ENG_RQ3_TCM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_ENG_RQ3_TCM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SBW_RS_TCM (0x000001BD)
+		SIGNAL SBW_MsgTxmtId, OFFSET: 0, LEN: 2, DESC: Shift by Wire Message Transmitter Identification / Shift by Wire Transmitter ID, DATA TYPE ENUM
+			ENUM VGS_NAG2, RAW: 0, DESC: VGS-NAG2
+			ENUM EGS52, RAW: 1, DESC: EGS52
+			ENUM NDEF2, RAW: 2, DESC: Not Defined
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL StartLkSw, OFFSET: 7, LEN: 1, DESC: Starter Lockout Switch (Only EGS52) / Startup Cancel (only at ECS52), DATA TYPE BOOL
+		SIGNAL TxSelVlvPosn, OFFSET: 8, LEN: 4, DESC: Actual Position Transmission Selector Valve / Importation Dial range slider in the gearbox, DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: Actual Selector Valve Position "D"
+			ENUM N, RAW: 6, DESC: Actual Selector Valve Position "N"
+			ENUM R, RAW: 7, DESC: Actual Selector Valve Position "R"
+			ENUM P, RAW: 8, DESC: Actual Selector Valve Position "P"
+			ENUM N_ZW_D, RAW: 11, DESC: Actual Selector Valve Position "N-D"
+			ENUM R_ZW_N, RAW: 12, DESC: Actual Selector Valve Position "R-N"
+			ENUM P_ZW_R, RAW: 13, DESC: Actual Selector Valve Position "P-R"
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL TSL_Posn_Rq, OFFSET: 12, LEN: 4, DESC: Transmission Selector Lever Position Request / Request Transmission Logging, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Transmission Selector Lever Request Passive
+			ENUM D, RAW: 5, DESC: Transmission Selector Lever Request "D"
+			ENUM N, RAW: 6, DESC: Transmission Selector Lever Request "N"
+			ENUM R, RAW: 7, DESC: Transmission Selector Lever Request "R"
+			ENUM P, RAW: 8, DESC: Transmission Selector Lever Request "P"
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL TxSelSensPosn, OFFSET: 16, LEN: 8, DESC: Transmission Selector Sensor Position / Value Selector Sensor, DATA TYPE NUMBER(_MULTIPLIER_: 0.4000000059604645, _OFFSET_: 0.0)
+		SIGNAL MC_SBW_RS_TCM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_SBW_RS_TCM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME TCM_DAC (0x000002F0)
+		SIGNAL TCM_DAC, OFFSET: 0, LEN: 64, DESC: Driving Authorization Checker / FBS Embassy to Ice, DATA TYPE ISO_TP
+	FRAME TCM_DISP_RQ (0x000002F3)
+		SIGNAL TxDrvPosn_Disp_Rq_TCM, OFFSET: 0, LEN: 8, DESC: Transmission Driving Position Display Request / Request Display Gearbox, DATA TYPE ENUM
+			ENUM M1, RAW: 1, DESC: Driving position "M1"
+			ENUM M2, RAW: 2, DESC: Driving position "M2"
+			ENUM M3, RAW: 3, DESC: Driving position "M3"
+			ENUM M4, RAW: 4, DESC: driving position "M4"
+			ENUM M5, RAW: 5, DESC: Driving position "M5"
+			ENUM M6, RAW: 6, DESC: Driving position "M6"
+			ENUM M7, RAW: 7, DESC: Driving position "M7"
+			ENUM BLANK, RAW: 32, DESC: blank ("")
+			ENUM D1, RAW: 49, DESC: driving position "D1"
+			ENUM D2, RAW: 50, DESC: Driving position "D2"
+			ENUM D3, RAW: 51, DESC: Driving position "D3"
+			ENUM D4, RAW: 52, DESC: Driving position "D4"
+			ENUM D5, RAW: 53, DESC: Driving position "D5"
+			ENUM D6, RAW: 54, DESC: Driving position "D6"
+			ENUM D7, RAW: 55, DESC: Driving position "D7"
+			ENUM A, RAW: 65, DESC: Driving position "A"
+			ENUM D, RAW: 68, DESC: Driving position "D"
+			ENUM F, RAW: 70, DESC: Fault Label "F"
+			ENUM N, RAW: 78, DESC: Driving position "N"
+			ENUM P, RAW: 80, DESC: driving position "P"
+			ENUM R, RAW: 82, DESC: Driving position "R"
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL TxDrvProg_Disp_Rq_TCM, OFFSET: 8, LEN: 8, DESC: Transmission Driving Program Display Request / Request Display Gearbox Program, DATA TYPE ENUM
+			ENUM BLANK, RAW: 32, DESC: Driving Program "" (Blank)
+			ENUM A, RAW: 65, DESC: Driving Program "A"
+			ENUM C, RAW: 67, DESC: Driving Program "C"
+			ENUM F, RAW: 70, DESC: Fault Label "F"
+			ENUM M, RAW: 77, DESC: Driving Program "M"
+			ENUM S, RAW: 83, DESC: Driving Program "S"
+			ENUM W, RAW: 87, DESC: Driving Program "W"
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL SBW_Beep_Rq_TCM, OFFSET: 16, LEN: 1, DESC: Shift by Wire Beep Request / Request Shift by Wire Warnington, DATA TYPE BOOL
+		SIGNAL TxShiftRcmmnd_Disp_Rq_TCM, OFFSET: 17, LEN: 2, DESC: Transmission Shift Recommendation Display Request / Request Display Transmission Description, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Recommendation
+			ENUM UP, RAW: 1, DESC: Upshift Recommendation
+			ENUM DOWN, RAW: 2, DESC: Downshift Recommendation
+			ENUM SNA, RAW: 3, DESC: Signal Not Available
+		SIGNAL SBW_Msg_Disp_Rq_TCM, OFFSET: 21, LEN: 3, DESC: Shift by Wire Message Display Request / Request Shift by Wire Show message, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Message
+			ENUM M1, RAW: 1, DESC: Message 1
+			ENUM M2, RAW: 2, DESC: Message 2
+			ENUM M3, RAW: 3, DESC: Message 3
+			ENUM M4, RAW: 4, DESC: Message 4
+			ENUM M5, RAW: 5, DESC: Message 5
+			ENUM M6, RAW: 6, DESC: Message 6
+			ENUM NDEF7, RAW: 7, DESC: Not Defined
+		SIGNAL TSL_MtnLk2_Disp_Rq_TCM, OFFSET: 24, LEN: 4, DESC: Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk1_Disp_Rq_TCM, OFFSET: 28, LEN: 4, DESC: Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk4_Disp_Rq_TCM, OFFSET: 32, LEN: 4, DESC: Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk3_Disp_Rq_TCM, OFFSET: 36, LEN: 4, DESC: Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL Gr_Target_Disp_Rq, OFFSET: 40, LEN: 8, DESC: Target Gear Display Request / Request Display Destination, DATA TYPE ENUM
+			ENUM BLANK, RAW: 32, DESC: Blank ("")
+			ENUM G1, RAW: 49, DESC: Gear "1"
+			ENUM G2, RAW: 50, DESC: Gear "2"
+			ENUM G3, RAW: 51, DESC: Gear "3"
+			ENUM G4, RAW: 52, DESC: Gear "4"
+			ENUM G5, RAW: 53, DESC: Gear "5"
+			ENUM G6, RAW: 54, DESC: Gear "6"
+			ENUM G7, RAW: 55, DESC: Gear "7"
+			ENUM F, RAW: 70, DESC: Fault Label "F"
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL RaceStMd_Disp_Rq_AMG, OFFSET: 48, LEN: 3, DESC: Race Start Mode Display Request / Display Race Start Mode, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Race Start Fashion Off OR Passive
+			ENUM AVL, RAW: 1, DESC: Race Start Fashion Available
+			ENUM ACTV, RAW: 2, DESC: Race Start Mode Active
+			ENUM ON, RAW: 3, DESC: Race Start Fashion On
+			ENUM CANCEL, RAW: 4, DESC: Race Start Fashion Cancel
+			ENUM NPOSBL, RAW: 5, DESC: Race Start Fashion Not Possible
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+	FRAME D_RS_TCM (0x000007E9)
+		SIGNAL D_RS_TCM, OFFSET: 0, LEN: 64, DESC: Diagnostic Response / Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SD_RS_TCM (0x0000059C)
+		SIGNAL SD_RS_TCM, OFFSET: 0, LEN: 64, DESC: SystemDiagnostic Response / System Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SG_APPL_TCM (0x0000051C)
+		SIGNAL SG_APPL_TCM, OFFSET: 0, LEN: 64, DESC: ECU TO External Application / Controller to External Application, DATA TYPE ISO_TP
+	FRAME TCM_HSA (0x0000050A)
+		SIGNAL TCM_HSA, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSB (0x0000050B)
+		SIGNAL TCM_HSB, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSC (0x0000050C)
+		SIGNAL TCM_HSC, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSD (0x0000050D)
+		SIGNAL TCM_HSD, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSE (0x0000050E)
+		SIGNAL TCM_HSE, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSF (0x0000050F)
+		SIGNAL TCM_HSF, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSG (0x00000500)
+		SIGNAL TCM_HSG, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HSH (0x00000509)
+		SIGNAL TCM_HSH, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME NM_TCM (0x0000041C)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_TCM, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+ECU FSCM
+	FRAME FSCM_STAT (0x000002E5)
+		SIGNAL FuelPress, OFFSET: 0, LEN: 8, DESC: Actual Fuel Pressure / Current fuel pressure, DATA TYPE NUMBER(_MULTIPLIER_: 0.05000000074505806, _OFFSET_: 0.0)
+		SIGNAL FuelPmpDtyCyc, OFFSET: 8, LEN: 8, DESC: Actual Fuel Pump Duty Cycle / Current duty cycle fuel pump, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL FuelPress_Rq_NA, OFFSET: 16, LEN: 1, DESC: Fuel Pressure Request Not available / requirement Fuel pressure not available, DATA TYPE BOOL
+		SIGNAL FuelPress_IncHydrRst, OFFSET: 17, LEN: 1, DESC: Fuel Pressure: InCreased Hydraulic Resistance / Fuel pressure: Increased hydraulic resistance, DATA TYPE BOOL
+		SIGNAL FuelPressSens_Stat_V2, OFFSET: 19, LEN: 3, DESC: Fuel Pressure Sensor State / Status Fuel pressure sensor, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Normal Operation Fashion
+			ENUM SHRT_GND, RAW: 1, DESC: Invalid Fuel Pressure Sensor Signal, Shortcut to Ground
+			ENUM SHRT_BAT, RAW: 2, DESC: Invalid Fuel Pressure Sensor Signal, Shortcut to Battery Voltage
+			ENUM IMPLSBL, RAW: 3, DESC: Implausible Fuel Pressure Sensor Signal
+			ENUM PWR_FLT, RAW: 4, DESC: Fuel Pressure Sensor Power Supply Fault
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL FuelPmp_Stat_V2, OFFSET: 22, LEN: 2, DESC: Fuel Pump State / Status Fuel Pump, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Normal Operation Fashion
+			ENUM SHRT, RAW: 1, DESC: Fuel Pump Shortcut
+			ENUM OPN, RAW: 2, DESC: Fuel Pump Open Circuit
+			ENUM LHOM, RAW: 3, DESC: LIMP-Home Operation Fashion
+		SIGNAL FuelPmp1_InDtyCyc, OFFSET: 32, LEN: 8, DESC: Actual Fuel Pump # 1 Input Duty Cycle / News Input Dewy Rating Fuel Pump 1, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL FSCM_Stat_AMG, OFFSET: 45, LEN: 3, DESC: Fuel System Control Module State / Status FSCM, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: normal surgery
+			ENUM WARN_TEMP, RAW: 1, DESC: Temperature High Warning
+			ENUM ALM_TEMP, RAW: 2, DESC: Temperature High Alarm
+			ENUM START_FAIL, RAW: 3, DESC: Fuel Pump Start Up Failed
+			ENUM FLT_GNRL, RAW: 4, DESC: General Fault
+			ENUM NDEF5, RAW: 5, DESC: Not Defined
+			ENUM NDEF6, RAW: 6, DESC: Not Defined
+			ENUM SNA, RAW: 7, DESC: Signal Not Available
+		SIGNAL ESIM_Cntct_Stat_EngShutOff, OFFSET: 48, LEN: 1, DESC: Evaporative System Integrity Monitor Contact State at Engine Shut-Off / Contact Rate Integrity Monitoring Evaporation System for Engine Stop, DATA TYPE BOOL
+		SIGNAL ESIM_Cntct_Stat, OFFSET: 49, LEN: 1, DESC: Evaporative System Integrity Monitor Contact State / Contact State Integrity Monitoring Evaporation System, DATA TYPE BOOL
+		SIGNAL ESIM_Cntct_ClsTm, OFFSET: 54, LEN: 10, DESC: Evaporative System Integrity Monitor Contact Closing Time / Conclusion of the Contact Integrity Monitoring Evaporation System, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_FSCM (0x0000049F)
+		SIGNAL D_RS_FSCM, OFFSET: 0, LEN: 64, DESC: Diagnostic Response / Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SD_RS_FSCM (0x0000059F)
+		SIGNAL SD_RS_FSCM, OFFSET: 0, LEN: 64, DESC: SystemDiagnostic Response / System Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SG_APPL_FSCM (0x0000051F)
+		SIGNAL SG_APPL_FSCM, OFFSET: 0, LEN: 64, DESC: ECU TO External Application / Controller to External Application, DATA TYPE ISO_TP
+	FRAME NM_FSCM (0x0000041F)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_FSCM, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM TERM_15, RAW: 130, DESC: Wakeup by Discrete Terminal 15 Signal
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+ECU TSLM
+	FRAME SBW_RS_ISM (0x00000073)
+		SIGNAL TxDrvProgSw_Psd_V3, OFFSET: 1, LEN: 1, DESC: Transmission Driving Program Switch State / Status Driving program, DATA TYPE BOOL
+		SIGNAL TSL_MtnLk_Actv, OFFSET: 3, LEN: 1, DESC: Transmission Selector Lever Motion Lock Active / Gear Select Lock Active, DATA TYPE BOOL
+		SIGNAL TSL_Posn_ISM, OFFSET: 4, LEN: 4, DESC: Transmission Selector Lever Position / Transmission Logging, DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: Transmission Selector Lever in position "D"
+			ENUM N, RAW: 6, DESC: Transmission Selector Lever in position "N"
+			ENUM R, RAW: 7, DESC: Transmission Selector Lever in position "R"
+			ENUM P, RAW: 8, DESC: Transmission Selector Lever in position "P"
+			ENUM PLUS, RAW: 9, DESC: Transmission Selector Lever in position "+"
+			ENUM MINUS, RAW: 10, DESC: Transmission Selector Lever in position "-"
+			ENUM N_ZW_D, RAW: 11, DESC: Transmission Selector Lever in Intermediate Position "N-D"
+			ENUM R_ZW_N, RAW: 12, DESC: Transmission Selector Lever in Intermediate Position "R-N"
+			ENUM P_ZW_R, RAW: 13, DESC: Transmission Selector Lever in Intermediate Position "P-R"
+			ENUM SNA, RAW: 15, DESC: Signal Not Available
+		SIGNAL MC_SBW_RS_ISM, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_SBW_RS_ISM, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_TSLM (0x000004AF)
+		SIGNAL D_RS_TSLM, OFFSET: 0, LEN: 64, DESC: Diagnostic Response / Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SD_RS_TSLM (0x000005AF)
+		SIGNAL SD_RS_TSLM, OFFSET: 0, LEN: 64, DESC: SystemDiagnostic Response / System Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SG_APPL_TSLM (0x0000052F)
+		SIGNAL SG_APPL_TSLM, OFFSET: 0, LEN: 64, DESC: ECU TO External Application / Controller to External Application, DATA TYPE ISO_TP
+	FRAME NM_TSLM (0x0000042F)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_TSLM, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+ECU  ANY_ECU
+	FRAME SG_A1 (0x000002F7)
+		SIGNAL SG_OutDC_Curr, OFFSET: 0, LEN: 16, DESC: Starter / Generator Output DC Current / DC Current, DATA TYPE NUMBER(_MULTIPLIER_: 0.10000000149011612, _OFFSET_: -3276.60009765625)
+		SIGNAL SG_OutDC_Volt, OFFSET: 16, LEN: 16, DESC: Starter / Generator Output DC Voltage / DC Voltage, DATA TYPE NUMBER(_MULTIPLIER_: 0.10000000149011612, _OFFSET_: 0.0)
+		SIGNAL EM1_Diag_Stat, OFFSET: 48, LEN: 8, DESC: Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Reaction
+			ENUM AUTOEPSOFF_ENBL, RAW: 1, DESC: carpsof_enable
+			ENUM LHOM, RAW: 2, DESC: LIMP Home
+			ENUM TRQ_RED, RAW: 3, DESC: Torque Reduce
+			ENUM SPD_RED, RAW: 4, DESC: Speed Reduce
+			ENUM ASC_ACTV, RAW: 5, DESC: ASC Active
+			ENUM TPC_ACTV, RAW: 6, DESC: TPC Active
+			ENUM PREVENT, RAW: 7, DESC: Prevent Operation
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL SG_ErrChk_Stat, OFFSET: 56, LEN: 2, DESC: Error Check State / Status Error Check, DATA TYPE ENUM
+			ENUM WAIT, RAW: 0, DESC: Error Test Not Yet Finished
+			ENUM OK, RAW: 1, DESC: Error Test Finished, result is ok
+			ENUM ERROR, RAW: 2, DESC: Error Detected, Record Actual Data
+			ENUM NDEF3, RAW: 3, DESC: Not Defined
+		SIGNAL EM1_EnhCool_Rq, OFFSET: 58, LEN: 1, DESC: Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1, DATA TYPE BOOL
+		SIGNAL EM1_ErrNum, OFFSET: 59, LEN: 5, DESC: Error Number / Error Number, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ISM_DISP_RQ (0x000002F5)
+		SIGNAL TxDrvPosn_Disp_Rq_ISM, OFFSET: 0, LEN: 8, DESC: Transmission Driving Position Display Request / Request Display Gearbox, DATA TYPE ENUM
+			ENUM M1, RAW: 1, DESC: Driving position "M1"
+			ENUM M2, RAW: 2, DESC: Driving position "M2"
+			ENUM M3, RAW: 3, DESC: Driving position "M3"
+			ENUM M4, RAW: 4, DESC: driving position "M4"
+			ENUM M5, RAW: 5, DESC: Driving position "M5"
+			ENUM M6, RAW: 6, DESC: Driving position "M6"
+			ENUM M7, RAW: 7, DESC: Driving position "M7"
+			ENUM BLANK, RAW: 32, DESC: Blank ("")
+			ENUM D1, RAW: 49, DESC: driving position "D1"
+			ENUM D2, RAW: 50, DESC: Driving position "D2"
+			ENUM D3, RAW: 51, DESC: Driving position "D3"
+			ENUM D4, RAW: 52, DESC: Driving position "D4"
+			ENUM D5, RAW: 53, DESC: Driving position "D5"
+			ENUM D6, RAW: 54, DESC: Driving position "D6"
+			ENUM D7, RAW: 55, DESC: Driving position "D7"
+			ENUM A, RAW: 65, DESC: Driving position "A"
+			ENUM D, RAW: 68, DESC: Driving position "D"
+			ENUM F, RAW: 70, DESC: Fault Label "F"
+			ENUM N, RAW: 78, DESC: Driving position "N"
+			ENUM P, RAW: 80, DESC: driving position "P"
+			ENUM R, RAW: 82, DESC: Driving position "R"
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL SBW_Beep_Rq_ISM, OFFSET: 16, LEN: 1, DESC: Shift by Wire Beep Request / Request Shift by Wire Warnington, DATA TYPE BOOL
+		SIGNAL SBW_Msg_Disp_Rq_ISM, OFFSET: 21, LEN: 3, DESC: Shift by Wire Message Display Request / Request Shift by Wire Show message, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Message
+			ENUM M1, RAW: 1, DESC: Message 1
+			ENUM M2, RAW: 2, DESC: Message 2
+			ENUM M3, RAW: 3, DESC: Message 3
+			ENUM M4, RAW: 4, DESC: Message 4
+			ENUM M5, RAW: 5, DESC: Message 5
+			ENUM M6, RAW: 6, DESC: Message 6
+			ENUM NDEF7, RAW: 7, DESC: Not Defined
+		SIGNAL TSL_MtnLk2_Disp_Rq_ISM, OFFSET: 24, LEN: 4, DESC: Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk1_Disp_Rq_ISM, OFFSET: 28, LEN: 4, DESC: Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk4_Disp_Rq_ISM, OFFSET: 32, LEN: 4, DESC: Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+		SIGNAL TSL_MtnLk3_Disp_Rq_ISM, OFFSET: 36, LEN: 4, DESC: Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: No Lock icon display
+			ENUM ARR_UP, RAW: 1, DESC: Lock icon arrow up
+			ENUM ARR_DN, RAW: 2, DESC: Lock Symbol Arrow Down
+			ENUM ARR_LT, RAW: 3, DESC: Lock Symbol Arrow Left
+			ENUM ARR_UP_DN, RAW: 4, DESC: Lock Symbol Arrow Up and Down
+			ENUM ARR_UP_HLGT, RAW: 9, DESC: Lock icon arrow up highlighted
+			ENUM ARR_DN_HLGT, RAW: 10, DESC: Lock Symbol Arrow Down Highlighted
+			ENUM ARR_LT_HLGT, RAW: 11, DESC: Lock Symbol Arrow Left Highlighted
+			ENUM ARR_UP_DN_HLGT, RAW: 12, DESC: Lock Symbol Arrow Up and Down Highlighted
+	FRAME ISM_DAC (0x000002F6)
+		SIGNAL ISM_DAC, OFFSET: 0, LEN: 64, DESC: Driving Authorization Checker / FBS Embassy to Ice, DATA TYPE ISO_TP
+	FRAME SSP_RS_SSP (0x00000381)
+		SIGNAL CurrDtyCyc_Actl, OFFSET: 0, LEN: 8, DESC: Actual Current Duty Cycle / Actual Electricity (duty cycle), DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL SSP_Diag_Stat, OFFSET: 8, LEN: 8, DESC: SSP Diagnostics State / SSP Diagnostic Status, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: No Fault
+			ENUM CURR, RAW: 1, DESC: Nominal Current Not Obtained
+			ENUM VOLT, RAW: 2, DESC: Voltage
+			ENUM TEMP, RAW: 3, DESC: Temperature
+			ENUM DEBOUNCE_CNT, RAW: 4, DESC: Debounce Counter
+			ENUM TIMEOUT, RAW: 5, DESC: Timeout
+			ENUM LK, RAW: 128, DESC: locking
+			ENUM IDLE, RAW: 129, DESC: idle
+			ENUM SHRT, RAW: 130, DESC: Short Circuit
+			ENUM SEMI, RAW: 131, DESC: Semiconductor Fault
+			ENUM CAN, RAW: 132, DESC: CAN SPECIFIC FAULT
+		SIGNAL SSP_RPM, OFFSET: 26, LEN: 14, DESC: ACTUAL RPM SSP / Current SSP speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MC_SSP_RS_SSP, OFFSET: 48, LEN: 4, DESC: Message Counter / Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_SSP_RS_SSP, OFFSET: 56, LEN: 8, DESC: CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_ISM (0x0000049D)
+		SIGNAL D_RS_ISM, OFFSET: 0, LEN: 64, DESC: Diagnostic Response / Diagnostic Response, DATA TYPE ISO_TP
+	FRAME D_RS_SSP (0x0000049E)
+		SIGNAL D_RS_SSP, OFFSET: 0, LEN: 64, DESC: Diagnostic Response / Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SD_RS_ISM (0x0000059D)
+		SIGNAL SD_RS_ISM, OFFSET: 0, LEN: 64, DESC: SystemDiagnostic Response / System Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SD_RS_SSP (0x0000059E)
+		SIGNAL SD_RS_SSP, OFFSET: 0, LEN: 64, DESC: SystemDiagnostic Response / System Diagnostic Response, DATA TYPE ISO_TP
+	FRAME SG_APPL_ISM (0x0000051D)
+		SIGNAL SG_APPL_ISM, OFFSET: 0, LEN: 64, DESC: ECU TO External Application / Controller to External Application, DATA TYPE ISO_TP
+	FRAME SG_APPL_ISM2 (0x00000600)
+		SIGNAL SG_APPL_ISM2, OFFSET: 0, LEN: 64, DESC: ECU TO External Application / Controller to External Application, DATA TYPE ISO_TP
+	FRAME APPL_SG_TSLM (0x0000077C)
+		SIGNAL APPL_SG_TSLM, OFFSET: 0, LEN: 64, DESC: External Application to ECU / External application to control unit, DATA TYPE ISO_TP
+	FRAME TCM_HS1 (0x00000501)
+		SIGNAL TCM_HS1, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS2 (0x00000502)
+		SIGNAL TCM_HS2, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS3 (0x00000503)
+		SIGNAL TCM_HS3, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS4 (0x00000504)
+		SIGNAL TCM_HS4, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS5 (0x00000505)
+		SIGNAL TCM_HS5, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS6 (0x00000506)
+		SIGNAL TCM_HS6, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS7 (0x00000507)
+		SIGNAL TCM_HS7, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME TCM_HS8 (0x00000508)
+		SIGNAL TCM_HS8, OFFSET: 0, LEN: 64, DESC: Manual Control at Test Bench / Manual control at the test bench, DATA TYPE ISO_TP
+	FRAME NM_FSCM2 (0x00000435)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_FSCM2, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+	FRAME NM_ISM (0x0000041D)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_ISM, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+	FRAME NM_SSP (0x0000041E)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network Management Mode / Network Management Mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: LIMP-HOME Fashion
+			ENUM RING, RAW: 253, DESC: ring fashion
+			ENUM ALIVE, RAW: 254, DESC: Alive mode
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network Management Logical Successor / Network Management Logical Successor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network Management Sleep Indication / Network Management Sleep Indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network Management Sleep Acknowledge / Network Management Sleep Acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network Management UserData Launch Type / Network Management UserData Sendart, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Broadcast or Start Alive
+			ENUM SNA, RAW: 63, DESC: Signal Not Available
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network Management UserData Service No./netzmanagement UserData service, DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: UserData Transmission OK (Broadcast)
+			ENUM WAKEUP_SA, RAW: 2, DESC: Wakeup status (start alive)
+			ENUM SBC_STAT_BC, RAW: 5, DESC: System Base Chip Status (Broadcast)
+			ENUM AWAKE_BC, RAW: 15, DESC: Stay Awake Reason (Broadcast)
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupRsn_SSP, OFFSET: 32, LEN: 8, DESC: Wakeup Reason / Wake-up, DATA TYPE ENUM
+			ENUM NETWORK, RAW: 0, DESC: Wakeup by Network
+			ENUM SNA, RAW: 255, DESC: Signal Not Available
+		SIGNAL WakeupCnt, OFFSET: 40, LEN: 8, DESC: Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network Identification No./netzwerk-id, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Backbone CAN
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Diagnostics CAN
+			ENUM BODY, RAW: 6, DESC: Body CAN
+			ENUM CHASSIS, RAW: 7, DESC: Chassis CAN
+			ENUM POWERTRAIN, RAW: 8, DESC: Powertrain Can
+			ENUM PT_SENSOR, RAW: 9, DESC: Powertrain Sensor CAN
+			ENUM DYNAMICS, RAW: 11, DESC: Dynamics CAN
+			ENUM HEADUNIT, RAW: 14, DESC: HeadUnit CAN
+			ENUM IMPACT, RAW: 15, DESC: Impact CAN
+			ENUM MULTIPURPOSE, RAW: 16, DESC: Multipurpose CAN
+			ENUM SNA, RAW: 255, DESC: Signal Not Available

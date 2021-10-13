@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'ESP_SBC'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_ESP_SBC_H_
 #define __ECU_ESP_SBC_H_
@@ -195,7 +195,7 @@ enum class BS_328h_ESP_DSPL {
 	BRAKE = 26, // Brake immediately!
 	SBCS_N_AKT = 27, // SBC stop not activatable
 	SBCH_DEF = 28, // SBC HOLD defective
-	SBCS_DEF = 29, // SBC Stop defective
+	SBCS_DEF_1 = 29, // SBC Stop defective
 	GWH_P = 30, // selector lever according to P
 	SNV = 31, // signal not available
 };
@@ -204,6 +204,7 @@ enum class BS_328h_ESP_DSPL {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of BS_200 */
 	uint32_t get_canid(){ return BS_200_CAN_ID; }
@@ -315,6 +316,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of BS_208 */
 	uint32_t get_canid(){ return BS_208_CAN_ID; }
@@ -420,6 +422,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of BS_270 */
 	uint32_t get_canid(){ return BS_270_CAN_ID; }
@@ -453,6 +456,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of BS_300 */
 	uint32_t get_canid(){ return BS_300_CAN_ID; }
@@ -600,6 +604,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of BS_328 */
 	uint32_t get_canid(){ return BS_328_CAN_ID; }
@@ -710,7 +715,8 @@ class ECU_ESP_SBC {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -727,7 +733,8 @@ class ECU_ESP_SBC {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -744,7 +751,8 @@ class ECU_ESP_SBC {
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -761,7 +769,8 @@ class ECU_ESP_SBC {
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -778,7 +787,8 @@ class ECU_ESP_SBC {
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[4];
+                dest->raw = FRAME_DATA[4];
+                return true;
             }
         }
             
@@ -787,5 +797,3 @@ class ECU_ESP_SBC {
 		uint64_t LAST_FRAME_TIMES[5];
 };
 #endif // __ECU_ESP_SBC_H_
-
-#endif // EGS52_MODE

@@ -182,6 +182,7 @@ class ECU:
             struct_name = x.name.strip().removesuffix("h")
             tmp += "\n\ntypedef union {" # Struct name
             tmp += "\n\tuint64_t raw;" # Store raw value
+            tmp += "\n\tuint8_t bytes[8];"
             tmp += "\n\n\t/** Gets CAN ID of {} */".format(struct_name)
             tmp += "\n\tuint32_t get_canid(){{ return {}_CAN_ID; }}".format(struct_name)
             
@@ -237,7 +238,8 @@ class ECU:
             }} else if (now - LAST_FRAME_TIMES[{1}] > max_expire_time) {{ // CAN Frame has not refreshed in valid interval
                 return false;
             }} else {{ // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[{1}];
+                dest->raw = FRAME_DATA[{1}];
+                return true;
             }}
         }}
             """.format(frame.name.strip().removesuffix("h"), idx)

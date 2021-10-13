@@ -521,39 +521,39 @@ ECU GS
 		SIGNAL MMAX_EGS, OFFSET: 2, LEN: 1, DESC: Engine torque request max, DATA TYPE BOOL
 		SIGNAL M_EGS, OFFSET: 3, LEN: 13, DESC: Ford. Engine torque, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL GZC, OFFSET: 16, LEN: 4, DESC: Goal Gang, DATA TYPE ENUM
-			ENUM N, RAW: 0, DESC: Destination "N"
-			ENUM D1, RAW: 1, DESC: Destination "1"
-			ENUM D2, RAW: 2, DESC: Destination "2"
-			ENUM D3, RAW: 3, DESC: Destination "3"
-			ENUM D4, RAW: 4, DESC: Destination "4"
-			ENUM D5, RAW: 5, DESC: Destination "5"
-			ENUM D6, RAW: 6, DESC: Destination "6"
-			ENUM D7, RAW: 7, DESC: Destination "7"
-			ENUM D_CVT, RAW: 8, DESC: Destination "infinitely forward
-			ENUM R_CVT, RAW: 9, DESC: Goal "infinitely reverse"
-			ENUM R3, RAW: 10, DESC: Destination "R3"
-			ENUM R, RAW: 11, DESC: Destination "R"
-			ENUM R2, RAW: 12, DESC: Destination "R2"
-			ENUM P, RAW: 13, DESC: Destination "P"
-			ENUM ABBRUCH, RAW: 14, DESC: circuit break
-			ENUM SNV, RAW: 15, DESC: signal not available
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_D6, RAW: 6, DESC: Destination "6"
+			ENUM G_D7, RAW: 7, DESC: Destination "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Destination "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Goal "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Destination "R3"
+			ENUM G_R, RAW: 11, DESC: Destination "R"
+			ENUM G_R2, RAW: 12, DESC: Destination "R2"
+			ENUM G_P, RAW: 13, DESC: Destination "P"
+			ENUM G_ABBRUCH, RAW: 14, DESC: circuit break
+			ENUM G_SNV, RAW: 15, DESC: signal not available
 		SIGNAL GIC, OFFSET: 20, LEN: 4, DESC: actual gear, DATA TYPE ENUM
-			ENUM N, RAW: 0, DESC: Actual rang "N"
-			ENUM D1, RAW: 1, DESC: actual gear "1"
-			ENUM D2, RAW: 2, DESC: actual gear "2"
-			ENUM D3, RAW: 3, DESC: Actual Rang "3"
-			ENUM D4, RAW: 4, DESC: Actual rang "4"
-			ENUM D5, RAW: 5, DESC: Actual rang "5"
-			ENUM D6, RAW: 6, DESC: actual gear "6"
-			ENUM D7, RAW: 7, DESC: Actual rang "7"
-			ENUM D_CVT, RAW: 8, DESC: Actual ranging "infinitely forward
-			ENUM R_CVT, RAW: 9, DESC: Actual "infinitely reverse"
-			ENUM R3, RAW: 10, DESC: Actual ranging "R3"
-			ENUM R, RAW: 11, DESC: Actual rang "R"
-			ENUM R2, RAW: 12, DESC: Actual rang "R2"
-			ENUM P, RAW: 13, DESC: Actual rang "P"
-			ENUM KRAFTFREI, RAW: 14, DESC: power-free
-			ENUM SNV, RAW: 15, DESC: signal not available
+			ENUM G_N, RAW: 0, DESC: Actual rang "N"
+			ENUM G_D1, RAW: 1, DESC: actual gear "1"
+			ENUM G_D2, RAW: 2, DESC: actual gear "2"
+			ENUM G_D3, RAW: 3, DESC: Actual Rang "3"
+			ENUM G_D4, RAW: 4, DESC: Actual rang "4"
+			ENUM G_D5, RAW: 5, DESC: Actual rang "5"
+			ENUM G_D6, RAW: 6, DESC: actual gear "6"
+			ENUM G_D7, RAW: 7, DESC: Actual rang "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Actual ranging "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Actual "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Actual ranging "R3"
+			ENUM G_R, RAW: 11, DESC: Actual rang "R"
+			ENUM G_R2, RAW: 12, DESC: Actual rang "R2"
+			ENUM G_P, RAW: 13, DESC: Actual rang "P"
+			ENUM G_KRAFTFREI, RAW: 14, DESC: power-free
+			ENUM G_SNV, RAW: 15, DESC: signal not available
 		SIGNAL K_S_B, OFFSET: 24, LEN: 1, DESC: Best. (Transducer overbridge.-) clutch "slip", DATA TYPE BOOL
 		SIGNAL K_O_B, OFFSET: 25, LEN: 1, DESC: Best. (Transducer overbridders.-) clutch "open", DATA TYPE BOOL
 		SIGNAL K_G_B, OFFSET: 26, LEN: 1, DESC: Best. (Transducer overbridge.-) clutch "closed", DATA TYPE BOOL
@@ -661,40 +661,40 @@ ECU GS
 			ENUM KLEIN2, RAW: 3, DESC: NAG2, small gearbox
 		SIGNAL ESV_BRE, OFFSET: 30, LEN: 1, DESC: Create brake when switching on, DATA TYPE BOOL
 		SIGNAL KD, OFFSET: 31, LEN: 1, DESC: Kickdown, DATA TYPE BOOL
-		SIGNAL GZC, OFFSET: 32, LEN: 4, DESC: Goal Gang, DATA TYPE ENUM
-			ENUM N, RAW: 0, DESC: Destination "N"
-			ENUM D1, RAW: 1, DESC: Destination "1"
-			ENUM D2, RAW: 2, DESC: Destination "2"
-			ENUM D3, RAW: 3, DESC: Destination "3"
-			ENUM D4, RAW: 4, DESC: Destination "4"
-			ENUM D5, RAW: 5, DESC: Destination "5"
-			ENUM D6, RAW: 6, DESC: Destination "6"
-			ENUM D7, RAW: 7, DESC: Destination "7"
-			ENUM D_CVT, RAW: 8, DESC: Destination "infinitely forward
-			ENUM R_CVT, RAW: 9, DESC: Goal "infinitely reverse"
-			ENUM R3, RAW: 10, DESC: Destination "R3"
-			ENUM R, RAW: 11, DESC: Destination "R"
-			ENUM R2, RAW: 12, DESC: Destination "R2"
-			ENUM P, RAW: 13, DESC: Destination "P"
-			ENUM ABBRUCH, RAW: 14, DESC: circuit break
-			ENUM SNV, RAW: 15, DESC: signal not available
+		SIGNAL GZC, OFFSET: 32, LEN: 4, DESC: target gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_D6, RAW: 6, DESC: Destination "6"
+			ENUM G_D7, RAW: 7, DESC: Destination "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Destination "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Goal "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Destination "R3"
+			ENUM G_R, RAW: 11, DESC: Destination "R"
+			ENUM G_R2, RAW: 12, DESC: Destination "R2"
+			ENUM G_P, RAW: 13, DESC: Destination "P"
+			ENUM G_ABBRUCH, RAW: 14, DESC: circuit break
+			ENUM G_SNV, RAW: 15, DESC: signal not available
 		SIGNAL GIC, OFFSET: 36, LEN: 4, DESC: actual gear, DATA TYPE ENUM
-			ENUM N, RAW: 0, DESC: Actual rang "N"
-			ENUM D1, RAW: 1, DESC: actual gear "1"
-			ENUM D2, RAW: 2, DESC: actual gear "2"
-			ENUM D3, RAW: 3, DESC: Actual Rang "3"
-			ENUM D4, RAW: 4, DESC: Actual rang "4"
-			ENUM D5, RAW: 5, DESC: Actual rang "5"
-			ENUM D6, RAW: 6, DESC: actual gear "6"
-			ENUM D7, RAW: 7, DESC: Actual rang "7"
-			ENUM D_CVT, RAW: 8, DESC: Actual ranging "infinitely forward
-			ENUM R_CVT, RAW: 9, DESC: Actual "infinitely reverse"
-			ENUM R3, RAW: 10, DESC: Actual ranging "R3"
-			ENUM R, RAW: 11, DESC: Actual rang "R"
-			ENUM R2, RAW: 12, DESC: Actual rang "R2"
-			ENUM P, RAW: 13, DESC: Actual rang "P"
-			ENUM KRAFTFREI, RAW: 14, DESC: power-free
-			ENUM SNV, RAW: 15, DESC: signal not available
+			ENUM G_N, RAW: 0, DESC: Actual rang "N"
+			ENUM G_D1, RAW: 1, DESC: actual gear "1"
+			ENUM G_D2, RAW: 2, DESC: actual gear "2"
+			ENUM G_D3, RAW: 3, DESC: Actual Rang "3"
+			ENUM G_D4, RAW: 4, DESC: Actual rang "4"
+			ENUM G_D5, RAW: 5, DESC: Actual rang "5"
+			ENUM G_D6, RAW: 6, DESC: actual gear "6"
+			ENUM G_D7, RAW: 7, DESC: Actual rang "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Actual ranging "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Actual "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Actual ranging "R3"
+			ENUM G_R, RAW: 11, DESC: Actual rang "R"
+			ENUM G_R2, RAW: 12, DESC: Actual rang "R2"
+			ENUM G_P, RAW: 13, DESC: Actual rang "P"
+			ENUM G_KRAFTFREI, RAW: 14, DESC: power-free
+			ENUM G_SNV, RAW: 15, DESC: signal not available
 		SIGNAL M_VERL, OFFSET: 40, LEN: 8, DESC: Loss moment (FFH at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL FMRADPAR, OFFSET: 48, LEN: 1, DESC: Factor wheel torque parity (straight parity), DATA TYPE BOOL
 		SIGNAL FMRADTGL, OFFSET: 49, LEN: 1, DESC: Factor wheel torque Toggle 40ms + -10, DATA TYPE BOOL

@@ -1,5 +1,7 @@
 #include "speaker.h"
 #include "pins.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/ledc.h"
 
 Speaker::Speaker(gpio_num_t pin) {
@@ -36,6 +38,13 @@ void Speaker::set_freq(uint32_t freq) {
         ledc_set_duty(ledc_mode_t::LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_6, 0);
         ledc_update_duty(ledc_mode_t::LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_6);
     }
+}
+
+void Speaker::send_note(uint32_t freq, uint32_t play_time_ms, uint32_t total_time_ms) {
+    this->set_freq(freq);
+    vTaskDelay(play_time_ms);
+    this->set_freq(0);
+    vTaskDelay(total_time_ms-play_time_ms);
 }
 
 Speaker spkr = Speaker(PIN_SPKR);

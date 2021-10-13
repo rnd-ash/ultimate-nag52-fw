@@ -12,17 +12,10 @@
 #include <driver/adc.h>
 #include <esp_event.h>
 
-struct FeedbackConfig
-{
-    gpio_num_t pin;
-    adc1_channel_t channel;
-    uint8_t readings_id;
-};
-
 class Solenoid
 {
 public:
-    Solenoid(const char *name, gpio_num_t pwm_pin, FeedbackConfig f_config, uint32_t frequency, uint16_t start_pwm, ledc_channel_t channel, ledc_timer_t timer);
+    Solenoid(const char *name, gpio_num_t pwm_pin, uint8_t reading_id, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
     void write_pwm(uint8_t pwm);
     /**
      * Writes PWM signal to the solenoid using percentages.
@@ -30,7 +23,7 @@ public:
      * 1000 = 100%
      */
     void write_pwm_percent(uint16_t percent);
-    uint16_t get_pwm();
+    uint8_t get_pwm();
     uint16_t get_current_estimate();
     bool init_ok();
     uint16_t get_vref();
@@ -39,14 +32,13 @@ public:
 private:
     bool ready;
     const char *name;
-    uint16_t curr_pwm;
     uint16_t vref;
     bool vref_calibrated;
     ledc_channel_t channel;
     ledc_timer_t timer;
-    FeedbackConfig feedback_cfg;
+    uint8_t reading_id;
     portMUX_TYPE current_mutex;
-    uint16_t current;
+    volatile uint16_t current;
 };
 
 bool init_all_solenoids();

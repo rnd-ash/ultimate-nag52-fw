@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'ANY_ECU'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_ANY_ECU_H_
 #define __ECU_ANY_ECU_H_
@@ -225,6 +225,7 @@ enum class VG_428h_ANFN_VG {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ARCADE_A2 */
 	uint32_t get_canid(){ return ARCADE_A2_CAN_ID; }
@@ -252,6 +253,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_ANZ */
 	uint32_t get_canid(){ return MS_ANZ_CAN_ID; }
@@ -279,6 +281,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of SBW_232 */
 	uint32_t get_canid(){ return SBW_232_CAN_ID; }
@@ -324,6 +327,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ART_250 */
 	uint32_t get_canid(){ return ART_250_CAN_ID; }
@@ -429,6 +433,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ART_258 */
 	uint32_t get_canid(){ return ART_258_CAN_ID; }
@@ -594,6 +599,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of PSM_3B4 */
 	uint32_t get_canid(){ return PSM_3B4_CAN_ID; }
@@ -675,6 +681,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of PSM_3B8 */
 	uint32_t get_canid(){ return PSM_3B8_CAN_ID; }
@@ -738,6 +745,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of VG_428 */
 	uint32_t get_canid(){ return VG_428_CAN_ID; }
@@ -777,6 +785,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of LWR_530 */
 	uint32_t get_canid(){ return LWR_530_CAN_ID; }
@@ -840,6 +849,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of CONFIG_6FF */
 	uint32_t get_canid(){ return CONFIG_6FF_CAN_ID; }
@@ -952,7 +962,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -969,7 +980,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -986,7 +998,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -1003,7 +1016,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -1020,7 +1034,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[4];
+                dest->raw = FRAME_DATA[4];
+                return true;
             }
         }
             
@@ -1037,7 +1052,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[5];
+                dest->raw = FRAME_DATA[5];
+                return true;
             }
         }
             
@@ -1054,7 +1070,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[6];
+                dest->raw = FRAME_DATA[6];
+                return true;
             }
         }
             
@@ -1071,7 +1088,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[7];
+                dest->raw = FRAME_DATA[7];
+                return true;
             }
         }
             
@@ -1088,7 +1106,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[8];
+                dest->raw = FRAME_DATA[8];
+                return true;
             }
         }
             
@@ -1105,7 +1124,8 @@ class ECU_ANY_ECU {
             } else if (now - LAST_FRAME_TIMES[9] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[9];
+                dest->raw = FRAME_DATA[9];
+                return true;
             }
         }
             
@@ -1114,5 +1134,3 @@ class ECU_ANY_ECU {
 		uint64_t LAST_FRAME_TIMES[10];
 };
 #endif // __ECU_ANY_ECU_H_
-
-#endif // EGS52_MODE

@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'MS'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_MS_H_
 #define __ECU_MS_H_
@@ -94,7 +94,7 @@ enum class MS_2F3h_FSC_IST {
 enum class MS_2F3h_FSC_SOLL {
 	HOCH = 1, // "upshift" / arrow
 	RUNTER = 2, // "downshift" / arrow
-	BLANK/PAS = 32, // blank ("") / passive
+	BLANK_PAS = 32, // blank ("") / passive
 	EINS = 49, // Driving Level "1"
 	ZWEI = 50, // Driving Level "2"
 	DREI = 51, // Driving Level "3"
@@ -225,6 +225,7 @@ enum class MS_608h_PFW {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_210 */
 	uint32_t get_canid(){ return MS_210_CAN_ID; }
@@ -444,6 +445,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_212 */
 	uint32_t get_canid(){ return MS_212_CAN_ID; }
@@ -519,6 +521,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_268 */
 	uint32_t get_canid(){ return MS_268_CAN_ID; }
@@ -594,6 +597,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_2F3 */
 	uint32_t get_canid(){ return MS_2F3_CAN_ID; }
@@ -615,6 +619,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_308 */
 	uint32_t get_canid(){ return MS_308_CAN_ID; }
@@ -786,6 +791,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_312 */
 	uint32_t get_canid(){ return MS_312_CAN_ID; }
@@ -819,6 +825,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of AAD_580 */
 	uint32_t get_canid(){ return AAD_580_CAN_ID; }
@@ -870,6 +877,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of MS_608 */
 	uint32_t get_canid(){ return MS_608_CAN_ID; }
@@ -1016,7 +1024,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -1033,7 +1042,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -1050,7 +1060,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -1067,7 +1078,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -1084,7 +1096,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[4];
+                dest->raw = FRAME_DATA[4];
+                return true;
             }
         }
             
@@ -1101,7 +1114,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[5];
+                dest->raw = FRAME_DATA[5];
+                return true;
             }
         }
             
@@ -1118,7 +1132,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[6];
+                dest->raw = FRAME_DATA[6];
+                return true;
             }
         }
             
@@ -1135,7 +1150,8 @@ class ECU_MS {
             } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[7];
+                dest->raw = FRAME_DATA[7];
+                return true;
             }
         }
             
@@ -1144,5 +1160,3 @@ class ECU_MS {
 		uint64_t LAST_FRAME_TIMES[8];
 };
 #endif // __ECU_MS_H_
-
-#endif // EGS52_MODE

@@ -6,22 +6,21 @@
 #include <esp32/ulp.h>
 #include "speaker.h"
 
+#include "canbus/can_egs52.h"
+
 void setup_tcm()
 {
+    egs_can_hal = new Egs52Can("EGS52", 20);
+    if (!egs_can_hal->begin_tasks()) {
+        return;
+    }
     init_all_solenoids();
     ESP_LOGI("INIT", "INIT OK!");
 }
 
-void set_note(uint32_t s, uint32_t duration, uint32_t total_duration) {
-    spkr.set_freq(s);
-    vTaskDelay(duration);
-    spkr.set_freq(0);
-    vTaskDelay(total_duration - duration);
-}
-
 void printer(void*) {
-    set_note(500, 250, 300);
-    set_note(500, 250, 300);
+    spkr.send_note(500, 200, 250);
+    spkr.send_note(1000, 200, 200);
     while(1) {
         //ESP_LOGI("MAIN","RTC_SLOW_MEM[0] = %d", RTC_SLOW_MEM[1]);
         ESP_LOGI(
@@ -34,6 +33,16 @@ void printer(void*) {
             sol_spc->get_current_estimate(),
             sol_tcc->get_current_estimate()
         );
+        switch(egs_can_hal->get_engine_type()) {
+            case EngineType::Diesel:
+                ESP_LOGI("ENG_CHECK", "Engine is diesel");
+            case EngineType::Petrol:
+                ESP_LOGI("ENG_CHECK", "Engine is petrol");
+            case EngineType::Unknown:
+                ESP_LOGI("ENG_CHECK", "Engine is unknown");
+            default:
+                break;
+        }
         vTaskDelay(1000);
     }
 }

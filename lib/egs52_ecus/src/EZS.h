@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'EZS'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_EZS_H_
 #define __ECU_EZS_H_
@@ -92,6 +92,7 @@ enum class ZGW_248h_ANH_ERK2 {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of EZS_240 */
 	uint32_t get_canid(){ return EZS_240_CAN_ID; }
@@ -305,6 +306,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ZGW_248 */
 	uint32_t get_canid(){ return ZGW_248_CAN_ID; }
@@ -350,6 +352,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ZGW_24C */
 	uint32_t get_canid(){ return ZGW_24C_CAN_ID; }
@@ -371,6 +374,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of KLA_410 */
 	uint32_t get_canid(){ return KLA_410_CAN_ID; }
@@ -489,7 +493,8 @@ class ECU_EZS {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -506,7 +511,8 @@ class ECU_EZS {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -523,7 +529,8 @@ class ECU_EZS {
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -540,7 +547,8 @@ class ECU_EZS {
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -549,5 +557,3 @@ class ECU_EZS {
 		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_EZS_H_
-
-#endif // EGS52_MODE

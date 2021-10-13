@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'KOMBI'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_KOMBI_H_
 #define __ECU_KOMBI_H_
@@ -70,6 +70,7 @@ enum class KOMBI_412h_PRW_ANF {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of KOMBI_408 */
 	uint32_t get_canid(){ return KOMBI_408_CAN_ID; }
@@ -193,6 +194,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of KOMBI_412 */
 	uint32_t get_canid(){ return KOMBI_412_CAN_ID; }
@@ -303,7 +305,8 @@ class ECU_KOMBI {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -320,7 +323,8 @@ class ECU_KOMBI {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -329,5 +333,3 @@ class ECU_KOMBI {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_KOMBI_H_
-
-#endif // EGS52_MODE

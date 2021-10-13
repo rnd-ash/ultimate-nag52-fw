@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'EWM'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_EWM_H_
 #define __ECU_EWM_H_
@@ -35,6 +35,7 @@ enum class EWM_230h_WHC {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of EWM_230 */
 	uint32_t get_canid(){ return EWM_230_CAN_ID; }
@@ -105,7 +106,8 @@ class ECU_EWM {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -114,5 +116,3 @@ class ECU_EWM {
 		uint64_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_EWM_H_
-
-#endif // EGS52_MODE

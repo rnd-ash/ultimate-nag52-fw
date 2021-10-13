@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'GS'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_GS_H_
 #define __ECU_GS_H_
@@ -21,42 +21,42 @@
 
 /** Goal Gang */
 enum class GS_218h_GZC {
-	N = 0, // Destination "N"
-	D1 = 1, // Destination "1"
-	D2 = 2, // Destination "2"
-	D3 = 3, // Destination "3"
-	D4 = 4, // Destination "4"
-	D5 = 5, // Destination "5"
-	D6 = 6, // Destination "6"
-	D7 = 7, // Destination "7"
-	D_CVT = 8, // Destination "infinitely forward
-	R_CVT = 9, // Goal "infinitely reverse"
-	R3 = 10, // Destination "R3"
-	R = 11, // Destination "R"
-	R2 = 12, // Destination "R2"
-	P = 13, // Destination "P"
-	ABBRUCH = 14, // circuit break
-	SNV = 15, // signal not available
+	G_N = 0, // Destination "N"
+	G_D1 = 1, // Destination "1"
+	G_D2 = 2, // Destination "2"
+	G_D3 = 3, // Destination "3"
+	G_D4 = 4, // Destination "4"
+	G_D5 = 5, // Destination "5"
+	G_D6 = 6, // Destination "6"
+	G_D7 = 7, // Destination "7"
+	G_D_CVT = 8, // Destination "infinitely forward
+	G_R_CVT = 9, // Goal "infinitely reverse"
+	G_R3 = 10, // Destination "R3"
+	G_R = 11, // Destination "R"
+	G_R2 = 12, // Destination "R2"
+	G_P = 13, // Destination "P"
+	G_ABBRUCH = 14, // circuit break
+	G_SNV = 15, // signal not available
 };
 
 /** actual gear */
 enum class GS_218h_GIC {
-	N = 0, // Actual rang "N"
-	D1 = 1, // actual gear "1"
-	D2 = 2, // actual gear "2"
-	D3 = 3, // Actual Rang "3"
-	D4 = 4, // Actual rang "4"
-	D5 = 5, // Actual rang "5"
-	D6 = 6, // actual gear "6"
-	D7 = 7, // Actual rang "7"
-	D_CVT = 8, // Actual ranging "infinitely forward
-	R_CVT = 9, // Actual "infinitely reverse"
-	R3 = 10, // Actual ranging "R3"
-	R = 11, // Actual rang "R"
-	R2 = 12, // Actual rang "R2"
-	P = 13, // Actual rang "P"
-	KRAFTFREI = 14, // power-free
-	SNV = 15, // signal not available
+	G_N = 0, // Actual rang "N"
+	G_D1 = 1, // actual gear "1"
+	G_D2 = 2, // actual gear "2"
+	G_D3 = 3, // Actual Rang "3"
+	G_D4 = 4, // Actual rang "4"
+	G_D5 = 5, // Actual rang "5"
+	G_D6 = 6, // actual gear "6"
+	G_D7 = 7, // Actual rang "7"
+	G_D_CVT = 8, // Actual ranging "infinitely forward
+	G_R_CVT = 9, // Actual "infinitely reverse"
+	G_R3 = 10, // Actual ranging "R3"
+	G_R = 11, // Actual rang "R"
+	G_R2 = 12, // Actual rang "R2"
+	G_P = 13, // Actual rang "P"
+	G_KRAFTFREI = 14, // power-free
+	G_SNV = 15, // signal not available
 };
 
 /** Driving program for AAD */
@@ -147,44 +147,44 @@ enum class GS_418h_MECH {
 	KLEIN2 = 3, // NAG2, small gearbox
 };
 
-/** Goal Gang */
+/** target gear */
 enum class GS_418h_GZC {
-	N = 0, // Destination "N"
-	D1 = 1, // Destination "1"
-	D2 = 2, // Destination "2"
-	D3 = 3, // Destination "3"
-	D4 = 4, // Destination "4"
-	D5 = 5, // Destination "5"
-	D6 = 6, // Destination "6"
-	D7 = 7, // Destination "7"
-	D_CVT = 8, // Destination "infinitely forward
-	R_CVT = 9, // Goal "infinitely reverse"
-	R3 = 10, // Destination "R3"
-	R = 11, // Destination "R"
-	R2 = 12, // Destination "R2"
-	P = 13, // Destination "P"
-	ABBRUCH = 14, // circuit break
-	SNV = 15, // signal not available
+	G_N = 0, // Destination "N"
+	G_D1 = 1, // Destination "1"
+	G_D2 = 2, // Destination "2"
+	G_D3 = 3, // Destination "3"
+	G_D4 = 4, // Destination "4"
+	G_D5 = 5, // Destination "5"
+	G_D6 = 6, // Destination "6"
+	G_D7 = 7, // Destination "7"
+	G_D_CVT = 8, // Destination "infinitely forward
+	G_R_CVT = 9, // Goal "infinitely reverse"
+	G_R3 = 10, // Destination "R3"
+	G_R = 11, // Destination "R"
+	G_R2 = 12, // Destination "R2"
+	G_P = 13, // Destination "P"
+	G_ABBRUCH = 14, // circuit break
+	G_SNV = 15, // signal not available
 };
 
 /** actual gear */
 enum class GS_418h_GIC {
-	N = 0, // Actual rang "N"
-	D1 = 1, // actual gear "1"
-	D2 = 2, // actual gear "2"
-	D3 = 3, // Actual Rang "3"
-	D4 = 4, // Actual rang "4"
-	D5 = 5, // Actual rang "5"
-	D6 = 6, // actual gear "6"
-	D7 = 7, // Actual rang "7"
-	D_CVT = 8, // Actual ranging "infinitely forward
-	R_CVT = 9, // Actual "infinitely reverse"
-	R3 = 10, // Actual ranging "R3"
-	R = 11, // Actual rang "R"
-	R2 = 12, // Actual rang "R2"
-	P = 13, // Actual rang "P"
-	KRAFTFREI = 14, // power-free
-	SNV = 15, // signal not available
+	G_N = 0, // Actual rang "N"
+	G_D1 = 1, // actual gear "1"
+	G_D2 = 2, // actual gear "2"
+	G_D3 = 3, // Actual Rang "3"
+	G_D4 = 4, // Actual rang "4"
+	G_D5 = 5, // Actual rang "5"
+	G_D6 = 6, // actual gear "6"
+	G_D7 = 7, // Actual rang "7"
+	G_D_CVT = 8, // Actual ranging "infinitely forward
+	G_R_CVT = 9, // Actual "infinitely reverse"
+	G_R3 = 10, // Actual ranging "R3"
+	G_R = 11, // Actual rang "R"
+	G_R2 = 12, // Actual rang "R2"
+	G_P = 13, // Actual rang "P"
+	G_KRAFTFREI = 14, // power-free
+	G_SNV = 15, // signal not available
 };
 
 /** gear selector lever position (NAG, KSG, CVT) */
@@ -200,6 +200,7 @@ enum class GS_418h_WHST {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of GS_218 */
 	uint32_t get_canid(){ return GS_218_CAN_ID; }
@@ -395,6 +396,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of GS_338 */
 	uint32_t get_canid(){ return GS_338_CAN_ID; }
@@ -416,6 +418,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of GS_418 */
 	uint32_t get_canid(){ return GS_418_CAN_ID; }
@@ -479,10 +482,10 @@ typedef union {
     /** Gets Kickdown */
     bool get_KD() { return (bool)(raw >> 32 & 0x1); }
         
-    /** Sets Goal Gang */
+    /** Sets target gear */
     void set_GZC(GS_418h_GZC value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
-    /** Gets Goal Gang */
+    /** Gets target gear */
     GS_418h_GZC get_GZC() { return (GS_418h_GZC)(raw >> 28 & 0xf); }
         
     /** Sets actual gear */
@@ -566,7 +569,8 @@ class ECU_GS {
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -583,7 +587,8 @@ class ECU_GS {
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -600,7 +605,8 @@ class ECU_GS {
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -609,5 +615,3 @@ class ECU_GS {
 		uint64_t LAST_FRAME_TIMES[3];
 };
 #endif // __ECU_GS_H_
-
-#endif // EGS52_MODE

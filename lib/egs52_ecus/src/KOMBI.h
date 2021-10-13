@@ -52,9 +52,9 @@ enum class KOMBI_412h_IST_ABST {
 
 /** wheel direction of rotation to V_ANZ */
 enum class KOMBI_412h_DRTGANZ {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
@@ -73,10 +73,10 @@ typedef union {
 
 	/** Gets CAN ID of KOMBI_408 */
 	uint32_t get_canid(){ return KOMBI_408_CAN_ID; }
-    /** Sets Tank level */
+    /** Sets Tank level. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TANK_FS(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Tank level */
+    /** Gets Tank level. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_TANK_FS() { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets driver's door */
@@ -127,28 +127,28 @@ typedef union {
     /** Gets Clamp 61 decoupled */
     bool get_KL_61E() { return (bool)(raw >> 48 & 0x1); }
         
-    /** Sets Outdoor air temperature raw value */
+    /** Sets Outdoor air temperature raw value. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_AUSSEN(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Outdoor air temperature raw value */
+    /** Gets Outdoor air temperature raw value. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_T_AUSSEN() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Terminal 58 dimmed */
+    /** Sets Terminal 58 dimmed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_KL_58D(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Terminal 58 dimmed */
+    /** Gets Terminal 58 dimmed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_KL_58D() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Motor setting time (will be sent from Kl.15) */
+    /** Sets Motor setting time (will be sent from Kl.15). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MAZ(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Motor setting time (will be sent from Kl.15) */
+    /** Gets Motor setting time (will be sent from Kl.15). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MAZ() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets mileage */
+    /** Sets mileage. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_KM16(uint16_t value){ raw = (raw & 0xffffffffff0000ff) | ((uint64_t)value & 0xffff) << 8; }
 
-    /** Gets mileage */
+    /** Gets mileage. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_KM16() { return (uint16_t)(raw >> 8 & 0xffff); }
         
     /** Sets Winter Tire Top Speed Bit 3 */
@@ -226,10 +226,10 @@ typedef union {
     /** Gets set distance */
     KOMBI_412h_IST_ABST get_IST_ABST() { return (KOMBI_412h_IST_ABST)(raw >> 52 & 0x7); }
         
-    /** Sets Speed displayed */
+    /** Sets Speed displayed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_ANZ(uint16_t value){ raw = (raw & 0xfff000ffffffffff) | ((uint64_t)value & 0xfff) << 40; }
 
-    /** Gets Speed displayed */
+    /** Gets Speed displayed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_V_ANZ() { return (uint16_t)(raw >> 40 & 0xfff); }
         
     /** Sets wheel direction of rotation to V_ANZ */
@@ -238,10 +238,10 @@ typedef union {
     /** Gets wheel direction of rotation to V_ANZ */
     KOMBI_412h_DRTGANZ get_DRTGANZ() { return (KOMBI_412h_DRTGANZ)(raw >> 38 & 0x3); }
         
-    /** Sets wheel speed calculated from V_ANZ */
+    /** Sets wheel speed calculated from V_ANZ. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DANZ(uint16_t value){ raw = (raw & 0xffffffc000ffffff) | ((uint64_t)value & 0x3fff) << 24; }
 
-    /** Gets wheel speed calculated from V_ANZ */
+    /** Gets wheel speed calculated from V_ANZ. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DANZ() { return (uint16_t)(raw >> 24 & 0x3fff); }
         
     /** Sets Activation ECO in the combined menu */
@@ -256,10 +256,10 @@ typedef union {
     /** Gets Request PlatRollwarner */
     KOMBI_412h_PRW_ANF get_PRW_ANF() { return (KOMBI_412h_PRW_ANF)(raw >> 16 & 0x3); }
         
-    /** Sets Motor setting time */
+    /** Sets Motor setting time. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MAZ_NEU(uint16_t value){ raw = (raw & 0xfffffffffffff000) | ((uint64_t)value & 0xfff) << 0; }
 
-    /** Gets Motor setting time */
+    /** Gets Motor setting time. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_MAZ_NEU() { return (uint16_t)(raw >> 0 & 0xfff); }
         
 } KOMBI_412;

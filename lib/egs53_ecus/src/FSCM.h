@@ -20,7 +20,7 @@
 
 /** Fuel Pressure Sensor State / Status Fuel pressure sensor */
 enum class FSCM_STAT_FuelPressSens_Stat_V2 {
-	OK = 0, // Normal Operation Fashion
+	OK = 0, // Normal Operation Mode
 	SHRT_GND = 1, // Invalid Fuel Pressure Sensor Signal, Shortcut to Ground
 	SHRT_BAT = 2, // Invalid Fuel Pressure Sensor Signal, Shortcut to Battery Voltage
 	IMPLSBL = 3, // Implausible Fuel Pressure Sensor Signal
@@ -30,7 +30,7 @@ enum class FSCM_STAT_FuelPressSens_Stat_V2 {
 
 /** Fuel Pump State / Status Fuel Pump */
 enum class FSCM_STAT_FuelPmp_Stat_V2 {
-	OK = 0, // Normal Operation Fashion
+	OK = 0, // Normal Operation Mode
 	SHRT = 1, // Fuel Pump Shortcut
 	OPN = 2, // Fuel Pump Open Circuit
 	LHOM = 3, // LIMP-Home Operation Fashion
@@ -100,16 +100,16 @@ typedef union {
 
 	/** Gets CAN ID of FSCM_STAT */
 	uint32_t get_canid(){ return FSCM_STAT_CAN_ID; }
-    /** Sets Actual Fuel Pressure / Current fuel pressure */
+    /** Sets Actual Fuel Pressure / Current fuel pressure. Conversion formula (To raw from real): y=(x-0.0)/0.05 (Unit: bar) */
     void set_FuelPress(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Actual Fuel Pressure / Current fuel pressure */
+    /** Gets Actual Fuel Pressure / Current fuel pressure. Conversion formula (To real from raw): y=(0.05x)+0.0 (Unit: bar) */
     uint8_t get_FuelPress() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Actual Fuel Pump Duty Cycle / Current duty cycle fuel pump */
+    /** Sets Actual Fuel Pump Duty Cycle / Current duty cycle fuel pump. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_FuelPmpDtyCyc(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Actual Fuel Pump Duty Cycle / Current duty cycle fuel pump */
+    /** Gets Actual Fuel Pump Duty Cycle / Current duty cycle fuel pump. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_FuelPmpDtyCyc() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Fuel Pressure Request Not available / requirement Fuel pressure not available */
@@ -136,10 +136,10 @@ typedef union {
     /** Gets Fuel Pump State / Status Fuel Pump */
     FSCM_STAT_FuelPmp_Stat_V2 get_FuelPmp_Stat_V2() { return (FSCM_STAT_FuelPmp_Stat_V2)(raw >> 40 & 0x3); }
         
-    /** Sets Actual Fuel Pump # 1 Input Duty Cycle / News Input Dewy Rating Fuel Pump 1 */
+    /** Sets Actual Fuel Pump # 1 Input Duty Cycle / News Input Dewy Rating Fuel Pump 1. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_FuelPmp1_InDtyCyc(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Actual Fuel Pump # 1 Input Duty Cycle / News Input Dewy Rating Fuel Pump 1 */
+    /** Gets Actual Fuel Pump # 1 Input Duty Cycle / News Input Dewy Rating Fuel Pump 1. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_FuelPmp1_InDtyCyc() { return (uint8_t)(raw >> 24 & 0xff); }
         
     /** Sets Fuel System Control Module State / Status FSCM */
@@ -160,10 +160,10 @@ typedef union {
     /** Gets Evaporative System Integrity Monitor Contact State / Contact State Integrity Monitoring Evaporation System */
     bool get_ESIM_Cntct_Stat() { return (bool)(raw >> 14 & 0x1); }
         
-    /** Sets Evaporative System Integrity Monitor Contact Closing Time / Conclusion of the Contact Integrity Monitoring Evaporation System */
+    /** Sets Evaporative System Integrity Monitor Contact Closing Time / Conclusion of the Contact Integrity Monitoring Evaporation System. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: min) */
     void set_ESIM_Cntct_ClsTm(uint16_t value){ raw = (raw & 0xfffffffffffffc00) | ((uint64_t)value & 0x3ff) << 0; }
 
-    /** Gets Evaporative System Integrity Monitor Contact Closing Time / Conclusion of the Contact Integrity Monitoring Evaporation System */
+    /** Gets Evaporative System Integrity Monitor Contact Closing Time / Conclusion of the Contact Integrity Monitoring Evaporation System. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: min) */
     uint16_t get_ESIM_Cntct_ClsTm() { return (uint16_t)(raw >> 0 & 0x3ff); }
         
 } FSCM_STAT;
@@ -181,10 +181,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_FSCM_NM_Mode get_NM_Mode() { return (NM_FSCM_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -217,10 +217,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_FSCM_WakeupRsn_FSCM get_WakeupRsn_FSCM() { return (NM_FSCM_WakeupRsn_FSCM)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */

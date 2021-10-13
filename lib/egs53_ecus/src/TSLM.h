@@ -101,16 +101,16 @@ typedef union {
     /** Gets Transmission Selector Lever Position / Transmission Logging */
     SBW_RS_ISM_TSL_Posn_ISM get_TSL_Posn_ISM() { return (SBW_RS_ISM_TSL_Posn_ISM)(raw >> 56 & 0xf); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SBW_RS_ISM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_SBW_RS_ISM() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SBW_RS_ISM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_SBW_RS_ISM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } SBW_RS_ISM;
@@ -128,10 +128,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_TSLM_NM_Mode get_NM_Mode() { return (NM_TSLM_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -164,10 +164,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_TSLM_WakeupRsn_TSLM get_WakeupRsn_TSLM() { return (NM_TSLM_WakeupRsn_TSLM)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */

@@ -161,33 +161,33 @@ enum class ENG_RQ3_TCM_DrvAccelMax_Stat {
 	SNA = 3, // Signal Not Available
 };
 
-/** Shift by Wire Message Transmitter Identification / Shift by Wire Transmitter ID */
+/** Shift by wire message transmitter identification / shift-by-wire transmitter identification */
 enum class SBW_RS_TCM_SBW_MsgTxmtId {
-	VGS_NAG2 = 0, // VGS-NAG2
+	VGS_NAG2 = 0, // VGS NAG2
 	EGS52 = 1, // EGS52
 	NDEF2 = 2, // Not Defined
 	NDEF3 = 3, // Not Defined
 };
 
-/** Actual Position Transmission Selector Valve / Importation Dial range slider in the gearbox */
+/** Actual position transmission selector valve / Actual position Wählbereichsschieber in gear */
 enum class SBW_RS_TCM_TxSelVlvPosn {
-	D = 5, // Actual Selector Valve Position "D"
-	N = 6, // Actual Selector Valve Position "N"
-	R = 7, // Actual Selector Valve Position "R"
-	P = 8, // Actual Selector Valve Position "P"
-	N_ZW_D = 11, // Actual Selector Valve Position "N-D"
-	R_ZW_N = 12, // Actual Selector Valve Position "R-N"
-	P_ZW_R = 13, // Actual Selector Valve Position "P-R"
+	D = 5, // Actual selector valve position "D"
+	N = 6, // Actual selector valve position "N"
+	R = 7, // Actual selector valve position "R"
+	P = 8, // Actual selector valve position "P"
+	N_ZW_D = 11, // Actual selector valve position "N-D"
+	R_ZW_N = 12, // Actual selector valve position "R-N"
+	P_ZW_R = 13, // Actual selector valve position "P-R"
 	SNA = 15, // Signal Not Available
 };
 
-/** Transmission Selector Lever Position Request / Request Transmission Logging */
+/** transmission selector lever position request / requirement gear selector lever position */
 enum class SBW_RS_TCM_TSL_Posn_Rq {
-	IDLE = 0, // Transmission Selector Lever Request Passive
-	D = 5, // Transmission Selector Lever Request "D"
-	N = 6, // Transmission Selector Lever Request "N"
-	R = 7, // Transmission Selector Lever Request "R"
-	P = 8, // Transmission Selector Lever Request "P"
+	IDLE = 0, // transmission selector lever passive request
+	D = 5, // transmission selector lever request "D"
+	N = 6, // transmission selector lever request "N"
+	R = 7, // transmission selector lever request "R"
+	P = 8, // transmission selector lever request "P"
 	SNA = 15, // Signal Not Available
 };
 
@@ -219,7 +219,7 @@ enum class TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM {
 
 /** Transmission Driving Program Display Request / Request Display Gearbox Program */
 enum class TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM {
-	BLANK = 32, // Driving Program "" (Blank)
+	BLANK = 32, // Driving Program "" (blank)
 	A = 65, // Driving Program "A"
 	C = 67, // Driving Program "C"
 	F = 70, // Fault Label "F"
@@ -303,7 +303,7 @@ enum class TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM {
 
 /** Target Gear Display Request / Request Display Destination */
 enum class TCM_DISP_RQ_Gr_Target_Disp_Rq {
-	BLANK = 32, // Blank ("")
+	BLANK = 32, // blank ("")
 	G1 = 49, // Gear "1"
 	G2 = 50, // Gear "2"
 	G3 = 51, // Gear "3"
@@ -378,10 +378,10 @@ typedef union {
 
 	/** Gets CAN ID of TCM_A1 */
 	uint32_t get_canid(){ return TCM_A1_CAN_ID; }
-    /** Sets Transmission Oil Temperature / Gear Oil Temperature */
+    /** Sets Transmission Oil Temperature / Gear Oil Temperature. Conversion formula (To raw from real): y=(x+50.0)/1.00 (Unit: °C) */
     void set_TxOilTemp(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Transmission Oil Temperature / Gear Oil Temperature */
+    /** Gets Transmission Oil Temperature / Gear Oil Temperature. Conversion formula (To real from raw): y=(1.00x)-50.0 (Unit: °C) */
     uint8_t get_TxOilTemp() { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets Torque Converter Lockup Clutch No Load / Converter Bridging Clutch Load */
@@ -450,10 +450,10 @@ typedef union {
     /** Gets Brake During Start Request / Create brake when switched on */
     bool get_StBrk_Rq_TCM() { return (bool)(raw >> 39 & 0x1); }
         
-    /** Sets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area */
+    /** Sets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Nm) */
     void set_TxDrvTrqAbsVal(uint16_t value){ raw = (raw & 0xffffffff0000ffff) | ((uint64_t)value & 0xffff) << 16; }
 
-    /** Gets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area */
+    /** Gets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Nm) */
     uint16_t get_TxDrvTrqAbsVal() { return (uint16_t)(raw >> 16 & 0xffff); }
         
 } TCM_A1;
@@ -465,16 +465,16 @@ typedef union {
 
 	/** Gets CAN ID of TCM_A2 */
 	uint32_t get_canid(){ return TCM_A2_CAN_ID; }
-    /** Sets Requested Current Duty Cycle / Soll Current (duty cycle) */
+    /** Sets Requested Current Duty Cycle / Soll Current (duty cycle). Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_CurrDtyCyc_Rq(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Requested Current Duty Cycle / Soll Current (duty cycle) */
+    /** Gets Requested Current Duty Cycle / Soll Current (duty cycle). Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_CurrDtyCyc_Rq() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Actual Transmission Turbine RPM / Current turbine speed */
+    /** Sets Actual Transmission Turbine RPM / Current turbine speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_TxTurbineRPM(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets Actual Transmission Turbine RPM / Current turbine speed */
+    /** Gets Actual Transmission Turbine RPM / Current turbine speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_TxTurbineRPM() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets Malfunction Indicator Lamp on Request (OBD II) / Diagnosis Control Lamp (OBD II) */
@@ -483,16 +483,16 @@ typedef union {
     /** Gets Malfunction Indicator Lamp on Request (OBD II) / Diagnosis Control Lamp (OBD II) */
     bool get_MIL_On_Rq_TCM() { return (bool)(raw >> 31 & 0x1); }
         
-    /** Sets Desired Transmission Slip RPM / Slip Speed should */
+    /** Sets Desired Transmission Slip RPM / Slip Speed should. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_TxSlpRPM_Dsr(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Desired Transmission Slip RPM / Slip Speed should */
+    /** Gets Desired Transmission Slip RPM / Slip Speed should. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_TxSlpRPM_Dsr() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
-    /** Sets Calid / CVN Data Byte / Calid / CVN DataByte */
+    /** Sets Calid / CVN Data Byte / Calid / CVN DataByte. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TCM_Data(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets Calid / CVN Data Byte / Calid / CVN DataByte */
+    /** Gets Calid / CVN Data Byte / Calid / CVN DataByte. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_TCM_Data() { return (uint8_t)(raw >> 8 & 0xff); }
         
     /** Sets Error Check State / Status Error Check */
@@ -507,10 +507,10 @@ typedef union {
     /** Gets CALID / CVN Transmission Active / Calid / CVN transmission active */
     bool get_TCM_CALID_CVN_Actv() { return (bool)(raw >> 5 & 0x1); }
         
-    /** Sets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer */
+    /** Sets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TCM_CALID_CVN_ErrNum(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
-    /** Gets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer */
+    /** Gets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_TCM_CALID_CVN_ErrNum() { return (uint8_t)(raw >> 0 & 0x1f); }
         
 } TCM_A2;
@@ -534,10 +534,10 @@ typedef union {
     /** Gets Engine Torque Request Maximum / Engine Motor Toment Request Max */
     bool get_EngTrqMax_Rq_TCM() { return (bool)(raw >> 62 & 0x1); }
         
-    /** Sets Engine Torque Request / Ford. Engine torque */
+    /** Sets Engine Torque Request / Ford. Engine torque. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrq_Rq_TCM(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Engine Torque Request / Ford. Engine torque */
+    /** Gets Engine Torque Request / Ford. Engine torque. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrq_Rq_TCM() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
     /** Sets Intervention fashion / intervention mode */
@@ -552,10 +552,10 @@ typedef union {
     /** Gets Transmission Downshift Mode / Rewish Mode Transmission */
     ENG_RQ1_TCM_TxDnShiftMd get_TxDnShiftMd() { return (ENG_RQ1_TCM_TxDnShiftMd)(raw >> 43 & 0x7); }
         
-    /** Sets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine */
+    /** Sets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine. Conversion formula (To raw from real): y=(x-0.0)/0.02 (Unit: s) */
     void set_EngRPM_SyncTm_Rq_TCM(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine */
+    /** Gets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine. Conversion formula (To real from raw): y=(0.02x)+0.0 (Unit: s) */
     uint8_t get_EngRPM_SyncTm_Rq_TCM() { return (uint8_t)(raw >> 32 & 0xff); }
         
     /** Sets ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE */
@@ -564,16 +564,16 @@ typedef union {
     /** Gets ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE */
     bool get_SSA_Enbl_Rq_TCM() { return (bool)(raw >> 31 & 0x1); }
         
-    /** Sets Engine RPM Request / Target Speed ​​Engine */
+    /** Sets Engine RPM Request / Target Speed ​​Engine. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_EngRPM_Rq_TCM(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Engine RPM Request / Target Speed ​​Engine */
+    /** Gets Engine RPM Request / Target Speed ​​Engine. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_EngRPM_Rq_TCM() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ1_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RQ1_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Enable Engine Start Request / Using Release Transmission */
@@ -594,10 +594,10 @@ typedef union {
     /** Gets JUMP START ACTIVE / BARMSTART */
     bool get_JmpSt_Actv() { return (bool)(raw >> 9 & 0x1); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ1_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RQ1_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ1_TCM;
@@ -621,22 +621,22 @@ typedef union {
     /** Gets Actual Gear / Actual Gang */
     ENG_RQ2_TCM_Gr get_Gr() { return (ENG_RQ2_TCM_Gr)(raw >> 56 & 0xf); }
         
-    /** Sets Actual Transmission Ratio (CVT) / Translation Translation (CVT) */
+    /** Sets Actual Transmission Ratio (CVT) / Translation Translation (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatio(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Actual Transmission Ratio (CVT) / Translation Translation (CVT) */
+    /** Gets Actual Transmission Ratio (CVT) / Translation Translation (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
     uint8_t get_TxRatio() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque */
+    /** Sets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque. Conversion formula (To raw from real): y=(x-0.0)/0.01 */
     void set_EngWhlTrqRatio_TCM(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque */
+    /** Gets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque. Conversion formula (To real from raw): y=(0.01x)+0.0 */
     uint16_t get_EngWhlTrqRatio_TCM() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
-    /** Sets Transmission Crankly Torque Loss / Loss Torque */
+    /** Sets Transmission Crankly Torque Loss / Loss Torque. Conversion formula (To raw from real): y=(x-0.0)/0.25 (Unit: Nm) */
     void set_TxTrqLoss(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Transmission Crankly Torque Loss / Loss Torque */
+    /** Gets Transmission Crankly Torque Loss / Loss Torque. Conversion formula (To real from raw): y=(0.25x)+0.0 (Unit: Nm) */
     uint8_t get_TxTrqLoss() { return (uint8_t)(raw >> 24 & 0xff); }
         
     /** Sets Vehicle Drive Style / Drive Variant */
@@ -663,16 +663,16 @@ typedef union {
     /** Gets Transmission Shifting Style / Transmission Circuit Variant */
     ENG_RQ2_TCM_TxShiftStyle get_TxShiftStyle() { return (ENG_RQ2_TCM_TxShiftStyle)(raw >> 16 & 0x3); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ2_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RQ2_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ2_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RQ2_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ2_TCM;
@@ -690,22 +690,22 @@ typedef union {
     /** Gets Driveaway with Maximum Acceleration State / Status Attachment With Maximum Acceleration */
     ENG_RQ3_TCM_DrvAccelMax_Stat get_DrvAccelMax_Stat() { return (ENG_RQ3_TCM_DrvAccelMax_Stat)(raw >> 61 & 0x3); }
         
-    /** Sets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive) */
+    /** Sets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive). Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_WetDrvClutchTrq(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive) */
+    /** Gets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive). Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_WetDrvClutchTrq() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ3_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RQ3_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ3_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RQ3_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ3_TCM;
@@ -717,46 +717,46 @@ typedef union {
 
 	/** Gets CAN ID of SBW_RS_TCM */
 	uint32_t get_canid(){ return SBW_RS_TCM_CAN_ID; }
-    /** Sets Shift by Wire Message Transmitter Identification / Shift by Wire Transmitter ID */
+    /** Sets Shift by wire message transmitter identification / shift-by-wire transmitter identification */
     void set_SBW_MsgTxmtId(SBW_RS_TCM_SBW_MsgTxmtId value){ raw = (raw & 0x3fffffffffffffff) | ((uint64_t)value & 0x3) << 62; }
 
-    /** Gets Shift by Wire Message Transmitter Identification / Shift by Wire Transmitter ID */
+    /** Gets Shift by wire message transmitter identification / shift-by-wire transmitter identification */
     SBW_RS_TCM_SBW_MsgTxmtId get_SBW_MsgTxmtId() { return (SBW_RS_TCM_SBW_MsgTxmtId)(raw >> 62 & 0x3); }
         
-    /** Sets Starter Lockout Switch (Only EGS52) / Startup Cancel (only at ECS52) */
+    /** Sets Starter lockout switch (only EGS52) / Inhibitor contact (only EGS52) */
     void set_StartLkSw(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
 
-    /** Gets Starter Lockout Switch (Only EGS52) / Startup Cancel (only at ECS52) */
+    /** Gets Starter lockout switch (only EGS52) / Inhibitor contact (only EGS52) */
     bool get_StartLkSw() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets Actual Position Transmission Selector Valve / Importation Dial range slider in the gearbox */
+    /** Sets Actual position transmission selector valve / Actual position Wählbereichsschieber in gear */
     void set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn value){ raw = (raw & 0xff0fffffffffffff) | ((uint64_t)value & 0xf) << 52; }
 
-    /** Gets Actual Position Transmission Selector Valve / Importation Dial range slider in the gearbox */
+    /** Gets Actual position transmission selector valve / Actual position Wählbereichsschieber in gear */
     SBW_RS_TCM_TxSelVlvPosn get_TxSelVlvPosn() { return (SBW_RS_TCM_TxSelVlvPosn)(raw >> 52 & 0xf); }
         
-    /** Sets Transmission Selector Lever Position Request / Request Transmission Logging */
+    /** Sets transmission selector lever position request / requirement gear selector lever position */
     void set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
-    /** Gets Transmission Selector Lever Position Request / Request Transmission Logging */
+    /** Gets transmission selector lever position request / requirement gear selector lever position */
     SBW_RS_TCM_TSL_Posn_Rq get_TSL_Posn_Rq() { return (SBW_RS_TCM_TSL_Posn_Rq)(raw >> 48 & 0xf); }
         
-    /** Sets Transmission Selector Sensor Position / Value Selector Sensor */
+    /** Sets Transmission selector sensor position / value Wählbereichssensor. Conversion formula (To raw from real): y=(x-0.0)/0.40 (Unit: %) */
     void set_TxSelSensPosn(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Transmission Selector Sensor Position / Value Selector Sensor */
+    /** Gets Transmission selector sensor position / value Wählbereichssensor. Conversion formula (To real from raw): y=(0.40x)+0.0 (Unit: %) */
     uint8_t get_TxSelSensPosn() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SBW_RS_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_SBW_RS_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SBW_RS_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_SBW_RS_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } SBW_RS_TCM;
@@ -849,10 +849,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_TCM_NM_Mode get_NM_Mode() { return (NM_TCM_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -885,10 +885,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_TCM_WakeupRsn_TCM get_WakeupRsn_TCM() { return (NM_TCM_WakeupRsn_TCM)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */

@@ -22,45 +22,46 @@
 #define ART_258_CAN_ID 0x0258
 #define PSM_3B4_CAN_ID 0x03B4
 #define PSM_3B8_CAN_ID 0x03B8
+#define VG_428_CAN_ID 0x0428
 #define LWR_530_CAN_ID 0x0530
 #define CONFIG_6FF_CAN_ID 0x06FF
 
-/** Number of the ASS warning message */
+/** Number of ASA alert */
 enum class MS_ANZ_ASS_WARN {
-	IDLE = 0, // No status / warning message
-	M1 = 1, // Message "Ass not active: warm-up phase motor"
-	M2 = 2, // Message "Ass active: driving"
-	M3 = 3, // Message "Ass active: stop operation"
-	M4 = 4, // Message "Ass not active: Electrical energy requirements"
-	M5 = 5, // Message "Ass not active: air conditioning on"
-	M6 = 6, // message "ass not active: fault"
-	M7 = 7, // Message "Ass active: Electrical energy requirement, please start engine"
-	M8 = 8, // Message "Ass active: kick to start clutch"
-	M9 = 9, // message "ass active: climate? Please start engine"
-	M10 = 10, // message "ass active: when left ignition!"
-	M11 = 11, // message "Ace disabled"
-	M12 = 12, // Message "Ass enabled"
-	M13 = 13, // Message "Ass: Display defect"
+	IDLE = 0, // No status / warning
+	M1 = 1, // Message "ASA inactive: warming up the engine"
+	M2 = 2, // Message "ASA Active driving"
+	M3 = 3, // Message "ASA Active stop mode"
+	M4 = 4, // Message "ASA switched off: electrical power supplies"
+	M5 = 5, // Message "ASA switched off: air conditioner"
+	M6 = 6, // Message "ASA not active: Fault"
+	M7 = 7, // Message "ASA Active electrical energy demand, Please start engine"
+	M8 = 8, // Message "ASA active: For starting clutch kick"
+	M9 = 9, // Message "ASA active: Air start Please Motor"
+	M10 = 10, // Message "ASA Active: When leaving ignition off!"
+	M11 = 11, // Message "ASA disabled"
+	M12 = 12, // Message "ASA activated"
+	M13 = 13, // Message "ASA: Display defective"
 	M14 = 14, // not defined
 	M15 = 15, // not defined
 };
 
-/** Number of the ASS status message */
+/** Number of ASA status message */
 enum class MS_ANZ_ASS_DSPL {
-	IDLE = 0, // No status / warning message
-	M1 = 1, // Message "Ass not active: warm-up phase motor"
-	M2 = 2, // Message "Ass active: driving"
-	M3 = 3, // Message "Ass active: stop operation"
-	M4 = 4, // Message "Ass not active: Electrical energy requirements"
-	M5 = 5, // Message "Ass not active: air conditioning on"
-	M6 = 6, // message "ass not active: fault"
-	M7 = 7, // Message "Ass active: Electrical energy requirement, please start engine"
-	M8 = 8, // Message "Ass active: kick to start clutch"
-	M9 = 9, // message "ass active: climate? Please start engine"
-	M10 = 10, // message "ass active: when left ignition!"
-	M11 = 11, // message "Ace disabled"
-	M12 = 12, // Message "Ass enabled"
-	M13 = 13, // Message "Ass: Display defect"
+	IDLE = 0, // No status / warning
+	M1 = 1, // Message "ASA inactive: warming up the engine"
+	M2 = 2, // Message "ASA Active driving"
+	M3 = 3, // Message "ASA Active stop mode"
+	M4 = 4, // Message "ASA switched off: electrical power supplies"
+	M5 = 5, // Message "ASA switched off: air conditioner"
+	M6 = 6, // Message "ASA not active: Fault"
+	M7 = 7, // Message "ASA Active electrical energy demand, Please start engine"
+	M8 = 8, // Message "ASA active: For starting clutch kick"
+	M9 = 9, // Message "ASA active: Air start Please Motor"
+	M10 = 10, // Message "ASA Active: When leaving ignition off!"
+	M11 = 11, // Message "ASA disabled"
+	M12 = 12, // Message "ASA activated"
+	M13 = 13, // Message "ASA: Display defective"
 	M14 = 14, // not defined
 	M15 = 15, // not defined
 };
@@ -126,28 +127,28 @@ enum class ART_250h_SLV_ART {
 	SKL10 = 10, // Shift characteristic "10"
 };
 
-/** Sprocket, upper limit */
+/** Gear, upper limit */
 enum class ART_250h_GMAX_ART {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, upper limit = 1
-	G2 = 2, // Sprocket, upper limit = 2
-	G3 = 3, // Sprocket, upper limit = 3
-	G4 = 4, // Sprocket, upper limit = 4
-	G5 = 5, // Sprocket, upper limit = 5
-	G6 = 6, // Sprocket, upper limit = 6
-	G7 = 7, // Sprocket, upper limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, upper limit = 1
+	G2 = 2, // Gear, upper limit = 2
+	G3 = 3, // Gear, upper limit = 3
+	G4 = 4, // Gear, upper limit = 4
+	G5 = 5, // Gear, upper limit = 5
+	G6 = 6, // Gear, upper limit = 6
+	G7 = 7, // Gear, upper limit = 7
 };
 
-/** Sprocket, lower limit */
+/** Gear, lower limit */
 enum class ART_250h_GMIN_ART {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, lower limit = 1
-	G2 = 2, // Sprocket, lower limit = 2
-	G3 = 3, // Sprocket, lower limit = 3
-	G4 = 4, // Sprocket, lower limit = 4
-	G5 = 5, // Sprocket, lower limit = 5
-	G6 = 6, // Sprocket, lower limit = 6
-	G7 = 7, // Sprocket, lower limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, lower limit = 1
+	G2 = 2, // Gear, lower limit = 2
+	G3 = 3, // Gear, lower limit = 3
+	G4 = 4, // Gear, lower limit = 4
+	G5 = 5, // Gear, lower limit = 5
+	G6 = 6, // Gear, lower limit = 6
+	G7 = 7, // Gear, lower limit = 7
 };
 
 /** Art error code */
@@ -203,6 +204,23 @@ enum class ART_258h_ASSIST_ANZ_V2 {
 	PAS_NV = 17, // message "PAS not activatable"
 };
 
+/** Current gear distribution gear */
+enum class VG_428h_VG_GANG {
+	SH_IPG = 0, // Switching is running (Shift in progress)
+	LO = 1, // terrain (low range)
+	HI = 2, // Road speed (High Range)
+	N = 4, // Neutralgang (Not High Or Low Range)
+	SNV = 7, // signal not available (signal not available)
+};
+
+/** VG request "N" */
+enum class VG_428h_ANFN_VG {
+	UNKNOWN = 0, // not defined
+	ANF_N = 1, // requirement "neutral"
+	IDLE = 2, // No requirement
+	SNV = 3, // signal not available
+};
+
 
 
 typedef union {
@@ -237,22 +255,22 @@ typedef union {
 
 	/** Gets CAN ID of MS_ANZ */
 	uint32_t get_canid(){ return MS_ANZ_CAN_ID; }
-    /** Sets Number of the ASS warning message */
+    /** Sets Number of ASA alert */
     void set_ASS_WARN(MS_ANZ_ASS_WARN value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
-    /** Gets Number of the ASS warning message */
+    /** Gets Number of ASA alert */
     MS_ANZ_ASS_WARN get_ASS_WARN() { return (MS_ANZ_ASS_WARN)(raw >> 44 & 0xf); }
         
-    /** Sets Number of the ASS status message */
+    /** Sets Number of ASA status message */
     void set_ASS_DSPL(MS_ANZ_ASS_DSPL value){ raw = (raw & 0xfffff0ffffffffff) | ((uint64_t)value & 0xf) << 40; }
 
-    /** Gets Number of the ASS status message */
+    /** Gets Number of ASA status message */
     MS_ANZ_ASS_DSPL get_ASS_DSPL() { return (MS_ANZ_ASS_DSPL)(raw >> 40 & 0xf); }
         
-    /** Sets Suppression of lamp test during stop phase */
+    /** Sets suppress lamp test during stop phase */
     void set_ASS_LTEST_AUS(bool value){ raw = (raw & 0xffffff7fffffffff) | ((uint64_t)value & 0x1) << 39; }
 
-    /** Gets Suppression of lamp test during stop phase */
+    /** Gets suppress lamp test during stop phase */
     bool get_ASS_LTEST_AUS() { return (bool)(raw >> 39 & 0x1); }
         
 } MS_ANZ;
@@ -294,10 +312,10 @@ typedef union {
     /** Gets Shift-by-Wire control Status RND */
     SBW_232h_SBWB_ST_RND get_SBWB_ST_RND() { return (SBW_232h_SBWB_ST_RND)(raw >> 48 & 0xf); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ232h(uint8_t value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ232h() { return (uint8_t)(raw >> 44 & 0xf); }
         
 } SBW_232;
@@ -339,16 +357,16 @@ typedef union {
     /** Gets Suppression Dynamic fully detection */
     bool get_DYN_UNT() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets Motoroment Request Parity (just parity) */
+    /** Sets Engine torque Request Parity (just parity) */
     void set_MPAR_ART(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
-    /** Gets Motoroment Request Parity (just parity) */
+    /** Gets Engine torque Request Parity (just parity) */
     bool get_MPAR_ART() { return (bool)(raw >> 55 & 0x1); }
         
-    /** Sets Motoroment request dynamic */
+    /** Sets Engine torque request dynamic */
     void set_MDYN_ART(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
-    /** Gets Motoroment request dynamic */
+    /** Gets Engine torque request dynamic */
     bool get_MDYN_ART() { return (bool)(raw >> 54 & 0x1); }
         
     /** Sets City Assistant regulates */
@@ -369,22 +387,22 @@ typedef union {
     /** Gets Type regulates */
     bool get_ART_REG() { return (bool)(raw >> 45 & 0x1); }
         
-    /** Sets Ford. Engine torque */
+    /** Sets Ford. Engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_ART(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets Ford. Engine torque */
+    /** Gets Ford. Engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_ART() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ250h(uint8_t value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ250h() { return (uint8_t)(raw >> 28 & 0xf); }
         
-    /** Sets brake torque (0000h: passive value) */
+    /** Sets brake torque (0000h: passive value). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MBRE_ART(uint16_t value){ raw = (raw & 0xfffffffff000ffff) | ((uint64_t)value & 0xfff) << 16; }
 
-    /** Gets brake torque (0000h: passive value) */
+    /** Gets brake torque (0000h: passive value). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_MBRE_ART() { return (uint16_t)(raw >> 16 & 0xfff); }
         
     /** Sets Art desire: "Active recirculation" */
@@ -393,16 +411,16 @@ typedef union {
     /** Gets Art desire: "Active recirculation" */
     bool get_AKT_R_ART() { return (bool)(raw >> 15 & 0x1); }
         
-    /** Sets Sprocket, upper limit */
+    /** Sets Gear, upper limit */
     void set_GMAX_ART(ART_250h_GMAX_ART value){ raw = (raw & 0xffffffffffffc7ff) | ((uint64_t)value & 0x7) << 11; }
 
-    /** Gets Sprocket, upper limit */
+    /** Gets Gear, upper limit */
     ART_250h_GMAX_ART get_GMAX_ART() { return (ART_250h_GMAX_ART)(raw >> 11 & 0x7); }
         
-    /** Sets Sprocket, lower limit */
+    /** Sets Gear, lower limit */
     void set_GMIN_ART(ART_250h_GMIN_ART value){ raw = (raw & 0xfffffffffffff8ff) | ((uint64_t)value & 0x7) << 8; }
 
-    /** Gets Sprocket, lower limit */
+    /** Gets Gear, lower limit */
     ART_250h_GMIN_ART get_GMIN_ART() { return (ART_250h_GMIN_ART)(raw >> 8 & 0x7); }
         
 } ART_250;
@@ -444,22 +462,22 @@ typedef union {
     /** Gets Art error code */
     ART_258h_ART_ERR get_ART_ERR() { return (ART_258h_ART_ERR)(raw >> 56 & 0xf); }
         
-    /** Sets set type speed */
+    /** Sets set type speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_ART(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets set type speed */
+    /** Gets set type speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_V_ART() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets distance relevant object */
+    /** Sets distance relevant object. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_ABST_R_OBJ(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets distance relevant object */
+    /** Gets distance relevant object. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_ABST_R_OBJ() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets driver request */
+    /** Sets driver request. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_SOLL_ABST(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets driver request */
+    /** Gets driver request. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_SOLL_ABST() { return (uint8_t)(raw >> 32 & 0xff); }
         
     /** Sets Display "Winter tire limitation achieved" on the display */
@@ -510,10 +528,10 @@ typedef union {
     /** Gets Art Tempomat on */
     bool get_TM_EIN_ART() { return (bool)(raw >> 24 & 0x1); }
         
-    /** Sets Speed ​​recognized target vehicle */
+    /** Sets Speed ​​recognized target vehicle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_ZIEL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Speed ​​recognized target vehicle */
+    /** Gets Speed ​​recognized target vehicle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_V_ZIEL() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Minimum display time in the display new trigger */
@@ -597,10 +615,10 @@ typedef union {
     /** Gets working speed control active */
     bool get_PSM_ADR_AKT() { return (bool)(raw >> 61 & 0x1); }
         
-    /** Sets Motoroll speed ADR */
+    /** Sets Motoroll speed ADR. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_N_SOLL(uint16_t value){ raw = (raw & 0xff0000ffffffffff) | ((uint64_t)value & 0xffff) << 40; }
 
-    /** Gets Motoroll speed ADR */
+    /** Gets Motoroll speed ADR. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_PSM_N_SOLL() { return (uint16_t)(raw >> 40 & 0xffff); }
         
     /** Sets Tomentic limitation - parity bit */
@@ -621,10 +639,10 @@ typedef union {
     /** Gets Tomentic limitation active */
     bool get_PSM_MOM_AKT() { return (bool)(raw >> 37 & 0x1); }
         
-    /** Sets Maximum engine torque */
+    /** Sets Maximum engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_MOM_SOLL(uint16_t value){ raw = (raw & 0xffffffe000ffffff) | ((uint64_t)value & 0x1fff) << 24; }
 
-    /** Gets Maximum engine torque */
+    /** Gets Maximum engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_PSM_MOM_SOLL() { return (uint16_t)(raw >> 24 & 0x1fff); }
         
     /** Sets Speed limitation - parity bit */
@@ -645,10 +663,10 @@ typedef union {
     /** Gets Speed limitation active */
     bool get_PSM_DZ_AKT() { return (bool)(raw >> 21 & 0x1); }
         
-    /** Sets Maximum speed */
+    /** Sets Maximum speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_DZ_MAX(uint16_t value){ raw = (raw & 0xffffffffffff0000) | ((uint64_t)value & 0xffff) << 0; }
 
-    /** Gets Maximum speed */
+    /** Gets Maximum speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_PSM_DZ_MAX() { return (uint16_t)(raw >> 0 & 0xffff); }
         
 } PSM_3B4;
@@ -678,10 +696,10 @@ typedef union {
     /** Gets Speed limitation active */
     bool get_PSM_V_AKT() { return (bool)(raw >> 61 & 0x1); }
         
-    /** Sets Speed limit */
+    /** Sets Speed limit. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_V_SOLL(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Speed limit */
+    /** Gets Speed limit. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_PSM_V_SOLL() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Speed limitation - parity bit */
@@ -715,6 +733,45 @@ typedef union {
     bool get_PSM_FPM_SP() { return (bool)(raw >> 43 & 0x1); }
         
 } PSM_3B8;
+
+
+
+typedef union {
+	uint64_t raw;
+
+	/** Gets CAN ID of VG_428 */
+	uint32_t get_canid(){ return VG_428_CAN_ID; }
+    /** Sets Error VG (ECU Failure Detected) */
+    void set_VG_ERR(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
+
+    /** Gets Error VG (ECU Failure Detected) */
+    bool get_VG_ERR() { return (bool)(raw >> 61 & 0x1); }
+        
+    /** Sets Current gear distribution gear */
+    void set_VG_GANG(VG_428h_VG_GANG value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
+
+    /** Gets Current gear distribution gear */
+    VG_428h_VG_GANG get_VG_GANG() { return (VG_428h_VG_GANG)(raw >> 56 & 0x7); }
+        
+    /** Sets VG - Request "n" Parity (straight parity) */
+    void set_ANFNPAR_VG(bool value){ raw = (raw & 0xfff7ffffffffffff) | ((uint64_t)value & 0x1) << 51; }
+
+    /** Gets VG - Request "n" Parity (straight parity) */
+    bool get_ANFNPAR_VG() { return (bool)(raw >> 51 & 0x1); }
+        
+    /** Sets VG - ANG.Load "N" Toggle 20ms (1 / Embassy) */
+    void set_ANFNTGL_VG(bool value){ raw = (raw & 0xfffbffffffffffff) | ((uint64_t)value & 0x1) << 50; }
+
+    /** Gets VG - ANG.Load "N" Toggle 20ms (1 / Embassy) */
+    bool get_ANFNTGL_VG() { return (bool)(raw >> 50 & 0x1); }
+        
+    /** Sets VG request "N" */
+    void set_ANFN_VG(VG_428h_ANFN_VG value){ raw = (raw & 0xfffcffffffffffff) | ((uint64_t)value & 0x3) << 48; }
+
+    /** Gets VG request "N" */
+    VG_428h_ANFN_VG get_ANFN_VG() { return (VG_428h_ANFN_VG)(raw >> 48 & 0x3); }
+        
+} VG_428;
 
 
 
@@ -865,13 +922,17 @@ class ECU_ANY_ECU {
                     LAST_FRAME_TIMES[6] = timestamp_now;
                     FRAME_DATA[6] = value;
                     return true;
-                case LWR_530_CAN_ID:
+                case VG_428_CAN_ID:
                     LAST_FRAME_TIMES[7] = timestamp_now;
                     FRAME_DATA[7] = value;
                     return true;
-                case CONFIG_6FF_CAN_ID:
+                case LWR_530_CAN_ID:
                     LAST_FRAME_TIMES[8] = timestamp_now;
                     FRAME_DATA[8] = value;
+                    return true;
+                case CONFIG_6FF_CAN_ID:
+                    LAST_FRAME_TIMES[9] = timestamp_now;
+                    FRAME_DATA[9] = value;
                     return true;
                 default:
                     return false;
@@ -997,6 +1058,23 @@ class ECU_ANY_ECU {
             }
         }
             
+        /** Sets data in pointer to VG_428
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_VG_428(uint64_t now, uint64_t max_expire_time, VG_428* dest) {
+            if (LAST_FRAME_TIMES[7] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+                return false;
+            } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+                return false;
+            } else { // CAN Frame is valid! return it
+                return dest->raw = FRAME_DATA[7];
+            }
+        }
+            
         /** Sets data in pointer to LWR_530
           * 
           * If this function returns false, then the CAN Frame is invalid or has not been seen
@@ -1005,12 +1083,12 @@ class ECU_ANY_ECU {
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
         bool get_LWR_530(uint64_t now, uint64_t max_expire_time, LWR_530* dest) {
-            if (LAST_FRAME_TIMES[7] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+            if (LAST_FRAME_TIMES[8] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[7];
+                return dest->raw = FRAME_DATA[8];
             }
         }
             
@@ -1022,18 +1100,18 @@ class ECU_ANY_ECU {
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
         bool get_CONFIG_6FF(uint64_t now, uint64_t max_expire_time, CONFIG_6FF* dest) {
-            if (LAST_FRAME_TIMES[8] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+            if (LAST_FRAME_TIMES[9] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now - LAST_FRAME_TIMES[9] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[8];
+                return dest->raw = FRAME_DATA[9];
             }
         }
             
 	private:
-		uint64_t FRAME_DATA[9];
-		uint64_t LAST_FRAME_TIMES[9];
+		uint64_t FRAME_DATA[10];
+		uint64_t LAST_FRAME_TIMES[10];
 };
 #endif // __ECU_ANY_ECU_H_
 

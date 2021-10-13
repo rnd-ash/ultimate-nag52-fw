@@ -197,7 +197,7 @@ enum class IC_A3_RadarSensMd_Rq {
 	SNA = 3, // Signal Not Available
 };
 
-/** Daytime Running Lamps on Request / Request Switch on daytime running light */
+/** Daytime Running Lamps on Request / Request Turn on daytime running light */
 enum class IC_A3_DRLt_On_Rq {
 	OFF = 0, // OFF
 	ON = 1, // ON
@@ -620,7 +620,7 @@ enum class SBW_RQ_SCCM_TSL_RND_Posn_StW {
 	SNA = 15, // Signal Not Available
 };
 
-/** Parking Brake Switch State / parking brake switch state */
+/** Parking brake switch state / parking brake switch status */
 enum class EPKB_STAT_PkBrkSw_Stat {
 	IDLE = 0, // Not pressed
 	ENGG = 1, // Apply (Engage Pushed)
@@ -640,13 +640,13 @@ enum class EPKB_STAT_EPkBrk_Stat {
 	SNA = 7, // Signal Not Available
 };
 
-/** Parking Brake State / Status parking brake */
+/** Parking brake state / status parking brake */
 enum class EPKB_STAT_PkBrk_Stat {
 	NO_END_POSN = 0, // No end position
 	INC = 1, // InCreasing Tensioning Force
 	DEC = 2, // Decreasing Tensioning Force
 	ENGG = 3, // Parking Brake is engaged
-	RELS = 4, // Parking Brake Is Released
+	RELS = 4, // Parking brake is released
 	NDEF5 = 5, // Not Defined
 	NDEF6 = 6, // Not Defined
 	SNA = 7, // Signal Not Available
@@ -671,7 +671,7 @@ enum class EPKB_STAT_BatCplSw_Rq_EPKB {
 /** Transmission Parking Position Request / EPKB request: "P" */
 enum class EPKB_STAT_TxPkPosn_Rq_EPKB {
 	IDLE = 0, // No Request
-	P_ENGG = 1, // Engage Transmission Parking Position
+	P_ENGG = 1, // Engage transmission parking position
 	NDEF2 = 2, // Not Defined
 	SNA = 3, // Signal Not Available
 };
@@ -684,49 +684,49 @@ enum class EPKB_STAT_BrkLgt_On_Rq {
 	SNA = 3, // Signal Not Available
 };
 
-/** Requested Gear, Upper Limit / Sprocket, Upper Border */
+/** Requested gear, upper limit / target gear, upper limit */
 enum class TX_RQ_SBC_GrMax_Rq_SBC {
-	PASSIVE = 0, // Passive Value
-	G1 = 1, // Requested Gear, Upper Limit = 1
-	G2 = 2, // Requested Gear, Upper Limit = 2
-	G3 = 3, // Requested Gear, Upper Limit = 3
-	G4 = 4, // Requested Gear, Upper Limit = 4
-	G5 = 5, // Requested Gear, Upper Limit = 5
-	G6 = 6, // Requested Gear, Upper Limit = 6
-	G7 = 7, // Requested Gear, Upper Limit = 7
+	PASSIVE = 0, // Passive value
+	G1 = 1, // Requested gear, upper limit = 1
+	G2 = 2, // Requested gear, upper limit = 2
+	G3 = 3, // Requested gear, upper limit = 3
+	G4 = 4, // Requested gear, upper limit = 4
+	G5 = 5, // Requested gear, upper limit = 5
+	G6 = 6, // Requested gear, upper limit = 6
+	G7 = 7, // Requested gear, upper limit = 7
 };
 
-/** Requested Gear, Lower Limit / Sprocket, Lower Border */
+/** Requested gear, lower limit / target gear, lower limit */
 enum class TX_RQ_SBC_GrMin_Rq_SBC {
-	PASSIVE = 0, // Passive Value
-	G1 = 1, // Requested Gear, Lower Limit = 1
-	G2 = 2, // Requested Gear, Lower Limit = 2
-	G3 = 3, // Requested Gear, Lower Limit = 3
-	G4 = 4, // Requested Gear, Lower Limit = 4
-	G5 = 5, // Requested Gear, Lower Limit = 5
-	G6 = 6, // Requested Gear, Lower Limit = 6
-	G7 = 7, // Requested Gear, Lower Limit = 7
+	PASSIVE = 0, // Passive value
+	G1 = 1, // Requested gear, lower limit = 1
+	G2 = 2, // Requested gear, lower limit = 2
+	G3 = 3, // Requested gear, lower limit = 3
+	G4 = 4, // Requested gear, lower limit = 4
+	G5 = 5, // Requested gear, lower limit = 5
+	G6 = 6, // Requested gear, lower limit = 6
+	G7 = 7, // Requested gear, lower limit = 7
 };
 
-/** Shift Characteristic Displacement Request / Request Switching Shift */
+/** Shift characteristic displacement request / demand shift line shift */
 enum class TX_RQ_SBC_ShftChrDsp_Rq_SBC {
-	SKL0 = 0, // Shift Characteristic Displacement "0"
-	SKL1 = 1, // Shift Characteristic Displacement "1"
-	SKL2 = 2, // Shift Characteristic Displacement "2"
-	SKL3 = 3, // Shift Characteristic Displacement "3"
-	SKL4 = 4, // Shift Characteristic Displacement "4"
-	SKL5 = 5, // Shift Characteristic Displacement "5"
-	SKL6 = 6, // Shift Characteristic Displacement "6"
-	SKL7 = 7, // Shift Characteristic Displacement "7"
-	SKL8 = 8, // Shift Characteristic Displacement "8"
-	SKL9 = 9, // Shift Characteristic Displacement "9"
-	SKL10 = 10, // Shift Characteristic Displacement "10"
+	SKL0 = 0, // Shift characteristic displacement "0"
+	SKL1 = 1, // Shift characteristic displacement "1"
+	SKL2 = 2, // Shift characteristic displacement "2"
+	SKL3 = 3, // Shift characteristic displacement "3"
+	SKL4 = 4, // Shift characteristic displacement "4"
+	SKL5 = 5, // Shift characteristic displacement "5"
+	SKL6 = 6, // Shift characteristic displacement "6"
+	SKL7 = 7, // Shift characteristic displacement "7"
+	SKL8 = 8, // Shift characteristic displacement "8"
+	SKL9 = 9, // Shift characteristic displacement "9"
+	SKL10 = 10, // Shift characteristic displacement "10"
 };
 
-/** Request Neutral Gear by SBC / SBC wish: "neutral" */
+/** Request neutral gear by SBC / SBC request: "Neutral" */
 enum class TX_RQ_SBC_GrN_Rq_SBC {
 	NDEF0 = 0, // Not Defined
-	RQ_N = 1, // Request "neutral"
+	RQ_N = 1, // Request "Neutral"
 	IDLE = 2, // No Request
 	SNA = 3, // Signal Not Available
 };
@@ -854,37 +854,37 @@ enum class PN14_STAT_PN14_SupBatCutSw_Stat {
 	SNA = 3, // Signal Not Available
 };
 
-/** Country Code / Country Code */
+/** Country code / country code */
 enum class CVI_Country {
-	ROW = 0, // Remain of the World
-	USA = 1, // USA
+	ROW = 0, // Remain of the world
+	USA = 1, // United States
 	CAN = 2, // Canada
 	JAP = 3, // Japan
 	SWI = 4, // Switzerland
 	AUS = 5, // Australia
-	GULF = 6, // Gulf States
-	UK = 7, // United Kingdom (Not 221/216)
+	GULF = 6, // Gulf states
+	UK = 7, // United Kingdom (not 221/216)
 	SNA = 15, // Signal Not Available
 };
 
-/** DC Group / DC Group */
+/** DC group / DC group */
 enum class CVI_Group {
 	MB = 0, // Mercedes Benz, Maybach
-	SMART = 1, // Smart
+	SMART = 1, // smart
 	CG = 2, // Chrysler Group
 	MMC = 3, // Mitsubishi
 	SNA = 15, // Signal Not Available
 };
 
-/** Guard Level / Guard Level */
+/** Guard level / Guard Level */
 enum class CVI_Guard {
-	NO = 0, // No Armoring
-	B4 = 1, // Armoring Class B4
-	B6 = 2, // Armoring Class B6 / B7
+	NO = 0, // No armoring
+	B4 = 1, // Armoring class B4
+	B6 = 2, // Armoring class B6 / B7
 	SNA = 3, // Signal Not Available
 };
 
-/** Vehicle Line / Series */
+/** Vehicle line / Series */
 enum class CVI_VehLine {
 	BR221 = 0, // BR 221
 	BR231 = 1, // BR 231
@@ -897,48 +897,48 @@ enum class CVI_VehLine {
 	SNA = 63, // Signal Not Available
 };
 
-/** Vehicle Line version: Year / change year: year */
+/** Vehicle line version: year / year change: Year */
 enum class CVI_VehLineYear {
 	NDEF30 = 30, // Not Defined
-	START = 31, // Start of Vehicle Line
+	START = 31, // Start of vehicle line
 };
 
-/** Vehicle Line version: Package / change year: package */
+/** Vehicle line version: package / change Year: Package */
 enum class CVI_VehLinePack {
 	PACK0 = 0, // Package "/ 0"
 	PACK1 = 1, // Package "/ 1"
 	PACK2 = 2, // Package "/ 2"
-	PACKX = 3, // Package "/ X" OR START OF VEHICLE LINE
+	PACKX = 3, // Package "/ X" or start of vehicle line
 };
 
-/** Steering Variant / Steering Variant */
+/** Steering variant / Steering variant */
 enum class CVI_StStyle {
 	NDEF0 = 0, // Not Defined
-	LHD = 1, // LEFT Hand Drive
+	LHD = 1, // Left hand drive
 	RHD = 2, // Right hand drive
 	SNA = 3, // Signal Not Available
 };
 
-/** Vehicle Body Style / Body Variante */
+/** Vehicle body style / body variant */
 enum class CVI_BodyStyle {
 	W = 0, // W - Sedan
-	V = 1, // V - Stretched Sedan
+	V = 1, // V - Stretched limo
 	C = 2, // C - Coupe
-	S = 3, // S - Station Wagon
-	A = 4, // A - convertible
+	S = 3, // S - wagon station
+	A = 4, // A - Convertible
 	R = 5, // R - Roadster
-	CL = 6, // CL - Sports Coupe
-	VV = 7, // VV - Extra Streched Sedan
+	CL = 6, // CL - Sports coupe
+	VV = 7, // VV - Extra streched limousine
 	VF = 8, // VF - Stretched chassis
 	F = 9, // F - Chassis
-	G = 10, // G - Off-Road Vehicle
-	GV = 11, // GV - Stretched Off-Road Vehicle
+	G = 10, // G - Off-road vehicle
+	GV = 11, // GV - Stretched off-road vehicle
 	T = 12, // T - Multi Sports Tourer
-	X = 13, // X - Sports Utility Tourer
+	X = 13, // X - sports utility Tourer
 	SNA = 31, // Signal Not Available
 };
 
-/** Engine (Bit 7: Otto Engine => 0, Diesel Engine => 1) / Engine (Bit 7: Gasoline => 0, Diesel => 1) */
+/** Engine (Bit 7: Otto-engine => 0, diesel engine => 1) / motor (Bit 7: gasoline => 0, Diesel => 1) */
 enum class CVI_EngStyle {
 	M275E55 = 0, // M275 E55 [ME2.7.2]
 	M273E55 = 1, // M273 E55 [ME9.7]
@@ -951,8 +951,8 @@ enum class CVI_EngStyle {
 	M272E35DE = 9, // M272 E35 DE [ME9.7]
 	M272E30DE = 10, // M272 E30 DE [ME9.7]
 	M272E25DE = 11, // M272 E25 DE [ME9.7]
-	M271E18ML135ATT = 12, // M271 E18 ml Attrac. (135 kW) [SIM271KE]
-	M271E18ML115ATT = 13, // M271 E18 ml Attrac. (115 kW) [SIM271KE]
+	M271E18ML135ATT = 12, // attrac M271 E18 ML. (135 kW) [SIM271KE]
+	M271E18ML115ATT = 13, // attrac M271 E18 ML. (115 kW) [SIM271KE]
 	M272E35_221 = 14, // M272 E35 (221 kW) [ME9.7]
 	AMGM156E63HP = 123, // AMG M156 E63 HP [ME9.7]
 	AMGM275E60LA = 124, // AMG M275 E60 LA [ME2.7.2]
@@ -960,9 +960,9 @@ enum class CVI_EngStyle {
 	AMGM156E63 = 126, // AMG M156 E63 [ME9.7]
 	OM642DE30LA160 = 129, // OM642 DE30 LA (155/160 kW) [CR5 / CR6]
 	OM629DE40LA = 130, // OM629 DE40 LA [CR5]
-	OM642DE30LA140 = 131, // OM642 DE30 LA RED. (140 kW) [CR6]
+	OM642DE30LA140 = 131, // OM642 DE30 LA red. (140 kW) [CR6]
 	OM646EVODE22LA125 = 132, // OM646EVO DE22 LA (120/125 kW) [CRD]
-	OM646EVODE22LA100 = 133, // OM646EVO DE22 LA RED. (100 kW) [CRD]
+	OM646EVODE22LA100 = 133, // OM646EVO DE22 LA red. (100 kW) [CRD]
 	OM646EVODE22LA85 = 134, // OM646EVO DE22 LA (85 kW) [CRD]
 	OM651DE22LA150 = 135, // OM651 DE22 LA (150 kW) [CRD2]
 	OM651DE22LA120 = 136, // OM651 DE22 LA (120 kW) [CRD2]
@@ -971,30 +971,30 @@ enum class CVI_EngStyle {
 	SNA = 255, // Signal Not Available
 };
 
-/** Vehicle Roof Style / Roof Variant */
+/** Vehicle roof style / roof version */
 enum class CVI_RoofStyle {
-	NORM = 0, // normal roof
-	TSSR = 1, // Tilt / Slide Sunroof
-	EXTRUN_TSSR = 2, // Exterior Running Tilt / Slide Sunroof
-	TSSR_RCLS = 3, // Tilt / Slide Sunroof with Rain Closure (Not 221/216)
-	EXTRUN_TSSR_CLS = 4, // Exterior Running Tilt / Slide SUNROOF WITH RAIN Closure
+	NORM = 0, // Normal Roof
+	TSSR = 1, // tilt / slide sunroof
+	EXTRUN_TSSR = 2, // Exterior running tilt / slide sunroof
+	TSSR_RCLS = 3, // tilt / slide sunroof with rain closure (not 221/216)
+	EXTRUN_TSSR_CLS = 4, // Exterior running tilt / slide sunroof with rain closure
 	SNA = 7, // Signal Not Available
 };
 
-/** Vehicle Options Package / Vehicle Features Package */
+/** Vehicle options package / vehicle equipment package */
 enum class CVI_VehOPTPack {
 	CLASSIC = 0, // Classic
 	ELEGANCE = 1, // Elegance
-	AVANTGARDE = 2, // avant-garde
+	AVANTGARDE = 2, // Avantgarde
 	SNA = 3, // Signal Not Available
 };
 
-/** HVAC STYLE / KLA Variant */
+/** HVAC style / KLA variant */
 enum class CVI_HVACStyle {
-	ONE_ZONE = 0, // One Zone Hvac
-	TWO_ZONE = 1, // Two Zone Hvac
-	THREE_ZONE = 2, // Three Zone Hvac
-	FOUR_ZONE = 3, // Four Zone Hvac
+	ONE_ZONE = 0, // One zone HVAC
+	TWO_ZONE = 1, // Two zone HVAC
+	THREE_ZONE = 2, // Three zone HVAC
+	FOUR_ZONE = 3, // Four zone HVAC
 };
 
 /** Rotary Latch Door Rear Right State / Status Swivel Fall Door Rear Right */
@@ -1299,28 +1299,28 @@ typedef union {
 
 	/** Gets CAN ID of CTRL_U_A2 */
 	uint32_t get_canid(){ return CTRL_U_A2_CAN_ID; }
-    /** Sets Switch Illumination Level (Term 58D) / Search Lighting (class 58D) */
+    /** Sets Switch Illumination Level (Term 58D) / Search Lighting (class 58D). Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: %) */
     void set_SwIllLvl(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Switch Illumination Level (Term 58D) / Search Lighting (class 58D) */
+    /** Gets Switch Illumination Level (Term 58D) / Search Lighting (class 58D). Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: %) */
     uint8_t get_SwIllLvl() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Display Brightness Instrument Cluster / Display Brightness Combination Strument */
+    /** Sets Display Brightness Instrument Cluster / Display Brightness Combination Strument. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: %) */
     void set_DispBrt_IC(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Display Brightness Instrument Cluster / Display Brightness Combination Strument */
+    /** Gets Display Brightness Instrument Cluster / Display Brightness Combination Strument. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: %) */
     uint8_t get_DispBrt_IC() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets Display Brightness Headunit / Display Brightness Headunit */
+    /** Sets Display Brightness Headunit / Display Brightness Headunit. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_DispBrt_HU_V2(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Display Brightness Headunit / Display Brightness Headunit */
+    /** Gets Display Brightness Headunit / Display Brightness Headunit. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_DispBrt_HU_V2() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Display Brightness Night View / Display Brightness Night View */
+    /** Sets Display Brightness Night View / Display Brightness Night View. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: %) */
     void set_DispBrt_NV(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Display Brightness Night View / Display Brightness Night View */
+    /** Gets Display Brightness Night View / Display Brightness Night View. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: %) */
     uint8_t get_DispBrt_NV() { return (uint8_t)(raw >> 32 & 0xff); }
         
 } CTRL_U_A2;
@@ -1332,46 +1332,46 @@ typedef union {
 
 	/** Gets CAN ID of ECM_A1 */
 	uint32_t get_canid(){ return ECM_A1_CAN_ID; }
-    /** Sets Engine Coolant Temperature / Motor Coolant Temperature */
+    /** Sets Engine Coolant Temperature / Motor Coolant Temperature. Conversion formula (To raw from real): y=(x+40.0)/1.00 (Unit: °C) */
     void set_EngCoolTemp(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Engine Coolant Temperature / Motor Coolant Temperature */
+    /** Gets Engine Coolant Temperature / Motor Coolant Temperature. Conversion formula (To real from raw): y=(1.00x)-40.0 (Unit: °C) */
     uint8_t get_EngCoolTemp() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Intake Air Temperature / intake air temperature */
+    /** Sets Intake Air Temperature / intake air temperature. Conversion formula (To raw from real): y=(x+40.0)/1.00 (Unit: °C) */
     void set_IntkAirTemp(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Intake Air Temperature / intake air temperature */
+    /** Gets Intake Air Temperature / intake air temperature. Conversion formula (To real from raw): y=(1.00x)-40.0 (Unit: °C) */
     uint8_t get_IntkAirTemp() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets Engine OIL Temperature / Engine Oil Temperature */
+    /** Sets Engine OIL Temperature / Engine Oil Temperature. Conversion formula (To raw from real): y=(x+40.0)/1.00 (Unit: °C) */
     void set_EngOilTemp(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Engine OIL Temperature / Engine Oil Temperature */
+    /** Gets Engine OIL Temperature / Engine Oil Temperature. Conversion formula (To real from raw): y=(1.00x)-40.0 (Unit: °C) */
     uint8_t get_EngOilTemp() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Engine Oil Level / Engine Oil Level */
+    /** Sets Engine Oil Level / Engine Oil Level. Conversion formula (To raw from real): y=(x-0.0)/0.31 (Unit: mm) */
     void set_EngOilLvl(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Engine Oil Level / Engine Oil Level */
+    /** Gets Engine Oil Level / Engine Oil Level. Conversion formula (To real from raw): y=(0.31x)+0.0 (Unit: mm) */
     uint8_t get_EngOilLvl() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Engine Oil Quality / Engine Oil Quality */
+    /** Sets Engine Oil Quality / Engine Oil Quality. Conversion formula (To raw from real): y=(x-1.0)/0.02 */
     void set_EngOilQual(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Engine Oil Quality / Engine Oil Quality */
+    /** Gets Engine Oil Quality / Engine Oil Quality. Conversion formula (To real from raw): y=(0.02x)+1.0 */
     uint8_t get_EngOilQual() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets Fuel Consumption / Consumption */
+    /** Sets Fuel Consumption / Consumption. Conversion formula (To raw from real): y=(x-0.0)/0.22 (Unit: µl/250ms) */
     void set_FuelCons(uint16_t value){ raw = (raw & 0xffffffffff0000ff) | ((uint64_t)value & 0xffff) << 8; }
 
-    /** Gets Fuel Consumption / Consumption */
+    /** Gets Fuel Consumption / Consumption. Conversion formula (To real from raw): y=(0.22x)+0.0 (Unit: µl/250ms) */
     uint16_t get_FuelCons() { return (uint16_t)(raw >> 8 & 0xffff); }
         
-    /** Sets Outside Air Pressure / outdoor air pressure */
+    /** Sets Outside Air Pressure / outdoor air pressure. Conversion formula (To raw from real): y=(x-0.0)/7.80 (Unit: hPa) */
     void set_AirPress_Outsd(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Outside Air Pressure / outdoor air pressure */
+    /** Gets Outside Air Pressure / outdoor air pressure. Conversion formula (To real from raw): y=(7.80x)+0.0 (Unit: hPa) */
     uint8_t get_AirPress_Outsd() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ECM_A1;
@@ -1395,10 +1395,10 @@ typedef union {
     /** Gets Heating Power State / Status Heating power */
     ECM_A2_HtPwr_Stat get_HtPwr_Stat() { return (ECM_A2_HtPwr_Stat)(raw >> 56 & 0x3); }
         
-    /** Sets Maximum Aircon Compressor Crackish Torque / Limit Momper (Crankshaft) Climate Compressor */
+    /** Sets Maximum Aircon Compressor Crackish Torque / Limit Momper (Crankshaft) Climate Compressor. Conversion formula (To raw from real): y=(x-0.0)/0.25 (Unit: Nm) */
     void set_HVAC_CompTrq_Max(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Maximum Aircon Compressor Crackish Torque / Limit Momper (Crankshaft) Climate Compressor */
+    /** Gets Maximum Aircon Compressor Crackish Torque / Limit Momper (Crankshaft) Climate Compressor. Conversion formula (To real from raw): y=(0.25x)+0.0 (Unit: Nm) */
     uint8_t get_HVAC_CompTrq_Max() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Clutch is disengaged / clutch */
@@ -1413,16 +1413,16 @@ typedef union {
     /** Gets Fuel Pump on Request / Switch-on request Fuel pump */
     bool get_FuelPmp_On_Rq() { return (bool)(raw >> 38 & 0x1); }
         
-    /** Sets Desired Engine Idle Speed / Motorle Read Rate */
+    /** Sets Desired Engine Idle Speed / Motorle Read Rate. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_EngIdleRPM_Dsr(uint16_t value){ raw = (raw & 0xffffffc000ffffff) | ((uint64_t)value & 0x3fff) << 24; }
 
-    /** Gets Desired Engine Idle Speed / Motorle Read Rate */
+    /** Gets Desired Engine Idle Speed / Motorle Read Rate. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_EngIdleRPM_Dsr() { return (uint16_t)(raw >> 24 & 0x3fff); }
         
-    /** Sets Actual Engine Efficiency / Efficiency Combustion Engine */
+    /** Sets Actual Engine Efficiency / Efficiency Combustion Engine. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_EngEff(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Actual Engine Efficiency / Efficiency Combustion Engine */
+    /** Gets Actual Engine Efficiency / Efficiency Combustion Engine. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_EngEff() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Fuel System Control Module Alive / FSCM Life Sign */
@@ -1443,16 +1443,16 @@ typedef union {
     /** Gets Engine Torque Increase Plausibility Check Available / Plausibility Check for Engine Torque Increase available */
     bool get_EngTrqIncChk_Avl() { return (bool)(raw >> 12 & 0x1); }
         
-    /** Sets Particle Filter Correction Offset on EngtrqMaxCorrfCTR / Particle FilterCorrection value */
+    /** Sets Particle Filter Correction Offset on EngtrqMaxCorrfCTR / Particle FilterCorrection value. Conversion formula (To raw from real): y=(x-0.0)/0.03 */
     void set_ParticleFltrCorrOffset(uint8_t value){ raw = (raw & 0xfffffffffffff0ff) | ((uint64_t)value & 0xf) << 8; }
 
-    /** Gets Particle Filter Correction Offset on EngtrqMaxCorrfCTR / Particle FilterCorrection value */
+    /** Gets Particle Filter Correction Offset on EngtrqMaxCorrfCTR / Particle FilterCorrection value. Conversion formula (To real from raw): y=(0.03x)+0.0 */
     uint8_t get_ParticleFltrCorrOffset() { return (uint8_t)(raw >> 8 & 0xf); }
         
-    /** Sets Fuel Pressure Request / Request Fuel Pressure */
+    /** Sets Fuel Pressure Request / Request Fuel Pressure. Conversion formula (To raw from real): y=(x-0.0)/0.05 (Unit: bar) */
     void set_FuelPress_Rq(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Fuel Pressure Request / Request Fuel Pressure */
+    /** Gets Fuel Pressure Request / Request Fuel Pressure. Conversion formula (To real from raw): y=(0.05x)+0.0 (Unit: bar) */
     uint8_t get_FuelPress_Rq() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ECM_A2;
@@ -1638,10 +1638,10 @@ typedef union {
     /** Gets Keyline 1 Approved for Keyless Go / Keyline 1 released for kg */
     bool get_KeyLine1_Appr() { return (bool)(raw >> 16 & 0x1); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_EIS_A1(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_EIS_A1() { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Central Locking System Lock State / Condition Central Locking */
@@ -1650,10 +1650,10 @@ typedef union {
     /** Gets Central Locking System Lock State / Condition Central Locking */
     EIS_A1_CLkS_Lk_Stat3 get_CLkS_Lk_Stat3() { return (EIS_A1_CLkS_Lk_Stat3)(raw >> 8 & 0x7); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_EIS_A1(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_EIS_A1() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } EIS_A1;
@@ -1665,16 +1665,16 @@ typedef union {
 
 	/** Gets CAN ID of IC_A1 */
 	uint32_t get_canid(){ return IC_A1_CAN_ID; }
-    /** Sets Displayed Vehicle Speed (Without Attenuation) / Displayed Speed (without pointer attenuation) */
+    /** Sets Displayed Vehicle Speed (Without Attenuation) / Displayed Speed (without pointer attenuation). Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: km/h) */
     void set_VehSpd_Disp(uint16_t value){ raw = (raw & 0xf000ffffffffffff) | ((uint64_t)value & 0xfff) << 48; }
 
-    /** Gets Displayed Vehicle Speed (Without Attenuation) / Displayed Speed (without pointer attenuation) */
+    /** Gets Displayed Vehicle Speed (Without Attenuation) / Displayed Speed (without pointer attenuation). Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: km/h) */
     uint16_t get_VehSpd_Disp() { return (uint16_t)(raw >> 48 & 0xfff); }
         
-    /** Sets Displayed Outside Air Temperature / Displayed Outdoor Air Temperature */
+    /** Sets Displayed Outside Air Temperature / Displayed Outdoor Air Temperature. Conversion formula (To raw from real): y=(x+40.0)/0.50 (Unit: °C) */
     void set_AirTemp_Outsd_Disp(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Displayed Outside Air Temperature / Displayed Outdoor Air Temperature */
+    /** Gets Displayed Outside Air Temperature / Displayed Outdoor Air Temperature. Conversion formula (To real from raw): y=(0.50x)-40.0 (Unit: °C) */
     uint8_t get_AirTemp_Outsd_Disp() { return (uint8_t)(raw >> 40 & 0xff); }
         
     /** Sets PTS DISPLAY STATE FROM IC / PTS Display state */
@@ -1689,16 +1689,16 @@ typedef union {
     /** Gets HIGH BEAM ENABLE / TRANSPORT LIGHT */
     IC_A1_HiBm_Enbl get_HiBm_Enbl() { return (IC_A1_HiBm_Enbl)(raw >> 36 & 0x3); }
         
-    /** Sets Engine Shut-Off Time / Motor Storage Time */
+    /** Sets Engine Shut-Off Time / Motor Storage Time. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: min) */
     void set_EngShutOffTm(uint16_t value){ raw = (raw & 0xfffffff000ffffff) | ((uint64_t)value & 0xfff) << 24; }
 
-    /** Gets Engine Shut-Off Time / Motor Storage Time */
+    /** Gets Engine Shut-Off Time / Motor Storage Time. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: min) */
     uint16_t get_EngShutOffTm() { return (uint16_t)(raw >> 24 & 0xfff); }
         
-    /** Sets Odometer (for Everyone, Fffffeh: Signal Invalid) / Mileage (for all, Fffffeheh: signal invalid) */
+    /** Sets Odometer (for Everyone, Fffffeh: Signal Invalid) / Mileage (for all, Fffffeheh: signal invalid). Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: km) */
     void set_Odo(uint32_t value){ raw = (raw & 0xffffffffff000000) | ((uint64_t)value & 0xffffff) << 0; }
 
-    /** Gets Odometer (for Everyone, Fffffeh: Signal Invalid) / Mileage (for all, Fffffeheh: signal invalid) */
+    /** Gets Odometer (for Everyone, Fffffeh: Signal Invalid) / Mileage (for all, Fffffeheh: signal invalid). Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: km) */
     uint32_t get_Odo() { return (uint32_t)(raw >> 0 & 0xffffff); }
         
 } IC_A1;
@@ -1716,10 +1716,10 @@ typedef union {
     /** Gets Radar Sensor Mode Request / Request Radar Sensoric Mode */
     IC_A3_RadarSensMd_Rq get_RadarSensMd_Rq() { return (IC_A3_RadarSensMd_Rq)(raw >> 62 & 0x3); }
         
-    /** Sets Daytime Running Lamps on Request / Request Switch on daytime running light */
+    /** Sets Daytime Running Lamps on Request / Request Turn on daytime running light */
     void set_DRLt_On_Rq(IC_A3_DRLt_On_Rq value){ raw = (raw & 0xcfffffffffffffff) | ((uint64_t)value & 0x3) << 60; }
 
-    /** Gets Daytime Running Lamps on Request / Request Switch on daytime running light */
+    /** Gets Daytime Running Lamps on Request / Request Turn on daytime running light */
     IC_A3_DRLt_On_Rq get_DRLt_On_Rq() { return (IC_A3_DRLt_On_Rq)(raw >> 60 & 0x3); }
         
     /** Sets Tire Pressure Module Activate Request / Request Tire Pressure Control Activate */
@@ -2067,16 +2067,16 @@ typedef union {
 
 	/** Gets CAN ID of STW_ANGL_STAT */
 	uint32_t get_canid(){ return STW_ANGL_STAT_CAN_ID; }
-    /** Sets Steering Wheel Angle / steering wheel angle */
+    /** Sets Steering Wheel Angle / steering wheel angle. Conversion formula (To raw from real): y=(x+2048.0)/0.50 (Unit: °) */
     void set_StW_Angl(uint16_t value){ raw = (raw & 0xc000ffffffffffff) | ((uint64_t)value & 0x3fff) << 48; }
 
-    /** Gets Steering Wheel Angle / steering wheel angle */
+    /** Gets Steering Wheel Angle / steering wheel angle. Conversion formula (To real from raw): y=(0.50x)-2048.0 (Unit: °) */
     uint16_t get_StW_Angl() { return (uint16_t)(raw >> 48 & 0x3fff); }
         
-    /** Sets Steering Wheel Angle Speed / Steering Wheel Speed */
+    /** Sets Steering Wheel Angle Speed / Steering Wheel Speed. Conversion formula (To raw from real): y=(x+2048.0)/0.50 (Unit: °/s) */
     void set_StW_AnglSpd(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets Steering Wheel Angle Speed / Steering Wheel Speed */
+    /** Gets Steering Wheel Angle Speed / Steering Wheel Speed. Conversion formula (To real from raw): y=(0.50x)-2048.0 (Unit: °/s) */
     uint16_t get_StW_AnglSpd() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets Steering Wheel Angle Sensor Identification / Identification Steering wheel angle sensor */
@@ -2091,16 +2091,16 @@ typedef union {
     /** Gets Steering Wheel Angle Sensor State / Status Steering wheel angle sensor */
     STW_ANGL_STAT_StW_AnglSens_Stat get_StW_AnglSens_Stat() { return (STW_ANGL_STAT_StW_AnglSens_Stat)(raw >> 24 & 0x3); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_STW_ANGL_STAT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_STW_ANGL_STAT() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_STW_ANGL_STAT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_STW_ANGL_STAT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } STW_ANGL_STAT;
@@ -2178,10 +2178,10 @@ typedef union {
     /** Gets Stop Coordinator Mode / Mode Standstill Coordinator */
     BRK_STAT_SPCR_Md_V3 get_SPCR_Md_V3() { return (BRK_STAT_SPCR_Md_V3)(raw >> 44 & 0xf); }
         
-    /** Sets Actual Brake Torque / set braking torque */
+    /** Sets Actual Brake Torque / set braking torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 (Unit: Nm) */
     void set_BrkTrq(uint16_t value){ raw = (raw & 0xfffff000ffffffff) | ((uint64_t)value & 0xfff) << 32; }
 
-    /** Gets Actual Brake Torque / set braking torque */
+    /** Gets Actual Brake Torque / set braking torque. Conversion formula (To real from raw): y=(3.00x)+0.0 (Unit: Nm) */
     uint16_t get_BrkTrq() { return (uint16_t)(raw >> 32 & 0xfff); }
         
     /** Sets Transmission Parking Position Request / SBC request: "P" */
@@ -2214,10 +2214,10 @@ typedef union {
     /** Gets ESP System State / ESP system condition */
     BRK_STAT_ESP_Sys_Stat get_ESP_Sys_Stat() { return (BRK_STAT_ESP_Sys_Stat)(raw >> 24 & 0x3); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_BRK_STAT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_BRK_STAT() { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Assistance System Off Request / Request Assistance System */
@@ -2232,10 +2232,10 @@ typedef union {
     /** Gets Disable Assistance System / Shutdown Assistance System */
     BRK_STAT_SPCR_AS_Dsabl get_SPCR_AS_Dsabl() { return (BRK_STAT_SPCR_AS_Dsabl)(raw >> 8 & 0x3); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_BRK_STAT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_BRK_STAT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } BRK_STAT;
@@ -2268,28 +2268,28 @@ typedef union {
 
 	/** Gets CAN ID of BRK_STAT2 */
 	uint32_t get_canid(){ return BRK_STAT2_CAN_ID; }
-    /** Sets Brake Torque Requested by Driver / Driver requested braking torque */
+    /** Sets Brake Torque Requested by Driver / Driver requested braking torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 (Unit: Nm) */
     void set_BrkTrq_D(uint16_t value){ raw = (raw & 0xf000ffffffffffff) | ((uint64_t)value & 0xfff) << 48; }
 
-    /** Gets Brake Torque Requested by Driver / Driver requested braking torque */
+    /** Gets Brake Torque Requested by Driver / Driver requested braking torque. Conversion formula (To real from raw): y=(3.00x)+0.0 (Unit: Nm) */
     uint16_t get_BrkTrq_D() { return (uint16_t)(raw >> 48 & 0xfff); }
         
-    /** Sets Brake Torque Gradient Requested by Driver / Driver requested braking torque gradient */
+    /** Sets Brake Torque Gradient Requested by Driver / Driver requested braking torque gradient. Conversion formula (To raw from real): y=(x+200048.0)/97.68 (Unit: Nm/s) */
     void set_BrkTrqGrdnt_D(uint16_t value){ raw = (raw & 0xfffff000ffffffff) | ((uint64_t)value & 0xfff) << 32; }
 
-    /** Gets Brake Torque Gradient Requested by Driver / Driver requested braking torque gradient */
+    /** Gets Brake Torque Gradient Requested by Driver / Driver requested braking torque gradient. Conversion formula (To real from raw): y=(97.68x)-200048.0 (Unit: Nm/s) */
     uint16_t get_BrkTrqGrdnt_D() { return (uint16_t)(raw >> 32 & 0xfff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_BRK_STAT2(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_BRK_STAT2() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_BRK_STAT2(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_BRK_STAT2() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } BRK_STAT2;
@@ -2331,16 +2331,16 @@ typedef union {
     /** Gets Transmission Selector Lever RND Position (Steering Wheel) / Gear Selection Lever RND position (steering wheel) */
     SBW_RQ_SCCM_TSL_RND_Posn_StW get_TSL_RND_Posn_StW() { return (SBW_RQ_SCCM_TSL_RND_Posn_StW)(raw >> 48 & 0xf); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SBW_RQ_SCCM(uint8_t value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_SBW_RQ_SCCM() { return (uint8_t)(raw >> 44 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 3 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 3 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 3 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 3 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SBW_RQ_SCCM(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets CRC Checksum Byte 1 to 3 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 3 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 3 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 3 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_SBW_RQ_SCCM() { return (uint8_t)(raw >> 32 & 0xff); }
         
 } SBW_RQ_SCCM;
@@ -2352,10 +2352,10 @@ typedef union {
 
 	/** Gets CAN ID of EPKB_STAT */
 	uint32_t get_canid(){ return EPKB_STAT_CAN_ID; }
-    /** Sets Parking Brake Switch State / parking brake switch state */
+    /** Sets Parking brake switch state / parking brake switch status */
     void set_PkBrkSw_Stat(EPKB_STAT_PkBrkSw_Stat value){ raw = (raw & 0x3fffffffffffffff) | ((uint64_t)value & 0x3) << 62; }
 
-    /** Gets Parking Brake Switch State / parking brake switch state */
+    /** Gets Parking brake switch state / parking brake switch status */
     EPKB_STAT_PkBrkSw_Stat get_PkBrkSw_Stat() { return (EPKB_STAT_PkBrkSw_Stat)(raw >> 62 & 0x3); }
         
     /** Sets Electrical Parking Brake System State / Status EPKB */
@@ -2364,10 +2364,10 @@ typedef union {
     /** Gets Electrical Parking Brake System State / Status EPKB */
     EPKB_STAT_EPkBrk_Stat get_EPkBrk_Stat() { return (EPKB_STAT_EPkBrk_Stat)(raw >> 59 & 0x7); }
         
-    /** Sets Parking Brake State / Status parking brake */
+    /** Sets Parking brake state / status parking brake */
     void set_PkBrk_Stat(EPKB_STAT_PkBrk_Stat value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
-    /** Gets Parking Brake State / Status parking brake */
+    /** Gets Parking brake state / status parking brake */
     EPKB_STAT_PkBrk_Stat get_PkBrk_Stat() { return (EPKB_STAT_PkBrk_Stat)(raw >> 56 & 0x7); }
         
     /** Sets Enable SBC Request / SBC request allowed */
@@ -2382,10 +2382,10 @@ typedef union {
     /** Gets Dynamic Braking Fashion / Mode Dynamic Brakes */
     EPKB_STAT_DynBrkMd get_DynBrkMd() { return (EPKB_STAT_DynBrkMd)(raw >> 52 & 0x3); }
         
-    /** Sets Brake Torque Request / EPKB requested braking torque */
+    /** Sets Brake torque request / requested by EPKB braking torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 (Unit: Nm) */
     void set_BrkTrq_Rq_EPKB(uint16_t value){ raw = (raw & 0xfff000ffffffffff) | ((uint64_t)value & 0xfff) << 40; }
 
-    /** Gets Brake Torque Request / EPKB requested braking torque */
+    /** Gets Brake torque request / requested by EPKB braking torque. Conversion formula (To real from raw): y=(3.00x)+0.0 (Unit: Nm) */
     uint16_t get_BrkTrq_Rq_EPKB() { return (uint16_t)(raw >> 40 & 0xfff); }
         
     /** Sets Battery Coupling Switch Request / Request Battery Coupling Switch */
@@ -2406,16 +2406,16 @@ typedef union {
     /** Gets Turn on Brake Light on Request / Brake light */
     EPKB_STAT_BrkLgt_On_Rq get_BrkLgt_On_Rq() { return (EPKB_STAT_BrkLgt_On_Rq)(raw >> 32 & 0x3); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_EPKB_STAT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_EPKB_STAT() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_EPKB_STAT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_EPKB_STAT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } EPKB_STAT;
@@ -2475,40 +2475,40 @@ typedef union {
     /** Gets Transmission Shift Point Increase Request for Thermal Comfort (Cooling) / Raising of the gear switching point for climate domestic enhancement (cooling) */
     bool get_HVAC_TxShftPoint_Inc_Rq() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets Actual Front Aircon Compressor Crackish Torque / Climate Compressor Tour For Front */
+    /** Sets Actual Front Aircon Compressor Crackish Torque / Climate Compressor Tour For Front. Conversion formula (To raw from real): y=(x-0.0)/0.25 (Unit: Nm) */
     void set_HVAC_CompTrq_Ft(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Actual Front Aircon Compressor Crackish Torque / Climate Compressor Tour For Front */
+    /** Gets Actual Front Aircon Compressor Crackish Torque / Climate Compressor Tour For Front. Conversion formula (To real from raw): y=(0.25x)+0.0 (Unit: Nm) */
     uint8_t get_HVAC_CompTrq_Ft() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets Engine Fan RPM Request / Motor Heater Setpoint Speed */
+    /** Sets Engine Fan RPM Request / Motor Heater Setpoint Speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: %) */
     void set_EngFanRPM_Rq_HVAC(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Engine Fan RPM Request / Motor Heater Setpoint Speed */
+    /** Gets Engine Fan RPM Request / Motor Heater Setpoint Speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: %) */
     uint8_t get_EngFanRPM_Rq_HVAC() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Outside Air Temperature for Heating Management / Outdoor air temperature for thermal management */
+    /** Sets Outside Air Temperature for Heating Management / Outdoor air temperature for thermal management. Conversion formula (To raw from real): y=(x+40.0)/0.50 (Unit: °C) */
     void set_AirTemp_Outsd_HtMgt(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Outside Air Temperature for Heating Management / Outdoor air temperature for thermal management */
+    /** Gets Outside Air Temperature for Heating Management / Outdoor air temperature for thermal management. Conversion formula (To real from raw): y=(0.50x)-40.0 (Unit: °C) */
     uint8_t get_AirTemp_Outsd_HtMgt() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Heating Power Front Request / Request Heating Power Front */
+    /** Sets Heating Power Front Request / Request Heating Power Front. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: %) */
     void set_HtPwr_Ft_Rq(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Heating Power Front Request / Request Heating Power Front */
+    /** Gets Heating Power Front Request / Request Heating Power Front. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: %) */
     uint8_t get_HtPwr_Ft_Rq() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_HVAC_RS1(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_HVAC_RS1() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_HVAC_RS1(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_HVAC_RS1() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } HVAC_RS1;
@@ -2520,76 +2520,76 @@ typedef union {
 
 	/** Gets CAN ID of TX_RQ_SBC */
 	uint32_t get_canid(){ return TX_RQ_SBC_CAN_ID; }
-    /** Sets Gear Limit Request from DTR / Sprocket Request for DTR */
+    /** Sets Gear limit request from DTR / nominal gear requirement of DTR */
     void set_GrMinMax_Rq_DTR(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
-    /** Gets Gear Limit Request from DTR / Sprocket Request for DTR */
+    /** Gets Gear limit request from DTR / nominal gear requirement of DTR */
     bool get_GrMinMax_Rq_DTR() { return (bool)(raw >> 62 & 0x1); }
         
-    /** Sets Requested Gear, Upper Limit / Sprocket, Upper Border */
+    /** Sets Requested gear, upper limit / target gear, upper limit */
     void set_GrMax_Rq_SBC(TX_RQ_SBC_GrMax_Rq_SBC value){ raw = (raw & 0xc7ffffffffffffff) | ((uint64_t)value & 0x7) << 59; }
 
-    /** Gets Requested Gear, Upper Limit / Sprocket, Upper Border */
+    /** Gets Requested gear, upper limit / target gear, upper limit */
     TX_RQ_SBC_GrMax_Rq_SBC get_GrMax_Rq_SBC() { return (TX_RQ_SBC_GrMax_Rq_SBC)(raw >> 59 & 0x7); }
         
-    /** Sets Requested Gear, Lower Limit / Sprocket, Lower Border */
+    /** Sets Requested gear, lower limit / target gear, lower limit */
     void set_GrMin_Rq_SBC(TX_RQ_SBC_GrMin_Rq_SBC value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
-    /** Gets Requested Gear, Lower Limit / Sprocket, Lower Border */
+    /** Gets Requested gear, lower limit / target gear, lower limit */
     TX_RQ_SBC_GrMin_Rq_SBC get_GrMin_Rq_SBC() { return (TX_RQ_SBC_GrMin_Rq_SBC)(raw >> 56 & 0x7); }
         
-    /** Sets Suppression of Dynamic Full Load Down Shift Request / Suppression Dynamic Full Determination */
+    /** Sets Suppression of dynamic full load downshift request / suppression dynamic Vollastrückschaltung */
     void set_DynFLDS_Supp_Rq_SBC(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
-    /** Gets Suppression of Dynamic Full Load Down Shift Request / Suppression Dynamic Full Determination */
+    /** Gets Suppression of dynamic full load downshift request / suppression dynamic Vollastrückschaltung */
     bool get_DynFLDS_Supp_Rq_SBC() { return (bool)(raw >> 55 & 0x1); }
         
-    /** Sets Active Down Shift / Active Record */
+    /** Sets Active downshift / Active downshift */
     void set_ActvDnShift_Rq_SBC(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
-    /** Gets Active Down Shift / Active Record */
+    /** Gets Active downshift / Active downshift */
     bool get_ActvDnShift_Rq_SBC() { return (bool)(raw >> 54 & 0x1); }
         
-    /** Sets Shift Characteristic Displacement Request / Request Switching Shift */
+    /** Sets Shift characteristic displacement request / demand shift line shift */
     void set_ShftChrDsp_Rq_SBC(TX_RQ_SBC_ShftChrDsp_Rq_SBC value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
-    /** Gets Shift Characteristic Displacement Request / Request Switching Shift */
+    /** Gets Shift characteristic displacement request / demand shift line shift */
     TX_RQ_SBC_ShftChrDsp_Rq_SBC get_ShftChrDsp_Rq_SBC() { return (TX_RQ_SBC_ShftChrDsp_Rq_SBC)(raw >> 48 & 0xf); }
         
-    /** Sets No Gear "N" Request (Only for Office During SBC Additional Value Active) / SBC-S / H active, ASG must not switch to "n" */
+    /** Sets No gear "N" request (only for AMT during SBC additional value active) / SBC-S / H active ASG must not switch to "N" */
     void set_NoGrN_Rq(bool value){ raw = (raw & 0xfffffbffffffffff) | ((uint64_t)value & 0x1) << 42; }
 
-    /** Gets No Gear "N" Request (Only for Office During SBC Additional Value Active) / SBC-S / H active, ASG must not switch to "n" */
+    /** Gets No gear "N" request (only for AMT during SBC additional value active) / SBC-S / H active ASG must not switch to "N" */
     bool get_NoGrN_Rq() { return (bool)(raw >> 42 & 0x1); }
         
-    /** Sets Request Neutral Gear by SBC / SBC wish: "neutral" */
+    /** Sets Request neutral gear by SBC / SBC request: "Neutral" */
     void set_GrN_Rq_SBC(TX_RQ_SBC_GrN_Rq_SBC value){ raw = (raw & 0xfffffcffffffffff) | ((uint64_t)value & 0x3) << 40; }
 
-    /** Gets Request Neutral Gear by SBC / SBC wish: "neutral" */
+    /** Gets Request neutral gear by SBC / SBC request: "Neutral" */
     TX_RQ_SBC_GrN_Rq_SBC get_GrN_Rq_SBC() { return (TX_RQ_SBC_GrN_Rq_SBC)(raw >> 40 & 0x3); }
         
-    /** Sets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT) */
+    /** Sets Requested minimum transmission ratio (CVT) / target speed, lower limit (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatioMin_Rq_SBC(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT) */
+    /** Gets Requested minimum transmission ratio (CVT) / target speed, lower limit (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
     uint8_t get_TxRatioMin_Rq_SBC() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT) */
+    /** Sets Requested maximum transmission ratio (CVT) / target gear, upper limit (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatioMax_Rq_SBC(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT) */
+    /** Gets Requested maximum transmission ratio (CVT) / target gear, upper limit (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
     uint8_t get_TxRatioMax_Rq_SBC() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_TX_RQ_SBC(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_TX_RQ_SBC() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_TX_RQ_SBC(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_TX_RQ_SBC() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } TX_RQ_SBC;
@@ -2613,28 +2613,28 @@ typedef union {
     /** Gets Proheating State / Preheating Status */
     bool get_PreHt_Stat() { return (bool)(raw >> 62 & 0x1); }
         
-    /** Sets Actual Engine RPM / engine speed */
+    /** Sets Actual Engine RPM / engine speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_EngRPM(uint16_t value){ raw = (raw & 0xc000ffffffffffff) | ((uint64_t)value & 0x3fff) << 48; }
 
-    /** Gets Actual Engine RPM / engine speed */
+    /** Gets Actual Engine RPM / engine speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_EngRPM() { return (uint16_t)(raw >> 48 & 0x3fff); }
         
-    /** Sets Correction Factor of Maximum Engine Torque Depending On Falling Atmospheric Pressure / Factor for Abwert.d.Max. Mom. At Aufneh.A.Print */
+    /** Sets Correction Factor of Maximum Engine Torque Depending On Falling Atmospheric Pressure / Factor for Abwert.d.Max. Mom. At Aufneh.A.Print. Conversion formula (To raw from real): y=(x-0.0)/0.01 */
     void set_EngTrqMaxCorrFctr(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Correction Factor of Maximum Engine Torque Depending On Falling Atmospheric Pressure / Factor for Abwert.d.Max. Mom. At Aufneh.A.Print */
+    /** Gets Correction Factor of Maximum Engine Torque Depending On Falling Atmospheric Pressure / Factor for Abwert.d.Max. Mom. At Aufneh.A.Print. Conversion formula (To real from raw): y=(0.01x)+0.0 */
     uint8_t get_EngTrqMaxCorrFctr() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Accelerator Pedal Position / Pedal Value */
+    /** Sets Accelerator Pedal Position / Pedal Value. Conversion formula (To raw from real): y=(x-0.0)/0.40 (Unit: %) */
     void set_AccelPdlPosn(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Accelerator Pedal Position / Pedal Value */
+    /** Gets Accelerator Pedal Position / Pedal Value. Conversion formula (To real from raw): y=(0.40x)+0.0 (Unit: %) */
     uint8_t get_AccelPdlPosn() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Accelerator Pedal Position Raw Value / Pedal Value Driver */
+    /** Sets Accelerator Pedal Position Raw Value / Pedal Value Driver. Conversion formula (To raw from real): y=(x-0.0)/0.40 (Unit: %) */
     void set_AccelPdlPosn_Raw(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Accelerator Pedal Position Raw Value / Pedal Value Driver */
+    /** Gets Accelerator Pedal Position Raw Value / Pedal Value Driver. Conversion formula (To real from raw): y=(0.40x)+0.0 (Unit: %) */
     uint8_t get_AccelPdlPosn_Raw() { return (uint8_t)(raw >> 24 & 0xff); }
         
     /** Sets Terminal 61 Active / Clamp 61 active */
@@ -2649,16 +2649,16 @@ typedef union {
     /** Gets Additional Power Consumers on Request / Request Additional power consumers */
     bool get_AddPwrCnsmr_On_Rq() { return (bool)(raw >> 22 & 0x1); }
         
-    /** Sets Actual Generator Load / Generator utilization */
+    /** Sets Actual Generator Load / Generator utilization. Conversion formula (To raw from real): y=(x-0.0)/3.23 (Unit: %) */
     void set_GenLoad(uint8_t value){ raw = (raw & 0xffffffffffc0ffff) | ((uint64_t)value & 0x3f) << 16; }
 
-    /** Gets Actual Generator Load / Generator utilization */
+    /** Gets Actual Generator Load / Generator utilization. Conversion formula (To real from raw): y=(3.23x)+0.0 (Unit: %) */
     uint8_t get_GenLoad() { return (uint8_t)(raw >> 16 & 0x3f); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RS3_PT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RS3_PT() { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Accelerator Pedal Position Sensor Fault / Error pedal value transmitter */
@@ -2673,10 +2673,10 @@ typedef union {
     /** Gets Engine Running State / Status Engine Circulation */
     ENG_RS3_PT_EngRun_Stat get_EngRun_Stat() { return (ENG_RS3_PT_EngRun_Stat)(raw >> 8 & 0x7); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RS3_PT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RS3_PT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RS3_PT;
@@ -2688,16 +2688,16 @@ typedef union {
 
 	/** Gets CAN ID of ENG_RS2_PT */
 	uint32_t get_canid(){ return ENG_RS2_PT_CAN_ID; }
-    /** Sets Actual Static Engine Torque / Motor Tour Static */
+    /** Sets Actual Static Engine Torque / Motor Tour Static. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqStatic(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Actual Static Engine Torque / Motor Tour Static */
+    /** Gets Actual Static Engine Torque / Motor Tour Static. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqStatic() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
-    /** Sets ACTUAL Maximum Engine Torque Including Dynamic Exhaust Turbocharger Torque / Maximum Moment Burner with Exhaust Turbocharger */
+    /** Sets ACTUAL Maximum Engine Torque Including Dynamic Exhaust Turbocharger Torque / Maximum Moment Burner with Exhaust Turbocharger. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqMaxETC(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets ACTUAL Maximum Engine Torque Including Dynamic Exhaust Turbocharger Torque / Maximum Moment Burner with Exhaust Turbocharger */
+    /** Gets ACTUAL Maximum Engine Torque Including Dynamic Exhaust Turbocharger Torque / Maximum Moment Burner with Exhaust Turbocharger. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqMaxETC() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
     /** Sets Fully Overrun Fuel Cutoff Active / push shutdown full */
@@ -2712,22 +2712,22 @@ typedef union {
     /** Gets Partly Overrun Fuel Cutoff Active / Part Number Shutdown */
     bool get_PartOFC_Actv() { return (bool)(raw >> 30 & 0x1); }
         
-    /** Sets Actual Mimimum Engine Torque Including Trailing Throttle Component / Motor Torque Minimal including thrust */
+    /** Sets Actual Mimimum Engine Torque Including Trailing Throttle Component / Motor Torque Minimal including thrust. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqMinTTC(uint16_t value){ raw = (raw & 0xffffffffe000ffff) | ((uint64_t)value & 0x1fff) << 16; }
 
-    /** Gets Actual Mimimum Engine Torque Including Trailing Throttle Component / Motor Torque Minimal including thrust */
+    /** Gets Actual Mimimum Engine Torque Including Trailing Throttle Component / Motor Torque Minimal including thrust. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqMinTTC() { return (uint16_t)(raw >> 16 & 0x1fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RS2_PT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RS2_PT() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RS2_PT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RS2_PT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RS2_PT;
@@ -2781,16 +2781,16 @@ typedef union {
     /** Gets Shift Characteristic Displacement Request / Request Switching Shift */
     TX_RQ_ECM_ShftChrDsp_Rq get_ShftChrDsp_Rq() { return (TX_RQ_ECM_ShftChrDsp_Rq)(raw >> 48 & 0xf); }
         
-    /** Sets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT) */
+    /** Sets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatioMin_Rq_ECM(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT) */
+    /** Gets Requested Minimum Transmission Ratio (CVT) / Target Translation, Lower Border (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
     uint8_t get_TxRatioMin_Rq_ECM() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT) */
+    /** Sets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatioMax_Rq_ECM(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT) */
+    /** Gets Requested Maximum Transmission Ratio (CVT) / Target Translation, Upper Border (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
     uint8_t get_TxRatioMax_Rq_ECM() { return (uint8_t)(raw >> 32 & 0xff); }
         
     /** Sets Torque Converter Lockup Clutch Request / Kueb setpoint open / slipping */
@@ -2799,16 +2799,16 @@ typedef union {
     /** Gets Torque Converter Lockup Clutch Request / Kueb setpoint open / slipping */
     TX_RQ_ECM_TCC_Rq get_TCC_Rq() { return (TX_RQ_ECM_TCC_Rq)(raw >> 30 & 0x3); }
         
-    /** Sets Transmission Slip RPM Request / Request Slip speed. */
+    /** Sets Transmission Slip RPM Request / Request Slip speed.. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_TxSlpRPM_Rq_ECM(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Transmission Slip RPM Request / Request Slip speed. */
+    /** Gets Transmission Slip RPM Request / Request Slip speed.. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_TxSlpRPM_Rq_ECM() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_TX_RQ_ECM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_TX_RQ_ECM() { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Engine Control Modules in Limp-Home Operation Fashion / ECM in emergency operation */
@@ -2829,10 +2829,10 @@ typedef union {
     /** Gets Engine RPM Sensor in LIMP-Home Operation Fashion / engine speed sensor in emergency operation */
     bool get_EngRPM_Sens_LHOM() { return (bool)(raw >> 8 & 0x1); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_TX_RQ_ECM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_TX_RQ_ECM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } TX_RQ_ECM;
@@ -2856,10 +2856,10 @@ typedef union {
     /** Gets Enable Engine Torque Request / Enable Torque Request AS */
     bool get_EngTrq_Enbl_Rq_AS() { return (bool)(raw >> 61 & 0x1); }
         
-    /** Sets Selected Torque by Driver Including Trailing Throttle Component / Preset Tame Driver including Schubrank */
+    /** Sets Selected Torque by Driver Including Trailing Throttle Component / Preset Tame Driver including Schubrank. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqSel_D_TTC(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Selected Torque by Driver Including Trailing Throttle Component / Preset Tame Driver including Schubrank */
+    /** Gets Selected Torque by Driver Including Trailing Throttle Component / Preset Tame Driver including Schubrank. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqSel_D_TTC() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
     /** Sets Enable Fast Engine Torque Adjustment / Enable Fast torque setting */
@@ -2874,10 +2874,10 @@ typedef union {
     /** Gets Enable Engine Torque Request / Enable Torque Requirement SBC */
     bool get_EngTrq_Enbl_Rq_SBC() { return (bool)(raw >> 45 & 0x1); }
         
-    /** Sets Selected Torque By AS Including Trailing Throttle Component / Property Toment AS including thrust */
+    /** Sets Selected Torque By AS Including Trailing Throttle Component / Property Toment AS including thrust. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqSel_AS_TTC(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets Selected Torque By AS Including Trailing Throttle Component / Property Toment AS including thrust */
+    /** Gets Selected Torque By AS Including Trailing Throttle Component / Property Toment AS including thrust. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqSel_AS_TTC() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
     /** Sets Engine Torque Request AcknowledgeGement / acknowledgment Torque requirement */
@@ -2892,22 +2892,22 @@ typedef union {
     /** Gets Enable Engine Torque Request / Enable Tomentic Request TCM */
     bool get_EngTrq_Enbl_Rq_TCM() { return (bool)(raw >> 29 & 0x1); }
         
-    /** Sets Selected Torque by SBC Including Trailing Throttle Component / Preset Tame SBC including thrust */
+    /** Sets Selected Torque by SBC Including Trailing Throttle Component / Preset Tame SBC including thrust. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrqSel_SBC_TTC(uint16_t value){ raw = (raw & 0xffffffffe000ffff) | ((uint64_t)value & 0x1fff) << 16; }
 
-    /** Gets Selected Torque by SBC Including Trailing Throttle Component / Preset Tame SBC including thrust */
+    /** Gets Selected Torque by SBC Including Trailing Throttle Component / Preset Tame SBC including thrust. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
     uint16_t get_EngTrqSel_SBC_TTC() { return (uint16_t)(raw >> 16 & 0x1fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RS1_PT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_ENG_RS1_PT() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RS1_PT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_ENG_RS1_PT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RS1_PT;
@@ -2940,40 +2940,40 @@ typedef union {
 
 	/** Gets CAN ID of WHL_STAT1 */
 	uint32_t get_canid(){ return WHL_STAT1_CAN_ID; }
-    /** Sets Wheel Pulse Counter Front Left (96 by rotation) / pulse ring counter wheel front left (96 per revolution) */
+    /** Sets Wheel Pulse Counter Front Left (96 by rotation) / pulse ring counter wheel front left (96 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Impulses) */
     void set_WhlPlsCnt_FL(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Wheel Pulse Counter Front Left (96 by rotation) / pulse ring counter wheel front left (96 per revolution) */
+    /** Gets Wheel Pulse Counter Front Left (96 by rotation) / pulse ring counter wheel front left (96 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Impulses) */
     uint8_t get_WhlPlsCnt_FL() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Wheel Pulse Counter Front Right (96 Per Rotation) / Pulse Ring Counter Wheel Front Right (96 per Revolution) */
+    /** Sets Wheel Pulse Counter Front Right (96 Per Rotation) / Pulse Ring Counter Wheel Front Right (96 per Revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Impulses) */
     void set_WhlPlsCnt_FR(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Wheel Pulse Counter Front Right (96 Per Rotation) / Pulse Ring Counter Wheel Front Right (96 per Revolution) */
+    /** Gets Wheel Pulse Counter Front Right (96 Per Rotation) / Pulse Ring Counter Wheel Front Right (96 per Revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Impulses) */
     uint8_t get_WhlPlsCnt_FR() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets Wheel Pulse Counter Rear Left (96 by rotation) / pulse ring counter wheel rear left (96 per revolution) */
+    /** Sets Wheel Pulse Counter Rear Left (96 by rotation) / pulse ring counter wheel rear left (96 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Impulses) */
     void set_WhlPlsCnt_RL(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Wheel Pulse Counter Rear Left (96 by rotation) / pulse ring counter wheel rear left (96 per revolution) */
+    /** Gets Wheel Pulse Counter Rear Left (96 by rotation) / pulse ring counter wheel rear left (96 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Impulses) */
     uint8_t get_WhlPlsCnt_RL() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Wheel Pulse Counter Rear Right (96 by rotation) / pulse ring counter wheel rear right (96 per revolution) */
+    /** Sets Wheel Pulse Counter Rear Right (96 by rotation) / pulse ring counter wheel rear right (96 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Impulses) */
     void set_WhlPlsCnt_RR(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Wheel Pulse Counter Rear Right (96 by rotation) / pulse ring counter wheel rear right (96 per revolution) */
+    /** Gets Wheel Pulse Counter Rear Right (96 by rotation) / pulse ring counter wheel rear right (96 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Impulses) */
     uint8_t get_WhlPlsCnt_RR() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_WHL_STAT1(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_WHL_STAT1() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_WHL_STAT1(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_WHL_STAT1() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } WHL_STAT1;
@@ -2991,10 +2991,10 @@ typedef union {
     /** Gets DIRECTION OF ROTATION OF FRONT LEFT Wheel / direction of rotation Wheel front left */
     WHL_STAT2_WhlDir_FL_Stat get_WhlDir_FL_Stat() { return (WHL_STAT2_WhlDir_FL_Stat)(raw >> 62 & 0x3); }
         
-    /** Sets Wheel RPM Front Left / Wheel Speed Front Left */
+    /** Sets Wheel RPM Front Left / Wheel Speed Front Left. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: rpm) */
     void set_WhlRPM_FL(uint16_t value){ raw = (raw & 0xc000ffffffffffff) | ((uint64_t)value & 0x3fff) << 48; }
 
-    /** Gets Wheel RPM Front Left / Wheel Speed Front Left */
+    /** Gets Wheel RPM Front Left / Wheel Speed Front Left. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: rpm) */
     uint16_t get_WhlRPM_FL() { return (uint16_t)(raw >> 48 & 0x3fff); }
         
     /** Sets DIRECTION OF ROTATION OF FRONT RIGHT Wheel / direction of rotation Wheel front right */
@@ -3003,10 +3003,10 @@ typedef union {
     /** Gets DIRECTION OF ROTATION OF FRONT RIGHT Wheel / direction of rotation Wheel front right */
     WHL_STAT2_WhlDir_FR_Stat get_WhlDir_FR_Stat() { return (WHL_STAT2_WhlDir_FR_Stat)(raw >> 46 & 0x3); }
         
-    /** Sets Wheel RPM Front Right / wheel speed front right */
+    /** Sets Wheel RPM Front Right / wheel speed front right. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: rpm) */
     void set_WhlRPM_FR(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets Wheel RPM Front Right / wheel speed front right */
+    /** Gets Wheel RPM Front Right / wheel speed front right. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: rpm) */
     uint16_t get_WhlRPM_FR() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets DIRECTION OF ROTATION OF REAR LEFT Wheel / direction of rotation Wheel rear left */
@@ -3015,10 +3015,10 @@ typedef union {
     /** Gets DIRECTION OF ROTATION OF REAR LEFT Wheel / direction of rotation Wheel rear left */
     WHL_STAT2_WhlDir_RL_Stat get_WhlDir_RL_Stat() { return (WHL_STAT2_WhlDir_RL_Stat)(raw >> 30 & 0x3); }
         
-    /** Sets Wheel RPM REAR Left / wheel speed rear left */
+    /** Sets Wheel RPM REAR Left / wheel speed rear left. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: rpm) */
     void set_WhlRPM_RL(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Wheel RPM REAR Left / wheel speed rear left */
+    /** Gets Wheel RPM REAR Left / wheel speed rear left. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: rpm) */
     uint16_t get_WhlRPM_RL() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets DIRECTION OF ROTATION OF REAR RIGHT Wheel / direction of rotation Wheel rear right */
@@ -3027,10 +3027,10 @@ typedef union {
     /** Gets DIRECTION OF ROTATION OF REAR RIGHT Wheel / direction of rotation Wheel rear right */
     WHL_STAT2_WhlDir_RR_Stat get_WhlDir_RR_Stat() { return (WHL_STAT2_WhlDir_RR_Stat)(raw >> 14 & 0x3); }
         
-    /** Sets Wheel RPM Rear Right / Rear Rear Right Right */
+    /** Sets Wheel RPM Rear Right / Rear Rear Right Right. Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: rpm) */
     void set_WhlRPM_RR(uint16_t value){ raw = (raw & 0xffffffffffffc000) | ((uint64_t)value & 0x3fff) << 0; }
 
-    /** Gets Wheel RPM Rear Right / Rear Rear Right Right */
+    /** Gets Wheel RPM Rear Right / Rear Rear Right Right. Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: rpm) */
     uint16_t get_WhlRPM_RR() { return (uint16_t)(raw >> 0 & 0x3fff); }
         
 } WHL_STAT2;
@@ -3078,10 +3078,10 @@ typedef union {
     /** Gets Battery Coupling Switch State / State Battery Coupling Switch */
     PN14_STAT_PN14_BatCplSw_Stat get_PN14_BatCplSw_Stat() { return (PN14_STAT_PN14_BatCplSw_Stat)(raw >> 56 & 0x3); }
         
-    /** Sets Supply Battery Voltage / Supply Battery IST voltage */
+    /** Sets Supply Battery Voltage / Supply Battery IST voltage. Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: V) */
     void set_PN14_SupBat_Volt(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Supply Battery Voltage / Supply Battery IST voltage */
+    /** Gets Supply Battery Voltage / Supply Battery IST voltage. Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: V) */
     uint8_t get_PN14_SupBat_Volt() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Supply Battery Cutoff Switch State / Status Battery Separation Switch */
@@ -3279,136 +3279,136 @@ typedef union {
 
 	/** Gets CAN ID of CVI */
 	uint32_t get_canid(){ return CVI_CAN_ID; }
-    /** Sets Country Code / Country Code */
+    /** Sets Country code / country code */
     void set_Country(CVI_Country value){ raw = (raw & 0x0fffffffffffffff) | ((uint64_t)value & 0xf) << 60; }
 
-    /** Gets Country Code / Country Code */
+    /** Gets Country code / country code */
     CVI_Country get_Country() { return (CVI_Country)(raw >> 60 & 0xf); }
         
-    /** Sets DC Group / DC Group */
+    /** Sets DC group / DC group */
     void set_Group(CVI_Group value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
-    /** Gets DC Group / DC Group */
+    /** Gets DC group / DC group */
     CVI_Group get_Group() { return (CVI_Group)(raw >> 56 & 0xf); }
         
-    /** Sets Guard Level / Guard Level */
+    /** Sets Guard level / Guard Level */
     void set_Guard(CVI_Guard value){ raw = (raw & 0xff3fffffffffffff) | ((uint64_t)value & 0x3) << 54; }
 
-    /** Gets Guard Level / Guard Level */
+    /** Gets Guard level / Guard Level */
     CVI_Guard get_Guard() { return (CVI_Guard)(raw >> 54 & 0x3); }
         
-    /** Sets Vehicle Line / Series */
+    /** Sets Vehicle line / Series */
     void set_VehLine(CVI_VehLine value){ raw = (raw & 0xffc0ffffffffffff) | ((uint64_t)value & 0x3f) << 48; }
 
-    /** Gets Vehicle Line / Series */
+    /** Gets Vehicle line / Series */
     CVI_VehLine get_VehLine() { return (CVI_VehLine)(raw >> 48 & 0x3f); }
         
-    /** Sets Vehicle Line version: Year / change year: year */
+    /** Sets Vehicle line version: year / year change: Year */
     void set_VehLineYear(CVI_VehLineYear value){ raw = (raw & 0xffff83ffffffffff) | ((uint64_t)value & 0x1f) << 42; }
 
-    /** Gets Vehicle Line version: Year / change year: year */
+    /** Gets Vehicle line version: year / year change: Year */
     CVI_VehLineYear get_VehLineYear() { return (CVI_VehLineYear)(raw >> 42 & 0x1f); }
         
-    /** Sets Vehicle Line version: Package / change year: package */
+    /** Sets Vehicle line version: package / change Year: Package */
     void set_VehLinePack(CVI_VehLinePack value){ raw = (raw & 0xfffffcffffffffff) | ((uint64_t)value & 0x3) << 40; }
 
-    /** Gets Vehicle Line version: Package / change year: package */
+    /** Gets Vehicle line version: package / change Year: Package */
     CVI_VehLinePack get_VehLinePack() { return (CVI_VehLinePack)(raw >> 40 & 0x3); }
         
-    /** Sets Steering Variant / Steering Variant */
+    /** Sets Steering variant / Steering variant */
     void set_StStyle(CVI_StStyle value){ raw = (raw & 0xffffff9fffffffff) | ((uint64_t)value & 0x3) << 37; }
 
-    /** Gets Steering Variant / Steering Variant */
+    /** Gets Steering variant / Steering variant */
     CVI_StStyle get_StStyle() { return (CVI_StStyle)(raw >> 37 & 0x3); }
         
-    /** Sets Vehicle Body Style / Body Variante */
+    /** Sets Vehicle body style / body variant */
     void set_BodyStyle(CVI_BodyStyle value){ raw = (raw & 0xffffffe0ffffffff) | ((uint64_t)value & 0x1f) << 32; }
 
-    /** Gets Vehicle Body Style / Body Variante */
+    /** Gets Vehicle body style / body variant */
     CVI_BodyStyle get_BodyStyle() { return (CVI_BodyStyle)(raw >> 32 & 0x1f); }
         
-    /** Sets Engine (Bit 7: Otto Engine => 0, Diesel Engine => 1) / Engine (Bit 7: Gasoline => 0, Diesel => 1) */
+    /** Sets Engine (Bit 7: Otto-engine => 0, diesel engine => 1) / motor (Bit 7: gasoline => 0, Diesel => 1) */
     void set_EngStyle(CVI_EngStyle value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Engine (Bit 7: Otto Engine => 0, Diesel Engine => 1) / Engine (Bit 7: Gasoline => 0, Diesel => 1) */
+    /** Gets Engine (Bit 7: Otto-engine => 0, diesel engine => 1) / motor (Bit 7: gasoline => 0, Diesel => 1) */
     CVI_EngStyle get_EngStyle() { return (CVI_EngStyle)(raw >> 24 & 0xff); }
         
-    /** Sets Rain Sensor Available / Rain Sensor available */
+    /** Sets Rain sensor available / rain sensor available */
     void set_RainSens_Avl(bool value){ raw = (raw & 0xffffffffff7fffff) | ((uint64_t)value & 0x1) << 23; }
 
-    /** Gets Rain Sensor Available / Rain Sensor available */
+    /** Gets Rain sensor available / rain sensor available */
     bool get_RainSens_Avl() { return (bool)(raw >> 23 & 0x1); }
         
-    /** Sets Light Sensor Available / Light Sensor available */
+    /** Sets Light sensor available / light sensor available */
     void set_LgtSens_Avl(bool value){ raw = (raw & 0xffffffffffbfffff) | ((uint64_t)value & 0x1) << 22; }
 
-    /** Gets Light Sensor Available / Light Sensor available */
+    /** Gets Light sensor available / light sensor available */
     bool get_LgtSens_Avl() { return (bool)(raw >> 22 & 0x1); }
         
-    /** Sets Independent Car Heater Available / parking heater available */
+    /** Sets Independent car heater available / heater available */
     void set_ICH_Avl(bool value){ raw = (raw & 0xffffffffffdfffff) | ((uint64_t)value & 0x1) << 21; }
 
-    /** Gets Independent Car Heater Available / parking heater available */
+    /** Gets Independent car heater available / heater available */
     bool get_ICH_Avl() { return (bool)(raw >> 21 & 0x1); }
         
-    /** Sets Passenger Compartment Detection Available / Interior protection available */
+    /** Sets Passenger compartment detection available / interior protection available */
     void set_PCD_Avl(bool value){ raw = (raw & 0xffffffffffefffff) | ((uint64_t)value & 0x1) << 20; }
 
-    /** Gets Passenger Compartment Detection Available / Interior protection available */
+    /** Gets Passenger compartment detection available / interior protection available */
     bool get_PCD_Avl() { return (bool)(raw >> 20 & 0x1); }
         
-    /** Sets Vehicle Theft Alarm Available / EDW available */
+    /** Sets Vehicle theft alarm available / EDW available */
     void set_VTA_Avl(bool value){ raw = (raw & 0xfffffffffff7ffff) | ((uint64_t)value & 0x1) << 19; }
 
-    /** Gets Vehicle Theft Alarm Available / EDW available */
+    /** Gets Vehicle theft alarm available / EDW available */
     bool get_VTA_Avl() { return (bool)(raw >> 19 & 0x1); }
         
-    /** Sets Trailer Hitch available / trailer hitch available */
+    /** Sets Trailer Hitch available / trailer coupling available */
     void set_TrlrHtch_Avl(bool value){ raw = (raw & 0xfffffffffffbffff) | ((uint64_t)value & 0x1) << 18; }
 
-    /** Gets Trailer Hitch available / trailer hitch available */
+    /** Gets Trailer Hitch available / trailer coupling available */
     bool get_TrlrHtch_Avl() { return (bool)(raw >> 18 & 0x1); }
         
-    /** Sets Air Condition Available / KLA available */
+    /** Sets Air Condition available / KLA available */
     void set_HVAC_Avl(bool value){ raw = (raw & 0xfffffffffffdffff) | ((uint64_t)value & 0x1) << 17; }
 
-    /** Gets Air Condition Available / KLA available */
+    /** Gets Air Condition available / KLA available */
     bool get_HVAC_Avl() { return (bool)(raw >> 17 & 0x1); }
         
-    /** Sets Transmission Control Available / Transmission Control available */
+    /** Sets Transmission Control available / transmission control available */
     void set_TCM_Avl(bool value){ raw = (raw & 0xfffffffffffeffff) | ((uint64_t)value & 0x1) << 16; }
 
-    /** Gets Transmission Control Available / Transmission Control available */
+    /** Gets Transmission Control available / transmission control available */
     bool get_TCM_Avl() { return (bool)(raw >> 16 & 0x1); }
         
-    /** Sets Vehicle Roof Style / Roof Variant */
+    /** Sets Vehicle roof style / roof version */
     void set_RoofStyle(CVI_RoofStyle value){ raw = (raw & 0xffffffffffff1fff) | ((uint64_t)value & 0x7) << 13; }
 
-    /** Gets Vehicle Roof Style / Roof Variant */
+    /** Gets Vehicle roof style / roof version */
     CVI_RoofStyle get_RoofStyle() { return (CVI_RoofStyle)(raw >> 13 & 0x7); }
         
-    /** Sets Complete Substitution Lights Enabled / Complete replacement light allowed */
+    /** Sets Complete substitution lights enabled / Complete replacement light allowed */
     void set_Cplt_SL_Enbl(bool value){ raw = (raw & 0xffffffffffffefff) | ((uint64_t)value & 0x1) << 12; }
 
-    /** Gets Complete Substitution Lights Enabled / Complete replacement light allowed */
+    /** Gets Complete substitution lights enabled / Complete replacement light allowed */
     bool get_Cplt_SL_Enbl() { return (bool)(raw >> 12 & 0x1); }
         
-    /** Sets Vehicle Options Package / Vehicle Features Package */
+    /** Sets Vehicle options package / vehicle equipment package */
     void set_VehOPTPack(CVI_VehOPTPack value){ raw = (raw & 0xfffffffffffff3ff) | ((uint64_t)value & 0x3) << 10; }
 
-    /** Gets Vehicle Options Package / Vehicle Features Package */
+    /** Gets Vehicle options package / vehicle equipment package */
     CVI_VehOPTPack get_VehOPTPack() { return (CVI_VehOPTPack)(raw >> 10 & 0x3); }
         
-    /** Sets HVAC STYLE / KLA Variant */
+    /** Sets HVAC style / KLA variant */
     void set_HVACStyle(CVI_HVACStyle value){ raw = (raw & 0xfffffffffffffcff) | ((uint64_t)value & 0x3) << 8; }
 
-    /** Gets HVAC STYLE / KLA Variant */
+    /** Gets HVAC style / KLA variant */
     CVI_HVACStyle get_HVACStyle() { return (CVI_HVACStyle)(raw >> 8 & 0x3); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_CVI(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_CVI() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } CVI;
@@ -3420,46 +3420,46 @@ typedef union {
 
 	/** Gets CAN ID of VEH_DYN_STAT */
 	uint32_t get_canid(){ return VEH_DYN_STAT_CAN_ID; }
-    /** Sets Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means Left) / Rohsignal Gierrate Without Calculation / Filtering (+ = Left) */
+    /** Sets Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means Left) / Rohsignal Gierrate Without Calculation / Filtering (+ = Left). Conversion formula (To raw from real): y=(x+327.67999267578125)/0.01 (Unit: °/s) */
     void set_VehYawRate_Raw(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
-    /** Gets Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means Left) / Rohsignal Gierrate Without Calculation / Filtering (+ = Left) */
+    /** Gets Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means Left) / Rohsignal Gierrate Without Calculation / Filtering (+ = Left). Conversion formula (To real from raw): y=(0.01x)-327.67999267578125 (Unit: °/s) */
     uint16_t get_VehYawRate_Raw() { return (uint16_t)(raw >> 48 & 0xffff); }
         
-    /** Sets Offset of Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means LEFT) / Offset of the Raw Signal Greeding rate without reconciliation / filtering (+ = left) */
+    /** Sets Offset of Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means LEFT) / Offset of the Raw Signal Greeding rate without reconciliation / filtering (+ = left). Conversion formula (To raw from real): y=(x+10.239999771118164)/0.08 */
     void set_VehYawRateOffset(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Offset of Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means LEFT) / Offset of the Raw Signal Greeding rate without reconciliation / filtering (+ = left) */
+    /** Gets Offset of Vehicle Yaw Rate Unfiltered / Unadjusted (+ Means LEFT) / Offset of the Raw Signal Greeding rate without reconciliation / filtering (+ = left). Conversion formula (To real from raw): y=(0.08x)-10.239999771118164 */
     uint8_t get_VehYawRateOffset() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Offset of Vehicle Longitudinal Acceleration (+ Means Forward) / Offset of vehicle longitudinal acceleration (+ = forward) */
+    /** Sets Offset of Vehicle Longitudinal Acceleration (+ Means Forward) / Offset of vehicle longitudinal acceleration (+ = forward). Conversion formula (To raw from real): y=(x+2.559999942779541)/0.02 (Unit: m/s²) */
     void set_VehAccel_X_Offset(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
-    /** Gets Offset of Vehicle Longitudinal Acceleration (+ Means Forward) / Offset of vehicle longitudinal acceleration (+ = forward) */
+    /** Gets Offset of Vehicle Longitudinal Acceleration (+ Means Forward) / Offset of vehicle longitudinal acceleration (+ = forward). Conversion formula (To real from raw): y=(0.02x)-2.559999942779541 (Unit: m/s²) */
     uint8_t get_VehAccel_X_Offset() { return (uint8_t)(raw >> 32 & 0xff); }
         
-    /** Sets Vehicle Longitudinal Acceleration (+ Means Forward) / vehicle longitudinal acceleration (+ = forward) */
+    /** Sets Vehicle Longitudinal Acceleration (+ Means Forward) / vehicle longitudinal acceleration (+ = forward). Conversion formula (To raw from real): y=(x+10.239999771118164)/0.08 (Unit: m/s²) */
     void set_VehAccel_X(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Vehicle Longitudinal Acceleration (+ Means Forward) / vehicle longitudinal acceleration (+ = forward) */
+    /** Gets Vehicle Longitudinal Acceleration (+ Means Forward) / vehicle longitudinal acceleration (+ = forward). Conversion formula (To real from raw): y=(0.08x)-10.239999771118164 (Unit: m/s²) */
     uint8_t get_VehAccel_X() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets Vehicle Lateral Acceleration (+ Means LEFT, Specific to Center of Gravity, Offset Corrected) / Vehicle Cross Acceleration in Focus (+ = Left, Focus-related, Offset Corrected) */
+    /** Sets Vehicle Lateral Acceleration (+ Means LEFT, Specific to Center of Gravity, Offset Corrected) / Vehicle Cross Acceleration in Focus (+ = Left, Focus-related, Offset Corrected). Conversion formula (To raw from real): y=(x+10.239999771118164)/0.08 (Unit: m/s²) */
     void set_VehAccel_Y(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Vehicle Lateral Acceleration (+ Means LEFT, Specific to Center of Gravity, Offset Corrected) / Vehicle Cross Acceleration in Focus (+ = Left, Focus-related, Offset Corrected) */
+    /** Gets Vehicle Lateral Acceleration (+ Means LEFT, Specific to Center of Gravity, Offset Corrected) / Vehicle Cross Acceleration in Focus (+ = Left, Focus-related, Offset Corrected). Conversion formula (To real from raw): y=(0.08x)-10.239999771118164 (Unit: m/s²) */
     uint8_t get_VehAccel_Y() { return (uint8_t)(raw >> 16 & 0xff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_VEH_DYN_STAT(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_VEH_DYN_STAT() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets Offset of Vehicle Lateral Acceleration (+ Means Left) / Offset of vehicle cross-acceleration in focus (+ = left) */
+    /** Sets Offset of Vehicle Lateral Acceleration (+ Means Left) / Offset of vehicle cross-acceleration in focus (+ = left). Conversion formula (To raw from real): y=(x+2.559999942779541)/0.02 (Unit: m/s²) */
     void set_VehAccel_Y_Offset(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Offset of Vehicle Lateral Acceleration (+ Means Left) / Offset of vehicle cross-acceleration in focus (+ = left) */
+    /** Gets Offset of Vehicle Lateral Acceleration (+ Means Left) / Offset of vehicle cross-acceleration in focus (+ = left). Conversion formula (To real from raw): y=(0.02x)-2.559999942779541 (Unit: m/s²) */
     uint8_t get_VehAccel_Y_Offset() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } VEH_DYN_STAT;
@@ -3543,10 +3543,10 @@ typedef union {
     /** Gets Light Sensor Fault / Light Sensor Defective */
     bool get_LgtSens_Flt() { return (bool)(raw >> 45 & 0x1); }
         
-    /** Sets Light sensor "Tunnel" Detected / Light Sensor: Tunnel Detected */
+    /** Sets Light sensor "Tunnel" Detected / Light Sensor: Tunnel detected */
     void set_LgtSens_Tunnel(bool value){ raw = (raw & 0xffffefffffffffff) | ((uint64_t)value & 0x1) << 44; }
 
-    /** Gets Light sensor "Tunnel" Detected / Light Sensor: Tunnel Detected */
+    /** Gets Light sensor "Tunnel" Detected / Light Sensor: Tunnel detected */
     bool get_LgtSens_Tunnel() { return (bool)(raw >> 44 & 0x1); }
         
     /** Sets Light Sensor Information Not available / Values ​​of light sensor not available */
@@ -3555,10 +3555,10 @@ typedef union {
     /** Gets Light Sensor Information Not available / Values ​​of light sensor not available */
     bool get_LgtSens_SNA() { return (bool)(raw >> 43 & 0x1); }
         
-    /** Sets Twilight State Light Sensor / Twilight Light Sensor */
+    /** Sets Twilight State Light Sensor / Twilight Light Sensor. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Steps) */
     void set_LgtSens_Twlgt(uint8_t value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
 
-    /** Gets Twilight State Light Sensor / Twilight Light Sensor */
+    /** Gets Twilight State Light Sensor / Twilight Light Sensor. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Steps) */
     uint8_t get_LgtSens_Twlgt() { return (uint8_t)(raw >> 40 & 0x7); }
         
     /** Sets Tire in Limp-Home Operation Fashion / Mature Need */
@@ -3639,10 +3639,10 @@ typedef union {
     /** Gets Switch on Low Beam On Request / Low Light */
     bool get_LoBm_On_Rq() { return (bool)(raw >> 24 & 0x1); }
         
-    /** Sets Inside Air Temperature / Inn temperature */
+    /** Sets Inside Air Temperature / Inn temperature. Conversion formula (To raw from real): y=(x-0.0)/0.25 (Unit: °C) */
     void set_AirTemp_Insd(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Inside Air Temperature / Inn temperature */
+    /** Gets Inside Air Temperature / Inn temperature. Conversion formula (To real from raw): y=(0.25x)+0.0 (Unit: °C) */
     uint8_t get_AirTemp_Insd() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Steering Wheel Conditioning State / Status Steering Cool Climatization */
@@ -3669,10 +3669,10 @@ typedef union {
     /** Gets BUCKLE SWITCH REAR LEFT STATE (by SAM_R) / Status Curtle Rear Left */
     BODY_R1_Bckl_Sw_RL_Stat_SAM_R get_Bckl_Sw_RL_Stat_SAM_R() { return (BODY_R1_Bckl_Sw_RL_Stat_SAM_R)(raw >> 8 & 0x3); }
         
-    /** Sets Outside Air Temperature / Outdoor Air Temperature */
+    /** Sets Outside Air Temperature / Outdoor Air Temperature. Conversion formula (To raw from real): y=(x+40.0)/0.50 (Unit: °C) */
     void set_AirTemp_Outsd(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Outside Air Temperature / Outdoor Air Temperature */
+    /** Gets Outside Air Temperature / Outdoor Air Temperature. Conversion formula (To real from raw): y=(0.50x)-40.0 (Unit: °C) */
     uint8_t get_AirTemp_Outsd() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } BODY_R1;
@@ -3861,16 +3861,16 @@ typedef union {
 
 	/** Gets CAN ID of ECM_OBD */
 	uint32_t get_canid(){ return ECM_OBD_CAN_ID; }
-    /** Sets Accelerator Pedal Position / Pedal Value */
+    /** Sets Accelerator Pedal Position / Pedal Value. Conversion formula (To raw from real): y=(x-0.0)/0.39 (Unit: %) */
     void set_AccelPdlPosn_OBD(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Accelerator Pedal Position / Pedal Value */
+    /** Gets Accelerator Pedal Position / Pedal Value. Conversion formula (To real from raw): y=(0.39x)+0.0 (Unit: %) */
     uint8_t get_AccelPdlPosn_OBD() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Engine Load / Motorload */
+    /** Sets Engine Load / Motorload. Conversion formula (To raw from real): y=(x-0.0)/0.39 (Unit: %) */
     void set_EngLoad_OBD(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Engine Load / Motorload */
+    /** Gets Engine Load / Motorload. Conversion formula (To real from raw): y=(0.39x)+0.0 (Unit: %) */
     uint8_t get_EngLoad_OBD() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Outside Air Temperature Sensor Fault / Error Outdoor Air Temperature Sensor */
@@ -3912,10 +3912,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_ECM_NM_Mode get_NM_Mode() { return (NM_ECM_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -3948,10 +3948,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_ECM_WakeupRsn_ECM get_WakeupRsn_ECM() { return (NM_ECM_WakeupRsn_ECM)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */

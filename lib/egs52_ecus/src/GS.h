@@ -77,7 +77,7 @@ enum class GS_218h_FEHLPRF_ST {
 
 /** drive */
 enum class GS_418h_FSC {
-	BLANK = 32, // Blank ("")
+	BLANK = 32, // blank ("")
 	EINS = 49, // Driving Level "1"
 	ZWEI = 50, // Driving Level "2"
 	DREI = 51, // Driving Level "3"
@@ -121,21 +121,21 @@ enum class GS_418h_FPC {
 	M = 77, // "M"
 	S = 83, // "S"
 	W = 87, // "W"
-	UNDERSCORE = 95, // "_" (Underscore)
+	_ = 95, // "_" (Underscore)
 	BLANK_MGW = 96, // "" (blank), message "Check out gear, workshop!"
 	A_MGN = 97, // "A", message "Insert transmission, n!"
 	C_MGN = 99, // "C", message "Insert transmission, n!"
 	M_MGN = 109, // "M", message "Transmission, n insert!"
 	S_MGN = 115, // "S", message "Insert transmission, n!"
 	W_MGN = 119, // "W", message "Transmission, n insert!"
-	UNDERSCORE_MGN = 127, // "_" (undercore), message "Transmission, n insert!"
+	__MGN = 127, // "_" (undercore), message "Transmission, n insert!"
 	A_MGW = 129, // "A", message "Check out gear, workshop!"
 	C_MGW = 131, // "C", message "Check out gear, workshop!"
 	F_MGW = 134, // Error Mark "F", Message "Check Gear, Workshop!"
 	M_MGW = 141, // "M", message "Check out transmission, workshop!"
 	S_MGW = 147, // "S", message "Check out gear, workshop!"
 	W_MGW = 151, // "W", message "Get gear, workshop visit!"
-	UNDERSCORE_MGW = 159, // "_" (Underscore), message "Check out gear, workshop!"
+	__MGW = 159, // "_" (Underscore), message "Check out gear, workshop!"
 	SNV = 255, // passive value
 };
 
@@ -209,22 +209,22 @@ typedef union {
     /** Gets Motor moments Toggle 40ms + -10 */
     bool get_MTGL_EGS() { return (bool)(raw >> 63 & 0x1); }
         
-    /** Sets Motoroment request min */
+    /** Sets Engine torque request min */
     void set_MMIN_EGS(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
-    /** Gets Motoroment request min */
+    /** Gets Engine torque request min */
     bool get_MMIN_EGS() { return (bool)(raw >> 62 & 0x1); }
         
-    /** Sets Motoroment request max */
+    /** Sets Engine torque request max */
     void set_MMAX_EGS(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
-    /** Gets Motoroment request max */
+    /** Gets Engine torque request max */
     bool get_MMAX_EGS() { return (bool)(raw >> 61 & 0x1); }
         
-    /** Sets Ford. Engine torque */
+    /** Sets Ford. Engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_EGS(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Ford. Engine torque */
+    /** Gets Ford. Engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_EGS() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
     /** Sets Goal Gang */
@@ -329,10 +329,10 @@ typedef union {
     /** Gets Driving program for AAD */
     GS_218h_FPC_AAD get_FPC_AAD() { return (GS_218h_FPC_AAD)(raw >> 24 & 0x3); }
         
-    /** Sets Motoroment Request Parity (just parity) */
+    /** Sets Engine torque Request Parity (just parity) */
     void set_MPAR_EGS(bool value){ raw = (raw & 0xffffffffff7fffff) | ((uint64_t)value & 0x1) << 23; }
 
-    /** Gets Motoroment Request Parity (just parity) */
+    /** Gets Engine torque Request Parity (just parity) */
     bool get_MPAR_EGS() { return (bool)(raw >> 23 & 0x1); }
         
     /** Sets engagement mode / drive torque control */
@@ -365,10 +365,10 @@ typedef union {
     /** Gets Engine Emergency Switch Off */
     bool get_MOT_NAUS() { return (bool)(raw >> 16 & 0x1); }
         
-    /** Sets Kriech torque (FFH at EGS, CVT) or Calid / CVN */
+    /** Sets Kriech torque (FFH at EGS, CVT) or Calid / CVN. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MKRIECH(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets Kriech torque (FFH at EGS, CVT) or Calid / CVN */
+    /** Gets Kriech torque (FFH at EGS, CVT) or Calid / CVN. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MKRIECH() { return (uint8_t)(raw >> 8 & 0xff); }
         
     /** Sets Status Error Check */
@@ -383,10 +383,10 @@ typedef union {
     /** Gets CALID / CVN transmission active */
     bool get_CALID_CVN_AKT() { return (bool)(raw >> 5 & 0x1); }
         
-    /** Sets error number or counter for calid / CVN transmission */
+    /** Sets error number or counter for calid / CVN transmission. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FEHLER(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
-    /** Gets error number or counter for calid / CVN transmission */
+    /** Gets error number or counter for calid / CVN transmission. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FEHLER() { return (uint8_t)(raw >> 0 & 0x1f); }
         
 } GS_218;
@@ -398,16 +398,16 @@ typedef union {
 
 	/** Gets CAN ID of GS_338 */
 	uint32_t get_canid(){ return GS_338_CAN_ID; }
-    /** Sets Transmission output speed (only 463/461, other FFFFH) */
+    /** Sets Transmission output speed (only 463/461, other FFFFH). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NAB(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
-    /** Gets Transmission output speed (only 463/461, other FFFFH) */
+    /** Gets Transmission output speed (only 463/461, other FFFFH). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_NAB() { return (uint16_t)(raw >> 48 & 0xffff); }
         
-    /** Sets Turbine speed (EGS52-NAG, VGS-NAG2) */
+    /** Sets Turbine speed (EGS52-NAG, VGS-NAG2). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NTURBINE(uint16_t value){ raw = (raw & 0xffffffffffff0000) | ((uint64_t)value & 0xffff) << 0; }
 
-    /** Gets Turbine speed (EGS52-NAG, VGS-NAG2) */
+    /** Gets Turbine speed (EGS52-NAG, VGS-NAG2). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_NTURBINE() { return (uint16_t)(raw >> 0 & 0xffff); }
         
 } GS_338;
@@ -431,10 +431,10 @@ typedef union {
     /** Gets Driving program */
     GS_418h_FPC get_FPC() { return (GS_418h_FPC)(raw >> 48 & 0xff); }
         
-    /** Sets Gear oil temperature */
+    /** Sets Gear oil temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_GET(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Gear oil temperature */
+    /** Gets Gear oil temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_T_GET() { return (uint8_t)(raw >> 40 & 0xff); }
         
     /** Sets four-wheel drive */
@@ -491,10 +491,10 @@ typedef union {
     /** Gets actual gear */
     GS_418h_GIC get_GIC() { return (GS_418h_GIC)(raw >> 24 & 0xf); }
         
-    /** Sets Loss moment (FFH at KSG) */
+    /** Sets Loss moment (FFH at KSG). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_VERL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Loss moment (FFH at KSG) */
+    /** Gets Loss moment (FFH at KSG). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_M_VERL() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Factor wheel torque parity (straight parity) */
@@ -515,10 +515,10 @@ typedef union {
     /** Gets gear selector lever position (NAG, KSG, CVT) */
     GS_418h_WHST get_WHST() { return (GS_418h_WHST)(raw >> 11 & 0x7); }
         
-    /** Sets Factor wheel torque (7ffh at KSG) */
+    /** Sets Factor wheel torque (7ffh at KSG). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FMRAD(uint16_t value){ raw = (raw & 0xfffffffffffff800) | ((uint64_t)value & 0x7ff) << 0; }
 
-    /** Gets Factor wheel torque (7ffh at KSG) */
+    /** Gets Factor wheel torque (7ffh at KSG). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_FMRAD() { return (uint16_t)(raw >> 0 & 0x7ff); }
         
 } GS_418;

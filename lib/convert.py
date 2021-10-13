@@ -32,7 +32,7 @@ class EnumEntry:
         self.desc = desc
 
 class Signal:
-    def __init__(self, name: str, desc: str, length: int, offset: int):
+    def __init__(self, name: str, desc: str, length: int, offset: int, unit: str):
         self.name = name
         self.desc = desc
         self.length = length
@@ -42,6 +42,7 @@ class Signal:
         self.is_bool: False
         self.number_data = (0.0, 0.0) # Multiplier, offset
         self.is_enum = True
+        self.unit=unit
         self.enum_table = []
 
     def get_return_data_type(self, frame_name: str) -> str:
@@ -72,13 +73,23 @@ class Signal:
         for bit in range(0,self.length):
             f_mask = (f_mask | 0x01 << bit)
 
+        conv_to = ""
+        conv_from=""
+        unit_str=""
+        if self.unit:
+            unit_str=" (Unit: {})".format(self.unit)
+        if self.is_number:
+
+            conv_to = ". Conversion formula (To raw from real): y=(x{1:+})/{0:.2f}".format(self.number_data[0], self.number_data[1]*-1)
+            conv_from = ". Conversion formula (To real from raw): y=({0:.2f}x){1:+}".format(self.number_data[0], self.number_data[1])
+
         return """
-    /** Sets {0} */
+    /** Sets {0}{6}{8} */
     void set_{1}({2} value){{ raw = (raw & 0x{5:{fill}16x}) | ((uint64_t)value & 0x{4:x}) << {3}; }}
 
-    /** Gets {0} */
+    /** Gets {0}{7}{8} */
     {2} get_{1}() {{ return ({2})(raw >> {3} & 0x{4:x}); }}
-        """.format(self.desc, self.name, self.get_return_data_type(frame_name), 64-self.length-self.offset, f_mask, mask, fill='0')
+        """.format(self.desc, self.name, self.get_return_data_type(frame_name), 64-self.length-self.offset, f_mask, mask, conv_to, conv_from, unit_str, fill='0')
 
     def add_enum(self, e: EnumEntry):
         self.enum_table.append(e)
@@ -282,7 +293,10 @@ for line in input_file:
             signal_length = int(l.split("LEN: ")[1].split(",")[0], 10)
             signal_desc = l.split("DESC: ")[1].split(", DATA TYPE")[0].strip()
             signal_dt = l.split(", DATA TYPE ")[1]
-            current_signal = Signal(signal_name, signal_desc, signal_length, signal_offset)
+            unit=""
+            if "UNIT: " in l:
+                unit = l.split("UNIT: ")[1]
+            current_signal = Signal(signal_name, signal_desc, signal_length, signal_offset, unit)
             current_signal.add_data_str(signal_dt)
         elif l.startswith("ENUM"):
             if current_signal:

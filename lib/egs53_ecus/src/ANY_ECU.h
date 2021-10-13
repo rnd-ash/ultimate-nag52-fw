@@ -52,7 +52,7 @@ enum class ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM {
 	M5 = 5, // Driving position "M5"
 	M6 = 6, // Driving position "M6"
 	M7 = 7, // Driving position "M7"
-	BLANK = 32, // Blank ("")
+	BLANK = 32, // blank ("")
 	D1 = 49, // driving position "D1"
 	D2 = 50, // Driving position "D2"
 	D3 = 51, // Driving position "D3"
@@ -287,16 +287,16 @@ typedef union {
 
 	/** Gets CAN ID of SG_A1 */
 	uint32_t get_canid(){ return SG_A1_CAN_ID; }
-    /** Sets Starter / Generator Output DC Current / DC Current */
+    /** Sets Starter / Generator Output DC Current / DC Current. Conversion formula (To raw from real): y=(x+3276.60009765625)/0.10 (Unit: A) */
     void set_SG_OutDC_Curr(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
-    /** Gets Starter / Generator Output DC Current / DC Current */
+    /** Gets Starter / Generator Output DC Current / DC Current. Conversion formula (To real from raw): y=(0.10x)-3276.60009765625 (Unit: A) */
     uint16_t get_SG_OutDC_Curr() { return (uint16_t)(raw >> 48 & 0xffff); }
         
-    /** Sets Starter / Generator Output DC Voltage / DC Voltage */
+    /** Sets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: V) */
     void set_SG_OutDC_Volt(uint16_t value){ raw = (raw & 0xffff0000ffffffff) | ((uint64_t)value & 0xffff) << 32; }
 
-    /** Gets Starter / Generator Output DC Voltage / DC Voltage */
+    /** Gets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: V) */
     uint16_t get_SG_OutDC_Volt() { return (uint16_t)(raw >> 32 & 0xffff); }
         
     /** Sets Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
@@ -317,10 +317,10 @@ typedef union {
     /** Gets Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 */
     bool get_EM1_EnhCool_Rq() { return (bool)(raw >> 5 & 0x1); }
         
-    /** Sets Error Number / Error Number */
+    /** Sets Error Number / Error Number. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_EM1_ErrNum(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
-    /** Gets Error Number / Error Number */
+    /** Gets Error Number / Error Number. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_EM1_ErrNum() { return (uint8_t)(raw >> 0 & 0x1f); }
         
 } SG_A1;
@@ -383,10 +383,10 @@ typedef union {
 
 	/** Gets CAN ID of SSP_RS_SSP */
 	uint32_t get_canid(){ return SSP_RS_SSP_CAN_ID; }
-    /** Sets Actual Current Duty Cycle / Actual Electricity (duty cycle) */
+    /** Sets Actual Current Duty Cycle / Actual Electricity (duty cycle). Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
     void set_CurrDtyCyc_Actl(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Actual Current Duty Cycle / Actual Electricity (duty cycle) */
+    /** Gets Actual Current Duty Cycle / Actual Electricity (duty cycle). Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
     uint8_t get_CurrDtyCyc_Actl() { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets SSP Diagnostics State / SSP Diagnostic Status */
@@ -395,22 +395,22 @@ typedef union {
     /** Gets SSP Diagnostics State / SSP Diagnostic Status */
     SSP_RS_SSP_SSP_Diag_Stat get_SSP_Diag_Stat() { return (SSP_RS_SSP_SSP_Diag_Stat)(raw >> 48 & 0xff); }
         
-    /** Sets ACTUAL RPM SSP / Current SSP speed */
+    /** Sets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_SSP_RPM(uint16_t value){ raw = (raw & 0xffffffc000ffffff) | ((uint64_t)value & 0x3fff) << 24; }
 
-    /** Gets ACTUAL RPM SSP / Current SSP speed */
+    /** Gets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
     uint16_t get_SSP_RPM() { return (uint16_t)(raw >> 24 & 0x3fff); }
         
-    /** Sets Message Counter / Message Counter */
+    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
-    /** Gets Message Counter / Message Counter */
+    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_MC_SSP_RS_SSP() { return (uint8_t)(raw >> 12 & 0xf); }
         
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 */
+    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC_SSP_RS_SSP() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } SSP_RS_SSP;
@@ -428,10 +428,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_FSCM2_NM_Mode get_NM_Mode() { return (NM_FSCM2_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -464,10 +464,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_FSCM2_WakeupRsn_FSCM2 get_WakeupRsn_FSCM2() { return (NM_FSCM2_WakeupRsn_FSCM2)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
@@ -491,10 +491,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_ISM_NM_Mode get_NM_Mode() { return (NM_ISM_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -527,10 +527,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_ISM_WakeupRsn_ISM get_WakeupRsn_ISM() { return (NM_ISM_WakeupRsn_ISM)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
@@ -554,10 +554,10 @@ typedef union {
     /** Gets Network Management Mode / Network Management Mode */
     NM_SSP_NM_Mode get_NM_Mode() { return (NM_SSP_NM_Mode)(raw >> 56 & 0xff); }
         
-    /** Sets Network Management Logical Successor / Network Management Logical Successor */
+    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Network Management Logical Successor / Network Management Logical Successor */
+    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
@@ -590,10 +590,10 @@ typedef union {
     /** Gets Wakeup Reason / Wake-up */
     NM_SSP_WakeupRsn_SSP get_WakeupRsn_SSP() { return (NM_SSP_WakeupRsn_SSP)(raw >> 24 & 0xff); }
         
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest */
+    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */

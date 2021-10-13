@@ -31,55 +31,55 @@ enum class BS_200h_BLS {
 
 /** rotary direction wheel front left */
 enum class BS_200h_DRTGVL {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
 /** direction of rotation wheel front right */
 enum class BS_200h_DRTGVR {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
 /** Rad Left for Cruise */
 enum class BS_200h_DRTGTM {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
-/** Sprocket, upper limit */
+/** Gear, upper limit */
 enum class BS_208h_GMAX_ESP {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, upper limit = 1
-	G2 = 2, // Sprocket, upper limit = 2
-	G3 = 3, // Sprocket, upper limit = 3
-	G4 = 4, // Sprocket, upper limit = 4
-	G5 = 5, // Sprocket, upper limit = 5
-	G6 = 6, // Sprocket, upper limit = 6
-	G7 = 7, // Sprocket, upper limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, upper limit = 1
+	G2 = 2, // Gear, upper limit = 2
+	G3 = 3, // Gear, upper limit = 3
+	G4 = 4, // Gear, upper limit = 4
+	G5 = 5, // Gear, upper limit = 5
+	G6 = 6, // Gear, upper limit = 6
+	G7 = 7, // Gear, upper limit = 7
 };
 
-/** Sprocket, lower limit */
+/** Gear, lower limit */
 enum class BS_208h_GMIN_ESP {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, lower limit = 1
-	G2 = 2, // Sprocket, lower limit = 2
-	G3 = 3, // Sprocket, lower limit = 3
-	G4 = 4, // Sprocket, lower limit = 4
-	G5 = 5, // Sprocket, lower limit = 5
-	G6 = 6, // Sprocket, lower limit = 6
-	G7 = 7, // Sprocket, lower limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, lower limit = 1
+	G2 = 2, // Gear, lower limit = 2
+	G3 = 3, // Gear, lower limit = 3
+	G4 = 4, // Gear, lower limit = 4
+	G5 = 5, // Gear, lower limit = 5
+	G6 = 6, // Gear, lower limit = 6
+	G7 = 7, // Gear, lower limit = 7
 };
 
 /** system condition */
 enum class BS_208h_SZS {
-	ERR_DIAG = 0, // system error or diagnostics
+	ERR = 0, // system error
 	NORM = 1, // normal operation
 	DIAG = 2, // Diagnosis
 	ABGAS = 3, // exhaust gas test
@@ -110,17 +110,17 @@ enum class BS_208h_ANFN {
 
 /** rotary direction wheel rear right */
 enum class BS_208h_DRTGHR {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
 /** rotary direction wheel rear left */
 enum class BS_208h_DRTGHL {
-	PASSIV = 0, // No rotation detection
-	VOR = 1, // direction of rotation forward
-	RUECK = 2, // direction of rotation backwards
+	PASSIVE = 0, // No rotation detection
+	FWD = 1, // direction of rotation forward
+	REV = 2, // direction of rotation backwards
 	SNV = 3, // signal not available
 };
 
@@ -139,7 +139,7 @@ enum class BS_270h_PRW_WARN {
 	SNV = 15, // signal not available
 };
 
-/** Status PlatRollwarner */
+/** Status flat tyre warner */
 enum class BS_270h_PRW_ST {
 	EIN = 0, // PRW active, no warning
 	WARN = 1, // PRW active, warning is available
@@ -261,10 +261,10 @@ typedef union {
     /** Gets BLS Parity (straight parity) */
     bool get_BLS_PA() { return (bool)(raw >> 54 & 0x1); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ200h(uint8_t value){ raw = (raw & 0xffc3ffffffffffff) | ((uint64_t)value & 0xf) << 50; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ200h() { return (uint8_t)(raw >> 50 & 0xf); }
         
     /** Sets brake light switch */
@@ -279,10 +279,10 @@ typedef union {
     /** Gets rotary direction wheel front left */
     BS_200h_DRTGVL get_DRTGVL() { return (BS_200h_DRTGVL)(raw >> 46 & 0x3); }
         
-    /** Sets wheel speed front left */
+    /** Sets wheel speed front left. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DVL(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets wheel speed front left */
+    /** Gets wheel speed front left. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DVL() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets direction of rotation wheel front right */
@@ -291,10 +291,10 @@ typedef union {
     /** Gets direction of rotation wheel front right */
     BS_200h_DRTGVR get_DRTGVR() { return (BS_200h_DRTGVR)(raw >> 30 & 0x3); }
         
-    /** Sets Right speed front right */
+    /** Sets Right speed front right. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DVR(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Right speed front right */
+    /** Gets Right speed front right. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DVR() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets Rad Left for Cruise */
@@ -303,10 +303,10 @@ typedef union {
     /** Gets Rad Left for Cruise */
     BS_200h_DRTGTM get_DRTGTM() { return (BS_200h_DRTGTM)(raw >> 14 & 0x3); }
         
-    /** Sets wheel speed links for cruise control */
+    /** Sets wheel speed links for cruise control. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TM_DL(uint16_t value){ raw = (raw & 0xffffffffffffc000) | ((uint64_t)value & 0x3fff) << 0; }
 
-    /** Gets wheel speed links for cruise control */
+    /** Gets wheel speed links for cruise control. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_TM_DL() { return (uint16_t)(raw >> 0 & 0x3fff); }
         
 } BS_200;
@@ -324,22 +324,22 @@ typedef union {
     /** Gets ESP / Art-Wish: "Active Retract" */
     bool get_AKT_R_ESP() { return (bool)(raw >> 63 & 0x1); }
         
-    /** Sets Sprocket requirement of art */
+    /** Sets Gear requirement of art */
     void set_MINMAX_ART(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
-    /** Gets Sprocket requirement of art */
+    /** Gets Gear requirement of art */
     bool get_MINMAX_ART() { return (bool)(raw >> 62 & 0x1); }
         
-    /** Sets Sprocket, upper limit */
+    /** Sets Gear, upper limit */
     void set_GMAX_ESP(BS_208h_GMAX_ESP value){ raw = (raw & 0xc7ffffffffffffff) | ((uint64_t)value & 0x7) << 59; }
 
-    /** Gets Sprocket, upper limit */
+    /** Gets Gear, upper limit */
     BS_208h_GMAX_ESP get_GMAX_ESP() { return (BS_208h_GMAX_ESP)(raw >> 59 & 0x7); }
         
-    /** Sets Sprocket, lower limit */
+    /** Sets Gear, lower limit */
     void set_GMIN_ESP(BS_208h_GMIN_ESP value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
-    /** Gets Sprocket, lower limit */
+    /** Gets Gear, lower limit */
     BS_208h_GMIN_ESP get_GMIN_ESP() { return (BS_208h_GMIN_ESP)(raw >> 56 & 0x7); }
         
     /** Sets Suppression Dynamic fully detection */
@@ -384,10 +384,10 @@ typedef union {
     /** Gets ART brake intervention active */
     bool get_BRE_AKT_ART() { return (bool)(raw >> 44 & 0x1); }
         
-    /** Sets set braking torque (BR240 factor 1.8 larger) */
+    /** Sets set braking torque (BR240 factor 1.8 larger). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MBRE_ESP(uint16_t value){ raw = (raw & 0xfffff000ffffffff) | ((uint64_t)value & 0xfff) << 32; }
 
-    /** Gets set braking torque (BR240 factor 1.8 larger) */
+    /** Gets set braking torque (BR240 factor 1.8 larger). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_MBRE_ESP() { return (uint16_t)(raw >> 32 & 0xfff); }
         
     /** Sets rotary direction wheel rear right */
@@ -396,10 +396,10 @@ typedef union {
     /** Gets rotary direction wheel rear right */
     BS_208h_DRTGHR get_DRTGHR() { return (BS_208h_DRTGHR)(raw >> 30 & 0x3); }
         
-    /** Sets Rear wheel speed */
+    /** Sets Rear wheel speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DHR(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
-    /** Gets Rear wheel speed */
+    /** Gets Rear wheel speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DHR() { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets rotary direction wheel rear left */
@@ -408,10 +408,10 @@ typedef union {
     /** Gets rotary direction wheel rear left */
     BS_208h_DRTGHL get_DRTGHL() { return (BS_208h_DRTGHL)(raw >> 14 & 0x3); }
         
-    /** Sets Rear wheel speed */
+    /** Sets Rear wheel speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DHL(uint16_t value){ raw = (raw & 0xffffffffffffc000) | ((uint64_t)value & 0x3fff) << 0; }
 
-    /** Gets Rear wheel speed */
+    /** Gets Rear wheel speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DHL() { return (uint16_t)(raw >> 0 & 0x3fff); }
         
 } BS_208;
@@ -423,16 +423,16 @@ typedef union {
 
 	/** Gets CAN ID of BS_270 */
 	uint32_t get_canid(){ return BS_270_CAN_ID; }
-    /** Sets Impulse ring counter wheel rear left (48 per revolution) */
+    /** Sets Impulse ring counter wheel rear left (48 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_RIZ_HL(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Impulse ring counter wheel rear left (48 per revolution) */
+    /** Gets Impulse ring counter wheel rear left (48 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_RIZ_HL() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Impulse ring counter wheel rear right (48 per revolution) */
+    /** Sets Impulse ring counter wheel rear right (48 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_RIZ_HR(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Impulse ring counter wheel rear right (48 per revolution) */
+    /** Gets Impulse ring counter wheel rear right (48 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_RIZ_HR() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Alerts PlatRollwarner */
@@ -441,10 +441,10 @@ typedef union {
     /** Gets Alerts PlatRollwarner */
     BS_270h_PRW_WARN get_PRW_WARN() { return (BS_270h_PRW_WARN)(raw >> 44 & 0xf); }
         
-    /** Sets Status PlatRollwarner */
+    /** Sets Status flat tyre warner */
     void set_PRW_ST(BS_270h_PRW_ST value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
 
-    /** Gets Status PlatRollwarner */
+    /** Gets Status flat tyre warner */
     BS_270h_PRW_ST get_PRW_ST() { return (BS_270h_PRW_ST)(raw >> 40 & 0x7); }
         
 } BS_270;
@@ -456,16 +456,16 @@ typedef union {
 
 	/** Gets CAN ID of BS_300 */
 	uint32_t get_canid(){ return BS_300_CAN_ID; }
-    /** Sets Motoroment Request Parity (just parity) */
+    /** Sets Engine torque Request Parity (just parity) */
     void set_DMPAR_ART(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
-    /** Gets Motoroment Request Parity (just parity) */
+    /** Gets Engine torque Request Parity (just parity) */
     bool get_DMPAR_ART() { return (bool)(raw >> 63 & 0x1); }
         
-    /** Sets Motoroment request dynamic */
+    /** Sets Engine torque request dynamic */
     void set_DMDYN_ART(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
-    /** Gets Motoroment request dynamic */
+    /** Gets Engine torque request dynamic */
     bool get_DMDYN_ART() { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Bas-control active */
@@ -504,16 +504,16 @@ typedef union {
     /** Gets Initialization steering angle sensor possible */
     bool get_LWS_INI_EIN() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets Motoroment Request Parity (just parity) */
+    /** Sets Engine torque Request Parity (just parity) */
     void set_MPAR_ESP(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
-    /** Gets Motoroment Request Parity (just parity) */
+    /** Gets Engine torque Request Parity (just parity) */
     bool get_MPAR_ESP() { return (bool)(raw >> 55 & 0x1); }
         
-    /** Sets Motoroment request dynamic */
+    /** Sets Engine torque request dynamic */
     void set_MDYN_ESP(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
-    /** Gets Motoroment request dynamic */
+    /** Gets Engine torque request dynamic */
     bool get_MDYN_ESP() { return (bool)(raw >> 54 & 0x1); }
         
     /** Sets drive torque control active */
@@ -540,58 +540,58 @@ typedef union {
     /** Gets driver brakes */
     BS_300h_SFB get_SFB() { return (BS_300h_SFB)(raw >> 48 & 0x3); }
         
-    /** Sets Motor momentsToggle 40ms + -10 */
+    /** Sets Motor torque toggle 40ms + -10 */
     void set_DMTGL_ART(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
-    /** Gets Motor momentsToggle 40ms + -10 */
+    /** Gets Motor torque toggle 40ms + -10 */
     bool get_DMTGL_ART() { return (bool)(raw >> 47 & 0x1); }
         
-    /** Sets Motoroment request min */
+    /** Sets Engine torque request min */
     void set_DMMIN_ART(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
-    /** Gets Motoroment request min */
+    /** Gets Engine torque request min */
     bool get_DMMIN_ART() { return (bool)(raw >> 46 & 0x1); }
         
-    /** Sets Motoroment request max */
+    /** Sets Engine torque request max */
     void set_DMMAX_ART(bool value){ raw = (raw & 0xffffdfffffffffff) | ((uint64_t)value & 0x1) << 45; }
 
-    /** Gets Motoroment request max */
+    /** Gets Engine torque request max */
     bool get_DMMAX_ART() { return (bool)(raw >> 45 & 0x1); }
         
-    /** Sets Ford.Engine torque */
+    /** Sets Ford.Engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DM_ART(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets Ford.Engine torque */
+    /** Gets Ford.Engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DM_ART() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
-    /** Sets Motor momentsToggle 40ms + -10 */
+    /** Sets Motor torque toggle 40ms + -10 */
     void set_MTGL_ESP(bool value){ raw = (raw & 0xffffffff7fffffff) | ((uint64_t)value & 0x1) << 31; }
 
-    /** Gets Motor momentsToggle 40ms + -10 */
+    /** Gets Motor torque toggle 40ms + -10 */
     bool get_MTGL_ESP() { return (bool)(raw >> 31 & 0x1); }
         
-    /** Sets Motoroment request min */
+    /** Sets Engine torque request min */
     void set_MMIN_ESP(bool value){ raw = (raw & 0xffffffffbfffffff) | ((uint64_t)value & 0x1) << 30; }
 
-    /** Gets Motoroment request min */
+    /** Gets Engine torque request min */
     bool get_MMIN_ESP() { return (bool)(raw >> 30 & 0x1); }
         
-    /** Sets Motoroment request max */
+    /** Sets Engine torque request max */
     void set_MMAX_ESP(bool value){ raw = (raw & 0xffffffffdfffffff) | ((uint64_t)value & 0x1) << 29; }
 
-    /** Gets Motoroment request max */
+    /** Gets Engine torque request max */
     bool get_MMAX_ESP() { return (bool)(raw >> 29 & 0x1); }
         
-    /** Sets Ford.Engine torque */
+    /** Sets Ford.Engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_ESP(uint16_t value){ raw = (raw & 0xffffffffe000ffff) | ((uint64_t)value & 0x1fff) << 16; }
 
-    /** Gets Ford.Engine torque */
+    /** Gets Ford.Engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_ESP() { return (uint16_t)(raw >> 16 & 0x1fff); }
         
-    /** Sets Rohsignal Gierrate without reconciliation / filtering (+ = left) */
+    /** Sets raw signal yaw rate without reconciliation / filtering (+ = left). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_GIER_ROH(uint16_t value){ raw = (raw & 0xffffffffffff0000) | ((uint64_t)value & 0xffff) << 0; }
 
-    /** Gets Rohsignal Gierrate without reconciliation / filtering (+ = left) */
+    /** Gets raw signal yaw rate without reconciliation / filtering (+ = left). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_GIER_ROH() { return (uint16_t)(raw >> 0 & 0xffff); }
         
 } BS_300;
@@ -609,16 +609,16 @@ typedef union {
     /** Gets WMS Parity (straight parity) */
     bool get_WMS_PA() { return (bool)(raw >> 63 & 0x1); }
         
-    /** Sets target wank moment change */
+    /** Sets target wobble moment change. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WMS(uint16_t value){ raw = (raw & 0x8000ffffffffffff) | ((uint64_t)value & 0x7fff) << 48; }
 
-    /** Gets target wank moment change */
+    /** Gets target wobble moment change. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_WMS() { return (uint16_t)(raw >> 48 & 0x7fff); }
         
-    /** Sets Vehicle cross-accelerig. The focus (+ = left) */
+    /** Sets Vehicle lateral acceleration. The focus (+ = left). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_AY_S(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets Vehicle cross-accelerig. The focus (+ = left) */
+    /** Gets Vehicle lateral acceleration. The focus (+ = left). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_AY_S() { return (uint8_t)(raw >> 40 & 0xff); }
         
     /** Sets ESP display messages */
@@ -639,22 +639,22 @@ typedef union {
     /** Gets Open clutch */
     bool get_KPL_OEF() { return (bool)(raw >> 19 & 0x1); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ328h(uint8_t value){ raw = (raw & 0xfffffffffff8ffff) | ((uint64_t)value & 0x7) << 16; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ328h() { return (uint8_t)(raw >> 16 & 0x7); }
         
-    /** Sets Impulse ring counter wheel front left (48 per revolution) */
+    /** Sets Impulse ring counter wheel front left (48 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_RIZ_VL(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets Impulse ring counter wheel front left (48 per revolution) */
+    /** Gets Impulse ring counter wheel front left (48 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_RIZ_VL() { return (uint8_t)(raw >> 8 & 0xff); }
         
-    /** Sets Impulse ring counter wheel front right (48 per revolution) */
+    /** Sets Impulse ring counter wheel front right (48 per revolution). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_RIZ_VR(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Impulse ring counter wheel front right (48 per revolution) */
+    /** Gets Impulse ring counter wheel front right (48 per revolution). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_RIZ_VR() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } BS_328;

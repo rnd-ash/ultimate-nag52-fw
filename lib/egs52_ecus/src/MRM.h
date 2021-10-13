@@ -28,7 +28,7 @@ enum class LRW_236h_LRWS_ID {
 
 /** Status steering wheel angle sensor */
 enum class LRW_236h_LRWS_ST {
-	OK = 0, // Steering wheel angle sensor I.o.
+	OK = 0, // Steering wheel angle sensor I.O.
 	INI = 1, // Steering wheel angle sensor not initialized
 	ERR = 2, // steering wheel angle sensor faulty
 	ERR_INI = 3, // steering wheel angle sensor faulty and not initialized
@@ -41,22 +41,22 @@ typedef union {
 
 	/** Gets CAN ID of LRW_236 */
 	uint32_t get_canid(){ return LRW_236_CAN_ID; }
-    /** Sets Steering wheel angle */
+    /** Sets Steering wheel angle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_LRW(uint16_t value){ raw = (raw & 0xc000ffffffffffff) | ((uint64_t)value & 0x3fff) << 48; }
 
-    /** Gets Steering wheel angle */
+    /** Gets Steering wheel angle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_LRW() { return (uint16_t)(raw >> 48 & 0x3fff); }
         
-    /** Sets steering wheel angular velocity */
+    /** Sets steering wheel angular velocity. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_VLRW(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
-    /** Gets steering wheel angular velocity */
+    /** Gets steering wheel angular velocity. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_VLRW() { return (uint16_t)(raw >> 32 & 0x3fff); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ236h(uint8_t value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ236h() { return (uint8_t)(raw >> 28 & 0xf); }
         
     /** Sets Identification steering wheel angle sensor */
@@ -71,10 +71,10 @@ typedef union {
     /** Gets Status steering wheel angle sensor */
     LRW_236h_LRWS_ST get_LRWS_ST() { return (LRW_236h_LRWS_ST)(raw >> 24 & 0x3); }
         
-    /** Sets CRC checksum byte 1 - 7 to SAE J1850 */
+    /** Sets CRC checksum byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC236h(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets CRC checksum byte 1 - 7 to SAE J1850 */
+    /** Gets CRC checksum byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_CRC236h() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } LRW_236;
@@ -140,10 +140,10 @@ typedef union {
     /** Gets Tempomat selector lever Parity (straight parity) */
     bool get_WH_PA() { return (bool)(raw >> 52 & 0x1); }
         
-    /** Sets Message counter */
+    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ238h(uint8_t value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
-    /** Gets Message counter */
+    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ238h() { return (uint8_t)(raw >> 48 & 0xf); }
         
     /** Sets Steering angle parity (straight parity) */
@@ -176,10 +176,10 @@ typedef union {
     /** Gets Steering angle sign */
     bool get_LW_VZ() { return (bool)(raw >> 43 & 0x1); }
         
-    /** Sets steering angle */
+    /** Sets steering angle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_LW(uint16_t value){ raw = (raw & 0xfffff800ffffffff) | ((uint64_t)value & 0x7ff) << 32; }
 
-    /** Gets steering angle */
+    /** Gets steering angle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_LW() { return (uint16_t)(raw >> 32 & 0x7ff); }
         
 } MRM_238;

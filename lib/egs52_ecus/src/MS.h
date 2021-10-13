@@ -24,7 +24,7 @@
 #define AAD_580_CAN_ID 0x0580
 #define MS_608_CAN_ID 0x0608
 
-/** Switching shift MS */
+/** switching line shift MS */
 enum class MS_210h_SLV_MS {
 	SKL0 = 0, // Shift characteristic "0"
 	SKL1 = 1, // Shift characteristic "1"
@@ -39,28 +39,28 @@ enum class MS_210h_SLV_MS {
 	SKL10 = 10, // Shift characteristic "10"
 };
 
-/** Sprocket, upper limit */
+/** Gear, upper limit */
 enum class MS_210h_GMAX_MS {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, upper limit = 1
-	G2 = 2, // Sprocket, upper limit = 2
-	G3 = 3, // Sprocket, upper limit = 3
-	G4 = 4, // Sprocket, upper limit = 4
-	G5 = 5, // Sprocket, upper limit = 5
-	G6 = 6, // Sprocket, upper limit = 6
-	G7 = 7, // Sprocket, upper limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, upper limit = 1
+	G2 = 2, // Gear, upper limit = 2
+	G3 = 3, // Gear, upper limit = 3
+	G4 = 4, // Gear, upper limit = 4
+	G5 = 5, // Gear, upper limit = 5
+	G6 = 6, // Gear, upper limit = 6
+	G7 = 7, // Gear, upper limit = 7
 };
 
-/** Sprocket, lower limit */
+/** Gear, lower limit */
 enum class MS_210h_GMIN_MS {
-	PASSIV = 0, // passive value
-	G1 = 1, // Sprocket, lower limit = 1
-	G2 = 2, // Sprocket, lower limit = 2
-	G3 = 3, // Sprocket, lower limit = 3
-	G4 = 4, // Sprocket, lower limit = 4
-	G5 = 5, // Sprocket, lower limit = 5
-	G6 = 6, // Sprocket, lower limit = 6
-	G7 = 7, // Sprocket, lower limit = 7
+	PASSIVE = 0, // passive value
+	G1 = 1, // Gear, lower limit = 1
+	G2 = 2, // Gear, lower limit = 2
+	G3 = 3, // Gear, lower limit = 3
+	G4 = 4, // Gear, lower limit = 4
+	G5 = 5, // Gear, lower limit = 5
+	G6 = 6, // Gear, lower limit = 6
+	G7 = 7, // Gear, lower limit = 7
 };
 
 /** Status heating power */
@@ -73,7 +73,7 @@ enum class MS_268h_HZL_ST {
 
 /** Drive Level Switching recommendation "is" */
 enum class MS_2F3h_FSC_IST {
-	BLANK = 32, // blank ("")
+	BLANK = 32, // Blank ("")
 	EINS = 49, // Driving Level "1"
 	ZWEI = 50, // Driving Level "2"
 	DREI = 51, // Driving Level "3"
@@ -228,64 +228,64 @@ typedef union {
 
 	/** Gets CAN ID of MS_210 */
 	uint32_t get_canid(){ return MS_210_CAN_ID; }
-    /** Sets Climate Compressor Emergency Switch Off */
+    /** Sets Air compressor Emergency Shutdown */
     void set_KOMP_NOTAUS(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
-    /** Gets Climate Compressor Emergency Switch Off */
+    /** Gets Air compressor Emergency Shutdown */
     bool get_KOMP_NOTAUS() { return (bool)(raw >> 63 & 0x1); }
         
-    /** Sets Switching shift MS */
+    /** Sets switching line shift MS */
     void set_SLV_MS(MS_210h_SLV_MS value){ raw = (raw & 0x87ffffffffffffff) | ((uint64_t)value & 0xf) << 59; }
 
-    /** Gets Switching shift MS */
+    /** Gets switching line shift MS */
     MS_210h_SLV_MS get_SLV_MS() { return (MS_210h_SLV_MS)(raw >> 59 & 0xf); }
         
-    /** Sets turn off KSG crawl */
+    /** Sets Switch KSG-creep */
     void set_KRIECH_AUS(bool value){ raw = (raw & 0xfdffffffffffffff) | ((uint64_t)value & 0x1) << 57; }
 
-    /** Gets turn off KSG crawl */
+    /** Gets Switch KSG-creep */
     bool get_KRIECH_AUS() { return (bool)(raw >> 57 & 0x1); }
         
-    /** Sets MS-WISH: "Attraction 1st gear" */
+    /** Sets MS-wish: "Approach 1.Gang" */
     void set_ANF1(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
 
-    /** Gets MS-WISH: "Attraction 1st gear" */
+    /** Gets MS-wish: "Approach 1.Gang" */
     bool get_ANF1() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets MS request: "Active recirculation" */
+    /** Sets MS-wish: "Active downshift" */
     void set_AKT_R_MS(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
-    /** Gets MS request: "Active recirculation" */
+    /** Gets MS-wish: "Active downshift" */
     bool get_AKT_R_MS() { return (bool)(raw >> 55 & 0x1); }
         
-    /** Sets Turn off a heater */
+    /** Sets Turn off heater */
     void set_ZH_AUS_MS(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
-    /** Gets Turn off a heater */
+    /** Gets Turn off heater */
     bool get_ZH_AUS_MS() { return (bool)(raw >> 54 & 0x1); }
         
-    /** Sets Sprocket, upper limit */
+    /** Sets Gear, upper limit */
     void set_GMAX_MS(MS_210h_GMAX_MS value){ raw = (raw & 0xffc7ffffffffffff) | ((uint64_t)value & 0x7) << 51; }
 
-    /** Gets Sprocket, upper limit */
+    /** Gets Gear, upper limit */
     MS_210h_GMAX_MS get_GMAX_MS() { return (MS_210h_GMAX_MS)(raw >> 51 & 0x7); }
         
-    /** Sets Sprocket, lower limit */
+    /** Sets Gear, lower limit */
     void set_GMIN_MS(MS_210h_GMIN_MS value){ raw = (raw & 0xfff8ffffffffffff) | ((uint64_t)value & 0x7) << 48; }
 
-    /** Gets Sprocket, lower limit */
+    /** Gets Gear, lower limit */
     MS_210h_GMIN_MS get_GMIN_MS() { return (MS_210h_GMIN_MS)(raw >> 48 & 0x7); }
         
-    /** Sets pedal value */
+    /** Sets pedal. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PW(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets pedal value */
+    /** Gets pedal. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_PW() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Minimum display time in the display new trigger */
+    /** Sets retrigger minimum display time in the display: S */
     void set_V_DSPL_NEU(bool value){ raw = (raw & 0xffffff7fffffffff) | ((uint64_t)value & 0x1) << 39; }
 
-    /** Gets Minimum display time in the display new trigger */
+    /** Gets retrigger minimum display time in the display: S */
     bool get_V_DSPL_NEU() { return (bool)(raw >> 39 & 0x1); }
         
     /** Sets idle is stable */
@@ -294,46 +294,46 @@ typedef union {
     /** Gets idle is stable */
     bool get_LL_STBL() { return (bool)(raw >> 38 & 0x1); }
         
-    /** Sets preheat status */
+    /** Sets Vorglühstatus */
     void set_VGL_ST(bool value){ raw = (raw & 0xffffffdfffffffff) | ((uint64_t)value & 0x1) << 37; }
 
-    /** Gets preheat status */
+    /** Gets Vorglühstatus */
     bool get_VGL_ST() { return (bool)(raw >> 37 & 0x1); }
         
-    /** Sets Motor Start / Stop plant defective */
+    /** Sets Engine Start / Stop system is defective */
     void set_MSS_DEF(bool value){ raw = (raw & 0xffffffefffffffff) | ((uint64_t)value & 0x1) << 36; }
 
-    /** Gets Motor Start / Stop plant defective */
+    /** Gets Engine Start / Stop system is defective */
     bool get_MSS_DEF() { return (bool)(raw >> 36 & 0x1); }
         
-    /** Sets Motor Start / Stop Plant Control Lamp */
+    /** Sets engine start / stop system warning */
     void set_MSS_KL(bool value){ raw = (raw & 0xfffffff7ffffffff) | ((uint64_t)value & 0x1) << 35; }
 
-    /** Gets Motor Start / Stop Plant Control Lamp */
+    /** Gets engine start / stop system warning */
     bool get_MSS_KL() { return (bool)(raw >> 35 & 0x1); }
         
-    /** Sets Motor Start / Stop system active */
+    /** Sets engine start / stop system active */
     void set_MSS_AKT(bool value){ raw = (raw & 0xfffffffbffffffff) | ((uint64_t)value & 0x1) << 34; }
 
-    /** Gets Motor Start / Stop system active */
+    /** Gets engine start / stop system active */
     bool get_MSS_AKT() { return (bool)(raw >> 34 & 0x1); }
         
-    /** Sets Switch off the climate compressor: acceleration */
+    /** Sets turn air compressor:: S acceleration */
     void set_KOMP_BAUS(bool value){ raw = (raw & 0xfffffffdffffffff) | ((uint64_t)value & 0x1) << 33; }
 
-    /** Gets Switch off the climate compressor: acceleration */
+    /** Gets turn air compressor:: S acceleration */
     bool get_KOMP_BAUS() { return (bool)(raw >> 33 & 0x1); }
         
-    /** Sets CRASH signal from engine control */
+    /** Sets Crash signal from motor control */
     void set_CRASH_MS(bool value){ raw = (raw & 0xfffffffeffffffff) | ((uint64_t)value & 0x1) << 32; }
 
-    /** Gets CRASH signal from engine control */
+    /** Gets Crash signal from motor control */
     bool get_CRASH_MS() { return (bool)(raw >> 32 & 0x1); }
         
-    /** Sets Error pedal value transmitter */
+    /** Sets error pedal sensor */
     void set_PWG_ERR(bool value){ raw = (raw & 0xffffffff7fffffff) | ((uint64_t)value & 0x1) << 31; }
 
-    /** Gets Error pedal value transmitter */
+    /** Gets error pedal sensor */
     bool get_PWG_ERR() { return (bool)(raw >> 31 & 0x1); }
         
     /** Sets idle */
@@ -342,28 +342,28 @@ typedef union {
     /** Gets idle */
     bool get_LL() { return (bool)(raw >> 30 & 0x1); }
         
-    /** Sets start. Convertible bridging clutch "Slip" */
+    /** Sets beg. "Slip" lock-up clutch */
     void set_KUEB_S_A(bool value){ raw = (raw & 0xffffffffdfffffff) | ((uint64_t)value & 0x1) << 29; }
 
-    /** Gets start. Convertible bridging clutch "Slip" */
+    /** Gets beg. "Slip" lock-up clutch */
     bool get_KUEB_S_A() { return (bool)(raw >> 29 & 0x1); }
         
-    /** Sets Tempomat regulates */
+    /** Sets cruise control regulates */
     void set_TM_REG(bool value){ raw = (raw & 0xffffffffefffffff) | ((uint64_t)value & 0x1) << 28; }
 
-    /** Gets Tempomat regulates */
+    /** Gets cruise control regulates */
     bool get_TM_REG() { return (bool)(raw >> 28 & 0x1); }
         
-    /** Sets Speed ​​limit switched on */
+    /** Sets activated speed limit */
     void set_V_MAX_EIN(bool value){ raw = (raw & 0xfffffffff7ffffff) | ((uint64_t)value & 0x1) << 27; }
 
-    /** Gets Speed ​​limit switched on */
+    /** Gets activated speed limit */
     bool get_V_MAX_EIN() { return (bool)(raw >> 27 & 0x1); }
         
-    /** Sets Kickdown (conversion scenario open!) */
+    /** Sets Kick Down (changeover scenario open!) */
     void set_KD_MS(bool value){ raw = (raw & 0xfffffffffbffffff) | ((uint64_t)value & 0x1) << 26; }
 
-    /** Gets Kickdown (conversion scenario open!) */
+    /** Gets Kick Down (changeover scenario open!) */
     bool get_KD_MS() { return (bool)(raw >> 26 & 0x1); }
         
     /** Sets emergency operation */
@@ -372,10 +372,10 @@ typedef union {
     /** Gets emergency operation */
     bool get_NOTL() { return (bool)(raw >> 25 & 0x1); }
         
-    /** Sets Warning Number */
+    /** Sets Warning buzzer */
     void set_V_MAX_SUM(bool value){ raw = (raw & 0xfffffffffeffffff) | ((uint64_t)value & 0x1) << 24; }
 
-    /** Gets Warning Number */
+    /** Gets Warning buzzer */
     bool get_V_MAX_SUM() { return (bool)(raw >> 24 & 0x1); }
         
     /** Sets FBStart Error */
@@ -384,58 +384,58 @@ typedef union {
     /** Gets FBStart Error */
     bool get_FBS_SE() { return (bool)(raw >> 23 & 0x1); }
         
-    /** Sets Display "Winter tire limitation achieved" on the display */
+    /** Sets "achieved winter tires limitation" Indicated on display */
     void set_V_DSPL_PGB(bool value){ raw = (raw & 0xffffffffffbfffff) | ((uint64_t)value & 0x1) << 22; }
 
-    /** Gets Display "Winter tire limitation achieved" on the display */
+    /** Gets "achieved winter tires limitation" Indicated on display */
     bool get_V_DSPL_PGB() { return (bool)(raw >> 22 & 0x1); }
         
-    /** Sets Tempomat turned on */
+    /** Sets activated cruise control */
     void set_TM_EIN(bool value){ raw = (raw & 0xffffffffffdfffff) | ((uint64_t)value & 0x1) << 21; }
 
-    /** Gets Tempomat turned on */
+    /** Gets activated cruise control */
     bool get_TM_EIN() { return (bool)(raw >> 21 & 0x1); }
         
-    /** Sets Speed ​​limiter regulates */
+    /** Sets Speed ​​controls */
     void set_V_MAX_REG(bool value){ raw = (raw & 0xffffffffffefffff) | ((uint64_t)value & 0x1) << 20; }
 
-    /** Gets Speed ​​limiter regulates */
+    /** Gets Speed ​​controls */
     bool get_V_MAX_REG() { return (bool)(raw >> 20 & 0x1); }
         
-    /** Sets Display "Limit?" on the display */
+    /** Sets Display "limit?" on display */
     void set_V_DSPL_LIM(bool value){ raw = (raw & 0xfffffffffff7ffff) | ((uint64_t)value & 0x1) << 19; }
 
-    /** Gets Display "Limit?" on the display */
+    /** Gets Display "limit?" on display */
     bool get_V_DSPL_LIM() { return (bool)(raw >> 19 & 0x1); }
         
-    /** Sets Display "Error" on the display */
+    /** Sets "Error" indicator on the display */
     void set_V_DSPL_ERR(bool value){ raw = (raw & 0xfffffffffffbffff) | ((uint64_t)value & 0x1) << 18; }
 
-    /** Gets Display "Error" on the display */
+    /** Gets "Error" indicator on the display */
     bool get_V_DSPL_ERR() { return (bool)(raw >> 18 & 0x1); }
         
-    /** Sets Display flashes */
+    /** Sets display flashes */
     void set_V_DSPL_BL(bool value){ raw = (raw & 0xfffffffffffdffff) | ((uint64_t)value & 0x1) << 17; }
 
-    /** Gets Display flashes */
+    /** Gets display flashes */
     bool get_V_DSPL_BL() { return (bool)(raw >> 17 & 0x1); }
         
-    /** Sets Surrupy / Tempomat display */
+    /** Sets Geschw.begrenzer- / cruise control display a */
     void set_V_DSPL_EIN(bool value){ raw = (raw & 0xfffffffffffeffff) | ((uint64_t)value & 0x1) << 16; }
 
-    /** Gets Surrupy / Tempomat display */
+    /** Gets Geschw.begrenzer- / cruise control display a */
     bool get_V_DSPL_EIN() { return (bool)(raw >> 16 & 0x1); }
         
-    /** Sets factor for departure. d. Max. Mom. At Aufneh. A.Print */
+    /** Sets factor for fill value. d. max. Mom with remo.. A.druck. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FMMOTMAX(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets factor for departure. d. Max. Mom. At Aufneh. A.Print */
+    /** Gets factor for fill value. d. max. Mom with remo.. A.druck. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FMMOTMAX() { return (uint8_t)(raw >> 8 & 0xff); }
         
-    /** Sets Set maximum or cruise speed */
+    /** Sets Set maximum or cruise control speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_MAX_TM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets Set maximum or cruise speed */
+    /** Gets Set maximum or cruise control speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_V_MAX_TM() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } MS_210;
@@ -447,10 +447,10 @@ typedef union {
 
 	/** Gets CAN ID of MS_212 */
 	uint32_t get_canid(){ return MS_212_CAN_ID; }
-    /** Sets Motorley roll speed */
+    /** Sets Motorley roll speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NMOTS(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
-    /** Gets Motorley roll speed */
+    /** Gets Motorley roll speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_NMOTS() { return (uint16_t)(raw >> 48 & 0xffff); }
         
     /** Sets Serial mpomat is variant encoded */
@@ -465,10 +465,10 @@ typedef union {
     /** Gets Enable torque requirement type */
     bool get_M_ART_E() { return (bool)(raw >> 45 & 0x1); }
         
-    /** Sets default torque driver */
+    /** Sets default torque driver. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_FV(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets default torque driver */
+    /** Gets default torque driver. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_FV() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
     /** Sets ENABLE Fast torque setting */
@@ -483,10 +483,10 @@ typedef union {
     /** Gets Enable torque requirement ESP */
     bool get_M_ESP_E() { return (bool)(raw >> 29 & 0x1); }
         
-    /** Sets replacement feed torque driver */
+    /** Sets replacement feed torque driver. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_FEV(uint16_t value){ raw = (raw & 0xffffffffe000ffff) | ((uint64_t)value & 0x1fff) << 16; }
 
-    /** Gets replacement feed torque driver */
+    /** Gets replacement feed torque driver. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_FEV() { return (uint16_t)(raw >> 16 & 0x1fff); }
         
     /** Sets Transfer Calid / CVN Enable */
@@ -507,10 +507,10 @@ typedef union {
     /** Gets Enable torque requirement EGS */
     bool get_M_EGS_E() { return (bool)(raw >> 13 & 0x1); }
         
-    /** Sets default torque ESP */
+    /** Sets default torque ESP. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_ESPV(uint16_t value){ raw = (raw & 0xffffffffffffe000) | ((uint64_t)value & 0x1fff) << 0; }
 
-    /** Gets default torque ESP */
+    /** Gets default torque ESP. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_ESPV() { return (uint16_t)(raw >> 0 & 0x1fff); }
         
 } MS_212;
@@ -522,16 +522,16 @@ typedef union {
 
 	/** Gets CAN ID of MS_268 */
 	uint32_t get_canid(){ return MS_268_CAN_ID; }
-    /** Sets target translation, lower border (FCVT) */
+    /** Sets target translation, lower border (FCVT). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_IMIN_MS(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets target translation, lower border (FCVT) */
+    /** Gets target translation, lower border (FCVT). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_IMIN_MS() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Target Translation, Upper Border (FCVT) */
+    /** Sets Target Translation, Upper Border (FCVT). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_IMAX_MS(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Target Translation, Upper Border (FCVT) */
+    /** Gets Target Translation, Upper Border (FCVT). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_IMAX_MS() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Terminal 61 */
@@ -570,22 +570,22 @@ typedef union {
     /** Gets Mode air control system */
     bool get_LRS_MODE() { return (bool)(raw >> 38 & 0x1); }
         
-    /** Sets Generator utilization (LIN generators only!) */
+    /** Sets Generator utilization (LIN generators only!). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_LAST_GEN(uint8_t value){ raw = (raw & 0xffffffc0ffffffff) | ((uint64_t)value & 0x3f) << 32; }
 
-    /** Gets Generator utilization (LIN generators only!) */
+    /** Gets Generator utilization (LIN generators only!). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_LAST_GEN() { return (uint8_t)(raw >> 32 & 0x3f); }
         
-    /** Sets Max. Climate compressor torque */
+    /** Sets Max. Climate compressor torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_KOMP_MAX(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Max. Climate compressor torque */
+    /** Gets Max. Climate compressor torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_M_KOMP_MAX() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets pedal value driver (only 169) */
+    /** Sets pedal value driver (only 169). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PW_F(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets pedal value driver (only 169) */
+    /** Gets pedal value driver (only 169). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_PW_F() { return (uint8_t)(raw >> 16 & 0xff); }
         
 } MS_268;
@@ -666,10 +666,10 @@ typedef union {
     /** Gets Cylinder shutdown conditions fulfilled */
     bool get_ZASBED() { return (bool)(raw >> 56 & 0x1); }
         
-    /** Sets engine speed */
+    /** Sets engine speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NMOT(uint16_t value){ raw = (raw & 0xff0000ffffffffff) | ((uint64_t)value & 0xffff) << 40; }
 
-    /** Gets engine speed */
+    /** Gets engine speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_NMOT() { return (uint16_t)(raw >> 40 & 0xffff); }
         
     /** Sets Warning message ECO steering helping pump */
@@ -762,22 +762,22 @@ typedef union {
     /** Gets cooling water temperature too high */
     bool get_TEMP_KL() { return (bool)(raw >> 24 & 0x1); }
         
-    /** Sets Oil temperature */
+    /** Sets Oil temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_OEL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Oil temperature */
+    /** Gets Oil temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_T_OEL() { return (uint8_t)(raw >> 16 & 0xff); }
         
-    /** Sets oil level */
+    /** Sets oil level. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_OEL_FS(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets oil level */
+    /** Gets oil level. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_OEL_FS() { return (uint8_t)(raw >> 8 & 0xff); }
         
-    /** Sets oil quality */
+    /** Sets oil quality. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_OEL_QUAL(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets oil quality */
+    /** Gets oil quality. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_OEL_QUAL() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } MS_308;
@@ -789,28 +789,28 @@ typedef union {
 
 	/** Gets CAN ID of MS_312 */
 	uint32_t get_canid(){ return MS_312_CAN_ID; }
-    /** Sets Motor torque static */
+    /** Sets Motor torque static. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_STA(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
-    /** Gets Motor torque static */
+    /** Gets Motor torque static. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_STA() { return (uint16_t)(raw >> 48 & 0x1fff); }
         
-    /** Sets Motor Torque Maximum incl. DYN.Turbocharger */
+    /** Sets Motor Torque Maximum incl. DYN.Turbocharger. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_MAX_ATL(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
-    /** Gets Motor Torque Maximum incl. DYN.Turbocharger */
+    /** Gets Motor Torque Maximum incl. DYN.Turbocharger. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_MAX_ATL() { return (uint16_t)(raw >> 32 & 0x1fff); }
         
-    /** Sets Motor torque maximum */
+    /** Sets Motor torque maximum. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_MAX(uint16_t value){ raw = (raw & 0xffffffffe000ffff) | ((uint64_t)value & 0x1fff) << 16; }
 
-    /** Gets Motor torque maximum */
+    /** Gets Motor torque maximum. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_MAX() { return (uint16_t)(raw >> 16 & 0x1fff); }
         
-    /** Sets Motor torque minimal */
+    /** Sets Motor torque minimal. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_MIN(uint16_t value){ raw = (raw & 0xffffffffffffe000) | ((uint64_t)value & 0x1fff) << 0; }
 
-    /** Gets Motor torque minimal */
+    /** Gets Motor torque minimal. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_M_MIN() { return (uint16_t)(raw >> 0 & 0x1fff); }
         
 } MS_312;
@@ -822,34 +822,34 @@ typedef union {
 
 	/** Gets CAN ID of AAD_580 */
 	uint32_t get_canid(){ return AAD_580_CAN_ID; }
-    /** Sets indicator acceleration type (> 100: dynamic) */
+    /** Sets indicator acceleration type (> 100: dynamic). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FTK_BMI(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets indicator acceleration type (> 100: dynamic) */
+    /** Gets indicator acceleration type (> 100: dynamic). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FTK_BMI() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets Code of the transverse acceleration type (> 100: dynamic) */
+    /** Sets Code of the transverse acceleration type (> 100: dynamic). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FTK_LMI(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets Code of the transverse acceleration type (> 100: dynamic) */
+    /** Gets Code of the transverse acceleration type (> 100: dynamic). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FTK_LMI() { return (uint8_t)(raw >> 48 & 0xff); }
         
-    /** Sets code number brake type (> 100: dynamic) */
+    /** Sets code number brake type (> 100: dynamic). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FTK_VMI(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
-    /** Gets code number brake type (> 100: dynamic) */
+    /** Gets code number brake type (> 100: dynamic). Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FTK_VMI() { return (uint8_t)(raw >> 40 & 0xff); }
         
-    /** Sets Max. Diff.Pedal angle value per maneuver */
+    /** Sets Max. Diff.Pedal angle value per maneuver. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FTK_DPW(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Max. Diff.Pedal angle value per maneuver */
+    /** Gets Max. Diff.Pedal angle value per maneuver. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_FTK_DPW() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets Continuous driver watching */
+    /** Sets Continuous driver watching. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_AADKB(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
-    /** Gets Continuous driver watching */
+    /** Gets Continuous driver watching. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_AADKB() { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Spontaneous dynamic requirement */
@@ -858,10 +858,10 @@ typedef union {
     /** Gets Spontaneous dynamic requirement */
     bool get_AADKBDYN() { return (bool)(raw >> 15 & 0x1); }
         
-    /** Sets nervousness */
+    /** Sets nervousness. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_AADNT(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
-    /** Gets nervousness */
+    /** Gets nervousness. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_AADNT() { return (uint8_t)(raw >> 0 & 0xff); }
         
 } AAD_580;
@@ -873,16 +873,16 @@ typedef union {
 
 	/** Gets CAN ID of MS_608 */
 	uint32_t get_canid(){ return MS_608_CAN_ID; }
-    /** Sets engine coolant temperature */
+    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_MOT(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets engine coolant temperature */
+    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_T_MOT() { return (uint8_t)(raw >> 56 & 0xff); }
         
-    /** Sets intake air temperature */
+    /** Sets intake air temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_LUFT(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
-    /** Gets intake air temperature */
+    /** Gets intake air temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_T_LUFT() { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Vehicle code body */
@@ -915,16 +915,16 @@ typedef union {
     /** Gets FZGCOD.Motor 7Bit, bit0-5 (bit6 -> signal fcod_mot6) */
     MS_608h_FCOD_MOT get_FCOD_MOT() { return (MS_608h_FCOD_MOT)(raw >> 32 & 0x3f); }
         
-    /** Sets Fixed maximum speed */
+    /** Sets Fixed maximum speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_MAX_FIX(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets Fixed maximum speed */
+    /** Gets Fixed maximum speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_V_MAX_FIX() { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets consumption */
+    /** Sets consumption. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_VB(uint16_t value){ raw = (raw & 0xffffffffff0000ff) | ((uint64_t)value & 0xffff) << 8; }
 
-    /** Gets consumption */
+    /** Gets consumption. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_VB() { return (uint16_t)(raw >> 8 & 0xffff); }
         
     /** Sets Turn on auxiliary water pump */
@@ -945,10 +945,10 @@ typedef union {
     /** Gets Switch on additional consumers */
     bool get_ZVB_EIN_MS() { return (bool)(raw >> 4 & 0x1); }
         
-    /** Sets Particle Filter Correction Offset FMMOTMAX */
+    /** Sets Particle Filter Correction Offset FMMOTMAX. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PFKO(uint8_t value){ raw = (raw & 0xfffffffffffffff0) | ((uint64_t)value & 0xf) << 0; }
 
-    /** Gets Particle Filter Correction Offset FMMOTMAX */
+    /** Gets Particle Filter Correction Offset FMMOTMAX. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_PFKO() { return (uint8_t)(raw >> 0 & 0xf); }
         
 } MS_608;

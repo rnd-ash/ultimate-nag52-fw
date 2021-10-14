@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'EWM'
 */
 
-
+#ifdef EGS52_MODE
 
 #ifndef __ECU_EWM_H_
 #define __ECU_EWM_H_
@@ -43,31 +43,31 @@ typedef union {
     void set_W_S(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Driving program */
-    bool get_W_S() { return (bool)(raw >> 63 & 0x1); }
+    bool get_W_S() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Driving program button actuated */
     void set_FPT(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets Driving program button actuated */
-    bool get_FPT() { return (bool)(raw >> 62 & 0x1); }
+    bool get_FPT() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Kickdown */
     void set_KD(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Kickdown */
-    bool get_KD() { return (bool)(raw >> 61 & 0x1); }
+    bool get_KD() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets barrier magnet energized */
     void set_SPERR(bool value){ raw = (raw & 0xefffffffffffffff) | ((uint64_t)value & 0x1) << 60; }
 
     /** Gets barrier magnet energized */
-    bool get_SPERR() { return (bool)(raw >> 60 & 0x1); }
+    bool get_SPERR() const { return (bool)(raw >> 60 & 0x1); }
         
     /** Sets gear selector lever position (NAG only) */
     void set_WHC(EWM_230h_WHC value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
     /** Gets gear selector lever position (NAG only) */
-    EWM_230h_WHC get_WHC() { return (EWM_230h_WHC)(raw >> 56 & 0xf); }
+    EWM_230h_WHC get_WHC() const { return (EWM_230h_WHC)(raw >> 56 & 0xf); }
         
 } EWM_230;
 
@@ -100,7 +100,7 @@ class ECU_EWM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_EWM_230(uint64_t now, uint64_t max_expire_time, EWM_230* dest) {
+        bool get_EWM_230(uint64_t now, uint64_t max_expire_time, EWM_230* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -116,3 +116,5 @@ class ECU_EWM {
 		uint64_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_EWM_H_
+
+#endif // EGS52_MODE

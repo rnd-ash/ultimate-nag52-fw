@@ -284,6 +284,7 @@ enum class NM_SSP_Nw_Id {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of SG_A1 */
 	uint32_t get_canid(){ return SG_A1_CAN_ID; }
@@ -291,37 +292,37 @@ typedef union {
     void set_SG_OutDC_Curr(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
     /** Gets Starter / Generator Output DC Current / DC Current. Conversion formula (To real from raw): y=(0.10x)-3276.60009765625 (Unit: A) */
-    uint16_t get_SG_OutDC_Curr() { return (uint16_t)(raw >> 48 & 0xffff); }
+    uint16_t get_SG_OutDC_Curr() const { return (uint16_t)(raw >> 48 & 0xffff); }
         
     /** Sets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: V) */
     void set_SG_OutDC_Volt(uint16_t value){ raw = (raw & 0xffff0000ffffffff) | ((uint64_t)value & 0xffff) << 32; }
 
     /** Gets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: V) */
-    uint16_t get_SG_OutDC_Volt() { return (uint16_t)(raw >> 32 & 0xffff); }
+    uint16_t get_SG_OutDC_Volt() const { return (uint16_t)(raw >> 32 & 0xffff); }
         
     /** Sets Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
     void set_EM1_Diag_Stat(SG_A1_EM1_Diag_Stat value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
     /** Gets Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
-    SG_A1_EM1_Diag_Stat get_EM1_Diag_Stat() { return (SG_A1_EM1_Diag_Stat)(raw >> 8 & 0xff); }
+    SG_A1_EM1_Diag_Stat get_EM1_Diag_Stat() const { return (SG_A1_EM1_Diag_Stat)(raw >> 8 & 0xff); }
         
     /** Sets Error Check State / Status Error Check */
     void set_SG_ErrChk_Stat(SG_A1_SG_ErrChk_Stat value){ raw = (raw & 0xffffffffffffff3f) | ((uint64_t)value & 0x3) << 6; }
 
     /** Gets Error Check State / Status Error Check */
-    SG_A1_SG_ErrChk_Stat get_SG_ErrChk_Stat() { return (SG_A1_SG_ErrChk_Stat)(raw >> 6 & 0x3); }
+    SG_A1_SG_ErrChk_Stat get_SG_ErrChk_Stat() const { return (SG_A1_SG_ErrChk_Stat)(raw >> 6 & 0x3); }
         
     /** Sets Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 */
     void set_EM1_EnhCool_Rq(bool value){ raw = (raw & 0xffffffffffffffdf) | ((uint64_t)value & 0x1) << 5; }
 
     /** Gets Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 */
-    bool get_EM1_EnhCool_Rq() { return (bool)(raw >> 5 & 0x1); }
+    bool get_EM1_EnhCool_Rq() const { return (bool)(raw >> 5 & 0x1); }
         
     /** Sets Error Number / Error Number. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_EM1_ErrNum(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
     /** Gets Error Number / Error Number. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_EM1_ErrNum() { return (uint8_t)(raw >> 0 & 0x1f); }
+    uint8_t get_EM1_ErrNum() const { return (uint8_t)(raw >> 0 & 0x1f); }
         
 } SG_A1;
 
@@ -329,6 +330,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ISM_DISP_RQ */
 	uint32_t get_canid(){ return ISM_DISP_RQ_CAN_ID; }
@@ -336,43 +338,43 @@ typedef union {
     void set_TxDrvPosn_Disp_Rq_ISM(ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Transmission Driving Position Display Request / Request Display Gearbox */
-    ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM get_TxDrvPosn_Disp_Rq_ISM() { return (ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM)(raw >> 56 & 0xff); }
+    ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM get_TxDrvPosn_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM)(raw >> 56 & 0xff); }
         
     /** Sets Shift by Wire Beep Request / Request Shift by Wire Warnington */
     void set_SBW_Beep_Rq_ISM(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Shift by Wire Beep Request / Request Shift by Wire Warnington */
-    bool get_SBW_Beep_Rq_ISM() { return (bool)(raw >> 47 & 0x1); }
+    bool get_SBW_Beep_Rq_ISM() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Shift by Wire Message Display Request / Request Shift by Wire Show message */
     void set_SBW_Msg_Disp_Rq_ISM(ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
 
     /** Gets Shift by Wire Message Display Request / Request Shift by Wire Show message */
-    ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM get_SBW_Msg_Disp_Rq_ISM() { return (ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM)(raw >> 40 & 0x7); }
+    ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM get_SBW_Msg_Disp_Rq_ISM() const { return (ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM)(raw >> 40 & 0x7); }
         
     /** Sets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
     void set_TSL_MtnLk2_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM value){ raw = (raw & 0xffffff0fffffffff) | ((uint64_t)value & 0xf) << 36; }
 
     /** Gets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
-    ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM get_TSL_MtnLk2_Disp_Rq_ISM() { return (ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM)(raw >> 36 & 0xf); }
+    ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM get_TSL_MtnLk2_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM)(raw >> 36 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
     void set_TSL_MtnLk1_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM value){ raw = (raw & 0xfffffff0ffffffff) | ((uint64_t)value & 0xf) << 32; }
 
     /** Gets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
-    ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM get_TSL_MtnLk1_Disp_Rq_ISM() { return (ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM)(raw >> 32 & 0xf); }
+    ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM get_TSL_MtnLk1_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM)(raw >> 32 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
     void set_TSL_MtnLk4_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
     /** Gets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
-    ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM get_TSL_MtnLk4_Disp_Rq_ISM() { return (ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM)(raw >> 28 & 0xf); }
+    ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM get_TSL_MtnLk4_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM)(raw >> 28 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
     void set_TSL_MtnLk3_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM value){ raw = (raw & 0xfffffffff0ffffff) | ((uint64_t)value & 0xf) << 24; }
 
     /** Gets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
-    ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM get_TSL_MtnLk3_Disp_Rq_ISM() { return (ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM)(raw >> 24 & 0xf); }
+    ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM get_TSL_MtnLk3_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM)(raw >> 24 & 0xf); }
         
 } ISM_DISP_RQ;
 
@@ -380,6 +382,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of SSP_RS_SSP */
 	uint32_t get_canid(){ return SSP_RS_SSP_CAN_ID; }
@@ -387,31 +390,31 @@ typedef union {
     void set_CurrDtyCyc_Actl(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Actual Current Duty Cycle / Actual Electricity (duty cycle). Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
-    uint8_t get_CurrDtyCyc_Actl() { return (uint8_t)(raw >> 56 & 0xff); }
+    uint8_t get_CurrDtyCyc_Actl() const { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets SSP Diagnostics State / SSP Diagnostic Status */
     void set_SSP_Diag_Stat(SSP_RS_SSP_SSP_Diag_Stat value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets SSP Diagnostics State / SSP Diagnostic Status */
-    SSP_RS_SSP_SSP_Diag_Stat get_SSP_Diag_Stat() { return (SSP_RS_SSP_SSP_Diag_Stat)(raw >> 48 & 0xff); }
+    SSP_RS_SSP_SSP_Diag_Stat get_SSP_Diag_Stat() const { return (SSP_RS_SSP_SSP_Diag_Stat)(raw >> 48 & 0xff); }
         
     /** Sets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_SSP_RPM(uint16_t value){ raw = (raw & 0xffffffc000ffffff) | ((uint64_t)value & 0x3fff) << 24; }
 
     /** Gets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
-    uint16_t get_SSP_RPM() { return (uint16_t)(raw >> 24 & 0x3fff); }
+    uint16_t get_SSP_RPM() const { return (uint16_t)(raw >> 24 & 0x3fff); }
         
     /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
     /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_SSP_RS_SSP() { return (uint8_t)(raw >> 12 & 0xf); }
+    uint8_t get_MC_SSP_RS_SSP() const { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_SSP_RS_SSP() { return (uint8_t)(raw >> 0 & 0xff); }
+    uint8_t get_CRC_SSP_RS_SSP() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } SSP_RS_SSP;
 
@@ -419,6 +422,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of NM_FSCM2 */
 	uint32_t get_canid(){ return NM_FSCM2_CAN_ID; }
@@ -426,55 +430,55 @@ typedef union {
     void set_NM_Mode(NM_FSCM2_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Network Management Mode / Network Management Mode */
-    NM_FSCM2_NM_Mode get_NM_Mode() { return (NM_FSCM2_NM_Mode)(raw >> 56 & 0xff); }
+    NM_FSCM2_NM_Mode get_NM_Mode() const { return (NM_FSCM2_NM_Mode)(raw >> 56 & 0xff); }
         
     /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
     void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() { return (bool)(raw >> 47 & 0x1); }
+    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
     void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() { return (bool)(raw >> 46 & 0x1); }
+    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
     void set_NM_Ud_Launch(NM_FSCM2_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
 
     /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_FSCM2_NM_Ud_Launch get_NM_Ud_Launch() { return (NM_FSCM2_NM_Ud_Launch)(raw >> 40 & 0x3f); }
+    NM_FSCM2_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_FSCM2_NM_Ud_Launch)(raw >> 40 & 0x3f); }
         
     /** Sets Network Management UserData Service No./netzmanagement UserData service */
     void set_NM_Ud_Srv(NM_FSCM2_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_FSCM2_NM_Ud_Srv get_NM_Ud_Srv() { return (NM_FSCM2_NM_Ud_Srv)(raw >> 32 & 0xff); }
+    NM_FSCM2_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_FSCM2_NM_Ud_Srv)(raw >> 32 & 0xff); }
         
     /** Sets Wakeup Reason / Wake-up */
     void set_WakeupRsn_FSCM2(NM_FSCM2_WakeupRsn_FSCM2 value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
     /** Gets Wakeup Reason / Wake-up */
-    NM_FSCM2_WakeupRsn_FSCM2 get_WakeupRsn_FSCM2() { return (NM_FSCM2_WakeupRsn_FSCM2)(raw >> 24 & 0xff); }
+    NM_FSCM2_WakeupRsn_FSCM2 get_WakeupRsn_FSCM2() const { return (NM_FSCM2_WakeupRsn_FSCM2)(raw >> 24 & 0xff); }
         
     /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
+    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
     void set_Nw_Id(NM_FSCM2_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets Network Identification No./netzwerk-id */
-    NM_FSCM2_Nw_Id get_Nw_Id() { return (NM_FSCM2_Nw_Id)(raw >> 0 & 0xff); }
+    NM_FSCM2_Nw_Id get_Nw_Id() const { return (NM_FSCM2_Nw_Id)(raw >> 0 & 0xff); }
         
 } NM_FSCM2;
 
@@ -482,6 +486,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of NM_ISM */
 	uint32_t get_canid(){ return NM_ISM_CAN_ID; }
@@ -489,55 +494,55 @@ typedef union {
     void set_NM_Mode(NM_ISM_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Network Management Mode / Network Management Mode */
-    NM_ISM_NM_Mode get_NM_Mode() { return (NM_ISM_NM_Mode)(raw >> 56 & 0xff); }
+    NM_ISM_NM_Mode get_NM_Mode() const { return (NM_ISM_NM_Mode)(raw >> 56 & 0xff); }
         
     /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
     void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() { return (bool)(raw >> 47 & 0x1); }
+    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
     void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() { return (bool)(raw >> 46 & 0x1); }
+    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
     void set_NM_Ud_Launch(NM_ISM_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
 
     /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_ISM_NM_Ud_Launch get_NM_Ud_Launch() { return (NM_ISM_NM_Ud_Launch)(raw >> 40 & 0x3f); }
+    NM_ISM_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_ISM_NM_Ud_Launch)(raw >> 40 & 0x3f); }
         
     /** Sets Network Management UserData Service No./netzmanagement UserData service */
     void set_NM_Ud_Srv(NM_ISM_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_ISM_NM_Ud_Srv get_NM_Ud_Srv() { return (NM_ISM_NM_Ud_Srv)(raw >> 32 & 0xff); }
+    NM_ISM_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_ISM_NM_Ud_Srv)(raw >> 32 & 0xff); }
         
     /** Sets Wakeup Reason / Wake-up */
     void set_WakeupRsn_ISM(NM_ISM_WakeupRsn_ISM value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
     /** Gets Wakeup Reason / Wake-up */
-    NM_ISM_WakeupRsn_ISM get_WakeupRsn_ISM() { return (NM_ISM_WakeupRsn_ISM)(raw >> 24 & 0xff); }
+    NM_ISM_WakeupRsn_ISM get_WakeupRsn_ISM() const { return (NM_ISM_WakeupRsn_ISM)(raw >> 24 & 0xff); }
         
     /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
+    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
     void set_Nw_Id(NM_ISM_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets Network Identification No./netzwerk-id */
-    NM_ISM_Nw_Id get_Nw_Id() { return (NM_ISM_Nw_Id)(raw >> 0 & 0xff); }
+    NM_ISM_Nw_Id get_Nw_Id() const { return (NM_ISM_Nw_Id)(raw >> 0 & 0xff); }
         
 } NM_ISM;
 
@@ -545,6 +550,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of NM_SSP */
 	uint32_t get_canid(){ return NM_SSP_CAN_ID; }
@@ -552,55 +558,55 @@ typedef union {
     void set_NM_Mode(NM_SSP_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Network Management Mode / Network Management Mode */
-    NM_SSP_NM_Mode get_NM_Mode() { return (NM_SSP_NM_Mode)(raw >> 56 & 0xff); }
+    NM_SSP_NM_Mode get_NM_Mode() const { return (NM_SSP_NM_Mode)(raw >> 56 & 0xff); }
         
     /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
     void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() { return (bool)(raw >> 47 & 0x1); }
+    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
     void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() { return (bool)(raw >> 46 & 0x1); }
+    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
     void set_NM_Ud_Launch(NM_SSP_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
 
     /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_SSP_NM_Ud_Launch get_NM_Ud_Launch() { return (NM_SSP_NM_Ud_Launch)(raw >> 40 & 0x3f); }
+    NM_SSP_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_SSP_NM_Ud_Launch)(raw >> 40 & 0x3f); }
         
     /** Sets Network Management UserData Service No./netzmanagement UserData service */
     void set_NM_Ud_Srv(NM_SSP_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_SSP_NM_Ud_Srv get_NM_Ud_Srv() { return (NM_SSP_NM_Ud_Srv)(raw >> 32 & 0xff); }
+    NM_SSP_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_SSP_NM_Ud_Srv)(raw >> 32 & 0xff); }
         
     /** Sets Wakeup Reason / Wake-up */
     void set_WakeupRsn_SSP(NM_SSP_WakeupRsn_SSP value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
     /** Gets Wakeup Reason / Wake-up */
-    NM_SSP_WakeupRsn_SSP get_WakeupRsn_SSP() { return (NM_SSP_WakeupRsn_SSP)(raw >> 24 & 0xff); }
+    NM_SSP_WakeupRsn_SSP get_WakeupRsn_SSP() const { return (NM_SSP_WakeupRsn_SSP)(raw >> 24 & 0xff); }
         
     /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
+    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
     void set_Nw_Id(NM_SSP_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets Network Identification No./netzwerk-id */
-    NM_SSP_Nw_Id get_Nw_Id() { return (NM_SSP_Nw_Id)(raw >> 0 & 0xff); }
+    NM_SSP_Nw_Id get_Nw_Id() const { return (NM_SSP_Nw_Id)(raw >> 0 & 0xff); }
         
 } NM_SSP;
 
@@ -653,13 +659,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SG_A1(uint64_t now, uint64_t max_expire_time, SG_A1* dest) {
+        bool get_SG_A1(uint64_t now, uint64_t max_expire_time, SG_A1* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -670,13 +677,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ISM_DISP_RQ(uint64_t now, uint64_t max_expire_time, ISM_DISP_RQ* dest) {
+        bool get_ISM_DISP_RQ(uint64_t now, uint64_t max_expire_time, ISM_DISP_RQ* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -687,13 +695,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SSP_RS_SSP(uint64_t now, uint64_t max_expire_time, SSP_RS_SSP* dest) {
+        bool get_SSP_RS_SSP(uint64_t now, uint64_t max_expire_time, SSP_RS_SSP* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -704,13 +713,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_FSCM2(uint64_t now, uint64_t max_expire_time, NM_FSCM2* dest) {
+        bool get_NM_FSCM2(uint64_t now, uint64_t max_expire_time, NM_FSCM2* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -721,13 +731,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_ISM(uint64_t now, uint64_t max_expire_time, NM_ISM* dest) {
+        bool get_NM_ISM(uint64_t now, uint64_t max_expire_time, NM_ISM* dest) const {
             if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[4];
+                dest->raw = FRAME_DATA[4];
+                return true;
             }
         }
             
@@ -738,13 +749,14 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_SSP(uint64_t now, uint64_t max_expire_time, NM_SSP* dest) {
+        bool get_NM_SSP(uint64_t now, uint64_t max_expire_time, NM_SSP* dest) const {
             if (LAST_FRAME_TIMES[5] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[5];
+                dest->raw = FRAME_DATA[5];
+                return true;
             }
         }
             

@@ -88,7 +88,7 @@ class Signal:
     void set_{1}({2} value){{ raw = (raw & 0x{5:{fill}16x}) | ((uint64_t)value & 0x{4:x}) << {3}; }}
 
     /** Gets {0}{7}{8} */
-    {2} get_{1}() {{ return ({2})(raw >> {3} & 0x{4:x}); }}
+    {2} get_{1}() const {{ return ({2})(raw >> {3} & 0x{4:x}); }}
         """.format(self.desc, self.name, self.get_return_data_type(frame_name), 64-self.length-self.offset, f_mask, mask, conv_to, conv_from, unit_str, fill='0')
 
     def add_enum(self, e: EnumEntry):
@@ -232,7 +232,7 @@ class ECU:
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_{0}(uint64_t now, uint64_t max_expire_time, {0}* dest) {{
+        bool get_{0}(uint64_t now, uint64_t max_expire_time, {0}* dest) const {{
             if (LAST_FRAME_TIMES[{1}] == 0 || dest == nullptr) {{ // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             }} else if (now - LAST_FRAME_TIMES[{1}] > max_expire_time) {{ // CAN Frame has not refreshed in valid interval

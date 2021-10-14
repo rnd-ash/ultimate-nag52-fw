@@ -30,7 +30,7 @@ class Egs52Can: public AbstractCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel() override;
         // Gets shifter position from EWM module
-        void get_shifter_position_ewm() override;
+        ShifterPosition get_shifter_position_ewm() override;
         // Gets engine type
         EngineType get_engine_type() override;
         // Returns true if engine is in limp mode

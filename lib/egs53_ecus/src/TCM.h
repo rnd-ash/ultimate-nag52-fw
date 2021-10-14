@@ -375,6 +375,7 @@ enum class NM_TCM_Nw_Id {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of TCM_A1 */
 	uint32_t get_canid(){ return TCM_A1_CAN_ID; }
@@ -382,79 +383,79 @@ typedef union {
     void set_TxOilTemp(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Transmission Oil Temperature / Gear Oil Temperature. Conversion formula (To real from raw): y=(1.00x)-50.0 (Unit: °C) */
-    uint8_t get_TxOilTemp() { return (uint8_t)(raw >> 56 & 0xff); }
+    uint8_t get_TxOilTemp() const { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets Torque Converter Lockup Clutch No Load / Converter Bridging Clutch Load */
     void set_TCC_NoLoad(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
     /** Gets Torque Converter Lockup Clutch No Load / Converter Bridging Clutch Load */
-    bool get_TCC_NoLoad() { return (bool)(raw >> 55 & 0x1); }
+    bool get_TCC_NoLoad() const { return (bool)(raw >> 55 & 0x1); }
         
     /** Sets State (Torque Converter Lockup) Clutch / Status (Converter Bridging) Clutch */
     void set_Clutch_Stat(TCM_A1_Clutch_Stat value){ raw = (raw & 0xff8fffffffffffff) | ((uint64_t)value & 0x7) << 52; }
 
     /** Gets State (Torque Converter Lockup) Clutch / Status (Converter Bridging) Clutch */
-    TCM_A1_Clutch_Stat get_Clutch_Stat() { return (TCM_A1_Clutch_Stat)(raw >> 52 & 0x7); }
+    TCM_A1_Clutch_Stat get_Clutch_Stat() const { return (TCM_A1_Clutch_Stat)(raw >> 52 & 0x7); }
         
     /** Sets Transmission Control in Limp-Home Operation Fashion / transmission control in emergency */
     void set_TCM_LHOM(bool value){ raw = (raw & 0xfff7ffffffffffff) | ((uint64_t)value & 0x1) << 51; }
 
     /** Gets Transmission Control in Limp-Home Operation Fashion / transmission control in emergency */
-    bool get_TCM_LHOM() { return (bool)(raw >> 51 & 0x1); }
+    bool get_TCM_LHOM() const { return (bool)(raw >> 51 & 0x1); }
         
     /** Sets Basic Shifting Program OK / Basic Switching Program O.K. */
     void set_BasShftProg_Ok(bool value){ raw = (raw & 0xfffbffffffffffff) | ((uint64_t)value & 0x1) << 50; }
 
     /** Gets Basic Shifting Program OK / Basic Switching Program O.K. */
-    bool get_BasShftProg_Ok() { return (bool)(raw >> 50 & 0x1); }
+    bool get_BasShftProg_Ok() const { return (bool)(raw >> 50 & 0x1); }
         
     /** Sets Drive Resistance High / driving resistance high */
     void set_DrvRst_Hi(bool value){ raw = (raw & 0xfffdffffffffffff) | ((uint64_t)value & 0x1) << 49; }
 
     /** Gets Drive Resistance High / driving resistance high */
-    bool get_DrvRst_Hi() { return (bool)(raw >> 49 & 0x1); }
+    bool get_DrvRst_Hi() const { return (bool)(raw >> 49 & 0x1); }
         
     /** Sets Excessive Transmission Temperature / Overtemperature Transmission */
     void set_TxTemp_Excess(bool value){ raw = (raw & 0xfffeffffffffffff) | ((uint64_t)value & 0x1) << 48; }
 
     /** Gets Excessive Transmission Temperature / Overtemperature Transmission */
-    bool get_TxTemp_Excess() { return (bool)(raw >> 48 & 0x1); }
+    bool get_TxTemp_Excess() const { return (bool)(raw >> 48 & 0x1); }
         
     /** Sets Transmission off-road active / terrain active */
     void set_TxOffRd_Actv(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Transmission off-road active / terrain active */
-    bool get_TxOffRd_Actv() { return (bool)(raw >> 47 & 0x1); }
+    bool get_TxOffRd_Actv() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Transmission Selector Lever Position / Transmission Logging */
     void set_TSL_Posn_TCM(TCM_A1_TSL_Posn_TCM value){ raw = (raw & 0xffff8fffffffffff) | ((uint64_t)value & 0x7) << 44; }
 
     /** Gets Transmission Selector Lever Position / Transmission Logging */
-    TCM_A1_TSL_Posn_TCM get_TSL_Posn_TCM() { return (TCM_A1_TSL_Posn_TCM)(raw >> 44 & 0x7); }
+    TCM_A1_TSL_Posn_TCM get_TSL_Posn_TCM() const { return (TCM_A1_TSL_Posn_TCM)(raw >> 44 & 0x7); }
         
     /** Sets Transmission Driving Program "Manual" Active / Driving Program "Manual" active */
     void set_TxDrvProgMan_Actv(bool value){ raw = (raw & 0xfffff7ffffffffff) | ((uint64_t)value & 0x1) << 43; }
 
     /** Gets Transmission Driving Program "Manual" Active / Driving Program "Manual" active */
-    bool get_TxDrvProgMan_Actv() { return (bool)(raw >> 43 & 0x1); }
+    bool get_TxDrvProgMan_Actv() const { return (bool)(raw >> 43 & 0x1); }
         
     /** Sets Actual Vehicle Driving Program (ie Sent During Txdrvprogman_Activ = 1) / Driving Program Transmission (is also sent to TXDRVPROGMAN_ACTV = 1) */
     void set_VehDrvProg_TCM_V2(TCM_A1_VehDrvProg_TCM_V2 value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
 
     /** Gets Actual Vehicle Driving Program (ie Sent During Txdrvprogman_Activ = 1) / Driving Program Transmission (is also sent to TXDRVPROGMAN_ACTV = 1) */
-    TCM_A1_VehDrvProg_TCM_V2 get_VehDrvProg_TCM_V2() { return (TCM_A1_VehDrvProg_TCM_V2)(raw >> 40 & 0x7); }
+    TCM_A1_VehDrvProg_TCM_V2 get_VehDrvProg_TCM_V2() const { return (TCM_A1_VehDrvProg_TCM_V2)(raw >> 40 & 0x7); }
         
     /** Sets Brake During Start Request / Create brake when switched on */
     void set_StBrk_Rq_TCM(bool value){ raw = (raw & 0xffffff7fffffffff) | ((uint64_t)value & 0x1) << 39; }
 
     /** Gets Brake During Start Request / Create brake when switched on */
-    bool get_StBrk_Rq_TCM() { return (bool)(raw >> 39 & 0x1); }
+    bool get_StBrk_Rq_TCM() const { return (bool)(raw >> 39 & 0x1); }
         
     /** Sets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: Nm) */
     void set_TxDrvTrqAbsVal(uint16_t value){ raw = (raw & 0xffffffff0000ffff) | ((uint64_t)value & 0xffff) << 16; }
 
     /** Gets Absolute Value of the Transmission Overall Drive Shaft Torque For Driveaway / Amount of Total Point Torque In The Startup Area. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: Nm) */
-    uint16_t get_TxDrvTrqAbsVal() { return (uint16_t)(raw >> 16 & 0xffff); }
+    uint16_t get_TxDrvTrqAbsVal() const { return (uint16_t)(raw >> 16 & 0xffff); }
         
 } TCM_A1;
 
@@ -462,6 +463,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of TCM_A2 */
 	uint32_t get_canid(){ return TCM_A2_CAN_ID; }
@@ -469,49 +471,49 @@ typedef union {
     void set_CurrDtyCyc_Rq(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Requested Current Duty Cycle / Soll Current (duty cycle). Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
-    uint8_t get_CurrDtyCyc_Rq() { return (uint8_t)(raw >> 56 & 0xff); }
+    uint8_t get_CurrDtyCyc_Rq() const { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets Actual Transmission Turbine RPM / Current turbine speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_TxTurbineRPM(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
     /** Gets Actual Transmission Turbine RPM / Current turbine speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
-    uint16_t get_TxTurbineRPM() { return (uint16_t)(raw >> 32 & 0x3fff); }
+    uint16_t get_TxTurbineRPM() const { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets Malfunction Indicator Lamp on Request (OBD II) / Diagnosis Control Lamp (OBD II) */
     void set_MIL_On_Rq_TCM(bool value){ raw = (raw & 0xffffffff7fffffff) | ((uint64_t)value & 0x1) << 31; }
 
     /** Gets Malfunction Indicator Lamp on Request (OBD II) / Diagnosis Control Lamp (OBD II) */
-    bool get_MIL_On_Rq_TCM() { return (bool)(raw >> 31 & 0x1); }
+    bool get_MIL_On_Rq_TCM() const { return (bool)(raw >> 31 & 0x1); }
         
     /** Sets Desired Transmission Slip RPM / Slip Speed should. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_TxSlpRPM_Dsr(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
     /** Gets Desired Transmission Slip RPM / Slip Speed should. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
-    uint16_t get_TxSlpRPM_Dsr() { return (uint16_t)(raw >> 16 & 0x3fff); }
+    uint16_t get_TxSlpRPM_Dsr() const { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets Calid / CVN Data Byte / Calid / CVN DataByte. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TCM_Data(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
     /** Gets Calid / CVN Data Byte / Calid / CVN DataByte. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_TCM_Data() { return (uint8_t)(raw >> 8 & 0xff); }
+    uint8_t get_TCM_Data() const { return (uint8_t)(raw >> 8 & 0xff); }
         
     /** Sets Error Check State / Status Error Check */
     void set_TCM_ErrChk_Stat(TCM_A2_TCM_ErrChk_Stat value){ raw = (raw & 0xffffffffffffff3f) | ((uint64_t)value & 0x3) << 6; }
 
     /** Gets Error Check State / Status Error Check */
-    TCM_A2_TCM_ErrChk_Stat get_TCM_ErrChk_Stat() { return (TCM_A2_TCM_ErrChk_Stat)(raw >> 6 & 0x3); }
+    TCM_A2_TCM_ErrChk_Stat get_TCM_ErrChk_Stat() const { return (TCM_A2_TCM_ErrChk_Stat)(raw >> 6 & 0x3); }
         
     /** Sets CALID / CVN Transmission Active / Calid / CVN transmission active */
     void set_TCM_CALID_CVN_Actv(bool value){ raw = (raw & 0xffffffffffffffdf) | ((uint64_t)value & 0x1) << 5; }
 
     /** Gets CALID / CVN Transmission Active / Calid / CVN transmission active */
-    bool get_TCM_CALID_CVN_Actv() { return (bool)(raw >> 5 & 0x1); }
+    bool get_TCM_CALID_CVN_Actv() const { return (bool)(raw >> 5 & 0x1); }
         
     /** Sets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TCM_CALID_CVN_ErrNum(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
     /** Gets Error Number or Counter for Calid / CVN Transmission / Error Number or Counter for Calid / CVN Transfer. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_TCM_CALID_CVN_ErrNum() { return (uint8_t)(raw >> 0 & 0x1f); }
+    uint8_t get_TCM_CALID_CVN_ErrNum() const { return (uint8_t)(raw >> 0 & 0x1f); }
         
 } TCM_A2;
 
@@ -519,6 +521,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ENG_RQ1_TCM */
 	uint32_t get_canid(){ return ENG_RQ1_TCM_CAN_ID; }
@@ -526,79 +529,79 @@ typedef union {
     void set_EngTrqMin_Rq_TCM(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Engine Torque Request Minimum / Motor Moment Request Min */
-    bool get_EngTrqMin_Rq_TCM() { return (bool)(raw >> 63 & 0x1); }
+    bool get_EngTrqMin_Rq_TCM() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Engine Torque Request Maximum / Engine Motor Toment Request Max */
     void set_EngTrqMax_Rq_TCM(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets Engine Torque Request Maximum / Engine Motor Toment Request Max */
-    bool get_EngTrqMax_Rq_TCM() { return (bool)(raw >> 62 & 0x1); }
+    bool get_EngTrqMax_Rq_TCM() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Engine Torque Request / Ford. Engine torque. Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_EngTrq_Rq_TCM(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
     /** Gets Engine Torque Request / Ford. Engine torque. Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
-    uint16_t get_EngTrq_Rq_TCM() { return (uint16_t)(raw >> 48 & 0x1fff); }
+    uint16_t get_EngTrq_Rq_TCM() const { return (uint16_t)(raw >> 48 & 0x1fff); }
         
     /** Sets Intervention fashion / intervention mode */
     void set_IntrvntnMd_TCM(ENG_RQ1_TCM_IntrvntnMd_TCM value){ raw = (raw & 0xffff3fffffffffff) | ((uint64_t)value & 0x3) << 46; }
 
     /** Gets Intervention fashion / intervention mode */
-    ENG_RQ1_TCM_IntrvntnMd_TCM get_IntrvntnMd_TCM() { return (ENG_RQ1_TCM_IntrvntnMd_TCM)(raw >> 46 & 0x3); }
+    ENG_RQ1_TCM_IntrvntnMd_TCM get_IntrvntnMd_TCM() const { return (ENG_RQ1_TCM_IntrvntnMd_TCM)(raw >> 46 & 0x3); }
         
     /** Sets Transmission Downshift Mode / Rewish Mode Transmission */
     void set_TxDnShiftMd(ENG_RQ1_TCM_TxDnShiftMd value){ raw = (raw & 0xffffc7ffffffffff) | ((uint64_t)value & 0x7) << 43; }
 
     /** Gets Transmission Downshift Mode / Rewish Mode Transmission */
-    ENG_RQ1_TCM_TxDnShiftMd get_TxDnShiftMd() { return (ENG_RQ1_TCM_TxDnShiftMd)(raw >> 43 & 0x7); }
+    ENG_RQ1_TCM_TxDnShiftMd get_TxDnShiftMd() const { return (ENG_RQ1_TCM_TxDnShiftMd)(raw >> 43 & 0x7); }
         
     /** Sets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine. Conversion formula (To raw from real): y=(x-0.0)/0.02 (Unit: s) */
     void set_EngRPM_SyncTm_Rq_TCM(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets Engine RPM Synchronization Time Request / Synchronization Time for Target Speed ​​Engine. Conversion formula (To real from raw): y=(0.02x)+0.0 (Unit: s) */
-    uint8_t get_EngRPM_SyncTm_Rq_TCM() { return (uint8_t)(raw >> 32 & 0xff); }
+    uint8_t get_EngRPM_SyncTm_Rq_TCM() const { return (uint8_t)(raw >> 32 & 0xff); }
         
     /** Sets ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE */
     void set_SSA_Enbl_Rq_TCM(bool value){ raw = (raw & 0xffffffff7fffffff) | ((uint64_t)value & 0x1) << 31; }
 
     /** Gets ENABLE STOP / START AUTOMATIC REQUEST / ASS ENABLE */
-    bool get_SSA_Enbl_Rq_TCM() { return (bool)(raw >> 31 & 0x1); }
+    bool get_SSA_Enbl_Rq_TCM() const { return (bool)(raw >> 31 & 0x1); }
         
     /** Sets Engine RPM Request / Target Speed ​​Engine. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
     void set_EngRPM_Rq_TCM(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
 
     /** Gets Engine RPM Request / Target Speed ​​Engine. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
-    uint16_t get_EngRPM_Rq_TCM() { return (uint16_t)(raw >> 16 & 0x3fff); }
+    uint16_t get_EngRPM_Rq_TCM() const { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ1_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
     /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_ENG_RQ1_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
+    uint8_t get_MC_ENG_RQ1_TCM() const { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets Enable Engine Start Request / Using Release Transmission */
     void set_EngSt_Enbl_Rq_TCM(bool value){ raw = (raw & 0xfffffffffffff7ff) | ((uint64_t)value & 0x1) << 11; }
 
     /** Gets Enable Engine Start Request / Using Release Transmission */
-    bool get_EngSt_Enbl_Rq_TCM() { return (bool)(raw >> 11 & 0x1); }
+    bool get_EngSt_Enbl_Rq_TCM() const { return (bool)(raw >> 11 & 0x1); }
         
     /** Sets Engine Emergency Off Request / Engine Emergency Off */
     void set_EngEmgOff_Rq(bool value){ raw = (raw & 0xfffffffffffffbff) | ((uint64_t)value & 0x1) << 10; }
 
     /** Gets Engine Emergency Off Request / Engine Emergency Off */
-    bool get_EngEmgOff_Rq() { return (bool)(raw >> 10 & 0x1); }
+    bool get_EngEmgOff_Rq() const { return (bool)(raw >> 10 & 0x1); }
         
     /** Sets JUMP START ACTIVE / BARMSTART */
     void set_JmpSt_Actv(bool value){ raw = (raw & 0xfffffffffffffdff) | ((uint64_t)value & 0x1) << 9; }
 
     /** Gets JUMP START ACTIVE / BARMSTART */
-    bool get_JmpSt_Actv() { return (bool)(raw >> 9 & 0x1); }
+    bool get_JmpSt_Actv() const { return (bool)(raw >> 9 & 0x1); }
         
     /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ1_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_ENG_RQ1_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
+    uint8_t get_CRC_ENG_RQ1_TCM() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ1_TCM;
 
@@ -606,6 +609,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ENG_RQ2_TCM */
 	uint32_t get_canid(){ return ENG_RQ2_TCM_CAN_ID; }
@@ -613,67 +617,67 @@ typedef union {
     void set_Gr_Target(ENG_RQ2_TCM_Gr_Target value){ raw = (raw & 0x0fffffffffffffff) | ((uint64_t)value & 0xf) << 60; }
 
     /** Gets Target Gear / Target Gear */
-    ENG_RQ2_TCM_Gr_Target get_Gr_Target() { return (ENG_RQ2_TCM_Gr_Target)(raw >> 60 & 0xf); }
+    ENG_RQ2_TCM_Gr_Target get_Gr_Target() const { return (ENG_RQ2_TCM_Gr_Target)(raw >> 60 & 0xf); }
         
     /** Sets Actual Gear / Actual Gang */
     void set_Gr(ENG_RQ2_TCM_Gr value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
     /** Gets Actual Gear / Actual Gang */
-    ENG_RQ2_TCM_Gr get_Gr() { return (ENG_RQ2_TCM_Gr)(raw >> 56 & 0xf); }
+    ENG_RQ2_TCM_Gr get_Gr() const { return (ENG_RQ2_TCM_Gr)(raw >> 56 & 0xf); }
         
     /** Sets Actual Transmission Ratio (CVT) / Translation Translation (CVT). Conversion formula (To raw from real): y=(x-0.0)/0.02 */
     void set_TxRatio(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Actual Transmission Ratio (CVT) / Translation Translation (CVT). Conversion formula (To real from raw): y=(0.02x)+0.0 */
-    uint8_t get_TxRatio() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_TxRatio() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque. Conversion formula (To raw from real): y=(x-0.0)/0.01 */
     void set_EngWhlTrqRatio_TCM(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
 
     /** Gets Crackish Torque to Wheel Torque ratio / factor crankshaft torque to wheel torque. Conversion formula (To real from raw): y=(0.01x)+0.0 */
-    uint16_t get_EngWhlTrqRatio_TCM() { return (uint16_t)(raw >> 32 & 0x3fff); }
+    uint16_t get_EngWhlTrqRatio_TCM() const { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets Transmission Crankly Torque Loss / Loss Torque. Conversion formula (To raw from real): y=(x-0.0)/0.25 (Unit: Nm) */
     void set_TxTrqLoss(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
     /** Gets Transmission Crankly Torque Loss / Loss Torque. Conversion formula (To real from raw): y=(0.25x)+0.0 (Unit: Nm) */
-    uint8_t get_TxTrqLoss() { return (uint8_t)(raw >> 24 & 0xff); }
+    uint8_t get_TxTrqLoss() const { return (uint8_t)(raw >> 24 & 0xff); }
         
     /** Sets Vehicle Drive Style / Drive Variant */
     void set_VehDrvStyle(ENG_RQ2_TCM_VehDrvStyle value){ raw = (raw & 0xffffffffff3fffff) | ((uint64_t)value & 0x3) << 22; }
 
     /** Gets Vehicle Drive Style / Drive Variant */
-    ENG_RQ2_TCM_VehDrvStyle get_VehDrvStyle() { return (ENG_RQ2_TCM_VehDrvStyle)(raw >> 22 & 0x3); }
+    ENG_RQ2_TCM_VehDrvStyle get_VehDrvStyle() const { return (ENG_RQ2_TCM_VehDrvStyle)(raw >> 22 & 0x3); }
         
     /** Sets Transmission Variant / Gear Variant */
     void set_TxStyle(ENG_RQ2_TCM_TxStyle value){ raw = (raw & 0xffffffffffcfffff) | ((uint64_t)value & 0x3) << 20; }
 
     /** Gets Transmission Variant / Gear Variant */
-    ENG_RQ2_TCM_TxStyle get_TxStyle() { return (ENG_RQ2_TCM_TxStyle)(raw >> 20 & 0x3); }
+    ENG_RQ2_TCM_TxStyle get_TxStyle() const { return (ENG_RQ2_TCM_TxStyle)(raw >> 20 & 0x3); }
         
     /** Sets Transmission Mechanics Style / Gear Mechanic Variant */
     void set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle value){ raw = (raw & 0xfffffffffff3ffff) | ((uint64_t)value & 0x3) << 18; }
 
     /** Gets Transmission Mechanics Style / Gear Mechanic Variant */
-    ENG_RQ2_TCM_TxMechStyle get_TxMechStyle() { return (ENG_RQ2_TCM_TxMechStyle)(raw >> 18 & 0x3); }
+    ENG_RQ2_TCM_TxMechStyle get_TxMechStyle() const { return (ENG_RQ2_TCM_TxMechStyle)(raw >> 18 & 0x3); }
         
     /** Sets Transmission Shifting Style / Transmission Circuit Variant */
     void set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle value){ raw = (raw & 0xfffffffffffcffff) | ((uint64_t)value & 0x3) << 16; }
 
     /** Gets Transmission Shifting Style / Transmission Circuit Variant */
-    ENG_RQ2_TCM_TxShiftStyle get_TxShiftStyle() { return (ENG_RQ2_TCM_TxShiftStyle)(raw >> 16 & 0x3); }
+    ENG_RQ2_TCM_TxShiftStyle get_TxShiftStyle() const { return (ENG_RQ2_TCM_TxShiftStyle)(raw >> 16 & 0x3); }
         
     /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ2_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
     /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_ENG_RQ2_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
+    uint8_t get_MC_ENG_RQ2_TCM() const { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ2_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_ENG_RQ2_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
+    uint8_t get_CRC_ENG_RQ2_TCM() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ2_TCM;
 
@@ -681,6 +685,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of ENG_RQ3_TCM */
 	uint32_t get_canid(){ return ENG_RQ3_TCM_CAN_ID; }
@@ -688,25 +693,25 @@ typedef union {
     void set_DrvAccelMax_Stat(ENG_RQ3_TCM_DrvAccelMax_Stat value){ raw = (raw & 0x9fffffffffffffff) | ((uint64_t)value & 0x3) << 61; }
 
     /** Gets Driveaway with Maximum Acceleration State / Status Attachment With Maximum Acceleration */
-    ENG_RQ3_TCM_DrvAccelMax_Stat get_DrvAccelMax_Stat() { return (ENG_RQ3_TCM_DrvAccelMax_Stat)(raw >> 61 & 0x3); }
+    ENG_RQ3_TCM_DrvAccelMax_Stat get_DrvAccelMax_Stat() const { return (ENG_RQ3_TCM_DrvAccelMax_Stat)(raw >> 61 & 0x3); }
         
     /** Sets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive). Conversion formula (To raw from real): y=(x+500.0)/0.25 (Unit: Nm) */
     void set_WetDrvClutchTrq(uint16_t value){ raw = (raw & 0xe000ffffffffffff) | ((uint64_t)value & 0x1fff) << 48; }
 
     /** Gets Actual Wet Driveaway Clutch Torque (0h = passive) / current torque wet starting coupling (0h = passive). Conversion formula (To real from raw): y=(0.25x)-500.0 (Unit: Nm) */
-    uint16_t get_WetDrvClutchTrq() { return (uint16_t)(raw >> 48 & 0x1fff); }
+    uint16_t get_WetDrvClutchTrq() const { return (uint16_t)(raw >> 48 & 0x1fff); }
         
     /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_ENG_RQ3_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
     /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_ENG_RQ3_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
+    uint8_t get_MC_ENG_RQ3_TCM() const { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_ENG_RQ3_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_ENG_RQ3_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
+    uint8_t get_CRC_ENG_RQ3_TCM() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } ENG_RQ3_TCM;
 
@@ -714,6 +719,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of SBW_RS_TCM */
 	uint32_t get_canid(){ return SBW_RS_TCM_CAN_ID; }
@@ -721,43 +727,43 @@ typedef union {
     void set_SBW_MsgTxmtId(SBW_RS_TCM_SBW_MsgTxmtId value){ raw = (raw & 0x3fffffffffffffff) | ((uint64_t)value & 0x3) << 62; }
 
     /** Gets Shift by wire message transmitter identification / shift-by-wire transmitter identification */
-    SBW_RS_TCM_SBW_MsgTxmtId get_SBW_MsgTxmtId() { return (SBW_RS_TCM_SBW_MsgTxmtId)(raw >> 62 & 0x3); }
+    SBW_RS_TCM_SBW_MsgTxmtId get_SBW_MsgTxmtId() const { return (SBW_RS_TCM_SBW_MsgTxmtId)(raw >> 62 & 0x3); }
         
     /** Sets Starter lockout switch (only EGS52) / Inhibitor contact (only EGS52) */
     void set_StartLkSw(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
 
     /** Gets Starter lockout switch (only EGS52) / Inhibitor contact (only EGS52) */
-    bool get_StartLkSw() { return (bool)(raw >> 56 & 0x1); }
+    bool get_StartLkSw() const { return (bool)(raw >> 56 & 0x1); }
         
     /** Sets Actual position transmission selector valve / Actual position Wählbereichsschieber in gear */
     void set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn value){ raw = (raw & 0xff0fffffffffffff) | ((uint64_t)value & 0xf) << 52; }
 
     /** Gets Actual position transmission selector valve / Actual position Wählbereichsschieber in gear */
-    SBW_RS_TCM_TxSelVlvPosn get_TxSelVlvPosn() { return (SBW_RS_TCM_TxSelVlvPosn)(raw >> 52 & 0xf); }
+    SBW_RS_TCM_TxSelVlvPosn get_TxSelVlvPosn() const { return (SBW_RS_TCM_TxSelVlvPosn)(raw >> 52 & 0xf); }
         
     /** Sets transmission selector lever position request / requirement gear selector lever position */
     void set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
     /** Gets transmission selector lever position request / requirement gear selector lever position */
-    SBW_RS_TCM_TSL_Posn_Rq get_TSL_Posn_Rq() { return (SBW_RS_TCM_TSL_Posn_Rq)(raw >> 48 & 0xf); }
+    SBW_RS_TCM_TSL_Posn_Rq get_TSL_Posn_Rq() const { return (SBW_RS_TCM_TSL_Posn_Rq)(raw >> 48 & 0xf); }
         
     /** Sets Transmission selector sensor position / value Wählbereichssensor. Conversion formula (To raw from real): y=(x-0.0)/0.40 (Unit: %) */
     void set_TxSelSensPosn(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
     /** Gets Transmission selector sensor position / value Wählbereichssensor. Conversion formula (To real from raw): y=(0.40x)+0.0 (Unit: %) */
-    uint8_t get_TxSelSensPosn() { return (uint8_t)(raw >> 40 & 0xff); }
+    uint8_t get_TxSelSensPosn() const { return (uint8_t)(raw >> 40 & 0xff); }
         
     /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MC_SBW_RS_TCM(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
 
     /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_SBW_RS_TCM() { return (uint8_t)(raw >> 12 & 0xf); }
+    uint8_t get_MC_SBW_RS_TCM() const { return (uint8_t)(raw >> 12 & 0xf); }
         
     /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_CRC_SBW_RS_TCM(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_SBW_RS_TCM() { return (uint8_t)(raw >> 0 & 0xff); }
+    uint8_t get_CRC_SBW_RS_TCM() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } SBW_RS_TCM;
 
@@ -765,6 +771,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of TCM_DISP_RQ */
 	uint32_t get_canid(){ return TCM_DISP_RQ_CAN_ID; }
@@ -772,67 +779,67 @@ typedef union {
     void set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Transmission Driving Position Display Request / Request Display Gearbox */
-    TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM get_TxDrvPosn_Disp_Rq_TCM() { return (TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM)(raw >> 56 & 0xff); }
+    TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM get_TxDrvPosn_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM)(raw >> 56 & 0xff); }
         
     /** Sets Transmission Driving Program Display Request / Request Display Gearbox Program */
     void set_TxDrvProg_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Transmission Driving Program Display Request / Request Display Gearbox Program */
-    TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM get_TxDrvProg_Disp_Rq_TCM() { return (TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM)(raw >> 48 & 0xff); }
+    TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM get_TxDrvProg_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM)(raw >> 48 & 0xff); }
         
     /** Sets Shift by Wire Beep Request / Request Shift by Wire Warnington */
     void set_SBW_Beep_Rq_TCM(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Shift by Wire Beep Request / Request Shift by Wire Warnington */
-    bool get_SBW_Beep_Rq_TCM() { return (bool)(raw >> 47 & 0x1); }
+    bool get_SBW_Beep_Rq_TCM() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Transmission Shift Recommendation Display Request / Request Display Transmission Description */
     void set_TxShiftRcmmnd_Disp_Rq_TCM(TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM value){ raw = (raw & 0xffff9fffffffffff) | ((uint64_t)value & 0x3) << 45; }
 
     /** Gets Transmission Shift Recommendation Display Request / Request Display Transmission Description */
-    TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM get_TxShiftRcmmnd_Disp_Rq_TCM() { return (TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM)(raw >> 45 & 0x3); }
+    TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM get_TxShiftRcmmnd_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM)(raw >> 45 & 0x3); }
         
     /** Sets Shift by Wire Message Display Request / Request Shift by Wire Show message */
     void set_SBW_Msg_Disp_Rq_TCM(TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
 
     /** Gets Shift by Wire Message Display Request / Request Shift by Wire Show message */
-    TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM get_SBW_Msg_Disp_Rq_TCM() { return (TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM)(raw >> 40 & 0x7); }
+    TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM get_SBW_Msg_Disp_Rq_TCM() const { return (TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM)(raw >> 40 & 0x7); }
         
     /** Sets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
     void set_TSL_MtnLk2_Disp_Rq_TCM(TCM_DISP_RQ_TSL_MtnLk2_Disp_Rq_TCM value){ raw = (raw & 0xffffff0fffffffff) | ((uint64_t)value & 0xf) << 36; }
 
     /** Gets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
-    TCM_DISP_RQ_TSL_MtnLk2_Disp_Rq_TCM get_TSL_MtnLk2_Disp_Rq_TCM() { return (TCM_DISP_RQ_TSL_MtnLk2_Disp_Rq_TCM)(raw >> 36 & 0xf); }
+    TCM_DISP_RQ_TSL_MtnLk2_Disp_Rq_TCM get_TSL_MtnLk2_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TSL_MtnLk2_Disp_Rq_TCM)(raw >> 36 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
     void set_TSL_MtnLk1_Disp_Rq_TCM(TCM_DISP_RQ_TSL_MtnLk1_Disp_Rq_TCM value){ raw = (raw & 0xfffffff0ffffffff) | ((uint64_t)value & 0xf) << 32; }
 
     /** Gets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
-    TCM_DISP_RQ_TSL_MtnLk1_Disp_Rq_TCM get_TSL_MtnLk1_Disp_Rq_TCM() { return (TCM_DISP_RQ_TSL_MtnLk1_Disp_Rq_TCM)(raw >> 32 & 0xf); }
+    TCM_DISP_RQ_TSL_MtnLk1_Disp_Rq_TCM get_TSL_MtnLk1_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TSL_MtnLk1_Disp_Rq_TCM)(raw >> 32 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
     void set_TSL_MtnLk4_Disp_Rq_TCM(TCM_DISP_RQ_TSL_MtnLk4_Disp_Rq_TCM value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
     /** Gets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
-    TCM_DISP_RQ_TSL_MtnLk4_Disp_Rq_TCM get_TSL_MtnLk4_Disp_Rq_TCM() { return (TCM_DISP_RQ_TSL_MtnLk4_Disp_Rq_TCM)(raw >> 28 & 0xf); }
+    TCM_DISP_RQ_TSL_MtnLk4_Disp_Rq_TCM get_TSL_MtnLk4_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TSL_MtnLk4_Disp_Rq_TCM)(raw >> 28 & 0xf); }
         
     /** Sets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
     void set_TSL_MtnLk3_Disp_Rq_TCM(TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM value){ raw = (raw & 0xfffffffff0ffffff) | ((uint64_t)value & 0xf) << 24; }
 
     /** Gets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
-    TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM get_TSL_MtnLk3_Disp_Rq_TCM() { return (TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM)(raw >> 24 & 0xf); }
+    TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM get_TSL_MtnLk3_Disp_Rq_TCM() const { return (TCM_DISP_RQ_TSL_MtnLk3_Disp_Rq_TCM)(raw >> 24 & 0xf); }
         
     /** Sets Target Gear Display Request / Request Display Destination */
     void set_Gr_Target_Disp_Rq(TCM_DISP_RQ_Gr_Target_Disp_Rq value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Target Gear Display Request / Request Display Destination */
-    TCM_DISP_RQ_Gr_Target_Disp_Rq get_Gr_Target_Disp_Rq() { return (TCM_DISP_RQ_Gr_Target_Disp_Rq)(raw >> 16 & 0xff); }
+    TCM_DISP_RQ_Gr_Target_Disp_Rq get_Gr_Target_Disp_Rq() const { return (TCM_DISP_RQ_Gr_Target_Disp_Rq)(raw >> 16 & 0xff); }
         
     /** Sets Race Start Mode Display Request / Display Race Start Mode */
     void set_RaceStMd_Disp_Rq_AMG(TCM_DISP_RQ_RaceStMd_Disp_Rq_AMG value){ raw = (raw & 0xffffffffffff1fff) | ((uint64_t)value & 0x7) << 13; }
 
     /** Gets Race Start Mode Display Request / Display Race Start Mode */
-    TCM_DISP_RQ_RaceStMd_Disp_Rq_AMG get_RaceStMd_Disp_Rq_AMG() { return (TCM_DISP_RQ_RaceStMd_Disp_Rq_AMG)(raw >> 13 & 0x7); }
+    TCM_DISP_RQ_RaceStMd_Disp_Rq_AMG get_RaceStMd_Disp_Rq_AMG() const { return (TCM_DISP_RQ_RaceStMd_Disp_Rq_AMG)(raw >> 13 & 0x7); }
         
 } TCM_DISP_RQ;
 
@@ -840,6 +847,7 @@ typedef union {
 
 typedef union {
 	uint64_t raw;
+	uint8_t bytes[8];
 
 	/** Gets CAN ID of NM_TCM */
 	uint32_t get_canid(){ return NM_TCM_CAN_ID; }
@@ -847,55 +855,55 @@ typedef union {
     void set_NM_Mode(NM_TCM_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets Network Management Mode / Network Management Mode */
-    NM_TCM_NM_Mode get_NM_Mode() { return (NM_TCM_NM_Mode)(raw >> 56 & 0xff); }
+    NM_TCM_NM_Mode get_NM_Mode() const { return (NM_TCM_NM_Mode)(raw >> 56 & 0xff); }
         
     /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
     void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() { return (bool)(raw >> 47 & 0x1); }
+    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
     void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() { return (bool)(raw >> 46 & 0x1); }
+    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
     void set_NM_Ud_Launch(NM_TCM_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
 
     /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_TCM_NM_Ud_Launch get_NM_Ud_Launch() { return (NM_TCM_NM_Ud_Launch)(raw >> 40 & 0x3f); }
+    NM_TCM_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_TCM_NM_Ud_Launch)(raw >> 40 & 0x3f); }
         
     /** Sets Network Management UserData Service No./netzmanagement UserData service */
     void set_NM_Ud_Srv(NM_TCM_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_TCM_NM_Ud_Srv get_NM_Ud_Srv() { return (NM_TCM_NM_Ud_Srv)(raw >> 32 & 0xff); }
+    NM_TCM_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_TCM_NM_Ud_Srv)(raw >> 32 & 0xff); }
         
     /** Sets Wakeup Reason / Wake-up */
     void set_WakeupRsn_TCM(NM_TCM_WakeupRsn_TCM value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
     /** Gets Wakeup Reason / Wake-up */
-    NM_TCM_WakeupRsn_TCM get_WakeupRsn_TCM() { return (NM_TCM_WakeupRsn_TCM)(raw >> 24 & 0xff); }
+    NM_TCM_WakeupRsn_TCM get_WakeupRsn_TCM() const { return (NM_TCM_WakeupRsn_TCM)(raw >> 24 & 0xff); }
         
     /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() { return (uint8_t)(raw >> 16 & 0xff); }
+    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Network Identification No./netzwerk-id */
     void set_Nw_Id(NM_TCM_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
 
     /** Gets Network Identification No./netzwerk-id */
-    NM_TCM_Nw_Id get_Nw_Id() { return (NM_TCM_Nw_Id)(raw >> 0 & 0xff); }
+    NM_TCM_Nw_Id get_Nw_Id() const { return (NM_TCM_Nw_Id)(raw >> 0 & 0xff); }
         
 } NM_TCM;
 
@@ -956,13 +964,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_TCM_A1(uint64_t now, uint64_t max_expire_time, TCM_A1* dest) {
+        bool get_TCM_A1(uint64_t now, uint64_t max_expire_time, TCM_A1* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[0];
+                dest->raw = FRAME_DATA[0];
+                return true;
             }
         }
             
@@ -973,13 +982,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_TCM_A2(uint64_t now, uint64_t max_expire_time, TCM_A2* dest) {
+        bool get_TCM_A2(uint64_t now, uint64_t max_expire_time, TCM_A2* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[1];
+                dest->raw = FRAME_DATA[1];
+                return true;
             }
         }
             
@@ -990,13 +1000,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ENG_RQ1_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ1_TCM* dest) {
+        bool get_ENG_RQ1_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ1_TCM* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[2];
+                return true;
             }
         }
             
@@ -1007,13 +1018,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ENG_RQ2_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ2_TCM* dest) {
+        bool get_ENG_RQ2_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ2_TCM* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[3];
+                dest->raw = FRAME_DATA[3];
+                return true;
             }
         }
             
@@ -1024,13 +1036,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ENG_RQ3_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ3_TCM* dest) {
+        bool get_ENG_RQ3_TCM(uint64_t now, uint64_t max_expire_time, ENG_RQ3_TCM* dest) const {
             if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[4];
+                dest->raw = FRAME_DATA[4];
+                return true;
             }
         }
             
@@ -1041,13 +1054,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SBW_RS_TCM(uint64_t now, uint64_t max_expire_time, SBW_RS_TCM* dest) {
+        bool get_SBW_RS_TCM(uint64_t now, uint64_t max_expire_time, SBW_RS_TCM* dest) const {
             if (LAST_FRAME_TIMES[5] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[5];
+                dest->raw = FRAME_DATA[5];
+                return true;
             }
         }
             
@@ -1058,13 +1072,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_TCM_DISP_RQ(uint64_t now, uint64_t max_expire_time, TCM_DISP_RQ* dest) {
+        bool get_TCM_DISP_RQ(uint64_t now, uint64_t max_expire_time, TCM_DISP_RQ* dest) const {
             if (LAST_FRAME_TIMES[6] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[6];
+                dest->raw = FRAME_DATA[6];
+                return true;
             }
         }
             
@@ -1075,13 +1090,14 @@ class ECU_TCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_TCM(uint64_t now, uint64_t max_expire_time, NM_TCM* dest) {
+        bool get_NM_TCM(uint64_t now, uint64_t max_expire_time, NM_TCM* dest) const {
             if (LAST_FRAME_TIMES[7] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                return dest->raw = FRAME_DATA[7];
+                dest->raw = FRAME_DATA[7];
+                return true;
             }
         }
             

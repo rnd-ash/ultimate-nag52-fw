@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'ANY_ECU'
 */
 
-
+#ifdef EGS52_MODE
 
 #ifndef __ECU_ANY_ECU_H_
 #define __ECU_ANY_ECU_H_
@@ -233,19 +233,19 @@ typedef union {
     void set_CONF_CRASH(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Confirm bit for all crazy events, tox */
-    bool get_CONF_CRASH() { return (bool)(raw >> 63 & 0x1); }
+    bool get_CONF_CRASH() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Frontal event 2 */
     void set_CRASH_F(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Frontal event 2 */
-    bool get_CRASH_F() { return (bool)(raw >> 61 & 0x1); }
+    bool get_CRASH_F() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Frontal event 5 */
     void set_CRASH_C(bool value){ raw = (raw & 0xfbffffffffffffff) | ((uint64_t)value & 0x1) << 58; }
 
     /** Gets Frontal event 5 */
-    bool get_CRASH_C() { return (bool)(raw >> 58 & 0x1); }
+    bool get_CRASH_C() const { return (bool)(raw >> 58 & 0x1); }
         
 } ARCADE_A2;
 
@@ -261,19 +261,19 @@ typedef union {
     void set_ASS_WARN(MS_ANZ_ASS_WARN value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
     /** Gets Number of ASA alert */
-    MS_ANZ_ASS_WARN get_ASS_WARN() { return (MS_ANZ_ASS_WARN)(raw >> 44 & 0xf); }
+    MS_ANZ_ASS_WARN get_ASS_WARN() const { return (MS_ANZ_ASS_WARN)(raw >> 44 & 0xf); }
         
     /** Sets Number of ASA status message */
     void set_ASS_DSPL(MS_ANZ_ASS_DSPL value){ raw = (raw & 0xfffff0ffffffffff) | ((uint64_t)value & 0xf) << 40; }
 
     /** Gets Number of ASA status message */
-    MS_ANZ_ASS_DSPL get_ASS_DSPL() { return (MS_ANZ_ASS_DSPL)(raw >> 40 & 0xf); }
+    MS_ANZ_ASS_DSPL get_ASS_DSPL() const { return (MS_ANZ_ASS_DSPL)(raw >> 40 & 0xf); }
         
     /** Sets suppress lamp test during stop phase */
     void set_ASS_LTEST_AUS(bool value){ raw = (raw & 0xffffff7fffffffff) | ((uint64_t)value & 0x1) << 39; }
 
     /** Gets suppress lamp test during stop phase */
-    bool get_ASS_LTEST_AUS() { return (bool)(raw >> 39 & 0x1); }
+    bool get_ASS_LTEST_AUS() const { return (bool)(raw >> 39 & 0x1); }
         
 } MS_ANZ;
 
@@ -289,37 +289,37 @@ typedef union {
     void set_SID_SBW(SBW_232h_SID_SBW value){ raw = (raw & 0x3fffffffffffffff) | ((uint64_t)value & 0x3) << 62; }
 
     /** Gets transmitter recognition */
-    SBW_232h_SID_SBW get_SID_SBW() { return (SBW_232h_SID_SBW)(raw >> 62 & 0x3); }
+    SBW_232h_SID_SBW get_SID_SBW() const { return (SBW_232h_SID_SBW)(raw >> 62 & 0x3); }
         
     /** Sets Steering wheel keys "+", "-" actuated */
     void set_LRT_PM3(SBW_232h_LRT_PM3 value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
     /** Gets Steering wheel keys "+", "-" actuated */
-    SBW_232h_LRT_PM3 get_LRT_PM3() { return (SBW_232h_LRT_PM3)(raw >> 56 & 0x7); }
+    SBW_232h_LRT_PM3 get_LRT_PM3() const { return (SBW_232h_LRT_PM3)(raw >> 56 & 0x7); }
         
     /** Sets Shift-by-Wire control element ID */
     void set_SBWB_ID(SBW_232h_SBWB_ID value){ raw = (raw & 0xff3fffffffffffff) | ((uint64_t)value & 0x3) << 54; }
 
     /** Gets Shift-by-Wire control element ID */
-    SBW_232h_SBWB_ID get_SBWB_ID() { return (SBW_232h_SBWB_ID)(raw >> 54 & 0x3); }
+    SBW_232h_SBWB_ID get_SBWB_ID() const { return (SBW_232h_SBWB_ID)(raw >> 54 & 0x3); }
         
     /** Sets Shift-by-Wire control P-button */
     void set_SBWB_ST_P(SBW_232h_SBWB_ST_P value){ raw = (raw & 0xffcfffffffffffff) | ((uint64_t)value & 0x3) << 52; }
 
     /** Gets Shift-by-Wire control P-button */
-    SBW_232h_SBWB_ST_P get_SBWB_ST_P() { return (SBW_232h_SBWB_ST_P)(raw >> 52 & 0x3); }
+    SBW_232h_SBWB_ST_P get_SBWB_ST_P() const { return (SBW_232h_SBWB_ST_P)(raw >> 52 & 0x3); }
         
     /** Sets Shift-by-Wire control Status RND */
     void set_SBWB_ST_RND(SBW_232h_SBWB_ST_RND value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
     /** Gets Shift-by-Wire control Status RND */
-    SBW_232h_SBWB_ST_RND get_SBWB_ST_RND() { return (SBW_232h_SBWB_ST_RND)(raw >> 48 & 0xf); }
+    SBW_232h_SBWB_ST_RND get_SBWB_ST_RND() const { return (SBW_232h_SBWB_ST_RND)(raw >> 48 & 0xf); }
         
     /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ232h(uint8_t value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
     /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_BZ232h() { return (uint8_t)(raw >> 44 & 0xf); }
+    uint8_t get_BZ232h() const { return (uint8_t)(raw >> 44 & 0xf); }
         
 } SBW_232;
 
@@ -335,97 +335,97 @@ typedef union {
     void set_SLV_ART(ART_250h_SLV_ART value){ raw = (raw & 0x0fffffffffffffff) | ((uint64_t)value & 0xf) << 60; }
 
     /** Gets Switching Difference Art */
-    ART_250h_SLV_ART get_SLV_ART() { return (ART_250h_SLV_ART)(raw >> 60 & 0xf); }
+    ART_250h_SLV_ART get_SLV_ART() const { return (ART_250h_SLV_ART)(raw >> 60 & 0xf); }
         
     /** Sets Type in order */
     void set_ART_OK(bool value){ raw = (raw & 0xf7ffffffffffffff) | ((uint64_t)value & 0x1) << 59; }
 
     /** Gets Type in order */
-    bool get_ART_OK() { return (bool)(raw >> 59 & 0x1); }
+    bool get_ART_OK() const { return (bool)(raw >> 59 & 0x1); }
         
     /** Sets Type brakes */
     void set_ART_BRE(bool value){ raw = (raw & 0xfbffffffffffffff) | ((uint64_t)value & 0x1) << 58; }
 
     /** Gets Type brakes */
-    bool get_ART_BRE() { return (bool)(raw >> 58 & 0x1); }
+    bool get_ART_BRE() const { return (bool)(raw >> 58 & 0x1); }
         
     /** Sets Brake light suppression */
     void set_BL_UNT(bool value){ raw = (raw & 0xfdffffffffffffff) | ((uint64_t)value & 0x1) << 57; }
 
     /** Gets Brake light suppression */
-    bool get_BL_UNT() { return (bool)(raw >> 57 & 0x1); }
+    bool get_BL_UNT() const { return (bool)(raw >> 57 & 0x1); }
         
     /** Sets Suppression Dynamic fully detection */
     void set_DYN_UNT(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
 
     /** Gets Suppression Dynamic fully detection */
-    bool get_DYN_UNT() { return (bool)(raw >> 56 & 0x1); }
+    bool get_DYN_UNT() const { return (bool)(raw >> 56 & 0x1); }
         
     /** Sets Engine torque Request Parity (just parity) */
     void set_MPAR_ART(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
     /** Gets Engine torque Request Parity (just parity) */
-    bool get_MPAR_ART() { return (bool)(raw >> 55 & 0x1); }
+    bool get_MPAR_ART() const { return (bool)(raw >> 55 & 0x1); }
         
     /** Sets Engine torque request dynamic */
     void set_MDYN_ART(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
     /** Gets Engine torque request dynamic */
-    bool get_MDYN_ART() { return (bool)(raw >> 54 & 0x1); }
+    bool get_MDYN_ART() const { return (bool)(raw >> 54 & 0x1); }
         
     /** Sets City Assistant regulates */
     void set_CAS_REG(bool value){ raw = (raw & 0xffdfffffffffffff) | ((uint64_t)value & 0x1) << 53; }
 
     /** Gets City Assistant regulates */
-    bool get_CAS_REG() { return (bool)(raw >> 53 & 0x1); }
+    bool get_CAS_REG() const { return (bool)(raw >> 53 & 0x1); }
         
     /** Sets Limiter regulates */
     void set_LIM_REG(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Limiter regulates */
-    bool get_LIM_REG() { return (bool)(raw >> 46 & 0x1); }
+    bool get_LIM_REG() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Type regulates */
     void set_ART_REG(bool value){ raw = (raw & 0xffffdfffffffffff) | ((uint64_t)value & 0x1) << 45; }
 
     /** Gets Type regulates */
-    bool get_ART_REG() { return (bool)(raw >> 45 & 0x1); }
+    bool get_ART_REG() const { return (bool)(raw >> 45 & 0x1); }
         
     /** Sets Ford. Engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_M_ART(uint16_t value){ raw = (raw & 0xffffe000ffffffff) | ((uint64_t)value & 0x1fff) << 32; }
 
     /** Gets Ford. Engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_M_ART() { return (uint16_t)(raw >> 32 & 0x1fff); }
+    uint16_t get_M_ART() const { return (uint16_t)(raw >> 32 & 0x1fff); }
         
     /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_BZ250h(uint8_t value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
 
     /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_BZ250h() { return (uint8_t)(raw >> 28 & 0xf); }
+    uint8_t get_BZ250h() const { return (uint8_t)(raw >> 28 & 0xf); }
         
     /** Sets brake torque (0000h: passive value). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MBRE_ART(uint16_t value){ raw = (raw & 0xfffffffff000ffff) | ((uint64_t)value & 0xfff) << 16; }
 
     /** Gets brake torque (0000h: passive value). Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_MBRE_ART() { return (uint16_t)(raw >> 16 & 0xfff); }
+    uint16_t get_MBRE_ART() const { return (uint16_t)(raw >> 16 & 0xfff); }
         
     /** Sets Art desire: "Active recirculation" */
     void set_AKT_R_ART(bool value){ raw = (raw & 0xffffffffffff7fff) | ((uint64_t)value & 0x1) << 15; }
 
     /** Gets Art desire: "Active recirculation" */
-    bool get_AKT_R_ART() { return (bool)(raw >> 15 & 0x1); }
+    bool get_AKT_R_ART() const { return (bool)(raw >> 15 & 0x1); }
         
     /** Sets Gear, upper limit */
     void set_GMAX_ART(ART_250h_GMAX_ART value){ raw = (raw & 0xffffffffffffc7ff) | ((uint64_t)value & 0x7) << 11; }
 
     /** Gets Gear, upper limit */
-    ART_250h_GMAX_ART get_GMAX_ART() { return (ART_250h_GMAX_ART)(raw >> 11 & 0x7); }
+    ART_250h_GMAX_ART get_GMAX_ART() const { return (ART_250h_GMAX_ART)(raw >> 11 & 0x7); }
         
     /** Sets Gear, lower limit */
     void set_GMIN_ART(ART_250h_GMIN_ART value){ raw = (raw & 0xfffffffffffff8ff) | ((uint64_t)value & 0x7) << 8; }
 
     /** Gets Gear, lower limit */
-    ART_250h_GMIN_ART get_GMIN_ART() { return (ART_250h_GMIN_ART)(raw >> 8 & 0x7); }
+    ART_250h_GMIN_ART get_GMIN_ART() const { return (ART_250h_GMIN_ART)(raw >> 8 & 0x7); }
         
 } ART_250;
 
@@ -441,157 +441,157 @@ typedef union {
     void set_ART_DSPL_EIN(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Turn the display on type display */
-    bool get_ART_DSPL_EIN() { return (bool)(raw >> 63 & 0x1); }
+    bool get_ART_DSPL_EIN() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets detection standing object */
     void set_S_OBJ(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets detection standing object */
-    bool get_S_OBJ() { return (bool)(raw >> 62 & 0x1); }
+    bool get_S_OBJ() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Art Warning */
     void set_ART_WT(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Art Warning */
-    bool get_ART_WT() { return (bool)(raw >> 61 & 0x1); }
+    bool get_ART_WT() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Art Infolampe */
     void set_ART_INFO(bool value){ raw = (raw & 0xefffffffffffffff) | ((uint64_t)value & 0x1) << 60; }
 
     /** Gets Art Infolampe */
-    bool get_ART_INFO() { return (bool)(raw >> 60 & 0x1); }
+    bool get_ART_INFO() const { return (bool)(raw >> 60 & 0x1); }
         
     /** Sets Art error code */
     void set_ART_ERR(ART_258h_ART_ERR value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
     /** Gets Art error code */
-    ART_258h_ART_ERR get_ART_ERR() { return (ART_258h_ART_ERR)(raw >> 56 & 0xf); }
+    ART_258h_ART_ERR get_ART_ERR() const { return (ART_258h_ART_ERR)(raw >> 56 & 0xf); }
         
     /** Sets set type speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_ART(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets set type speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_V_ART() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_V_ART() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets distance relevant object. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_ABST_R_OBJ(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
 
     /** Gets distance relevant object. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_ABST_R_OBJ() { return (uint8_t)(raw >> 40 & 0xff); }
+    uint8_t get_ABST_R_OBJ() const { return (uint8_t)(raw >> 40 & 0xff); }
         
     /** Sets driver request. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_SOLL_ABST(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
 
     /** Gets driver request. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_SOLL_ABST() { return (uint8_t)(raw >> 32 & 0xff); }
+    uint8_t get_SOLL_ABST() const { return (uint8_t)(raw >> 32 & 0xff); }
         
     /** Sets Display "Winter tire limitation achieved" on the display */
     void set_ART_DSPL_PGB(bool value){ raw = (raw & 0xffffffff7fffffff) | ((uint64_t)value & 0x1) << 31; }
 
     /** Gets Display "Winter tire limitation achieved" on the display */
-    bool get_ART_DSPL_PGB() { return (bool)(raw >> 31 & 0x1); }
+    bool get_ART_DSPL_PGB() const { return (bool)(raw >> 31 & 0x1); }
         
     /** Sets Display "DTR OFF [0]" on the display */
     void set_ART_VFBR(bool value){ raw = (raw & 0xffffffffbfffffff) | ((uint64_t)value & 0x1) << 30; }
 
     /** Gets Display "DTR OFF [0]" on the display */
-    bool get_ART_VFBR() { return (bool)(raw >> 30 & 0x1); }
+    bool get_ART_VFBR() const { return (bool)(raw >> 30 & 0x1); }
         
     /** Sets Display "---" on the display */
     void set_ART_DSPL_LIM(bool value){ raw = (raw & 0xffffffffdfffffff) | ((uint64_t)value & 0x1) << 29; }
 
     /** Gets Display "---" on the display */
-    bool get_ART_DSPL_LIM() { return (bool)(raw >> 29 & 0x1); }
+    bool get_ART_DSPL_LIM() const { return (bool)(raw >> 29 & 0x1); }
         
     /** Sets Spacer control mpomat turned on */
     void set_ART_EIN(bool value){ raw = (raw & 0xffffffffefffffff) | ((uint64_t)value & 0x1) << 28; }
 
     /** Gets Spacer control mpomat turned on */
-    bool get_ART_EIN() { return (bool)(raw >> 28 & 0x1); }
+    bool get_ART_EIN() const { return (bool)(raw >> 28 & 0x1); }
         
     /** Sets Relevant object recognized */
     void set_OBJ_ERK(bool value){ raw = (raw & 0xfffffffff7ffffff) | ((uint64_t)value & 0x1) << 27; }
 
     /** Gets Relevant object recognized */
-    bool get_OBJ_ERK() { return (bool)(raw >> 27 & 0x1); }
+    bool get_OBJ_ERK() const { return (bool)(raw >> 27 & 0x1); }
         
     /** Sets Turn on style segment display */
     void set_ART_SEG_EIN(bool value){ raw = (raw & 0xfffffffffbffffff) | ((uint64_t)value & 0x1) << 26; }
 
     /** Gets Turn on style segment display */
-    bool get_ART_SEG_EIN() { return (bool)(raw >> 26 & 0x1); }
+    bool get_ART_SEG_EIN() const { return (bool)(raw >> 26 & 0x1); }
         
     /** Sets Fluid indicator flash */
     void set_ART_DSPL_BL(bool value){ raw = (raw & 0xfffffffffdffffff) | ((uint64_t)value & 0x1) << 25; }
 
     /** Gets Fluid indicator flash */
-    bool get_ART_DSPL_BL() { return (bool)(raw >> 25 & 0x1); }
+    bool get_ART_DSPL_BL() const { return (bool)(raw >> 25 & 0x1); }
         
     /** Sets Art Tempomat on */
     void set_TM_EIN_ART(bool value){ raw = (raw & 0xfffffffffeffffff) | ((uint64_t)value & 0x1) << 24; }
 
     /** Gets Art Tempomat on */
-    bool get_TM_EIN_ART() { return (bool)(raw >> 24 & 0x1); }
+    bool get_TM_EIN_ART() const { return (bool)(raw >> 24 & 0x1); }
         
     /** Sets Speed ​​recognized target vehicle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_V_ZIEL(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
 
     /** Gets Speed ​​recognized target vehicle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_V_ZIEL() { return (uint8_t)(raw >> 16 & 0xff); }
+    uint8_t get_V_ZIEL() const { return (uint8_t)(raw >> 16 & 0xff); }
         
     /** Sets Minimum display time in the display new trigger */
     void set_ART_DSPL_NEU(bool value){ raw = (raw & 0xffffffffffff7fff) | ((uint64_t)value & 0x1) << 15; }
 
     /** Gets Minimum display time in the display new trigger */
-    bool get_ART_DSPL_NEU() { return (bool)(raw >> 15 & 0x1); }
+    bool get_ART_DSPL_NEU() const { return (bool)(raw >> 15 & 0x1); }
         
     /** Sets Type is overplayed by the driver */
     void set_ART_UEBERSP(bool value){ raw = (raw & 0xffffffffffffbfff) | ((uint64_t)value & 0x1) << 14; }
 
     /** Gets Type is overplayed by the driver */
-    bool get_ART_UEBERSP() { return (bool)(raw >> 14 & 0x1); }
+    bool get_ART_UEBERSP() const { return (bool)(raw >> 14 & 0x1); }
         
     /** Sets Display of system availability after system error */
     void set_ART_REAKT(bool value){ raw = (raw & 0xffffffffffffdfff) | ((uint64_t)value & 0x1) << 13; }
 
     /** Gets Display of system availability after system error */
-    bool get_ART_REAKT() { return (bool)(raw >> 13 & 0x1); }
+    bool get_ART_REAKT() const { return (bool)(raw >> 13 & 0x1); }
         
     /** Sets Art distance warning is switched on */
     void set_ART_ABW_AKT(bool value){ raw = (raw & 0xffffffffffffefff) | ((uint64_t)value & 0x1) << 12; }
 
     /** Gets Art distance warning is switched on */
-    bool get_ART_ABW_AKT() { return (bool)(raw >> 12 & 0x1); }
+    bool get_ART_ABW_AKT() const { return (bool)(raw >> 12 & 0x1); }
         
     /** Sets Object Offer Spacer Wizard */
     void set_OBJ_AGB(bool value){ raw = (raw & 0xfffffffffffff7ff) | ((uint64_t)value & 0x1) << 11; }
 
     /** Gets Object Offer Spacer Wizard */
-    bool get_OBJ_AGB() { return (bool)(raw >> 11 & 0x1); }
+    bool get_OBJ_AGB() const { return (bool)(raw >> 11 & 0x1); }
         
     /** Sets LED spacer wizard flashing */
     void set_AAS_LED_BL(bool value){ raw = (raw & 0xfffffffffffffbff) | ((uint64_t)value & 0x1) << 10; }
 
     /** Gets LED spacer wizard flashing */
-    bool get_AAS_LED_BL() { return (bool)(raw >> 10 & 0x1); }
+    bool get_AAS_LED_BL() const { return (bool)(raw >> 10 & 0x1); }
         
     /** Sets Active function */
     void set_ASSIST_FKT_AKT(ART_258h_ASSIST_FKT_AKT value){ raw = (raw & 0xfffffffffffffcff) | ((uint64_t)value & 0x3) << 8; }
 
     /** Gets Active function */
-    ART_258h_ASSIST_FKT_AKT get_ASSIST_FKT_AKT() { return (ART_258h_ASSIST_FKT_AKT)(raw >> 8 & 0x3); }
+    ART_258h_ASSIST_FKT_AKT get_ASSIST_FKT_AKT() const { return (ART_258h_ASSIST_FKT_AKT)(raw >> 8 & 0x3); }
         
     /** Sets CAS Display request */
     void set_CAS_ERR_ANZ_V2(ART_258h_CAS_ERR_ANZ_V2 value){ raw = (raw & 0xffffffffffffff1f) | ((uint64_t)value & 0x7) << 5; }
 
     /** Gets CAS Display request */
-    ART_258h_CAS_ERR_ANZ_V2 get_CAS_ERR_ANZ_V2() { return (ART_258h_CAS_ERR_ANZ_V2)(raw >> 5 & 0x7); }
+    ART_258h_CAS_ERR_ANZ_V2 get_CAS_ERR_ANZ_V2() const { return (ART_258h_CAS_ERR_ANZ_V2)(raw >> 5 & 0x7); }
         
     /** Sets Assistance system Display request */
     void set_ASSIST_ANZ_V2(ART_258h_ASSIST_ANZ_V2 value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
 
     /** Gets Assistance system Display request */
-    ART_258h_ASSIST_ANZ_V2 get_ASSIST_ANZ_V2() { return (ART_258h_ASSIST_ANZ_V2)(raw >> 0 & 0x1f); }
+    ART_258h_ASSIST_ANZ_V2 get_ASSIST_ANZ_V2() const { return (ART_258h_ASSIST_ANZ_V2)(raw >> 0 & 0x1f); }
         
 } ART_258;
 
@@ -607,73 +607,73 @@ typedef union {
     void set_PSM_ADR_PAR(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Work Speed Control - ParityBit */
-    bool get_PSM_ADR_PAR() { return (bool)(raw >> 63 & 0x1); }
+    bool get_PSM_ADR_PAR() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Labor speed control - Togglebit */
     void set_PSM_ADR_TGL(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets Labor speed control - Togglebit */
-    bool get_PSM_ADR_TGL() { return (bool)(raw >> 62 & 0x1); }
+    bool get_PSM_ADR_TGL() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets working speed control active */
     void set_PSM_ADR_AKT(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets working speed control active */
-    bool get_PSM_ADR_AKT() { return (bool)(raw >> 61 & 0x1); }
+    bool get_PSM_ADR_AKT() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Motoroll speed ADR. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_N_SOLL(uint16_t value){ raw = (raw & 0xff0000ffffffffff) | ((uint64_t)value & 0xffff) << 40; }
 
     /** Gets Motoroll speed ADR. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_PSM_N_SOLL() { return (uint16_t)(raw >> 40 & 0xffff); }
+    uint16_t get_PSM_N_SOLL() const { return (uint16_t)(raw >> 40 & 0xffff); }
         
     /** Sets Tomentic limitation - parity bit */
     void set_PSM_MOM_PAR(bool value){ raw = (raw & 0xffffff7fffffffff) | ((uint64_t)value & 0x1) << 39; }
 
     /** Gets Tomentic limitation - parity bit */
-    bool get_PSM_MOM_PAR() { return (bool)(raw >> 39 & 0x1); }
+    bool get_PSM_MOM_PAR() const { return (bool)(raw >> 39 & 0x1); }
         
     /** Sets Tomentic limitation - Togglebit */
     void set_PSM_MOM_TGL(bool value){ raw = (raw & 0xffffffbfffffffff) | ((uint64_t)value & 0x1) << 38; }
 
     /** Gets Tomentic limitation - Togglebit */
-    bool get_PSM_MOM_TGL() { return (bool)(raw >> 38 & 0x1); }
+    bool get_PSM_MOM_TGL() const { return (bool)(raw >> 38 & 0x1); }
         
     /** Sets Tomentic limitation active */
     void set_PSM_MOM_AKT(bool value){ raw = (raw & 0xffffffdfffffffff) | ((uint64_t)value & 0x1) << 37; }
 
     /** Gets Tomentic limitation active */
-    bool get_PSM_MOM_AKT() { return (bool)(raw >> 37 & 0x1); }
+    bool get_PSM_MOM_AKT() const { return (bool)(raw >> 37 & 0x1); }
         
     /** Sets Maximum engine torque. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_MOM_SOLL(uint16_t value){ raw = (raw & 0xffffffe000ffffff) | ((uint64_t)value & 0x1fff) << 24; }
 
     /** Gets Maximum engine torque. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_PSM_MOM_SOLL() { return (uint16_t)(raw >> 24 & 0x1fff); }
+    uint16_t get_PSM_MOM_SOLL() const { return (uint16_t)(raw >> 24 & 0x1fff); }
         
     /** Sets Speed limitation - parity bit */
     void set_PSM_DZ_PAR(bool value){ raw = (raw & 0xffffffffff7fffff) | ((uint64_t)value & 0x1) << 23; }
 
     /** Gets Speed limitation - parity bit */
-    bool get_PSM_DZ_PAR() { return (bool)(raw >> 23 & 0x1); }
+    bool get_PSM_DZ_PAR() const { return (bool)(raw >> 23 & 0x1); }
         
     /** Sets Speed limitation - Togglebit */
     void set_PSM_DZ_TGL(bool value){ raw = (raw & 0xffffffffffbfffff) | ((uint64_t)value & 0x1) << 22; }
 
     /** Gets Speed limitation - Togglebit */
-    bool get_PSM_DZ_TGL() { return (bool)(raw >> 22 & 0x1); }
+    bool get_PSM_DZ_TGL() const { return (bool)(raw >> 22 & 0x1); }
         
     /** Sets Speed limitation active */
     void set_PSM_DZ_AKT(bool value){ raw = (raw & 0xffffffffffdfffff) | ((uint64_t)value & 0x1) << 21; }
 
     /** Gets Speed limitation active */
-    bool get_PSM_DZ_AKT() { return (bool)(raw >> 21 & 0x1); }
+    bool get_PSM_DZ_AKT() const { return (bool)(raw >> 21 & 0x1); }
         
     /** Sets Maximum speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_DZ_MAX(uint16_t value){ raw = (raw & 0xffffffffffff0000) | ((uint64_t)value & 0xffff) << 0; }
 
     /** Gets Maximum speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_PSM_DZ_MAX() { return (uint16_t)(raw >> 0 & 0xffff); }
+    uint16_t get_PSM_DZ_MAX() const { return (uint16_t)(raw >> 0 & 0xffff); }
         
 } PSM_3B4;
 
@@ -689,55 +689,55 @@ typedef union {
     void set_PSM_V_PAR(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets Speed Control - Parity Bit */
-    bool get_PSM_V_PAR() { return (bool)(raw >> 63 & 0x1); }
+    bool get_PSM_V_PAR() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Speed limitation - Togglebit */
     void set_PSM_V_TGL(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets Speed limitation - Togglebit */
-    bool get_PSM_V_TGL() { return (bool)(raw >> 62 & 0x1); }
+    bool get_PSM_V_TGL() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Speed limitation active */
     void set_PSM_V_AKT(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Speed limitation active */
-    bool get_PSM_V_AKT() { return (bool)(raw >> 61 & 0x1); }
+    bool get_PSM_V_AKT() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Speed limit. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PSM_V_SOLL(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Speed limit. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_PSM_V_SOLL() { return (uint8_t)(raw >> 48 & 0xff); }
+    uint8_t get_PSM_V_SOLL() const { return (uint8_t)(raw >> 48 & 0xff); }
         
     /** Sets Speed limitation - parity bit */
     void set_PSM_DZ_PAR(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
 
     /** Gets Speed limitation - parity bit */
-    bool get_PSM_DZ_PAR() { return (bool)(raw >> 47 & 0x1); }
+    bool get_PSM_DZ_PAR() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets Speed limitation - Togglebit */
     void set_PSM_DZ_TGL(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
 
     /** Gets Speed limitation - Togglebit */
-    bool get_PSM_DZ_TGL() { return (bool)(raw >> 46 & 0x1); }
+    bool get_PSM_DZ_TGL() const { return (bool)(raw >> 46 & 0x1); }
         
     /** Sets Motor Remote Start active */
     void set_PSM_FERN_START(bool value){ raw = (raw & 0xffffdfffffffffff) | ((uint64_t)value & 0x1) << 45; }
 
     /** Gets Motor Remote Start active */
-    bool get_PSM_FERN_START() { return (bool)(raw >> 45 & 0x1); }
+    bool get_PSM_FERN_START() const { return (bool)(raw >> 45 & 0x1); }
         
     /** Sets Motor Remote Stop active */
     void set_PSM_FERN_STOP(bool value){ raw = (raw & 0xffffefffffffffff) | ((uint64_t)value & 0x1) << 44; }
 
     /** Gets Motor Remote Stop active */
-    bool get_PSM_FERN_STOP() { return (bool)(raw >> 44 & 0x1); }
+    bool get_PSM_FERN_STOP() const { return (bool)(raw >> 44 & 0x1); }
         
     /** Sets lock accelerator pedal module */
     void set_PSM_FPM_SP(bool value){ raw = (raw & 0xfffff7ffffffffff) | ((uint64_t)value & 0x1) << 43; }
 
     /** Gets lock accelerator pedal module */
-    bool get_PSM_FPM_SP() { return (bool)(raw >> 43 & 0x1); }
+    bool get_PSM_FPM_SP() const { return (bool)(raw >> 43 & 0x1); }
         
 } PSM_3B8;
 
@@ -753,31 +753,31 @@ typedef union {
     void set_VG_ERR(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Error VG (ECU Failure Detected) */
-    bool get_VG_ERR() { return (bool)(raw >> 61 & 0x1); }
+    bool get_VG_ERR() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Current gear distribution gear */
     void set_VG_GANG(VG_428h_VG_GANG value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
     /** Gets Current gear distribution gear */
-    VG_428h_VG_GANG get_VG_GANG() { return (VG_428h_VG_GANG)(raw >> 56 & 0x7); }
+    VG_428h_VG_GANG get_VG_GANG() const { return (VG_428h_VG_GANG)(raw >> 56 & 0x7); }
         
     /** Sets VG - Request "n" Parity (straight parity) */
     void set_ANFNPAR_VG(bool value){ raw = (raw & 0xfff7ffffffffffff) | ((uint64_t)value & 0x1) << 51; }
 
     /** Gets VG - Request "n" Parity (straight parity) */
-    bool get_ANFNPAR_VG() { return (bool)(raw >> 51 & 0x1); }
+    bool get_ANFNPAR_VG() const { return (bool)(raw >> 51 & 0x1); }
         
     /** Sets VG - ANG.Load "N" Toggle 20ms (1 / Embassy) */
     void set_ANFNTGL_VG(bool value){ raw = (raw & 0xfffbffffffffffff) | ((uint64_t)value & 0x1) << 50; }
 
     /** Gets VG - ANG.Load "N" Toggle 20ms (1 / Embassy) */
-    bool get_ANFNTGL_VG() { return (bool)(raw >> 50 & 0x1); }
+    bool get_ANFNTGL_VG() const { return (bool)(raw >> 50 & 0x1); }
         
     /** Sets VG request "N" */
     void set_ANFN_VG(VG_428h_ANFN_VG value){ raw = (raw & 0xfffcffffffffffff) | ((uint64_t)value & 0x3) << 48; }
 
     /** Gets VG request "N" */
-    VG_428h_ANFN_VG get_ANFN_VG() { return (VG_428h_ANFN_VG)(raw >> 48 & 0x3); }
+    VG_428h_ANFN_VG get_ANFN_VG() const { return (VG_428h_ANFN_VG)(raw >> 48 & 0x3); }
         
 } VG_428;
 
@@ -793,55 +793,55 @@ typedef union {
     void set_LWR_M7(bool value){ raw = (raw & 0xbfffffffffffffff) | ((uint64_t)value & 0x1) << 62; }
 
     /** Gets Display message 7: "Baltic view currently not available" */
-    bool get_LWR_M7() { return (bool)(raw >> 62 & 0x1); }
+    bool get_LWR_M7() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Display message 6: "Bolt match right" */
     void set_LWR_M6(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
     /** Gets Display message 6: "Bolt match right" */
-    bool get_LWR_M6() { return (bool)(raw >> 61 & 0x1); }
+    bool get_LWR_M6() const { return (bool)(raw >> 61 & 0x1); }
         
     /** Sets Display message 5: "Bolt view left" */
     void set_LWR_M5(bool value){ raw = (raw & 0xefffffffffffffff) | ((uint64_t)value & 0x1) << 60; }
 
     /** Gets Display message 5: "Bolt view left" */
-    bool get_LWR_M5() { return (bool)(raw >> 60 & 0x1); }
+    bool get_LWR_M5() const { return (bool)(raw >> 60 & 0x1); }
         
     /** Sets Display message 4: "Curve light currently not available" (white / 5x flashing with 1Hz) */
     void set_LWR_M4(bool value){ raw = (raw & 0xf7ffffffffffffff) | ((uint64_t)value & 0x1) << 59; }
 
     /** Gets Display message 4: "Curve light currently not available" (white / 5x flashing with 1Hz) */
-    bool get_LWR_M4() { return (bool)(raw >> 59 & 0x1); }
+    bool get_LWR_M4() const { return (bool)(raw >> 59 & 0x1); }
         
     /** Sets Display message 3: "Curve light currently not available" (white). */
     void set_LWR_M3(bool value){ raw = (raw & 0xfbffffffffffffff) | ((uint64_t)value & 0x1) << 58; }
 
     /** Gets Display message 3: "Curve light currently not available" (white). */
-    bool get_LWR_M3() { return (bool)(raw >> 58 & 0x1); }
+    bool get_LWR_M3() const { return (bool)(raw >> 58 & 0x1); }
         
     /** Sets Display message 2: "Curve light, replacement light activated!"(White) */
     void set_LWR_M2(bool value){ raw = (raw & 0xfdffffffffffffff) | ((uint64_t)value & 0x1) << 57; }
 
     /** Gets Display message 2: "Curve light, replacement light activated!"(White) */
-    bool get_LWR_M2() { return (bool)(raw >> 57 & 0x1); }
+    bool get_LWR_M2() const { return (bool)(raw >> 57 & 0x1); }
         
     /** Sets Display message 1: "Curve light defective! Drive to the workshop" */
     void set_LWR_M1(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
 
     /** Gets Display message 1: "Curve light defective! Drive to the workshop" */
-    bool get_LWR_M1() { return (bool)(raw >> 56 & 0x1); }
+    bool get_LWR_M1() const { return (bool)(raw >> 56 & 0x1); }
         
     /** Sets Substitution lowlight left */
     void set_SUB_ABL_L(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
 
     /** Gets Substitution lowlight left */
-    bool get_SUB_ABL_L() { return (bool)(raw >> 55 & 0x1); }
+    bool get_SUB_ABL_L() const { return (bool)(raw >> 55 & 0x1); }
         
     /** Sets Substitution low beam right */
     void set_SUB_ABL_R(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
 
     /** Gets Substitution low beam right */
-    bool get_SUB_ABL_R() { return (bool)(raw >> 54 & 0x1); }
+    bool get_SUB_ABL_R() const { return (bool)(raw >> 54 & 0x1); }
         
 } LWR_530;
 
@@ -857,37 +857,37 @@ typedef union {
     void set_GBL_AUS(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
     /** Gets E-suction fan: basic ventilation */
-    bool get_GBL_AUS() { return (bool)(raw >> 63 & 0x1); }
+    bool get_GBL_AUS() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets Air conditioning available */
     void set_KLA_VH(bool value){ raw = (raw & 0xffffffffffffdfff) | ((uint64_t)value & 0x1) << 13; }
 
     /** Gets Air conditioning available */
-    bool get_KLA_VH() { return (bool)(raw >> 13 & 0x1); }
+    bool get_KLA_VH() const { return (bool)(raw >> 13 & 0x1); }
         
     /** Sets Differential lock behind available */
     void set_DSH_VH(bool value){ raw = (raw & 0xfffffffffffffff7) | ((uint64_t)value & 0x1) << 3; }
 
     /** Gets Differential lock behind available */
-    bool get_DSH_VH() { return (bool)(raw >> 3 & 0x1); }
+    bool get_DSH_VH() const { return (bool)(raw >> 3 & 0x1); }
         
     /** Sets Differential lock center available */
     void set_DSM_VH(bool value){ raw = (raw & 0xfffffffffffffffb) | ((uint64_t)value & 0x1) << 2; }
 
     /** Gets Differential lock center available */
-    bool get_DSM_VH() { return (bool)(raw >> 2 & 0x1); }
+    bool get_DSM_VH() const { return (bool)(raw >> 2 & 0x1); }
         
     /** Sets Differential lock in front available */
     void set_DSV_VH(bool value){ raw = (raw & 0xfffffffffffffffd) | ((uint64_t)value & 0x1) << 1; }
 
     /** Gets Differential lock in front available */
-    bool get_DSV_VH() { return (bool)(raw >> 1 & 0x1); }
+    bool get_DSV_VH() const { return (bool)(raw >> 1 & 0x1); }
         
     /** Sets distribution gear control available */
     void set_VG_VH(bool value){ raw = (raw & 0xfffffffffffffffe) | ((uint64_t)value & 0x1) << 0; }
 
     /** Gets distribution gear control available */
-    bool get_VG_VH() { return (bool)(raw >> 0 & 0x1); }
+    bool get_VG_VH() const { return (bool)(raw >> 0 & 0x1); }
         
 } CONFIG_6FF;
 
@@ -956,7 +956,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ARCADE_A2(uint64_t now, uint64_t max_expire_time, ARCADE_A2* dest) {
+        bool get_ARCADE_A2(uint64_t now, uint64_t max_expire_time, ARCADE_A2* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -974,7 +974,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_ANZ(uint64_t now, uint64_t max_expire_time, MS_ANZ* dest) {
+        bool get_MS_ANZ(uint64_t now, uint64_t max_expire_time, MS_ANZ* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -992,7 +992,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SBW_232(uint64_t now, uint64_t max_expire_time, SBW_232* dest) {
+        bool get_SBW_232(uint64_t now, uint64_t max_expire_time, SBW_232* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1010,7 +1010,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ART_250(uint64_t now, uint64_t max_expire_time, ART_250* dest) {
+        bool get_ART_250(uint64_t now, uint64_t max_expire_time, ART_250* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1028,7 +1028,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ART_258(uint64_t now, uint64_t max_expire_time, ART_258* dest) {
+        bool get_ART_258(uint64_t now, uint64_t max_expire_time, ART_258* dest) const {
             if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1046,7 +1046,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_PSM_3B4(uint64_t now, uint64_t max_expire_time, PSM_3B4* dest) {
+        bool get_PSM_3B4(uint64_t now, uint64_t max_expire_time, PSM_3B4* dest) const {
             if (LAST_FRAME_TIMES[5] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1064,7 +1064,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_PSM_3B8(uint64_t now, uint64_t max_expire_time, PSM_3B8* dest) {
+        bool get_PSM_3B8(uint64_t now, uint64_t max_expire_time, PSM_3B8* dest) const {
             if (LAST_FRAME_TIMES[6] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1082,7 +1082,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_VG_428(uint64_t now, uint64_t max_expire_time, VG_428* dest) {
+        bool get_VG_428(uint64_t now, uint64_t max_expire_time, VG_428* dest) const {
             if (LAST_FRAME_TIMES[7] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1100,7 +1100,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_LWR_530(uint64_t now, uint64_t max_expire_time, LWR_530* dest) {
+        bool get_LWR_530(uint64_t now, uint64_t max_expire_time, LWR_530* dest) const {
             if (LAST_FRAME_TIMES[8] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1118,7 +1118,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_CONFIG_6FF(uint64_t now, uint64_t max_expire_time, CONFIG_6FF* dest) {
+        bool get_CONFIG_6FF(uint64_t now, uint64_t max_expire_time, CONFIG_6FF* dest) const {
             if (LAST_FRAME_TIMES[9] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now - LAST_FRAME_TIMES[9] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -1134,3 +1134,5 @@ class ECU_ANY_ECU {
 		uint64_t LAST_FRAME_TIMES[10];
 };
 #endif // __ECU_ANY_ECU_H_
+
+#endif // EGS52_MODE

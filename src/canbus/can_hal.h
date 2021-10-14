@@ -181,7 +181,7 @@ class AbstractCan {
         // Get the rear left wheel data
         virtual WheelData get_rear_left_wheel();
         // Gets shifter position from EWM module
-        virtual void get_shifter_position_ewm();
+        virtual ShifterPosition get_shifter_position_ewm();
         // Gets engine type
         virtual EngineType get_engine_type();
         // Returns true if engine is in limp mode

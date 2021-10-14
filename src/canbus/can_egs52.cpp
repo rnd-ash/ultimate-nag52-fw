@@ -1,5 +1,5 @@
 #include "can_egs52.h"
-#include "driver/can.h"
+#include "driver/twai.h"
 #include "pins.h"
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
@@ -7,27 +7,31 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
 {
     // Firstly try to init CAN
     ESP_LOGI("EGS52_CAN", "CAN constructor called");
-    can_general_config_t gen_config = CAN_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, CAN_MODE_NORMAL);
+    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
     gen_config.rx_queue_len = 10;
     gen_config.tx_queue_len = 6;
-    can_timing_config_t timing_config = CAN_TIMING_CONFIG_500KBITS();
-    can_filter_config_t filter_config = CAN_FILTER_CONFIG_ACCEPT_ALL();
+    twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
+    twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t res;
-    res = can_driver_install(&gen_config, &timing_config, &filter_config);
+    res = twai_driver_install(&gen_config, &timing_config, &filter_config);
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "CAN_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
+        ESP_LOGE("EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
     }
-    res = can_start();
+    res = twai_start();
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "CAN_START FAILED!: %s", esp_err_to_name(res));
+        ESP_LOGE("EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
     }
     // CAN is OK!
 
     // Set default values
     this->gs218.set_GZC(GS_218h_GZC::G_SNV);
     this->gs218.set_GIC(GS_218h_GIC::G_SNV);
+    gs218.set_CALID_CVN_AKT(true);
 
+    // Convers setting NAB, a couple unknown but static values,
+    // and Input RPM to 0 
+    gs338.raw = 0xFFFF1FFF00FF0000;
     this->can_init_ok = true;
 }
 
@@ -63,8 +67,8 @@ Egs52Can::~Egs52Can()
     }
     // Delete CAN
     if (this->can_init_ok) {
-        can_stop();
-        can_driver_uninstall();
+        twai_stop();
+        twai_driver_uninstall();
     }
 }
 
@@ -96,15 +100,41 @@ WheelData Egs52Can::get_rear_left_wheel() {
     };
 }
 
-void Egs52Can::get_shifter_position_ewm() {
-    
+ShifterPosition Egs52Can::get_shifter_position_ewm() {
+    EWM_230 dest;
+    if (this->ewm_ecu.get_EWM_230(esp_timer_get_time(), 1000 * 100, &dest)) {
+        switch (dest.get_WHC()) {
+            case EWM_230h_WHC::D:
+                return ShifterPosition::D;
+            case EWM_230h_WHC::N:
+                return ShifterPosition::N;
+            case EWM_230h_WHC::R:
+                return ShifterPosition::R;
+            case EWM_230h_WHC::P:
+                return ShifterPosition::P;
+            case EWM_230h_WHC::PLUS:
+                return ShifterPosition::PLUS;
+            case EWM_230h_WHC::MINUS:
+                return ShifterPosition::MINUS;
+            case EWM_230h_WHC::N_ZW_D:
+                return ShifterPosition::N_D;
+            case EWM_230h_WHC::R_ZW_N:
+                return ShifterPosition::R_N;
+            case EWM_230h_WHC::P_ZW_R:
+                return ShifterPosition::P_R;
+            case EWM_230h_WHC::SNV:
+            default:
+                return ShifterPosition::SignalNotAvaliable;
+        }
+    } else {
+        return ShifterPosition::SignalNotAvaliable;
+    }
 }
 
 EngineType Egs52Can::get_engine_type() {
     MS_608 ms608;
     // This signal can be valid for up to 1000ms
     if (this->ecu_ms.get_MS_608(esp_timer_get_time(), 1000*1000, &ms608)) {
-        ESP_LOGI("GET_ENGINE_TYPE", "%d %llX", (uint8_t)ms608.get_FCOD_KAR(), ms608.raw);
         switch (ms608.get_FCOD_MOT()) {
             case MS_608h_FCOD_MOT::OM611DE22LA100:
             case MS_608h_FCOD_MOT::OM640DE20LA60:
@@ -163,55 +193,100 @@ bool Egs52Can::get_is_starting() {
 }
 
 void Egs52Can::set_clutch_status(ClutchStatus status) {
-    
+
 }
 
 void Egs52Can::set_actual_gear(GearboxGear actual) {
-    
+
 }
 
 void Egs52Can::set_target_gear(GearboxGear target) {
-    
+
 }
 
 void Egs52Can::set_safe_start(bool can_start) {
-    
+
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
-    
+
 }
 
 void Egs52Can::set_input_shaft_speed(uint16_t rpm) {
-    
+    gs338.set_NTURBINE(rpm);
 }
 
 void Egs52Can::set_is_all_wheel_drive(bool is_4wd) {
-    
+
 }
 
 void Egs52Can::set_wheel_torque(uint16_t t) {
-    
+
 }
 
 void Egs52Can::set_shifter_position(ShifterPosition pos) {
-    
+    switch (pos) {
+        case ShifterPosition::P:
+            gs418.set_WHST(GS_418h_WHST::P);
+            break;
+        case ShifterPosition::P_R:
+        case ShifterPosition::R:
+            gs418.set_WHST(GS_418h_WHST::R);
+            break;
+        case ShifterPosition::R_N:
+        case ShifterPosition::N:
+            gs418.set_WHST(GS_418h_WHST::N);
+            break;
+        case ShifterPosition::N_D:
+        case ShifterPosition::D:
+        case ShifterPosition::PLUS:
+        case ShifterPosition::MINUS:
+            gs418.set_WHST(GS_418h_WHST::D);
+            break;
+        case ShifterPosition::SignalNotAvaliable:
+        default: 
+            gs418.set_WHST(GS_418h_WHST::SNV);
+            break;
+    }
 }
 
 void Egs52Can::set_gearbox_ok(bool is_ok) {
-    
+    gs218.set_GET_OK(is_ok); // Gearbox OK
+    gs218.set_GSP_OK(is_ok); // Gearbox profile OK
+    gs218.set_GS_NOTL(!is_ok); // Emergency mode activated
 }
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
-    
+
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    
+
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
-    
+    switch(ssc) {
+        case SystemStatusCheck::Error:
+            gs218.set_FEHLPRF_ST(GS_218h_FEHLPRF_ST::ERROR);
+            break;
+        case SystemStatusCheck::Waiting:
+            gs218.set_FEHLPRF_ST(GS_218h_FEHLPRF_ST::WAIT);
+            break;
+        case SystemStatusCheck::OK:
+            gs218.set_FEHLPRF_ST(GS_218h_FEHLPRF_ST::OK);
+            break;
+        default:
+            break;
+    }
+}
+
+inline bool calc_torque_parity(uint16_t s) {
+    uint16_t p = s;
+    p ^= (p >> 1);
+    p ^= (p >> 2);
+    p ^= (p >> 4);
+    p ^= (p >> 8);
+    return (p & 1) == 1;
 }
 
 inline void to_bytes(uint64_t src, uint8_t* dst) {
@@ -225,9 +300,38 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 void Egs52Can::tx_task_loop() {
     uint64_t start_time;
     uint32_t taken;
-    can_message_t tx;
+    twai_message_t tx;
     tx.data_length_code = 8; // Always
+    GS_338 gs_338tx;
+    GS_218 gs_218tx;
+    GS_418 gs_418tx;
+    uint8_t cvn_counter = 0;
+    bool toggle = false;
+    bool time_to_toggle = false;
     while(true) {
+        // Copy current CAN frame values to here so we don't
+        // accidentally modify parity calculations
+        gs_338tx = {gs338.raw};
+        gs_218tx = {gs218.raw};
+        gs_418tx = {gs418.raw};
+        // Firstly we have to deal with toggled parity bits!
+        // As toggle bits need to be toggled every 40ms,
+        // and egs52 Tx interval is 20ms,
+        // we can achieve this with 2 booleans
+        gs_218tx.set_MTGL_EGS(toggle);
+        gs_418tx.set_FMRADTGL(toggle);
+        // Now do parity calculations
+        gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
+        gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
+        if (time_to_toggle) {
+            toggle = !toggle;
+        }
+        gs_218tx.set_FEHLER(cvn_counter);
+        time_to_toggle = !time_to_toggle;
+        cvn_counter++;
+
+        // Now send CAN Data!
+
         /**
          * TX order of EGS52:
          * GS_338
@@ -236,14 +340,14 @@ void Egs52Can::tx_task_loop() {
          */
         start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
-        to_bytes(gs338.raw, tx.data);
-        can_transmit(&tx, 5);
+        to_bytes(gs_338tx.raw, tx.data);
+        twai_transmit(&tx, 5);
         tx.identifier = GS_218_CAN_ID;
-        to_bytes(gs218.raw, tx.data);
-        can_transmit(&tx, 5);
+        to_bytes(gs_218tx.raw, tx.data);
+        twai_transmit(&tx, 5);
         tx.identifier = GS_418_CAN_ID;
-        to_bytes(gs418.raw, tx.data);
-        can_transmit(&tx, 5);
+        to_bytes(gs_418tx.raw, tx.data);
+        twai_transmit(&tx, 5);
         // Todo handle additional ISOTP communication
         taken = (esp_timer_get_time() / 1000) - start_time;
         if (taken < this->tx_time_ms) {
@@ -254,34 +358,29 @@ void Egs52Can::tx_task_loop() {
 
 [[noreturn]]
 void Egs52Can::rx_task_loop() {
-    can_message_t rx;
-    can_status_info_t can_status;
+    twai_message_t rx;
+    twai_status_info_t can_status;
     uint64_t now;
     uint64_t tmp;
     uint8_t i;
     while(true) {
-        can_get_status_info(&can_status);
+        twai_get_status_info(&can_status);
         bool have_frames  = false;
         while(can_status.msgs_to_rx > 0) {
             have_frames = true;
-            if (can_receive(&rx, pdMS_TO_TICKS(10)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+            if (twai_receive(&rx, pdMS_TO_TICKS(10)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                 now = esp_timer_get_time();
                 tmp = 0;
-                
+
                 for(i = 0; i < 8; i++) {
                     tmp <<= 8;
                     tmp |= (uint64_t)rx.data[7-i];
                 }
-                bool located = false;
                 if(this->ecu_ms.import_frames(tmp, rx.identifier, now)) {
-                    located = true;
                 } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
-                    located = true;
                 } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {
-                    located = true;
                 } else if (this->misc_ecu.import_frames(tmp, rx.identifier, now)) {
-                    located = true;
-                } else {} // TODO handle ISOTP endpoints                
+                } else {} // TODO handle ISOTP endpoints
                 vTaskDelay(1 / portTICK_PERIOD_MS); // EGS52's CAN C network is approx 250msgs/sec so we can afford to do this!
             } else {
                 vTaskDelay(2 / portTICK_PERIOD_MS);

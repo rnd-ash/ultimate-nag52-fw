@@ -198,7 +198,7 @@ ECU ESP_SBC
 			ENUM BRAKE, RAW: 26, DESC: Brake immediately!
 			ENUM SBCS_N_AKT, RAW: 27, DESC: SBC stop not activatable
 			ENUM SBCH_DEF, RAW: 28, DESC: SBC HOLD defective
-			ENUM SBCS_DEF, RAW: 29, DESC: SBC Stop defective
+			ENUM SBCS_DEF2, RAW: 29, DESC: SBC Stop defective
 			ENUM GWH_P, RAW: 30, DESC: selector lever according to P
 			ENUM SNV, RAW: 31, DESC: signal not available
 		SIGNAL NOTBRE, OFFSET: 41, LEN: 1, DESC: Emergency braking (brake light blink), DATA TYPE BOOL
@@ -328,7 +328,7 @@ ECU MS
 		SIGNAL FSC_SOLL, OFFSET: 40, LEN: 8, DESC: Drive Level Switching recommendation "should", DATA TYPE ENUM
 			ENUM HOCH, RAW: 1, DESC: "upshift" / arrow
 			ENUM RUNTER, RAW: 2, DESC: "downshift" / arrow
-			ENUM BLANK/PAS, RAW: 32, DESC: blank ("") / passive
+			ENUM BLANK_OR_PAS, RAW: 32, DESC: blank ("") / passive
 			ENUM EINS, RAW: 49, DESC: Driving Level "1"
 			ENUM ZWEI, RAW: 50, DESC: Driving Level "2"
 			ENUM DREI, RAW: 51, DESC: Driving Level "3"

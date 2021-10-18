@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'KOMBI'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_KOMBI_H_
 #define __ECU_KOMBI_H_
@@ -333,5 +333,3 @@ class ECU_KOMBI {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_KOMBI_H_
-
-#endif // EGS52_MODE

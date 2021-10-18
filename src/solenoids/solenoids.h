@@ -15,7 +15,7 @@
 class Solenoid
 {
 public:
-    Solenoid(const char *name, gpio_num_t pwm_pin, uint8_t reading_id, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
+    Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
     void write_pwm(uint8_t pwm);
     /**
      * Writes PWM signal to the solenoid using percentages.
@@ -36,7 +36,6 @@ private:
     bool vref_calibrated;
     ledc_channel_t channel;
     ledc_timer_t timer;
-    uint8_t reading_id;
     portMUX_TYPE current_mutex;
     volatile uint16_t current;
 };

@@ -106,6 +106,7 @@ class Egs52Can: public AbstractCan {
         GS_218 gs218 = {0};
         GS_418 gs418 = {0};
         GS_338 gs338 = {0};
+        GS_CUSTOM_558 gs558 = {0};
         // ECU Data to Rx to
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();

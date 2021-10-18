@@ -705,6 +705,16 @@ ECU GS
 			ENUM D, RAW: 4, DESC: gear selector lever in position "D"
 			ENUM SNV, RAW: 7, DESC: signal not available
 		SIGNAL FMRAD, OFFSET: 53, LEN: 11, DESC: Factor wheel torque (7ffh at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+#
+# This CAN Frame is 100% custom to ultimate-nag52 and is never normally transmitted on CANBUS by the OEM TCM!
+#
+	FRAME GS_CUSTOM_558h (0x00000558)
+		SIGNAL MPC_DUTY, OFFSET: 0, LEN: 8, DESC: Duty cycle of modulating pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL SPC_DUTY, OFFSET: 8, LEN: 8, DESC: Duty cycle of shift pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCC_DUTY, OFFSET: 16, LEN: 8, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCC_SLIP, OFFSET: 32, LEN: 16, DESC: Desired RPM slip of torque converter clutch, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: rpm
+		SIGNAL AI_UP, OFFSET: 48, LEN: 8, DESC: AI certainty of upshift, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: %
+		SIGNAL AI_DN, OFFSET: 48, LEN: 8, DESC: AI certainty of downshift, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: %
 	FRAME D_RS_GS (0x000007E9)
 		SIGNAL D_RS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnostic Response, DATA TYPE ISO_TP
 	FRAME SD_RS_GS (0x00000723)

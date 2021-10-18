@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'MRM'
 */
 
-#ifdef EGS52_MODE
+
 
 #ifndef __ECU_MRM_H_
 #define __ECU_MRM_H_
@@ -253,5 +253,3 @@ class ECU_MRM {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_MRM_H_
-
-#endif // EGS52_MODE

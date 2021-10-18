@@ -31,6 +31,11 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->gs218.set_GIC(GS_218h_GIC::G_SNV);
     gs218.set_CALID_CVN_AKT(true);
 
+    // Set profile to N/A for now
+    this->set_drive_profile(GearboxProfile::Underscore);
+    // Set no message
+    this->set_display_msg(GearboxMessage::None);
+
 
 // Set permanent configuration frame
 #ifdef FOUR_MATIC
@@ -667,6 +672,7 @@ void Egs52Can::tx_task_loop() {
     GS_338 gs_338tx;
     GS_218 gs_218tx;
     GS_418 gs_418tx;
+    GS_CUSTOM_558 gs_558tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;
@@ -676,6 +682,7 @@ void Egs52Can::tx_task_loop() {
         gs_338tx = {gs338.raw};
         gs_218tx = {gs218.raw};
         gs_418tx = {gs418.raw};
+        gs_558tx = {gs558.raw};
         // Firstly we have to deal with toggled parity bits!
         // As toggle bits need to be toggled every 40ms,
         // and egs52 Tx interval is 20ms,
@@ -699,6 +706,7 @@ void Egs52Can::tx_task_loop() {
          * GS_338
          * GS_218
          * GS_418
+         * GS_CUSTOM_558 ;)
          */
         start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
@@ -709,6 +717,9 @@ void Egs52Can::tx_task_loop() {
         twai_transmit(&tx, 5);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
+        twai_transmit(&tx, 5);
+        tx.identifier = GS_CUSTOM_558_CAN_ID;
+        to_bytes(gs_558tx.raw, tx.data);
         twai_transmit(&tx, 5);
         // Todo handle additional ISOTP communication
         taken = (esp_timer_get_time() / 1000) - start_time;

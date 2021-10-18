@@ -6,11 +6,10 @@
 //esp_adc_cal_characteristics_t adc1_cal;
 bool all_calibrated = false;
 
-Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint8_t reading_id, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer)
+Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer)
 {
     this->channel = channel;
     this->timer = timer;
-    this->reading_id = reading_id;
     this->ready = true; // Assume ready unless error!
     this->name = name;
     this->current = 0;
@@ -206,12 +205,12 @@ void read_solenoids_i2s(void*) {
 
 bool init_all_solenoids()
 {
-    sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 0, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0);
-    sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0);
-    sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 2, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0);
-    sol_mpc = new Solenoid("MPC", PIN_MPC_PWM, 3, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_1);
-    sol_spc = new Solenoid("SPC", PIN_SPC_PWM, 4, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_1);
-    sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 5, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_2);
+    sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0);
+    sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0);
+    sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0);
+    sol_mpc = new Solenoid("MPC", PIN_MPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_1);
+    sol_spc = new Solenoid("SPC", PIN_SPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_1);
+    sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_2);
 
     esp_err_t res = ledc_fade_func_install(0);
     if (res != ESP_OK) {

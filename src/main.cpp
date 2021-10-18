@@ -8,17 +8,34 @@
 #include "sensors.h"
 #include "canbus/can_egs52.h"
 
-void setup_tcm()
+bool setup_tcm()
 {
     egs_can_hal = new Egs52Can("EGS52", 20);
     if (!egs_can_hal->begin_tasks()) {
-        return;
+        return false;
     }
     if (!Sensors::init_sensors()) {
-        return;
+        return false;
     }
-    init_all_solenoids();
-    ESP_LOGI("INIT", "INIT OK!");
+    return init_all_solenoids();
+}
+
+void test_profiles(void*) {
+    GearboxProfile profiles[7] = { 
+        GearboxProfile::Agility, 
+        GearboxProfile::Comfort, 
+        GearboxProfile::Failure,
+        GearboxProfile::Manual,
+        GearboxProfile::Standard,
+        GearboxProfile::Winter,
+        GearboxProfile::Underscore
+    };
+    while(1) {
+        for (int i = 0; i < 7; i++) {
+            egs_can_hal->set_drive_profile(profiles[i]);
+            vTaskDelay(1000);  
+        }
+    }
 }
 
 void printer(void*) {
@@ -58,6 +75,11 @@ void printer(void*) {
 
 extern "C" void app_main(void)
 {
-    setup_tcm();
+    if (setup_tcm() == false) { // An error ocurred setting up the gearbox!
+        // Activate limp!
+        egs_can_hal->set_drive_profile(GearboxProfile::Failure);
+        egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
+    }
     xTaskCreate(printer, "PRINTER", 8192, nullptr, 2, nullptr);
+    xTaskCreate(test_profiles, "TEST-P", 4096, nullptr, 2, nullptr);
 }

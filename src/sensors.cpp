@@ -59,6 +59,39 @@ struct RpmSampleData {
     uint64_t last_time;
 };
 
+typedef struct {
+    // Voltage in mV
+    uint16_t v; 
+    // ATF Temp in degrees C * 10
+    int temp; 
+} temp_reading_t;
+
+#define NUM_TEMP_POINTS 22
+const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
+    {453, -400},
+    {468, -300},
+    {483, -200},
+    {498, -100},
+    {514, 0},
+    {531, 100},
+    {547, 200},
+    {565, 300},
+    {582, 400},
+    {600, 500},
+    {619, 600},
+    {636, 700},
+    {658, 800},
+    {678, 900},
+    {699, 1000},
+    {720, 1100},
+    {742, 1200},
+    {764, 1300},
+    {788, 1400},
+    {812, 1500},
+    {834, 1600},
+    {862, 1700}
+};
+
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
 #define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
 #define ADC2_ATTEN ADC_ATTEN_6db
@@ -148,8 +181,8 @@ bool Sensors::init_sensors(){
 
     // Setup filter to ignore ultra short pulses (possibly noise)
     // Using a value of 40 at 80Mhz APB_CLOCK = this will correctly filter noise up to 30,000RPM 
-    CHECK_ESP_FUNC(pcnt_set_filter_value(PCNT_N2_RPM, 40), "Failed to set filter for PCNT N2! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(pcnt_set_filter_value(PCNT_N3_RPM, 40), "Failed to set filter for PCNT N3! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(pcnt_set_filter_value(PCNT_N2_RPM, 1000), "Failed to set filter for PCNT N2! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(pcnt_set_filter_value(PCNT_N3_RPM, 1000), "Failed to set filter for PCNT N3! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_filter_enable(PCNT_N2_RPM), "Failed to enable filter for PCNT N2! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_filter_enable(PCNT_N3_RPM), "Failed to enable filter for PCNT N3! %s", esp_err_to_name(res))
 
@@ -229,8 +262,29 @@ bool Sensors::read_atf_temp(int* dest){
             return false;
         } else {
             xSemaphoreGive(adc2_read_mutex);
-            *dest = esp_adc_cal_raw_to_voltage(raw, &adc2_cal); // TODO
-            return true;
+            uint32_t tmp = esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+            if (tmp >= 1500) {
+                return false; // Parking lock engaged, cannot read.
+            }
+            ESP_LOGI("ATF", "V=%d", tmp);
+            if (tmp < atf_temp_lookup[0].v) {
+               *dest = atf_temp_lookup[0].temp;
+                return true;
+            } else if (tmp > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
+                *dest = atf_temp_lookup[NUM_TEMP_POINTS-1].temp;
+                return true;
+            } else {
+                for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
+                    // Found! Interpolate linearly to get a better estimate of ATF Temp
+                    if (atf_temp_lookup[i].v <= tmp && atf_temp_lookup[i+1].v >= tmp) {
+                        float dx = tmp - atf_temp_lookup[i].v;
+                        float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
+                        *dest = atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy);
+                        return true;
+                    }
+                }
+                return true;
+            }
         }
     } else {
         // Semaphore failed, do NOT read ADC2

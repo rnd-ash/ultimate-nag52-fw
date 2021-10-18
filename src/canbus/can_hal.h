@@ -62,7 +62,8 @@ enum class GearboxGear {
     Fourth,
     Fifth,
     Sixth,
-    Seventh
+    Seventh,
+    SignalNotAvaliable
 };
 
 enum class PaddlePosition {
@@ -109,6 +110,8 @@ enum class ShifterPosition {
 };
 
 enum class GearboxDisplayGear {
+    // Nothing displayed
+    Blank,
     // Shows '1'
     First,
     // Shows '2'
@@ -131,13 +134,15 @@ enum class GearboxDisplayGear {
     Neutral,
     // Shows 'D'
     Drive,
-    // Shows 'A'
-    AllWheelDrive,
+    // Shows 'A', not sure why
+    A,
     // Shows 'F' (Gearbox failure!)
     FAILURE
 };
 
 enum class GearboxMessage {
+    // No message
+    None,
     // "Activate gearbox, parking brake!" with warning tone
     ActuateParkingBreak,
     // "Gearbox, shift lever according to N!"
@@ -235,8 +240,16 @@ class AbstractCan {
         virtual void set_torque_request(TorqueRequest request);
         // Sets requested engine torque
         virtual void set_requested_torque(uint16_t torque_nm);
+        // Sets torque loss of torque converter
+        virtual void set_turbine_torque_loss(uint16_t loss_nm);
         // Sets the status of system error check
         virtual void set_error_check_status(SystemStatusCheck ssc);
+        // Sets display profile
+        virtual void set_display_gear(GearboxDisplayGear g);
+        // Sets drive profile
+        virtual void set_drive_profile(GearboxProfile p);
+        // Sets display message
+        virtual void set_display_msg(GearboxMessage msg);
     protected:
         TaskHandle_t* tx_task = nullptr;
         TaskHandle_t* rx_task = nullptr;

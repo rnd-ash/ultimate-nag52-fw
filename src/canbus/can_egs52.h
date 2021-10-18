@@ -86,12 +86,22 @@ class Egs52Can: public AbstractCan {
         void set_requested_torque(uint16_t torque_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
+        // Sets torque loss of torque converter
+        void set_turbine_torque_loss(uint16_t loss_nm) override;
+        // Sets display profile
+        void set_display_gear(GearboxDisplayGear g) override;
+        // Sets drive profile
+        void set_drive_profile(GearboxProfile p) override;
+        // Sets display message
+        void set_display_msg(GearboxMessage msg) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;
         [[noreturn]]
         void rx_task_loop() override;
     private:
+        GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
+        GearboxMessage curr_message = GearboxMessage::None;
         // CAN Frames to Tx
         GS_218 gs218 = {0};
         GS_418 gs418 = {0};

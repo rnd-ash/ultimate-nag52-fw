@@ -25,9 +25,23 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     // CAN is OK!
 
     // Set default values
-    this->gs218.set_GZC(GS_218h_GZC::G_SNV);
+    this->set_target_gear(GearboxGear::SignalNotAvaliable);
+    this->set_actual_gear(GearboxGear::SignalNotAvaliable);
+    this->set_shifter_position(ShifterPosition::SignalNotAvaliable);
     this->gs218.set_GIC(GS_218h_GIC::G_SNV);
     gs218.set_CALID_CVN_AKT(true);
+
+
+// Set permanent configuration frame
+#ifdef FOUR_MATIC
+    this->gs418.set_ALLRAD(true);
+#else
+    this->gs418.set_ALLRAD(false);
+#endif
+    this->gs418.set_FRONT(false); // Primary rear wheel drive
+    this->gs418.set_CVT(false); // Not CVT gearbox
+    this->gs418.set_MECH(GS_418h_MECH::KLEIN); // Small 722.6 for now! (TODO Handle 580)
+
 
     // Convers setting NAB, a couple unknown but static values,
     // and Input RPM to 0 
@@ -193,23 +207,141 @@ bool Egs52Can::get_is_starting() {
 }
 
 void Egs52Can::set_clutch_status(ClutchStatus status) {
-
+    switch(status) {
+        case ClutchStatus::Open:
+            gs218.set_K_G_B(false);
+            gs218.set_K_O_B(true);
+            gs218.set_K_S_B(false);
+            break;
+        case ClutchStatus::Slipping:
+            gs218.set_K_G_B(false);
+            gs218.set_K_O_B(false);
+            gs218.set_K_S_B(true);
+            break;
+        case ClutchStatus::Closed:
+            gs218.set_K_G_B(true);
+            gs218.set_K_O_B(false);
+            gs218.set_K_S_B(false);
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs52Can::set_actual_gear(GearboxGear actual) {
-
+    switch (actual) {
+        case GearboxGear::Park:
+            this->gs418.set_GIC(GS_418h_GIC::G_P);
+            this->gs218.set_GIC(GS_218h_GIC::G_P);
+            break;
+        case GearboxGear::Reverse_First:
+            this->gs418.set_GIC(GS_418h_GIC::G_R);
+            this->gs218.set_GIC(GS_218h_GIC::G_R);
+            break;
+        case GearboxGear::Reverse_Second:
+            this->gs418.set_GIC(GS_418h_GIC::G_R2);
+            this->gs218.set_GIC(GS_218h_GIC::G_R2);
+            break;
+        case GearboxGear::Neutral:
+            this->gs418.set_GIC(GS_418h_GIC::G_N);
+            this->gs218.set_GIC(GS_218h_GIC::G_N);
+            break;
+        case GearboxGear::First:
+            this->gs418.set_GIC(GS_418h_GIC::G_D1);
+            this->gs218.set_GIC(GS_218h_GIC::G_D1);
+            break;
+        case GearboxGear::Second:
+            this->gs418.set_GIC(GS_418h_GIC::G_D2);
+            this->gs218.set_GIC(GS_218h_GIC::G_D2);
+            break;
+        case GearboxGear::Third:
+            this->gs418.set_GIC(GS_418h_GIC::G_D3);
+            this->gs218.set_GIC(GS_218h_GIC::G_D3);
+            break;
+        case GearboxGear::Fourth:
+            this->gs418.set_GIC(GS_418h_GIC::G_D4);
+            this->gs218.set_GIC(GS_218h_GIC::G_D4);
+            break;
+        case GearboxGear::Fifth:
+            this->gs418.set_GIC(GS_418h_GIC::G_D5);
+            this->gs218.set_GIC(GS_218h_GIC::G_D5);
+            break;
+        case GearboxGear::Sixth:
+            this->gs418.set_GIC(GS_418h_GIC::G_D6);
+            this->gs218.set_GIC(GS_218h_GIC::G_D6);
+            break;
+        case GearboxGear::Seventh:
+            this->gs418.set_GIC(GS_418h_GIC::G_D7);
+            this->gs218.set_GIC(GS_218h_GIC::G_D7);
+            break;
+        case GearboxGear::SignalNotAvaliable:
+        default:
+            this->gs418.set_GIC(GS_418h_GIC::G_SNV);
+            this->gs218.set_GIC(GS_218h_GIC::G_SNV);
+            break;
+    }
 }
 
 void Egs52Can::set_target_gear(GearboxGear target) {
-
+    switch (target) {
+        case GearboxGear::Park:
+            this->gs418.set_GZC(GS_418h_GZC::G_P);
+            this->gs218.set_GZC(GS_218h_GZC::G_P);
+            break;
+        case GearboxGear::Reverse_First:
+            this->gs418.set_GZC(GS_418h_GZC::G_R);
+            this->gs218.set_GZC(GS_218h_GZC::G_R);
+            break;
+        case GearboxGear::Reverse_Second:
+            this->gs418.set_GZC(GS_418h_GZC::G_R2);
+            this->gs218.set_GZC(GS_218h_GZC::G_R2);
+            break;
+        case GearboxGear::Neutral:
+            this->gs418.set_GZC(GS_418h_GZC::G_N);
+            this->gs218.set_GZC(GS_218h_GZC::G_N);
+            break;
+        case GearboxGear::First:
+            this->gs418.set_GZC(GS_418h_GZC::G_D1);
+            this->gs218.set_GZC(GS_218h_GZC::G_D1);
+            break;
+        case GearboxGear::Second:
+            this->gs418.set_GZC(GS_418h_GZC::G_D2);
+            this->gs218.set_GZC(GS_218h_GZC::G_D2);
+            break;
+        case GearboxGear::Third:
+            this->gs418.set_GZC(GS_418h_GZC::G_D3);
+            this->gs218.set_GZC(GS_218h_GZC::G_D3);
+            break;
+        case GearboxGear::Fourth:
+            this->gs418.set_GZC(GS_418h_GZC::G_D4);
+            this->gs218.set_GZC(GS_218h_GZC::G_D4);
+            break;
+        case GearboxGear::Fifth:
+            this->gs418.set_GZC(GS_418h_GZC::G_D5);
+            this->gs218.set_GZC(GS_218h_GZC::G_D5);
+            break;
+        case GearboxGear::Sixth:
+            this->gs418.set_GZC(GS_418h_GZC::G_D6);
+            this->gs218.set_GZC(GS_218h_GZC::G_D6);
+            break;
+        case GearboxGear::Seventh:
+            this->gs418.set_GZC(GS_418h_GZC::G_D7);
+            this->gs218.set_GZC(GS_218h_GZC::G_D7);
+            break;
+        case GearboxGear::SignalNotAvaliable:
+        default:
+            this->gs418.set_GZC(GS_418h_GZC::G_SNV);
+            this->gs218.set_GZC(GS_218h_GZC::G_SNV);
+            break;
+    }
 }
 
 void Egs52Can::set_safe_start(bool can_start) {
-
+    this->gs218.set_ALF(can_start);
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
-
+    this->gs418.set_T_GET((temp & 0xFF)-50);
 }
 
 void Egs52Can::set_input_shaft_speed(uint16_t rpm) {
@@ -217,7 +349,7 @@ void Egs52Can::set_input_shaft_speed(uint16_t rpm) {
 }
 
 void Egs52Can::set_is_all_wheel_drive(bool is_4wd) {
-
+    this->gs418.set_ALLRAD(is_4wd);
 }
 
 void Egs52Can::set_wheel_torque(uint16_t t) {
@@ -257,11 +389,23 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
-
+    switch(request) {
+        case TorqueRequest::Maximum:
+            gs218.set_MMIN_EGS(false);
+            gs218.set_MMAX_EGS(true);
+        case TorqueRequest::Minimum:
+            gs218.set_MMIN_EGS(true);
+            gs218.set_MMAX_EGS(false);
+        case TorqueRequest::None:
+        default:
+            gs218.set_MMIN_EGS(false);
+            gs218.set_MMAX_EGS(false);
+            break;
+    }
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-
+    gs218.set_M_EGS(torque_nm);
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
@@ -277,6 +421,224 @@ void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
             break;
         default:
             break;
+    }
+}
+
+
+void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
+    
+}
+
+void Egs52Can::set_display_gear(GearboxDisplayGear g) {
+    
+}
+
+void Egs52Can::set_drive_profile(GearboxProfile p) {
+    this->curr_profile_bit = p;
+    switch (p) {
+        case GearboxProfile::Agility:
+            gs418.set_FPC(GS_418h_FPC::A);
+            break;
+        case GearboxProfile::Comfort:
+            gs418.set_FPC(GS_418h_FPC::C);
+            break;
+        case GearboxProfile::Winter:
+            gs418.set_FPC(GS_418h_FPC::W);
+            break;
+        case GearboxProfile::Failure:
+            gs418.set_FPC(GS_418h_FPC::F);
+            break;
+        case GearboxProfile::Standard:
+            gs418.set_FPC(GS_418h_FPC::S);
+            break;
+        case GearboxProfile::Manual:
+            gs418.set_FPC(GS_418h_FPC::M);
+            break;
+        case GearboxProfile::Underscore:
+            gs418.set_FPC(GS_418h_FPC::_);
+            break;
+        default:
+            break;
+    }
+    // Update display message as well
+    this->set_display_msg(this->curr_message);
+}
+
+void Egs52Can::set_display_msg(GearboxMessage msg) {
+    this->curr_message = msg;
+    if (msg == GearboxMessage::None) {
+        return;
+    }
+
+    if (this->curr_profile_bit == GearboxProfile::Agility) {
+        switch (msg) {
+            case GearboxMessage::ActuateParkingBreak:
+                gs418.set_FPC(GS_418h_FPC::A_MGFB_WT);
+                break;
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::A_MGN);
+                break;
+            case GearboxMessage::ActivateGear:
+                gs418.set_FPC(GS_418h_FPC::A_MGBB);
+                break;
+            case GearboxMessage::RequestGearAgain:
+                gs418.set_FPC(GS_418h_FPC::A_MGGEA);
+                break;
+            case GearboxMessage::InsertToNToStart:
+                gs418.set_FPC(GS_418h_FPC::A_MGZSN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::A_MGW);
+                break;
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Comfort) {
+        switch (msg) {
+            case GearboxMessage::ActuateParkingBreak:
+                gs418.set_FPC(GS_418h_FPC::C_MGFB_WT);
+                break;
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::C_MGN);
+                break;
+            case GearboxMessage::ActivateGear:
+                gs418.set_FPC(GS_418h_FPC::C_MGBB);
+                break;
+            case GearboxMessage::RequestGearAgain:
+                gs418.set_FPC(GS_418h_FPC::C_MGGEA);
+                break;
+            case GearboxMessage::InsertToNToStart:
+                gs418.set_FPC(GS_418h_FPC::C_MGZSN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::C_MGW);
+                break;
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Winter) {
+         switch (msg) {
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::W_MGN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::W_MGW);
+                break;
+            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'W'
+            case GearboxMessage::ActivateGear: // Unsupported in 'W'
+            case GearboxMessage::RequestGearAgain: // Unsupported in 'W'
+            case GearboxMessage::InsertToNToStart:// Unsupported in 'W'
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Failure) {
+         switch (msg) {
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::F_MGW);
+                break;
+            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'F'
+            case GearboxMessage::ShiftLeverToN: // Unsupported in 'F'
+            case GearboxMessage::ActivateGear: // Unsupported in 'F'
+            case GearboxMessage::RequestGearAgain: // Unsupported in 'F'
+            case GearboxMessage::InsertToNToStart: // Unsupported in 'F'
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Standard) {
+        switch (msg) {
+            case GearboxMessage::ActuateParkingBreak:
+                gs418.set_FPC(GS_418h_FPC::S_MGFB_WT);
+                break;
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::S_MGN);
+                break;
+            case GearboxMessage::ActivateGear:
+                gs418.set_FPC(GS_418h_FPC::S_MGBB);
+                break;
+            case GearboxMessage::RequestGearAgain:
+                gs418.set_FPC(GS_418h_FPC::S_MGGEA);
+                break;
+            case GearboxMessage::InsertToNToStart:
+                gs418.set_FPC(GS_418h_FPC::S_MGZSN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::S_MGW);
+                break;
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Manual) {
+        switch (msg) {
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::M_MGN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::M_MGW);
+                break;
+            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'M'
+            case GearboxMessage::ActivateGear: // Unsupported in 'M'
+            case GearboxMessage::RequestGearAgain: // Unsupported in 'M'
+            case GearboxMessage::InsertToNToStart: // Unsupported in 'M'
+            default:
+                break;
+        }
+    } else if (this->curr_profile_bit ==  GearboxProfile::Underscore) {
+        switch (msg) {
+            case GearboxMessage::ShiftLeverToN:
+                gs418.set_FPC(GS_418h_FPC::__MGN);
+                break;
+            case GearboxMessage::Upshift:
+                gs418.set_FPC(GS_418h_FPC::HOCH);
+                break;
+            case GearboxMessage::Downshift:
+                gs418.set_FPC(GS_418h_FPC::RUNTER);
+                break;
+            case GearboxMessage::VisitWorkshop:
+                gs418.set_FPC(GS_418h_FPC::__MGW);
+                break;
+            case GearboxMessage::ActuateParkingBreak: // Unsupported in '_'
+            case GearboxMessage::ActivateGear: // Unsupported in '_'
+            case GearboxMessage::RequestGearAgain: // Unsupported in '_'
+            case GearboxMessage::InsertToNToStart: // Unsupported in '_'
+            default:
+                break;
+        }
     }
 }
 

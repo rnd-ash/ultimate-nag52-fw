@@ -211,6 +211,7 @@ class AbstractCan {
         virtual uint16_t get_engine_rpm();
         // Returns true if engine is cranking
         virtual bool get_is_starting();
+        virtual bool get_profile_btn_press();
 
         /**
          * Setters

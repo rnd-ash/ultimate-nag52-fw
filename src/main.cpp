@@ -7,6 +7,20 @@
 #include "speaker.h"
 #include "sensors.h"
 #include "canbus/can_egs52.h"
+#include "gearbox.h"
+
+#define NUM_PROFILES 5 // A, C, W, M, S
+
+Gearbox* gearbox;
+
+AgilityProfile* agility;
+ComfortProfile* comfort;
+WinterProfile* winter;
+ManualProfile* manual;
+StandardProfile* standard;
+
+uint8_t profile_id = 0;
+AbstractProfile* profiles[NUM_PROFILES];
 
 bool setup_tcm()
 {
@@ -17,25 +31,29 @@ bool setup_tcm()
     if (!Sensors::init_sensors()) {
         return false;
     }
-    return init_all_solenoids();
-}
-
-void test_profiles(void*) {
-    GearboxProfile profiles[7] = { 
-        GearboxProfile::Agility, 
-        GearboxProfile::Comfort, 
-        GearboxProfile::Failure,
-        GearboxProfile::Manual,
-        GearboxProfile::Standard,
-        GearboxProfile::Winter,
-        GearboxProfile::Underscore
-    };
-    while(1) {
-        for (int i = 0; i < 7; i++) {
-            egs_can_hal->set_drive_profile(profiles[i]);
-            vTaskDelay(1000);  
-        }
+    if(!init_all_solenoids()) {
+        return false;
     }
+
+    agility = new AgilityProfile();
+    comfort = new ComfortProfile();
+    winter = new WinterProfile();
+    manual = new ManualProfile();
+    standard = new StandardProfile();
+
+    profiles[0] = standard;
+    profiles[1] = comfort;
+    profiles[2] = manual;
+    profiles[3] = agility;
+    profiles[4] = winter;
+
+
+    gearbox = new Gearbox();
+    if (!gearbox->start_controller()) {
+        return false;
+    }
+    gearbox->set_profile(profiles[0]);
+    return true;
 }
 
 void printer(void*) {
@@ -73,6 +91,26 @@ void printer(void*) {
     }
 }
 
+void input_manager(void*) {
+    bool pressed = false;
+    while(1) {
+        bool down = egs_can_hal->get_profile_btn_press();
+        if (down) {
+            pressed = true;
+        } else { // Released
+            if (pressed) {
+                pressed = false; // Released, do thing now
+                gearbox->set_profile(profiles[profile_id]);
+                profile_id++;
+                if (profile_id == NUM_PROFILES) {
+                    profile_id = 0;
+                }
+            }
+        }
+        vTaskDelay(20);
+    }
+}
+
 extern "C" void app_main(void)
 {
     if (setup_tcm() == false) { // An error ocurred setting up the gearbox!
@@ -80,6 +118,6 @@ extern "C" void app_main(void)
         egs_can_hal->set_drive_profile(GearboxProfile::Failure);
         egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
     }
-    xTaskCreate(printer, "PRINTER", 8192, nullptr, 2, nullptr);
-    xTaskCreate(test_profiles, "TEST-P", 4096, nullptr, 2, nullptr);
+    xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
+    xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
 }

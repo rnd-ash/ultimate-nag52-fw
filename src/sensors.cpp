@@ -266,7 +266,6 @@ bool Sensors::read_atf_temp(int* dest){
             if (tmp >= 1500) {
                 return false; // Parking lock engaged, cannot read.
             }
-            ESP_LOGI("ATF", "V=%d", tmp);
             if (tmp < atf_temp_lookup[0].v) {
                *dest = atf_temp_lookup[0].temp;
                 return true;

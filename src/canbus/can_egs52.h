@@ -54,7 +54,9 @@ class Egs52Can: public AbstractCan {
         // Gets engine RPM
          uint16_t get_engine_rpm() override;
         // Returns true if engine is cranking
-         bool get_is_starting() override;
+        bool get_is_starting() override;
+        // 
+        bool get_profile_btn_press() override;
 
         /**
          * Setters

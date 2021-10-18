@@ -196,7 +196,12 @@ PaddlePosition Egs52Can::get_paddle_position() {
 }
 
 uint16_t Egs52Can::get_engine_coolant_temp() {
-    return 0;
+    MS_608 ms608;
+    if (ecu_ms.get_MS_608(esp_timer_get_time(), 500*1000, &ms608)) {
+        return ms608.get_T_MOT()-40;
+    } else {
+        return UINT16_MAX;
+    }
 }
 
 uint16_t Egs52Can::get_engine_oil_temp() {
@@ -209,6 +214,15 @@ uint16_t Egs52Can::get_engine_rpm() {
 
 bool Egs52Can::get_is_starting() {
     return false;
+}
+
+bool Egs52Can::get_profile_btn_press() {
+    EWM_230 ewm230;
+    if (this->ewm_ecu.get_EWM_230(esp_timer_get_time(), 1000*1000, &ewm230)) {
+        return ewm230.get_FPT();
+    } else {
+        return false;
+    }
 }
 
 void Egs52Can::set_clutch_status(ClutchStatus status) {
@@ -346,7 +360,7 @@ void Egs52Can::set_safe_start(bool can_start) {
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
-    this->gs418.set_T_GET((temp & 0xFF)-50);
+    this->gs418.set_T_GET((temp+50) & 0xFF);
 }
 
 void Egs52Can::set_input_shaft_speed(uint16_t rpm) {
@@ -744,10 +758,8 @@ void Egs52Can::rx_task_loop() {
             if (twai_receive(&rx, pdMS_TO_TICKS(10)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                 now = esp_timer_get_time();
                 tmp = 0;
-
-                for(i = 0; i < 8; i++) {
-                    tmp <<= 8;
-                    tmp |= (uint64_t)rx.data[7-i];
+                for(i = 0; i < rx.data_length_code; i++) {
+                    tmp |= (uint64_t)rx.data[i] << (8*(7-i));
                 }
                 if(this->ecu_ms.import_frames(tmp, rx.identifier, now)) {
                 } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {

@@ -485,12 +485,11 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
     this->curr_message = msg;
-    if (msg == GearboxMessage::None) {
-        return;
-    }
-
     if (this->curr_profile_bit == GearboxProfile::Agility) {
         switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::A);
+                break;
             case GearboxMessage::ActuateParkingBreak:
                 gs418.set_FPC(GS_418h_FPC::A_MGFB_WT);
                 break;
@@ -520,6 +519,9 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
         }
     } else if (this->curr_profile_bit ==  GearboxProfile::Comfort) {
         switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::C);
+                break;
             case GearboxMessage::ActuateParkingBreak:
                 gs418.set_FPC(GS_418h_FPC::C_MGFB_WT);
                 break;
@@ -549,6 +551,9 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
         }
     } else if (this->curr_profile_bit ==  GearboxProfile::Winter) {
          switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::W);
+                break;
             case GearboxMessage::ShiftLeverToN:
                 gs418.set_FPC(GS_418h_FPC::W_MGN);
                 break;
@@ -570,6 +575,9 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
         }
     } else if (this->curr_profile_bit ==  GearboxProfile::Failure) {
          switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::F);
+                break;
             case GearboxMessage::Upshift:
                 gs418.set_FPC(GS_418h_FPC::HOCH);
                 break;
@@ -589,6 +597,9 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
         }
     } else if (this->curr_profile_bit ==  GearboxProfile::Standard) {
         switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::S);
+                break;
             case GearboxMessage::ActuateParkingBreak:
                 gs418.set_FPC(GS_418h_FPC::S_MGFB_WT);
                 break;
@@ -618,6 +629,9 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
         }
     } else if (this->curr_profile_bit ==  GearboxProfile::Manual) {
         switch (msg) {
+            case GearboxMessage::None:
+                gs418.set_FPC(GS_418h_FPC::M);
+                break;
             case GearboxMessage::ShiftLeverToN:
                 gs418.set_FPC(GS_418h_FPC::M_MGN);
                 break;
@@ -661,6 +675,15 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
     }
 }
 
+/**
+ * Parity calculation for torque numbers on GS218 and GS418
+ * 
+ * Each torque request member is a struct of 16 bits comprised of the following fields:
+ * 1. Toggle bit (1 bit)
+ * 2. Max request - bool (1 bit)
+ * 3. Min request - bool (1 bit)
+ * 4. Required torque - 13 bits
+ */
 inline bool calc_torque_parity(uint16_t s) {
     uint16_t p = s;
     p ^= (p >> 1);
@@ -697,7 +720,8 @@ void Egs52Can::tx_task_loop() {
         gs_218tx = {gs218.raw};
         gs_418tx = {gs418.raw};
         gs_558tx = {gs558.raw};
-        // Firstly we have to deal with toggled parity bits!
+
+        // Firstly we have to deal with toggled bits!
         // As toggle bits need to be toggled every 40ms,
         // and egs52 Tx interval is 20ms,
         // we can achieve this with 2 booleans
@@ -709,8 +733,10 @@ void Egs52Can::tx_task_loop() {
         if (time_to_toggle) {
             toggle = !toggle;
         }
-        gs_218tx.set_FEHLER(cvn_counter);
         time_to_toggle = !time_to_toggle;
+        
+        // Now set CVN Counter (Increases every frame)
+        gs_218tx.set_FEHLER(cvn_counter);
         cvn_counter++;
 
         // Now send CAN Data!

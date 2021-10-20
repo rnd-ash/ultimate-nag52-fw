@@ -19,7 +19,7 @@ enum class WheelDirection {
 };
 
 struct WheelData {
-    uint16_t double_rpm; // 2x real RPM (Better accuracy)
+    int double_rpm; // 2x real RPM (Better accuracy)
     WheelDirection current_dir; // Wheel direction
 };
 
@@ -107,37 +107,6 @@ enum class ShifterPosition {
     PLUS,
     MINUS,
     SignalNotAvaliable // SNV
-};
-
-enum class GearboxDisplayGear {
-    // Nothing displayed
-    Blank,
-    // Shows '1'
-    First,
-    // Shows '2'
-    Second,
-    // Shows '3'
-    Third,
-    // Shows '4'
-    Fourth,
-    // Shows '5'
-    Fifth,
-    // Shows '6'
-    Sixth,
-    // Shows '7'
-    Seventh,
-    // Shows 'P'
-    Park,
-    // Shows 'R'
-    Reverse,
-    // Shows 'N'
-    Neutral,
-    // Shows 'D'
-    Drive,
-    // Shows 'A', not sure why
-    A,
-    // Shows 'F' (Gearbox failure!)
-    FAILURE
 };
 
 enum class GearboxMessage {
@@ -246,7 +215,7 @@ class AbstractCan {
         // Sets the status of system error check
         virtual void set_error_check_status(SystemStatusCheck ssc);
         // Sets display profile
-        virtual void set_display_gear(GearboxDisplayGear g);
+        virtual void set_display_gear(char g);
         // Sets drive profile
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message

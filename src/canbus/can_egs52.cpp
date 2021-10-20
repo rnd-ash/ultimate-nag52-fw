@@ -106,22 +106,70 @@ WheelData Egs52Can::get_front_left_wheel() {
 }
 
 WheelData Egs52Can::get_rear_right_wheel() {
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
-    };
+    BS_200 bs200;
+    if (this->esp_ecu.get_BS_200(esp_timer_get_time(), 500*1000, &bs200)) {
+        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        switch(bs200.get_DRTGVR()) {
+            case BS_200h_DRTGVR::FWD:
+                d = WheelDirection::Forward;
+                break;
+            case BS_200h_DRTGVR::REV:
+                d = WheelDirection::Reverse;
+                break;
+            case BS_200h_DRTGVR::PASSIVE:
+                d = WheelDirection::Stationary;
+                break;
+            case BS_200h_DRTGVR::SNV:
+            default:
+                break;
+        }
+
+        return WheelData {
+            .double_rpm = bs200.get_DVR(),
+            .current_dir = d
+        };
+    } else {
+        return WheelData {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvaliable
+        };
+    }
 }
 
 WheelData Egs52Can::get_rear_left_wheel() {
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
-    };
+    BS_200 bs200;
+    if (this->esp_ecu.get_BS_200(esp_timer_get_time(), 500*1000, &bs200)) {
+        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        switch(bs200.get_DRTGVL()) {
+            case BS_200h_DRTGVL::FWD:
+                d = WheelDirection::Forward;
+                break;
+            case BS_200h_DRTGVL::REV:
+                d = WheelDirection::Reverse;
+                break;
+            case BS_200h_DRTGVL::PASSIVE:
+                d = WheelDirection::Stationary;
+                break;
+            case BS_200h_DRTGVL::SNV:
+            default:
+                break;
+        }
+
+        return WheelData {
+            .double_rpm = bs200.get_DVL(),
+            .current_dir = d
+        };
+    } else {
+        return WheelData {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvaliable
+        };
+    }
 }
 
 ShifterPosition Egs52Can::get_shifter_position_ewm() {
     EWM_230 dest;
-    if (this->ewm_ecu.get_EWM_230(esp_timer_get_time(), 1000 * 100, &dest)) {
+    if (this->ewm_ecu.get_EWM_230(esp_timer_get_time(), 1000 * 500, &dest)) {
         switch (dest.get_WHC()) {
             case EWM_230h_WHC::D:
                 return ShifterPosition::D;
@@ -412,9 +460,11 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
         case TorqueRequest::Maximum:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(true);
+            break;
         case TorqueRequest::Minimum:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
+            break;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
@@ -448,8 +498,8 @@ void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-void Egs52Can::set_display_gear(GearboxDisplayGear g) {
-    
+void Egs52Can::set_display_gear(char g) {
+    this->gs418.set_FSC(g);
 }
 
 void Egs52Can::set_drive_profile(GearboxProfile p) {

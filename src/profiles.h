@@ -10,32 +10,50 @@
  */
 class AbstractProfile {
 public:
-    const virtual GearboxProfile get_profile();
+    virtual GearboxProfile get_profile() const;
+    virtual char get_display_gear(GearboxGear target, GearboxGear actual);
+    virtual bool should_upshift(GearboxGear current_gear);
+    virtual bool should_downshift(GearboxGear current_gear);
 };
 
 class AgilityProfile : public AbstractProfile {
 public:
-    const GearboxProfile get_profile() override { return GearboxProfile::Agility; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Agility; }
+    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear);
+    bool should_downshift(GearboxGear current_gear);
 };
 
 class ComfortProfile : public AbstractProfile {
 public:
-    const GearboxProfile get_profile() override { return GearboxProfile::Comfort; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Comfort; }
+    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear);
+    bool should_downshift(GearboxGear current_gear);
 };
 
 class WinterProfile : public AbstractProfile {
 public:
-    const GearboxProfile get_profile() override { return GearboxProfile::Winter; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
+    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear);
+    bool should_downshift(GearboxGear current_gear);
 };
 
 class StandardProfile : public AbstractProfile {
 public:
-    const GearboxProfile get_profile() override { return GearboxProfile::Standard; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Standard; }
+    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear);
+    bool should_downshift(GearboxGear current_gear);
 };
 
 class ManualProfile : public AbstractProfile {
 public:
-    const GearboxProfile get_profile() override { return GearboxProfile::Manual; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Manual; }
+    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear);
+    bool should_downshift(GearboxGear current_gear);
 };
 
 #endif

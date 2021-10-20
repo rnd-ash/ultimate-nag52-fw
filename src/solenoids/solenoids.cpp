@@ -54,8 +54,8 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 
 void Solenoid::write_pwm(uint8_t pwm)
 {
-    esp_err_t res = ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4); // Convert from 8bit to 12bit
-    res = ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4, 0); // Convert from 8bit to 12bit
+    //res = ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
     }

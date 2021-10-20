@@ -91,7 +91,7 @@ class Egs52Can: public AbstractCan {
         // Sets torque loss of torque converter
         void set_turbine_torque_loss(uint16_t loss_nm) override;
         // Sets display profile
-        void set_display_gear(GearboxDisplayGear g) override;
+        void set_display_gear(char g) override;
         // Sets drive profile
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message

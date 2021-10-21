@@ -45,6 +45,27 @@ bool is_controllable_gear(GearboxGear g) {
     }
 }
 
+bool is_fwd_gear(GearboxGear g) {
+    switch (g) {
+        case GearboxGear::Reverse_First:
+        case GearboxGear::Reverse_Second:
+            return false;
+        case GearboxGear::First:
+        case GearboxGear::Second:
+        case GearboxGear::Third:
+        case GearboxGear::Fourth:
+        case GearboxGear::Fifth:
+        case GearboxGear::Sixth:
+        case GearboxGear::Seventh:
+            return true;
+        case GearboxGear::Park:
+        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::Neutral:
+        default:
+            return false;
+    }
+}
+
 const char* gear_to_text(GearboxGear g) {
     switch (g) {
         case GearboxGear::Reverse_First:
@@ -76,36 +97,142 @@ const char* gear_to_text(GearboxGear g) {
     }
 }
 
+void Gearbox::inc_gear_request() {
+    this->ask_upshift = true;
+    this->ask_downshift = false;
+}
+
+void Gearbox::dec_gear_request() {
+    this->ask_upshift = false;
+    this->ask_downshift = true;
+}
+
+GearboxGear next_gear(GearboxGear g) {
+    switch (g) {
+        case GearboxGear::First:
+            return GearboxGear::Second;
+        case GearboxGear::Second:
+            return GearboxGear::Third;
+        case GearboxGear::Third:
+            return GearboxGear::Fourth;
+        case GearboxGear::Fourth:
+            return GearboxGear::Fifth;
+        case GearboxGear::Fifth:
+            return GearboxGear::Sixth;
+        case GearboxGear::Sixth:
+            return GearboxGear::Seventh;
+        case GearboxGear::Seventh:
+        case GearboxGear::Park:
+        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::Neutral:
+        case GearboxGear::Reverse_First:
+        case GearboxGear::Reverse_Second:
+        default:
+            return g;
+    }
+}
+
+GearboxGear prev_gear(GearboxGear g) {
+    switch (g) {
+        case GearboxGear::Second:
+            return GearboxGear::First;
+        case GearboxGear::Third:
+            return GearboxGear::Second;
+        case GearboxGear::Fourth:
+            return GearboxGear::Third;
+        case GearboxGear::Fifth:
+            return GearboxGear::Fourth;
+        case GearboxGear::Sixth:
+            return GearboxGear::Fifth;
+        case GearboxGear::Seventh:
+            return GearboxGear::Sixth;
+        case GearboxGear::First:
+        case GearboxGear::Park:
+        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::Neutral:
+        case GearboxGear::Reverse_First:
+        case GearboxGear::Reverse_Second:
+        default:
+            return g;
+    }
+}
+
 void Gearbox::shift_thread() {
     this->shifting = true;
     GearboxGear curr_target = this->target_gear;
     GearboxGear curr_actual = this->actual_gear;
     if (curr_actual == curr_target) {
+        ESP_LOGW("SHIFTER", "Gears are the same????");
         goto cleanup;  
     }
-    ESP_LOGI("SHIFTER", "CURR: %s, TARG: %s", gear_to_text(curr_actual), gear_to_text(curr_target));
-    if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) {
+    if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
         sol_mpc->write_pwm_percent(333); // 33%
         sol_spc->write_pwm_percent(400); // 40%
-        sol_y4->write_pwm_percent(500); // 3-4 is pulsed at 50%
+        sol_y4->write_pwm_percent(300); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
-    } else if (is_controllable_gear(curr_actual) == !is_controllable_gear(curr_target)) { // This would be a garage shift, either in or out
+    } else if (is_controllable_gear(curr_actual) != is_controllable_gear(curr_target)) { // This would be a garage shift, either in or out
         ESP_LOGI("SHIFTER", "Garage shift");
-        sol_spc->write_pwm_percent(400);
-        sol_y4->write_pwm_percent(500);
-        vTaskDelay(700);
+        sol_spc->write_pwm_percent(350);
+        sol_y4->write_pwm_percent(1000); // Full on
+        vTaskDelay(500);
         if (is_controllable_gear(curr_target)) {
+            for (int i = 35; i > 0; i--) {
+                sol_spc->write_pwm_percent(10*i); // Fade out SPC to slowly increase pressure on clutches
+                vTaskDelay(10);
+            }
             sol_spc->write_pwm_percent(0);
             sol_mpc->write_pwm_percent(0);
             sol_y4->write_pwm_percent(0);
         } else {
             sol_spc->write_pwm_percent(400);
             sol_mpc->write_pwm_percent(333);
-            sol_y4->write_pwm_percent(500); // Back to idle
+            sol_y4->write_pwm_percent(300); // Back to idle
         }
         this->actual_gear = curr_target; // Set on startup
+        goto cleanup;
+    } else { // Both gears are controllable
+        ESP_LOGI("SHIFTER", "Both gears are controllable");
+        if (is_fwd_gear(curr_target) != is_fwd_gear(curr_actual)) {
+            // In this case, we set the current gear to neutral, then thread will re-spawn
+            ESP_LOGI("SHIFTER", "Shifter got stuck in R-D. Returning and trying again");
+            this->actual_gear = GearboxGear::Neutral;
+            goto cleanup;
+        } else if (is_fwd_gear(curr_target) && is_fwd_gear(curr_actual)){
+            // Forward shift logic
+            if (curr_target > curr_actual) { // Upshifting
+                ESP_LOGI("SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                if (curr_target == GearboxGear::Second) { // Test 1->2
+                    sol_y3->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(750);
+                    sol_y3->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                }
+                goto cleanup;
+            } else { // Downshifting
+                ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                if (curr_target == GearboxGear::First) { // Test 2->1
+                    sol_y3->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(100);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(750);
+                    sol_y3->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = false;
+                }
+                goto cleanup;
+            }
+        } else {
+            ESP_LOGI("SHIFTER", "Ignoring request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+        }
         goto cleanup;
     }
 cleanup:
@@ -126,29 +253,61 @@ void Gearbox::controller_loop() {
     bool lock_state = false;
     int atf_temp = 0;
     uint32_t rpm = 0;
+    uint16_t eng_rpm = 0;
+    ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
     // Before we enter, we have to check what gear we are in as the 'actual gear'
     ESP_LOGI("GEARBOX", "GEARBOX START!");
     while(1) {
-        this->calc_input_rpm(&rpm);
+        //this->calc_input_rpm(&rpm);
+        eng_rpm = egs_can_hal->get_engine_rpm();
+        if (eng_rpm == UINT16_MAX) {
+            eng_rpm = 0;
+        }
         if (Sensors::parking_lock_engaged(&lock_state)) {
             egs_can_hal->set_safe_start(lock_state);
             ShifterPosition pos = egs_can_hal->get_shifter_position_ewm();
-            if (lock_state) {
-                if (pos == ShifterPosition::P) {
-                    this->target_gear = GearboxGear::Park;
-                } else if (pos == ShifterPosition::N) {
-                    this->target_gear = GearboxGear::Neutral;
-                }
-            } else {
-                // Drive or R!
-                if (pos == ShifterPosition::R) {
-                    this->target_gear = GearboxGear::Reverse_Second;
-                } else if (pos == ShifterPosition::D) {
-                    this->target_gear = GearboxGear::Second;
+            if (
+                pos == ShifterPosition::P || // Only obide by definitive positions for now, no intermittent once
+                pos == ShifterPosition::R ||
+                pos == ShifterPosition::N ||
+                pos == ShifterPosition::D
+            ) {
+                if (pos != last_position) {
+                    if (lock_state) {
+                        if (pos == ShifterPosition::P) {
+                            this->target_gear = GearboxGear::Park;
+                            last_position = pos;
+                        } else if (pos == ShifterPosition::N) {
+                            this->target_gear = GearboxGear::Neutral;
+                            last_position = pos;
+                        }
+                    } else {
+                        // Drive or R!
+                        if (pos == ShifterPosition::R) {
+                            this->target_gear = this->start_second ? GearboxGear::Reverse_Second : GearboxGear::Reverse_First;
+                            last_position = pos;
+                        } else if (pos == ShifterPosition::D) {
+                            this->target_gear = this->start_second ? GearboxGear::Second : GearboxGear::First;
+                            last_position = pos;
+                        }
+                    }
                 }
             }
         }
-        if (rpm > 500) {
+        if (eng_rpm > 500) {
+            if (this->ask_upshift) {
+                ESP_LOGI("SHIFTER", "UP");
+                this->ask_upshift = false;
+                if (is_fwd_gear(this->actual_gear) && this->actual_gear < GearboxGear::Fifth && this->target_gear == this->actual_gear && !shifting) {
+                    this->target_gear = next_gear(this->actual_gear);
+                }
+            } else if (this->ask_downshift) {
+                ESP_LOGI("SHIFTER", "DN");
+                this->ask_downshift = false;
+                if (is_fwd_gear(this->actual_gear) && this->actual_gear > GearboxGear::First && this->target_gear == this->actual_gear && !shifting) {
+                    this->target_gear = prev_gear(this->actual_gear);
+                }
+            }
             if (this->target_gear != this->actual_gear && this->shifting == false) {
                 // Create shift task to change gears for us!
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
@@ -177,7 +336,7 @@ void Gearbox::controller_loop() {
         }
         portEXIT_CRITICAL(&this->profile_mutex);
 
-        vTaskDelay(10); // 100 updates/sec!
+        vTaskDelay(20); // 50 updates/sec!
     }
 }
 

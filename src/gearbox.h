@@ -46,6 +46,8 @@ public:
     void set_profile(AbstractProfile* prof);
     void inc_subprofile();
     bool start_controller();
+    void inc_gear_request();
+    void dec_gear_request();
 private:
     AbstractProfile* current_profile = nullptr;
     portMUX_TYPE profile_mutex;
@@ -57,7 +59,7 @@ private:
     void controller_loop();
 
     void shift_thread();
-
+    bool start_second = true; // By default
     static void start_shift_thread(void *_this) {
         static_cast<Gearbox*>(_this)->shift_thread();
     }
@@ -69,6 +71,8 @@ private:
 
     TaskHandle_t shift_task = nullptr;
     bool shifting = false;
+    bool ask_upshift = false;
+    bool ask_downshift = false;
 };
 
 #endif

@@ -52,18 +52,18 @@ enum class TorqueRequest {
 };
 
 enum class GearboxGear {
-    Park,
-    Reverse_First,
-    Reverse_Second,
-    Neutral,
-    First,
-    Second,
-    Third,
-    Fourth,
-    Fifth,
-    Sixth,
-    Seventh,
-    SignalNotAvaliable
+    First = 1,
+    Second = 2,
+    Third = 3,
+    Fourth = 4,
+    Fifth = 5,
+    Sixth = 6,
+    Seventh = 7,
+    Park = 8,
+    Neutral = 9,
+    Reverse_First = 10,
+    Reverse_Second = 11,
+    SignalNotAvaliable = 12,
 };
 
 enum class PaddlePosition {

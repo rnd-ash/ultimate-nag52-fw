@@ -16,6 +16,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->current_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->vref = 0;
     this->vref_calibrated = false;
+    this->default_freq = frequency;
 
     ledc_timer_config_t timer_cfg = {
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
@@ -54,11 +55,24 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 
 void Solenoid::write_pwm(uint8_t pwm)
 {
+    if (this->pulsing) {
+        this->stop_pulse();
+    }
     esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4, 0); // Convert from 8bit to 12bit
-    //res = ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
     }
+}
+
+void Solenoid::pulse_solenoid(uint32_t freq) {
+    ledc_set_freq(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->timer, freq);
+    ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, 2048, 0); // 50% duty
+    this->pulsing = true;
+}
+
+void Solenoid::stop_pulse() {
+    ledc_set_freq(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->timer, this->default_freq);
+    this->pulsing = false;
 }
 
 uint16_t Solenoid::get_vref() {
@@ -72,7 +86,7 @@ void Solenoid::write_pwm_percent(uint16_t percent) {
 }
 
 uint8_t Solenoid::get_pwm()
-{
+{   
     return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel) >> 4;
 }
 

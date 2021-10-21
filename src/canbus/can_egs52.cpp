@@ -240,7 +240,19 @@ uint16_t Egs52Can::get_minimum_engine_torque() {
 }
 
 PaddlePosition Egs52Can::get_paddle_position() {
-    return PaddlePosition::None;
+    SBW_232 sbw;
+    if (misc_ecu.get_SBW_232(esp_timer_get_time(), 50*1000, &sbw)) { // 50ms timeout
+        switch (sbw.get_LRT_PM3()) {
+            case SBW_232h_LRT_PM3::PLUS:
+                return PaddlePosition::Plus;
+            case SBW_232h_LRT_PM3::MINUS:
+                return PaddlePosition::Minus;
+            default:
+                return PaddlePosition::None;
+        }
+    } else {
+        return PaddlePosition::None;
+    }
 }
 
 uint16_t Egs52Can::get_engine_coolant_temp() {
@@ -257,7 +269,12 @@ uint16_t Egs52Can::get_engine_oil_temp() {
 }
 
 uint16_t Egs52Can::get_engine_rpm() {
-    return 0;
+    MS_308 ms308;
+    if (ecu_ms.get_MS_308(esp_timer_get_time(), 100*1000, &ms308)) {
+        return ms308.get_NMOT();
+    } else {
+        return UINT16_MAX;
+    }
 }
 
 bool Egs52Can::get_is_starting() {

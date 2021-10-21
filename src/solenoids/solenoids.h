@@ -23,6 +23,15 @@ public:
      * 1000 = 100%
      */
     void write_pwm_percent(uint16_t percent);
+    /**
+     * Tells the solenoid to 'pulse' at 50% PWM at a given frequency.
+     * This is to only be used in special circumstances such as ignition cranking
+     */
+    void pulse_solenoid(uint32_t freq);
+    /**
+     * Stops solenoid pulsing
+     */
+    void stop_pulse();
     uint8_t get_pwm();
     uint16_t get_current_estimate();
     bool init_ok();
@@ -30,6 +39,8 @@ public:
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
 private:
+    bool pulsing;
+    uint32_t default_freq;
     bool ready;
     const char *name;
     uint16_t vref;

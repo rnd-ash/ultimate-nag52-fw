@@ -93,6 +93,8 @@ void printer(void*) {
 
 void input_manager(void*) {
     bool pressed = false;
+    PaddlePosition last_pos = PaddlePosition::None;
+    ShifterPosition slast_pos = ShifterPosition::SignalNotAvaliable;
     while(1) {
         bool down = egs_can_hal->get_profile_btn_press();
         if (down) {
@@ -103,13 +105,35 @@ void input_manager(void*) {
                 if (egs_can_hal->get_shifter_position_ewm() == ShifterPosition::PLUS) {
                     gearbox->inc_subprofile();
                 } else {
-                    gearbox->set_profile(profiles[profile_id]);
                     profile_id++;
                     if (profile_id == NUM_PROFILES) {
                         profile_id = 0;
                     }
+                    gearbox->set_profile(profiles[profile_id]);  
                 }
             }
+        }
+        PaddlePosition paddle = egs_can_hal->get_paddle_position();
+        if (last_pos != paddle) { // Same position, ignore
+            if (last_pos != PaddlePosition::None) {
+                // Process last request of the user
+                if (last_pos == PaddlePosition::Plus) {
+                    gearbox->inc_gear_request();
+                } else if (last_pos == PaddlePosition::Minus) {
+                    gearbox->dec_gear_request();
+                }
+            }
+            last_pos = paddle;
+        }
+        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm();
+        if (spos != slast_pos) { // Same position, ignore
+            // Process last request of the user
+            if (slast_pos == ShifterPosition::PLUS) {
+                gearbox->inc_gear_request();
+            } else if (slast_pos == ShifterPosition::MINUS) {
+                gearbox->dec_gear_request();
+            }
+            slast_pos = spos;
         }
         vTaskDelay(20);
     }

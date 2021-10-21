@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'GS'
 */
 
-
+#ifdef EGS52_MODE
 
 #ifndef __ECU_GS_H_
 #define __ECU_GS_H_
@@ -74,25 +74,6 @@ enum class GS_218h_FEHLPRF_ST {
 	OK = 1, // Completely traject error test, result i. O.
 	ERROR = 2, // Error detected, enter current environmental data
 	UNKNOWN = 3, // not defined
-};
-
-/** drive */
-enum class GS_418h_FSC {
-	BLANK = 32, // blank ("")
-	EINS = 49, // Driving Level "1"
-	ZWEI = 50, // Driving Level "2"
-	DREI = 51, // Driving Level "3"
-	VIER = 52, // Driving Level "4"
-	FUENF = 53, // Driving Level "5"
-	SECHS = 54, // Driving Level "6"
-	SIEBEN = 55, // Driving stage "7"
-	A = 65, // Driving stage "A"
-	D = 68, // speed "D"
-	F = 70, // Error Mark "F"
-	N = 78, // Driving "N"
-	P = 80, // Driving Level "P"
-	R = 82, // Driving "R"
-	SNV = 255, // passive value
 };
 
 /** Driving program */
@@ -424,10 +405,10 @@ typedef union {
 	/** Gets CAN ID of GS_418 */
 	uint32_t get_canid(){ return GS_418_CAN_ID; }
     /** Sets drive */
-    void set_FSC(GS_418h_FSC value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
+    void set_FSC(char value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
     /** Gets drive */
-    GS_418h_FSC get_FSC() const { return (GS_418h_FSC)(raw >> 56 & 0xff); }
+    char get_FSC() const { return (char)(raw >> 56 & 0xff); }
         
     /** Sets Driving program */
     void set_FPC(GS_418h_FPC value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
@@ -684,3 +665,5 @@ class ECU_GS {
 		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_GS_H_
+
+#endif // EGS52_MODE

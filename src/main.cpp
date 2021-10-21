@@ -100,10 +100,14 @@ void input_manager(void*) {
         } else { // Released
             if (pressed) {
                 pressed = false; // Released, do thing now
-                gearbox->set_profile(profiles[profile_id]);
-                profile_id++;
-                if (profile_id == NUM_PROFILES) {
-                    profile_id = 0;
+                if (egs_can_hal->get_shifter_position_ewm() == ShifterPosition::PLUS) {
+                    gearbox->inc_subprofile();
+                } else {
+                    gearbox->set_profile(profiles[profile_id]);
+                    profile_id++;
+                    if (profile_id == NUM_PROFILES) {
+                        profile_id = 0;
+                    }
                 }
             }
         }

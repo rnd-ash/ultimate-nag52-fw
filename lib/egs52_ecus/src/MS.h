@@ -8,7 +8,7 @@
 * CAN Defintiion for ECU 'MS'
 */
 
-
+#ifdef EGS52_MODE
 
 #ifndef __ECU_MS_H_
 #define __ECU_MS_H_
@@ -1160,3 +1160,5 @@ class ECU_MS {
 		uint64_t LAST_FRAME_TIMES[8];
 };
 #endif // __ECU_MS_H_
+
+#endif // EGS52_MODE

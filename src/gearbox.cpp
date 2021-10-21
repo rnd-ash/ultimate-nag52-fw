@@ -94,25 +94,32 @@ void Gearbox::shift_thread() {
     } else if (is_controllable_gear(curr_actual) == !is_controllable_gear(curr_target)) { // This would be a garage shift, either in or out
         ESP_LOGI("SHIFTER", "Garage shift");
         sol_spc->write_pwm_percent(400);
-        sol_y4->write_pwm_percent(400);
-        vTaskDelay(1000);
+        sol_y4->write_pwm_percent(500);
+        vTaskDelay(700);
         if (is_controllable_gear(curr_target)) {
             sol_spc->write_pwm_percent(0);
             sol_mpc->write_pwm_percent(0);
             sol_y4->write_pwm_percent(0);
         } else {
             sol_spc->write_pwm_percent(400);
-            sol_mpc->write_pwm_percent(300);
+            sol_mpc->write_pwm_percent(333);
             sol_y4->write_pwm_percent(500); // Back to idle
         }
         this->actual_gear = curr_target; // Set on startup
-
         goto cleanup;
     }
 cleanup:
     ESP_LOGI("SHIFTER", "Shift complete");
     this->shifting = false;
     vTaskDelete(nullptr);
+}
+
+void Gearbox::inc_subprofile() {
+    portENTER_CRITICAL(&this->profile_mutex);
+    if (this->current_profile != nullptr) {
+        this->current_profile->increment_subprofile();
+    }
+    portEXIT_CRITICAL(&this->profile_mutex);
 }
 
 void Gearbox::controller_loop() {

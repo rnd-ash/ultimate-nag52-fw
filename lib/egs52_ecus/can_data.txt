@@ -591,22 +591,23 @@ ECU GS
 		SIGNAL NAB, OFFSET: 0, LEN: 16, DESC: Transmission output speed (only 463/461, other FFFFH), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL NTURBINE, OFFSET: 48, LEN: 16, DESC: Turbine speed (EGS52-NAG, VGS-NAG2), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME GS_418h (0x00000418)
-		SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE ENUM
-			ENUM BLANK, RAW: 32, DESC: blank ("")
-			ENUM EINS, RAW: 49, DESC: Driving Level "1"
-			ENUM ZWEI, RAW: 50, DESC: Driving Level "2"
-			ENUM DREI, RAW: 51, DESC: Driving Level "3"
-			ENUM VIER, RAW: 52, DESC: Driving Level "4"
-			ENUM FUENF, RAW: 53, DESC: Driving Level "5"
-			ENUM SECHS, RAW: 54, DESC: Driving Level "6"
-			ENUM SIEBEN, RAW: 55, DESC: Driving stage "7"
-			ENUM A, RAW: 65, DESC: Driving stage "A"
-			ENUM D, RAW: 68, DESC: speed "D"
-			ENUM F, RAW: 70, DESC: Error Mark "F"
-			ENUM N, RAW: 78, DESC: Driving "N"
-			ENUM P, RAW: 80, DESC: Driving Level "P"
-			ENUM R, RAW: 82, DESC: Driving "R"
-			ENUM SNV, RAW: 255, DESC: passive value
+#SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE ENUM
+#			ENUM BLANK, RAW: 32, DESC: blank ("")
+#			ENUM EINS, RAW: 49, DESC: Driving Level "1"
+#			ENUM ZWEI, RAW: 50, DESC: Driving Level "2"
+#			ENUM DREI, RAW: 51, DESC: Driving Level "3"
+#			ENUM VIER, RAW: 52, DESC: Driving Level "4"
+#			ENUM FUENF, RAW: 53, DESC: Driving Level "5"
+#			ENUM SECHS, RAW: 54, DESC: Driving Level "6"
+#			ENUM SIEBEN, RAW: 55, DESC: Driving stage "7"
+#			ENUM A, RAW: 65, DESC: Driving stage "A"
+#			ENUM D, RAW: 68, DESC: speed "D"
+#			ENUM F, RAW: 70, DESC: Error Mark "F"
+#			ENUM N, RAW: 78, DESC: Driving "N"
+#			ENUM P, RAW: 80, DESC: Driving Level "P"
+#			ENUM R, RAW: 82, DESC: Driving "R"
+#			ENUM SNV, RAW: 255, DESC: passive value
+		SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE CHAR
 		SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: Driving program, DATA TYPE ENUM
 			ENUM C_MGFB_WT, RAW: 2, DESC: "C", message "Activate gearbox, parking brake!" warning
 			ENUM C_MGSNN, RAW: 3, DESC: "C", message "Gearbox, shift lever according to N!"
@@ -706,7 +707,7 @@ ECU GS
 			ENUM SNV, RAW: 7, DESC: signal not available
 		SIGNAL FMRAD, OFFSET: 53, LEN: 11, DESC: Factor wheel torque (7ffh at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 #
-# This CAN Frame is 100% custom to ultimate-nag52 and is never normally transmitted on CANBUS by the OEM TCM!
+# This CAN Frame is 100% custom to ultimate-nag52 and is never transmitted on CANBUS by the OEM TCM!
 #
 	FRAME GS_CUSTOM_558h (0x00000558)
 		SIGNAL MPC_DUTY, OFFSET: 0, LEN: 8, DESC: Duty cycle of modulating pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)

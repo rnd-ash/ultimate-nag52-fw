@@ -38,11 +38,12 @@ class Signal:
         self.length = length
         self.offset = offset
         self.is_iso_tp = False
-        self.is_number: False
-        self.is_bool: False
+        self.is_number = False
+        self.is_bool = False
+        self.is_char = False
         self.number_data = (0.0, 0.0) # Multiplier, offset
         self.is_enum = True
-        self.unit=unit
+        self.unit = unit
         self.enum_table = []
 
     def get_return_data_type(self, frame_name: str) -> str:
@@ -59,6 +60,8 @@ class Signal:
             return "bool"
         elif self.is_enum: # Enum data type
             return "{}_{}".format(frame_name, self.name)
+        elif self.is_char:
+            return "char"
         else:
             return"" # ??
 
@@ -102,6 +105,8 @@ class Signal:
 
         if dt.strip() == "ISO_TP":
             self.is_iso_tp = True
+        elif dt.strip() == "CHAR":
+            self.is_char = True
         elif dt.strip() == "BOOL":
             self.is_bool = True
         elif "ENUM" in dt:

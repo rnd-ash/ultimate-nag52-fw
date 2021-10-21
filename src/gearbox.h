@@ -44,6 +44,7 @@ class Gearbox {
 public:
     Gearbox();
     void set_profile(AbstractProfile* prof);
+    void inc_subprofile();
     bool start_controller();
 private:
     AbstractProfile* current_profile = nullptr;

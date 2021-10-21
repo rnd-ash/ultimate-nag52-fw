@@ -16,7 +16,16 @@ char AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
         case GearboxGear::Fifth:
         case GearboxGear::Sixth:
         case GearboxGear::Seventh:
-            return 'D';
+            switch(this->profile_id) {
+                case 0:
+                    return 'A';
+                case 1:
+                    return 'B';
+                case 2:
+                    return 'C';
+                default:
+                    return 'D';
+            }
         case GearboxGear::SignalNotAvaliable:
             return 0xFF;
         default:
@@ -48,7 +57,16 @@ char ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
         case GearboxGear::Fifth:
         case GearboxGear::Sixth:
         case GearboxGear::Seventh:
-            return 'E'; // Eco
+            switch(this->profile_id) {
+                case 0:
+                    return 'A';
+                case 1:
+                    return 'B';
+                case 2:
+                    return 'C';
+                default:
+                    return 'D';
+            }
         case GearboxGear::SignalNotAvaliable:
             return 0xFF;
         default:
@@ -80,7 +98,16 @@ char WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
         case GearboxGear::Fifth:
         case GearboxGear::Sixth:
         case GearboxGear::Seventh:
-            return 'W';
+            switch(this->profile_id) {
+                case 0:
+                    return 'A';
+                case 1:
+                    return 'B';
+                case 2:
+                    return 'C';
+                default:
+                    return 'D';
+            }
         case GearboxGear::SignalNotAvaliable:
             return 0xFF;
         default:
@@ -112,7 +139,16 @@ char StandardProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
         case GearboxGear::Fifth:
         case GearboxGear::Sixth:
         case GearboxGear::Seventh:
-            return 'D';
+            switch(this->profile_id) {
+                case 0:
+                    return 'A';
+                case 1:
+                    return 'B';
+                case 2:
+                    return 'C';
+                default:
+                    return 'D';
+            }
         case GearboxGear::SignalNotAvaliable:
             return 0xFF;
         default:

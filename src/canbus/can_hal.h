@@ -186,14 +186,7 @@ class AbstractCan {
          * Setters
          */
 
-        // Set the gearbox clutch position on CAN
-        virtual void set_clutch_status(ClutchStatus status);
-        // Set the actual gear of the gearbox
-        virtual void set_actual_gear(GearboxGear actual);
-        // Set the target gear of the gearbox
-        virtual void set_target_gear(GearboxGear target);
-        // Sets the status bit indicating the car is safe to start
-        virtual void set_safe_start(bool can_start);
+         
         // Sets the gerabox ATF temperature. Offset by +50C
         virtual void set_gearbox_temperature(uint16_t temp);
         // Sets the RPM of the input shaft of the gearbox on CAN

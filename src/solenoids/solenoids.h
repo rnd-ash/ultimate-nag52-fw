@@ -12,34 +12,32 @@
 #include <driver/adc.h>
 #include <esp_event.h>
 
+const static float solenoid_vref = 12000.0f; // 12V Vref for solenoids
+
 class Solenoid
 {
 public:
+    /**
+     * Constructor params
+     * name - Name of solenoid (Human readable)
+     * pwm_pin - PWM pin to gate of MOSFET
+     * frequency - Default frequency of PWM for solenoid
+     * channel - LEDC channel designated to the solenoid
+     * timer - HW timer for controlling PWM
+     */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
-    void write_pwm(uint8_t pwm);
-    /**
-     * Writes PWM signal to the solenoid using percentages.
-     * 0 = 0%
-     * 1000 = 100%
-     */
-    void write_pwm_percent(uint16_t percent);
-    /**
-     * Tells the solenoid to 'pulse' at 50% PWM at a given frequency.
-     * This is to only be used in special circumstances such as ignition cranking
-     */
-    void pulse_solenoid(uint32_t freq);
-    /**
-     * Stops solenoid pulsing
-     */
-    void stop_pulse();
-    uint8_t get_pwm();
-    uint16_t get_current_estimate();
-    bool init_ok();
-    uint16_t get_vref();
+    void write_pwm(uint8_t pwm); // Write raw PWM
+    void write_pwm_percent(uint16_t percent); // Write PMW percentage (0 - 0%, 1000 = 100%)
+    void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv); // Write PWM percentage with voltage correction
+    uint8_t get_pwm(); // Returns PWM signal of solenoid
+    uint16_t get_current_estimate(); // Returns current estimate of the solenoid
+    bool init_ok(); // Did the solenoid initialize OK?
+    uint16_t get_vref(); // Gets the solenoids' vref's calibrated value
+
+    // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
 private:
-    bool pulsing;
     uint32_t default_freq;
     bool ready;
     const char *name;

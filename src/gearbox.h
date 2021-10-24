@@ -68,11 +68,31 @@ private:
     static void start_controller_internal(void *_this) {
         static_cast<Gearbox*>(_this)->controller_loop();
     }
-
+    uint16_t temp_raw = 0;
     TaskHandle_t shift_task = nullptr;
     bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
 };
+
+typedef int PressureMap[13][11];
+
+static const PressureMap SpcMap_1_2 {
+// ATF    0 10 20 30 40 50 60 70 80 90 100 <-- Pedal %
+/*-20C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/*-10C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/*  0C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 10C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 20C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 30C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 40C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 50C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 60C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 70C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 80C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/* 90C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+/*100C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
 
 #endif

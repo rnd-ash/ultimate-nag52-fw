@@ -94,7 +94,7 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
 #define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
-#define ADC2_ATTEN ADC_ATTEN_6db
+#define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
 
 volatile esp_err_t adc2_read_res; // Used by all ADC2 reading functions
@@ -242,7 +242,8 @@ bool Sensors::read_vbatt(int *dest){
             return false;
         } else {
             xSemaphoreGive(adc2_read_mutex);
-            *dest = (esp_adc_cal_raw_to_voltage(raw, &adc2_cal) / 2);//;; + 100;
+            // Vin = Vout(R1+R2)/R2
+            *dest = (esp_adc_cal_raw_to_voltage(raw, &adc2_cal) * (100+22) / 22);
             return true;
         }
     } else {

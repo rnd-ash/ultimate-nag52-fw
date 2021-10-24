@@ -4,6 +4,9 @@
 
 const float diff_ratio_f = (float)DIFF_RATIO / 1000.0;
 
+#define X_SIZE 12
+#define Y_SIZE 14
+
 Gearbox::Gearbox() {
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
@@ -157,6 +160,52 @@ GearboxGear prev_gear(GearboxGear g) {
     }
 }
 
+typedef struct {
+    uint8_t mpc;
+    uint8_t spc;
+} PressurePercentages;
+
+PressurePercentages find_pressure_settings(const PressureMap spc_map, const PressureMap mpc_map, uint8_t pedal_position, int atf_temp) {
+    if (atf_temp < -20) {
+        atf_temp = -20;
+    } else if (atf_temp > 100) {
+        atf_temp = 100;
+    } else {
+        atf_temp = abs((atf_temp % 10) - atf_temp);
+    }
+    if (pedal_position > 100) {
+        pedal_position = 100;
+    } else {
+        pedal_position = abs((pedal_position % 10) - pedal_position);
+    }
+
+    int y_coord = (atf_temp/10) + 2;
+    int x_coord = (pedal_position/10)+1;
+    if (y_coord < 0) {
+        y_coord = 0;
+    } else if (y_coord >= 14) {
+        y_coord = 13;
+    }
+
+    if (x_coord < 0) {
+        x_coord = 0;
+    } else if (x_coord >= 12) {
+        x_coord = 11;
+    }
+
+    uint8_t spc = spc_map[y_coord][x_coord];
+    uint8_t mpc = mpc_map[y_coord][x_coord];
+
+
+    ESP_LOGI("FPS", "ATF: %d C, PEDAL: %d %% = [%u,%u]", atf_temp, pedal_position, x_coord, y_coord);
+    ESP_LOGI("FPS", "SPC: %u %%, MPC: %u %%", 100-spc, 100-mpc);
+    return PressurePercentages {
+        .mpc = mpc,
+        .spc = spc,
+    };
+
+}
+
 void Gearbox::shift_thread() {
     this->shifting = true;
     GearboxGear curr_target = this->target_gear;
@@ -207,26 +256,90 @@ void Gearbox::shift_thread() {
                     sol_y3->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(750);
+                    vTaskDelay(2000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
+                } else if (curr_target == GearboxGear::Third) { // Test 2->3
+                    sol_y5->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y5->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else if (curr_target == GearboxGear::Fourth) { // Test 2->3
+                    sol_y4->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y4 ->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else if (curr_target == GearboxGear::Fifth) { // Test 2->3
+                    sol_y3->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y3->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else {
+                    this->target_gear = this->actual_gear; // IGNORE
                 }
                 goto cleanup;
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 if (curr_target == GearboxGear::First) { // Test 2->1
                     sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(100);
+                    sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(750);
+                    vTaskDelay(2000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = false;
+                } else if (curr_target == GearboxGear::Second) { // Test 3->2
+                    sol_y5->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y5->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else if (curr_target == GearboxGear::Third) { // Test 3->2
+                    sol_y4->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y4->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else if (curr_target == GearboxGear::Fourth) { // Test 3->2
+                    sol_y3->write_pwm_percent(1000);
+                    sol_spc->write_pwm_percent(200);
+                    sol_mpc->write_pwm_percent(200);
+                    vTaskDelay(2000);
+                    sol_y3->write_pwm_percent(0);
+                    sol_spc->write_pwm_percent(0);
+                    sol_mpc->write_pwm_percent(0);
+                    this->actual_gear = curr_target;
+                    this->start_second = true;
+                } else {
+                    this->target_gear = this->actual_gear; // IGNORE
                 }
                 goto cleanup;
             }
@@ -324,6 +437,7 @@ void Gearbox::controller_loop() {
             // Default to engine coolant
             atf_temp = (egs_can_hal->get_engine_coolant_temp())*10;
         }
+        this->temp_raw = atf_temp;
         egs_can_hal->set_gearbox_temperature(atf_temp/10);
         egs_can_hal->set_shifter_position(egs_can_hal->get_shifter_position_ewm());
 

@@ -24,7 +24,9 @@ AbstractProfile* profiles[NUM_PROFILES];
 
 bool setup_tcm()
 {
-    egs_can_hal = new Egs52Can("EGS52", 20);
+#ifdef EGS52_MODE
+    egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
+#endif
     if (!egs_can_hal->begin_tasks()) {
         return false;
     }
@@ -43,8 +45,8 @@ bool setup_tcm()
 
     profiles[0] = standard;
     profiles[1] = comfort;
-    profiles[2] = manual;
-    profiles[3] = agility;
+    profiles[2] = agility;
+    profiles[3] = manual;
     profiles[4] = winter;
 
 
@@ -57,7 +59,7 @@ bool setup_tcm()
 }
 
 void printer(void*) {
-    spkr.send_note(500, 200, 250);
+    spkr.send_note(1000, 150, 200);
     spkr.send_note(1000, 200, 200);
     int atf_temp;
     int vbatt;
@@ -145,6 +147,13 @@ extern "C" void app_main(void)
         // Activate limp!
         egs_can_hal->set_drive_profile(GearboxProfile::Failure);
         egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
+        egs_can_hal->set_gearbox_ok(false);
+
+        // Oh no something is wrong. Beep!
+        while(1) {
+            spkr.send_note(500, 500, 750);
+            spkr.send_note(500, 1500, 2000);
+        }
     }
     xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
     xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);

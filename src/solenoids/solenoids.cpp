@@ -55,24 +55,22 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 
 void Solenoid::write_pwm(uint8_t pwm)
 {
-    if (this->pulsing) {
-        this->stop_pulse();
-    }
     esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4, 0); // Convert from 8bit to 12bit
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
     }
 }
 
-void Solenoid::pulse_solenoid(uint32_t freq) {
-    ledc_set_freq(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->timer, freq);
-    ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, 2048, 0); // 50% duty
-    this->pulsing = true;
-}
+void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv) {
+    if (percent == 0) {
+        this->write_pwm_percent(0);
+    }
+    float want_percent = (float)percent * solenoid_vref / (float)curr_v_mv;;
+    if (want_percent > 10000) {
+        want_percent = 10000; // Clamp to max
+    }
+    this->write_pwm_percent((uint16_t) want_percent);
 
-void Solenoid::stop_pulse() {
-    ledc_set_freq(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->timer, this->default_freq);
-    this->pulsing = false;
 }
 
 uint16_t Solenoid::get_vref() {
@@ -231,7 +229,14 @@ bool init_all_solenoids()
         ESP_LOGE("SOLENOID", "FATAL. Could not load insert LEDC fade function %s", esp_err_to_name(res));
         return false;
     }
-    if (!(sol_tcc->init_ok() && sol_mpc->init_ok() && sol_spc->init_ok() && sol_y3->init_ok() && sol_y4->init_ok() && sol_y5->init_ok())) { // Init error, don't do anything else
+    if (!(
+        sol_tcc->init_ok() && 
+        sol_mpc->init_ok() && 
+        sol_spc->init_ok() && 
+        sol_y3->init_ok() && 
+        sol_y4->init_ok() && 
+        sol_y5->init_ok())
+    ) { // Init error, don't do anything else
         return false;
     }
 

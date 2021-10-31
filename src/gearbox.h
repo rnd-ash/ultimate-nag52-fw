@@ -40,6 +40,23 @@
     #define RAT_R2 -1.8986
 #endif
 
+typedef struct {
+    float max;
+    float min;
+} GearRatioLimit;
+
+#define MAX_LIMIT 0.10 // 10% drift
+
+const static GearRatioLimit GEAR_RATIO_LIMITS[7] {
+    GearRatioLimit { .max = RAT_1*(1.0+MAX_LIMIT), .min = RAT_1*(1.0-MAX_LIMIT) }, // 1
+    GearRatioLimit { .max = RAT_2*(1.0+MAX_LIMIT), .min = RAT_2*(1.0-MAX_LIMIT) }, // 2
+    GearRatioLimit { .max = RAT_3*(1.0+MAX_LIMIT), .min = RAT_3*(1.0-MAX_LIMIT) }, // 3
+    GearRatioLimit { .max = RAT_4*(1.0+MAX_LIMIT), .min = RAT_4*(1.0-MAX_LIMIT) }, // 4
+    GearRatioLimit { .max = RAT_5*(1.0+MAX_LIMIT), .min = RAT_5*(1.0-MAX_LIMIT) }, // 5
+    GearRatioLimit { .max = RAT_R1*(1.0-MAX_LIMIT), .min = RAT_R1*(1.0+MAX_LIMIT) }, // R1
+    GearRatioLimit { .max = RAT_R2*(1.0-MAX_LIMIT), .min = RAT_R2*(1.0+MAX_LIMIT) }, // R2
+};
+
 class Gearbox {
 public:
     Gearbox();
@@ -49,12 +66,16 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
+
+    bool calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse);
+
     AbstractProfile* current_profile = nullptr;
     portMUX_TYPE profile_mutex;
     GearboxGear target_gear = GearboxGear::SignalNotAvaliable;
     GearboxGear actual_gear = GearboxGear::SignalNotAvaliable;
+    GearboxGear min_fwd_gear = GearboxGear::First;
     bool calc_input_rpm(uint32_t* dest);
-    bool calc_output_rpm(int* dest);
+    bool calc_output_rpm(uint32_t* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
 
@@ -73,6 +94,8 @@ private:
     bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
+    uint16_t tcc_perc = 0;
+    uint8_t est_gear_idx = 0;
 };
 
 typedef int PressureMap[13][11];

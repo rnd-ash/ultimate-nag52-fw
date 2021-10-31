@@ -9,7 +9,7 @@ namespace Sensors {
     uint32_t read_n3_rpm();
     uint32_t read_n2_rpm();
 
-    bool read_vbatt(int* dest);
+    bool read_vbatt(uint16_t* dest);
     bool read_atf_temp(int* dest);
 
     bool parking_lock_engaged(bool* dest);

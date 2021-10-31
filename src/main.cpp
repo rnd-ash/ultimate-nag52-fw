@@ -8,6 +8,7 @@
 #include "sensors.h"
 #include "canbus/can_egs52.h"
 #include "gearbox.h"
+#include "dtcs.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
 
@@ -22,19 +23,19 @@ StandardProfile* standard;
 uint8_t profile_id = 0;
 AbstractProfile* profiles[NUM_PROFILES];
 
-bool setup_tcm()
+SPEAKER_POST_CODE setup_tcm()
 {
 #ifdef EGS52_MODE
     egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
 #endif
     if (!egs_can_hal->begin_tasks()) {
-        return false;
+        return SPEAKER_POST_CODE::CAN_FAIL;
     }
     if (!Sensors::init_sensors()) {
-        return false;
+        return SPEAKER_POST_CODE::SENSOR_FAIL;
     }
     if(!init_all_solenoids()) {
-        return false;
+        return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
 
     agility = new AgilityProfile();
@@ -52,20 +53,39 @@ bool setup_tcm()
 
     gearbox = new Gearbox();
     if (!gearbox->start_controller()) {
-        return false;
+        return SPEAKER_POST_CODE::CONTROLLER_FAIL;
     }
     gearbox->set_profile(profiles[0]);
-    return true;
+    return SPEAKER_POST_CODE::INIT_OK;
+}
+
+void err_beep_loop(void* a) {
+    SPEAKER_POST_CODE p = (SPEAKER_POST_CODE)(int)a;
+    if (p == SPEAKER_POST_CODE::INIT_OK) {
+        spkr.post(p); // All good, return
+        vTaskDelete(NULL);
+    } else {
+        // An error has occurred
+        // Set gearbox to F mode
+        egs_can_hal->set_drive_profile(GearboxProfile::Failure);
+        egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
+        egs_can_hal->set_gearbox_ok(false);
+        while(1) {
+            spkr.post(p);
+            vTaskDelay(2000);
+        }
+        vTaskDelete(NULL);
+    }
 }
 
 void printer(void*) {
-    spkr.send_note(1000, 150, 200);
-    spkr.send_note(1000, 200, 200);
     int atf_temp;
-    int vbatt;
+    uint16_t vbatt;
     bool parking;
     uint32_t n2;
     uint32_t n3;
+    //spkr.broadcast_error_code(DtcCode::P2005);
+    //spkr.broadcast_error_code(DtcCode::P2564);
     while(1) {
         uint64_t start = esp_timer_get_time();
         Sensors::read_atf_temp(&atf_temp);
@@ -76,7 +96,7 @@ void printer(void*) {
         uint32_t taken = (uint32_t)(esp_timer_get_time() - start);
         ESP_LOGI(
             "MAIN", 
-            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA. Vbatt: %d mV, ATF: %d *C, Parking lock: %d. N2/N3: (%u/%u) RPM. TIME: %u",
+            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA. Vbatt: %u mV, ATF: %d *C, Parking lock: %d. N2/N3: (%u/%u) RPM. TIME: %u",
             sol_y3->get_current_estimate(),
             sol_y4->get_current_estimate(),
             sol_y5->get_current_estimate(),
@@ -98,13 +118,14 @@ void input_manager(void*) {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvaliable;
     while(1) {
-        bool down = egs_can_hal->get_profile_btn_press();
+        uint64_t now = esp_timer_get_time();
+        bool down = egs_can_hal->get_profile_btn_press(now, 100);
         if (down) {
             pressed = true;
         } else { // Released
             if (pressed) {
                 pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position_ewm() == ShifterPosition::PLUS) {
+                if (egs_can_hal->get_shifter_position_ewm(now, 100) == ShifterPosition::PLUS) {
                     gearbox->inc_subprofile();
                 } else {
                     profile_id++;
@@ -115,7 +136,7 @@ void input_manager(void*) {
                 }
             }
         }
-        PaddlePosition paddle = egs_can_hal->get_paddle_position();
+        PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
         if (last_pos != paddle) { // Same position, ignore
             if (last_pos != PaddlePosition::None) {
                 // Process last request of the user
@@ -127,7 +148,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm();
+        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 100);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {
@@ -141,20 +162,36 @@ void input_manager(void*) {
     }
 }
 
+const char* post_code_to_str(SPEAKER_POST_CODE s) {
+    switch (s) {
+        case SPEAKER_POST_CODE::INIT_OK:
+            return "INIT_OK";
+        case SPEAKER_POST_CODE::CAN_FAIL:
+            return "CAN_INIT_FAIL";
+        case SPEAKER_POST_CODE::CONTROLLER_FAIL:
+            return "CONTROLLER_INIT_FAIL";
+        case SPEAKER_POST_CODE::EEPROM_FAIL:
+            return "ERRPOM_INIT_FAIL";
+        case SPEAKER_POST_CODE::SENSOR_FAIL:
+            return "SENSOR_INIT_FAIL";
+        case SPEAKER_POST_CODE::SOLENOID_FAIL:
+            return "SOLENOID_INIT_FAIL";
+        default:
+            return nullptr;
+    }
+}
+
 extern "C" void app_main(void)
 {
-    if (setup_tcm() == false) { // An error ocurred setting up the gearbox!
-        // Activate limp!
-        egs_can_hal->set_drive_profile(GearboxProfile::Failure);
-        egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
-        egs_can_hal->set_gearbox_ok(false);
-
-        // Oh no something is wrong. Beep!
-        while(1) {
-            spkr.send_note(500, 500, 750);
-            spkr.send_note(500, 1500, 2000);
+    SPEAKER_POST_CODE s = setup_tcm();
+    xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
+    if (s != SPEAKER_POST_CODE::INIT_OK) {
+        while(true) {
+            ESP_LOGE("INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
+            vTaskDelay(1000);
         }
+    } else { // INIT OK!
+        xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
+        xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
-    xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
-    xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
 }

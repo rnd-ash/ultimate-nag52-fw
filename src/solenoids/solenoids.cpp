@@ -3,7 +3,7 @@
 #include "esp_adc_cal.h"
 #include "pins.h"
 
-//esp_adc_cal_characteristics_t adc1_cal;
+esp_adc_cal_characteristics_t adc1_cal;
 bool all_calibrated = false;
 
 Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer)
@@ -12,8 +12,8 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->timer = timer;
     this->ready = true; // Assume ready unless error!
     this->name = name;
-    this->current = 0;
-    this->current_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->adc_reading = 0;
+    this->adc_reading_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->vref = 0;
     this->vref_calibrated = false;
     this->default_freq = frequency;
@@ -65,15 +65,16 @@ void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_
     if (percent == 0) {
         this->write_pwm_percent(0);
     }
-    float want_percent = (float)percent * solenoid_vref / (float)curr_v_mv;;
-    if (want_percent > 10000) {
-        want_percent = 10000; // Clamp to max
+    uint16_t want_percent = (float)percent * solenoid_vref / (float)curr_v_mv;;
+    if (want_percent > 1000) {
+        want_percent = 1000; // Clamp to max
     }
-    this->write_pwm_percent((uint16_t) want_percent);
+    ESP_LOGI("SOLENOID", "WPPWV (%s) converting %u to %d", this->name, percent, want_percent);
+    this->write_pwm_percent(want_percent);
 
 }
 
-uint16_t Solenoid::get_vref() {
+uint16_t Solenoid::get_vref() const {
     return this->vref;
 }
 
@@ -90,51 +91,44 @@ uint8_t Solenoid::get_pwm()
 
 uint16_t Solenoid::get_current_estimate()
 {
-    portENTER_CRITICAL(&this->current_mutex);
-    uint16_t r = this->current;
-    portEXIT_CRITICAL(&this->current_mutex);
-
+    portENTER_CRITICAL(&this->adc_reading_mutex);
+    uint16_t r = this->adc_reading - this->vref; // Vref is static noise on the line, discount it
+    portEXIT_CRITICAL(&this->adc_reading_mutex);
     /**
      * Calibration data from ADC:
-     * 65300 - 3180mV
-     * 0 - 0mV
+     * 65535 - 3300 mv (6.6A)
+     * 0 - 0mV (0A)
      * 
      * With 0.005Ohm shunt resistor and INA180A3 amplifier:
-     * 300mV = 6000mA
-     * 150mV = 3000mA
+     * 3000mV = 6000mA
+     * 1500mV = 3000mA
      * 0mV = 0mA
      */
 
-    int current = 0;
     // Convert ADC reading to approx mV
     // Voltage = ADC_READING * 0.0487
     // Current = Voltage * 2
     //
     // So basically current = ADC_READING * 0.0974
-    if (this->vref_calibrated) {
-        current = (r-this->vref)*0.0974;
-    } else {
-        current = r*0.0974;
-    }
-    return current;
+    return r*0.0974;
 }
 
 void Solenoid::__set_current_internal(uint16_t c)
 {
-    portENTER_CRITICAL(&this->current_mutex);
-    this->current = c;
-    portEXIT_CRITICAL(&this->current_mutex);
+    portENTER_CRITICAL(&this->adc_reading_mutex);
+    this->adc_reading = c;
+    portEXIT_CRITICAL(&this->adc_reading_mutex);
 }
 
 void Solenoid::__set_vref(uint16_t ref)
 {
-    portENTER_CRITICAL(&this->current_mutex);
+    portENTER_CRITICAL(&this->adc_reading_mutex);
     this->vref = ref;
     this->vref_calibrated = true;
-    portEXIT_CRITICAL(&this->current_mutex);
+    portEXIT_CRITICAL(&this->adc_reading_mutex);
 }
 
-bool Solenoid::init_ok()
+bool Solenoid::init_ok() const
 {
     return this->ready;
 }
@@ -197,7 +191,7 @@ void read_solenoids_i2s(void*) {
             samples[sample_id] = tmp / NUM_SAMPLES;
             sample_id += 1;
         }
-        for (int i = 0; i < SAMPLE_COUNT; i++) {
+        for (uint8_t i = 0; i < SAMPLE_COUNT; i++) {
             avg += samples[i];
         }
         avg /= SAMPLE_COUNT;
@@ -217,6 +211,9 @@ void read_solenoids_i2s(void*) {
 
 bool init_all_solenoids()
 {
+    // Read calibration for ADC1
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_cal);
+
     sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0);
     sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0);
     sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0);
@@ -254,5 +251,32 @@ bool init_all_solenoids()
             sol_spc->get_vref(),
             sol_tcc->get_vref()
     );
+
+#define SOL_THRESHOLD_ADC 500
+
+    if (sol_y3->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
+    if (sol_y4->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID Y4 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y4->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
+    if (sol_y5->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID Y5 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y5->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
+    if (sol_mpc->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID MPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_mpc->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
+    if (sol_spc->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID SPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_spc->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
+    if (sol_tcc->get_vref() > 500) {
+        ESP_LOGE("SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
+        return false;
+    }
     return true;
 }

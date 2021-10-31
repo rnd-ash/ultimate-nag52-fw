@@ -147,46 +147,53 @@ class AbstractCan {
          */
 
         // Get the front right wheel data
-        virtual WheelData get_front_right_wheel();
+        virtual WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms);
         // Get the front left wheel data
-        virtual WheelData get_front_left_wheel();
+        virtual WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms);
         // Get the rear right wheel data
-        virtual WheelData get_rear_right_wheel();
+        virtual WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms);
         // Get the rear left wheel data
-        virtual WheelData get_rear_left_wheel();
+        virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms);
         // Gets shifter position from EWM module
-        virtual ShifterPosition get_shifter_position_ewm();
+        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms);
         // Gets engine type
-        virtual EngineType get_engine_type();
+        virtual EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms);
         // Returns true if engine is in limp mode
-        virtual bool get_engine_is_limp();
+        virtual bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms);
         // Returns true if pedal is kickdown 
-        virtual bool get_kickdown();
+        virtual bool get_kickdown(uint64_t now, uint64_t expire_time_ms);
         // Returns the pedal percentage. Range 0-250
-        virtual uint8_t get_pedal_value();
+        virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms);
         // Gets the current 'static' torque produced by the engine
-        virtual uint16_t get_static_engine_torque();
+        virtual uint16_t get_static_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the maximum engine torque allowed at this moment by the engine map
-        virtual uint16_t get_maximum_engine_torque();
+        virtual uint16_t get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the minimum engine torque allowed at this moment by the engine map
-        virtual uint16_t get_minimum_engine_torque();
+        virtual uint16_t get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the flappy paddle position
-        virtual PaddlePosition get_paddle_position();
+        virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms);
         // Gets engine coolant temperature
-        virtual uint16_t get_engine_coolant_temp();
+        virtual uint16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms);
         // Gets engine oil temperature
-        virtual uint16_t get_engine_oil_temp();
+        virtual uint16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms);
         // Gets engine RPM
-        virtual uint16_t get_engine_rpm();
+        virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms);
         // Returns true if engine is cranking
-        virtual bool get_is_starting();
-        virtual bool get_profile_btn_press();
+        virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
+        virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
 
         /**
          * Setters
          */
 
-         
+        // Set the gearbox clutch position on CAN
+        virtual void set_clutch_status(ClutchStatus status);
+        // Set the actual gear of the gearbox
+        virtual void set_actual_gear(GearboxGear actual);
+        // Set the target gear of the gearbox
+        virtual void set_target_gear(GearboxGear target);
+        // Sets the status bit indicating the car is safe to start
+        virtual void set_safe_start(bool can_start);
         // Sets the gerabox ATF temperature. Offset by +50C
         virtual void set_gearbox_temperature(uint16_t temp);
         // Sets the RPM of the input shaft of the gearbox on CAN

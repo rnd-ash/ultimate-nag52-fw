@@ -31,8 +31,8 @@ public:
     void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv); // Write PWM percentage with voltage correction
     uint8_t get_pwm(); // Returns PWM signal of solenoid
     uint16_t get_current_estimate(); // Returns current estimate of the solenoid
-    bool init_ok(); // Did the solenoid initialize OK?
-    uint16_t get_vref(); // Gets the solenoids' vref's calibrated value
+    bool init_ok() const; // Did the solenoid initialize OK?
+    uint16_t get_vref() const; // Gets the solenoids' vref's calibrated value
 
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
@@ -45,8 +45,8 @@ private:
     bool vref_calibrated;
     ledc_channel_t channel;
     ledc_timer_t timer;
-    portMUX_TYPE current_mutex;
-    volatile uint16_t current;
+    portMUX_TYPE adc_reading_mutex;
+    volatile uint16_t adc_reading;
 };
 
 bool init_all_solenoids();

@@ -10,7 +10,7 @@
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define SAMPLES_PER_REVOLUTION 8
-#define AVERAGE_SAMPLES 5
+#define AVERAGE_SAMPLES 3
 
 #define LOG_TAG "SENSORS"
 
@@ -73,22 +73,22 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
     {483, -200},
     {498, -100},
     {514, 0},
-    {531, 100},
-    {547, 200},
-    {565, 300},
-    {582, 400},
-    {600, 500},
-    {619, 600},
-    {636, 700},
-    {658, 800},
-    {678, 900},
-    {699, 1000},
-    {720, 1100},
-    {742, 1200},
-    {764, 1300},
-    {788, 1400},
-    {812, 1500},
-    {834, 1600},
+    {531, 100}, // 16
+    {547, 200}, // 18
+    {565, 300}, // 17
+    {582, 400}, // 18
+    {600, 500}, // 19
+    {619, 600}, // 17
+    {636, 700}, // 22
+    {658, 800}, // 20
+    {678, 900}, // 21
+    {699, 1000}, // 21
+    {720, 1100}, // 22
+    {742, 1200}, // 22
+    {764, 1300}, // 24
+    {788, 1400}, // 24
+    {812, 1500}, // 22
+    {834, 1600}, // 28
     {862, 1700}
 };
 
@@ -96,11 +96,6 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 #define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
-
-volatile esp_err_t adc2_read_res; // Used by all ADC2 reading functions
-// Ensures parking_lock_engaged, atf_temp and vbatt don't occur in parallel,
-// which for some reason screws up ADC2 readings!
-SemaphoreHandle_t adc2_read_mutex;
 
 esp_adc_cal_characteristics_t adc2_cal = {};
 
@@ -123,30 +118,24 @@ RpmSampleData n3_samples = {
     .last_time = 0
 };
 
+#define WRITE_PULSES(MUX, SAMPLE) \
+    portENTER_CRITICAL(MUX); \
+    RpmSampleData* s = SAMPLE; \
+    uint64_t now = esp_timer_get_time(); \
+    s->total -= s->samples[s->sample_id]; \
+    s->delta = (now - s->last_time); \
+    s->samples[s->sample_id] = s->delta; \
+    s->sample_id = ((s->sample_id)+1) % AVERAGE_SAMPLES; \
+    s->total += s->delta; \
+    s->last_time = now; \
+    portEXIT_CRITICAL(MUX); \
+
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
-    portENTER_CRITICAL(&n2_mux);
-    RpmSampleData* s = &n2_samples;
-    uint64_t now = esp_timer_get_time();
-    s->total -= s->samples[s->sample_id];
-    s->delta = (now - s->last_time);
-    s->samples[s->sample_id] = s->delta;
-    s->sample_id = ((s->sample_id)+1) % AVERAGE_SAMPLES;
-    s->total += s->delta;
-    s->last_time = now;
-    portEXIT_CRITICAL(&n2_mux);
+    WRITE_PULSES(&n2_mux, &n2_samples);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
-    portENTER_CRITICAL(&n3_mux);
-    RpmSampleData* s = &n3_samples;
-    uint64_t now = esp_timer_get_time();
-    s->total -= s->samples[s->sample_id];
-    s->delta = (now - s->last_time);
-    s->samples[s->sample_id] = s->delta;
-    s->sample_id = ((s->sample_id)+1) % AVERAGE_SAMPLES;
-    s->total += s->delta;
-    s->last_time = now;
-    portEXIT_CRITICAL(&n3_mux);
+    WRITE_PULSES(&n3_mux, &n3_samples);
 }
 
 bool Sensors::init_sensors(){
@@ -200,115 +189,84 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N2_RPM), "Failed to resume PCNT N2 RPM! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N3_RPM), "Failed to resume PCNT N3 RPM! %s", esp_err_to_name(res))
 
-    // Set ADC2 semaphore
-    adc2_read_mutex = xSemaphoreCreateMutex();
-
     ESP_LOGI(LOG_TAG, "Sensors INIT OK!");
     return true;
 }
 
-uint32_t Sensors::read_n2_rpm(){
+inline uint32_t read_rpm(portMUX_TYPE* mux, RpmSampleData* sample) {
     uint64_t now = esp_timer_get_time();
-    portENTER_CRITICAL(&n2_mux);
-    if (now-n2_samples.last_time > 100000) { // 100ms timeout
-        portEXIT_CRITICAL(&n2_mux);
+    portENTER_CRITICAL(mux);
+    if (now-sample->last_time > 100000) { // 100ms timeout
+        portEXIT_CRITICAL(mux);
         return 0;
     }
-    uint32_t res = (1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)) / (n2_samples.total / AVERAGE_SAMPLES); 
-    portEXIT_CRITICAL(&n2_mux);
+#define NUMERATOR 1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)
+    uint32_t res = NUMERATOR / (sample->total / AVERAGE_SAMPLES); 
+    portEXIT_CRITICAL(mux);
     return res;
+}
+
+uint32_t Sensors::read_n2_rpm(){
+    return read_rpm(&n2_mux, &n2_samples);
 }
 
 uint32_t Sensors::read_n3_rpm(){
-    uint64_t now = esp_timer_get_time();
-    portENTER_CRITICAL(&n3_mux);
-
-    if (now-n3_samples.last_time > 100000) { // 100ms timeout
-        portEXIT_CRITICAL(&n3_mux);
-        return 0;
-    }
-    uint32_t res = (1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)) / (n3_samples.total / AVERAGE_SAMPLES); 
-    portEXIT_CRITICAL(&n3_mux);
-    return res;
+    return read_rpm(&n3_mux, &n3_samples);
 }
 
-bool Sensors::read_vbatt(int *dest){
-    if (xSemaphoreTake(adc2_read_mutex, 5) == pdPASS) {
-        int raw;
-        adc2_read_res = adc2_get_raw(ADC_CHANNEL_VBATT, ADC2_WIDTH, &raw);
-        if (adc2_read_res != ESP_OK) {
-            ESP_LOGW("READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(adc2_read_res));
-            xSemaphoreGive(adc2_read_mutex);
-            return false;
-        } else {
-            xSemaphoreGive(adc2_read_mutex);
-            // Vin = Vout(R1+R2)/R2
-            *dest = (esp_adc_cal_raw_to_voltage(raw, &adc2_cal) * (100+22) / 22);
-            return true;
-        }
-    } else {
-        // Semaphore failed, do NOT read ADC2
-        ESP_LOGW("READ_VBATT", "Failed to take semaphore mutex!");
+bool Sensors::read_vbatt(uint16_t *dest){
+    uint32_t v;
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal, &v);
+    if (res != ESP_OK) {
+        ESP_LOGW("READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
         return false;
+    } else {
+        // Vin = Vout(R1+R2)/R2
+        *dest = v*5.54; // 5.54 = (100+22)/22
+        return true;
     }
 }
 
 bool Sensors::read_atf_temp(int* dest){
-    if (xSemaphoreTake(adc2_read_mutex, 5) == pdPASS) {
-        int raw;
-        adc2_read_res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
-        if (adc2_read_res != ESP_OK) {
-            ESP_LOGW("READ_VBATT", "Failed to query ATF temp. %s", esp_err_to_name(adc2_read_res));
-            xSemaphoreGive(adc2_read_mutex);
-            return false;
-        } else {
-            xSemaphoreGive(adc2_read_mutex);
-            uint32_t tmp = esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
-            if (tmp >= 1500) {
-                return false; // Parking lock engaged, cannot read.
-            }
-            if (tmp < atf_temp_lookup[0].v) {
-               *dest = atf_temp_lookup[0].temp;
-                return true;
-            } else if (tmp > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-                *dest = atf_temp_lookup[NUM_TEMP_POINTS-1].temp;
-                return true;
-            } else {
-                for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
-                    // Found! Interpolate linearly to get a better estimate of ATF Temp
-                    if (atf_temp_lookup[i].v <= tmp && atf_temp_lookup[i+1].v >= tmp) {
-                        float dx = tmp - atf_temp_lookup[i].v;
-                        float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                        *dest = atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy);
-                        return true;
-                    }
-                }
-                return true;
-            }
-        }
-    } else {
-        // Semaphore failed, do NOT read ADC2
-        ESP_LOGW("READ_ATF_TEMP", "Failed to take semaphore mutex!");
+    int raw;
+    esp_err_t res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
+    if (res != ESP_OK) {
+        ESP_LOGW("READ_VBATT", "Failed to query ATF temp. %s", esp_err_to_name(res));
         return false;
-    }
-};
-
-bool Sensors::parking_lock_engaged(bool* dest){
-    if (xSemaphoreTake(adc2_read_mutex, 5) == pdPASS) {
-        int raw;
-        adc2_read_res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
-        if (adc2_read_res != ESP_OK) {
-            ESP_LOGW("READ_VBATT", "Failed to query parking lock. %s", esp_err_to_name(adc2_read_res));
-            xSemaphoreGive(adc2_read_mutex);
-            return false;
+    } else {
+        if (raw >= 3900) {
+            return false; // Parking lock engaged, cannot read.
+        }
+        uint32_t tmp = esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
+        if (tmp < atf_temp_lookup[0].v) {
+            *dest = atf_temp_lookup[0].temp;
+            return true;
+        } else if (tmp > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
+            *dest = atf_temp_lookup[NUM_TEMP_POINTS-1].temp;
+            return true;
         } else {
-            xSemaphoreGive(adc2_read_mutex);
-            *dest = raw >= 3900;
+            for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
+                // Found! Interpolate linearly to get a better estimate of ATF Temp
+                if (atf_temp_lookup[i].v <= tmp && atf_temp_lookup[i+1].v >= tmp) {
+                    float dx = tmp - atf_temp_lookup[i].v;
+                    float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
+                    *dest = atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy);
+                    return true;
+                }
+            }
             return true;
         }
-    } else {
-        // Semaphore failed, do NOT read ADC2
-        ESP_LOGW("PARKING_LOCK_ENGAGED", "Failed to take semaphore mutex!");
-        return false;
     }
-};
+}
+
+bool Sensors::parking_lock_engaged(bool* dest){
+    int raw;
+    esp_err_t res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
+    if (res != ESP_OK) {
+        ESP_LOGW("READ_VBATT", "Failed to query parking lock. %s", esp_err_to_name(res));
+        return false;
+    } else {
+        *dest = raw >= 3900;
+        return true;
+    }
+}

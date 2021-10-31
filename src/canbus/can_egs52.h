@@ -22,41 +22,41 @@ class Egs52Can: public AbstractCan {
          */
 
         // Get the front right wheel data
-        WheelData get_front_right_wheel()  override;
+        WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms)  override;
         // Get the front left wheel data
-        WheelData get_front_left_wheel() override;
+        WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Get the rear right wheel data
-        WheelData get_rear_right_wheel() override;
+        WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Get the rear left wheel data
-        WheelData get_rear_left_wheel() override;
+        WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position_ewm() override;
+        ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine type
-        EngineType get_engine_type() override;
+        EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is in limp mode
-        bool get_engine_is_limp() override;
+        bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if pedal is kickdown 
-         bool get_kickdown() override;
+         bool get_kickdown(uint64_t now, uint64_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
-         uint8_t get_pedal_value() override;
+         uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the current 'static' torque produced by the engine
-         uint16_t get_static_engine_torque() override;
+         uint16_t get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
-         uint16_t get_maximum_engine_torque() override;
+         uint16_t get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
-         uint16_t get_minimum_engine_torque() override;
+         uint16_t get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
-         PaddlePosition get_paddle_position() override;
+         PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
-         uint16_t get_engine_coolant_temp() override;
+         uint16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine oil temperature
-         uint16_t get_engine_oil_temp() override;
+         uint16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine RPM
-         uint16_t get_engine_rpm() override;
+         uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is cranking
-        bool get_is_starting() override;
+        bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
         // 
-        bool get_profile_btn_press() override;
+        bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters

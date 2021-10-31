@@ -19,6 +19,7 @@ void Gearbox::set_profile(AbstractProfile* prof) {
         this->current_profile = prof;
         // Set CAN display
         egs_can_hal->set_drive_profile(this->current_profile->get_profile());
+        this->min_fwd_gear = prof->get_start_gear();
         portEXIT_CRITICAL(&this->profile_mutex);
     }
 }
@@ -210,6 +211,8 @@ void Gearbox::shift_thread() {
     this->shifting = true;
     GearboxGear curr_target = this->target_gear;
     GearboxGear curr_actual = this->actual_gear;
+    uint16_t batt_voltage = 12000; // Assume 12V
+    Sensors::read_vbatt(&batt_voltage);
     if (curr_actual == curr_target) {
         ESP_LOGW("SHIFTER", "Gears are the same????");
         goto cleanup;  
@@ -223,23 +226,40 @@ void Gearbox::shift_thread() {
         goto cleanup;
     } else if (is_controllable_gear(curr_actual) != is_controllable_gear(curr_target)) { // This would be a garage shift, either in or out
         ESP_LOGI("SHIFTER", "Garage shift");
-        sol_spc->write_pwm_percent(350);
-        sol_y4->write_pwm_percent(1000); // Full on
-        vTaskDelay(500);
+    #define SPC_START_PERC_2 40
+    #define SPC_START_PERC_1 40
         if (is_controllable_gear(curr_target)) {
-            for (int i = 35; i > 0; i--) {
-                sol_spc->write_pwm_percent(10*i); // Fade out SPC to slowly increase pressure on clutches
-                vTaskDelay(10);
+            if (this->start_second) { // Second gear garage shift
+                sol_spc->write_pwm_percent(SPC_START_PERC_2*10); // Decrease SPC
+                sol_mpc->write_pwm_percent(100); // Increase MPC pressure to keep B2 clutch in suspension
+                sol_y4->write_pwm_percent(1000); // Full on
+                vTaskDelay(500);
+                // Slowly ramp up SPC pressure again
+                for (int i = SPC_START_PERC_2; i > 0; i--) {
+                    sol_spc->write_pwm_percent(10*i);
+                    vTaskDelay(30);
+                }
+            } else { // First gear garage shift
+                sol_spc->write_pwm_percent(SPC_START_PERC_1*10); // Decrease SPC
+                sol_mpc->write_pwm_percent(50); // Increase MPC pressure to keep B2 clutch in suspension
+                sol_y4->write_pwm_percent(1000); // Full on
+                vTaskDelay(500);
+                // Slowly ramp up SPC pressure again
+                for (int i = SPC_START_PERC_1; i > 0; i--) {
+                    sol_spc->write_pwm_percent(10*i);
+                    vTaskDelay(30);
+                }
             }
             sol_spc->write_pwm_percent(0);
             sol_mpc->write_pwm_percent(0);
             sol_y4->write_pwm_percent(0);
         } else {
+            // Garage shifting to N or P, we can just set the pressure back to idle
             sol_spc->write_pwm_percent(400);
             sol_mpc->write_pwm_percent(333);
             sol_y4->write_pwm_percent(300); // Back to idle
         }
-        this->actual_gear = curr_target; // Set on startup
+        this->actual_gear = curr_target; // and we are in gear!
         goto cleanup;
     } else { // Both gears are controllable
         ESP_LOGI("SHIFTER", "Both gears are controllable");
@@ -253,40 +273,42 @@ void Gearbox::shift_thread() {
             if (curr_target > curr_actual) { // Upshifting
                 ESP_LOGI("SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 if (curr_target == GearboxGear::Second) { // Test 1->2
+                    //egs_can_hal->set_torque_request(TorqueRequest::Minimum);
                     sol_y3->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 2->3
+                    //egs_can_hal->set_torque_request(TorqueRequest::Minimum);
                     sol_y5->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y5->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
-                } else if (curr_target == GearboxGear::Fourth) { // Test 2->3
+                } else if (curr_target == GearboxGear::Fourth) { // Test 3->4
                     sol_y4->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y4 ->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
-                } else if (curr_target == GearboxGear::Fifth) { // Test 2->3
+                } else if (curr_target == GearboxGear::Fifth) { // Test 4->5
                     sol_y3->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
@@ -302,7 +324,7 @@ void Gearbox::shift_thread() {
                     sol_y3->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
@@ -310,29 +332,29 @@ void Gearbox::shift_thread() {
                     this->start_second = false;
                 } else if (curr_target == GearboxGear::Second) { // Test 3->2
                     sol_y5->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(200);
-                    sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    sol_spc->write_pwm_percent(100); // Beefy
+                    sol_mpc->write_pwm_percent(100); // Beefy
+                    vTaskDelay(1000);
                     sol_y5->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
-                } else if (curr_target == GearboxGear::Third) { // Test 3->2
+                } else if (curr_target == GearboxGear::Third) { // Test 4->3
                     sol_y4->write_pwm_percent(1000);
                     sol_spc->write_pwm_percent(200);
                     sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    vTaskDelay(1000);
                     sol_y4->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
                     this->actual_gear = curr_target;
                     this->start_second = true;
-                } else if (curr_target == GearboxGear::Fourth) { // Test 3->2
+                } else if (curr_target == GearboxGear::Fourth) { // Test 5->4
                     sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(200);
-                    sol_mpc->write_pwm_percent(200);
-                    vTaskDelay(2000);
+                    sol_spc->write_pwm_percent(100);
+                    sol_mpc->write_pwm_percent(100);
+                    vTaskDelay(1000);
                     sol_y3->write_pwm_percent(0);
                     sol_spc->write_pwm_percent(0);
                     sol_mpc->write_pwm_percent(0);
@@ -350,6 +372,8 @@ void Gearbox::shift_thread() {
     }
 cleanup:
     ESP_LOGI("SHIFTER", "Shift complete");
+    egs_can_hal->set_torque_request(TorqueRequest::None);
+    vTaskDelay(500); // Prevent over shifting!
     this->shifting = false;
     vTaskDelete(nullptr);
 }
@@ -366,19 +390,30 @@ void Gearbox::controller_loop() {
     bool lock_state = false;
     int atf_temp = 0;
     uint32_t rpm = 0;
+    uint32_t output_rpm = 0;
     uint16_t eng_rpm = 0;
+    uint8_t pedal = 0;
+    uint16_t voltage;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
     // Before we enter, we have to check what gear we are in as the 'actual gear'
     ESP_LOGI("GEARBOX", "GEARBOX START!");
     while(1) {
-        //this->calc_input_rpm(&rpm);
-        eng_rpm = egs_can_hal->get_engine_rpm();
+        uint64_t now = esp_timer_get_time();
+        bool can_read = this->calc_input_rpm(&rpm) && this->calc_output_rpm(&output_rpm, now);
+        egs_can_hal->set_input_shaft_speed(rpm);
+        if (can_read && output_rpm >= 100) {
+            bool rev = !is_fwd_gear(this->target_gear);
+            if (!this->calcGearFromRatio(rpm, output_rpm, rev)) {
+                //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
+            }
+        }
+        eng_rpm = egs_can_hal->get_engine_rpm(now, 250);
         if (eng_rpm == UINT16_MAX) {
             eng_rpm = 0;
         }
         if (Sensors::parking_lock_engaged(&lock_state)) {
             egs_can_hal->set_safe_start(lock_state);
-            ShifterPosition pos = egs_can_hal->get_shifter_position_ewm();
+            ShifterPosition pos = egs_can_hal->get_shifter_position_ewm(now, 250);
             if (
                 pos == ShifterPosition::P || // Only obide by definitive positions for now, no intermittent once
                 pos == ShifterPosition::R ||
@@ -408,21 +443,43 @@ void Gearbox::controller_loop() {
             }
         }
         if (eng_rpm > 500) {
-            if (this->ask_upshift) {
-                ESP_LOGI("SHIFTER", "UP");
-                this->ask_upshift = false;
-                if (is_fwd_gear(this->actual_gear) && this->actual_gear < GearboxGear::Fifth && this->target_gear == this->actual_gear && !shifting) {
-                    this->target_gear = next_gear(this->actual_gear);
+            if (is_fwd_gear(this->actual_gear)) {
+                if (this->ask_upshift) {
+                    ESP_LOGI("SHIFTER", "UP");
+                    this->ask_upshift = false;
+                    if (this->actual_gear < GearboxGear::Fifth && this->target_gear == this->actual_gear && !shifting) {
+                        this->target_gear = next_gear(this->actual_gear);
+                    }
+                } else if (this->ask_downshift) {
+                    ESP_LOGI("SHIFTER", "DN");
+                    this->ask_downshift = false;
+                    if (this->actual_gear > GearboxGear::First && this->target_gear == this->actual_gear && !shifting) {
+                        this->target_gear = prev_gear(this->actual_gear);
+                    }
                 }
-            } else if (this->ask_downshift) {
-                ESP_LOGI("SHIFTER", "DN");
-                this->ask_downshift = false;
-                if (is_fwd_gear(this->actual_gear) && this->actual_gear > GearboxGear::First && this->target_gear == this->actual_gear && !shifting) {
-                    this->target_gear = prev_gear(this->actual_gear);
+                if (can_read) {
+                    uint8_t p_tmp = egs_can_hal->get_pedal_value(now, 100);
+                    if (p_tmp != 0xFF) {
+                        pedal = p_tmp;
+                    }
+                    if (!Sensors::read_vbatt(&voltage)) {
+                        voltage = 12000;
+                    }
+                    
+                    if (rpm > 1500 && eng_rpm > 1500 && !shifting && is_fwd_gear(this->actual_gear) && pedal < 100) {
+                        sol_tcc->write_pwm_percent_with_voltage(666, voltage);  // Slipping
+                    } else {
+                        sol_tcc->write_pwm_percent(0);
+                    }
+                    ESP_LOGI("TCC", "SLIP %d RPM. TCC %u mA (PWM %u/255 @ %d mV). Pedal %u. Gear %u", eng_rpm - rpm, sol_tcc->get_current_estimate(), sol_tcc->get_pwm(), voltage ,pedal, this->est_gear_idx);
                 }
+                //else if (rpm < STALL_RPM && this->actual_gear > this->min_fwd_gear) { // Downshift
+                //    this->target_gear = prev_gear(this->actual_gear);
+                //}
             }
             if (this->target_gear != this->actual_gear && this->shifting == false) {
                 // Create shift task to change gears for us!
+                sol_tcc->write_pwm_percent(0);
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         } else {
@@ -435,11 +492,11 @@ void Gearbox::controller_loop() {
         }
         if (!Sensors::read_atf_temp(&atf_temp)) {
             // Default to engine coolant
-            atf_temp = (egs_can_hal->get_engine_coolant_temp())*10;
+            atf_temp = (egs_can_hal->get_engine_coolant_temp(now, 250))*10;
         }
         this->temp_raw = atf_temp;
         egs_can_hal->set_gearbox_temperature(atf_temp/10);
-        egs_can_hal->set_shifter_position(egs_can_hal->get_shifter_position_ewm());
+        egs_can_hal->set_shifter_position(egs_can_hal->get_shifter_position_ewm(now, 250));
 
         egs_can_hal->set_target_gear(this->target_gear);
         egs_can_hal->set_actual_gear(this->actual_gear);
@@ -449,39 +506,51 @@ void Gearbox::controller_loop() {
             egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear));
         }
         portEXIT_CRITICAL(&this->profile_mutex);
-
         vTaskDelay(20); // 50 updates/sec!
     }
 }
 
 bool Gearbox::calc_input_rpm(uint32_t* dest) {
+    uint32_t n2 = Sensors::read_n2_rpm();
+    if (n2 < 50) { // Skip erroneous pulses
+        n2 = 0;
+    }
+    uint32_t n3 = Sensors::read_n3_rpm();
+    if (n3 < 50) { // Skip erroneous pulses
+        n3 = 0;
+    }
     // Compare N2 and N3 sensors based on our TARGET gear
-    uint32_t tmp = 0;
+    if (this->actual_gear == GearboxGear::Neutral || this->actual_gear == GearboxGear::Park) { 
+        if (n3 < 100 && n2 != 0) {
+            *dest = n2 * 1.64;
+            return true;
+        } else {
+            *dest = (n2+n3)/2;
+            return true;
+        }
+    }
     switch (this->target_gear) {
         case GearboxGear::First:
         case GearboxGear::Fifth:
-            tmp = Sensors::read_n2_rpm();
-            if (tmp > OVERSPEED_RPM) {
+            n2 *= 1.64;
+            if (n2 > OVERSPEED_RPM) {
                 ESP_LOGE("CALC_INPUT_RPM", "N2 overspeed detected!");
                 return false;
             } else {
-                *dest = tmp;
+                *dest = n2;
                 return true;
             }
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            tmp = Sensors::read_n3_rpm();
-            if (tmp > OVERSPEED_RPM) {
+            if (n3 > OVERSPEED_RPM) {
                 ESP_LOGE("CALC_INPUT_RPM", "N3 overspeed detected!");
                 return false;
             } else {
-                *dest = tmp;
+                *dest = n3;
                 return true;
             }
         default:
             // Compare both!
-            uint32_t n2 = Sensors::read_n2_rpm();
-            uint32_t n3 = Sensors::read_n3_rpm();
             if (n2 > OVERSPEED_RPM || n3 > OVERSPEED_RPM) {
                 ESP_LOGE("CALC_INPUT_RPM", "N2 or N3 overspeed detected!");
                 return false;
@@ -505,46 +574,51 @@ bool Gearbox::calc_input_rpm(uint32_t* dest) {
     }
 }
 
-bool Gearbox::calc_output_rpm(int* dest) {
-    WheelData left = egs_can_hal->get_rear_left_wheel();
-    WheelData right = egs_can_hal->get_rear_right_wheel();
+bool Gearbox::calc_output_rpm(uint32_t* dest, uint64_t now) {
+    WheelData left = egs_can_hal->get_rear_left_wheel(now, 250);
+    WheelData right = egs_can_hal->get_rear_right_wheel(now, 250);
     //ESP_LOGI("WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
-    int rpm = 0;
+    float rpm = 0;
     if (left.current_dir == WheelDirection::SignalNotAvaliable && right.current_dir == WheelDirection::SignalNotAvaliable) {
         ESP_LOGE("CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
         return false;
     } else if (left.current_dir == WheelDirection::SignalNotAvaliable) { // Right OK
         ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
         rpm = right.double_rpm;
-        if (right.current_dir == WheelDirection::Stationary) {
-            rpm = 0;
-        } else if (right.current_dir == WheelDirection::Reverse) {
-            rpm *= -1;
-        }
     } else if (right.current_dir == WheelDirection::SignalNotAvaliable) { // Left OK
         ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
         rpm = left.double_rpm;
-        if (left.current_dir == WheelDirection::Stationary) {
-            rpm = 0;
-        } else if (left.current_dir == WheelDirection::Reverse) {
-            rpm *= -1;
-        }
     } else { // Both sensors OK!
-        // Return max value
-        if (left.current_dir == WheelDirection::Stationary) {
-            left.double_rpm = 0;
-        } else if (left.current_dir == WheelDirection::Reverse) {
-            left.double_rpm *= -1;
-        }
-        if (right.current_dir == WheelDirection::Stationary) {
-            right.double_rpm = 0;
-        } else if (right.current_dir == WheelDirection::Reverse) {
-            right.double_rpm *= -1;
-        }
         rpm = abs(left.double_rpm) > abs(right.double_rpm) ? left.double_rpm : right.double_rpm;
     }
-    //rpm /= diff_ratio_f;
+    rpm *= diff_ratio_f;
+    rpm /= 2;
     *dest = rpm;
     return true;
 }
 
+bool Gearbox::calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse) {
+    float ratio = (float)input_rpm / (float)output_rpm;
+    if (is_reverse) {
+        ratio *=-1;
+        for(uint8_t i = 0; i < 2; i++) { // Scan the 2 reverse gears
+            GearRatioLimit limits = GEAR_RATIO_LIMITS[i+5];
+            if (ratio >= limits.min && ratio <= limits.max) {
+                this->est_gear_idx = i+1;
+                //ESP_LOGI("CGFR","RATIO SAYS GEAR R%d (%f:1)", i+1, ratio);
+                return true;
+            }
+        }
+    } else {
+        for(uint8_t i = 0; i < 5; i++) { // Scan the 2 reverse gears
+            GearRatioLimit limits = GEAR_RATIO_LIMITS[i];
+            if (ratio >= limits.min && ratio <= limits.max) {
+                this->est_gear_idx = i+1;
+                //ESP_LOGI("CGFR","RATIO SAYS GEAR %d (%f:1)", i+1, ratio);
+                return true;
+            }
+        }
+    }
+    this->est_gear_idx = 0;
+    return false;
+}

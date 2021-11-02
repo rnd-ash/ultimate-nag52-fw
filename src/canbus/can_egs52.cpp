@@ -235,14 +235,29 @@ uint8_t Egs52Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
 }
 
 uint16_t Egs52Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+    MS_312 ms312;
+    if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
+        uint16_t x =  (ms312.get_M_STA() / 4);
+        return x < 500 ? 0 : x - 500;
+    }
     return 0;
 }
 
 uint16_t Egs52Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+    MS_312 ms312;
+    if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
+        uint16_t x =  (ms312.get_M_MAX() / 4);
+        return x < 500 ? 0 : x - 500;
+    }
     return 0;
 }
 
 uint16_t Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+    MS_312 ms312;
+    if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
+        uint16_t x =  (ms312.get_M_MIN() / 4);
+        return x < 500 ? 0 : x - 500;
+    }
     return 0;
 }
 
@@ -498,7 +513,7 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    gs218.set_M_EGS(torque_nm);
+    gs218.set_M_EGS((torque_nm + 500) * 4);
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {

@@ -69,7 +69,6 @@ void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_
     if (want_percent > 1000) {
         want_percent = 1000; // Clamp to max
     }
-    ESP_LOGI("SOLENOID", "WPPWV (%s) converting %u to %d", this->name, percent, want_percent);
     this->write_pwm_percent(want_percent);
 
 }

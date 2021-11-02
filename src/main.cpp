@@ -87,27 +87,21 @@ void printer(void*) {
     //spkr.broadcast_error_code(DtcCode::P2005);
     //spkr.broadcast_error_code(DtcCode::P2564);
     while(1) {
-        uint64_t start = esp_timer_get_time();
         Sensors::read_atf_temp(&atf_temp);
         Sensors::read_vbatt(&vbatt);
         Sensors::parking_lock_engaged(&parking);
         n2 = Sensors::read_n2_rpm();
         n3 = Sensors::read_n3_rpm();
-        uint32_t taken = (uint32_t)(esp_timer_get_time() - start);
         ESP_LOGI(
             "MAIN", 
-            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA. Vbatt: %u mV, ATF: %d *C, Parking lock: %d. N2/N3: (%u/%u) RPM. TIME: %u",
+            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA. N2/N3: (%u/%u) RPM.",
             sol_y3->get_current_estimate(),
             sol_y4->get_current_estimate(),
             sol_y5->get_current_estimate(),
             sol_mpc->get_current_estimate(),
             sol_spc->get_current_estimate(),
             sol_tcc->get_current_estimate(),
-            vbatt,
-            atf_temp,
-            parking,
-            n2, n3,
-            taken
+            n2, n3
         );
         vTaskDelay(1000);
     }

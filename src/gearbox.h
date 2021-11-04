@@ -94,7 +94,8 @@ private:
     bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
-    uint16_t tcc_perc = 0;
+    uint16_t tcc_percent = 0;
+    uint8_t pedal_pos = 0;
     uint8_t est_gear_idx = 0;
 };
 

@@ -23,7 +23,8 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = timer,
         .freq_hz = frequency,
-        .clk_cfg = LEDC_AUTO_CLK};
+        .clk_cfg = LEDC_AUTO_CLK
+    };
     // Set the timer configuration
     esp_err_t res = ledc_timer_config(&timer_cfg);
     if (res != ESP_OK)
@@ -55,7 +56,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 
 void Solenoid::write_pwm(uint8_t pwm)
 {
-    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4, 0); // Convert from 8bit to 12bit
+    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4 | pwm >> 4, 0); // Convert from 8bit to 12bit
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
     }
@@ -148,14 +149,14 @@ char dma_buffer[BYTES_PER_SAMPLE*NUM_SAMPLES];
 
 const i2s_config_t i2s_config = {
     .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
-    .sample_rate = 200000,
+    .sample_rate = 10000*2, // x2 wanted clock
     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
     .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,
     .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_MSB),
     .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-    .dma_buf_count = 8,
+    .dma_buf_count = 16,
     .dma_buf_len = NUM_SAMPLES,
-    .use_apll = false,
+    .use_apll = true,
     .tx_desc_auto_clear = false,
     .fixed_mclk = false
 };
@@ -169,9 +170,9 @@ void read_solenoids_i2s(void*) {
     i2s_driver_install(I2S_NUM_0, &i2s_config, 0, nullptr);
     size_t bytes_read;
     #define SAMPLE_COUNT 3
-    uint32_t samples[SAMPLE_COUNT];
+    uint64_t samples[SAMPLE_COUNT];
     uint32_t sample_id;
-    uint32_t avg;
+    uint64_t avg;
     while(true) {
         i2s_set_adc_mode(ADC_UNIT_1, solenoid_channels[solenoid_id]);
         i2s_adc_enable(I2S_NUM_0);
@@ -183,9 +184,9 @@ void read_solenoids_i2s(void*) {
         while(sample_id < SAMPLE_COUNT) {
             bytes_read = 0;
             i2s_read(I2S_NUM_0, &dma_buffer, NUM_SAMPLES*BYTES_PER_SAMPLE, &bytes_read, portMAX_DELAY);
-            uint32_t tmp = 0;
+            uint64_t tmp = 0;
             for (int i = 0; i < BYTES_PER_SAMPLE*NUM_SAMPLES; i += BYTES_PER_SAMPLE) {
-                tmp += (uint32_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
+                tmp += (uint64_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
             }
             samples[sample_id] = tmp / NUM_SAMPLES;
             sample_id += 1;
@@ -194,9 +195,9 @@ void read_solenoids_i2s(void*) {
             avg += samples[i];
         }
         avg /= SAMPLE_COUNT;
-        sol_order[solenoid_id]->__set_current_internal(avg);
+        sol_order[solenoid_id]->__set_current_internal((uint32_t)avg);
         if (!all_calibrated) {
-            sol_order[solenoid_id]->__set_vref(avg);
+            sol_order[solenoid_id]->__set_vref((uint32_t)avg);
         }
         solenoid_id++;
         if (solenoid_id == 6) {
@@ -237,7 +238,13 @@ bool init_all_solenoids()
     }
 
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
-    
+    sol_y3->write_pwm(0);
+    sol_y4->write_pwm(0);
+    sol_y5->write_pwm(0);
+    sol_mpc->write_pwm(0);
+    sol_spc->write_pwm(0);
+    sol_tcc->write_pwm(0);
+
     while(!all_calibrated) {
         vTaskDelay(2);
     }

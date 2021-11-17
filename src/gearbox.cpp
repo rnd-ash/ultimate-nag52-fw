@@ -217,6 +217,42 @@ uint8_t calc_sleep_time(uint8_t pedal) {
     }
 }
 
+// Only used for fwd gear changes
+void Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear) {
+    uint16_t v = 12000;
+    float spc = init_spc;
+    float mpc = init_mpc;
+    float d_spc = spc / ((float)target_shift_duration_ms/10);
+    float d_mpc = mpc / ((float)target_shift_duration_ms/10);
+    if (!Sensors::read_vbatt(&v)) {
+        v = 12000;
+    }
+    uint64_t start = esp_timer_get_time();
+    uint8_t confirm_count = 0;
+    sol_mpc->write_pwm_percent(init_spc);
+    sol_spc->write_pwm_percent(init_mpc);
+    shift_solenoid->write_pwm_percent_with_voltage(1000, v);
+    sol_tcc->write_pwm(0); // Unlock TCC here (Avoids flaring)
+    //ESP_LOGI("ELAPSE_SHIFT", "SHIFT_START");
+    while(spc > 1 && mpc > 1) {
+        spc -= d_spc;
+        mpc -= d_mpc;
+        sol_mpc->write_pwm_percent(mpc);
+        sol_spc->write_pwm_percent(spc);
+        vTaskDelay(10);
+        if (this->est_gear_idx == targ_gear) {
+            confirm_count++;
+        }
+        if (confirm_count >= 3) {
+            break;
+        }
+    }
+    ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms)", targ_gear, (uint32_t)((esp_timer_get_time() - start)/1000), target_shift_duration_ms);
+    shift_solenoid->write_pwm(0);
+    sol_mpc->write_pwm(0);
+    sol_spc->write_pwm(0);
+}
+
 void Gearbox::shift_thread() {
     this->shifting = true;
     GearboxGear curr_target = this->target_gear;
@@ -288,59 +324,19 @@ void Gearbox::shift_thread() {
                 if (curr_target == GearboxGear::Second) { // Test 1->2
                     //egs_can_hal->set_torque_request(TorqueRequest::Maximum);
                     //egs_can_hal->set_requested_torque(0);
-                    sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(400);
-                    sol_mpc->write_pwm_percent(400);
-                    for(int i = 40; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y3->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(600, 400,sol_y3, 1000, 2);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 2->3
-                    sol_y5->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(300);
-                    sol_mpc->write_pwm_percent(300);
-                    for(int i = 30; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y5->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(300, 300, sol_y5, 1000, 3);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fourth) { // Test 3->4
-                    sol_y4->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(200);
-                    sol_mpc->write_pwm_percent(200);
-                    for(int i = 20; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y4 ->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(250, 250, sol_y4, 1000, 4);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fifth) { // Test 4->5
-                    sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(300);
-                    sol_mpc->write_pwm_percent(300);
-                    for(int i = 30; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y3->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(300, 300, sol_y3, 1000, 5);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else {
@@ -350,59 +346,19 @@ void Gearbox::shift_thread() {
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 if (curr_target == GearboxGear::First) { // Test 2->1
-                    sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(400);
-                    sol_mpc->write_pwm_percent(400);
-                    for(int i = 40; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y3->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(600, 400,sol_y3, 1000, 1);
                     this->actual_gear = curr_target;
                     this->start_second = false;
                 } else if (curr_target == GearboxGear::Second) { // Test 3->2
-                    sol_y5->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(200); // Beefy
-                    sol_mpc->write_pwm_percent(200); // Beefy
-                    for(int i = 20; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(40);
-                    }
-                    sol_y5->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(100, 300, sol_y5, 1000, 2);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 4->3
-                    sol_y4->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(400);
-                    sol_mpc->write_pwm_percent(400);
-                    for(int i = 40; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y4->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(400, 400, sol_y4, 1000, 3);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fourth) { // Test 5->4
-                    sol_y3->write_pwm_percent(1000);
-                    sol_spc->write_pwm_percent(400);
-                    sol_mpc->write_pwm_percent(400);
-                    for(int i = 40; i > 0; i--) {
-                        sol_spc->write_pwm_percent(10*i);
-                        sol_mpc->write_pwm_percent(10*i);
-                        vTaskDelay(calc_sleep_time(this->pedal_pos));
-                    }
-                    sol_y3->write_pwm_percent(0);
-                    sol_spc->write_pwm_percent(0);
-                    sol_mpc->write_pwm_percent(0);
+                    elapse_shift(400, 400, sol_y3, 1000, 4);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else {
@@ -419,7 +375,6 @@ cleanup:
     ESP_LOGI("SHIFTER", "Shift complete");
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
-    vTaskDelay(500); // Prevent over shifting!
     this->shifting = false;
     vTaskDelete(nullptr);
 }
@@ -435,9 +390,9 @@ void Gearbox::inc_subprofile() {
 void Gearbox::controller_loop() {
     bool lock_state = false;
     int atf_temp = 0;
-    uint32_t rpm = 0;
+    uint32_t input_rpm = 0;
     uint32_t output_rpm = 0;
-    uint16_t eng_rpm = 0;
+    uint16_t engine_rpm = 0;
     uint8_t pedal = 0;
     uint16_t voltage;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
@@ -445,17 +400,17 @@ void Gearbox::controller_loop() {
     ESP_LOGI("GEARBOX", "GEARBOX START!");
     while(1) {
         uint64_t now = esp_timer_get_time();
-        bool can_read = this->calc_input_rpm(&rpm) && this->calc_output_rpm(&output_rpm, now);
-        egs_can_hal->set_input_shaft_speed(rpm);
+        bool can_read = this->calc_input_rpm(&input_rpm) && this->calc_output_rpm(&output_rpm, now);
+        egs_can_hal->set_input_shaft_speed(input_rpm);
         if (can_read && output_rpm >= 100) {
             bool rev = !is_fwd_gear(this->target_gear);
-            if (!this->calcGearFromRatio(rpm, output_rpm, rev)) {
+            if (!this->calcGearFromRatio(input_rpm, output_rpm, rev)) {
                 //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
             }
         }
-        eng_rpm = egs_can_hal->get_engine_rpm(now, 250);
-        if (eng_rpm == UINT16_MAX) {
-            eng_rpm = 0;
+        engine_rpm = egs_can_hal->get_engine_rpm(now, 250);
+        if (engine_rpm == UINT16_MAX) {
+            engine_rpm = 0;
         }
         if (Sensors::parking_lock_engaged(&lock_state)) {
             egs_can_hal->set_safe_start(lock_state);
@@ -488,7 +443,7 @@ void Gearbox::controller_loop() {
                 }
             }
         }
-        if (eng_rpm > 500) {
+        if (engine_rpm > 500) {
             if (is_fwd_gear(this->actual_gear)) {
                 if (this->ask_upshift) {
                     ESP_LOGI("SHIFTER", "UP");
@@ -512,95 +467,33 @@ void Gearbox::controller_loop() {
                     if (!Sensors::read_vbatt(&voltage)) {
                         voltage = 12000;
                     }
-#define ZONE_OPEN 0 // Open
-#define ZONE_SLIP 1 // Slipping (~250RPM)
-#define ZONE_SHUT 2 // Shut (~100RPM)
 
-#define TARGET_SLIPPING 250
-#define TARGET_SHUT 100
-
-                    int zone = 0;
-                    bool zt = false;
                     if (!shifting && is_fwd_gear(this->actual_gear)) {
-                        // Torque converter can be played with
-                        if ((rpm < 1200 && pedal == 0) || rpm <= 1000) { // Unlock no matter what
+                        //ESP_LOGI("TCC", "SLIP %d RPM. TCC %u mA (PWM %u/255 @ %d mV). Pedal %u. Gear %u", engine_rpm - input_rpm, sol_tcc->get_current_estimate(), sol_tcc->get_pwm(), voltage ,pedal, this->est_gear_idx);
+                        if (engine_rpm <= 1000) { // Min working speed
                             this->tcc_percent = 0;
-                        } else {
-                            zt = true;
-                            // Playable zone
-                            if (pedal < 150) { // Can be open or slipping or closed
-                                if (output_rpm < 1400) {
-                                    zone = ZONE_OPEN;
-                                } else if (output_rpm < 2500) {
-                                    zone = ZONE_SLIP;
-                                } else {
-                                    zone = ZONE_SHUT;
-                                }
-                            } else if (pedal < 200) {
-                                if (output_rpm < 1300) {
-                                    zone = ZONE_OPEN;
-                                } else {
-                                    zone = ZONE_SLIP;
-                                }
+                            sol_tcc->write_pwm_percent(0);
+                        } else if (this->actual_gear != GearboxGear::First) {
+                            // Do magical calculation to work out correct lockup        
+                            if (pedal > 160 && this->tcc_percent > 2) { // High load - unlock
+                                this->tcc_percent /=2;
                             } else {
-                                zone = ZONE_OPEN;
-                            }
-
-                            uint16_t rpm_diff = abs((int)eng_rpm - (int)rpm);
-                            if (eng_rpm > rpm) {
-                                if (zone == ZONE_OPEN) { // Inf. RPM
-                                    this->tcc_percent = 0;
-                                } else if (zone == ZONE_SLIP) { // 250RPM
-                                    if (rpm_diff > 150) {
-                                        if (this->tcc_percent < 750) {
-                                            this->tcc_percent++;
-                                        }
-                                    }
-                                } else { // Shut (100RPM)
-                                    if (rpm_diff > 50) {
-                                        if (this->tcc_percent < 750) {
-                                            this->tcc_percent++;
-                                        }
+                                int rpm_diff = abs((int)engine_rpm - (int)input_rpm);
+                                if (engine_rpm > input_rpm) {
+                                    if (rpm_diff > 200 && this->tcc_percent < 333) { // Slip zone
+                                        this->tcc_percent++;
+                                    } else if (rpm_diff > 25 && this->tcc_percent < 500) { // Lock zone
+                                        this->tcc_percent++;
                                     }
                                 }
-                                sol_tcc->write_pwm_percent_with_voltage(this->tcc_percent, voltage);
-                            } else {
-                                this->tcc_percent = 0;
-                                sol_tcc->write_pwm_percent(0);
                             }
+                            sol_tcc->write_pwm_percent_with_voltage(this->tcc_percent, voltage);
                         }
-
-                    } else {
-                        sol_tcc->write_pwm_percent(0);
                     }
-
-                    // Clutch actuation logic :p
-                    // Need engine and input RPM to be > 1000, not shifting and ensure current gear is fwd!
-                    if (rpm > 1300 && !shifting && is_fwd_gear(this->actual_gear)) {
-                        // Now ask for TPS
-                        if (pedal < 128) {
-                            if (abs((int)eng_rpm-(int)rpm) > 50) {
-                                if (this->tcc_percent < 750) {
-                                    this->tcc_percent += 1;
-                                }
-                            }
-                        } else {
-                            if (this->tcc_percent > 0) {
-                                this->tcc_percent -= 1;
-                            }
-                        }
-                        
-                        // TODO - Does doing 100% affect the solenoid??
-                    } else {
-                        sol_tcc->write_pwm_percent(0); // Unlock
-                    }
-                    ESP_LOGI("TCC", "SLIP %d RPM. TCC %u mA (PWM %u/255 @ %d mV). Pedal %u. Gear %u", eng_rpm - rpm, sol_tcc->get_current_estimate(), sol_tcc->get_pwm(), voltage ,pedal, this->est_gear_idx);
                 }
             }
             if (this->target_gear != this->actual_gear && this->shifting == false) {
                 // Create shift task to change gears for us!
-                sol_tcc->write_pwm_percent(0);
-                this->tcc_percent = 100;
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         } else {
@@ -627,7 +520,7 @@ void Gearbox::controller_loop() {
             egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear));
         }
         portEXIT_CRITICAL(&this->profile_mutex);
-        vTaskDelay(50); // 20 updates/sec!
+        vTaskDelay(25); // 40 updates/sec!
     }
 }
 
@@ -701,7 +594,7 @@ bool Gearbox::calc_output_rpm(uint32_t* dest, uint64_t now) {
     //ESP_LOGI("WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
     float rpm = 0;
     if (left.current_dir == WheelDirection::SignalNotAvaliable && right.current_dir == WheelDirection::SignalNotAvaliable) {
-        ESP_LOGE("CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
+        //ESP_LOGE("CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
         return false;
     } else if (left.current_dir == WheelDirection::SignalNotAvaliable) { // Right OK
         ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
@@ -726,7 +619,6 @@ bool Gearbox::calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is
             GearRatioLimit limits = GEAR_RATIO_LIMITS[i+5];
             if (ratio >= limits.min && ratio <= limits.max) {
                 this->est_gear_idx = i+1;
-                //ESP_LOGI("CGFR","RATIO SAYS GEAR R%d (%f:1)", i+1, ratio);
                 return true;
             }
         }
@@ -735,7 +627,6 @@ bool Gearbox::calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is
             GearRatioLimit limits = GEAR_RATIO_LIMITS[i];
             if (ratio >= limits.min && ratio <= limits.max) {
                 this->est_gear_idx = i+1;
-                //ESP_LOGI("CGFR","RATIO SAYS GEAR %d (%f:1)", i+1, ratio);
                 return true;
             }
         }

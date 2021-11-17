@@ -31,12 +31,13 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->set_shifter_position(ShifterPosition::SignalNotAvaliable);
     this->gs218.set_GIC(GS_218h_GIC::G_SNV);
     gs218.set_CALID_CVN_AKT(true);
-
+    gs218.set_G_G(true);
     // Set profile to N/A for now
     this->set_drive_profile(GearboxProfile::Underscore);
     // Set no message
     this->set_display_msg(GearboxMessage::None);
-
+    this->gs218.set_SCHALT(true);
+    this->gs218.set_MKRIECH(0xFF);
 
 // Set permanent configuration frame
 #ifdef FOUR_MATIC
@@ -444,6 +445,7 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.set_ALF(can_start);
+    this->gs218.set_KS(can_start);
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
@@ -467,23 +469,19 @@ void Egs52Can::set_shifter_position(ShifterPosition pos) {
         case ShifterPosition::P:
             gs418.set_WHST(GS_418h_WHST::P);
             break;
-        case ShifterPosition::P_R:
         case ShifterPosition::R:
             gs418.set_WHST(GS_418h_WHST::R);
             break;
-        case ShifterPosition::R_N:
         case ShifterPosition::N:
             gs418.set_WHST(GS_418h_WHST::N);
             break;
-        case ShifterPosition::N_D:
         case ShifterPosition::D:
-        case ShifterPosition::PLUS:
-        case ShifterPosition::MINUS:
             gs418.set_WHST(GS_418h_WHST::D);
             break;
         case ShifterPosition::SignalNotAvaliable:
-        default: 
             gs418.set_WHST(GS_418h_WHST::SNV);
+            break;
+        default: 
             break;
     }
 }

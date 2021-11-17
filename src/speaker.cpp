@@ -58,34 +58,34 @@ void Speaker::post(SPEAKER_POST_CODE code) {
             this->send_note(1000, 150, 200);
             break;
         case SPEAKER_POST_CODE::EEPROM_FAIL:
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
             break;
         case SPEAKER_POST_CODE::CAN_FAIL:
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 300, 500);
             break;
         case SPEAKER_POST_CODE::SOLENOID_FAIL:
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
             break;
         case SPEAKER_POST_CODE::SENSOR_FAIL:
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 150, 200);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 150, 200);
             break;
         case SPEAKER_POST_CODE::CONTROLLER_FAIL:
-            this->send_note(1000, 300, 500);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 300, 500);
             break;
         default:
             break;

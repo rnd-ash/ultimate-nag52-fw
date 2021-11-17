@@ -66,13 +66,13 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
-
+    void elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear);
     bool calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
     portMUX_TYPE profile_mutex;
-    GearboxGear target_gear = GearboxGear::SignalNotAvaliable;
-    GearboxGear actual_gear = GearboxGear::SignalNotAvaliable;
+    GearboxGear target_gear = GearboxGear::Park;
+    GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear min_fwd_gear = GearboxGear::First;
     bool calc_input_rpm(uint32_t* dest);
     bool calc_output_rpm(uint32_t* dest, uint64_t now);

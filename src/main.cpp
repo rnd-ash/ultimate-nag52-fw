@@ -7,8 +7,10 @@
 #include "speaker.h"
 #include "sensors.h"
 #include "canbus/can_egs52.h"
+//#include "canbus/can_egs53.h"
 #include "gearbox.h"
 #include "dtcs.h"
+#include "nvs/eeprom_config.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
 
@@ -28,6 +30,9 @@ SPEAKER_POST_CODE setup_tcm()
 #ifdef EGS52_MODE
     egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
 #endif
+#ifdef EGS53_MODE
+    egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
+#endif
     if (!egs_can_hal->begin_tasks()) {
         return SPEAKER_POST_CODE::CAN_FAIL;
     }
@@ -44,12 +49,15 @@ SPEAKER_POST_CODE setup_tcm()
     manual = new ManualProfile();
     standard = new StandardProfile();
 
-    profiles[0] = standard;
+    profiles[0] = manual;
     profiles[1] = comfort;
     profiles[2] = agility;
-    profiles[3] = manual;
+    profiles[3] = standard;
     profiles[4] = winter;
 
+    if (!EEPROM::init_eeprom()) {
+        return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
 
     gearbox = new Gearbox();
     if (!gearbox->start_controller()) {
@@ -101,9 +109,20 @@ void printer(void*) {
             sol_mpc->get_current_estimate(),
             sol_spc->get_current_estimate(),
             sol_tcc->get_current_estimate(),
+            
             n2, n3
         );
         vTaskDelay(1000);
+        //SOL->write_pwm_percent(pwm);
+        //vTaskDelay(500);
+        //ESP_LOGI("SOL", "PWM %d EST: %d mA", pwm, SOL->get_current_estimate());
+        //vTaskDelay(1000);
+        //SOL->write_pwm_percent(0);
+        //vTaskDelay(1000);
+        //pwm += 250;
+        //if (pwm > 1000) {
+        //    pwm = 0;
+        //}
     }
 }
 
@@ -186,6 +205,6 @@ extern "C" void app_main(void)
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
-        xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
+        //xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
 }

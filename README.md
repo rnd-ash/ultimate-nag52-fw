@@ -1,6 +1,8 @@
 # Firmware for Ultimate NAG52 (Open source 722.6 TCM with CANBUS support)
 
-THIS IS NOT COMPLETED YET. DO NOT USE FOR DRIVING.
+EARLY WIP. See the [main repository](https://github.com/rnd-ash/ultimate_nag52) for details about the project and the [wiki](https://github.com/rnd-ash/ultimate_nag52/wiki)
+
+For context on this project, checkout my [video playlist](https://youtube.com/playlist?list=PLxrw-4Vt7xtu9d8lCkMCG0_K7oHcsSMtF) showing the TCM in action and progress on it!
 
 ## DISCLAIMER
 

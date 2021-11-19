@@ -66,7 +66,7 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
-    void elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear);
+    uint16_t elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear);
     bool calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -74,8 +74,8 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear min_fwd_gear = GearboxGear::First;
-    bool calc_input_rpm(uint32_t* dest);
-    bool calc_output_rpm(uint32_t* dest, uint64_t now);
+    bool calc_input_rpm(int* dest);
+    bool calc_output_rpm(int* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
 
@@ -98,25 +98,5 @@ private:
     uint8_t pedal_pos = 0;
     uint8_t est_gear_idx = 0;
 };
-
-typedef int PressureMap[13][11];
-
-static const PressureMap SpcMap_1_2 {
-// ATF    0 10 20 30 40 50 60 70 80 90 100 <-- Pedal %
-/*-20C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/*-10C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/*  0C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 10C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 20C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 30C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 40C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 50C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 60C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 70C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 80C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/* 90C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-/*100C */ {0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
-};
-
 
 #endif

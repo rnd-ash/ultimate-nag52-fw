@@ -161,52 +161,6 @@ GearboxGear prev_gear(GearboxGear g) {
     }
 }
 
-typedef struct {
-    uint8_t mpc;
-    uint8_t spc;
-} PressurePercentages;
-
-PressurePercentages find_pressure_settings(const PressureMap spc_map, const PressureMap mpc_map, uint8_t pedal_position, int atf_temp) {
-    if (atf_temp < -20) {
-        atf_temp = -20;
-    } else if (atf_temp > 100) {
-        atf_temp = 100;
-    } else {
-        atf_temp = abs((atf_temp % 10) - atf_temp);
-    }
-    if (pedal_position > 100) {
-        pedal_position = 100;
-    } else {
-        pedal_position = abs((pedal_position % 10) - pedal_position);
-    }
-
-    int y_coord = (atf_temp/10) + 2;
-    int x_coord = (pedal_position/10)+1;
-    if (y_coord < 0) {
-        y_coord = 0;
-    } else if (y_coord >= 14) {
-        y_coord = 13;
-    }
-
-    if (x_coord < 0) {
-        x_coord = 0;
-    } else if (x_coord >= 12) {
-        x_coord = 11;
-    }
-
-    uint8_t spc = spc_map[y_coord][x_coord];
-    uint8_t mpc = mpc_map[y_coord][x_coord];
-
-
-    ESP_LOGI("FPS", "ATF: %d C, PEDAL: %d %% = [%u,%u]", atf_temp, pedal_position, x_coord, y_coord);
-    ESP_LOGI("FPS", "SPC: %u %%, MPC: %u %%", 100-spc, 100-mpc);
-    return PressurePercentages {
-        .mpc = mpc,
-        .spc = spc,
-    };
-
-}
-
 uint8_t calc_sleep_time(uint8_t pedal) {
     if (pedal == 0) {
         return 40;
@@ -217,40 +171,69 @@ uint8_t calc_sleep_time(uint8_t pedal) {
     }
 }
 
-// Only used for fwd gear changes
-void Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear) {
+#define POST_SHIFT_FADE_TIME_MS 1000 // On-off solenoid time to prevent water hammer effect
+#define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occured after this much time, we assume shift has failed!
+#define SHIFT_DELAY_MS 10
+
+/**
+ * @brief Used to shift between forward gears
+ * 
+ * @param init_spc Initial SPC value
+ * @param init_mpc Initial MPC value
+ * @param shift_solenoid Shift solenoid to open up to do the shift
+ * @param target_shift_duration_ms Target time in ms for the gear change to occur
+ * @param targ_gear Target gear that we are shifting to
+ * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
+ */
+uint16_t Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear) {
     uint16_t v = 12000;
     float spc = init_spc;
     float mpc = init_mpc;
-    float d_spc = spc / ((float)target_shift_duration_ms/10);
-    float d_mpc = mpc / ((float)target_shift_duration_ms/10);
+    float d_spc = spc / ((float)POST_SHIFT_FADE_TIME_MS/SHIFT_DELAY_MS);
+    float d_mpc = mpc / ((float)POST_SHIFT_FADE_TIME_MS/SHIFT_DELAY_MS);
     if (!Sensors::read_vbatt(&v)) {
-        v = 12000;
+        v = 12000; // Could not read voltage, assume 12.0V
     }
-    uint64_t start = esp_timer_get_time();
-    uint8_t confirm_count = 0;
-    sol_mpc->write_pwm_percent(init_spc);
+    uint8_t confirm_count = 0; // Conformations we are in the target gear
+    sol_mpc->write_pwm_percent(init_spc); // Set initial SPC/MPC values
     sol_spc->write_pwm_percent(init_mpc);
-    shift_solenoid->write_pwm_percent_with_voltage(1000, v);
-    sol_tcc->write_pwm(0); // Unlock TCC here (Avoids flaring)
-    //ESP_LOGI("ELAPSE_SHIFT", "SHIFT_START");
+    shift_solenoid->write_pwm_percent_with_voltage(1000, v); // Don't burn out the solenoid!
+    sol_tcc->write_pwm(0); // Unlock TCC here (Reduces flaring to do this later than setting SPC and MPC values)
+    uint32_t elapsed = 0; // Counter for shift timing
+    // Change gears begin
+    bool confirm_shift = false;
+    while(elapsed <= SHIFT_TIMEOUT_MS) {
+        // Check using actual gear ratios (high speed moving, easiest way)
+        if (this->est_gear_idx == targ_gear) {
+            confirm_count++;
+        } else { // Maybe car is stationary / low speed? Then we can't use gear ratios
+            // We can instead check using the following ways (Only if car is moving slowly - Not stationary!)
+            //    1. When going from 1->2, N3 RPM will go from 0 RPM to same RPM as N2 (Which itself will speed up by .3x)! 
+            //    2. When going from 2->1, N3 RPM will stop reporting, and N2 will report 0.64x real speed
+            // 
+            // If the car is stationary, what do we do???? - For now use hardcoded shift times and hope it actually changed gears!
+        }
+        if (confirm_count >= 3) { // Yay - gear shift confirmed!
+            confirm_shift = true;
+            break;
+        }
+        elapsed += SHIFT_DELAY_MS; // TODO - Might actually use ESP timer for this 'time taken' calculation
+        vTaskDelay(SHIFT_DELAY_MS);
+    }
+    // Fade out SPC and MPC (EGS52 does this in 1 second)
     while(spc > 1 && mpc > 1) {
         spc -= d_spc;
         mpc -= d_mpc;
         sol_mpc->write_pwm_percent(mpc);
         sol_spc->write_pwm_percent(spc);
-        vTaskDelay(10);
-        if (this->est_gear_idx == targ_gear) {
-            confirm_count++;
-        }
-        if (confirm_count >= 3) {
-            break;
-        }
+        vTaskDelay(SHIFT_DELAY_MS);
     }
-    ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms)", targ_gear, (uint32_t)((esp_timer_get_time() - start)/1000), target_shift_duration_ms);
+    ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms)", targ_gear, elapsed, target_shift_duration_ms);
+    // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
     shift_solenoid->write_pwm(0);
     sol_mpc->write_pwm(0);
     sol_spc->write_pwm(0);
+    return elapsed;
 }
 
 void Gearbox::shift_thread() {
@@ -390,9 +373,9 @@ void Gearbox::inc_subprofile() {
 void Gearbox::controller_loop() {
     bool lock_state = false;
     int atf_temp = 0;
-    uint32_t input_rpm = 0;
-    uint32_t output_rpm = 0;
-    uint16_t engine_rpm = 0;
+    int input_rpm = 0;
+    int output_rpm = 0;
+    int engine_rpm = 0;
     uint8_t pedal = 0;
     uint16_t voltage;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
@@ -474,11 +457,11 @@ void Gearbox::controller_loop() {
                             this->tcc_percent = 0;
                             sol_tcc->write_pwm_percent(0);
                         } else if (this->actual_gear != GearboxGear::First) {
+                            int rpm_diff = abs(engine_rpm - input_rpm);
                             // Do magical calculation to work out correct lockup        
-                            if (pedal > 160 && this->tcc_percent > 2) { // High load - unlock
-                                this->tcc_percent /=2;
+                            if (pedal > 160 && this->tcc_percent > 2 && rpm_diff < 100) { // High load - unlock
+                                this->tcc_percent-=2;
                             } else {
-                                int rpm_diff = abs((int)engine_rpm - (int)input_rpm);
                                 if (engine_rpm > input_rpm) {
                                     if (rpm_diff > 200 && this->tcc_percent < 333) { // Slip zone
                                         this->tcc_percent++;
@@ -524,7 +507,7 @@ void Gearbox::controller_loop() {
     }
 }
 
-bool Gearbox::calc_input_rpm(uint32_t* dest) {
+bool Gearbox::calc_input_rpm(int* dest) {
     uint32_t n2 = Sensors::read_n2_rpm();
     if (n2 < 50) { // Skip erroneous pulses
         n2 = 0;
@@ -588,7 +571,7 @@ bool Gearbox::calc_input_rpm(uint32_t* dest) {
     }
 }
 
-bool Gearbox::calc_output_rpm(uint32_t* dest, uint64_t now) {
+bool Gearbox::calc_output_rpm(int* dest, uint64_t now) {
     WheelData left = egs_can_hal->get_rear_left_wheel(now, 250);
     WheelData right = egs_can_hal->get_rear_right_wheel(now, 250);
     //ESP_LOGI("WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
@@ -623,7 +606,7 @@ bool Gearbox::calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is
             }
         }
     } else {
-        for(uint8_t i = 0; i < 5; i++) { // Scan the 2 reverse gears
+        for(uint8_t i = 0; i < 5; i++) { // Scan the 5 forwards gears
             GearRatioLimit limits = GEAR_RATIO_LIMITS[i];
             if (ratio >= limits.min && ratio <= limits.max) {
                 this->est_gear_idx = i+1;

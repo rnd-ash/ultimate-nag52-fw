@@ -217,17 +217,17 @@ uint16_t Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* s
             confirm_shift = true;
             break;
         }
-        elapsed += SHIFT_DELAY_MS; // TODO - Might actually use ESP timer for this 'time taken' calculation
+        elapsed += SHIFT_DELAY_MS;
         vTaskDelay(SHIFT_DELAY_MS);
     }
     // Fade out SPC and MPC (EGS52 does this in 1 second)
-    while(spc > 1 && mpc > 1) {
-        spc -= d_spc;
-        mpc -= d_mpc;
-        sol_mpc->write_pwm_percent(mpc);
-        sol_spc->write_pwm_percent(spc);
-        vTaskDelay(SHIFT_DELAY_MS);
-    }
+    //while(spc > 1 && mpc > 1) {
+    //    spc -= d_spc;
+    //    mpc -= d_mpc;
+    //    sol_mpc->write_pwm_percent(mpc);
+    //    sol_spc->write_pwm_percent(spc);
+    //    vTaskDelay(SHIFT_DELAY_MS);
+    //}
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms)", targ_gear, elapsed, target_shift_duration_ms);
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
     shift_solenoid->write_pwm(0);
@@ -301,21 +301,16 @@ void Gearbox::shift_thread() {
             // Forward shift logic
             if (curr_target > curr_actual) { // Upshifting
                 ESP_LOGI("SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
-                // vTaskDelay calls can be varying depending on pedal position
-                // 0% - 50ms
-                // 100% - 20ms
                 if (curr_target == GearboxGear::Second) { // Test 1->2
-                    //egs_can_hal->set_torque_request(TorqueRequest::Maximum);
-                    //egs_can_hal->set_requested_torque(0);
-                    elapse_shift(600, 400,sol_y3, 1000, 2);
+                    elapse_shift(400, 350, sol_y3, 1000, 2);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 2->3
-                    elapse_shift(300, 300, sol_y5, 1000, 3);
+                    elapse_shift(350, 350, sol_y5, 1000, 3);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fourth) { // Test 3->4
-                    elapse_shift(250, 250, sol_y4, 1000, 4);
+                    elapse_shift(300, 300, sol_y4, 1000, 4);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fifth) { // Test 4->5
@@ -329,11 +324,11 @@ void Gearbox::shift_thread() {
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 if (curr_target == GearboxGear::First) { // Test 2->1
-                    elapse_shift(600, 400,sol_y3, 1000, 1);
+                    elapse_shift(400, 350,sol_y3, 1000, 1);
                     this->actual_gear = curr_target;
                     this->start_second = false;
                 } else if (curr_target == GearboxGear::Second) { // Test 3->2
-                    elapse_shift(100, 300, sol_y5, 1000, 2);
+                    elapse_shift(150, 250, sol_y5, 1000, 2);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 4->3
@@ -451,7 +446,16 @@ void Gearbox::controller_loop() {
                         voltage = 12000;
                     }
 
-                    if (!shifting && is_fwd_gear(this->actual_gear)) {
+                    if (is_fwd_gear(this->actual_gear) && input_rpm > 1200) {
+                        if (shifting) {
+                            sol_tcc->write_pwm_percent(70); // 7% ON
+                        } else {
+                            sol_tcc->write_pwm_percent(150); // 15% ON
+                        }
+                    } else {
+                        sol_tcc->write_pwm(0);
+                    }
+                        /*
                         //ESP_LOGI("TCC", "SLIP %d RPM. TCC %u mA (PWM %u/255 @ %d mV). Pedal %u. Gear %u", engine_rpm - input_rpm, sol_tcc->get_current_estimate(), sol_tcc->get_pwm(), voltage ,pedal, this->est_gear_idx);
                         if (engine_rpm <= 1000) { // Min working speed
                             this->tcc_percent = 0;
@@ -470,9 +474,9 @@ void Gearbox::controller_loop() {
                                     }
                                 }
                             }
-                            sol_tcc->write_pwm_percent_with_voltage(this->tcc_percent, voltage);
+                            //sol_tcc->write_pwm_percent_with_voltage(this->tcc_percent, voltage);
                         }
-                    }
+                        */
                 }
             }
             if (this->target_gear != this->actual_gear && this->shifting == false) {
@@ -608,7 +612,7 @@ bool Gearbox::calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is
     } else {
         for(uint8_t i = 0; i < 5; i++) { // Scan the 5 forwards gears
             GearRatioLimit limits = GEAR_RATIO_LIMITS[i];
-            if (ratio >= limits.min && ratio <= limits.max) {
+            if (ratio > limits.min && ratio < limits.max) {
                 this->est_gear_idx = i+1;
                 return true;
             }

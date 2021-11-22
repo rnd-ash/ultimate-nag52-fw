@@ -149,14 +149,14 @@ char dma_buffer[BYTES_PER_SAMPLE*NUM_SAMPLES];
 
 const i2s_config_t i2s_config = {
     .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
-    .sample_rate = 10000*2, // x2 wanted clock
+    .sample_rate = 200000, // x2 wanted clock
     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
     .channel_format = I2S_CHANNEL_FMT_ALL_LEFT,
     .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_MSB),
     .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
     .dma_buf_count = 16,
     .dma_buf_len = NUM_SAMPLES,
-    .use_apll = true,
+    .use_apll = false,
     .tx_desc_auto_clear = false,
     .fixed_mclk = false
 };
@@ -184,9 +184,9 @@ void read_solenoids_i2s(void*) {
         while(sample_id < SAMPLE_COUNT) {
             bytes_read = 0;
             i2s_read(I2S_NUM_0, &dma_buffer, NUM_SAMPLES*BYTES_PER_SAMPLE, &bytes_read, portMAX_DELAY);
-            uint64_t tmp = 0;
+            uint32_t tmp = 0;
             for (int i = 0; i < BYTES_PER_SAMPLE*NUM_SAMPLES; i += BYTES_PER_SAMPLE) {
-                tmp += (uint64_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
+                tmp += (uint32_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
             }
             samples[sample_id] = tmp / NUM_SAMPLES;
             sample_id += 1;
@@ -195,9 +195,9 @@ void read_solenoids_i2s(void*) {
             avg += samples[i];
         }
         avg /= SAMPLE_COUNT;
-        sol_order[solenoid_id]->__set_current_internal((uint32_t)avg);
+        sol_order[solenoid_id]->__set_current_internal(avg);
         if (!all_calibrated) {
-            sol_order[solenoid_id]->__set_vref((uint32_t)avg);
+            sol_order[solenoid_id]->__set_vref(avg);
         }
         solenoid_id++;
         if (solenoid_id == 6) {

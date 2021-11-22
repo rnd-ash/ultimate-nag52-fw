@@ -66,7 +66,9 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
-    uint16_t elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear);
+
+    bool map_changes_pending = false;
+    uint16_t elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t curr_gear, uint8_t targ_gear);
     bool calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -95,8 +97,12 @@ private:
     bool ask_upshift = false;
     bool ask_downshift = false;
     uint16_t tcc_percent = 0;
-    uint8_t pedal_pos = 0;
     uint8_t est_gear_idx = 0;
+
+    int input_rpm = 0;
+    int engine_rpm = 0;
+    uint8_t pedal_pos = 0;
+    int atf_temp = 0;
 };
 
 #endif

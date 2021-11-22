@@ -59,6 +59,11 @@ SPEAKER_POST_CODE setup_tcm()
         return SPEAKER_POST_CODE::EEPROM_FAIL;
     }
 
+    if (!EEPROM::load_map_data()) {
+        return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
+    
+
     gearbox = new Gearbox();
     if (!gearbox->start_controller()) {
         return SPEAKER_POST_CODE::CONTROLLER_FAIL;

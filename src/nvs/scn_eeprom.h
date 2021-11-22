@@ -8,8 +8,7 @@
 
 class ScnConfigClass { 
 public:
-    ScnConfigClass();  
+    ScnConfigClass();
 };
-
 
 #endif

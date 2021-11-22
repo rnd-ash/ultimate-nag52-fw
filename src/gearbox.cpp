@@ -1,11 +1,30 @@
 #include "gearbox.h"
 #include "scn.h"
-
+#include "nvs/eeprom_config.h"
 
 const float diff_ratio_f = (float)DIFF_RATIO / 1000.0;
 
-#define X_SIZE 12
-#define Y_SIZE 14
+
+#define CLAMP(value, min, max) \
+    if (value < min) { \
+        value = min; \
+    } else if (value >= max) { \
+        value = max-1; \
+    } \
+
+void place_in_map(int input_rpm, int pedal, int atf_temp, uint16_t shift_time_ms, SHIFT_LAYER* dest) {
+    // Dest -> [ATF_TEMP_STAGES][MAX_RPM-MIN_RPM][PEDAL_STEPS]
+    int temp_idx = (atf_temp/10)-1;
+    CLAMP(temp_idx, 0, ATF_TEMP_STAGES);
+
+    int rpm_idx = ((input_rpm) / RPM_STEP) - MIN_RPM - 1;
+    CLAMP(rpm_idx, 0, MAX_RPM);
+
+    int ped_idx = (pedal/PEDAL_STEPS) - 1;
+    CLAMP(ped_idx, 0, PEDAL_STEPS);
+    ESP_LOGI("PLACE_IN_MAP", "Setting value %d at [%d][%d][%d]", shift_time_ms, temp_idx, rpm_idx, ped_idx);
+    *dest[temp_idx][rpm_idx][ped_idx] = shift_time_ms;
+}
 
 Gearbox::Gearbox() {
     this->current_profile = nullptr;
@@ -161,16 +180,6 @@ GearboxGear prev_gear(GearboxGear g) {
     }
 }
 
-uint8_t calc_sleep_time(uint8_t pedal) {
-    if (pedal == 0) {
-        return 40;
-    } else if (pedal >= 200) {
-        return 10;
-    } else {
-        return (uint8_t)(((float)pedal)*-0.15) + 40;
-    }
-}
-
 #define POST_SHIFT_FADE_TIME_MS 1000 // On-off solenoid time to prevent water hammer effect
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occured after this much time, we assume shift has failed!
 #define SHIFT_DELAY_MS 10
@@ -185,7 +194,7 @@ uint8_t calc_sleep_time(uint8_t pedal) {
  * @param targ_gear Target gear that we are shifting to
  * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
  */
-uint16_t Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t targ_gear) {
+uint16_t Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t curr_gear, uint8_t targ_gear) {
     uint16_t v = 12000;
     float spc = init_spc;
     float mpc = init_mpc;
@@ -212,6 +221,18 @@ uint16_t Gearbox::elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* s
             //    2. When going from 2->1, N3 RPM will stop reporting, and N2 will report 0.64x real speed
             // 
             // If the car is stationary, what do we do???? - For now use hardcoded shift times and hope it actually changed gears!
+            /*
+            uint32_t n2 = Sensors::read_n2_rpm();
+            uint32_t n3 = Sensors::read_n3_rpm();
+            if (curr_gear == 2 && targ_gear == 1) {
+                // Down into 1 (N3 should stop, N2 should report)
+                if (n2 != 0 && n3 == 0) { confirm_count++; }
+            } else if (curr_gear == 1 && targ_gear == 2) {
+                // Up into 2 (Should read the same)
+                if (n2 != 0 && n3 != 0 && abs((int)n2-(int)n3) < 100) { confirm_count++; }
+            }
+            */
+
         }
         if (confirm_count >= 3) { // Yay - gear shift confirmed!
             confirm_shift = true;
@@ -301,20 +322,25 @@ void Gearbox::shift_thread() {
             // Forward shift logic
             if (curr_target > curr_actual) { // Upshifting
                 ESP_LOGI("SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                this->map_changes_pending = true;
                 if (curr_target == GearboxGear::Second) { // Test 1->2
-                    elapse_shift(400, 350, sol_y3, 1000, 2);
+                    uint16_t time = elapse_shift(250, 250, sol_y3, 1000, 1, 2);
+                    place_in_map(this->input_rpm, this->pedal_pos, this->atf_temp, time, one_to_two);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 2->3
-                    elapse_shift(350, 350, sol_y5, 1000, 3);
+                    uint16_t time = elapse_shift(350, 320, sol_y5, 1000, 2, 3);
+                    place_in_map(this->input_rpm, this->pedal_pos, this->atf_temp, time, two_to_three);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fourth) { // Test 3->4
-                    elapse_shift(300, 300, sol_y4, 1000, 4);
+                    uint16_t time = elapse_shift(300, 250, sol_y4, 1000, 3, 4);
+                    place_in_map(this->input_rpm, this->pedal_pos, this->atf_temp, time, three_to_four);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fifth) { // Test 4->5
-                    elapse_shift(300, 300, sol_y3, 1000, 5);
+                    uint16_t time = elapse_shift(300, 300, sol_y3, 1000, 4, 5);
+                    place_in_map(this->input_rpm, this->pedal_pos, this->atf_temp, time, four_to_five);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else {
@@ -323,20 +349,22 @@ void Gearbox::shift_thread() {
                 goto cleanup;
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                this->map_changes_pending = true;
                 if (curr_target == GearboxGear::First) { // Test 2->1
-                    elapse_shift(400, 350,sol_y3, 1000, 1);
+                    uint16_t time = elapse_shift(250, 250,sol_y3, 1000, 2, 1);
+                    place_in_map(this->input_rpm, this->pedal_pos, this->atf_temp, time, two_downto_one);
                     this->actual_gear = curr_target;
                     this->start_second = false;
                 } else if (curr_target == GearboxGear::Second) { // Test 3->2
-                    elapse_shift(150, 250, sol_y5, 1000, 2);
+                    elapse_shift(150, 150, sol_y5, 1000, 3, 2);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Third) { // Test 4->3
-                    elapse_shift(400, 400, sol_y4, 1000, 3);
+                    elapse_shift(300, 300, sol_y4, 1000, 4, 3);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else if (curr_target == GearboxGear::Fourth) { // Test 5->4
-                    elapse_shift(400, 400, sol_y3, 1000, 4);
+                    elapse_shift(400, 400, sol_y3, 1000, 5, 4);
                     this->actual_gear = curr_target;
                     this->start_second = true;
                 } else {
@@ -367,22 +395,19 @@ void Gearbox::inc_subprofile() {
 
 void Gearbox::controller_loop() {
     bool lock_state = false;
-    int atf_temp = 0;
-    int input_rpm = 0;
     int output_rpm = 0;
     int engine_rpm = 0;
-    uint8_t pedal = 0;
     uint16_t voltage;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
     // Before we enter, we have to check what gear we are in as the 'actual gear'
     ESP_LOGI("GEARBOX", "GEARBOX START!");
     while(1) {
         uint64_t now = esp_timer_get_time();
-        bool can_read = this->calc_input_rpm(&input_rpm) && this->calc_output_rpm(&output_rpm, now);
-        egs_can_hal->set_input_shaft_speed(input_rpm);
+        bool can_read = this->calc_input_rpm(&this->input_rpm) && this->calc_output_rpm(&output_rpm, now);
+        egs_can_hal->set_input_shaft_speed(this->input_rpm);
         if (can_read && output_rpm >= 100) {
             bool rev = !is_fwd_gear(this->target_gear);
-            if (!this->calcGearFromRatio(input_rpm, output_rpm, rev)) {
+            if (!this->calcGearFromRatio(this->input_rpm, output_rpm, rev)) {
                 //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
             }
         }
@@ -404,6 +429,11 @@ void Gearbox::controller_loop() {
                         if (pos == ShifterPosition::P) {
                             this->target_gear = GearboxGear::Park;
                             last_position = pos;
+                            // Save state
+                            if (this->map_changes_pending) {
+                                EEPROM::save_map_data();
+                                this->map_changes_pending = false;
+                            }
                         } else if (pos == ShifterPosition::N) {
                             this->target_gear = GearboxGear::Neutral;
                             last_position = pos;
@@ -439,19 +469,14 @@ void Gearbox::controller_loop() {
                 if (can_read) {
                     uint8_t p_tmp = egs_can_hal->get_pedal_value(now, 100);
                     if (p_tmp != 0xFF) {
-                        pedal = p_tmp;
-                        this->pedal_pos = pedal;
+                        this->pedal_pos = p_tmp;
                     }
                     if (!Sensors::read_vbatt(&voltage)) {
                         voltage = 12000;
                     }
 
-                    if (is_fwd_gear(this->actual_gear) && input_rpm > 1200) {
-                        if (shifting) {
-                            sol_tcc->write_pwm_percent(70); // 7% ON
-                        } else {
-                            sol_tcc->write_pwm_percent(150); // 15% ON
-                        }
+                    if (is_fwd_gear(this->actual_gear) && this->input_rpm >= 1200) {
+                        sol_tcc->write_pwm_percent(100); // 15% ON
                     } else {
                         sol_tcc->write_pwm(0);
                     }
@@ -491,11 +516,10 @@ void Gearbox::controller_loop() {
             sol_y4->write_pwm(0);
             sol_y5->write_pwm(0);
         }
-        if (!Sensors::read_atf_temp(&atf_temp)) {
+        if (!Sensors::read_atf_temp(&this->atf_temp)) {
             // Default to engine coolant
-            atf_temp = (egs_can_hal->get_engine_coolant_temp(now, 250))*10;
+            this->atf_temp = (egs_can_hal->get_engine_coolant_temp(now, 250))*10;
         }
-        this->temp_raw = atf_temp;
         egs_can_hal->set_gearbox_temperature(atf_temp/10);
         egs_can_hal->set_shifter_position(egs_can_hal->get_shifter_position_ewm(now, 250));
 

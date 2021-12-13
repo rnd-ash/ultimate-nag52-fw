@@ -59,7 +59,18 @@ void Solenoid::write_pwm(uint8_t pwm)
     esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4 | pwm >> 4, 0); // Convert from 8bit to 12bit
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
+        return;
     }
+    this->pwm = pwm;
+}
+
+void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
+    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm_raw, 0); // Convert from 8bit to 12bit
+    if (res != ESP_OK) {
+        ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
+        return;
+    }
+    this->pwm = pwm_raw >> 4;
 }
 
 void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv) {
@@ -86,7 +97,7 @@ void Solenoid::write_pwm_percent(uint16_t percent) {
 
 uint8_t Solenoid::get_pwm()
 {   
-    return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel) >> 4;
+    return this->pwm;
 }
 
 uint16_t Solenoid::get_current_estimate()

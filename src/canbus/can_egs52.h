@@ -40,11 +40,11 @@ class Egs52Can: public AbstractCan {
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the current 'static' torque produced by the engine
-         uint16_t get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
-         uint16_t get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
-         uint16_t get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -54,15 +54,17 @@ class Egs52Can: public AbstractCan {
         // Gets engine RPM
          uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is cranking
-        bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
-        bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
          */
 
-        // Set the gearbox clutch position on CAN
+        void set_last_shift_time(uint16_t time_ms) override;
+        void set_race_start(bool race_start) override;
         void set_clutch_status(ClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
@@ -96,6 +98,7 @@ class Egs52Can: public AbstractCan {
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
+        void set_solenoid_pwm(uint8_t duty, SolenoidName s) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;
@@ -108,7 +111,7 @@ class Egs52Can: public AbstractCan {
         GS_218 gs218 = {0};
         GS_418 gs418 = {0};
         GS_338 gs338 = {0};
-        GS_CUSTOM_558 gs558 = {0};
+        GS_558_CUSTOM gs558 = {0};
         // ECU Data to Rx to
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();

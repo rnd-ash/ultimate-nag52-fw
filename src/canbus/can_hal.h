@@ -109,6 +109,15 @@ enum class ShifterPosition {
     SignalNotAvaliable // SNV
 };
 
+enum class SolenoidName {
+    Y3,
+    Y4,
+    Y5,
+    SPC,
+    MPC,
+    TCC
+};
+
 enum class GearboxMessage {
     // No message
     None,
@@ -165,11 +174,11 @@ class AbstractCan {
         // Returns the pedal percentage. Range 0-250
         virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms);
         // Gets the current 'static' torque produced by the engine
-        virtual uint16_t get_static_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the maximum engine torque allowed at this moment by the engine map
-        virtual uint16_t get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the minimum engine torque allowed at this moment by the engine map
-        virtual uint16_t get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the flappy paddle position
         virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms);
         // Gets engine coolant temperature
@@ -181,11 +190,16 @@ class AbstractCan {
         // Returns true if engine is cranking
         virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
+        virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms);
 
         /**
          * Setters
          */
 
+        virtual void set_race_start(bool race_start);
+        // Set solenoid PMW
+        virtual void set_solenoid_pwm(uint8_t duty, SolenoidName s);
+        virtual void set_last_shift_time(uint16_t time_ms);
         // Set the gearbox clutch position on CAN
         virtual void set_clutch_status(ClutchStatus status);
         // Set the actual gear of the gearbox

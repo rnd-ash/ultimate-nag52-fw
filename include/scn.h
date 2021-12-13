@@ -12,7 +12,7 @@
 #include "scn_definition.h"
 
 #if !defined(SCN_VARIANT_NAME)
-    #error "SCN variant name not defined. Please look at scn_definition.h"
+    #error "SCN variant name not defined. Please look at include/scn_definition.h"
 #endif
 
 
@@ -10571,6 +10571,16 @@
     #define DIFF_RATIO 2820
     #define TYRE_SIZE_MM 1930
     #define TCC_INTERTIA_NM 44
+#endif
+
+
+#if SCN_VARIANT_NAME == SGDW
+    #define DIFF_RATIO 3692
+    #define TYRE_SIZE_MM 2315
+    #define TCC_INTERTIA_NM 44
+    #define FOUR_MATIC
+    #define TC_RATIO_HIGH 0
+    #define TC_RATIO_LOW 0
 #endif
 
 #endif // SCN_H_

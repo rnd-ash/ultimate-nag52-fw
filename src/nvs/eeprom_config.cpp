@@ -111,8 +111,9 @@ bool EEPROM::load_map_data() {
 }
 
 bool EEPROM::save_map_data() {
-    nvs_handle_t timing_handle;    
-    esp_err_t err = nvs_open("TimingData", NVS_READWRITE, &timing_handle);
+    nvs_handle_t timing_handle;   
+    esp_err_t err = nvs_flash_init_partition("tcm_map"); 
+    err = nvs_open_from_partition("tcm_map", "TimingData", NVS_READWRITE, &timing_handle);
     if (err != ESP_OK) {
         ESP_LOGE("EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
         return false;

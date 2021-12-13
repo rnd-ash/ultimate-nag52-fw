@@ -10,6 +10,7 @@
 #include "profiles.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "common_structs.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -69,7 +70,7 @@ private:
 
     bool map_changes_pending = false;
     uint16_t elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t curr_gear, uint8_t targ_gear);
-    bool calcGearFromRatio(uint32_t input_rpm, uint32_t output_rpm, bool is_reverse);
+    bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
     portMUX_TYPE profile_mutex;
@@ -96,13 +97,13 @@ private:
     bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
-    uint16_t tcc_percent = 0;
+    float tcc_percent = 0;
     uint8_t est_gear_idx = 0;
+    bool show_upshift = false;
+    bool show_downshift = false;
+    bool flaring = false;
 
-    int input_rpm = 0;
-    int engine_rpm = 0;
-    uint8_t pedal_pos = 0;
-    int atf_temp = 0;
+    SensorData sensor_data;
 };
 
 #endif

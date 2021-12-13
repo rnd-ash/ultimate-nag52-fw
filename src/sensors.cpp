@@ -66,31 +66,29 @@ typedef struct {
     int temp; 
 } temp_reading_t;
 
-#define NUM_TEMP_POINTS 22
+#define NUM_TEMP_POINTS 20
 const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
-    {446, -400},
-    {461, -300},
-    {476, -200},
-    {491, -100},
-    {507, 0},
-    {523, 100},
-    {540, 200},
-    {557, 300},
-    {574, 400},
-    {592, 500},
-    {611, 600},
-    {618, 700},
-    {649, 800},
-    {669, 900},
-    {690, 1000},
-    {711, 1100},
-    {732, 1200},
-    {755, 1300},
-    {778, 1400},
-    {802, 1500},
-    {814, 1600},
-    {851, 1700}
+    {476, -400},
+    {491, -300},
+    {507, -200},
+    {523, -100},
+    {540, 0},
+    {557, 100},
+    {574, 200},
+    {592, 300},
+    {611, 400},
+    {618, 500},
+    {649, 600},
+    {669, 700},
+    {690, 800},
+    {711, 900},
+    {732, 1000},
+    {755, 1100},
+    {778, 1200},
+    {802, 1300},
+    {814, 1400},
+    {851, 1500}
 };
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
@@ -228,6 +226,7 @@ bool Sensors::read_vbatt(uint16_t *dest){
     }
 }
 
+// Returns ATF temp in *C
 bool Sensors::read_atf_temp(int* dest){
     int raw;
     esp_err_t res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
@@ -243,7 +242,7 @@ bool Sensors::read_atf_temp(int* dest){
             *dest = atf_temp_lookup[0].temp;
             return true;
         } else if (tmp > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-            *dest = atf_temp_lookup[NUM_TEMP_POINTS-1].temp;
+            *dest = (atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10;
             return true;
         } else {
             for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
@@ -251,7 +250,7 @@ bool Sensors::read_atf_temp(int* dest){
                 if (atf_temp_lookup[i].v <= tmp && atf_temp_lookup[i+1].v >= tmp) {
                     float dx = tmp - atf_temp_lookup[i].v;
                     float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                    *dest = atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy);
+                    *dest = (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
                     return true;
                 }
             }

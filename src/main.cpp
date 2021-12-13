@@ -16,12 +16,6 @@
 
 Gearbox* gearbox;
 
-AgilityProfile* agility;
-ComfortProfile* comfort;
-WinterProfile* winter;
-ManualProfile* manual;
-StandardProfile* standard;
-
 uint8_t profile_id = 0;
 AbstractProfile* profiles[NUM_PROFILES];
 
@@ -43,15 +37,9 @@ SPEAKER_POST_CODE setup_tcm()
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
 
-    agility = new AgilityProfile();
-    comfort = new ComfortProfile();
-    winter = new WinterProfile();
-    manual = new ManualProfile();
-    standard = new StandardProfile();
-
     profiles[0] = manual;
-    profiles[1] = comfort;
-    profiles[2] = agility;
+    profiles[1] = agility;
+    profiles[2] = comfort;
     profiles[3] = standard;
     profiles[4] = winter;
 
@@ -118,16 +106,6 @@ void printer(void*) {
             n2, n3
         );
         vTaskDelay(1000);
-        //SOL->write_pwm_percent(pwm);
-        //vTaskDelay(500);
-        //ESP_LOGI("SOL", "PWM %d EST: %d mA", pwm, SOL->get_current_estimate());
-        //vTaskDelay(1000);
-        //SOL->write_pwm_percent(0);
-        //vTaskDelay(1000);
-        //pwm += 250;
-        //if (pwm > 1000) {
-        //    pwm = 0;
-        //}
     }
 }
 

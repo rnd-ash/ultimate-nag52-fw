@@ -40,11 +40,11 @@ class Egs53Can: public AbstractCan {
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the current 'static' torque produced by the engine
-         uint16_t get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
-         uint16_t get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
-         uint16_t get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature

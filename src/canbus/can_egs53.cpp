@@ -121,15 +121,15 @@ uint8_t Egs53Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
     return 0xFF;
 }
 
-uint16_t Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     return 0;
 }
 
-uint16_t Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     return 0;
 }
 
-uint16_t Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     return 0;
 }
 
@@ -214,9 +214,6 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-
-uint64_t last_time = esp_timer_get_time();
-char c = 'A';
 void Egs53Can::set_display_gear(char g) {
     this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D1);
 }

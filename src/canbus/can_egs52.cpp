@@ -235,31 +235,28 @@ uint8_t Egs52Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
     }
 }
 
-uint16_t Egs52Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs52Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_312 ms312;
     if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
-        uint16_t x =  (ms312.get_M_STA() / 4);
-        return x < 500 ? 0 : x - 500;
+        return ((int)ms312.get_M_STA() / 4) - 500;
     }
-    return 0;
+    return INT_MAX;
 }
 
-uint16_t Egs52Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs52Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_312 ms312;
     if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
-        uint16_t x =  (ms312.get_M_MAX() / 4);
-        return x < 500 ? 0 : x - 500;
+        return ((int)ms312.get_M_MAX() / 4) - 500;
     }
-    return 0;
+    return INT_MAX;
 }
 
-uint16_t Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_312 ms312;
     if (this->ecu_ms.get_MS_312(now, 1000*expire_time_ms, &ms312)) {
-        uint16_t x =  (ms312.get_M_MIN() / 4);
-        return x < 500 ? 0 : x - 500;
+        return ((int)ms312.get_M_MIN() / 4) - 500;
     }
-    return 0;
+    return INT_MAX;
 }
 
 PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
@@ -302,6 +299,15 @@ uint16_t Egs52Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
 
 bool Egs52Can::get_is_starting(uint64_t now, uint64_t expire_time_ms) { // TODO
     return false;
+}
+
+bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
+    BS_200 bs200;
+    if (this->esp_ecu.get_BS_200(now, 1000*expire_time_ms, &bs200)) {
+        return bs200.get_BLS() == BS_200h_BLS::BREMSE_BET;
+    } else {
+        return false;
+    }
 }
 
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
@@ -445,7 +451,10 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.set_ALF(can_start);
-    this->gs218.set_KS(can_start);
+}
+
+void Egs52Can::set_race_start(bool race_start) {
+    this->gs218.set_KS(race_start);
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
@@ -568,6 +577,31 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
     }
     // Update display message as well
     this->set_display_msg(this->curr_message);
+}
+
+void Egs52Can::set_solenoid_pwm(uint8_t duty, SolenoidName s) {
+    switch (s) {
+        case SolenoidName::Y3:
+            gs558.set_y3_pwm(duty);
+            break;
+        case SolenoidName::Y4:
+            gs558.set_y4_pwm(duty);
+            break;
+        case SolenoidName::Y5:
+            gs558.set_y5_pwm(duty);
+            break;
+        case SolenoidName::SPC:
+            gs558.set_spc_pwm(duty);
+            break;
+        case SolenoidName::MPC:
+            gs558.set_mpc_pwm(duty);
+            break;
+        case SolenoidName::TCC:
+            gs558.set_tcc_pwm(duty);
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
@@ -762,6 +796,10 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
     }
 }
 
+void Egs52Can::set_last_shift_time(uint16_t time_ms) {
+    gs558.set_shift_time(time_ms);
+}
+
 /**
  * Parity calculation for torque numbers on GS218 and GS418
  * 
@@ -796,7 +834,7 @@ void Egs52Can::tx_task_loop() {
     GS_338 gs_338tx;
     GS_218 gs_218tx;
     GS_418 gs_418tx;
-    GS_CUSTOM_558 gs_558tx;
+    GS_558_CUSTOM gs_558tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;

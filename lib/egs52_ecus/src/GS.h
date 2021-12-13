@@ -396,6 +396,23 @@ typedef union {
         
 } GS_338;
 
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+
+	/** Gets CAN ID of GS_338 */
+	uint32_t get_canid(){ return GS_CUSTOM_558_CAN_ID; }
+
+    void set_y3_pwm(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value) << 56; }
+    void set_y4_pwm(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value) << 48; }
+    void set_y5_pwm(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value) << 40; }
+    void set_spc_pwm(uint8_t value){ raw = (raw & 0xfffff00ffffffff) | ((uint64_t)value) << 32; }
+    void set_mpc_pwm(uint8_t value){ raw = (raw & 0xfffffff00ffffff) | ((uint64_t)value) << 24; }
+    void set_tcc_pwm(uint8_t value){ raw = (raw & 0xfffffffff00ffff) | ((uint64_t)value) << 16; }
+    void set_shift_time(uint16_t value){ raw = (raw & 0xfffffffffff0000) | ((uint64_t)value); }
+    
+} GS_558_CUSTOM;
+
 
 
 typedef union {

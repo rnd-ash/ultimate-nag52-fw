@@ -1326,7 +1326,7 @@ ECU TCM
 			ENUM BLANK, RAW: 32, DESC: blank ("")
 			ENUM D1, RAW: 49, DESC: driving position "D1"
 			ENUM D2, RAW: 50, DESC: Driving position "D2"
-			ENUM D3, RAW: 51, DESC: Driving position "D3"
+			ENUM D3, RAW: 51, ng position "D3"
 			ENUM D4, RAW: 52, DESC: Driving position "D4"
 			ENUM D5, RAW: 53, DESC: Driving position "D5"
 			ENUM D6, RAW: 54, DESC: Driving position "D6"

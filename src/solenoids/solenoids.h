@@ -33,7 +33,7 @@ public:
     uint16_t get_current_estimate(); // Returns current estimate of the solenoid
     bool init_ok() const; // Did the solenoid initialize OK?
     uint16_t get_vref() const; // Gets the solenoids' vref's calibrated value
-
+    void write_pwm_12_bit(uint16_t pwm_raw);
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
@@ -47,6 +47,7 @@ private:
     ledc_timer_t timer;
     portMUX_TYPE adc_reading_mutex;
     volatile uint16_t adc_reading;
+    uint8_t pwm = 0;
 };
 
 bool init_all_solenoids();

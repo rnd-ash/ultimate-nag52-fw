@@ -582,7 +582,7 @@ ECU GS
 		SIGNAL MKRIECH, OFFSET: 48, LEN: 8, DESC: Kriech torque (FFH at EGS, CVT) or Calid / CVN, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL FEHLPRF_ST, OFFSET: 56, LEN: 2, DESC: Status Error Check, DATA TYPE ENUM
 			ENUM WAIT, RAW: 0, DESC: error check not completely run through
-			ENUM OK, RAW: 1, DESC: Completely traject error test, result i. O.
+			ENUM OK, RAW: 1 DESC: Completely traject error test, result i. O.
 			ENUM ERROR, RAW: 2, DESC: Error detected, enter current environmental data
 			ENUM UNKNOWN, RAW: 3, DESC: not defined
 		SIGNAL CALID_CVN_AKT, OFFSET: 58, LEN: 1, DESC: CALID / CVN transmission active, DATA TYPE BOOL

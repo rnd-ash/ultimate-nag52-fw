@@ -299,7 +299,10 @@ for line in input_file:
             signal_offset = int(l.split("OFFSET: ")[1].split(",")[0], 10)
             signal_length = int(l.split("LEN: ")[1].split(",")[0], 10)
             signal_desc = l.split("DESC: ")[1].split(", DATA TYPE")[0].strip()
-            signal_dt = l.split(", DATA TYPE ")[1]
+            try:
+                signal_dt = l.split(", DATA TYPE ")[1]
+            except Exception as e:
+                signal_dt = "RAW"
             unit=""
             if "UNIT: " in l:
                 unit = l.split("UNIT: ")[1]

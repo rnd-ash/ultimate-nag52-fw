@@ -54,6 +54,7 @@ class TorqueConverter {
         uint8_t gear_idx = 0;
         uint16_t curr_tcc_percent = 0;
         uint16_t targ_tcc_percent = 0;
+        bool pending_changes = false;
         bool was_idle = false;
         unsigned long last_modify_time = 0;
 };

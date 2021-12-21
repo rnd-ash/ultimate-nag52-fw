@@ -97,6 +97,7 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup,Sensor
                 this->curr_tcc_percent+=3;
                 this->targ_tcc_percent+=3;
                 last_modify_time = now;
+                this->pending_changes = true; // Say the map has been modified (Needs to commit to NVS)
                 // Change all the ones higher up
                 for (int idx = atf_id; idx < 17; idx++) {
                     curr_adaptation->slip_values[idx] = this->curr_tcc_percent;
@@ -111,5 +112,7 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup,Sensor
 }
 
 void TorqueConverter::save_adaptation_data() {
-    EEPROM::save_nvs_tcc_adaptation(torque_converter_adaptation, sizeof(torque_converter_adaptation));
+    if (this->pending_changes) { // Save writing to NVS <3
+        EEPROM::save_nvs_tcc_adaptation(torque_converter_adaptation, sizeof(torque_converter_adaptation));
+    }
 }

@@ -54,8 +54,8 @@ void Speaker::send_note(uint32_t freq, uint32_t play_time_ms, uint32_t total_tim
 void Speaker::post(SPEAKER_POST_CODE code) {
     switch (code) {
         case SPEAKER_POST_CODE::INIT_OK:
-            this->send_note(1000, 150, 200);
-            this->send_note(1000, 150, 200);
+            this->send_note(1500, 150, 200);
+            this->send_note(1500, 150, 200);
             break;
         case SPEAKER_POST_CODE::EEPROM_FAIL:
             this->send_note(500, 300, 500);

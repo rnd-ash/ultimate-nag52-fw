@@ -11,6 +11,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "common_structs.h"
+#include <gearbox_config.h>
+#include "torque_converter.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -18,28 +20,7 @@
 #define STALL_RPM 700
 #define MIN_WORKING_RPM 1000
 
-#define OVERSPEED_RPM 10000
-
-//#define LARGE_NAG
-
-// https://en.wikipedia.org/wiki/Mercedes-Benz_5G-Tronic_transmission
-#ifdef LARGE_NAG
-    #define RAT_1 3.5876
-    #define RAT_2 2.1862
-    #define RAT_3 1.4054
-    #define RAT_4 1.0000
-    #define RAT_5 0.8314
-    #define RAT_R1 -3.1605
-    #define RAT_R2 -1.9259
-#else
-    #define RAT_1 3.9319
-    #define RAT_2 2.4079
-    #define RAT_3 1.4857
-    #define RAT_4 1.0000
-    #define RAT_5 0.8305
-    #define RAT_R1 -3.1002
-    #define RAT_R2 -1.8986
-#endif
+#define OVERSPEED_RPM 15000
 
 typedef struct {
     float max;
@@ -67,9 +48,7 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
-
-    bool map_changes_pending = false;
-    uint16_t elapse_shift(uint16_t init_spc, uint16_t init_mpc, Solenoid* shift_solenoid, uint16_t target_shift_duration_ms, uint8_t curr_gear, uint8_t targ_gear);
+    uint16_t elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, ShiftData data, Solenoid* shift_solenoid, uint8_t curr_gear, uint8_t targ_gear);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -81,6 +60,8 @@ private:
     bool calc_output_rpm(int* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
+    [[noreturn]]
+    void torque_converter_loop();
 
     void shift_thread();
     bool start_second = true; // By default
@@ -92,6 +73,10 @@ private:
     static void start_controller_internal(void *_this) {
         static_cast<Gearbox*>(_this)->controller_loop();
     }
+    [[noreturn]]
+    static void start_torque_converter(void *_this) {
+        static_cast<Gearbox*>(_this)->torque_converter_loop();
+    }
     uint16_t temp_raw = 0;
     TaskHandle_t shift_task = nullptr;
     bool shifting = false;
@@ -102,7 +87,8 @@ private:
     bool show_upshift = false;
     bool show_downshift = false;
     bool flaring = false;
-
+    unsigned long last_tcc_adjust_time = 0;
+    TorqueConverter* tcc = nullptr;
     SensorData sensor_data;
 };
 

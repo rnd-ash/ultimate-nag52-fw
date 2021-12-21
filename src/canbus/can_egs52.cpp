@@ -50,7 +50,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->gs418.set_MECH(GS_418h_MECH::KLEIN); // Small 722.6 for now! (TODO Handle 580)
 
 
-    // Convers setting NAB, a couple unknown but static values,
+    // Covers setting NAB, a couple unknown but static values,
     // and Input RPM to 0 
     gs338.raw = 0xFFFF1FFF00FF0000;
     this->can_init_ok = true;

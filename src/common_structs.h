@@ -13,6 +13,7 @@ typedef struct {
     int static_torque;
     int max_torque;
     int min_torque;
+    int tcc_slip_rpm;
 } SensorData;
 
 

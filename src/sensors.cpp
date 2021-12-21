@@ -195,7 +195,7 @@ bool Sensors::init_sensors(){
 inline uint32_t read_rpm(portMUX_TYPE* mux, RpmSampleData* sample) {
     uint64_t now = esp_timer_get_time();
     portENTER_CRITICAL(mux);
-    if (now-sample->last_time > 100000) { // 100ms timeout
+    if (now-sample->last_time > 250000) { // 250ms timeout
         portEXIT_CRITICAL(mux);
         return 0;
     }

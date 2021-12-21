@@ -3,29 +3,9 @@
 #include "nvs_flash.h"
 #include "esp_log.h"
 #include "scn.h"
-    #include "speaker.h"
+#include "speaker.h"
+#include <string.h>
 
-// dest HAS TO BE ALLOCATED!
-bool read_map_data(nvs_handle_t handle, const char* map_name, SHIFT_LAYER* dest) {
-    size_t size = sizeof(SHIFT_LAYER);
-    esp_err_t e = nvs_get_blob(handle, map_name, dest, &size);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW("EEPROM", "Map table for %s not found", map_name);
-        e = nvs_set_blob(handle, map_name, dest, sizeof(SHIFT_LAYER));
-        e = nvs_commit(handle);
-    }
-    return (e == ESP_OK);
-}
-
-// src HAS TO BE ALLOCATED
-bool write_map_data(nvs_handle_t handle, const char* map_name, SHIFT_LAYER* src) {
-    esp_err_t w = nvs_set_blob(handle, map_name, src, sizeof(SHIFT_LAYER));
-    if (w != ESP_OK) {
-        ESP_LOGE("EEPROM", "Could not write map data for %s: %s", map_name, esp_err_to_name(w));
-        return false;
-    }
-    return true;
-}
 
 /// If default is UINT16_MAX, it is ignored
 bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
@@ -55,6 +35,53 @@ bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t 
     return (e == ESP_OK);
 }
 
+bool read_nvs_tcc_adaptation(nvs_handle_t handle, const char* key, TccAdaptationData* store_location, size_t store_size) {
+    esp_err_t e = nvs_get_blob(handle, key, store_location, &store_size);
+    if (e == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("EEPROM", "TCC lockup map not found. Creating a new one");
+        // Init default map
+        TccAdaptationData new_map[NUM_GEARS];
+        for (int i = 0; i < NUM_GEARS; i++) {
+            new_map[i].lock_rpm_limit = 150;
+            new_map[i].slip_rpm_limit = 250;
+            for (int j = 0; j < 17; j++) {
+                new_map[i].slip_values[j] = 0;
+                new_map[i].lockup_values[j] = 0;
+            }
+        }
+        e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error initializing default TCC map data (%s)", esp_err_to_name(e));
+            return false;
+        }
+        e = nvs_commit(handle);
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+            return false;
+        }
+        ESP_LOGI("EEPROM", "New TCC map creation OK!");
+        memcpy(store_location, new_map, sizeof(new_map));
+        return true;
+    }
+    return (e == ESP_OK);
+}
+
+bool EEPROM::save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size) {
+    nvs_handle_t handle;
+    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    esp_err_t e = nvs_set_blob(handle, NVS_KEY_TCC_ADAPTATION, read_location, store_size);
+    if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Error initializing default TCC map data (%s)", esp_err_to_name(e));
+        return false;
+    }
+    e = nvs_commit(handle);
+    if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        return false;
+    }
+    return true;
+}
+
 bool EEPROM::init_eeprom() {
     // Called on startup
 
@@ -70,76 +97,10 @@ bool EEPROM::init_eeprom() {
         ESP_LOGE("EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
         return false;
     }
-    return true;
-}
-
-#define ALLOCATE_READ_TIMING_MAP(handle, map, name) \
-    map = (SHIFT_LAYER*)malloc(sizeof(SHIFT_LAYER)); \
-    if (map == nullptr) { \
-        ESP_LOGE("EEPROM", "Allocation for timing map %s failed!", name); \
-        return false; \
-    } \
-    if (!read_map_data(handle, name, map)) { \
-        return false; \
-    }
-
-bool EEPROM::load_map_data() {
-    nvs_handle_t timing_handle;
-    esp_err_t err = nvs_flash_init_partition("tcm_map");
-    err = nvs_open_from_partition("tcm_map", "TimingData", NVS_READWRITE, &timing_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE("EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
+    if (read_nvs_tcc_adaptation(config_handle, NVS_KEY_TCC_ADAPTATION, torque_converter_adaptation, (size_t)sizeof(torque_converter_adaptation)) != true) {
         return false;
     }
-    // Upshift timings (Alloc)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, one_to_two, NVS_KEY_1_2)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, two_to_three, NVS_KEY_2_3)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, three_to_four, NVS_KEY_3_4)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, four_to_five, NVS_KEY_4_5)
-
-    // Downshifts timings (Alloc)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, two_downto_one, NVS_KEY_2_1)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, three_downto_two, NVS_KEY_3_2)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, four_downto_three, NVS_KEY_4_3)
-    ALLOCATE_READ_TIMING_MAP(timing_handle, five_downto_four, NVS_KEY_5_4)
-
-    nvs_stats_t stats;
-    nvs_get_stats("tcm_map", &stats);
-    ESP_LOGI("EEPROM", "Entry stats: used: %d total: %d free: %d", stats.used_entries, stats.total_entries, stats.free_entries);
-
     return true;
 }
 
-bool EEPROM::save_map_data() {
-    nvs_handle_t timing_handle;   
-    esp_err_t err = nvs_flash_init_partition("tcm_map"); 
-    err = nvs_open_from_partition("tcm_map", "TimingData", NVS_READWRITE, &timing_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE("EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
-        return false;
-    }
-    // Commit changes
-    write_map_data(timing_handle, NVS_KEY_1_2, one_to_two);
-    write_map_data(timing_handle, NVS_KEY_2_3, two_to_three);
-    write_map_data(timing_handle, NVS_KEY_3_4, three_to_four);
-    write_map_data(timing_handle, NVS_KEY_4_5, four_to_five);
-
-    write_map_data(timing_handle, NVS_KEY_2_1, two_downto_one);
-    write_map_data(timing_handle, NVS_KEY_3_2, three_downto_two);
-    write_map_data(timing_handle, NVS_KEY_4_3, four_downto_three);
-    write_map_data(timing_handle, NVS_KEY_5_4, five_downto_four);
-
-    nvs_commit(timing_handle);
-    spkr.send_note(1000, 250, 250);
-    return true;
-}
-
-SHIFT_LAYER* one_to_two = nullptr;
-SHIFT_LAYER* two_to_three = nullptr;
-SHIFT_LAYER* three_to_four = nullptr;
-SHIFT_LAYER* four_to_five = nullptr;
-
-SHIFT_LAYER* five_downto_four = nullptr;
-SHIFT_LAYER* four_downto_three = nullptr;
-SHIFT_LAYER* three_downto_two = nullptr;
-SHIFT_LAYER* two_downto_one = nullptr;
+TccAdaptationData torque_converter_adaptation[NUM_GEARS];

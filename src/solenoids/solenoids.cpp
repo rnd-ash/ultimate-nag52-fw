@@ -54,6 +54,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     ESP_LOGI("SOLENOID", "Solenoid %s init OK!", name);
 }
 
+/*
 void Solenoid::write_pwm(uint8_t pwm)
 {
     esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm << 4 | pwm >> 4, 0); // Convert from 8bit to 12bit
@@ -63,6 +64,7 @@ void Solenoid::write_pwm(uint8_t pwm)
     }
     this->pwm = pwm;
 }
+*/
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
     esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm_raw, 0); // Convert from 8bit to 12bit
@@ -71,6 +73,17 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
         return;
     }
     this->pwm = pwm_raw >> 4;
+}
+
+void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
+    if (duty == 0) {
+        this->write_pwm_12_bit(0);
+    }
+    uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;;
+    if (want_duty > 4096) {
+        want_duty = 4096; // Clamp to max
+    }
+    this->write_pwm_12_bit(want_duty);
 }
 
 void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv) {
@@ -91,8 +104,9 @@ uint16_t Solenoid::get_vref() const {
 
 void Solenoid::write_pwm_percent(uint16_t percent) {
     uint32_t clamped = (percent > 1000) ? 1000 : percent;
-    uint32_t request = (255 * clamped) / 1000;
-    this->write_pwm(request);
+    uint32_t request = (4096 * clamped) / 1000;
+    this->write_pwm_12_bit(request);
+    //this->write_pwm(request);
 }
 
 uint8_t Solenoid::get_pwm()
@@ -249,12 +263,12 @@ bool init_all_solenoids()
     }
 
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
-    sol_y3->write_pwm(0);
-    sol_y4->write_pwm(0);
-    sol_y5->write_pwm(0);
-    sol_mpc->write_pwm(0);
-    sol_spc->write_pwm(0);
-    sol_tcc->write_pwm(0);
+    sol_y3->write_pwm_12_bit(0);
+    sol_y4->write_pwm_12_bit(0);
+    sol_y5->write_pwm_12_bit(0);
+    sol_mpc->write_pwm_12_bit(0);
+    sol_spc->write_pwm_12_bit(0);
+    sol_tcc->write_pwm_12_bit(0);
 
     while(!all_calibrated) {
         vTaskDelay(2);

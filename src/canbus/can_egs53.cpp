@@ -137,11 +137,11 @@ PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_
     return PaddlePosition::None;
 }
 
-uint16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
+int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     return 0;
 }
 
-uint16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
+int16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
     return 0;
 }
 

@@ -182,9 +182,9 @@ class AbstractCan {
         // Gets the flappy paddle position
         virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms);
         // Gets engine coolant temperature
-        virtual uint16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms);
+        virtual int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms);
         // Gets engine oil temperature
-        virtual uint16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms);
+        virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms);
         // Gets engine RPM
         virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms);
         // Returns true if engine is cranking

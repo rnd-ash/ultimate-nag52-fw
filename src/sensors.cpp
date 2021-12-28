@@ -9,8 +9,8 @@
 #include "pins.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define SAMPLES_PER_REVOLUTION 8
-#define AVERAGE_SAMPLES 3
+#define SAMPLES_PER_REVOLUTION 4
+#define AVERAGE_SAMPLES 5
 
 #define LOG_TAG "SENSORS"
 
@@ -192,6 +192,8 @@ bool Sensors::init_sensors(){
     return true;
 }
 
+#define NUMERATOR 1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)
+
 inline uint32_t read_rpm(portMUX_TYPE* mux, RpmSampleData* sample) {
     uint64_t now = esp_timer_get_time();
     portENTER_CRITICAL(mux);
@@ -199,8 +201,10 @@ inline uint32_t read_rpm(portMUX_TYPE* mux, RpmSampleData* sample) {
         portEXIT_CRITICAL(mux);
         return 0;
     }
-#define NUMERATOR 1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)
-    uint32_t res = NUMERATOR / (sample->total / AVERAGE_SAMPLES); 
+    uint32_t res = 0;
+    if (sample->total != 0) {
+        res = NUMERATOR / (sample->total / AVERAGE_SAMPLES); 
+    }
     portEXIT_CRITICAL(mux);
     return res;
 }
@@ -228,34 +232,38 @@ bool Sensors::read_vbatt(uint16_t *dest){
 
 // Returns ATF temp in *C
 bool Sensors::read_atf_temp(int* dest){
-    int raw;
-    esp_err_t res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
-    if (res != ESP_OK) {
-        ESP_LOGW("READ_VBATT", "Failed to query ATF temp. %s", esp_err_to_name(res));
-        return false;
-    } else {
-        if (raw >= 3900) {
+    #define NUM_ATF_SAMPLES 5
+    uint32_t raw = 0;
+    uint32_t avg = 0;
+    for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
+        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &raw);
+        if (res != ESP_OK) {
+            ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
+            return false;
+        }
+        if (raw >= 2500) {
             return false; // Parking lock engaged, cannot read.
         }
-        uint32_t tmp = esp_adc_cal_raw_to_voltage(raw, &adc2_cal);
-        if (tmp < atf_temp_lookup[0].v) {
-            *dest = atf_temp_lookup[0].temp;
-            return true;
-        } else if (tmp > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-            *dest = (atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10;
-            return true;
-        } else {
-            for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
-                // Found! Interpolate linearly to get a better estimate of ATF Temp
-                if (atf_temp_lookup[i].v <= tmp && atf_temp_lookup[i+1].v >= tmp) {
-                    float dx = tmp - atf_temp_lookup[i].v;
-                    float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                    *dest = (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
-                    return true;
-                }
+        avg += raw;
+    }
+    avg /= NUM_ATF_SAMPLES;
+    if (avg < atf_temp_lookup[0].v) {
+        *dest = atf_temp_lookup[0].temp;
+        return true;
+    } else if (avg > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
+        *dest = (atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10;
+        return true;
+    } else {
+        for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
+            // Found! Interpolate linearly to get a better estimate of ATF Temp
+            if (atf_temp_lookup[i].v <= avg && atf_temp_lookup[i+1].v >= avg) {
+                float dx = avg - atf_temp_lookup[i].v;
+                float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
+                *dest = (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
+                return true;
             }
-            return true;
         }
+        return true;
     }
 }
 

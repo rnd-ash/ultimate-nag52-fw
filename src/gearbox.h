@@ -13,6 +13,7 @@
 #include "common_structs.h"
 #include <gearbox_config.h>
 #include "torque_converter.h"
+#include "behaviour/driving_profiler.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -26,6 +27,13 @@ typedef struct {
     float max;
     float min;
 } GearRatioLimit;
+
+#define ATF_TEMP_SAMPLES 20
+struct TempSampleData {
+    int samples[ATF_TEMP_SAMPLES];
+    uint64_t total;
+    uint8_t sample_id;
+};
 
 #define MAX_LIMIT 0.10 // 10% drift
 
@@ -48,7 +56,7 @@ public:
     void inc_gear_request();
     void dec_gear_request();
 private:
-    uint16_t elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, ShiftData data, Solenoid* shift_solenoid, uint8_t curr_gear, uint8_t targ_gear);
+    ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, Solenoid* shift_solenoid, uint8_t curr_gear, uint8_t targ_gear);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -84,12 +92,15 @@ private:
     bool ask_downshift = false;
     float tcc_percent = 0;
     uint8_t est_gear_idx = 0;
+    uint16_t curr_hold_pressure = 0;
     bool show_upshift = false;
     bool show_downshift = false;
     bool flaring = false;
+    int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     TorqueConverter* tcc = nullptr;
     SensorData sensor_data;
+    TempSampleData temp_data;
 };
 
 #endif

@@ -19,22 +19,20 @@ class TorqueConverter {
         TorqueConverter() {
             ESP_LOGI("TCC","Start Torque converter. Adaptation map:");
             for (int i = 0; i < NUM_GEARS; i++) {
-                ESP_LOGI("TCC", "Gear %d:", i);
-                ESP_LOGI("TCC", "Slip RPM threshold: %d", torque_converter_adaptation[i].slip_rpm_limit);
-                ESP_LOGI("TCC", "Lock RPM threshold: %d", torque_converter_adaptation[i].lock_rpm_limit);
+                ESP_LOGI("TCC", "Gear %d:", i+1);
                 char buffer[256];
                 memset(buffer, 0x00, sizeof(buffer));
                 int x = 0;
                 for (int j = 0; j < 17; j++) {
                     x += sprintf(buffer+x, "%d ", torque_converter_adaptation[i].slip_values[j]);
                 }
-                ESP_LOGI("TCC", "Slip values: %s", buffer);
+                ESP_LOGI("TCC", "Lockup thresholds: %s", buffer);
                 memset(buffer, 0x00, sizeof(buffer));
                 x = 0;
                 for (int j = 0; j < 17; j++) {
-                    x += sprintf(buffer+x, "%d ", torque_converter_adaptation[i].lockup_values[j]);
+                    x += sprintf(buffer+x, "%d ", torque_converter_adaptation[i].learned[j]);
                 }
-                ESP_LOGI("TCC", "Lock values: %s", buffer);
+                ESP_LOGI("TCC", "Learned stats: %s", buffer);
             }
         }
         /**
@@ -49,13 +47,18 @@ class TorqueConverter {
         void update(GearboxGear curr_gear, LockupType max_lockup,SensorData* sensors, bool shifting);
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
         void save_adaptation_data();
+        void on_shift_complete(uint64_t now);
     private:
         LockupType current_lockup = LockupType::Open;
         uint8_t gear_idx = 0;
-        uint16_t curr_tcc_percent = 0;
-        uint16_t targ_tcc_percent = 0;
+        uint16_t curr_tcc_pwm = 0;
+        uint16_t targ_tcc_pwm = 0;
         bool pending_changes = false;
         bool was_idle = false;
+        bool adapting_idle = false;
+        bool adapting_load = false;
+        unsigned long idle_adapt_time = 0;
+        unsigned long load_adapt_time = 0;
         unsigned long last_modify_time = 0;
 };
 

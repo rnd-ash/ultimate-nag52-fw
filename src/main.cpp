@@ -108,7 +108,7 @@ void input_manager(void*) {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvaliable;
     while(1) {
-        uint64_t now = esp_timer_get_time();
+        uint64_t now = esp_timer_get_time()/1000;
         bool down = egs_can_hal->get_profile_btn_press(now, 100);
         if (down) {
             pressed = true;

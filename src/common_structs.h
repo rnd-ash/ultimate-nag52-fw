@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+typedef int16_t pressure_map[11];
+
 typedef struct {
     int input_rpm;
     int engine_rpm;
@@ -14,6 +16,9 @@ typedef struct {
     int max_torque;
     int min_torque;
     int tcc_slip_rpm;
+    uint64_t last_shift_time; // In ms
+    uint64_t current_timestamp_ms;
+    bool is_braking;
 } SensorData;
 
 
@@ -29,9 +34,20 @@ enum class ProfileGearChange {
 };
 
 typedef struct {
-    uint16_t spc_perc;
-    uint16_t mpc_perc;
+    uint16_t spc_pwm;
+    uint16_t mpc_pwm;
     uint16_t targ_ms;
 } ShiftData;
+
+const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500 };
+
+typedef struct {
+    bool shifted; // Did the car change gears or not??
+    bool valid_measurement; // Valid measurement sample complete
+    int time_ms; // Time taken to shift
+    int avg_d_rpm; // Average delta RPM
+    int max_d_rpm; // Max delta RPM
+    int min_d_rpm; // Min delta RPM
+} ShiftResponse;
 
 #endif

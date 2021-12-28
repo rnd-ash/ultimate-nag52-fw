@@ -5,6 +5,7 @@
 #include "scn.h"
 #include "speaker.h"
 #include <string.h>
+#include "profiles.h"
 
 
 /// If default is UINT16_MAX, it is ignored
@@ -35,6 +36,28 @@ bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t 
     return (e == ESP_OK);
 }
 
+bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
+    esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
+    if (e == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("EEPROM", "Adaptation %s map not found. Creating a new one", key);
+        pressure_map new_map = {0,0,0,0,0,0,0,0,0,0,0};
+        e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error initializing default adaptation map map data (%s)", esp_err_to_name(e));
+            return false;
+        }
+        e = nvs_commit(handle);
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+            return false;
+        }
+        ESP_LOGI("EEPROM", "New TCC map creation OK!");
+        memcpy(map, new_map, sizeof(new_map));
+        return true;
+    }
+    return (e == ESP_OK);
+}
+
 bool read_nvs_tcc_adaptation(nvs_handle_t handle, const char* key, TccAdaptationData* store_location, size_t store_size) {
     esp_err_t e = nvs_get_blob(handle, key, store_location, &store_size);
     if (e == ESP_ERR_NVS_NOT_FOUND) {
@@ -42,11 +65,9 @@ bool read_nvs_tcc_adaptation(nvs_handle_t handle, const char* key, TccAdaptation
         // Init default map
         TccAdaptationData new_map[NUM_GEARS];
         for (int i = 0; i < NUM_GEARS; i++) {
-            new_map[i].lock_rpm_limit = 150;
-            new_map[i].slip_rpm_limit = 250;
             for (int j = 0; j < 17; j++) {
-                new_map[i].slip_values[j] = 0;
-                new_map[i].lockup_values[j] = 0;
+                new_map[i].slip_values[j] = 250;
+                new_map[i].learned[j] = false;
             }
         }
         e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
@@ -79,6 +100,23 @@ bool EEPROM::save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t st
         ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
         return false;
     }
+    /*
+    save_nvs_gear_adaptation(NVS_KEY_1_2_ADAPTATION, &map_1_2_adaptation, sizeof(map_1_2_adaptation));
+    save_nvs_gear_adaptation(NVS_KEY_2_3_ADAPTATION, &map_2_3_adaptation, sizeof(map_2_3_adaptation));
+    save_nvs_gear_adaptation(NVS_KEY_3_4_ADAPTATION, &map_3_4_adaptation, sizeof(map_3_4_adaptation));
+    save_nvs_gear_adaptation(NVS_KEY_4_5_ADAPTATION, &map_4_5_adaptation, sizeof(map_4_5_adaptation));
+    */
+    return true;
+}
+
+bool EEPROM::save_nvs_gear_adaptation(const char* key, pressure_map* read_location, size_t store_size) {
+    nvs_handle_t handle;
+    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    esp_err_t e = nvs_set_blob(handle, key, read_location, store_size);
+    if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Error saving gear map data (%s)", esp_err_to_name(e));
+        return false;
+    }
     return true;
 }
 
@@ -100,6 +138,20 @@ bool EEPROM::init_eeprom() {
     if (read_nvs_tcc_adaptation(config_handle, NVS_KEY_TCC_ADAPTATION, torque_converter_adaptation, (size_t)sizeof(torque_converter_adaptation)) != true) {
         return false;
     }
+    /*
+    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_1_2_ADAPTATION, &map_1_2_adaptation, (size_t)sizeof(map_1_2_adaptation)) != true) {
+        return false;
+    }
+    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_2_3_ADAPTATION, &map_2_3_adaptation, (size_t)sizeof(map_2_3_adaptation)) != true) {
+        return false;
+    }
+    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_3_4_ADAPTATION, &map_3_4_adaptation, (size_t)sizeof(map_3_4_adaptation)) != true) {
+        return false;
+    }
+    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_4_5_ADAPTATION, &map_4_5_adaptation, (size_t)sizeof(map_4_5_adaptation)) != true) {
+        return false;
+    }
+    */
     return true;
 }
 

@@ -26,14 +26,14 @@ public:
      * timer - HW timer for controlling PWM
      */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
-    void write_pwm(uint8_t pwm); // Write raw PWM
     void write_pwm_percent(uint16_t percent); // Write PMW percentage (0 - 0%, 1000 = 100%)
     void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv); // Write PWM percentage with voltage correction
+    void write_pwm_12_bit(uint16_t pwm_raw); // Write raw 12bit PWM signal to solenoid
+    void write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv); // Write 12bit PWM with voltage correction (Mainly used by torque converter solenoid)
     uint8_t get_pwm(); // Returns PWM signal of solenoid
     uint16_t get_current_estimate(); // Returns current estimate of the solenoid
     bool init_ok() const; // Did the solenoid initialize OK?
     uint16_t get_vref() const; // Gets the solenoids' vref's calibrated value
-    void write_pwm_12_bit(uint16_t pwm_raw);
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);

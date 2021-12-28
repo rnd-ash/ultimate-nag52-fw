@@ -4,119 +4,79 @@
 // REMEMBER
 // Higher number = LESS pressure
 
-// LOAD 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
-// Any load can be calibrated
-pressure_map map_1_2 = {505, 500, 490, 480, 470, 450, 430, 420, 400, 360, 320};
-pressure_map map_2_3 = {460, 450, 440, 430, 420, 410, 390, 370, 350, 325, 300};
-pressure_map map_3_4 = {435, 440, 430, 420, 410, 390, 370, 350, 330, 310, 290};
-pressure_map map_4_5 = {445, 420, 415, 410, 395, 385, 360, 350, 290, 235, 220};
+// LOAD -10% (NEG), 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+pressure_map map_1_2 = {530, 520, 510, 500, 490, 480, 470, 460, 450, 420, 400};
+pressure_map map_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+pressure_map map_3_4 = {500, 485, 475, 462, 452, 336, 431, 420, 399, 378, 357};
+pressure_map map_4_5 = {490, 470, 450, 430, 410, 390, 370, 350, 330, 310, 300};
 
-pressure_map map_2_1 = {525, 525, 500, 480, 465, 455, 445, 420, 340, 375, 255};
-pressure_map map_3_2 = {385, 380, 375, 360, 350, 340, 325, 315, 305, 290, 290}; // BEEFY
-pressure_map map_4_3 = {430, 430, 420, 410, 395, 385, 375, 360, 350, 340, 325};
-pressure_map map_5_4 = {408, 410, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+pressure_map map_2_1 = {540, 530, 520, 510, 490, 480, 470, 460, 450, 420, 400};
+pressure_map map_3_2 = {415, 415, 411, 410, 405, 400, 390, 380, 370, 360, 350}; // BEEFY
+pressure_map map_4_3 = {470, 462, 430, 420, 410, 400, 380, 360, 340, 320, 300};
+pressure_map map_5_4 = {430, 431, 395, 385, 385, 370, 360, 360, 350, 340, 325};
 
-// 0 RPM, 1000RPM, 2000RPM Calibration, 3000RPM, 4000RPM, 5000RPM, 6000RPM, 7000RPM
-// 2000-4000RPM
-const float RPM_CORRECTION[8] = { 0.94, 0.96, 1, 1.02, 1.04, 1.06, 1.08, 1.1 };
-
-// CORRECTION maps use pedal value to see how 'sporty' the shifts should feel
-pressure_map AGILITY_CORRECTION = {  +0,  -5, -10, -15, -20, -30, -40, -50, -60, -70, -80};
-pressure_map COMFORT_CORRECTION = {  +10, +10, +15, +20, +25, +30, +32, +34, +36, +38, +40};
-
-// -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 10    0, 110, 120
-// 0-90 is where adaptation can occur
 const float pressure_temp_normalizer[17] = {
     0.8, 0.8, 0.8, 0.8, 0.8, // -40-0C (0-40)
-    0.86, 0.88, 0.9, 0.91, 0.93, // 10-50C (50-90)
-    0.95, 0.98, 0.1, 1.1, 1.15, 1.2, 1.25 }; //60C+ (100-160)
+    0.8, 0.82, 0.84, 0.86, 0.91, // 10-50C (50-90)
+    0.97, 1.0, 1.01, 1.01, 1.02, 1.02, 1.02 //60C+ (100-160)
+};
 
-uint16_t correct_pressure_temp(uint16_t map_pressure, SensorData* sensors) {
-    if (sensors->atf_temp < 0) { return pressure_temp_normalizer[0]; }
-    else if (sensors->atf_temp > 160) { return pressure_temp_normalizer[16]; }
-    int min = sensors->atf_temp/10;
+// 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
+const float rpm_normalizer[9] = {1.04, 1.02, 1.00, 0.98, 0.94, 0.91, 0.88, 0.85, 0.82};
+
+float find_temp_multiplier(int temp_raw) {
+    if (temp_raw < 0) { return pressure_temp_normalizer[0]; }
+    else if (temp_raw > 160) { return pressure_temp_normalizer[16]; }
+    int min = temp_raw/10;
     int max = min+1;
     float dy = pressure_temp_normalizer[max] - pressure_temp_normalizer[min];
     float dx = (max-min)*10;
-    return map_pressure * (pressure_temp_normalizer[min] + ((dy/dx)) * (sensors->atf_temp-(min*10)));
+    return (pressure_temp_normalizer[min] + ((dy/dx)) * (temp_raw-(min*10)));
 }
 
-uint16_t correct_pressure_rpm(uint16_t map_pressure, SensorData* sensors) {
-    if (sensors->input_rpm < 0) { return pressure_temp_normalizer[0]; }
-    else if (sensors->input_rpm > 7000) { return pressure_temp_normalizer[7]; }
-    int min = sensors->input_rpm/1000;
+float find_rpm_multiplier(int engine_rpm) {
+    if (engine_rpm < 0) { return rpm_normalizer[0]; }
+    else if (engine_rpm > 8000) { return rpm_normalizer[8]; }
+    int min = engine_rpm/1000;
     int max = min+1;
-    float dy = RPM_CORRECTION[max] - RPM_CORRECTION[min];
+    float dy = rpm_normalizer[max] - rpm_normalizer[min];
     float dx = (max-min)*1000;
-    return map_pressure * (RPM_CORRECTION[min] + ((dy/dx)) * (sensors->input_rpm-(min*1000)));
+    return (rpm_normalizer[min] + ((dy/dx)) * (engine_rpm-(min*1000)));
 }
 
-#define GET_MAP(idx, map_ptr) \
-    pressure_raw = map[idx]; \
-    if (map_ptr != nullptr) { \
-        pressure_raw += map_ptr[pedal_correction_idx]; \
-    } \
-
-uint16_t find_map_value_spc(const pressure_map map, const pressure_map correction_map, int load_percentage, SensorData* sensors) {
-    // Correction is based on pedal position, not torque (More pedal = snappier shift)
-    int pedal_percent = (sensors->pedal_pos*100)/250;
-    int pedal_correction_idx = pedal_percent/10;
-    if (pedal_correction_idx < 0) {
-        pedal_correction_idx = 0;
-    } else if (pedal_correction_idx >= 10) {
-        pedal_correction_idx = 9;
-    }
-    uint16_t pressure_raw = 0;
-    if (load_percentage <= 0) {
-        GET_MAP(0, correction_map)
-    } else if (load_percentage >= 100) {
-        GET_MAP(10, correction_map)
-    } else {
-        // Interpolate
-        int min = load_percentage/10;
+inline uint16_t locate_pressure_map_value(pressure_map map, int percent) {
+    if (percent <= 0) { return map[0]; }
+    else if (percent >= 100) { return map[10]; }
+    else {
+        int min = percent/10;
         int max = min+1;
-        if (map[min] == map[max]) {
-            GET_MAP(min, correction_map)
-        } else {
-            float dy = map[max] - map[min];
-            float dx = (max-min)*10;
-            pressure_raw = map[min] + (((dy/dx)) * (load_percentage-(min*10)));
-            if (correction_map != nullptr) {
-                int min_ped = pedal_correction_idx;
-                int max_ped = min_ped+1;
-                float dy_correction = correction_map[max_ped] - correction_map[min_ped];
-                pressure_raw += correction_map[min_ped] + (((dy_correction/dx)) * (pedal_percent-(min_ped*10)));
-            }
-        }     
+        float dy = map[max] - map[min];
+        float dx = (max-min)*10;
+        return (map[min] + ((dy/dx)) * (percent-(min*10)));
     }
-    if (pressure_raw < 50) {
-        pressure_raw = 50; // Min we can safely do
-    }
-    return correct_pressure_temp((uint16_t)pressure_raw, sensors);
 }
 
-uint16_t find_map_value_mpc(const pressure_map map, int load_percentage, SensorData* sensors) {
-    uint16_t pressure_raw = 0;
-    if (load_percentage <= 0) {
-        pressure_raw = map[0];
-    } else if (load_percentage >= 100) {
-        pressure_raw = map[10];
-    } else {
-        // Interpolate
-        int min = load_percentage/10;
-        int max = min+1;
-        if (map[min] == map[max]) {
-            pressure_raw = map[min];
-        } else {
-            float dy = map[max] - map[min];
-            float dx = (max-min)*10;
-            pressure_raw = map[min] + (((dy/dx)) * (load_percentage-(min*10)));
-        }     
+uint16_t find_spc_pressure(pressure_map map, SensorData* sensors, float shift_speed = 1.0) {
+    if (shift_speed > 1.1) {
+        shift_speed = 1.1;
+    } else if (shift_speed < 0.9) {
+        shift_speed = 0.9;
     }
-    if (pressure_raw < 50) {
-        pressure_raw = 50; // Min we can safely do
+    // SPC reacts to throttle position (Pedal) (Firmness dictates how aggressively to traverse this model)
+    int load = (sensors->pedal_pos*100/250);
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_speed;
+}
+
+uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_firmness) {
+    if (shift_firmness > 1.1) {
+        shift_firmness = 1.1;
+    } else if (shift_firmness < 0.9) {
+        shift_firmness = 0.9;
     }
-    return correct_pressure_temp(correct_pressure_rpm(pressure_raw, sensors), sensors);
+    // MPC reacts to Torque (Also sets pressure for SPC. Shift firmness can be increased)
+    int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
+    if (load < 0) { load = 0; } // Pulling engine
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_firmness;
 }
 
 char AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -150,21 +110,21 @@ char AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
 }
 
 
-ShiftData AgilityProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, pressure_map correction) {
-    return standard->get_shift_data(requested, sensors, AGILITY_CORRECTION);
+ShiftData AgilityProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
+    return standard->get_shift_data(requested, sensors, 0.9, 0.9);
 }
 
 bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    return false;
+    return standard->should_upshift(current_gear, sensors);
 }
 
 bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-    return false;
+    return standard->should_downshift(current_gear, sensors);
 }
 
 
-ShiftData ComfortProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, pressure_map correction) {
-    return standard->get_shift_data(requested, sensors, COMFORT_CORRECTION);
+ShiftData ComfortProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
+    return standard->get_shift_data(requested, sensors, 1.1, 1.1);
 }
 
 char ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -198,15 +158,18 @@ char ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
 }
 
 bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    return false;
+    return standard->should_upshift(current_gear, sensors);
 }
 
 bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-    return false;
+    if (current_gear == GearboxGear::Second || current_gear == GearboxGear::First) {
+        return false;
+    }
+    return standard->should_downshift(current_gear, sensors);
 }
 
-ShiftData WinterProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, pressure_map correction_map) {
-    return comfort->get_shift_data(requested, sensors, COMFORT_CORRECTION); // Same shift quality as C
+ShiftData WinterProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
+    return comfort->get_shift_data(requested, sensors, 1.0); // Same shift quality as C
 }
 
 char WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -246,74 +209,99 @@ bool WinterProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     return false;
 }
-ShiftData StandardProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, pressure_map correction_map) {
-    int input_shaft_torque = sensors->static_torque; // Engine is making this much torque
+
+void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear, SensorData* sensors) {
+    ESP_LOGI("ADAPT", "Adaptation called. Shifted? %d, Measured shift? %d, Shift time %d ms, Shift d_rpm avg: %d", 
+        resp.shifted, resp.valid_measurement, resp.time_ms, resp.avg_d_rpm
+    );
     /*
-    if (sensors->input_rpm > 100 && sensors->engine_rpm > 100) {
-        // engine vs input shaft rotational difference ~= multiplication of torque factor
-        //
-        // Yes, this isn't accurate if they have been at differential speeds for a while, but it helps
-        input_shaft_torque *= (sensors->engine_rpm / sensors->input_rpm);
+    float* target;
+    switch(from_gear) {
+        case 1:
+            target = &adaptation_1_2;
+            break;
+        case 2:
+            target = &adaptation_2_3;
+            break;
+        case 3:
+            target = &adaptation_3_4;
+            break;
+        case 4:
+            target = &adaptation_4_5;
+            break;
+        default:
+            return;
     }
+    int min_time = 500;
+    int max_time = 600;
+    if (from_gear == 1 || from_gear == 4) {
+        min_time = 400;
+        max_time = 500;
+    }
+    if (resp.shifted && resp.valid_measurement) {
+        if (resp.time_ms < min_time) {
+            *target += 0.01;
+        } else if (resp.time_ms > max_time) {
+            *target -= 0.01;
+        }
+    }
+    ESP_LOGI("ADAPT", "Adaptation block is now %.2f %.2f %.2f %.2f", adaptation_1_2, adaptation_2_3, adaptation_3_4, adaptation_4_5);
     */
-    int input_shaft_load_perc = (input_shaft_torque*100) / MAX_TORQUE_RATING_NM;
-    if (input_shaft_load_perc < 0) {
-        input_shaft_load_perc *= -1;
-    }
-    int pedal_load = (int)(sensors->pedal_pos*100)/250;
-    int load = (input_shaft_load_perc+pedal_load)/2;
+}
+
+ShiftData StandardProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
     if (requested == ProfileGearChange::ONE_TWO) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_1_2, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_1_2, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_1_2, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_1_2, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::TWO_THREE) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_2_3, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_2_3, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_2_3, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_2_3, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::THREE_FOUR) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_3_4, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_3_4, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_3_4, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_3_4, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::FOUR_FIVE) {
-       return ShiftData { 
-            .spc_perc = find_map_value_spc(map_4_5, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_4_5, load, sensors), 
+       return ShiftData {
+            .spc_pwm = find_spc_pressure(map_4_5, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_4_5, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } 
     // Downshifts
     else if (requested == ProfileGearChange::TWO_ONE) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_2_1, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_2_1, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_2_1, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_2_1, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::THREE_TWO) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_3_2, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_3_2, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_3_2, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_3_2, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::FOUR_THREE) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_4_3, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_4_3, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_4_3, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_4_3, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else if (requested == ProfileGearChange::FIVE_FOUR) {
-        return ShiftData { 
-            .spc_perc = find_map_value_spc(map_5_4, correction_map, load, sensors), 
-            .mpc_perc = find_map_value_mpc(map_5_4, load, sensors), 
+        return ShiftData {
+            .spc_pwm = find_spc_pressure(map_5_4, sensors, shift_speed),
+            .mpc_pwm = find_mpc_pressure(map_5_4, sensors, shift_firmness),
             .targ_ms = 500 
         };
     } else {
-        return ShiftData { .spc_perc = 100, .mpc_perc = 100, .targ_ms = 0 }; // WTF. Fallback this is wrong!
+        return DEFAULT_SHIFT_DATA;
     }
 }
 
@@ -347,34 +335,30 @@ char StandardProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     }
 }
 
+
+
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::Fifth) { return false; }
     int curr_rpm = sensors->input_rpm;
     if (curr_rpm > 4000) { // Protect da engine
-        last_shift_time = esp_timer_get_time()/1000;
         return true;
     }
-    if (sensors->tcc_slip_rpm > 200) {
-        return false;
-    }
-    int load_perc = (sensors->static_torque*100)/MAX_TORQUE_RATING_NM;
-    int pedal_perc = ((int)sensors->pedal_pos*100)/250;
+    float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
+    float rpm_percent = (float)(sensors->input_rpm-1000)*100.0 / (float)(4500-1000);
     int rpm_threshold = 0;
-    int pedal_perc_threshold = 0;
-    int load_threshold = 0;
     // Load (idx) vs pedal
     if (current_gear == GearboxGear::First) {
-        rpm_threshold = 2000;
+        rpm_threshold = 1500;
     } else if (current_gear == GearboxGear::Second) {
-        rpm_threshold = 1900;
+        rpm_threshold = 1500;
     } else if (current_gear == GearboxGear::Third) {
-        rpm_threshold = 1800;
+        rpm_threshold = 1500;
     } else if (current_gear == GearboxGear::Fourth) {
         rpm_threshold = 1500;
     }
     unsigned long t =  esp_timer_get_time()/1000;
-    if (curr_rpm > rpm_threshold && load_perc <= 30 && pedal_perc <= 40 && last_shift_time-t > 2000) {
-        last_shift_time = esp_timer_get_time()/1000;
+
+    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && t-sensors->last_shift_time > 2000) {
         return true;
     }
     return false;
@@ -382,7 +366,18 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
-    if (sensors->input_rpm < 1000) {
+    float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
+    float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
+    unsigned long t =  esp_timer_get_time()/1000;
+    if (sensors->input_rpm < 1000 && current_gear != GearboxGear::Third && t-sensors->last_shift_time > 2000) {
+        return true;
+    } else if (sensors->output_rpm < 500 && current_gear == GearboxGear::Third && t-sensors->last_shift_time > 2000) { // 3-2 downshift only at low speeds if idle
+        return true;
+    }
+    else if (sensors->input_rpm < 2000 && pedal_perc > 60 && pedal_perc >= rpm_percent*2 && t-sensors->last_shift_time > 2000) {
+        if (current_gear == GearboxGear::Second) { // Prevent 2-1 downshift (Too twitchy)
+            return false;
+        }
         return true;
     } else {
         return false;

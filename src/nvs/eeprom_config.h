@@ -3,6 +3,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "common_structs.h"
 
 #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
 #define NVS_KEY_DRIVE_PROG "DRIVE_PROFILE"
@@ -14,22 +15,26 @@
 #define NVS_UCFG_KEY_PROFILE "LAST_PROFILE"
 #define NVS_KEY_TCC_ADAPTATION "TCC_ADAPTATION"
 
+#define NVS_KEY_1_2_ADAPTATION "1_2_ADAPT"
+#define NVS_KEY_2_3_ADAPTATION "2_3_ADAPT"
+#define NVS_KEY_3_4_ADAPTATION "3_4_ADAPT"
+#define NVS_KEY_4_5_ADAPTATION "4_5_ADAPT"
+
 typedef struct {
 
 } EEPROM_Config;
 
 struct TccAdaptationData { // 1 per gear
     // -40C - 120C (16 steps)
-    uint16_t lockup_values[17]; // Where slip is < 100RPM (Torque is 50-120Nm)
+    bool learned[17];
     uint16_t slip_values[17]; // Where slip is (100-200RPM) (Torque is 50-120Nm)
-    uint16_t slip_rpm_limit; // Max RPM Delta for slipping
-    uint16_t lock_rpm_limit; // Max RPM Delta for locked
 };
 
 namespace EEPROM {
     bool init_eeprom();
     uint8_t get_last_profile();
     bool save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size);
+    bool save_nvs_gear_adaptation(const char* key, pressure_map* read_location, size_t store_size);
 };
 
 #define NUM_GEARS 5

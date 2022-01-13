@@ -5,24 +5,24 @@
 // Higher number = LESS pressure
 
 // LOAD -10% (NEG), 0% 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
-pressure_map map_1_2 = {530, 520, 510, 500, 490, 480, 470, 460, 450, 420, 400};
-pressure_map map_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
-pressure_map map_3_4 = {500, 485, 475, 462, 452, 336, 431, 420, 399, 378, 357};
-pressure_map map_4_5 = {490, 470, 450, 430, 410, 390, 370, 350, 330, 310, 300};
+pressure_map map_1_2 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+pressure_map map_2_3 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 370};
+pressure_map map_3_4 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+pressure_map map_4_5 = {480, 470, 450, 430, 410, 390, 370, 350, 330, 310, 300};
 
-pressure_map map_2_1 = {540, 530, 520, 510, 490, 480, 470, 460, 450, 420, 400};
-pressure_map map_3_2 = {415, 415, 411, 410, 405, 400, 390, 380, 370, 360, 350}; // BEEFY
-pressure_map map_4_3 = {470, 462, 430, 420, 410, 400, 380, 360, 340, 320, 300};
-pressure_map map_5_4 = {430, 431, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+pressure_map map_2_1 = {500, 495, 490, 485, 480, 475, 470, 460, 450, 420, 400};
+pressure_map map_3_2 = {405, 400, 390, 380, 370, 360, 350, 350, 340, 340, 330}; // BEEFY
+pressure_map map_4_3 = {420, 410, 430, 420, 410, 400, 380, 360, 340, 320, 300};
+pressure_map map_5_4 = {420, 410, 395, 385, 385, 370, 360, 360, 350, 340, 325};
 
 const float pressure_temp_normalizer[17] = {
     0.8, 0.8, 0.8, 0.8, 0.8, // -40-0C (0-40)
-    0.8, 0.82, 0.84, 0.86, 0.91, // 10-50C (50-90)
-    0.97, 1.0, 1.01, 1.01, 1.02, 1.02, 1.02 //60C+ (100-160)
+    0.8, 0.82, 0.87, 0.92, 0.95, // 10-50C (50-90)
+    0.97, 0.99, 1.01, 1.01, 1.02, 1.02, 1.02 //60C+ (100-160)
 };
 
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
-const float rpm_normalizer[9] = {1.04, 1.02, 1.00, 0.98, 0.94, 0.91, 0.88, 0.85, 0.82};
+const float rpm_normalizer[9] = {1.03, 1.01, 1.00, 0.98, 0.94, 0.91, 0.88, 0.85, 0.82};
 
 float find_temp_multiplier(int temp_raw) {
     if (temp_raw < 0) { return pressure_temp_normalizer[0]; }
@@ -79,33 +79,28 @@ uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_fi
     return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_firmness;
 }
 
-char AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
-   switch (actual) {
+GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+   switch (target) {
         case GearboxGear::Park:
-            return 'P';
+            return GearboxDisplayGear::P;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            return 'R';
+            return GearboxDisplayGear::R;
         case GearboxGear::Neutral:
-            return 'N';
+            return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return '1';
+            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return '2';
+            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return '3';
+            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return '4';
+            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return '5';
-        case GearboxGear::Sixth:
-            return '6';
-        case GearboxGear::Seventh:
-            return '7';
+            return GearboxDisplayGear::Five;
         case GearboxGear::SignalNotAvaliable:
-            return 0xFF;
         default:
-            return ' ';
+            return GearboxDisplayGear::SNA;
     }
 }
 
@@ -127,33 +122,28 @@ ShiftData ComfortProfile::get_shift_data(ProfileGearChange requested, SensorData
     return standard->get_shift_data(requested, sensors, 1.1, 1.1);
 }
 
-char ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
-    switch (actual) {
+GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+    switch (target) {
         case GearboxGear::Park:
-            return 'P';
+            return GearboxDisplayGear::P;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            return 'R';
+            return GearboxDisplayGear::R;
         case GearboxGear::Neutral:
-            return 'N';
+            return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return '1';
+            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return '2';
+            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return '3';
+            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return '4';
+            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return '5';
-        case GearboxGear::Sixth:
-            return '6';
-        case GearboxGear::Seventh:
-            return '7';
+            return GearboxDisplayGear::Five;
         case GearboxGear::SignalNotAvaliable:
-            return 0xFF;
         default:
-            return ' ';
+            return GearboxDisplayGear::SNA;
     }
 }
 
@@ -169,36 +159,31 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 }
 
 ShiftData WinterProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
-    return comfort->get_shift_data(requested, sensors, 1.0); // Same shift quality as C
+    return standard->get_shift_data(requested, sensors, 1.05); // Same shift quality as C
 }
 
-char WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
-            return 'P';
+            return GearboxDisplayGear::P;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            return 'R';
+            return GearboxDisplayGear::R;
         case GearboxGear::Neutral:
-            return 'N';
+            return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return '1';
+            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return '2';
+            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return '3';
+            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return '4';
+            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return '5';
-        case GearboxGear::Sixth:
-            return '6';
-        case GearboxGear::Seventh:
-            return '7';
+            return GearboxDisplayGear::Five;
         case GearboxGear::SignalNotAvaliable:
-            return 0xFF;
         default:
-            return ' ';
+            return GearboxDisplayGear::SNA;
     }
 }
 
@@ -305,33 +290,28 @@ ShiftData StandardProfile::get_shift_data(ProfileGearChange requested, SensorDat
     }
 }
 
-char StandardProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
-            return 'P';
+            return GearboxDisplayGear::P;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            return 'R';
+            return GearboxDisplayGear::R;
         case GearboxGear::Neutral:
-            return 'N';
+            return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return '1';
+            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return '2';
+            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return '3';
+            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return '4';
+            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return '5';
-        case GearboxGear::Sixth:
-            return '6';
-        case GearboxGear::Seventh:
-            return '7';
+            return GearboxDisplayGear::Five;
         case GearboxGear::SignalNotAvaliable:
-            return 0xFF;
         default:
-            return ' ';
+            return GearboxDisplayGear::SNA;
     }
 }
 
@@ -384,33 +364,28 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     }
 }
 
-char ManualProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
-            return 'P';
+            return GearboxDisplayGear::P;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            return 'R';
+            return GearboxDisplayGear::R;
         case GearboxGear::Neutral:
-            return 'N';
+            return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return '1';
+            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return '2';
+            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return '3';
+            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return '4';
+            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return '5';
-        case GearboxGear::Sixth:
-            return '6';
-        case GearboxGear::Seventh:
-            return '7';
+            return GearboxDisplayGear::Five;
         case GearboxGear::SignalNotAvaliable:
-            return 0xFF;
         default:
-            return ' ';
+            return GearboxDisplayGear::SNA;
     }
 }
 

@@ -1,6 +1,9 @@
 #include "can_egs52.h"
 #include "driver/twai.h"
 #include "pins.h"
+#include "gearbox_config.h"
+
+#ifdef EGS52_MODE
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
@@ -937,3 +940,5 @@ void Egs52Can::rx_task_loop() {
         }
     }
 }
+
+#endif

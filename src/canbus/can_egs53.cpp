@@ -1,6 +1,9 @@
 #include "can_egs53.h"
 #include "driver/twai.h"
 #include "pins.h"
+#include "gearbox_config.h"
+
+uint8_t crcTable[256]; // For CRC only
 
 Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
@@ -23,22 +26,34 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     if (res != ESP_OK) {
         ESP_LOGE("EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
     }
+
+    // Create CRC table
+    uint8_t _crc;
+    for (int i = 0; i < 0x100; i++) {
+            _crc = i;
+            for (uint8_t bit = 0; bit < 8; bit++) {
+                _crc = (_crc & 0x80) ? ((_crc << 1) ^ 0x1D) : (_crc << 1);
+            }
+            crcTable[i] = _crc;
+    }
+
     // CAN is OK!
-
     // Set default values
+    this->sbw_rs_tcm.set_SBW_MsgTxmtId(SBW_RS_TCM_SBW_MsgTxmtId::EGS52); // We are EGS53
+    this->sbw_rs_tcm.set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq::IDLE); // Idle request (No SBW on EGS53)
+    this->sbw_rs_tcm.set_TxSelSensPosn(0); // No dialing sensor on EGS53
+    this->tcm_disp_rq.set_SBW_Beep_Rq_TCM(true);
+    this->tcm_disp_rq.set_SBW_Msg_Disp_Rq_TCM(TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM::M2);
+// Tell engine which Mech style we are
+#ifdef LARGE_NAG
+    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::LARGE);
+#else
+    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
+#endif
+    this->eng_rq2_tcm.set_TxStyle(ENG_RQ2_TCM_TxStyle::SAT); // Stepped automatic gearbox
+    this->eng_rq2_tcm.set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle::MS); // Mechanical shifting (With EWM module)
+    this->tcm_disp_rq.set_TxShiftRcmmnd_Disp_Rq_TCM(TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM::UP);
 
-    //this->eng_rq2_tcm.set_TxStyle(ENG_RQ2_TCM_TxStyle::SAT);
-    //this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
-    //this->eng_rq2_tcm.set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle::MS);
-    //this->tcm_disp_rq.set_SBW_Msg_Disp_Rq_TCM(TCM_DISP_RQ_SBW_Msg_Disp_Rq_TCM::IDLE);
-    //this->tcm_disp_rq.set_SBW_Beep_Rq_TCM(true);
-    //this->tcm_disp_rq.set_Gr_Target_Disp_Rq(TCM_DISP_RQ_Gr_Target_Disp_Rq::G7);
-    this->sbw_rs_tcm.set_SBW_MsgTxmtId(SBW_RS_TCM_SBW_MsgTxmtId::EGS52);
-    this->sbw_rs_tcm.set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn::D);
-    this->sbw_rs_tcm.set_StartLkSw(true);
-    this->sbw_rs_tcm.set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn::D);
-    this->sbw_rs_tcm.set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq::D);
-    this->tcm_disp_rq.set_Gr_Target_Disp_Rq(TCM_DISP_RQ_Gr_Target_Disp_Rq::G2);
     this->can_init_ok = true;
 }
 
@@ -157,6 +172,10 @@ bool Egs53Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
+bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
+    return false;
+}
+
 void Egs53Can::set_clutch_status(ClutchStatus status) {
     
 }
@@ -170,11 +189,11 @@ void Egs53Can::set_target_gear(GearboxGear target) {
 }
 
 void Egs53Can::set_safe_start(bool can_start) {
-    
+    this->sbw_rs_tcm.set_StartLkSw(!can_start);
 }
 
 void Egs53Can::set_gearbox_temperature(uint16_t temp) {
-    
+    this->tcm_a1.set_TxOilTemp(temp + 50);
 }
 
 void Egs53Can::set_input_shaft_speed(uint16_t rpm) {
@@ -190,7 +209,31 @@ void Egs53Can::set_wheel_torque(uint16_t t) {
 }
 
 void Egs53Can::set_shifter_position(ShifterPosition pos) {
-    
+    switch (pos) {
+        case ShifterPosition::P:
+            this->sbw_rs_tcm.set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn::P);
+            this->tcm_a1.set_TSL_Posn_TCM(TCM_A1_TSL_Posn_TCM::P);
+            break;
+        case ShifterPosition::P_R:
+            break;
+        case ShifterPosition::R:
+            break;
+        case ShifterPosition::R_N:
+            break;
+        case ShifterPosition::N:
+            break;
+        case ShifterPosition::N_D:
+            break;
+        case ShifterPosition::D:
+            break;
+        case ShifterPosition::PLUS:
+            break;
+        case ShifterPosition::MINUS:
+            break;
+        case ShifterPosition::SignalNotAvaliable:
+        default:
+            break;
+    }
 }
 
 void Egs53Can::set_gearbox_ok(bool is_ok) {
@@ -214,8 +257,50 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-void Egs53Can::set_display_gear(char g) {
-    this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D1);
+uint8_t x = 0;
+unsigned long last_time = 0;
+void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
+    switch (g) {
+        case GearboxDisplayGear::One:
+            manual_mode ? this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::M1)
+            : this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D1);
+            break;
+        case GearboxDisplayGear::Two:
+            manual_mode ? this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::M2)
+            : this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D2);
+            break;
+        case GearboxDisplayGear::Three:
+            manual_mode ? this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::M3)
+            : this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D3);
+            break;
+        case GearboxDisplayGear::Four:
+            manual_mode ? this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::M4)
+            : this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D4);
+            break;
+        case GearboxDisplayGear::Five:
+            manual_mode ? this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::M1)
+            : this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D1);
+            break;
+        case GearboxDisplayGear::P:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::P);
+            break;
+        case GearboxDisplayGear::D:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::D);
+            break;
+        case GearboxDisplayGear::N:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::N);
+            break;
+        case GearboxDisplayGear::R:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::R);
+            break;
+        case GearboxDisplayGear::Failure:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::F);
+            break;
+        case GearboxDisplayGear::SNA:
+        default:
+            this->tcm_disp_rq.set_TxDrvPosn_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM::BLANK);
+            break;
+    }
 }
 
 void Egs53Can::set_drive_profile(GearboxProfile p) {
@@ -236,11 +321,24 @@ void Egs53Can::set_drive_profile(GearboxProfile p) {
             this->tcm_disp_rq.set_TxDrvProg_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM::M);
             break;
         case GearboxProfile::Failure:
-            this->tcm_disp_rq.set_TxDrvProg_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM::S);
+            this->tcm_disp_rq.set_TxDrvProg_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM::F);
             break;
         default:
+            this->tcm_disp_rq.set_TxDrvProg_Disp_Rq_TCM(TCM_DISP_RQ_TxDrvProg_Disp_Rq_TCM::BLANK);
             break;
     }
+}
+
+void Egs53Can::set_last_shift_time(uint16_t time_ms) {
+
+}
+
+void Egs53Can::set_race_start(bool race_start) {
+
+}
+
+void Egs53Can::set_solenoid_pwm(uint8_t duty, SolenoidName s) {
+
 }
 
 void Egs53Can::set_display_msg(GearboxMessage msg) {
@@ -248,21 +346,18 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
 }
 
 /**
- * Parity calculation for torque numbers on GS218 and GS418
- * 
- * Each torque request member is a struct of 16 bits comprised of the following fields:
- * 1. Toggle bit (1 bit)
- * 2. Max request - bool (1 bit)
- * 3. Min request - bool (1 bit)
- * 4. Required torque - 13 bits
+ * Calculates CRC based on SAE-J180.
+ * As all the CAN Frames work the same, we always assume its the first 7 bytes, and result is to be placed
+ * in the 8th byte in the frame
  */
-inline bool calc_torque_parity(uint16_t s) {
-    uint16_t p = s;
-    p ^= (p >> 1);
-    p ^= (p >> 2);
-    p ^= (p >> 4);
-    p ^= (p >> 8);
-    return (p & 1) == 1;
+void calc_crc_in_place(uint8_t* buffer) {
+    uint8_t crc = 0xFF;
+    uint8_t x = 7;
+    const uint8_t* ptr = buffer;
+    while(x--) {
+        crc = crcTable[crc & *ptr++];
+    }
+    buffer[7] = crc;
 }
 
 inline void to_bytes(uint64_t src, uint8_t* dst) {
@@ -272,6 +367,7 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
     }
 }
 
+uint8_t msg_counter = 0;
 [[noreturn]]
 void Egs53Can::tx_task_loop() {
     uint64_t start_time;
@@ -309,8 +405,17 @@ void Egs53Can::tx_task_loop() {
         if (cvn_counter == 0x13) {
             cvn_counter = 0;
         }
+
+        // Set message counters
+        this->eng_rq1_tcm.set_MC_ENG_RQ1_TCM(msg_counter);
+        this->eng_rq2_tcm.set_MC_ENG_RQ2_TCM(msg_counter);
+        this->eng_rq3_tcm.set_MC_ENG_RQ3_TCM(msg_counter);
+        this->sbw_rs_tcm.set_MC_SBW_RS_TCM(msg_counter);
+        msg_counter++; // Global for all messages out of TCM
+
         tx.identifier = TCM_A2_CAN_ID;
         to_bytes(tcm_a2_tx.raw, tx.data);
+        calc_crc_in_place(tx.data);
         twai_transmit(&tx, 5);
 
         tx.identifier = TCM_A1_CAN_ID;
@@ -319,10 +424,12 @@ void Egs53Can::tx_task_loop() {
 
         tx.identifier = ENG_RQ1_TCM_CAN_ID;
         to_bytes(eng_rq1_tcm_tx.raw, tx.data);
+        calc_crc_in_place(tx.data);
         twai_transmit(&tx, 5);
 
         tx.identifier = ENG_RQ2_TCM_CAN_ID;
         to_bytes(eng_rq2_tcm_tx.raw, tx.data);
+        calc_crc_in_place(tx.data);
         twai_transmit(&tx, 5);
 
         if (counter == 5) {
@@ -335,10 +442,12 @@ void Egs53Can::tx_task_loop() {
 
         tx.identifier = ENG_RQ3_TCM_CAN_ID;
         to_bytes(eng_rq3_tcm_tx.raw, tx.data);
+        calc_crc_in_place(tx.data);
         twai_transmit(&tx, 5);
 
         tx.identifier = SBW_RS_TCM_CAN_ID;
         to_bytes(sbw_rs_tcm_tx.raw, tx.data);
+        calc_crc_in_place(tx.data);
         twai_transmit(&tx, 5);
 
         tx.identifier = NM_TCM_CAN_ID;

@@ -57,7 +57,7 @@ class Egs53Can: public AbstractCan {
         bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
         // 
         bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
-
+        bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
         /**
          * Setters
          */
@@ -90,12 +90,15 @@ class Egs53Can: public AbstractCan {
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter
         void set_turbine_torque_loss(uint16_t loss_nm) override;
-        // Sets display profile
-        void set_display_gear(char g) override;
+        // Sets display gear
+        void set_display_gear(GearboxDisplayGear g, bool manual_mode) override;
         // Sets drive profile
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
+        void set_last_shift_time(uint16_t time_ms) override;
+        void set_race_start(bool race_start) override;
+        void set_solenoid_pwm(uint8_t duty, SolenoidName s) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;

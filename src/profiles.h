@@ -26,7 +26,7 @@ extern pressure_map map_5_4;
 class AbstractProfile {
 public:
     virtual GearboxProfile get_profile() const;
-    virtual char get_display_gear(GearboxGear target, GearboxGear actual);
+    virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual);
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors);
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors);
     virtual ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) {
@@ -48,7 +48,7 @@ protected:
 class AgilityProfile : public AbstractProfile {
 public:
     GearboxProfile get_profile() const override { return GearboxProfile::Agility; }
-    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
@@ -57,7 +57,7 @@ public:
 class ComfortProfile : public AbstractProfile {
 public:
     GearboxProfile get_profile() const override { return GearboxProfile::Comfort; }
-    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
@@ -69,7 +69,7 @@ public:
 class WinterProfile : public AbstractProfile {
 public:
     GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
-    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
@@ -81,7 +81,7 @@ public:
 class StandardProfile : public AbstractProfile {
 public:
     GearboxProfile get_profile() const override { return GearboxProfile::Standard; }
-    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     void on_upshift_complete(ShiftResponse response, uint8_t from_gear, SensorData* sensors);
@@ -91,7 +91,7 @@ public:
 class ManualProfile : public AbstractProfile {
 public:
     GearboxProfile get_profile() const override { return GearboxProfile::Manual; }
-    char get_display_gear(GearboxGear target, GearboxGear actual) override;
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
 };

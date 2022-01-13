@@ -37,7 +37,7 @@ int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear) {
 }
 
 // RPM vs MPC pressure when driving (0-8000RPM)
-const uint16_t mpc_hold_pressure[9] = {350, 360, 370, 380, 390, 400, 410, 420, 430};
+const uint16_t mpc_hold_pressure[9] = {330, 340, 350, 360, 370, 380, 390, 400, 400};
 
 uint16_t find_mpc_hold_pressure(int engine_rpm, int temp_raw) {
     if (engine_rpm < 0) {
@@ -138,8 +138,6 @@ bool is_controllable_gear(GearboxGear g) {
         case GearboxGear::Third:
         case GearboxGear::Fourth:
         case GearboxGear::Fifth:
-        case GearboxGear::Sixth:
-        case GearboxGear::Seventh:
             return true;
         case GearboxGear::Park:
         case GearboxGear::SignalNotAvaliable:
@@ -159,8 +157,6 @@ bool is_fwd_gear(GearboxGear g) {
         case GearboxGear::Third:
         case GearboxGear::Fourth:
         case GearboxGear::Fifth:
-        case GearboxGear::Sixth:
-        case GearboxGear::Seventh:
             return true;
         case GearboxGear::Park:
         case GearboxGear::SignalNotAvaliable:
@@ -186,10 +182,6 @@ const char* gear_to_text(GearboxGear g) {
             return "D4";
         case GearboxGear::Fifth:
             return "D5";
-        case GearboxGear::Sixth:
-            return "D6";
-        case GearboxGear::Seventh:
-            return "D7";
         case GearboxGear::Park:
             return "P";
         case GearboxGear::SignalNotAvaliable:
@@ -221,11 +213,6 @@ GearboxGear next_gear(GearboxGear g) {
             return GearboxGear::Fourth;
         case GearboxGear::Fourth:
             return GearboxGear::Fifth;
-        case GearboxGear::Fifth:
-            return GearboxGear::Sixth;
-        case GearboxGear::Sixth:
-            return GearboxGear::Seventh;
-        case GearboxGear::Seventh:
         case GearboxGear::Park:
         case GearboxGear::SignalNotAvaliable:
         case GearboxGear::Neutral:
@@ -246,10 +233,6 @@ GearboxGear prev_gear(GearboxGear g) {
             return GearboxGear::Third;
         case GearboxGear::Fifth:
             return GearboxGear::Fourth;
-        case GearboxGear::Sixth:
-            return GearboxGear::Fifth;
-        case GearboxGear::Seventh:
-            return GearboxGear::Sixth;
         case GearboxGear::First:
         case GearboxGear::Park:
         case GearboxGear::SignalNotAvaliable:
@@ -287,6 +270,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     uint16_t initial_mpc = s.mpc_pwm;
     uint16_t initial_spc = s.spc_pwm;
     sol_mpc->write_pwm_percent_with_voltage(s.mpc_pwm, sensor_data.voltage);
+    vTaskDelay(100);
     sol_spc->write_pwm_percent_with_voltage(s.spc_pwm, this->sensor_data.voltage); // Open SPC
     shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     uint32_t elapsed = 0; // Counter for shift timing
@@ -312,11 +296,8 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 }
             }
         }
-        if (profile != nullptr) {
-            s = profile->get_shift_data(req_lookup, &this->sensor_data);
-        }
-        sol_mpc->write_pwm_percent_with_voltage((s.mpc_pwm+(initial_mpc*2))/3, this->sensor_data.voltage);
-        sol_spc->write_pwm_percent_with_voltage((s.spc_pwm+(initial_spc*2))/3, this->sensor_data.voltage); // Open SPC
+        sol_mpc->write_pwm_percent_with_voltage(initial_mpc, this->sensor_data.voltage);
+        sol_spc->write_pwm_percent_with_voltage(initial_spc, this->sensor_data.voltage); // Open SPC
         // Check using actual gear ratios (high speed moving, easiest way)
         if (this->est_gear_idx == targ_gear) {
             shift_measure_complete = true;
@@ -339,15 +320,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             last_rpm = new_rpm;
         }
         elapsed += SHIFT_DELAY_MS;
-        vTaskDelay(SHIFT_DELAY_MS);
+        vTaskDelay(SHIFT_DELAY_MS/portTICK_RATE_MS);
     }
     if (avg_d_rpm != 0) {
         avg_d_rpm /= rpm_samples;
     }
+    this->gear_disagree_count = 0;
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms). DELTAS: (Max: %d, Min: %d, Avg: %d)", targ_gear, elapsed, s.targ_ms, max_d_rpm, min_d_rpm, avg_d_rpm);
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
     shift_solenoid->write_pwm_12_bit(0);
     sol_spc->write_pwm_12_bit(0);
+    // Fade MPC back
     // Fade MPC back to normal
     this->shifting = false;
     this->flaring = false;
@@ -394,6 +377,7 @@ void Gearbox::shift_thread() {
             // Slowly ramp up SPC pressure again
             uint64_t start = sensor_data.current_timestamp_ms;
             while(esp_timer_get_time()/1000 - start < 2500) { // 2.5 second timeout
+            if (esp_timer_get_time()/1000 - start > 1000) {
                 int rpm = 0;
 
                 if (is_fwd_gear(curr_target)) {
@@ -406,7 +390,8 @@ void Gearbox::shift_thread() {
                 if (rpm < 100) { // In gear!
                     break;
                 }
-                vTaskDelay(25);
+            }
+                vTaskDelay(25/portTICK_RATE_MS);
             }
 
             sol_y4->write_pwm_percent(0);
@@ -460,6 +445,9 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
+                if (this->tcc != nullptr) {
+                    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, false);
+                }
                 response = elapse_shift(pgc, prof, sol, cur_g, tar_g);
                 if (response.time_ms != 0xFFFF) {
                     egs_can_hal->set_last_shift_time(response.time_ms);
@@ -509,6 +497,9 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
+                if (this->tcc != nullptr) {
+                    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, true);
+                }
                 resp = elapse_shift(pgc, prof, sol, cur_g, tar_g);
                 if (resp.time_ms != 0xFFFF) {
                     egs_can_hal->set_last_shift_time(resp.time_ms);
@@ -569,7 +560,7 @@ void Gearbox::controller_loop() {
                             gear_disagree_count++;
                             if (gear_disagree_count >= 50) {
                                 this->actual_gear = estimate; // DID NOT SHIFT!
-                                egs_can_hal->set_display_msg(GearboxMessage::RequestGearAgain);
+                                this->target_gear = estimate;
                             }
                         } else {
                             gear_disagree_count = 0;
@@ -772,13 +763,13 @@ void Gearbox::controller_loop() {
             if (this->flaring) {
                 // Takes president
                 egs_can_hal->set_display_msg(GearboxMessage::None);
-                egs_can_hal->set_display_gear('F');
+                egs_can_hal->set_display_gear(GearboxDisplayGear::Failure, false);
             } else {
-                egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear));
+                egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear), this->current_profile == manual);
             }
         }
         portEXIT_CRITICAL(&this->profile_mutex);
-        vTaskDelay(20); // 50 updates/sec!
+        vTaskDelay(20/portTICK_RATE_MS); // 50 updates/sec!
     }
 }
 
@@ -909,12 +900,4 @@ bool Gearbox::calcGearFromRatio(bool is_reverse) {
     }
     this->est_gear_idx = 0;
     return false;
-}
-
-void Gearbox::torque_converter_loop() {
-    while(true) {
-        vTaskDelay(200); // Assess every 200ms so we don't overcorrect
-    }
-    // In case we exit, unlock TCC!
-    sol_tcc->write_pwm_12_bit(0);
 }

@@ -57,8 +57,6 @@ enum class GearboxGear {
     Third = 3,
     Fourth = 4,
     Fifth = 5,
-    Sixth = 6,
-    Seventh = 7,
     Park = 8,
     Neutral = 9,
     Reverse_First = 10,
@@ -116,6 +114,21 @@ enum class SolenoidName {
     SPC,
     MPC,
     TCC
+};
+
+enum class GearboxDisplayGear {
+    P,
+    R,
+    N,
+    D,
+    A,
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Failure,
+    SNA,
 };
 
 enum class GearboxMessage {
@@ -229,7 +242,7 @@ class AbstractCan {
         // Sets the status of system error check
         virtual void set_error_check_status(SystemStatusCheck ssc);
         // Sets display profile
-        virtual void set_display_gear(char g);
+        virtual void set_display_gear(GearboxDisplayGear g, bool manual_mode);
         // Sets drive profile
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message

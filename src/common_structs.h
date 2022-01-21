@@ -37,6 +37,7 @@ typedef struct {
     uint16_t spc_pwm;
     uint16_t mpc_pwm;
     uint16_t targ_ms;
+    float shift_firmness;
 } ShiftData;
 
 const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500 };

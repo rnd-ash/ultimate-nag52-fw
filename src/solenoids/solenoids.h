@@ -30,7 +30,7 @@ public:
     void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv); // Write PWM percentage with voltage correction
     void write_pwm_12_bit(uint16_t pwm_raw); // Write raw 12bit PWM signal to solenoid
     void write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv); // Write 12bit PWM with voltage correction (Mainly used by torque converter solenoid)
-    uint8_t get_pwm(); // Returns PWM signal of solenoid
+    uint16_t get_pwm(); // Returns PWM signal of solenoid
     uint16_t get_current_estimate(); // Returns current estimate of the solenoid
     bool init_ok() const; // Did the solenoid initialize OK?
     uint16_t get_vref() const; // Gets the solenoids' vref's calibrated value
@@ -47,7 +47,7 @@ private:
     ledc_timer_t timer;
     portMUX_TYPE adc_reading_mutex;
     volatile uint16_t adc_reading;
-    uint8_t pwm = 0;
+    uint16_t pwm = 0;
 };
 
 bool init_all_solenoids();

@@ -3,7 +3,8 @@
 
 #include "can_hal.h"
 
-#define EGS53_MODE
+//#define EGS53_MODE
+#ifdef EGS53_MODE
 
 #include "TCM.h"
 #include "TSLM.h"
@@ -122,6 +123,6 @@ class Egs53Can: public AbstractCan {
         // ECU Data to Rx to
         bool can_init_ok = false;
 };
-
+#endif
 
 #endif // EGS53_CAN_H_

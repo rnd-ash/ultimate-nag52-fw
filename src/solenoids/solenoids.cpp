@@ -72,7 +72,7 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
         return;
     }
-    this->pwm = pwm_raw >> 4;
+    this->pwm = pwm_raw;
 }
 
 void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
@@ -88,7 +88,7 @@ void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
 
 void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv) {
     if (percent == 0) {
-        this->write_pwm_percent(0);
+        this->write_pwm_12_bit(0);
     }
     uint16_t want_percent = (float)percent * solenoid_vref / (float)curr_v_mv;;
     if (want_percent > 1000) {
@@ -106,10 +106,9 @@ void Solenoid::write_pwm_percent(uint16_t percent) {
     uint32_t clamped = (percent > 1000) ? 1000 : percent;
     uint32_t request = (4096 * clamped) / 1000;
     this->write_pwm_12_bit(request);
-    //this->write_pwm(request);
 }
 
-uint8_t Solenoid::get_pwm()
+uint16_t Solenoid::get_pwm()
 {   
     return this->pwm;
 }
@@ -271,7 +270,7 @@ bool init_all_solenoids()
     sol_tcc->write_pwm_12_bit(0);
 
     while(!all_calibrated) {
-        vTaskDelay(2);
+        vTaskDelay(2/portTICK_RATE_MS);
     }
     ESP_LOGI("SOLENOID", 
         "Solenoid calibration readings: Y3: %d, Y4: %d, Y5: %d, MPC: %d, SPC: %d, TCC: %d",

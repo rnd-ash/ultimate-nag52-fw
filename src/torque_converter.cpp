@@ -27,7 +27,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup,SensorData* sensors, bool shifting) {
+void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, SensorData* sensors, bool is_shifting) { // Only called when NOT changing gears
     uint8_t gear_id = get_gear_idx(curr_gear);
     uint8_t atf_id = get_temp_idx(sensors->atf_temp);
     uint64_t now = sensors->current_timestamp_ms;
@@ -49,52 +49,26 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup,Sensor
     }
     // What kind of lockup do we want?
     this->current_lockup = LockupType::Slip;
-    this->targ_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id];
-    if (shifting) {
-        last_modify_time = now;
-        sol_tcc->write_pwm_12_bit(torque_converter_adaptation[this->gear_idx].slip_values[atf_id]*0.9);
-        return;
-    }
+    this->targ_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id]; // For 40(ish) Nm
     // Different gear change?
     if (this->gear_idx != gear_id) {
         //ESP_LOGI("TCC", "GEAR_CHG");
         this->gear_idx = gear_id;
     }
     if (was_idle) {
-        //ESP_LOGI("TCC", "WAS_IDLE");
-        this->curr_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id] * 0.9;
+        this->curr_tcc_pwm = 100;
         this->was_idle = false;
-    } else if (this->curr_tcc_pwm < this->targ_tcc_pwm && sensors->pedal_pos != 0) { // Smooth low->High TCC PWM (Under gas only)
-        //ESP_LOGI("TCC","SMOOTHING %d to %d", curr_tcc_pwm, targ_tcc_pwm);
-        if (shifting) {
-            this->curr_tcc_pwm = this->targ_tcc_pwm+10; // Open TCC solenoid more
-            last_modify_time = now;
-        }
-        // Transitioning, trying to avoid slamming
-        /*
-        if (shifting) {
-            this->curr_tcc_pwm = this->targ_tcc_pwm;
-            last_modify_time = now;
-        }
-        int timeframe = (250*3-(sensors->pedal_pos*3))+10;
-        if (timeframe > 400) {
-            timeframe = 400;
-        }
-        if (now - last_modify_time > timeframe && abs(sensors->tcc_slip_rpm) > 100) {
-            ESP_LOGI("TCC","SMOOTHING %d to %d", curr_tcc_pwm, targ_tcc_pwm);
-            last_modify_time = now;
-            if (this->targ_tcc_pwm-this->curr_tcc_pwm < 2) {
-                this->curr_tcc_pwm++;
-            } else {
-                this->curr_tcc_pwm += 2;
+    } else if (this->curr_tcc_pwm < this->targ_tcc_pwm) { // Smooth low->High TCC PWM (Under gas only)
+        if (sensors->pedal_pos != 0 && sensors->tcc_slip_rpm > 10) {
+            int mod = sensors->tcc_slip_rpm/100;
+            if (sensors->pedal_pos < 150) {
+                mod /= 2;
             }
+            this->curr_tcc_pwm += mod;
         }
-        */
-        this->curr_tcc_pwm = this->targ_tcc_pwm;
     } else if (this->curr_tcc_pwm > this->targ_tcc_pwm) { // Jump High->Low TCC PWM
-        //ESP_LOGI("TCC","JUMP %d to %d", curr_tcc_pwm, targ_tcc_pwm);
-        this->curr_tcc_pwm = this->targ_tcc_pwm;
-    } else if (!shifting && this->curr_tcc_pwm == this->targ_tcc_pwm) { // Adapt the current value (Only when in stable gear)
+        this->curr_tcc_pwm--;
+    } else if (this->curr_tcc_pwm == this->targ_tcc_pwm) { // Adapt the current value (Only when in stable gear)
         // Same gear, check adaptation
         if (now-this->last_modify_time >= 500) {
             if (!torque_converter_adaptation[gear_id].learned[atf_id]) {
@@ -153,7 +127,10 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup,Sensor
             }
         }
     }
-    sol_tcc->write_pwm_12bit_with_voltage(this->curr_tcc_pwm, sensors->voltage);
+    if (!is_shifting) {
+        this->last_mpc_pwm = sol_mpc->get_pwm();
+    }
+    sol_tcc->write_pwm_12bit_with_voltage(this->curr_tcc_pwm + this->last_mpc_pwm/4, sensors->voltage);
 }
 
 void TorqueConverter::save_adaptation_data() {
@@ -163,5 +140,12 @@ void TorqueConverter::save_adaptation_data() {
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
-    this->last_modify_time = now + 1500; // Wait 3 seconds after shift before we are allowed to adapt
+    this->last_modify_time = 0;
+}
+
+void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness) {
+    if (this->curr_tcc_pwm > 1000) {
+        this->curr_tcc_pwm = 800;
+    }
+    this->last_modify_time = 0;
 }

@@ -13,6 +13,7 @@
 #include "nvs/eeprom_config.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
+#define EGS52_MODE
 
 Gearbox* gearbox;
 
@@ -68,11 +69,31 @@ void err_beep_loop(void* a) {
         egs_can_hal->set_gearbox_ok(false);
         while(1) {
             spkr.post(p);
-            vTaskDelay(2000);
+            vTaskDelay(2000/portTICK_RATE_MS);
         }
         vTaskDelete(NULL);
     }
 }
+
+#ifdef bench_test
+
+void solenoid_test(void*) {
+    init_all_solenoids();
+    uint16_t i = 0;
+    while(1) {
+        sol_mpc->write_pwm_12_bit(i);
+        sol_spc->write_pwm_12_bit(i);
+        sol_tcc->write_pwm_12_bit(i);
+
+        sol_y3->write_pwm_12_bit(i);
+        sol_y4->write_pwm_12_bit(i);
+        sol_y5->write_pwm_12_bit(i);
+        i++;
+        vTaskDelay(1);
+    }
+}
+
+#endif
 
 void printer(void*) {
     int atf_temp;
@@ -99,7 +120,7 @@ void printer(void*) {
             sol_tcc->get_current_estimate(),
             n2, n3
         );
-        vTaskDelay(1000);
+        vTaskDelay(1000/portTICK_RATE_MS);
     }
 }
 
@@ -148,7 +169,7 @@ void input_manager(void*) {
             }
             slast_pos = spos;
         }
-        vTaskDelay(20);
+        vTaskDelay(20/portTICK_RATE_MS);
     }
 }
 
@@ -173,15 +194,21 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+#ifndef bench_test
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOGE("INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
-            vTaskDelay(1000);
+            vTaskDelay(1000/portTICK_RATE_MS);
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
         //xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
+#endif
+#ifdef bench_test
+xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)SPEAKER_POST_CODE::INIT_OK, 2, nullptr);
+xTaskCreate(solenoid_test, "TEST_LOOP", 8192, nullptr, 2, nullptr);
+#endif
 }

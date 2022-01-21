@@ -3,7 +3,7 @@
 
 #include "can_hal.h"
 
-//#define EGS52_MODE
+#define EGS52_MODE
 
 #ifdef EGS52_MODE
 
@@ -95,7 +95,7 @@ class Egs52Can: public AbstractCan {
         // Sets torque loss of torque converter
         void set_turbine_torque_loss(uint16_t loss_nm) override;
         // Sets display profile
-        void set_display_gear(GearboxGear g, bool manual_mode) override;
+        void set_display_gear(GearboxDisplayGear g, bool manual_mode) override;
         // Sets drive profile
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message

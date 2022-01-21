@@ -34,14 +34,18 @@ float find_temp_multiplier(int temp_raw) {
     return (pressure_temp_normalizer[min] + ((dy/dx)) * (temp_raw-(min*10)));
 }
 
-float find_rpm_multiplier(int engine_rpm) {
-    if (engine_rpm < 0) { return rpm_normalizer[0]; }
-    else if (engine_rpm > 8000) { return rpm_normalizer[8]; }
-    int min = engine_rpm/1000;
+float find_rpm_multiplier(int engine_rpm, int input_rpm) {
+    int rpm = engine_rpm*0.9;
+    if (input_rpm > rpm) {
+        rpm = input_rpm;
+    }
+    if (rpm < 0) { return rpm_normalizer[0]; }
+    else if (rpm > 8000) { return rpm_normalizer[8]; }
+    int min = rpm/1000;
     int max = min+1;
     float dy = rpm_normalizer[max] - rpm_normalizer[min];
     float dx = (max-min)*1000;
-    return (rpm_normalizer[min] + ((dy/dx)) * (engine_rpm-(min*1000)));
+    return (rpm_normalizer[min] + ((dy/dx)) * (rpm-(min*1000)));
 }
 
 inline uint16_t locate_pressure_map_value(pressure_map map, int percent) {
@@ -64,7 +68,7 @@ uint16_t find_spc_pressure(pressure_map map, SensorData* sensors, float shift_sp
     }
     // SPC reacts to throttle position (Pedal) (Firmness dictates how aggressively to traverse this model)
     int load = (sensors->pedal_pos*100/250);
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_speed;
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm, sensors->input_rpm) * shift_speed;
 }
 
 uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_firmness) {
@@ -76,7 +80,7 @@ uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_fi
     // MPC reacts to Torque (Also sets pressure for SPC. Shift firmness can be increased)
     int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
     if (load < 0) { load = 0; } // Pulling engine
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_firmness;
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm, sensors->input_rpm) * shift_firmness;
 }
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -106,7 +110,25 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 
 ShiftData AgilityProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
-    return standard->get_shift_data(requested, sensors, 0.9, 0.9);
+    float shift_modifier = shift_speed;
+    float shift_firm = shift_firmness;
+    if (sensors->pedal_pos <= 25) { // <= 10%
+        shift_modifier = 1.1;
+        shift_firmness = 1.1;
+    } else if (sensors->pedal_pos <= 65) { // <= 25%
+        shift_modifier = 1.05;
+        shift_firm = 1.0;
+    } else if (sensors->pedal_pos <= 100) { // <= 40%
+        shift_modifier = 1.00;
+        shift_firm = 0.97;
+    } else if (sensors->pedal_pos <= 200) { // <= 80%
+        shift_modifier = 0.95;
+        shift_firm = 0.93;
+    } else { // 80%+
+        shift_modifier = 0.9;
+        shift_firm = 0.9;
+    }
+    return standard->get_shift_data(requested, sensors, shift_modifier, shift_firm);
 }
 
 bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
@@ -159,7 +181,7 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 }
 
 ShiftData WinterProfile::get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed, float shift_firmness) {
-    return standard->get_shift_data(requested, sensors, 1.05); // Same shift quality as C
+    return standard->get_shift_data(requested, sensors, 1.1, 1.00); // Same shift quality as C
 }
 
 GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -315,13 +337,15 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
     }
 }
 
-
-
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    /*
     if (current_gear == GearboxGear::Fifth) { return false; }
     int curr_rpm = sensors->input_rpm;
-    if (curr_rpm > 4000) { // Protect da engine
+    if (curr_rpm > 4500) { // Protect da engine
         return true;
+    }
+    if (sensors->pedal_pos == 0 || sensors->is_braking) { // Don't upshift if not pedal or braking
+        return false;
     }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0 / (float)(4500-1000);
@@ -341,17 +365,19 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && t-sensors->last_shift_time > 2000) {
         return true;
     }
+    */
     return false;
 }
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+    /*
     if (current_gear == GearboxGear::First) { return false; }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
     unsigned long t =  esp_timer_get_time()/1000;
     if (sensors->input_rpm < 1000 && current_gear != GearboxGear::Third && t-sensors->last_shift_time > 2000) {
         return true;
-    } else if (sensors->output_rpm < 500 && current_gear == GearboxGear::Third && t-sensors->last_shift_time > 2000) { // 3-2 downshift only at low speeds if idle
+    } else if (sensors->output_rpm < 200 && current_gear == GearboxGear::Third && t-sensors->last_shift_time > 2000) { // 3-2 downshift only at low speeds if idle
         return true;
     }
     else if (sensors->input_rpm < 2000 && pedal_perc > 60 && pedal_perc >= rpm_percent*2 && t-sensors->last_shift_time > 2000) {
@@ -362,6 +388,8 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     } else {
         return false;
     }
+    */
+   return false;
 }
 
 GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGear actual) {

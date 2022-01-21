@@ -37,6 +37,6 @@
     #define ATF_VI 154
 #endif
 
-#if !defined(ATF_40C) || !defined(ATF_100C)
+#if !defined(ATF_KV_40C) || !defined(ATF_KV_100C)
     #error "ATF viscosity undefined!"
 #endif

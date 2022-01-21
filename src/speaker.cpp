@@ -42,9 +42,9 @@ void Speaker::set_freq(uint32_t freq) {
 
 void Speaker::send_note(uint32_t freq, uint32_t play_time_ms, uint32_t total_time_ms) {
     this->set_freq(freq);
-    vTaskDelay(play_time_ms);
+    vTaskDelay(play_time_ms/portTICK_RATE_MS);
     this->set_freq(0);
-    vTaskDelay(total_time_ms-play_time_ms);
+    vTaskDelay((total_time_ms-play_time_ms)/portTICK_RATE_MS);
 }
 
 #define PULSE_LONG  500

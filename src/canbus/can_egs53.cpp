@@ -3,6 +3,8 @@
 #include "pins.h"
 #include "gearbox_config.h"
 
+#ifdef EGS53_MODE
+
 uint8_t crcTable[256]; // For CRC only
 
 Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
@@ -53,7 +55,6 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     this->eng_rq2_tcm.set_TxStyle(ENG_RQ2_TCM_TxStyle::SAT); // Stepped automatic gearbox
     this->eng_rq2_tcm.set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle::MS); // Mechanical shifting (With EWM module)
     this->tcm_disp_rq.set_TxShiftRcmmnd_Disp_Rq_TCM(TCM_DISP_RQ_TxShiftRcmmnd_Disp_Rq_TCM::UP);
-
     this->can_init_ok = true;
 }
 
@@ -495,3 +496,5 @@ void Egs53Can::rx_task_loop() {
         }
     }
 }
+
+#endif

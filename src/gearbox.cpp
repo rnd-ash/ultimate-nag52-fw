@@ -37,7 +37,7 @@ int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear) {
 }
 
 // RPM vs MPC pressure when driving (0-8000RPM)
-const uint16_t mpc_hold_pressure[9] = {330, 340, 350, 360, 370, 380, 390, 400, 400};
+const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
 
 uint16_t find_mpc_hold_pressure(int engine_rpm, int temp_raw) {
     if (engine_rpm < 0) {
@@ -269,11 +269,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     // Prime MPC
     uint16_t initial_mpc = s.mpc_pwm;
     uint16_t initial_spc = s.spc_pwm;
+    s.shift_firmness = 1.0;
+    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, curr_gear > targ_gear, s.shift_firmness);
     sol_mpc->write_pwm_percent_with_voltage(s.mpc_pwm, sensor_data.voltage);
-    vTaskDelay(100);
     sol_spc->write_pwm_percent_with_voltage(s.spc_pwm, this->sensor_data.voltage); // Open SPC
     shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     uint32_t elapsed = 0; // Counter for shift timing
+    ShiftData sd;
     // Change gears begin
     int start_rpm = this->sensor_data.input_rpm;    
     int max_d_rpm = 0;
@@ -296,8 +298,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 }
             }
         }
-        sol_mpc->write_pwm_percent_with_voltage(initial_mpc, this->sensor_data.voltage);
-        sol_spc->write_pwm_percent_with_voltage(initial_spc, this->sensor_data.voltage); // Open SPC
+        if (profile != nullptr) {
+            sd = profile->get_shift_data(req_lookup, &this->sensor_data);   
+        }
+        sol_mpc->write_pwm_percent_with_voltage(((initial_mpc*9) + (sd.mpc_pwm))/10, this->sensor_data.voltage);
+        sol_spc->write_pwm_percent_with_voltage(((initial_spc*9) + (sd.spc_pwm))/10, this->sensor_data.voltage); // Open SPC
         // Check using actual gear ratios (high speed moving, easiest way)
         if (this->est_gear_idx == targ_gear) {
             shift_measure_complete = true;
@@ -328,6 +333,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     this->gear_disagree_count = 0;
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (TO %d) (Actual time %d ms - Target was %d ms). DELTAS: (Max: %d, Min: %d, Avg: %d)", targ_gear, elapsed, s.targ_ms, max_d_rpm, min_d_rpm, avg_d_rpm);
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
+    this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     shift_solenoid->write_pwm_12_bit(0);
     sol_spc->write_pwm_12_bit(0);
     // Fade MPC back
@@ -445,15 +451,9 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                if (this->tcc != nullptr) {
-                    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, false);
-                }
                 response = elapse_shift(pgc, prof, sol, cur_g, tar_g);
                 if (response.time_ms != 0xFFFF) {
                     egs_can_hal->set_last_shift_time(response.time_ms);
-                    if (this->tcc != nullptr) {
-                        this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
-                    }
                     this->actual_gear = curr_target;
                     this->start_second = true;
                     if (prof == standard) {
@@ -497,15 +497,9 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                if (this->tcc != nullptr) {
-                    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, true);
-                }
                 resp = elapse_shift(pgc, prof, sol, cur_g, tar_g);
                 if (resp.time_ms != 0xFFFF) {
                     egs_can_hal->set_last_shift_time(resp.time_ms);
-                    if (this->tcc != nullptr) {
-                        this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
-                    }
                     this->actual_gear = curr_target;
                 }
                 else { // We didn't change gears!
@@ -725,12 +719,12 @@ void Gearbox::controller_loop() {
 
         egs_can_hal->set_target_gear(this->target_gear);
         egs_can_hal->set_actual_gear(this->actual_gear);
-        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm(), SolenoidName::Y3);
-        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm(), SolenoidName::Y4);
-        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm(), SolenoidName::Y5);
-        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm(), SolenoidName::SPC);
-        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm(), SolenoidName::MPC);
-        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm(), SolenoidName::TCC);
+        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm() >> 4, SolenoidName::Y3);
+        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm() >> 4, SolenoidName::Y4);
+        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm() >> 4, SolenoidName::Y5);
+        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm() >> 4, SolenoidName::SPC);
+        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm() >> 4, SolenoidName::MPC);
+        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm() >> 4, SolenoidName::TCC);
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX) {

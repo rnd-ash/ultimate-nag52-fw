@@ -392,14 +392,6 @@ void Egs52Can::set_actual_gear(GearboxGear actual) {
             this->gs418.set_GIC(GS_418h_GIC::G_D5);
             this->gs218.set_GIC(GS_218h_GIC::G_D5);
             break;
-        case GearboxGear::Sixth:
-            this->gs418.set_GIC(GS_418h_GIC::G_D6);
-            this->gs218.set_GIC(GS_218h_GIC::G_D6);
-            break;
-        case GearboxGear::Seventh:
-            this->gs418.set_GIC(GS_418h_GIC::G_D7);
-            this->gs218.set_GIC(GS_218h_GIC::G_D7);
-            break;
         case GearboxGear::SignalNotAvaliable:
         default:
             this->gs418.set_GIC(GS_418h_GIC::G_SNV);
@@ -445,14 +437,6 @@ void Egs52Can::set_target_gear(GearboxGear target) {
         case GearboxGear::Fifth:
             this->gs418.set_GZC(GS_418h_GZC::G_D5);
             this->gs218.set_GZC(GS_218h_GZC::G_D5);
-            break;
-        case GearboxGear::Sixth:
-            this->gs418.set_GZC(GS_418h_GZC::G_D6);
-            this->gs218.set_GZC(GS_218h_GZC::G_D6);
-            break;
-        case GearboxGear::Seventh:
-            this->gs418.set_GZC(GS_418h_GZC::G_D7);
-            this->gs218.set_GZC(GS_218h_GZC::G_D7);
             break;
         case GearboxGear::SignalNotAvaliable:
         default:
@@ -557,8 +541,47 @@ void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-void Egs52Can::set_display_gear(char g) {
-    this->gs418.set_FSC(g);
+void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
+    switch(g) {
+        case GearboxDisplayGear::P:
+            this->gs418.set_FSC('P');
+            break;
+        case GearboxDisplayGear::N:
+            this->gs418.set_FSC('N');
+            break;
+        case GearboxDisplayGear::R:
+            this->gs418.set_FSC('R');
+            break;
+        case GearboxDisplayGear::One:
+            this->gs418.set_FSC('1');
+            break;
+        case GearboxDisplayGear::Two:
+            this->gs418.set_FSC('2');
+            break;
+        case GearboxDisplayGear::Three:
+            this->gs418.set_FSC('3');
+            break;
+        case GearboxDisplayGear::Four:
+            this->gs418.set_FSC('4');
+            break;
+        case GearboxDisplayGear::Five:
+            this->gs418.set_FSC('5');
+            break;
+        case GearboxDisplayGear::A:
+            this->gs418.set_FSC('A');
+            break;
+        case GearboxDisplayGear::D:
+            this->gs418.set_FSC('D');
+            break;
+        case GearboxDisplayGear::Failure:
+            this->gs418.set_FSC('F');
+            break;
+        case GearboxDisplayGear::SNA:
+        default:
+            this->gs418.set_FSC(' ');
+            break;
+
+    }
 }
 
 void Egs52Can::set_drive_profile(GearboxProfile p) {

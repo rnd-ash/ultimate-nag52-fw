@@ -68,8 +68,6 @@ private:
     bool calc_output_rpm(int* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
-    [[noreturn]]
-    void torque_converter_loop();
 
     void shift_thread();
     bool start_second = true; // By default
@@ -80,10 +78,6 @@ private:
     [[noreturn]]
     static void start_controller_internal(void *_this) {
         static_cast<Gearbox*>(_this)->controller_loop();
-    }
-    [[noreturn]]
-    static void start_torque_converter(void *_this) {
-        static_cast<Gearbox*>(_this)->torque_converter_loop();
     }
     uint16_t temp_raw = 0;
     TaskHandle_t shift_task = nullptr;

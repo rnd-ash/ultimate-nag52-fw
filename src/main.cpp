@@ -7,13 +7,22 @@
 #include "speaker.h"
 #include "sensors.h"
 #include "canbus/can_egs52.h"
-//#include "canbus/can_egs53.h"
+#include "canbus/can_egs53.h"
+#include <gearbox_config.h>
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
-#define EGS52_MODE
+
+// Sanity check
+#if !defined(EGS52_MODE) && !defined(EGS53_MODE)
+    #error "No CAN definition (EGS52/EGS53)"
+#endif
+
+#if defined(EGS52_MODE) && defined(EGS53_MODE)
+    #error "Both EGS52 and EGS53 modes CANNOT be enabled at the same time!"
+#endif
 
 Gearbox* gearbox;
 
@@ -23,9 +32,11 @@ AbstractProfile* profiles[NUM_PROFILES];
 SPEAKER_POST_CODE setup_tcm()
 {
 #ifdef EGS52_MODE
+    #warning "Building with EGS52 CAN support"
     egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
 #endif
 #ifdef EGS53_MODE
+    #warning "Building with EGS53 CAN support"
     egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
 #endif
     if (!egs_can_hal->begin_tasks()) {
@@ -204,7 +215,7 @@ extern "C" void app_main(void)
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
-        //xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
+        xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
 #endif
 #ifdef bench_test

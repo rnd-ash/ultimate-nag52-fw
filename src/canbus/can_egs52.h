@@ -1,12 +1,9 @@
 #ifndef __EGS52_CAN_H_
 #define __EGS52_CAN_H_
-
-#include "can_hal.h"
-
-#define EGS52_MODE
+#include <gearbox_config.h>
 
 #ifdef EGS52_MODE
-
+#include "can_hal.h"
 #include "ANY_ECU.h"
 #include "ESP_SBC.h"
 #include "EWM.h"

@@ -34,18 +34,14 @@ float find_temp_multiplier(int temp_raw) {
     return (pressure_temp_normalizer[min] + ((dy/dx)) * (temp_raw-(min*10)));
 }
 
-float find_rpm_multiplier(int engine_rpm, int input_rpm) {
-    int rpm = engine_rpm*0.9;
-    if (input_rpm > rpm) {
-        rpm = input_rpm;
-    }
-    if (rpm < 0) { return rpm_normalizer[0]; }
-    else if (rpm > 8000) { return rpm_normalizer[8]; }
-    int min = rpm/1000;
+float find_rpm_multiplier(int engine_rpm) {
+    if (engine_rpm <= 0) { return rpm_normalizer[0]; }
+    else if (engine_rpm > 8000) { return rpm_normalizer[8]; }
+    int min = engine_rpm/1000;
     int max = min+1;
     float dy = rpm_normalizer[max] - rpm_normalizer[min];
     float dx = (max-min)*1000;
-    return (rpm_normalizer[min] + ((dy/dx)) * (rpm-(min*1000)));
+    return (rpm_normalizer[min] + ((dy/dx)) * (engine_rpm-(min*1000)));
 }
 
 inline uint16_t locate_pressure_map_value(pressure_map map, int percent) {
@@ -68,7 +64,7 @@ uint16_t find_spc_pressure(pressure_map map, SensorData* sensors, float shift_sp
     }
     // SPC reacts to throttle position (Pedal) (Firmness dictates how aggressively to traverse this model)
     int load = (sensors->pedal_pos*100/250);
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm, sensors->input_rpm) * shift_speed;
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_speed;
 }
 
 uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_firmness) {
@@ -80,7 +76,7 @@ uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_fi
     // MPC reacts to Torque (Also sets pressure for SPC. Shift firmness can be increased)
     int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
     if (load < 0) { load = 0; } // Pulling engine
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm, sensors->input_rpm) * shift_firmness;
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm) * shift_firmness;
 }
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {

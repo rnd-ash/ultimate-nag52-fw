@@ -24,4 +24,7 @@
     #define MAX_TORQUE_RATING_NM 330 // Little less than actual max of 330
 #endif
 
+#define EGS52_MODE // EGS52 CAN layer
+//#define EGS53_MODE // EGS53 CAN layer
+
 #endif // __GEARBOX_CONFIG_H_

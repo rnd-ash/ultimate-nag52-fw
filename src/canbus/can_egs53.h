@@ -1,11 +1,11 @@
 #ifndef __EGS53_CAN_H_
 #define __EGS53_CAN_H_
 
-#include "can_hal.h"
 
+#include <gearbox_config.h>
 //#define EGS53_MODE
 #ifdef EGS53_MODE
-
+#include "can_hal.h"
 #include "TCM.h"
 #include "TSLM.h"
 #include "FSCM.h"
@@ -115,7 +115,7 @@ class Egs53Can: public AbstractCan {
         SBW_RS_TCM sbw_rs_tcm = {0};
         TCM_DISP_RQ tcm_disp_rq = {0};
         NM_TCM nm_tcm = {0};
-
+        WHL_STAT2 eng_wheel_stat_1 = {0};
         ECU_ECM ecm_ecu = ECU_ECM();
         ECU_FSCM fscm_ecu = ECU_FSCM();
         ECU_TSLM tslm_ecu = ECU_TSLM();

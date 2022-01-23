@@ -283,7 +283,7 @@ bool init_all_solenoids()
     );
 
 #define SOL_THRESHOLD_ADC 500
-
+    /*
     if (sol_y3->get_vref() > 500) {
         ESP_LOGE("SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
         return false;
@@ -308,5 +308,6 @@ bool init_all_solenoids()
         ESP_LOGE("SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
+    */
     return true;
 }

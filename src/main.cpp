@@ -12,6 +12,7 @@
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
+#include "diag/kwp2000.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
 
@@ -25,6 +26,7 @@
 #endif
 
 Gearbox* gearbox;
+Kwp2000_server* diag_server;
 
 uint8_t profile_id = 0;
 AbstractProfile* profiles[NUM_PROFILES];
@@ -86,6 +88,7 @@ void err_beep_loop(void* a) {
     }
 }
 
+//#define bench_test
 #ifdef bench_test
 
 void solenoid_test(void*) {
@@ -99,8 +102,19 @@ void solenoid_test(void*) {
         sol_y3->write_pwm_12_bit(i);
         sol_y4->write_pwm_12_bit(i);
         sol_y5->write_pwm_12_bit(i);
-        i++;
-        vTaskDelay(1);
+        i+=10;
+        i= i & 0xFFF;
+        vTaskDelay(10);
+        ESP_LOGI(
+            "MAIN",
+            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA.",
+            sol_y3->get_current_estimate(),
+            sol_y4->get_current_estimate(),
+            sol_y5->get_current_estimate(),
+            sol_mpc->get_current_estimate(),
+            sol_spc->get_current_estimate(),
+            sol_tcc->get_current_estimate()
+        );
     }
 }
 
@@ -112,8 +126,7 @@ void printer(void*) {
     bool parking;
     uint32_t n2;
     uint32_t n3;
-    //spkr.broadcast_error_code(DtcCode::P2005);
-    //spkr.broadcast_error_code(DtcCode::P2564);
+    int x = 0;
     while(1) {
         Sensors::read_atf_temp(&atf_temp);
         Sensors::read_vbatt(&vbatt);
@@ -131,7 +144,7 @@ void printer(void*) {
             sol_tcc->get_current_estimate(),
             n2, n3
         );
-        vTaskDelay(1000/portTICK_RATE_MS);
+        vTaskDelay(2000/portTICK_RATE_MS);
     }
 }
 
@@ -217,6 +230,9 @@ extern "C" void app_main(void)
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
         xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
+    // Now spin up the KWP2000 server (last thing)
+    diag_server = new Kwp2000_server();
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
 #endif
 #ifdef bench_test
 xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)SPEAKER_POST_CODE::INIT_OK, 2, nullptr);

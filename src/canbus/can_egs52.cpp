@@ -50,7 +50,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
 #endif
     this->gs418.set_FRONT(false); // Primary rear wheel drive
     this->gs418.set_CVT(false); // Not CVT gearbox
-    this->gs418.set_MECH(GS_418h_MECH::KLEIN); // Small 722.6 for now! (TODO Handle 580)
+    this->gs418.set_MECH(GS_418h_MECH::GROSS); // Small 722.6 for now! (TODO Handle 580)
 
 
     // Covers setting NAB, a couple unknown but static values,
@@ -912,17 +912,30 @@ void Egs52Can::tx_task_loop() {
         start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
         // Todo handle additional ISOTP communication
+        if (this->diag_tx_queue != nullptr) {
+            DiagCanMessage buffer;
+            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
+                ESP_LOGI("EGS52_CAN_TX", "Sending diag frame to addr %04X", this->diag_tx_id);
+                // Popped message!
+                tx.data_length_code = 8;
+                tx.identifier = this->diag_tx_id;
+                memcpy(tx.data, buffer, 8);
+                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
+                twai_transmit(&tx, 5);
+            }
+        }
+
         taken = (esp_timer_get_time() / 1000) - start_time;
         if (taken < this->tx_time_ms) {
             vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
@@ -954,7 +967,17 @@ void Egs52Can::rx_task_loop() {
                     } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->misc_ecu.import_frames(tmp, rx.identifier, now)) {
-                    } else {} // TODO handle ISOTP endpoints
+                    } else if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
+                        // ISO-TP Diag endpoint
+                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
+                            // Send the frame
+                            DiagCanMessage msg;
+                            memcpy(msg, rx.data, 8);
+                            if (xQueueSend(*this->diag_rx_queue, msg, 0) != pdTRUE) {
+                                ESP_LOGE("EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                            }
+                        }
+                    } 
                 } else {
                     vTaskDelay(2 / portTICK_PERIOD_MS);
                 }

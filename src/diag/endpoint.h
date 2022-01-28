@@ -5,6 +5,7 @@
 #include <driver/uart.h>
 #include "esp_log.h"
 #include "string.h"
+#include "canbus/can_hal.h"
 
 #define DIAG_MSG_SIZE 512+4
 #define DIAG_MSG_TX_SIZE (512*2)+6
@@ -106,6 +107,14 @@ class UsbEndpoint: public AbstractEndpoint {
  * 
  */
 class CanEndpoint: public AbstractEndpoint {
+public:
+    CanEndpoint(AbstractCan* can_layer);
+    void send_data(DiagMessage* msg) override;
+    bool read_data(DiagMessage* dest) override;
+private:
+    AbstractCan* can;
+    QueueHandle_t rx_queue;
+    QueueHandle_t tx_queue;
     
 };
 

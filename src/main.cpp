@@ -88,37 +88,6 @@ void err_beep_loop(void* a) {
     }
 }
 
-//#define bench_test
-#ifdef bench_test
-
-void solenoid_test(void*) {
-    init_all_solenoids();
-    uint16_t i = 0;
-    while(1) {
-        sol_mpc->write_pwm_12_bit(i);
-        sol_spc->write_pwm_12_bit(i);
-        sol_tcc->write_pwm_12_bit(i);
-
-        sol_y3->write_pwm_12_bit(i);
-        sol_y4->write_pwm_12_bit(i);
-        sol_y5->write_pwm_12_bit(i);
-        i+=10;
-        i= i & 0xFFF;
-        vTaskDelay(10);
-        ESP_LOGI(
-            "MAIN",
-            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA.",
-            sol_y3->get_current_estimate(),
-            sol_y4->get_current_estimate(),
-            sol_y5->get_current_estimate(),
-            sol_mpc->get_current_estimate(),
-            sol_spc->get_current_estimate(),
-            sol_tcc->get_current_estimate()
-        );
-    }
-}
-
-#endif
 
 void printer(void*) {
     int atf_temp;
@@ -218,7 +187,6 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
-#ifndef bench_test
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
@@ -231,11 +199,7 @@ extern "C" void app_main(void)
         xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
     // Now spin up the KWP2000 server (last thing)
-    diag_server = new Kwp2000_server();
+    diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
-#endif
-#ifdef bench_test
-xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)SPEAKER_POST_CODE::INIT_OK, 2, nullptr);
-xTaskCreate(solenoid_test, "TEST_LOOP", 8192, nullptr, 2, nullptr);
-#endif
+    //xTaskCreate(solenoid_test, "TEST_LOOP", 8192, nullptr, 2, nullptr);
 }

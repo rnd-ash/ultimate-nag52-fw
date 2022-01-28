@@ -10,6 +10,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_log.h>
+#include <freertos/queue.h>
+#include <string.h>
 
 enum class WheelDirection {
     Forward, // Wheel going forwards
@@ -159,6 +161,8 @@ class AbstractCan {
             this->tx_time_ms = tx_time_ms;
             this->tx_task = nullptr;
             this->rx_task = nullptr;
+            this->diag_tx_queue = nullptr;
+            this->diag_rx_queue = nullptr;
         };
         virtual bool begin_tasks();
         ~AbstractCan();
@@ -247,10 +251,32 @@ class AbstractCan {
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message
         virtual void set_display_msg(GearboxMessage msg);
+
+        // For diagnostic passive mode
+        void enable_normal_msg_transmission() {
+            this->send_messages = true;
+        }
+
+        // For diagnostic passive mode
+        void disable_normal_msg_transmission() {
+            this->send_messages = false;
+        }
+
+        // For diagnostics
+        void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id, QueueHandle_t* tx_queue, uint16_t tx_id) {
+            this->diag_rx_queue = rx_queue;
+            this->diag_tx_queue = tx_queue;
+            this->diag_rx_id = rx_id;
+            this->diag_tx_id = tx_id;
+        }
+
     protected:
         TaskHandle_t* tx_task = nullptr;
         TaskHandle_t* rx_task = nullptr;
         uint8_t tx_time_ms = 0;
+
+        uint16_t diag_tx_id = 0;
+        uint16_t diag_rx_id = 0;
 
         [[noreturn]]
         virtual void tx_task_loop();
@@ -263,10 +289,16 @@ class AbstractCan {
         static void start_tx_task_loop(void *_this) {
             static_cast<AbstractCan*>(_this)->tx_task_loop();
         }
+        bool send_messages = true;
+
+        QueueHandle_t* diag_rx_queue;
+        QueueHandle_t* diag_tx_queue;
     private:
         const char* name;
 };
 
 extern AbstractCan* egs_can_hal;
+
+typedef uint8_t DiagCanMessage[8];
 
 #endif

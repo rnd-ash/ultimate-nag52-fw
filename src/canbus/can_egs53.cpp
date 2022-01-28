@@ -664,44 +664,34 @@ void Egs53Can::tx_task_loop() {
         tx.identifier = ENG_RQ1_TCM_CAN_ID;
         to_bytes(eng_rq1_tcm_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
         
         tx.identifier = ENG_RQ2_TCM_CAN_ID;
         to_bytes(eng_rq2_tcm_tx.raw, tx.data);  
         calc_crc_in_place(tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
 
         tx.identifier = TCM_A2_CAN_ID;
         to_bytes(tcm_a2_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
 
         tx.identifier = TCM_A1_CAN_ID;
         to_bytes(tcm_a1_tx.raw, tx.data);
-        twai_transmit(&tx, 5);
+        if (this->send_messages) { twai_transmit(&tx, 5); }
 
         if (counter == 5) {
             tx.identifier = TCM_DISP_RQ_CAN_ID;
             to_bytes(tcm_disp_rq_tx.raw, tx.data);
-            twai_transmit(&tx, 5);
+            if (this->send_messages) { twai_transmit(&tx, 5); }
             counter = 0;
         }
         counter++;
 
-        //tx.identifier = ENG_RQ3_TCM_CAN_ID;
-        //to_bytes(eng_rq3_tcm_tx.raw, tx.data);
-        //calc_crc_in_place(tx.data);
-        //twai_transmit(&tx, 5);
-
         tx.identifier = SBW_RS_TCM_CAN_ID;
         to_bytes(sbw_rs_tcm_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        twai_transmit(&tx, 5);
-
-        //tx.identifier = NM_TCM_CAN_ID;
-        //to_bytes(nm_tcm_tx.raw, tx.data);
-        //twai_transmit(&tx, 5);
-        
+        if (this->send_messages) { twai_transmit(&tx, 5); }
 
         // Todo handle additional ISOTP communication
         taken = (esp_timer_get_time() / 1000) - start_time;

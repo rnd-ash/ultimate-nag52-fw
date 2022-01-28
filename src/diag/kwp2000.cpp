@@ -1,4 +1,119 @@
 #include "kwp2000.h"
+#include <esp_ota_ops.h>
+#include <string>
+#include <time.h>
+
+typedef struct {
+    uint8_t day;
+    uint8_t month;
+    uint8_t year;
+    uint8_t week;
+} ECU_Date;
+
+uint8_t bcd_to_hex(char c) {
+    switch (c) {
+        case '0':
+            return 0x0;
+        case '1':
+            return 0x1;
+        case '2':
+            return 0x2;
+        case '3':
+            return 0x3;
+        case '4':
+            return 0x4;
+        case '5':
+            return 0x5;
+        case '6':
+            return 0x6;
+        case '7':
+            return 0x7;
+        case '8':
+            return 0x8;
+        case '9':
+            return 0x9;
+        case 'A':
+            return 0xA;
+        case 'B':
+            return 0xB;
+        case 'C':
+            return 0xC;
+        case 'D':
+            return 0xD;
+        case 'E':
+            return 0xE;
+        default:
+            return 0xF;
+    }
+}
+
+ECU_Date fw_date_to_bcd(char* date) {
+    uint8_t month = 0x01;
+    uint8_t month_base_10 = 0;
+    uint16_t days_since_year = 0;
+    if (strncmp("Jan", date, 3) == 0) {
+        month = 0x01;
+        month_base_10 = 1;
+    } else if (strncmp("Feb", date, 3) == 0) {
+        month = 0x02;
+        month_base_10 = 2;
+    } else if (strncmp("Mar", date, 3) == 0) {
+        month = 0x03;
+        month_base_10 = 3;
+    } else if (strncmp("Apr", date, 3) == 0) {
+        month = 0x04;
+        month_base_10 = 4;
+    } else if (strncmp("May", date, 3) == 0) {
+        month = 0x05;
+        month_base_10 = 5;
+    } else if (strncmp("Jun", date, 3) == 0) {
+        month = 0x06;
+        month_base_10 = 6;
+    } else if (strncmp("Jul", date, 3) == 0) {
+        month = 0x07;
+        month_base_10 = 7;
+    } else if (strncmp("Aug", date, 3) == 0) {
+        month = 0x08;
+        month_base_10 = 8;
+    } else if (strncmp("Sep", date, 3) == 0) {
+        month = 0x09;
+        month_base_10 = 9;
+    } else if (strncmp("Oct", date, 3) == 0) {
+        month = 0x10;
+        month_base_10 = 10;
+    } else if (strncmp("Nov", date, 3) == 0) {
+        month = 0x11;
+        month_base_10 = 11;
+    } else if (strncmp("Dec", date, 3) == 0) {
+        month = 0x12;
+        month_base_10 = 12;
+    } else {
+        month_base_10 = 99;
+        month = 0x99; //??
+    }
+
+    uint8_t day_base_10 =((date[4] - '0') * 10) + (date[5]-'0'); // Hacky way
+    uint8_t day = ((bcd_to_hex(date[4]) & 0x0f) << 4) | bcd_to_hex(date[5]);
+    uint8_t year = ((bcd_to_hex(date[9]) & 0x0f) << 4) | bcd_to_hex(date[10]);
+    uint8_t year_base_10 =((date[9] - '0') * 10) + (date[10]-'0'); // Hacky way
+    
+    struct tm time;
+    memset(&time, 0, sizeof(time));
+    char timebuf[4];
+    time.tm_mday = day_base_10;
+    time.tm_year = 100 + day_base_10;
+    time.tm_mon = month_base_10-1;
+    mktime(&time);
+    strftime(timebuf, 4, "%W", &time);
+    uint8_t week = ((bcd_to_hex(timebuf[0]) & 0x0f) << 4) | bcd_to_hex(timebuf[1]);
+
+    return ECU_Date {
+        .day = day,
+        .month = month,
+        .year = year,
+        .week = week
+    };
+}
 
 Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
     this->next_tp_time = 0;
@@ -8,6 +123,8 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
     this->can_endpoint = new CanEndpoint(can_layer);
+    // Start ISO-TP endpoint
+    xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
@@ -28,6 +145,7 @@ void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t* resp, uint16_t len)
 }
 
 void Kwp2000_server::server_loop() {
+    this->send_resp = false;
     while(1) {
         bool read_msg = false;
         bool endpoint_was_usb = false;
@@ -39,6 +157,7 @@ void Kwp2000_server::server_loop() {
             read_msg = true;
         }
         if (read_msg) {
+            ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 break; // Huh?
             }
@@ -52,6 +171,9 @@ void Kwp2000_server::server_loop() {
                     break;
                 case SID_ECU_RESET:
                     this->process_ecu_reset(args_ptr, args_size);
+                    break;
+                case SID_READ_ECU_IDENT:
+                    this->process_read_ecu_ident(args_ptr, args_size);
                     break;
                 case SID_TESTER_PRESENT:
                     this->process_tester_present(args_ptr, args_size);
@@ -147,9 +269,50 @@ void Kwp2000_server::process_clear_diag_info(uint8_t* args, uint16_t arg_len) {
 void Kwp2000_server::process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len) {
 
 }
-void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
 
+void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
+    // Any diagnostic session
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    esp_app_desc_t running_info;
+    esp_ota_get_partition_description(running, &running_info);
+    if (args[0] == 0x86) {
+        ECU_Date date = fw_date_to_bcd(running_info.date);
+        uint8_t daimler_ident_data[17];
+        memset(daimler_ident_data, 0x00, 17);
+        // Part number
+        daimler_ident_data[1] = 0x01;
+        daimler_ident_data[2] = 0x23;
+        daimler_ident_data[3] = 0x45;
+        daimler_ident_data[4] = 0x67;
+        daimler_ident_data[5] = 0x89;
+        // ECU Hardware date
+        daimler_ident_data[6] = date.week;
+        daimler_ident_data[7] = date.year;
+        // ECU Software date
+        daimler_ident_data[8] = date.week;
+        daimler_ident_data[9] = date.year;
+        daimler_ident_data[10] = SUPPLIER_ID;
+        daimler_ident_data[11] = DIAG_VARIANT_CODE >> 8;
+        daimler_ident_data[12] = DIAG_VARIANT_CODE & 0xFF;
+        daimler_ident_data[14] = date.year;
+        daimler_ident_data[15] = date.month;
+        daimler_ident_data[16] = date.day;
+        make_diag_pos_msg(SID_READ_ECU_IDENT, daimler_ident_data, 17);
+        return;
+    } else if (args[0] == 0x88) {
+        // VIN (Original) - Let this be partition name
+
+        make_diag_pos_msg(SID_READ_ECU_IDENT, (uint8_t*)running->label, 17);
+        return;
+    }
+
+    make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
 }
+
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
 
 }

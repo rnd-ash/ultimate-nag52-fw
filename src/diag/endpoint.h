@@ -7,14 +7,19 @@
 #include "string.h"
 #include "canbus/can_hal.h"
 
-#define DIAG_MSG_SIZE 512+4
-#define DIAG_MSG_TX_SIZE (512*2)+6
+#define DIAG_CAN_MAX_SIZE 256
 
 typedef struct {
     uint16_t id;
-    uint16_t data_size;
-    uint8_t data[512]; // 512B messages max (EGS52/3 is always max 256 bytes)
+    uint8_t data_size;
+    uint8_t data[DIAG_CAN_MAX_SIZE]; // 512B messages max (EGS52/3 is always max 256 bytes)
 } DiagMessage;
+
+typedef struct {
+    uint8_t data[DIAG_CAN_MAX_SIZE];
+    uint8_t curr_pos;
+    uint8_t max_pos;
+} CanEndpointMsg;
 
 /**
  * @brief Abstract endpoint
@@ -38,7 +43,7 @@ class UsbEndpoint: public AbstractEndpoint {
         UsbEndpoint() : AbstractEndpoint() {
             esp_err_t e;
 
-            e = uart_driver_install(0, DIAG_MSG_SIZE, DIAG_MSG_SIZE, 0, nullptr, 0);
+            e = uart_driver_install(0, DIAG_CAN_MAX_SIZE, DIAG_CAN_MAX_SIZE, 0, nullptr, 0);
             if (e != ESP_OK) {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
                 return;
@@ -97,9 +102,12 @@ class UsbEndpoint: public AbstractEndpoint {
             return false;
         }
     private:
-        char read_buffer[DIAG_MSG_SIZE];
+        char read_buffer[DIAG_CAN_MAX_SIZE+6];
         uint16_t read_pos;
         QueueHandle_t uart_queue;
+        bool clear_to_send = false;
+        bool is_sending = false;
+        uint8_t pci = 0x20;
 };
 
 /**
@@ -111,11 +119,33 @@ public:
     CanEndpoint(AbstractCan* can_layer);
     void send_data(DiagMessage* msg) override;
     bool read_data(DiagMessage* dest) override;
+    static void start_iso_tp(void *_this) {
+        static_cast<CanEndpoint*>(_this)->iso_tp_server_loop();
+    }
 private:
+
+    void process_single_frame(DiagCanMessage msg);
+    void process_start_frame(DiagCanMessage msg);
+    void process_multi_frame(DiagCanMessage msg);
+    void process_flow_control(DiagCanMessage msg);
+
+    [[noreturn]]
+    void iso_tp_server_loop();
     AbstractCan* can;
     QueueHandle_t rx_queue;
     QueueHandle_t tx_queue;
-    
+    CanEndpointMsg tx_msg;
+    CanEndpointMsg rx_msg;
+    QueueHandle_t read_msg_queue;
+    QueueHandle_t send_msg_queue;
+    CanEndpointMsg tmp;
+    bool is_sending;
+    bool clear_to_send;
+    bool is_receiving;
+    uint8_t rx_bs;
+    uint8_t tx_pci = 0x20;
+    uint64_t last_rx_time;
+    uint64_t last_tx_time;
 };
 
 

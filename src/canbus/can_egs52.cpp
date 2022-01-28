@@ -926,7 +926,6 @@ void Egs52Can::tx_task_loop() {
         if (this->diag_tx_queue != nullptr) {
             DiagCanMessage buffer;
             if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
-                ESP_LOGI("EGS52_CAN_TX", "Sending diag frame to addr %04X", this->diag_tx_id);
                 // Popped message!
                 tx.data_length_code = 8;
                 tx.identifier = this->diag_tx_id;

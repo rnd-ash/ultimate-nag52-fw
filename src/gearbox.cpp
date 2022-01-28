@@ -532,6 +532,29 @@ void Gearbox::inc_subprofile() {
 }
 
 void Gearbox::controller_loop() {
+    uint16_t state = egs_can_hal->get_engine_rpm(esp_timer_get_time()/1000, 500);
+    uint16_t voltage;
+    if (Sensors::read_vbatt(&voltage) && ((state == UINT16_MAX) || (state < 200)) && voltage > 10000) {
+        // Test solenoids on launch
+        sol_mpc->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_mpc->write_pwm_12_bit(0);
+        sol_spc->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_spc->write_pwm_12_bit(0);
+        sol_tcc->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_tcc->write_pwm_12_bit(0);
+        sol_y3->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_y3->write_pwm_12_bit(0);
+        sol_y4->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_y4->write_pwm_12_bit(0);
+        sol_y5->write_pwm_12bit_with_voltage(3072, voltage);
+        vTaskDelay(80);
+        sol_y5->write_pwm_12_bit(0);
+    }
     bool lock_state = false;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
     // Before we enter, we have to check what gear we are in as the 'actual gear'

@@ -8,6 +8,19 @@
 #include "kwp2000_defines.h"
 #include "gearbox.h"
 #include "canbus/can_hal.h"
+#include "gearbox_config.h"
+
+// Ident data
+
+#ifdef EGS53_MODE
+    #define SUPPLIER_ID 0x08 // Simens
+    #define DIAG_VARIANT_CODE 0x0353 // DiagVersion53_EGS53
+#endif
+
+#ifdef EGS52_MODE
+    #define SUPPLIER_ID 0x08 // Simens
+    #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
+#endif
 
 class Kwp2000_server {
     public:
@@ -26,7 +39,7 @@ class Kwp2000_server {
         DiagMessage rx_msg;
         UsbEndpoint* usb_diag_endpoint;
         CanEndpoint* can_endpoint;
-        
+
         bool send_resp;
         bool reboot_pending;
 

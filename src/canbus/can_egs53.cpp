@@ -694,6 +694,17 @@ void Egs53Can::tx_task_loop() {
         if (this->send_messages) { twai_transmit(&tx, 5); }
 
         // Todo handle additional ISOTP communication
+        if (this->diag_tx_queue != nullptr) {
+            DiagCanMessage buffer;
+            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
+                // Popped message!
+                tx.data_length_code = 8;
+                tx.identifier = this->diag_tx_id;
+                memcpy(tx.data, buffer, 8);
+                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
+                twai_transmit(&tx, 5);
+            }
+        }
         taken = (esp_timer_get_time() / 1000) - start_time;
         if (taken < this->tx_time_ms) {
             vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
@@ -724,7 +735,17 @@ void Egs53Can::rx_task_loop() {
                     if(this->ecm_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->fscm_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->tslm_ecu.import_frames(tmp, rx.identifier, now)) {
-                    }else {} // TODO handle ISOTP endpoints
+                    } else if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
+                        // ISO-TP Diag endpoint
+                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
+                            // Send the frame
+                            DiagCanMessage msg;
+                            memcpy(msg, rx.data, 8);
+                            if (xQueueSend(*this->diag_rx_queue, msg, 0) != pdTRUE) {
+                                ESP_LOGE("EGS53_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                            }
+                        }
+                    } 
                 } else {
                     vTaskDelay(2 / portTICK_PERIOD_MS);
                 }

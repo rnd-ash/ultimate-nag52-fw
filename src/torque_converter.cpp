@@ -144,8 +144,15 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness) {
-    if (this->curr_tcc_pwm > 1000) {
-        this->curr_tcc_pwm = 800;
+    if (is_downshift) {
+        if (this->curr_tcc_pwm > 200 && this->targ_tcc_pwm > 200) {
+            this->targ_tcc_pwm -= 200;
+            this->curr_tcc_pwm -= 200;
+        }
+    } else {
+        if (this->curr_tcc_pwm < this->targ_tcc_pwm) {
+            this->curr_tcc_pwm = this->targ_tcc_pwm;
+        }
     }
     this->last_modify_time = 0;
 }

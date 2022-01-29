@@ -55,6 +55,9 @@ public:
     bool start_controller();
     void inc_gear_request();
     void dec_gear_request();
+    void diag_inhibit_control() { this->control_solenoids = false; }
+    void diag_regain_control() { this->control_solenoids = true; }
+    SensorData sensor_data;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, Solenoid* shift_solenoid, uint8_t curr_gear, uint8_t targ_gear);
     bool calcGearFromRatio(bool is_reverse);
@@ -93,8 +96,8 @@ private:
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     TorqueConverter* tcc = nullptr;
-    SensorData sensor_data;
     TempSampleData temp_data;
+    bool control_solenoids = true;
 };
 
 #endif

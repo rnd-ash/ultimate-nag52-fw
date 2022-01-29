@@ -22,6 +22,8 @@
     #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
 #endif
 
+#define ROUTINE_SOLENOID_TEST 0xDE
+
 class Kwp2000_server {
     public:
         Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox);
@@ -39,6 +41,11 @@ class Kwp2000_server {
         DiagMessage rx_msg;
         UsbEndpoint* usb_diag_endpoint;
         CanEndpoint* can_endpoint;
+        bool routine_running = false;
+        TaskHandle_t routine_task;
+        uint8_t routine_id = 0x00;
+        uint8_t routine_result[255];
+        uint8_t routine_results_len = 0;
 
         bool send_resp;
         bool reboot_pending;
@@ -72,6 +79,12 @@ class Kwp2000_server {
 
         void make_diag_neg_msg(uint8_t sid, uint8_t nrc);
         void make_diag_pos_msg(uint8_t sid, uint8_t* resp, uint16_t len);
+
+        static void launch_solenoid_test(void *_this) {
+            static_cast<Kwp2000_server*>(_this)->run_solenoid_test();
+        }
+
+        void run_solenoid_test();
 
         Gearbox* gearbox_ptr;
         AbstractCan* can_layer;

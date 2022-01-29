@@ -536,23 +536,23 @@ void Gearbox::controller_loop() {
     uint16_t voltage;
     if (Sensors::read_vbatt(&voltage) && ((state == UINT16_MAX) || (state < 200)) && voltage > 10000) {
         // Test solenoids on launch
-        sol_mpc->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_mpc->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_mpc->write_pwm_12_bit(0);
-        sol_spc->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_spc->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_spc->write_pwm_12_bit(0);
-        sol_tcc->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_tcc->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_tcc->write_pwm_12_bit(0);
-        sol_y3->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_y3->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_y3->write_pwm_12_bit(0);
-        sol_y4->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_y4->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_y4->write_pwm_12_bit(0);
-        sol_y5->write_pwm_12bit_with_voltage(3072, voltage);
-        vTaskDelay(80);
+        sol_y5->write_pwm_12bit_with_voltage(2048, voltage);
+        vTaskDelay(50);
         sol_y5->write_pwm_12_bit(0);
     }
     bool lock_state = false;
@@ -641,7 +641,7 @@ void Gearbox::controller_loop() {
             }
         }
         if (this->sensor_data.engine_rpm > 500) {
-            if (!shifting) {
+            if (!shifting && control_solenoids) {
                 sol_mpc->write_pwm_percent_with_voltage(find_mpc_hold_pressure(sensor_data.engine_rpm, sensor_data.atf_temp), sensor_data.voltage);
             }
             if (is_fwd_gear(this->actual_gear)) {
@@ -723,12 +723,14 @@ void Gearbox::controller_loop() {
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         } else {
-            sol_mpc->write_pwm_12_bit(0);
-            sol_spc->write_pwm_12_bit(0);
-            sol_tcc->write_pwm_12_bit(0);
-            sol_y3->write_pwm_12_bit(0);
-            sol_y4->write_pwm_12_bit(0);
-            sol_y5->write_pwm_12_bit(0);
+            if (control_solenoids) {
+                sol_mpc->write_pwm_12_bit(0);
+                sol_spc->write_pwm_12_bit(0);
+                sol_tcc->write_pwm_12_bit(0);
+                sol_y3->write_pwm_12_bit(0);
+                sol_y4->write_pwm_12_bit(0);
+                sol_y5->write_pwm_12_bit(0);
+            }
         }
         int tmp_atf = 0;
         if (!Sensors::read_atf_temp(&tmp_atf)) {

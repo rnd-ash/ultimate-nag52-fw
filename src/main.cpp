@@ -113,7 +113,7 @@ void printer(void*) {
             sol_tcc->get_current_estimate(),
             n2, n3
         );
-        vTaskDelay(2000/portTICK_RATE_MS);
+        vTaskDelay(200/portTICK_RATE_MS);
     }
 }
 

@@ -178,6 +178,12 @@ void Kwp2000_server::server_loop() {
                 case SID_TESTER_PRESENT:
                     this->process_tester_present(args_ptr, args_size);
                     break;
+                case SID_START_ROUTINE_BY_LOCAL_IDENT:
+                    this->process_start_routine_by_local_ident(args_ptr, args_size);
+                    break;
+                case SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT:
+                    this->process_request_routine_resutls_by_local_ident(args_ptr, args_size);
+                    break;
                 default:
                     ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
@@ -305,7 +311,6 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         return;
     } else if (args[0] == 0x88) {
         // VIN (Original) - Let this be partition name
-
         make_diag_pos_msg(SID_READ_ECU_IDENT, (uint8_t*)running->label, 17);
         return;
     }
@@ -341,13 +346,55 @@ void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_le
 
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->routine_running) {
+        // Already running!
+        make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return;
+    }
+    if (arg_len == 1) {
+        if (args[0] == ROUTINE_SOLENOID_TEST) {
+            if (gearbox_ptr->sensor_data.engine_rpm == 0 && gearbox_ptr->sensor_data.input_rpm == 0) {
+                this->routine_running = true;
+                this->routine_id = ROUTINE_SOLENOID_TEST;
+                xTaskCreate(Kwp2000_server::launch_solenoid_test, "RT_SOL_TEST", 2048, this, 5, &this->routine_task);
+                uint8_t resp[1] = {ROUTINE_SOLENOID_TEST};
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else {
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
+        } else {
+            make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        }
+    } else {
+        make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+    }
 }
 void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
-
+    
 }
 void Kwp2000_server::process_request_routine_resutls_by_local_ident(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->routine_running) {
+        // Already running!
+        make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return;
+    }
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (args[0] != this->routine_id) {
+        make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return;
+    }
+    make_diag_pos_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, this->routine_result, this->routine_results_len);
 }
 void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
 
@@ -386,4 +433,108 @@ void Kwp2000_server::process_control_dtc_settings(uint8_t* args, uint16_t arg_le
 }
 void Kwp2000_server::process_response_on_event(uint8_t* args, uint16_t arg_len) {
 
+}
+
+
+
+void Kwp2000_server::run_solenoid_test() {
+    this->gearbox_ptr->diag_inhibit_control();
+    ESP_LOGI("RT_SOL_TEST", "Starting solenoid test");
+    this->routine_results_len = 7;
+    // Routine results format
+    // 6 bytes (1 per solenoid)
+    // 0x00 - OK
+    // 0x0F - Overcurrent when 0 (Short detected)
+    // 0xF0 - Undercurrent when open (Possible sensor fault)
+    memset(this->routine_result, 0, 7);
+    this->routine_result[0] = this->routine_id;
+    sol_mpc->write_pwm_12_bit(0);
+    sol_spc->write_pwm_12_bit(0);
+    sol_tcc->write_pwm_12_bit(0);
+    sol_y3->write_pwm_12_bit(0);
+    sol_y4->write_pwm_12_bit(0);
+    sol_y5->write_pwm_12_bit(0);
+    vTaskDelay(1000);
+    if (sol_mpc->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "MPC overcurrent");
+        this->routine_result[1] = 0x0F;
+    }
+    if (sol_spc->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "SPC overcurrent");
+        this->routine_result[2] = 0x0F;
+    }
+    if (sol_tcc->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "TCC overcurrent");
+        this->routine_result[3] = 0x0F;
+    }
+    if (sol_y3->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "Y3 overcurrent");
+        this->routine_result[4] = 0x0F;
+    }
+    if (sol_y4->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "Y4 overcurrent");
+        this->routine_result[5] = 0x0F;
+    }
+    if (sol_y5->get_current_estimate() > 100) {
+        ESP_LOGE("RT_SOL_TEST", "Y5 overcurrent");
+        this->routine_result[6] = 0x0F;
+    }
+    // Now test each solenoid 1x1
+    sol_mpc->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_mpc->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "MPC undercurrent %d", sol_mpc->get_current_estimate());
+        this->routine_result[1] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_mpc->write_pwm_12_bit(0);
+    vTaskDelay(100);
+    sol_spc->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_spc->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "SPC undercurrent %d", sol_spc->get_current_estimate());
+        this->routine_result[2] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_spc->write_pwm_12_bit(0);
+    vTaskDelay(100);
+    sol_tcc->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_tcc->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "TCC undercurrent %d", sol_tcc->get_current_estimate());
+        this->routine_result[3] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_tcc->write_pwm_12_bit(0);
+    vTaskDelay(100);
+    sol_y3->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_y3->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "Y3 undercurrent %d", sol_y3->get_current_estimate());
+        this->routine_result[4] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_y3->write_pwm_12_bit(0);
+    vTaskDelay(100);
+    sol_y4->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_y4->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "Y4 undercurrent %d", sol_y4->get_current_estimate());
+        this->routine_result[5] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_y4->write_pwm_12_bit(0);
+    vTaskDelay(100);
+    sol_y5->write_pwm_12_bit(2048);
+    vTaskDelay(700);
+    if (sol_y5->get_current_estimate() < 500) {
+        ESP_LOGE("RT_SOL_TEST", "Y5 undercurrent %d", sol_y5->get_current_estimate());
+        this->routine_result[6] |= 0xF0;
+        //goto cleanup;
+    }
+    sol_y5->write_pwm_12_bit(0);
+    ESP_LOGI("RT_SOL_TEST", "Cleaning up");
+    this->routine_running = false;
+    this->gearbox_ptr->diag_regain_control();
+    vTaskDelete(nullptr);
 }

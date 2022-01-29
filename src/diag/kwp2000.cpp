@@ -481,52 +481,47 @@ void Kwp2000_server::run_solenoid_test() {
     }
     // Now test each solenoid 1x1
     sol_mpc->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_mpc->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "MPC undercurrent %d", sol_mpc->get_current_estimate());
         this->routine_result[1] |= 0xF0;
         //goto cleanup;
     }
     sol_mpc->write_pwm_12_bit(0);
-    vTaskDelay(100);
     sol_spc->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_spc->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "SPC undercurrent %d", sol_spc->get_current_estimate());
         this->routine_result[2] |= 0xF0;
         //goto cleanup;
     }
     sol_spc->write_pwm_12_bit(0);
-    vTaskDelay(100);
     sol_tcc->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_tcc->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "TCC undercurrent %d", sol_tcc->get_current_estimate());
         this->routine_result[3] |= 0xF0;
         //goto cleanup;
     }
     sol_tcc->write_pwm_12_bit(0);
-    vTaskDelay(100);
     sol_y3->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_y3->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "Y3 undercurrent %d", sol_y3->get_current_estimate());
         this->routine_result[4] |= 0xF0;
         //goto cleanup;
     }
     sol_y3->write_pwm_12_bit(0);
-    vTaskDelay(100);
     sol_y4->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_y4->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "Y4 undercurrent %d", sol_y4->get_current_estimate());
         this->routine_result[5] |= 0xF0;
         //goto cleanup;
     }
     sol_y4->write_pwm_12_bit(0);
-    vTaskDelay(100);
     sol_y5->write_pwm_12_bit(2048);
-    vTaskDelay(700);
+    vTaskDelay(600);
     if (sol_y5->get_current_estimate() < 500) {
         ESP_LOGE("RT_SOL_TEST", "Y5 undercurrent %d", sol_y5->get_current_estimate());
         this->routine_result[6] |= 0xF0;

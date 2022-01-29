@@ -730,6 +730,8 @@ void Gearbox::controller_loop() {
                 sol_y3->write_pwm_12_bit(0);
                 sol_y4->write_pwm_12_bit(0);
                 sol_y5->write_pwm_12_bit(0);
+            } else {
+                egs_can_hal->set_safe_start(false); // Inhibit engine starting when solenoids are not controlled!
             }
         }
         int tmp_atf = 0;

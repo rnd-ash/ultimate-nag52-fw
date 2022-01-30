@@ -49,25 +49,22 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
     }
     // What kind of lockup do we want?
     this->current_lockup = LockupType::Slip;
-    this->targ_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id]; // For 40(ish) Nm
+    this->targ_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id]*10; // For 40(ish) Nm
+
     // Different gear change?
     if (this->gear_idx != gear_id) {
         //ESP_LOGI("TCC", "GEAR_CHG");
         this->gear_idx = gear_id;
     }
     if (was_idle) {
-        this->curr_tcc_pwm = 100;
+        this->curr_tcc_pwm = 1000;
         this->was_idle = false;
     } else if (this->curr_tcc_pwm < this->targ_tcc_pwm) { // Smooth low->High TCC PWM (Under gas only)
         if (sensors->pedal_pos != 0 && sensors->tcc_slip_rpm > 10) {
-            int mod = sensors->tcc_slip_rpm/100;
-            if (sensors->pedal_pos < 150) {
-                mod /= 2;
-            }
-            this->curr_tcc_pwm += mod;
+            this->curr_tcc_pwm += sensors->pedal_pos/10;
         }
     } else if (this->curr_tcc_pwm > this->targ_tcc_pwm) { // Jump High->Low TCC PWM
-        this->curr_tcc_pwm--;
+        this->curr_tcc_pwm-=10;
     } else if (this->curr_tcc_pwm == this->targ_tcc_pwm) { // Adapt the current value (Only when in stable gear)
         // Same gear, check adaptation
         if (now-this->last_modify_time >= 500) {
@@ -81,14 +78,14 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
                     load_adapt_time += 500;
                     if (abs(sensors->tcc_slip_rpm) > 200) {
                         ESP_LOGI("TCC","ADAPT-SLIP");
-                        this->curr_tcc_pwm+=2; // 4 = 1/256 PWM
-                        this->targ_tcc_pwm+=2;
+                        this->curr_tcc_pwm+=20; // 4 = 1/256 PWM
+                        this->targ_tcc_pwm+=20;
                         this->pending_changes = true; // Say the map has been modified (Needs to commit to NVS)
                         // Change all the ones higher up
                         for (int gid = gear_id; gid < NUM_GEARS; gid++) {
                             for (int idx = atf_id; idx < 17; idx++) {
-                                if (torque_converter_adaptation[gid].slip_values[idx] < this->curr_tcc_pwm && !torque_converter_adaptation[gid].learned[idx]) {
-                                    torque_converter_adaptation[gid].slip_values[idx] = this->curr_tcc_pwm;
+                                if (torque_converter_adaptation[gid].slip_values[idx] < this->curr_tcc_pwm/10 && !torque_converter_adaptation[gid].learned[idx]) {
+                                    torque_converter_adaptation[gid].slip_values[idx] = this->curr_tcc_pwm/10;
                                 }
                             }
                         }
@@ -101,13 +98,13 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
                     load_adapt_time = 0;
                     if (abs(sensors->tcc_slip_rpm) > 50) {
                         ESP_LOGI("TCC","ADAPT-IDLE");
-                        this->curr_tcc_pwm+=1; // smaller changes when idle comparing
-                        this->targ_tcc_pwm+=1;
+                        this->curr_tcc_pwm+=10; // smaller changes when idle comparing
+                        this->targ_tcc_pwm+=10;
                         this->pending_changes = true; // Say the map has been modified (Needs to commit to NVS)
                         for (int gid = gear_id; gid < NUM_GEARS; gid++) {
                             for (int idx = atf_id; idx < 17; idx++) {
-                                if (torque_converter_adaptation[gid].slip_values[idx] < this->curr_tcc_pwm && !torque_converter_adaptation[gid].learned[idx]) {
-                                    torque_converter_adaptation[gid].slip_values[idx] = this->curr_tcc_pwm;
+                                if (torque_converter_adaptation[gid].slip_values[idx] < this->curr_tcc_pwm/10 && !torque_converter_adaptation[gid].learned[idx]) {
+                                    torque_converter_adaptation[gid].slip_values[idx] = this->curr_tcc_pwm/10;
                                 }
                             }
                         }
@@ -130,7 +127,7 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
     if (!is_shifting) {
         this->last_mpc_pwm = sol_mpc->get_pwm();
     }
-    sol_tcc->write_pwm_12bit_with_voltage(this->curr_tcc_pwm + this->last_mpc_pwm/4, sensors->voltage);
+    sol_tcc->write_pwm_12bit_with_voltage((this->curr_tcc_pwm/10) + this->last_mpc_pwm/4, sensors->voltage);
 }
 
 void TorqueConverter::save_adaptation_data() {
@@ -145,13 +142,17 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness) {
     if (is_downshift) {
-        if (this->curr_tcc_pwm > 200 && this->targ_tcc_pwm > 200) {
-            this->targ_tcc_pwm -= 200;
-            this->curr_tcc_pwm -= 200;
+        if (this->curr_tcc_pwm > 2500 && this->targ_tcc_pwm > 2500) {
+            this->targ_tcc_pwm -= 2500;
+            this->curr_tcc_pwm -= 2500;
         }
     } else {
         if (this->curr_tcc_pwm < this->targ_tcc_pwm) {
-            this->curr_tcc_pwm = this->targ_tcc_pwm;
+            int max_add = this->targ_tcc_pwm - this->curr_tcc_pwm;
+            if (1000 < max_add) {
+                max_add = 1000;
+            }
+            this->curr_tcc_pwm += max_add;
         }
     }
     this->last_modify_time = 0;

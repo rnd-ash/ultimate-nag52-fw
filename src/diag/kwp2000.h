@@ -9,6 +9,7 @@
 #include "gearbox.h"
 #include "canbus/can_hal.h"
 #include "gearbox_config.h"
+#include "perf_mon.h"
 
 // Ident data
 
@@ -46,7 +47,7 @@ class Kwp2000_server {
         uint8_t routine_id = 0x00;
         uint8_t routine_result[255];
         uint8_t routine_results_len = 0;
-
+        CpuStats cpu_usage;
         bool send_resp;
         bool reboot_pending;
 

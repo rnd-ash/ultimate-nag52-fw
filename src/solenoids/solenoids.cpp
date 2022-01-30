@@ -177,7 +177,7 @@ const i2s_config_t i2s_config = {
 void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
     // Y3, Y4, Y5, MPC, SPC, TCC
-    adc1_channel_t solenoid_channels[6] = { ADC1_CHANNEL_0, ADC1_CHANNEL_3, ADC1_CHANNEL_7, ADC1_CHANNEL_6, ADC1_CHANNEL_4, ADC1_CHANNEL_5 };
+    const adc1_channel_t solenoid_channels[6] = { ADC1_CHANNEL_0, ADC1_CHANNEL_3, ADC1_CHANNEL_7, ADC1_CHANNEL_6, ADC1_CHANNEL_4, ADC1_CHANNEL_5 };
     Solenoid* sol_order[6] = { sol_y3, sol_y4, sol_y5, sol_mpc, sol_spc, sol_tcc };
     uint8_t solenoid_id = 0;
     i2s_driver_install(I2S_NUM_0, &i2s_config, 0, nullptr);
@@ -271,7 +271,6 @@ bool init_all_solenoids()
             sol_tcc->get_vref()
     );
 #define SOL_THRESHOLD_ADC 500
-    /*
     if (sol_y3->get_vref() > 500) {
         ESP_LOGE("SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
         return false;
@@ -296,6 +295,5 @@ bool init_all_solenoids()
         ESP_LOGE("SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
-    */
     return true;
 }

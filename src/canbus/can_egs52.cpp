@@ -538,7 +538,7 @@ void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
 
 
 void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
-    
+    gs418.set_M_VERL(loss_nm*4);
 }
 
 void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {

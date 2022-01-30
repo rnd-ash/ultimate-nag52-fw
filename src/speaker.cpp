@@ -5,7 +5,7 @@
 #include "driver/ledc.h"
 
 Speaker::Speaker(gpio_num_t pin) {
-    ledc_timer_config_t timer_cfg = {
+    const ledc_timer_config_t timer_cfg = {
         .speed_mode = ledc_mode_t::LEDC_LOW_SPEED_MODE, // Low speed timer mode
         .duty_resolution = LEDC_TIMER_8_BIT,
         .timer_num = LEDC_TIMER_3,
@@ -16,7 +16,7 @@ Speaker::Speaker(gpio_num_t pin) {
     ledc_timer_config(&timer_cfg);
 
     // Set PWM channel configuration
-    ledc_channel_config_t channel_cfg = {
+    const ledc_channel_config_t channel_cfg = {
         .gpio_num = pin,
         .speed_mode = ledc_mode_t::LEDC_LOW_SPEED_MODE,
         .channel = LEDC_CHANNEL_6,

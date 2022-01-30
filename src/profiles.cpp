@@ -257,25 +257,29 @@ ShiftData StandardProfile::get_shift_data(ProfileGearChange requested, SensorDat
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_1_2, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_1_2, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::TWO_THREE) {
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_2_3, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_2_3, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::THREE_FOUR) {
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_3_4, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_3_4, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::FOUR_FIVE) {
        return ShiftData {
             .spc_pwm = find_spc_pressure(map_4_5, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_4_5, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } 
     // Downshifts
@@ -283,25 +287,29 @@ ShiftData StandardProfile::get_shift_data(ProfileGearChange requested, SensorDat
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_2_1, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_2_1, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::THREE_TWO) {
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_3_2, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_3_2, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::FOUR_THREE) {
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_4_3, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_4_3, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else if (requested == ProfileGearChange::FIVE_FOUR) {
         return ShiftData {
             .spc_pwm = find_spc_pressure(map_5_4, sensors, shift_speed),
             .mpc_pwm = find_mpc_pressure(map_5_4, sensors, shift_firmness),
-            .targ_ms = 500 
+            .targ_ms = 500,
+            .shift_firmness = shift_firmness,
         };
     } else {
         return DEFAULT_SHIFT_DATA;

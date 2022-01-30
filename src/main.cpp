@@ -95,7 +95,6 @@ void printer(void*) {
     bool parking;
     uint32_t n2;
     uint32_t n3;
-    int x = 0;
     while(1) {
         Sensors::read_atf_temp(&atf_temp);
         Sensors::read_vbatt(&vbatt);
@@ -196,7 +195,7 @@ extern "C" void app_main(void)
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
-        xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
+        //xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);

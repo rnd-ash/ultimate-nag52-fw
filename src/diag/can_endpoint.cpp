@@ -192,6 +192,7 @@ void CanEndpoint::process_flow_control(DiagCanMessage msg) {
     ESP_LOGI("CAN_ENDPOINT", "FC Received!");
     if (msg[0] == 0x30 && this->is_sending) {
         this->clear_to_send = true;
+        this->tx_bs = msg[1];
         this->last_tx_time = esp_timer_get_time()/1000; // To avoid timeouts
     }
 }

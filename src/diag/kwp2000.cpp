@@ -50,7 +50,6 @@ uint8_t bcd_to_hex(char c) {
 ECU_Date fw_date_to_bcd(char* date) {
     uint8_t month = 0x01;
     uint8_t month_base_10 = 0;
-    uint16_t days_since_year = 0;
     if (strncmp("Jan", date, 3) == 0) {
         month = 0x01;
         month_base_10 = 1;
@@ -101,7 +100,7 @@ ECU_Date fw_date_to_bcd(char* date) {
     memset(&time, 0, sizeof(time));
     char timebuf[4];
     time.tm_mday = day_base_10;
-    time.tm_year = 100 + day_base_10;
+    time.tm_year = 100 + year_base_10;
     time.tm_mon = month_base_10-1;
     mktime(&time);
     strftime(timebuf, 4, "%W", &time);
@@ -125,6 +124,7 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
     this->can_endpoint = new CanEndpoint(can_layer);
     // Start ISO-TP endpoint
     xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
+    init_perfmon();
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
@@ -159,7 +159,7 @@ void Kwp2000_server::server_loop() {
         if (read_msg) {
             ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
-                break; // Huh?
+                continue; // Huh?
             }
 
             // New message! process it
@@ -171,6 +171,12 @@ void Kwp2000_server::server_loop() {
                     break;
                 case SID_ECU_RESET:
                     this->process_ecu_reset(args_ptr, args_size);
+                    break;
+                case SID_READ_DATA_LOCAL_IDENT:
+                    this->process_read_data_local_ident(args_ptr, args_size);
+                    break;
+                case SID_READ_MEM_BY_ADDRESS:
+                    this->process_read_mem_address(args_ptr, args_size);
                     break;
                 case SID_READ_ECU_IDENT:
                     this->process_read_ecu_ident(args_ptr, args_size);
@@ -209,8 +215,10 @@ void Kwp2000_server::server_loop() {
             this->session_mode = SESSION_DEFAULT;
         }
         if (this->reboot_pending) {
+            vTaskDelay(50); // Wait for message to send (Specifically on CAN)
             esp_restart();
         }
+        this->cpu_usage = get_cpu_usage();
         vTaskDelay(50);
     }
 }
@@ -319,13 +327,59 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
-
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (args[0] >= 0x80 && args[1] <= 0x9F) { // ECU Ident
+        this->process_read_ecu_ident(args, arg_len); // Modify the SID byte in pos/neg response to be SID_READ_DATA_LOCAL_IDENT
+        if(this->tx_msg.data[0] == 0x7F) {
+            this->tx_msg.data[1] = SID_READ_DATA_LOCAL_IDENT;
+        } else {
+            this->tx_msg.data[0] = SID_READ_DATA_LOCAL_IDENT+0x40;
+        }
+    }
+    if (args[0] == 0xFA) { // System supplier (THATS ME!) - CPU usage / heap
+        uint8_t buf[9] = {0xFA};
+        uint32_t heap = esp_get_free_heap_size();
+        buf[1] = this->cpu_usage.load_core_1 >> 8;
+        buf[2] = this->cpu_usage.load_core_1 & 0xFF;
+        buf[3] = this->cpu_usage.load_core_2 >> 8;
+        buf[4] = this->cpu_usage.load_core_2 & 0xFF;
+        buf[5] = heap >> 24;
+        buf[6] = heap >> 16;
+        buf[7] = heap >> 8;
+        buf[8] = heap & 0xFF;
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 9);
+        return;
+    }
+    make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+    
 }
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
 
 }
 void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len != 4 && arg_len != 5) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    uint8_t* address;
+    if (arg_len == 4) {
+       address = (uint8_t*)(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
+    } else {
+        address = (uint8_t*)(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
+    }
+    if (address + args[arg_len-1] >= (uint8_t*)0x400BFFFF) { // Address too big (Not in SRAM 0 or SRAM1)!
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    ESP_LOGI("RMA","Pointer: %p", address);
+    make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, address, args[arg_len-1]); // Copy args[3] len bytes from address into positive message
 }
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
 

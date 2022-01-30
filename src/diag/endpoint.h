@@ -43,7 +43,7 @@ class UsbEndpoint: public AbstractEndpoint {
         UsbEndpoint() : AbstractEndpoint() {
             esp_err_t e;
 
-            e = uart_driver_install(0, DIAG_CAN_MAX_SIZE, DIAG_CAN_MAX_SIZE, 0, nullptr, 0);
+            e = uart_driver_install(0, 515, 515, 0, nullptr, 0);
             if (e != ESP_OK) {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
                 return;
@@ -146,6 +146,7 @@ private:
     uint8_t tx_pci = 0x20;
     uint64_t last_rx_time;
     uint64_t last_tx_time;
+    uint8_t tx_bs = 8;
 };
 
 

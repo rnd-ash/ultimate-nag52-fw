@@ -40,7 +40,7 @@ typedef struct {
     float shift_firmness;
 } ShiftData;
 
-const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500};
+const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0};
 
 typedef struct {
     bool shifted; // Did the car change gears or not??

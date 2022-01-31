@@ -10583,4 +10583,13 @@
     #define TC_RATIO_LOW 0
 #endif
 
+#if SCN_VARIANT_NAME == JCHE
+    #define DIFF_RATIO 3450
+    #define TYRE_SIZE_MM 2428 // 265 50 R 20
+    #define TCC_INTERTIA_NM 44
+    #define FOUR_MATIC
+    #define TC_RATIO_HIGH 1000
+    #define TC_RATIO_LOW 2720
+#endif
+
 #endif // SCN_H_

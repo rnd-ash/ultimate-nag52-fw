@@ -140,17 +140,20 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
     this->last_modify_time = 0;
 }
 
-void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness) {
+void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors) {
     if (is_downshift) {
-        if (this->curr_tcc_pwm > 2500 && this->targ_tcc_pwm > 2500) {
-            this->targ_tcc_pwm -= 2500;
-            this->curr_tcc_pwm -= 2500;
+        if (sensors->tcc_slip_rpm >= 0 && sensors->tcc_slip_rpm < 150) { // Only reduce if not slipping
+            if (this->curr_tcc_pwm > 2500 && this->targ_tcc_pwm > 2500) {
+                this->targ_tcc_pwm -= 2000;
+                this->curr_tcc_pwm -= 2000;
+            }
         }
     } else {
         if (this->curr_tcc_pwm < this->targ_tcc_pwm) {
-            int max_add = this->targ_tcc_pwm - this->curr_tcc_pwm;
-            if (1000 < max_add) {
-                max_add = 1000;
+            int max_add = (this->targ_tcc_pwm - this->curr_tcc_pwm)/shift_firmness;
+            int min_add = 1000/shift_firmness;
+            if (min_add < max_add) {
+                max_add = min_add;
             }
             this->curr_tcc_pwm += max_add;
         }

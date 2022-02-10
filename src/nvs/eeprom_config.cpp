@@ -7,7 +7,6 @@
 #include <string.h>
 #include "profiles.h"
 
-
 /// If default is UINT16_MAX, it is ignored
 bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
     esp_err_t e = nvs_get_u16(handle, key, ptr);
@@ -32,6 +31,35 @@ bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t 
             *ptr = default_value;
             return true;
         }
+    }
+    return (e == ESP_OK);
+}
+
+bool read_nvs_core_scn(nvs_handle_t handle, const char* key, EEPROM_CORE_SCN_CONFIG* scn, size_t store_size) {
+    esp_err_t e = nvs_get_blob(handle, key, scn, &store_size);
+    if (e == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("EEPROM", "SCN Config not found. Creating a new one");
+        EEPROM_CORE_SCN_CONFIG s = {
+            .is_large_nag = false,
+            .diff_ratio = DIFF_RATIO,
+            .wheel_diameter = TYRE_SIZE_MM,
+            .is_four_matic = false,
+            .transfer_case_high_ratio = 1000, // 1.0
+            .transfer_case_low_ratio = 1000, // 1.0
+        };
+        e = nvs_set_blob(handle, key, &s, sizeof(s));
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
+            return false;
+        }
+        e = nvs_commit(handle);
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+            return false;
+        }
+        ESP_LOGI("EEPROM", "New TCC map creation OK!");
+        memcpy(scn, &s, sizeof(s));
+        return true;
     }
     return (e == ESP_OK);
 }
@@ -138,21 +166,19 @@ bool EEPROM::init_eeprom() {
     if (read_nvs_tcc_adaptation(config_handle, NVS_KEY_TCC_ADAPTATION, torque_converter_adaptation, (size_t)sizeof(torque_converter_adaptation)) != true) {
         return false;
     }
-    /*
-    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_1_2_ADAPTATION, &map_1_2_adaptation, (size_t)sizeof(map_1_2_adaptation)) != true) {
-        return false;
-    }
-    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_2_3_ADAPTATION, &map_2_3_adaptation, (size_t)sizeof(map_2_3_adaptation)) != true) {
-        return false;
-    }
-    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_3_4_ADAPTATION, &map_3_4_adaptation, (size_t)sizeof(map_3_4_adaptation)) != true) {
-        return false;
-    }
-    if (read_nvs_gear_adaptation(config_handle, NVS_KEY_4_5_ADAPTATION, &map_4_5_adaptation, (size_t)sizeof(map_4_5_adaptation)) != true) {
-        return false;
-    }
-    */
     return true;
+}
+
+bool read_core_scn_config(EEPROM_CORE_SCN_CONFIG* dest) {
+    nvs_handle_t handle;
+    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    return read_nvs_core_scn(handle, NVS_KEY_SCN_CONFIG, dest, sizeof(EEPROM_CORE_SCN_CONFIG));
+}
+
+bool save_core_scn_config(EEPROM_CORE_SCN_CONFIG* write) {
+    nvs_handle_t handle;
+    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    return false; // TODO
 }
 
 TccAdaptationData torque_converter_adaptation[NUM_GEARS];

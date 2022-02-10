@@ -94,6 +94,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
 };
 
 extern AgilityProfile* agility;

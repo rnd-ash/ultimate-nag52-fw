@@ -82,7 +82,7 @@ void err_beep_loop(void* a) {
         egs_can_hal->set_gearbox_ok(false);
         while(1) {
             spkr.post(p);
-            vTaskDelay(2000/portTICK_RATE_MS);
+            vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);
     }
@@ -112,7 +112,7 @@ void printer(void*) {
             sol_tcc->get_current_estimate(),
             n2, n3
         );
-        vTaskDelay(200/portTICK_RATE_MS);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 }
 
@@ -161,7 +161,7 @@ void input_manager(void*) {
             }
             slast_pos = spos;
         }
-        vTaskDelay(20/portTICK_RATE_MS);
+        vTaskDelay(20/portTICK_PERIOD_MS);
     }
 }
 
@@ -191,7 +191,7 @@ extern "C" void app_main(void)
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOGE("INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
-            vTaskDelay(1000/portTICK_RATE_MS);
+            vTaskDelay(1000/portTICK_PERIOD_MS);
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);

@@ -190,7 +190,7 @@ void read_solenoids_i2s(void*) {
         i2s_set_adc_mode(ADC_UNIT_1, solenoid_channels[solenoid_id]);
         i2s_adc_enable(I2S_NUM_0);
         if (all_calibrated) {
-            vTaskDelay(33 / portTICK_RATE_MS); // Approx 5 refreshes per second
+            vTaskDelay(33 / portTICK_PERIOD_MS); // Approx 5 refreshes per second
         }
         sample_id = 0;
         avg = 0;
@@ -259,7 +259,7 @@ bool init_all_solenoids()
     sol_tcc->write_pwm_12_bit(0);
 
     while(!all_calibrated) {
-        vTaskDelay(2/portTICK_RATE_MS);
+        vTaskDelay(2/portTICK_PERIOD_MS);
     }
     ESP_LOGI("SOLENOID", 
         "Solenoid calibration readings: Y3: %d, Y4: %d, Y5: %d, MPC: %d, SPC: %d, TCC: %d",
@@ -271,6 +271,7 @@ bool init_all_solenoids()
             sol_tcc->get_vref()
     );
 #define SOL_THRESHOLD_ADC 500
+
     if (sol_y3->get_vref() > 500) {
         ESP_LOGE("SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
         return false;
@@ -295,5 +296,6 @@ bool init_all_solenoids()
         ESP_LOGE("SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
+
     return true;
 }

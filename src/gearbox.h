@@ -67,7 +67,7 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear min_fwd_gear = GearboxGear::First;
-    bool calc_input_rpm(int* dest);
+    bool calc_input_rpm(int* dest, int last_rpm);
     bool calc_output_rpm(int* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();

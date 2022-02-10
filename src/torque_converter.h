@@ -47,7 +47,7 @@ class TorqueConverter {
         void update(GearboxGear curr_gear, LockupType max_lockup,SensorData* sensors, bool is_shifting);
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
         void save_adaptation_data();
-        void on_shift_start(uint64_t now, bool is_downshift, float shift_firmness = 1.0);
+        void on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors);
         void on_shift_complete(uint64_t now);
         uint16_t last_mpc_pwm = 0;
     private:

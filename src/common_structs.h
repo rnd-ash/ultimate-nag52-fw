@@ -30,7 +30,7 @@ enum class ProfileGearChange {
     FIVE_FOUR, // 5-4
     FOUR_THREE, // 4-3
     THREE_TWO, // 3-2
-    TWO_ONE // 2-1
+    TWO_ONE, // 2-1
 };
 
 typedef struct {

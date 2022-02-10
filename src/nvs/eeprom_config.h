@@ -6,10 +6,10 @@
 #include "common_structs.h"
 
 #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
-#define NVS_KEY_DRIVE_PROG "DRIVE_PROFILE"
-#define NVS_KEY_DIFF_RATIO "DIFF_RATIO"
-#define NVS_KEY_TCC_LOCKUP "TCC_LOCKUP"
-#define NVS_KEY_WHEEL_DIAM "WHEEL_DIAM"
+
+// Core SCN config (Needed for a ton of important calculations!)
+#define NVS_KEY_SCN_CONFIG "CORE_SCN"
+
 
 #define NVS_PARTITION_USER_CFG "tcm_user_config"
 #define NVS_UCFG_KEY_PROFILE "LAST_PROFILE"
@@ -21,8 +21,13 @@
 #define NVS_KEY_4_5_ADAPTATION "4_5_ADAPT"
 
 typedef struct {
-
-} EEPROM_Config;
+    bool is_large_nag;
+    uint16_t diff_ratio;
+    uint16_t wheel_diameter;
+    bool is_four_matic;
+    uint16_t transfer_case_high_ratio;
+    uint16_t transfer_case_low_ratio;
+} EEPROM_CORE_SCN_CONFIG;
 
 struct TccAdaptationData { // 1 per gear
     // -40C - 120C (16 steps)
@@ -33,6 +38,8 @@ struct TccAdaptationData { // 1 per gear
 namespace EEPROM {
     bool init_eeprom();
     uint8_t get_last_profile();
+    bool read_core_scn_config(EEPROM_CORE_SCN_CONFIG* dest);
+    bool save_core_scn_config(EEPROM_CORE_SCN_CONFIG* write);
     bool save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size);
     bool save_nvs_gear_adaptation(const char* key, pressure_map* read_location, size_t store_size);
 };

@@ -2,6 +2,7 @@
 #define COMMON_STRUCTS_H__
 
 #include <stdint.h>
+#include "solenoids/solenoids.h"
 
 typedef int16_t pressure_map[11];
 
@@ -38,17 +39,27 @@ typedef struct {
     uint16_t mpc_pwm;
     uint16_t targ_ms;
     float shift_firmness;
+    Solenoid* shift_solenoid;
+    uint8_t targ_g;
+    uint8_t curr_g;
 } ShiftData;
 
 const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0};
 
 typedef struct {
     bool shifted; // Did the car change gears or not??
+    bool aborted; // Was an abort shift made during the change?
     bool valid_measurement; // Valid measurement sample complete
     int time_ms; // Time taken to shift
     int avg_d_rpm; // Average delta RPM
     int max_d_rpm; // Max delta RPM
     int min_d_rpm; // Min delta RPM
 } ShiftResponse;
+
+typedef struct {
+    uint16_t target_shift_time_ms;
+    float shift_firmness;
+    float shift_speed;
+} ShiftCharacteristics;
 
 #endif

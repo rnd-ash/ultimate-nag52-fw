@@ -149,13 +149,8 @@ void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shif
             }
         }
     } else {
-        if (this->curr_tcc_pwm < this->targ_tcc_pwm) {
-            int max_add = (this->targ_tcc_pwm - this->curr_tcc_pwm)/shift_firmness;
-            int min_add = 1000/shift_firmness;
-            if (min_add < max_add) {
-                max_add = min_add;
-            }
-            this->curr_tcc_pwm += max_add;
+        if (this->curr_tcc_pwm > 3500) {
+            this->curr_tcc_pwm = 3500;
         }
     }
     this->last_modify_time = 0;

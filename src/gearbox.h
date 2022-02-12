@@ -14,6 +14,7 @@
 #include <gearbox_config.h>
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
+#include "pressure_manager.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -59,7 +60,7 @@ public:
     void diag_regain_control() { this->control_solenoids = true; }
     SensorData sensor_data;
 private:
-    ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, Solenoid* shift_solenoid, uint8_t curr_gear, uint8_t targ_gear);
+    ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -98,6 +99,7 @@ private:
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
     bool control_solenoids = true;
+    PressureManager* pressure_mgr = nullptr;
 };
 
 #endif

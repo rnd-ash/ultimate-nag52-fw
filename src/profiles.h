@@ -8,18 +8,6 @@
 
 #define MAX_PROFILES 4
 
-float find_temp_multiplier(int temp_raw); // Todo move this function
-uint16_t find_mpc_pressure(pressure_map map, SensorData* sensors, float shift_firmness = 1.0);
-extern pressure_map map_1_2;
-extern pressure_map map_2_3;
-extern pressure_map map_3_4;
-extern pressure_map map_4_5;
-
-extern pressure_map map_2_1;
-extern pressure_map map_3_2;
-extern pressure_map map_4_3;
-extern pressure_map map_5_4;
-
 /**
  * A profile is designed to read the current conditions of the gearbox and request the gearbox to do something
  */
@@ -29,9 +17,7 @@ public:
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual);
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors);
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors);
-    virtual ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) {
-        return DEFAULT_SHIFT_DATA;
-    }
+    virtual ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
     virtual GearboxGear get_start_gear() const {
         return GearboxGear::First;
     }
@@ -51,7 +37,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
 };
 
 class ComfortProfile : public AbstractProfile {
@@ -60,7 +46,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -72,7 +58,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -85,7 +71,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     void on_upshift_complete(ShiftResponse response, uint8_t from_gear, SensorData* sensors);
-    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
 };
 
 class ManualProfile : public AbstractProfile {
@@ -94,7 +80,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftData get_shift_data(ProfileGearChange requested, SensorData* sensors, float shift_speed = 1.0, float shift_firmness = 1.0) override;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
 };
 
 extern AgilityProfile* agility;

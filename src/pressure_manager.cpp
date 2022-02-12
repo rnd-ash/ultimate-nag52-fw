@@ -1,7 +1,8 @@
 #include "pressure_manager.h"
 
 
-float find_temp_multiplier(int temp_raw) {
+float find_temp_multiplier(int temp_c) {
+    int temp_raw = temp_c+50;
     if (temp_raw < 0) { return pressure_temp_normalizer[0]; }
     else if (temp_raw > 160) { return pressure_temp_normalizer[16]; }
     int min = temp_raw/10;

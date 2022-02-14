@@ -230,9 +230,12 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ShiftData sd = pressure_mgr->get_shift_data(req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, sd.shift_firmness, &sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
-    //vTaskDelay(400);
+    //vTaskDelay(400); 
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(sd.spc_pwm, this->sensor_data.voltage); // Open SPC
+    if (profile == manual && this->sensor_data.pedal_pos > 100 && is_upshift) {
+        egs_can_hal->set_torque_request(TorqueRequest::Minimum); // Test for manual upshift
+    }
     uint32_t elapsed = 0; // Counter for shift timing
     // Change gears begin
     int start_rpm = this->sensor_data.input_rpm;    
@@ -255,6 +258,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             }
         }
         sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
+        if (sd.mpc_pwm > 10) {
+            sd.spc_pwm -= 5/(sd.shift_firmness*2);
+        }
         sol_spc->write_pwm_percent_with_voltage(sd.spc_pwm, this->sensor_data.voltage); // Open SPC
         // Check using actual gear ratios (high speed moving, easiest way)
         if (this->est_gear_idx == sd.targ_g) {
@@ -283,6 +289,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     if (avg_d_rpm != 0) {
         avg_d_rpm /= rpm_samples;
     }
+    egs_can_hal->set_torque_request(TorqueRequest::None);
     this->gear_disagree_count = 0;
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms - Target was %d ms). DELTAS: (Max: %d, Min: %d, Avg: %d)", elapsed, sd.targ_ms, max_d_rpm, min_d_rpm, avg_d_rpm);
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system

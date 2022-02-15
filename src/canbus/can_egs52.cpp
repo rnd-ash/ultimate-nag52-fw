@@ -448,6 +448,7 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.set_ALF(can_start);
+    
 }
 
 void Egs52Can::set_race_start(bool race_start) {

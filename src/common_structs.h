@@ -35,16 +35,20 @@ enum class ProfileGearChange {
 };
 
 typedef struct {
-    uint16_t spc_pwm;
+    uint16_t initial_spc_pwm;
     uint16_t mpc_pwm;
     uint16_t targ_ms;
+    // Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
     float shift_firmness;
+    // Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
+    float shift_speed;
     Solenoid* shift_solenoid;
     uint8_t targ_g;
     uint8_t curr_g;
 } ShiftData;
 
-const ShiftData DEFAULT_SHIFT_DATA = { .spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0};
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
+const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0, .shift_speed = 5.0};
 
 typedef struct {
     bool shifted; // Did the car change gears or not??
@@ -58,7 +62,9 @@ typedef struct {
 
 typedef struct {
     uint16_t target_shift_time_ms;
+    // Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
     float shift_firmness;
+    // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
     float shift_speed;
 } ShiftCharacteristics;
 

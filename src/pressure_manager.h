@@ -139,7 +139,7 @@ public:
      * @param shift_speed Speed of the shift (higer = faster shift)
      * @return ShiftData 
      */
-    ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars);
+    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
     /**
      * @brief Gets the holding pressure in order to keeps MPC clutches activated (When NOT shifting), without too much pressure

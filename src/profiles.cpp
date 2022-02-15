@@ -30,8 +30,9 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 0.9,
-        .shift_speed = 0.9,
+        .shift_firmness = 6,
+        // EXPERIMENTAL - Shift speed maps to pedal position!
+        .shift_speed = ((float)(sensors->pedal_pos)*10/250) + 1, // Map pedal pos to 1-10
     };
 }
 
@@ -47,8 +48,8 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 1.1,
-        .shift_speed = 1.1,
+        .shift_firmness = 2.0,
+        .shift_speed = 2.0,
     };
 }
 
@@ -91,8 +92,8 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 1.1,
-        .shift_speed = 1.1,
+        .shift_firmness = 3.0,
+        .shift_speed = 3.0,
     };
 }
 
@@ -171,8 +172,8 @@ void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear,
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 1,
-        .shift_speed = 1,
+        .shift_firmness = 4.0,
+        .shift_speed = 4.0,
     };
 }
 
@@ -236,12 +237,10 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
     unsigned long t =  esp_timer_get_time()/1000;
-    if (sensors->input_rpm < 1000 && current_gear != GearboxGear::Third && t-sensors->last_shift_time > 2000) {
-        return true;
-    } else if (sensors->output_rpm < 200 && current_gear == GearboxGear::Third && t-sensors->last_shift_time > 2000) { // 3-2 downshift only at low speeds if idle
+    if (sensors->input_rpm < 1000 && t-sensors->last_shift_time > 2000) {
         return true;
     }
-    else if (sensors->input_rpm < 2000 && pedal_perc > 60 && pedal_perc >= rpm_percent*2 && t-sensors->last_shift_time > 2000) {
+    else if (sensors->input_rpm < 2000 && pedal_perc > 50 && pedal_perc >= rpm_percent*2 && t-sensors->last_shift_time > 2000) {
         if (current_gear == GearboxGear::Second) { // Prevent 2-1 downshift (Too twitchy)
             return false;
         }
@@ -255,8 +254,8 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 0.9,
-        .shift_speed = 0.9,
+        .shift_firmness = 6.0,
+        .shift_speed = 6.0,
     };
 }
 

@@ -212,7 +212,7 @@ GearboxGear prev_gear(GearboxGear g) {
 }
 
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
-#define SHIFT_DELAY_MS 20
+#define SHIFT_DELAY_MS 40
 #define SHIFT_CONFIRM_COUNT 80/SHIFT_DELAY_MS // 80ms in gear for confirm
 
 /**
@@ -227,14 +227,18 @@ GearboxGear prev_gear(GearboxGear g) {
  */
 ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
-    ShiftData sd = pressure_mgr->get_shift_data(req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
+    ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
+    CLAMP(sd.shift_speed, 1, 10); // Ensure shift speed is a valid amount
+    float curr_spc_pwm = sd.initial_spc_pwm + (2*(10-sd.shift_speed));
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, sd.shift_firmness, &sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
     //vTaskDelay(400); 
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
-    sol_spc->write_pwm_percent_with_voltage(sd.spc_pwm, this->sensor_data.voltage); // Open SPC
+    sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
+    bool torque_reduction = false;
     if (profile == manual && this->sensor_data.pedal_pos > 100 && is_upshift) {
         egs_can_hal->set_torque_request(TorqueRequest::Minimum); // Test for manual upshift
+        torque_reduction = true;
     }
     uint32_t elapsed = 0; // Counter for shift timing
     // Change gears begin
@@ -254,15 +258,19 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             if (!flare_compensation) {
                 flare_compensation = true;
                 sd.mpc_pwm *= 0.90;
-                sd.spc_pwm *= 0.90;
+                curr_spc_pwm *= 0.90;
             }
         }
         sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
-        if (sd.mpc_pwm > 10) {
-            sd.spc_pwm -= 5/(sd.shift_firmness*2);
+        if (sd.mpc_pwm > sd.shift_speed) {
+            curr_spc_pwm -= sd.shift_speed;
         }
-        sol_spc->write_pwm_percent_with_voltage(sd.spc_pwm, this->sensor_data.voltage); // Open SPC
+        sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
         // Check using actual gear ratios (high speed moving, easiest way)
+        if (this->est_gear_idx == 0 && torque_reduction && elapsed > 200) {
+            torque_reduction = false;
+            egs_can_hal->set_torque_request(TorqueRequest::None);
+        }
         if (this->est_gear_idx == sd.targ_g) {
             shift_measure_complete = true;
             break;
@@ -289,7 +297,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     if (avg_d_rpm != 0) {
         avg_d_rpm /= rpm_samples;
     }
-    egs_can_hal->set_torque_request(TorqueRequest::None);
     this->gear_disagree_count = 0;
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms - Target was %d ms). DELTAS: (Max: %d, Min: %d, Avg: %d)", elapsed, sd.targ_ms, max_d_rpm, min_d_rpm, avg_d_rpm);
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
@@ -367,7 +374,6 @@ void Gearbox::shift_thread() {
                 //this->show_upshift = true;
                 ProfileGearChange pgc;
                 ShiftResponse response;
-                SensorData before = this->sensor_data;
                 if (curr_target == GearboxGear::Second) { // 1-2
                     pgc = ProfileGearChange::ONE_TWO;
                 } else if (curr_target == GearboxGear::Third) { // 2-3

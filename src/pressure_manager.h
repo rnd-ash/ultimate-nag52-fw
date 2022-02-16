@@ -23,8 +23,8 @@ const pressure_map mpc_2_3 = {490, 480, 470, 460, 440, 430, 420, 400, 390, 380, 
 
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {450, 440, 430, 420, 410, 400, 390, 380, 370, 360, 350};
-const pressure_map mpc_3_4 = {450, 440, 430, 420, 410, 400, 390, 380, 370, 360, 350};
+const pressure_map spc_3_4 = {440, 430, 420, 410, 400, 390, 380, 370, 360, 350, 340};
+const pressure_map mpc_3_4 = {440, 430, 420, 410, 400, 390, 380, 370, 360, 350, 340};
 
 
 // 4 -> 5 upshift
@@ -55,8 +55,8 @@ const pressure_map mpc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 
 */
 
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {540, 530, 520, 510, 500, 490, 480, 470, 460, 450, 440};
-const pressure_map mpc_1_2 = {540, 530, 520, 510, 500, 490, 480, 470, 460, 450, 440};
+const pressure_map spc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
+const pressure_map mpc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
 
 // 2 -> 3 upshift
 const pressure_map spc_2_3 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
@@ -64,8 +64,8 @@ const pressure_map mpc_2_3 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 
 
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
-const pressure_map mpc_3_4 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
+const pressure_map spc_3_4 = {510, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map mpc_3_4 = {510, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
 
 
 // 4 -> 5 upshift
@@ -86,22 +86,22 @@ const pressure_map spc_4_3 = {440, 435, 430, 420, 410, 400, 380, 360, 340, 320, 
 const pressure_map mpc_4_3 = {440, 435, 430, 420, 410, 400, 380, 360, 340, 320, 300};
 
 // 5 -> 4 downshift
-const pressure_map spc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
-const pressure_map mpc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+const pressure_map spc_5_4 = {460, 430, 400, 385, 385, 370, 360, 360, 350, 340, 325};
+const pressure_map mpc_5_4 = {460, 430, 400, 385, 385, 370, 360, 360, 350, 340, 325};
 
 #endif
 
 const float pressure_temp_normalizer[17] = {
-    0.6, 0.62, 0.65, 0.68, 0.71, // -40-0C (0-40)
-    0.75, 0.80, 0.84, 0.88, 0.92, // 10-50C (50-90)
-    0.95, 0.98, 1, 1.01, 1.015, 1.02, 1.025 //60C+ (100-160)
+    0.7, 0.72, 0.75, 0.78, 0.81, // -40-0C (0-40)
+    0.85, 0.90, 0.92, 0.94, 0.96, // 10-50C (50-90)
+    0.98, 0.99, 1, 1, 1, 1, 1 //60C+ (100-160)
 };
 
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
 const float rpm_normalizer[9] = {1.04, 1.02, 1.00, 0.98, 0.96, 0.94, 0.92, 0.9, 0.88};
 
 // RPM vs MPC pressure when driving (0-8000RPM)
-const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
+//const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
 
 class PressureManager {
 
@@ -146,7 +146,7 @@ public:
      * to blow the gearbox to bits!
      * 
      */
-    uint16_t get_mpc_active_duty_percent();
+    //uint16_t get_mpc_active_duty_percent();
 private:
     bool abort = false;
     SensorData* sensor_data;

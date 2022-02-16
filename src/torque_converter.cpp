@@ -49,7 +49,7 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
     }
     // What kind of lockup do we want?
     this->current_lockup = LockupType::Slip;
-    this->targ_tcc_pwm = torque_converter_adaptation[this->gear_idx].slip_values[atf_id]*10; // For 40(ish) Nm
+    this->targ_tcc_pwm = (torque_converter_adaptation[this->gear_idx].slip_values[atf_id]*10) ; // For 40(ish) Nm
 
     // Different gear change?
     if (this->gear_idx != gear_id) {
@@ -124,10 +124,11 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
             }
         }
     }
-    if (!is_shifting) {
-        this->last_mpc_pwm = sol_mpc->get_pwm();
+    int tcc_offset = 0;
+    if (this->curr_tcc_pwm != 0 ) {
+        tcc_offset = 300;
     }
-    sol_tcc->write_pwm_12bit_with_voltage((this->curr_tcc_pwm/10) + this->last_mpc_pwm/4, sensors->voltage);
+    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10) + this->last_mpc_pwm/4, sensors->voltage);
 }
 
 void TorqueConverter::save_adaptation_data() {
@@ -141,6 +142,7 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors) {
+    /*
     if (is_downshift) {
         if (sensors->tcc_slip_rpm >= 0 && sensors->tcc_slip_rpm < 150) { // Only reduce if not slipping
             if (this->curr_tcc_pwm > 2500 && this->targ_tcc_pwm > 2500) {
@@ -154,4 +156,5 @@ void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shif
         }
     }
     this->last_modify_time = 0;
+    */
 }

@@ -42,11 +42,12 @@ uint16_t find_spc_pressure(const pressure_map map, SensorData* sensors) {
 uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors, float shift_firmness) {
     // MPC reacts to Torque (Also sets pressure for SPC. Shift firmness can be increased)
     int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
-    if (load < 0) { load *= -0.5; } // Pulling engine
+    if (load < 0) { load *= -0.25; } // Pulling engine
     // For now forget about shift_firmness (TODO work on shift_firmness 1-10 to 1.1-0.9)
     return locate_pressure_map_value(map, load) * find_rpm_multiplier(sensors->engine_rpm); //* find_temp_multiplier(sensors->atf_temp)
 }
 
+/*
 uint16_t PressureManager::get_mpc_active_duty_percent() {
     if (sensor_data->input_rpm < 0) {
         return mpc_hold_pressure[0] * find_temp_multiplier(sensor_data->atf_temp);
@@ -60,6 +61,7 @@ uint16_t PressureManager::get_mpc_active_duty_percent() {
         return (mpc_hold_pressure[min] + ((dy/dx)) * (sensor_data->input_rpm-(min*1000)))  * find_temp_multiplier(sensor_data->atf_temp);
     }
 }
+*/
 
 ShiftResponse PressureManager::perform_and_monitor_shift(ProfileGearChange shift_request,  AbstractProfile* profile) {
     //ShiftData shift_data = this->get_shift_data(shift_request, profile->get_shift_characteristics(shift_request, sensor_data));

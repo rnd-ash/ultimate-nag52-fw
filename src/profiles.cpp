@@ -237,10 +237,10 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
     unsigned long t =  esp_timer_get_time()/1000;
-    if (sensors->input_rpm < 1000 && t-sensors->last_shift_time > 2000) {
+    if (sensors->input_rpm < 1000) {
         return true;
     }
-    else if (sensors->input_rpm < 2000 && pedal_perc > 50 && pedal_perc >= rpm_percent*2 && t-sensors->last_shift_time > 2000) {
+    else if (sensors->input_rpm < 2000 && sensors->engine_rpm < 2500 && pedal_perc >= rpm_percent*4 && t-sensors->last_shift_time > 2000) {
         if (current_gear == GearboxGear::Second) { // Prevent 2-1 downshift (Too twitchy)
             return false;
         }

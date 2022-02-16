@@ -229,7 +229,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
     CLAMP(sd.shift_speed, 1, 10); // Ensure shift speed is a valid amount
-    float curr_spc_pwm = sd.initial_spc_pwm + (2*(10-sd.shift_speed));
+    float curr_spc_pwm = sd.initial_spc_pwm;
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, sd.shift_firmness, &sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
     //vTaskDelay(400); 
@@ -257,7 +257,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             this->flaring = true;
             if (!flare_compensation) {
                 flare_compensation = true;
-                sd.mpc_pwm *= 0.90;
                 curr_spc_pwm *= 0.90;
             }
         }
@@ -303,8 +302,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     sd.shift_solenoid->write_pwm_12_bit(0);
     sol_spc->write_pwm_12_bit(0);
-    // Fade MPC back
-    // Fade MPC back to normal
+    sol_mpc->write_pwm_12_bit(0);
     this->shifting = false;
     this->flaring = false;
     bool shifted = true;
@@ -332,9 +330,9 @@ void Gearbox::shift_thread() {
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
-        sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
-        sol_spc->write_pwm_percent_with_voltage(500, sensor_data.voltage); // 40%
-        sol_y4->write_pwm_percent_with_voltage(500, sensor_data.voltage); // 3-4 is pulsed at 20%
+        sol_mpc->write_pwm_percent_with_voltage(333, sensor_data.voltage);
+        sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage); // 40%
+        sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
@@ -342,21 +340,30 @@ void Gearbox::shift_thread() {
         ESP_LOGI("SHIFTER", "Garage shift");
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
-            int press = pressure_mgr->get_mpc_active_duty_percent();
-            sol_mpc->write_pwm_percent_with_voltage(press, sensor_data.voltage);
-            sol_spc->write_pwm_percent_with_voltage(press*0.8, sensor_data.voltage);
+            //int press = pressure_mgr->get_mpc_active_duty_percent();
+            int spc_start = 400;
+            int mpc_start = 600;
+            sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
+            sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
             //sol_mpc->write_pwm_percent(50); // Increase MPC pressure to keep B2 clutch in suspension
-            sol_y4->write_pwm_percent_with_voltage(1000, sensor_data.voltage); // Full on
+            sol_y4->write_pwm_percent_with_voltage(750, sensor_data.voltage); // Full on
+            while (spc_start > 50) {
+                spc_start -= 10;
+                mpc_start -= 5;
+                sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
+                sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
+                vTaskDelay(10/portTICK_PERIOD_MS);
+            }
+            vTaskDelay(500);
             // Slowly ramp up SPC pressure again
-            vTaskDelay(2000/portTICK_PERIOD_MS);
             sol_y4->write_pwm_percent(0);
             sol_spc->write_pwm_percent(0);
-            sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
+            //sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            sol_spc->write_pwm_percent_with_voltage(500, sensor_data.voltage);
-            sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
-            sol_y4->write_pwm_percent_with_voltage(500, sensor_data.voltage); // Back to idle
+            sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage);
+            sol_mpc->write_pwm_percent_with_voltage(330, sensor_data.voltage);
+            sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // Back to idle
         }
         this->actual_gear = curr_target; // and we are in gear!
         goto cleanup;
@@ -567,8 +574,9 @@ void Gearbox::controller_loop() {
             }
         }
         if (this->sensor_data.engine_rpm > 500) {
-            if (!shifting && control_solenoids) {
-                sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
+            if (!shifting && control_solenoids && is_controllable_gear(this->actual_gear)) {
+                sol_mpc->write_pwm_12_bit(0);
+                //sol_mpc->write_pwm_percent_with_voltage(pressure_mgr->get_mpc_active_duty_percent(), sensor_data.voltage);
             }
             if (is_fwd_gear(this->actual_gear)) {
                 bool want_upshift = false;

@@ -1,6 +1,7 @@
 #include "gearbox.h"
 #include "scn.h"
 #include "nvs/eeprom_config.h"
+#include "adv_opts.h"
 
 const float diff_ratio_f = (float)DIFF_RATIO / 1000.0;
 
@@ -212,8 +213,12 @@ GearboxGear prev_gear(GearboxGear g) {
 }
 
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
-#define SHIFT_DELAY_MS 40
-#define SHIFT_CONFIRM_COUNT 80/SHIFT_DELAY_MS // 80ms in gear for confirm
+
+#ifdef BLUE_SOLENOIDS
+    #define SHIFT_DELAY_MS 60 // 50% slower ramping for blue solenoids
+#else
+    #define SHIFT_DELAY_MS 40
+#endif
 
 /**
  * @brief Used to shift between forward gears
@@ -232,7 +237,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     float curr_spc_pwm = sd.initial_spc_pwm;
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, sd.shift_firmness, &sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
-    //vTaskDelay(400); 
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
     bool torque_reduction = false;
@@ -261,7 +265,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             }
         }
         sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
-        if (sd.mpc_pwm > sd.shift_speed) {
+        if (curr_spc_pwm > sd.shift_speed) {
             curr_spc_pwm -= sd.shift_speed;
         }
         sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
@@ -340,19 +344,29 @@ void Gearbox::shift_thread() {
         ESP_LOGI("SHIFTER", "Garage shift");
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
-            //int press = pressure_mgr->get_mpc_active_duty_percent();
+            // Defaults (Start in 2nd)
             int spc_start = 400;
-            int mpc_start = 600;
+            int mpc_start = 800;
+            int spc_ramp = 10;
+            int mpc_ramp = 1;
+            int y4_pwm_val = 800;
+
+            if (!start_second) { // Starting in 1st
+                mpc_start = 650;
+                spc_start = 300;
+                y4_pwm_val = 800;
+                spc_ramp = 5;
+            }
             sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
             sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
             //sol_mpc->write_pwm_percent(50); // Increase MPC pressure to keep B2 clutch in suspension
-            sol_y4->write_pwm_percent_with_voltage(750, sensor_data.voltage); // Full on
+            sol_y4->write_pwm_percent_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
             while (spc_start > 50) {
-                spc_start -= 10;
-                mpc_start -= 5;
+                spc_start -= spc_ramp;
+                mpc_start -= mpc_ramp;
                 sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
                 sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
-                vTaskDelay(10/portTICK_PERIOD_MS);
+                vTaskDelay(20/portTICK_PERIOD_MS);
             }
             vTaskDelay(500);
             // Slowly ramp up SPC pressure again
@@ -465,33 +479,26 @@ void Gearbox::inc_subprofile() {
 void Gearbox::controller_loop() {
     bool lock_state = false;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
-    /*
-    sol_mpc->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_mpc->write_pwm_12_bit(0);
-
-    sol_spc->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_spc->write_pwm_12_bit(0);
-
-    sol_tcc->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_tcc->write_pwm_12_bit(0);
-
-    sol_y3->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_y3->write_pwm_12_bit(0);
-
-    sol_y4->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_y4->write_pwm_12_bit(0);
-
-    sol_y5->write_pwm_12_bit(2048);
-    vTaskDelay(1000);
-    sol_y5->write_pwm_12_bit(0);
-    */
-    // Before we enter, we have to check what gear we are in as the 'actual gear'
     ESP_LOGI("GEARBOX", "GEARBOX START!");
+    uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
+    bool lock = true; // P or N
+    while (esp_timer_get_time() < expire_check) {
+        this->shifter_pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+        last_position = this->shifter_pos;
+        if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
+            break; // Default startup, OK
+        } else if (this->shifter_pos == ShifterPosition::D) { // Car is in motion forwards!
+            this->actual_gear = GearboxGear::Fifth;
+            this->target_gear = GearboxGear::Fifth;
+            this->gear_disagree_count = 20; // Set disagree counter to non 0. This way gearbox must calculate ratio
+        } else if (this->shifter_pos == ShifterPosition::R) { // Car is in motion backwards!
+            this->actual_gear = GearboxGear::Reverse_Second;
+            this->target_gear = GearboxGear::Reverse_Second;
+        }
+        vTaskDelay(5);
+    }
+
+
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
         this->sensor_data.current_timestamp_ms = now;
@@ -501,7 +508,7 @@ void Gearbox::controller_loop() {
         }
         
         if(can_read && this->calc_output_rpm(&this->sensor_data.output_rpm, now)) {
-            if (!shifting && this->sensor_data.output_rpm > 500 && this->sensor_data.input_rpm > 500) {
+            if (!shifting && this->sensor_data.output_rpm > 300 && this->sensor_data.input_rpm > 300) {
                 if (is_fwd_gear(this->actual_gear)) {
                     if (calcGearFromRatio(false) && this->est_gear_idx != 0) {
                         // Compare gears
@@ -541,33 +548,36 @@ void Gearbox::controller_loop() {
         }
         if (Sensors::parking_lock_engaged(&lock_state)) {
             egs_can_hal->set_safe_start(lock_state);
-            ShifterPosition pos = egs_can_hal->get_shifter_position_ewm(now, 250);
+            this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 250);
             if (
-                pos == ShifterPosition::P || // Only obide by definitive positions for now, no intermittent once
-                pos == ShifterPosition::R ||
-                pos == ShifterPosition::N ||
-                pos == ShifterPosition::D
+                this->shifter_pos == ShifterPosition::P ||
+                this->shifter_pos == ShifterPosition::P_R ||
+                this->shifter_pos == ShifterPosition::R ||
+                this->shifter_pos == ShifterPosition::R_N ||
+                this->shifter_pos == ShifterPosition::N ||
+                this->shifter_pos == ShifterPosition::N_D ||
+                this->shifter_pos == ShifterPosition::D
             ) {
-                if (pos != last_position) {
+                if (this->shifter_pos != last_position) {
                     if (lock_state) {
-                        if (pos == ShifterPosition::P) {
+                        if (this->shifter_pos == ShifterPosition::P) {
                             this->target_gear = GearboxGear::Park;
-                            last_position = pos;
+                            last_position = this->shifter_pos;
                             if (this->tcc != nullptr) {
                                 this->tcc->save_adaptation_data();
                             }
-                        } else if (pos == ShifterPosition::N) {
+                        } else if (this->shifter_pos == ShifterPosition::N) {
                             this->target_gear = GearboxGear::Neutral;
-                            last_position = pos;
+                            last_position = this->shifter_pos;
                         }
                     } else {
                         // Drive or R!
-                        if (pos == ShifterPosition::R) {
+                        if (this->shifter_pos == ShifterPosition::R || this->shifter_pos == ShifterPosition::R_N || this->shifter_pos == ShifterPosition::P_R) {
                             this->target_gear = this->start_second ? GearboxGear::Reverse_Second : GearboxGear::Reverse_First;
-                            last_position = pos;
-                        } else if (pos == ShifterPosition::D) {
+                            last_position = this->shifter_pos;
+                        } else if (this->shifter_pos == ShifterPosition::D || this->shifter_pos == ShifterPosition::N_D) {
                             this->target_gear = this->start_second ? GearboxGear::Second : GearboxGear::First;
-                            last_position = pos;
+                            last_position = this->shifter_pos;
                         }
                     }
                 }
@@ -743,89 +753,65 @@ void Gearbox::controller_loop() {
 }
 
 bool Gearbox::calc_input_rpm(int* dest, int last_rpm) {
-    uint32_t n2 = Sensors::read_n2_rpm();
-    if (n2 < 50) { // Skip erroneous pulses
-        n2 = 0;
+    RpmReading rpm{};
+    bool ok = false;
+    bool conduct_sanity_check = gear_disagree_count == 0 && (
+        (this->actual_gear == GearboxGear::Second && this->target_gear == GearboxGear::Second) ||
+        (this->actual_gear == GearboxGear::Third && this->target_gear == GearboxGear::Third) ||
+        (this->actual_gear == GearboxGear::Fourth && this->target_gear == GearboxGear::Fourth)
+    );
+    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check)) {
+        ok = true;
+        this->sensor_data.input_rpm = rpm.calc_rpm;
     }
-    uint32_t n3 = Sensors::read_n3_rpm();
-    if (n3 < 50) { // Skip erroneous pulses
-        n3 = 0;
-    }
-    // Compare N2 and N3 sensors based on our TARGET gear
-    if (this->actual_gear == GearboxGear::Neutral || this->actual_gear == GearboxGear::Park) { 
-        if (n3 < 100 && n2 != 0) {
-            *dest = n2 * 1.64;
-            return true;
-        } else {
-            *dest = (n2+n3)/2;
-            return true;
-        }
-    }
-    // Handle forward gear transitional RPMs
-    // Prevents torque converter code panicing during 1->2 and 5->4 gear transition,
-    // as it would falsely assume the gearbox has suddenly dropped to 0 RPM!
-    if (
-        (this->target_gear == GearboxGear::Fifth  && this->actual_gear == GearboxGear::Fourth) || // 4->5 up
-        (this->target_gear == GearboxGear::Fourth && this->actual_gear == GearboxGear::Fifth)  || // 5->4 dn
-        (this->target_gear == GearboxGear::First  && this->actual_gear == GearboxGear::Second) || // 2->1 up
-        (this->target_gear == GearboxGear::Second && this->actual_gear == GearboxGear::First)     // 1->2 dn
-    ) {
-        if (abs((int)n3-(int)n2) > 100) {
-            if (n3 > 100) { // N3 is still slowing / speeding up, just return last RPM reading
-                *dest = last_rpm;
-                return true;
-            }
-            *dest = n2 * 1.64; // Assume N3 has stopped, then we read only from N2
-            return true;
-        } else {
-            *dest =  (n3+n2)/2;
-            return true;
-        }
+    ESP_LOGI("RPM", "N2 %d N3 %d, CALC: %d", rpm.n2_raw, rpm.n3_raw, rpm.calc_rpm);
+    return ok;
+    /*
+    int n2 = Sensors::read_n2_rpm();
+    int n3 = Sensors::read_n3_rpm();
+    
+   
+
+    // Next, test shifter position, if we are in R then only N3 speed is used
+    if (this->shifter_pos == ShifterPosition::R && !is_fwd_gear(this->actual_gear)) {
+        *dest = n3;
+        return true;
     }
 
-    switch (this->target_gear) {
-        case GearboxGear::First:
-        case GearboxGear::Fifth:
-            n2 *= 1.64;
-            if (n2 > OVERSPEED_RPM) {
-                //ESP_LOGE("CALC_INPUT_RPM", "N2 overspeed detected!");
-                return false;
+    // If we are in D, then 1st and 5th gears should only use N2 speed
+    if (this->shifter_pos == ShifterPosition::D && is_fwd_gear(this->actual_gear)) {
+        // In 2, 3 or 4, perform our sanity checks
+        if (
+            (this->actual_gear == GearboxGear::Second && this->actual_gear == GearboxGear::Second) ||
+            (this->actual_gear == GearboxGear::Third && this->actual_gear == GearboxGear::Third) ||
+            (this->actual_gear == GearboxGear::Fourth && this->actual_gear == GearboxGear::Fourth)
+        ) {
+            if (abs(n2-n3) > 200) {
+                return false; // Uh-oh!
             } else {
-                *dest = n2;
-                return true;
+                *dest = (n2+n3)/2;
             }
-        case GearboxGear::Reverse_First:
-        case GearboxGear::Reverse_Second:
-            if (n3 > OVERSPEED_RPM) {
-                //ESP_LOGE("CALC_INPUT_RPM", "N3 overspeed detected!");
-                return false;
-            } else {
-                *dest = n3;
-                return true;
-            }
-        default:
-            // Compare both!
-            if (n2 > OVERSPEED_RPM || n3 > OVERSPEED_RPM) {
-                //ESP_LOGE("CALC_INPUT_RPM", "N2 or N3 overspeed detected!");
-                return false;
-            }
-            // Rational check
-            if (this->target_gear == this->actual_gear) { // Only perform rational check if we are defiantly in the right gear!
-                if (n3 > n2) {
-                    if (n3-n2 > 250) { // Rational check
-                        //ESP_LOGE("CALC_INPUT_RPM", "Rational check failed! N3-N2 delta is %d", n3-n2);
-                        return false;
-                    }
-                } else if (n2 > n3) {
-                    if (n2-n3 > 250) { // Rational check
-                        //ESP_LOGE("CALC_INPUT_RPM", "Rational check failed! N2-N3 delta is %d", n2-n3);
-                        return false;
-                    }
-                }
-            }
-            *dest = (n2+n3)/2;
             return true;
+        } else {
+            // In 1 or 5, just check comparing RPM
+            if (abs(n2-n3) > 100) {
+                *dest = n2*1.64;
+            } else {
+                *dest = (n2+n3)/2;
+            }
+            return true;
+        }
+    } else if (this->shifter_pos == ShifterPosition::N || this->shifter_pos == ShifterPosition::P) {
+        if (n3 == 0 && n2 != 0) {
+            *dest = n2*1.64;
+        } else {
+            *dest = (n2+n3)/2;
+        }
+        return true;
+    } else { // Intermediate position, ignore
+        return false;
     }
+    */
 }
 
 bool Gearbox::calc_output_rpm(int* dest, uint64_t now) {

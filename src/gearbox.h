@@ -100,6 +100,7 @@ private:
     TempSampleData temp_data;
     bool control_solenoids = true;
     PressureManager* pressure_mgr = nullptr;
+    ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
 };
 
 #endif

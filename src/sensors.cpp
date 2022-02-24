@@ -2,15 +2,16 @@
 #include "driver/pcnt.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+#include "driver/timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "pins.h"
 
-#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define SAMPLES_PER_REVOLUTION 4
-#define AVERAGE_SAMPLES 5
+#define PULSES_PER_REV 60*2 // N2 and N3 are 60 pulses per revolution (NEW: Count on BOTH Rise and fall)
+#define SAMPLES_PER_REVOLUTION 20
+#define RPM_AVERAGE_SAMPLES 5
 
 #define LOG_TAG "SENSORS"
 
@@ -30,7 +31,7 @@ const pcnt_config_t pcnt_cfg_n2 {
     .ctrl_gpio_num = PCNT_PIN_NOT_USED,
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_DIS,
+    .pos_mode = PCNT_COUNT_INC,
     .neg_mode = PCNT_COUNT_INC,
     .counter_h_lim = PULSES_PER_REV / SAMPLES_PER_REVOLUTION,
     .counter_l_lim = 0,
@@ -43,7 +44,7 @@ const pcnt_config_t pcnt_cfg_n3 {
     .ctrl_gpio_num = PCNT_PIN_NOT_USED,
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_DIS,
+    .pos_mode = PCNT_COUNT_INC,
     .neg_mode = PCNT_COUNT_INC,
     .counter_h_lim = PULSES_PER_REV / SAMPLES_PER_REVOLUTION,
     .counter_l_lim = 0,
@@ -52,12 +53,17 @@ const pcnt_config_t pcnt_cfg_n3 {
 };
 
 struct RpmSampleData {
-    uint64_t samples[AVERAGE_SAMPLES];
-    uint64_t total;
+    uint64_t readings[RPM_AVERAGE_SAMPLES];
     uint8_t sample_id;
-    uint64_t delta;
-    uint64_t last_time;
+    uint64_t sum;
 };
+
+void IRAM_ATTR add_value_to_rpm(volatile RpmSampleData* sample, uint64_t reading) {
+    sample->sum -= sample->readings[sample->sample_id];
+    sample->readings[sample->sample_id] = reading;
+    sample->sum += reading;
+    sample->sample_id = (sample->sample_id+1) % RPM_AVERAGE_SAMPLES;
+}
 
 typedef struct {
     // Voltage in mV
@@ -96,45 +102,54 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
 
+#define TIMER_INTERVAL_MS 20 // Every 20ms we poll RPM (Same as other ECUs)
+#define PULSE_MULTIPLIER 1000/TIMER_INTERVAL_MS
+
 esp_adc_cal_characteristics_t adc2_cal = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
-RpmSampleData n2_samples = {
-    .samples = {0},
-    .total = 0,
+uint64_t n2_pulses;
+uint64_t n3_pulses;
+
+volatile RpmSampleData n2_rpm = {
+    .readings = {0},
     .sample_id = 0,
-    .delta = 0,
-    .last_time = 0
+    .sum = 0
+};
+volatile RpmSampleData n3_rpm = {
+    .readings = {0},
+    .sample_id = 0,
+    .sum = 0
 };
 
-RpmSampleData n3_samples = {
-    .samples = {0},
-    .total = 0,
-    .sample_id = 0,
-    .delta = 0,
-    .last_time = 0
-};
+static intr_handle_t rpm_timer_handle;
+static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
+    TIMERG0.int_clr_timers.t0 = 1;
+    TIMERG0.hw_timer[0].config.alarm_en = 1;
 
-#define WRITE_PULSES(MUX, SAMPLE) \
-    portENTER_CRITICAL(MUX); \
-    RpmSampleData* s = SAMPLE; \
-    uint64_t now = esp_timer_get_time(); \
-    s->total -= s->samples[s->sample_id]; \
-    s->delta = (now - s->last_time); \
-    s->samples[s->sample_id] = s->delta; \
-    s->sample_id = ((s->sample_id)+1) % AVERAGE_SAMPLES; \
-    s->total += s->delta; \
-    s->last_time = now; \
-    portEXIT_CRITICAL(MUX); \
+    portENTER_CRITICAL_ISR(&n3_mux);
+    add_value_to_rpm(&n3_rpm, n3_pulses);
+    n3_pulses = 0;
+    portEXIT_CRITICAL_ISR(&n3_mux);
+
+    portENTER_CRITICAL_ISR(&n2_mux);
+    add_value_to_rpm(&n2_rpm, n2_pulses);
+    n2_pulses = 0;
+    portEXIT_CRITICAL_ISR(&n2_mux);
+}
 
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
-    WRITE_PULSES(&n2_mux, &n2_samples);
+    portENTER_CRITICAL_ISR(&n2_mux);
+    n2_pulses += PULSES_PER_REV/SAMPLES_PER_REVOLUTION;
+    portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
-    WRITE_PULSES(&n3_mux, &n3_samples);
+    portENTER_CRITICAL_ISR(&n3_mux);
+    n3_pulses += PULSES_PER_REV/SAMPLES_PER_REVOLUTION;
+    portEXIT_CRITICAL_ISR(&n3_mux);
 }
 
 bool Sensors::init_sensors(){
@@ -188,33 +203,57 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N2_RPM), "Failed to resume PCNT N2 RPM! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N3_RPM), "Failed to resume PCNT N3 RPM! %s", esp_err_to_name(res))
 
+    timer_config_t config = {
+            .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
+            .counter_en = timer_start_t::TIMER_START,
+            .intr_type = TIMER_INTR_LEVEL,
+            .counter_dir = TIMER_COUNT_UP,
+            .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
+            .divider = 80   /* 1 us per tick */
+    };
+    CHECK_ESP_FUNC(timer_init(TIMER_GROUP_0, TIMER_0, &config), "Failed to init timer 0 for PCNT measuring! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "%s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, TIMER_INTERVAL_MS*1000), "%s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(timer_isr_register(TIMER_GROUP_0, TIMER_0, &RPM_TIMER_ISR, NULL, 0, &rpm_timer_handle), "%s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(timer_start(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
+
+
     ESP_LOGI(LOG_TAG, "Sensors INIT OK!");
     return true;
 }
 
-#define NUMERATOR 1000000 * (PULSES_PER_REV / SAMPLES_PER_REVOLUTION)
+bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
+    dest->n2_raw = (((float)n2_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
+    dest->n3_raw = (((float)n3_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
 
-inline uint32_t read_rpm(portMUX_TYPE* mux, RpmSampleData* sample) {
-    uint64_t now = esp_timer_get_time();
-    portENTER_CRITICAL(mux);
-    if (now-sample->last_time > 250000) { // 250ms timeout
-        portEXIT_CRITICAL(mux);
-        return 0;
+    if (dest->n2_raw == 0 && dest->n3_raw == 0) { // Stationary, break here to avoid divideBy0Ex
+        dest->calc_rpm = 0;
+        return true;
+    } else if (dest->n2_raw == 0) { // In gears R1 or R2 (as N2 is 0)
+        dest->calc_rpm = dest->n3_raw;
+        return true;
+    } else {
+        if (abs((int)dest->n2_raw - (int)dest->n3_raw) < 50) {
+            dest->calc_rpm = (dest->n2_raw+dest->n3_raw)/2;
+            return true;
+        }
+        // More difficult calculation for all forward gears
+        // This calculation works when both RPM sensors are the same (Gears 2,3,4)
+        // Or when N3 is 0 and N2 is reporting ~0.61x real Rpm (Gears 1 and 5)
+        // Also nicely handles transitionary phases between RPM readings, making gear shift RPM readings
+        // a lot more accurate for the rest of the TCM code
+        
+        float ratio = (float)dest->n3_raw/(float)dest->n2_raw;
+        float f2 = (float)dest->n2_raw;
+        float f3 = (float)dest->n3_raw;
+
+        dest->calc_rpm = ((f2*1.64f)*(1.0f-ratio))+(f3*ratio);
+
+        // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
+        // otherwise we have a faulty conductor place sensor!
+        return check_sanity ? abs((int)dest->n2_raw - (int)dest->n3_raw) < 150 : true;
     }
-    uint32_t res = 0;
-    if (sample->total != 0) {
-        res = NUMERATOR / (sample->total / AVERAGE_SAMPLES); 
-    }
-    portEXIT_CRITICAL(mux);
-    return res;
-}
-
-uint32_t Sensors::read_n2_rpm(){
-    return read_rpm(&n2_mux, &n2_samples);
-}
-
-uint32_t Sensors::read_n3_rpm(){
-    return read_rpm(&n3_mux, &n3_samples);
 }
 
 bool Sensors::read_vbatt(uint16_t *dest){

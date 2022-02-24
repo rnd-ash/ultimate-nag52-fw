@@ -503,7 +503,7 @@ void Gearbox::controller_loop() {
         uint64_t now = esp_timer_get_time()/1000;
         this->sensor_data.current_timestamp_ms = now;
         bool can_read = true;
-        if (!this->calc_input_rpm(&sensor_data.input_rpm, sensor_data.input_rpm)) {
+        if (!this->calc_input_rpm(&sensor_data.input_rpm)) {
             can_read = false;
         }
         
@@ -752,7 +752,7 @@ void Gearbox::controller_loop() {
     }
 }
 
-bool Gearbox::calc_input_rpm(int* dest, int last_rpm) {
+bool Gearbox::calc_input_rpm(int* dest) {
     RpmReading rpm{};
     bool ok = false;
     bool conduct_sanity_check = gear_disagree_count == 0 && (
@@ -764,54 +764,7 @@ bool Gearbox::calc_input_rpm(int* dest, int last_rpm) {
         ok = true;
         this->sensor_data.input_rpm = rpm.calc_rpm;
     }
-    ESP_LOGI("RPM", "N2 %d N3 %d, CALC: %d", rpm.n2_raw, rpm.n3_raw, rpm.calc_rpm);
     return ok;
-    /*
-    int n2 = Sensors::read_n2_rpm();
-    int n3 = Sensors::read_n3_rpm();
-    
-   
-
-    // Next, test shifter position, if we are in R then only N3 speed is used
-    if (this->shifter_pos == ShifterPosition::R && !is_fwd_gear(this->actual_gear)) {
-        *dest = n3;
-        return true;
-    }
-
-    // If we are in D, then 1st and 5th gears should only use N2 speed
-    if (this->shifter_pos == ShifterPosition::D && is_fwd_gear(this->actual_gear)) {
-        // In 2, 3 or 4, perform our sanity checks
-        if (
-            (this->actual_gear == GearboxGear::Second && this->actual_gear == GearboxGear::Second) ||
-            (this->actual_gear == GearboxGear::Third && this->actual_gear == GearboxGear::Third) ||
-            (this->actual_gear == GearboxGear::Fourth && this->actual_gear == GearboxGear::Fourth)
-        ) {
-            if (abs(n2-n3) > 200) {
-                return false; // Uh-oh!
-            } else {
-                *dest = (n2+n3)/2;
-            }
-            return true;
-        } else {
-            // In 1 or 5, just check comparing RPM
-            if (abs(n2-n3) > 100) {
-                *dest = n2*1.64;
-            } else {
-                *dest = (n2+n3)/2;
-            }
-            return true;
-        }
-    } else if (this->shifter_pos == ShifterPosition::N || this->shifter_pos == ShifterPosition::P) {
-        if (n3 == 0 && n2 != 0) {
-            *dest = n2*1.64;
-        } else {
-            *dest = (n2+n3)/2;
-        }
-        return true;
-    } else { // Intermediate position, ignore
-        return false;
-    }
-    */
 }
 
 bool Gearbox::calc_output_rpm(int* dest, uint64_t now) {

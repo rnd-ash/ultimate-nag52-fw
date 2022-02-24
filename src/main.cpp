@@ -99,18 +99,15 @@ void printer(void*) {
         Sensors::read_atf_temp(&atf_temp);
         Sensors::read_vbatt(&vbatt);
         Sensors::parking_lock_engaged(&parking);
-        n2 = Sensors::read_n2_rpm();
-        n3 = Sensors::read_n3_rpm();
         ESP_LOGI(
             "MAIN", 
-            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA. N2/N3: (%u/%u) RPM.",
+            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA.",
             sol_y3->get_current_estimate(),
             sol_y4->get_current_estimate(),
             sol_y5->get_current_estimate(),
             sol_mpc->get_current_estimate(),
             sol_spc->get_current_estimate(),
-            sol_tcc->get_current_estimate(),
-            n2, n3
+            sol_tcc->get_current_estimate()
         );
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }

@@ -1,5 +1,6 @@
 #include "profiles.h"
 #include <gearbox_config.h>
+#include "adv_opts.h"
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
    switch (target) {
@@ -92,8 +93,8 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 3.0,
-        .shift_speed = 3.0,
+        .shift_firmness = 1.0,
+        .shift_speed = 1.0,
     };
 }
 
@@ -127,7 +128,14 @@ bool WinterProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+#ifdef MANUAL_AUTO_DOWNSHIFT
+    if (current_gear == GearboxGear::Second) {
+        return false;
+    }
+    return manual->should_downshift(current_gear, sensors);
+#else
     return false;
+#endif
 }
 
 void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear, SensorData* sensors) {
@@ -254,8 +262,8 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_shift_time_ms = 500,
-        .shift_firmness = 6.0,
-        .shift_speed = 6.0,
+        .shift_firmness = 10.0,
+        .shift_speed = 10.0,
     };
 }
 
@@ -289,7 +297,16 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+#ifdef MANUAL_AUTO_DOWNSHIFT
+    if (current_gear == GearboxGear::First) {
+        return false;
+    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < 800 && sensors->pedal_pos == 0) {
+        return true;
+    }
     return false;
+#else
+    return false;
+#endif
 }
 
 

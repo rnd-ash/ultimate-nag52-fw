@@ -27,6 +27,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
     else if (percent >= 100) { return map[10]; }
     else {
         int min = percent/10;
+        
         int max = min+1;
         float dy = map[max] - map[min];
         float dx = (max-min)*10;
@@ -120,7 +121,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.shift_solenoid = sol_y3;
             break;
     }
-    sd.shift_firmness = chars.shift_firmness * find_temp_multiplier(sensors->atf_temp);
+    sd.shift_firmness = chars.shift_firmness; //* find_temp_multiplier(sensors->atf_temp);
     sd.targ_ms = chars.target_shift_time_ms;
     sd.shift_speed = chars.shift_speed;
     return sd;

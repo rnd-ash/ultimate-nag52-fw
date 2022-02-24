@@ -14,22 +14,22 @@
 #ifdef LARGE_NAG
 
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {540, 530, 500, 490, 480, 470, 460, 450, 440, 430, 420};
-const pressure_map mpc_1_2 = {540, 530, 500, 490, 480, 470, 460, 450, 440, 430, 420};
+const pressure_map spc_1_2 = {550, 540, 530, 510, 500, 490, 480, 470, 460, 450, 440};
+const pressure_map mpc_1_2 = {550, 540, 530, 510, 500, 490, 480, 470, 460, 450, 440};
 
 // 2 -> 3 upshift
-const pressure_map spc_2_3 = {490, 480, 470, 460, 440, 430, 420, 400, 390, 380, 360};
-const pressure_map mpc_2_3 = {490, 480, 470, 460, 440, 430, 420, 400, 390, 380, 360};
+const pressure_map spc_2_3 = {470, 460, 440, 420, 400, 380, 360, 340, 320, 300, 280};
+const pressure_map mpc_2_3 = {470, 460, 440, 420, 400, 380, 360, 340, 320, 300, 280};
 
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {440, 430, 420, 410, 400, 390, 380, 370, 360, 350, 340};
-const pressure_map mpc_3_4 = {440, 430, 420, 410, 400, 390, 380, 370, 360, 350, 340};
+const pressure_map spc_3_4 = {400, 390, 380, 370, 360, 350, 340, 330, 320, 310, 300};
+const pressure_map mpc_3_4 = {400, 390, 380, 370, 360, 350, 340, 330, 320, 310, 300};
 
 
 // 4 -> 5 upshift
-const pressure_map spc_4_5 = {490, 480, 470, 450, 430, 420, 410, 400, 380, 360, 340};
-const pressure_map mpc_4_5 = {490, 480, 470, 450, 430, 420, 410, 400, 380, 360, 340};
+const pressure_map spc_4_5 = {450, 440, 430, 420, 410, 400, 390, 380, 370, 360, 340};
+const pressure_map mpc_4_5 = {450, 440, 430, 420, 410, 400, 390, 380, 370, 360, 340};
 
 
 // 2 -> 1 downshift
@@ -102,6 +102,8 @@ const float rpm_normalizer[9] = {1.04, 1.02, 1.00, 0.98, 0.96, 0.94, 0.92, 0.9, 
 
 // RPM vs MPC pressure when driving (0-8000RPM)
 //const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
+
+typedef void (*P_RAMP_FUNC)(float, float);
 
 class PressureManager {
 

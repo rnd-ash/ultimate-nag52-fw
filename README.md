@@ -9,3 +9,10 @@ For context on this project, checkout my [video playlist](https://youtube.com/pl
 I am in no way responsible if your gearbox or car dies as a result of using this firmware!
 Although this firmware is being tested actively, there are loads of unknowns which may occur rarely during operation that
 are not tested yet.
+
+## Generating the code documentation
+
+1. Install [doxygen](https://www.doxygen.nl/manual/install.html)
+2. Clone doxygen-awesome-css submodule with `git submodule update --init --recursive`
+3. Run `doxygen`
+4. View code documentation in the generated `html` folder

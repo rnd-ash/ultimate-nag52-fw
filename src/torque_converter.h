@@ -7,6 +7,7 @@
 #include "nvs/eeprom_config.h"
 #include "esp_log.h"
 #include <string.h>
+#include "pressure_manager.h"
 
 enum class LockupType {
     Open, // Torque converter must remian open
@@ -44,7 +45,7 @@ class TorqueConverter {
          * @param sensors Sensor data used as input
          * @param shifting True if the car is currently transitioning to new gear
          */
-        void update(GearboxGear curr_gear, LockupType max_lockup,SensorData* sensors, bool is_shifting);
+        void update(GearboxGear curr_gear, PressureManager* pm, LockupType max_lockup,SensorData* sensors, bool is_shifting);
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
         void save_adaptation_data();
         void on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors);

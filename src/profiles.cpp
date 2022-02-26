@@ -139,9 +139,7 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 }
 
 void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear, SensorData* sensors) {
-    ESP_LOGI("ADAPT", "Adaptation called. Shifted? %d, Measured shift? %d, Shift time %d ms, Shift d_rpm avg: %d", 
-        resp.shifted, resp.valid_measurement, resp.time_ms, resp.avg_d_rpm
-    );
+    
     /*
     float* target;
     switch(from_gear) {

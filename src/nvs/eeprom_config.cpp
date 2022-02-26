@@ -128,12 +128,6 @@ bool EEPROM::save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t st
         ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
         return false;
     }
-    /*
-    save_nvs_gear_adaptation(NVS_KEY_1_2_ADAPTATION, &map_1_2_adaptation, sizeof(map_1_2_adaptation));
-    save_nvs_gear_adaptation(NVS_KEY_2_3_ADAPTATION, &map_2_3_adaptation, sizeof(map_2_3_adaptation));
-    save_nvs_gear_adaptation(NVS_KEY_3_4_ADAPTATION, &map_3_4_adaptation, sizeof(map_3_4_adaptation));
-    save_nvs_gear_adaptation(NVS_KEY_4_5_ADAPTATION, &map_4_5_adaptation, sizeof(map_4_5_adaptation));
-    */
     return true;
 }
 

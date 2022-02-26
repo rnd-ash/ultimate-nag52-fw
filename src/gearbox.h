@@ -67,7 +67,7 @@ private:
     portMUX_TYPE profile_mutex;
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
-    GearboxGear min_fwd_gear = GearboxGear::First;
+    GearboxGear last_fwd_gear = GearboxGear::Second;
     bool calc_input_rpm(int* dest);
     bool calc_output_rpm(int* dest, uint64_t now);
     [[noreturn]]

@@ -1,3 +1,5 @@
+#ifndef UNIT_TEST
+
 #include "scn.h"
 #include "solenoids/solenoids.h"
 #include "esp_log.h"
@@ -13,6 +15,7 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
+#include "adaptation/adapt_map.h"
 
 #define NUM_PROFILES 5 // A, C, W, M, S
 
@@ -199,3 +202,5 @@ extern "C" void app_main(void)
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
     //xTaskCreate(solenoid_test, "TEST_LOOP", 8192, nullptr, 2, nullptr);
 }
+
+#endif // UNIT_TEST

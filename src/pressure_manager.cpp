@@ -64,6 +64,10 @@ uint16_t PressureManager::get_mpc_active_duty_percent() {
 }
 */
 
+float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
+    return find_temp_multiplier(atf_temp);
+}
+
 ShiftResponse PressureManager::perform_and_monitor_shift(ProfileGearChange shift_request,  AbstractProfile* profile) {
     //ShiftData shift_data = this->get_shift_data(shift_request, profile->get_shift_characteristics(shift_request, sensor_data));
     return ShiftResponse{};
@@ -121,7 +125,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.shift_solenoid = sol_y3;
             break;
     }
-    sd.shift_firmness = chars.shift_firmness; //* find_temp_multiplier(sensors->atf_temp);
+    sd.shift_firmness = chars.shift_firmness;
     sd.targ_ms = chars.target_shift_time_ms;
     sd.shift_speed = chars.shift_speed;
     return sd;

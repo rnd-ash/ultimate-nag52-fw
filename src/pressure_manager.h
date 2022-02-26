@@ -3,6 +3,7 @@
 
 #include <common_structs.h>
 #include "profiles.h"
+#include "adaptation/adapt_map.h"
 #include <gearbox_config.h>
 
 // Default maps (Needs modifying!)
@@ -55,31 +56,28 @@ const pressure_map mpc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 
 */
 
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
-const pressure_map mpc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
+const pressure_map spc_1_2 = {590, 590, 580, 570, 560, 550, 520, 500, 480, 460, 450};
+const pressure_map mpc_1_2 = {590, 590, 580, 570, 560, 550, 520, 500, 480, 460, 450};
 
 // 2 -> 3 upshift
-const pressure_map spc_2_3 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
-const pressure_map mpc_2_3 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
-
+const pressure_map spc_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {510, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map spc_3_4 = {500, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
 const pressure_map mpc_3_4 = {510, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
-
 
 // 4 -> 5 upshift
 const pressure_map spc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
 const pressure_map mpc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
 
-
 // 2 -> 1 downshift
-const pressure_map spc_2_1 = {510, 495, 490, 485, 480, 475, 470, 460, 450, 420, 400};
-const pressure_map mpc_2_1 = {510, 495, 490, 485, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map spc_2_1 = {550, 520, 490, 485, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map mpc_2_1 = {550, 520, 490, 485, 480, 475, 470, 460, 450, 420, 400};
 
 // 3 -> 2 downshift
-const pressure_map spc_3_2 = {450, 425, 400, 390, 380, 370, 360, 350, 340, 330, 320};
-const pressure_map mpc_3_2 = {450, 425, 400, 390, 380, 370, 360, 350, 340, 330, 320};
+const pressure_map spc_3_2 = {460, 440, 420, 390, 380, 370, 360, 350, 340, 330, 320};
+const pressure_map mpc_3_2 = {460, 440, 420, 390, 380, 370, 360, 350, 340, 330, 320};
 
 // 4 -> 3 downshift
 const pressure_map spc_4_3 = {440, 435, 430, 420, 410, 400, 380, 360, 340, 320, 300};
@@ -110,6 +108,7 @@ class PressureManager {
 public:
     PressureManager(SensorData* sensor_ptr) {
         this->sensor_data = sensor_ptr;
+        this->adapt_map = new AdaptationMap();
     }
     /**
      * @brief Performs a gear change
@@ -143,15 +142,23 @@ public:
      */
     ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
-    /**
-     * @brief Gets the holding pressure in order to keeps MPC clutches activated (When NOT shifting), without too much pressure
-     * to blow the gearbox to bits!
-     * 
-     */
-    //uint16_t get_mpc_active_duty_percent();
+    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response) {
+        if (this->adapt_map != nullptr) { 
+            this->adapt_map->perform_adaptation(sensors, change, response);
+        }
+    }
+
+    void save() {
+        if (this->adapt_map != nullptr) { 
+            this->adapt_map->save(); 
+        }
+    }
+
+    float get_tcc_temp_multiplier(int atf_temp);
 private:
     bool abort = false;
     SensorData* sensor_data;
+    AdaptationMap* adapt_map;
 };
 
 #endif

@@ -27,7 +27,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, SensorData* sensors, bool is_shifting) { // Only called when NOT changing gears
+void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, LockupType max_lockup, SensorData* sensors, bool is_shifting) { // Only called when NOT changing gears
     uint8_t gear_id = get_gear_idx(curr_gear);
     uint8_t atf_id = get_temp_idx(sensors->atf_temp);
     uint64_t now = sensors->current_timestamp_ms;
@@ -60,8 +60,8 @@ void TorqueConverter::update(GearboxGear curr_gear, LockupType max_lockup, Senso
         this->curr_tcc_pwm = 1000;
         this->was_idle = false;
     } else if (this->curr_tcc_pwm < this->targ_tcc_pwm) { // Smooth low->High TCC PWM (Under gas only)
-        if (sensors->pedal_pos != 0 && sensors->tcc_slip_rpm > 10) {
-            this->curr_tcc_pwm += sensors->pedal_pos/10;
+        if (sensors->pedal_pos != 0 && sensors->tcc_slip_rpm > 50) {
+            this->curr_tcc_pwm += sensors->pedal_pos/10 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         }
     } else if (this->curr_tcc_pwm > this->targ_tcc_pwm) { // Jump High->Low TCC PWM
         this->curr_tcc_pwm-=10;

@@ -93,13 +93,39 @@ typedef struct {
 const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0, .shift_speed = 5.0};
 
 typedef struct {
-    bool shifted; // Did the car change gears or not??
-    bool aborted; // Was an abort shift made during the change?
-    bool valid_measurement; // Valid measurement sample complete
-    int time_ms; // Time taken to shift
-    int avg_d_rpm; // Average delta RPM
-    int max_d_rpm; // Max delta RPM
-    int min_d_rpm; // Min delta RPM
+    /**
+     * @brief Did the gearbox change gears OK?
+     * 
+     */
+    bool shifted;
+    /**
+     * @brief Ensures we were able to measure the output shaft speed.
+     * When stationary, we assume the car shifted after 1000ms
+     * 
+     */
+    bool measure_ok;
+    /**
+     * @brief Actual time taken to shift gears, as reported by shift_thread
+     * 
+     */
+    int shift_time_ms;
+    int targ_shift_time_ms;
+
+    /**
+     * @brief Flared? In upshifting, this is when input RPM jumps before falling back
+     * in line. When downshifting, this is seen as input RPM falling before rising back
+     * in line.
+     */
+    bool flared;
+
+    /**
+     * @brief Delta in output RPM during the gearchange
+     * This defines if we were accelerating or decelerating
+     */
+    int d_output_rpm;
+
+    bool torque_cut;
+
 } ShiftResponse;
 
 typedef struct {

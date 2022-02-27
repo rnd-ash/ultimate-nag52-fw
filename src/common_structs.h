@@ -6,6 +6,30 @@
 
 typedef int16_t pressure_map[11];
 
+
+template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
+    T readings[MAX_SIZE];
+    uint8_t sample_id;
+    uint64_t sum;
+
+    MovingAverage() {
+        this->sample_id = 0;
+        this->sum = 0;
+        memset(this->readings, 0x00, sizeof(this->readings));
+    }
+
+    void add_to_sample(T reading) {
+        this->sum -= this->readings[this->sample_id];
+        this->readings[this->sample_id] = reading;
+        this->sum += reading;
+        this->sample_id = (this->sample_id+1) % MAX_SIZE;
+    }
+
+    T get_average() {
+        return (float)sum / (float)MAX_SIZE;
+    }
+};
+
 /**
  * @brief Gearbox sensor data
  * This structure gets passed between a lot of the gearbox
@@ -40,6 +64,8 @@ typedef struct {
     uint64_t current_timestamp_ms;
     /// Is the brake pedal depressed?
     bool is_braking;
+    /// Delta in output RPM, used for calculating if car is accelerating or slowing down
+    int d_output_rpm;
 } SensorData;
 
 /**
@@ -76,7 +102,7 @@ typedef struct {
     /// too little otherwise the gearbox will slip too much
     uint16_t mpc_pwm;
     /// Target time in milliseconds for the shift to complete
-    uint16_t targ_ms;
+    uint16_t targ_d_rpm;
     // Shift firmness feel. Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
     float shift_firmness;
     // Shift speed factor. Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
@@ -90,7 +116,7 @@ typedef struct {
 } ShiftData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_ms = 500, .shift_firmness = 1.0, .shift_speed = 5.0};
+const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_d_rpm = 50, .shift_firmness = 1.0, .shift_speed = 5.0};
 
 typedef struct {
     /**
@@ -104,12 +130,6 @@ typedef struct {
      * 
      */
     bool measure_ok;
-    /**
-     * @brief Actual time taken to shift gears, as reported by shift_thread
-     * 
-     */
-    int shift_time_ms;
-    int targ_shift_time_ms;
 
     /**
      * @brief Flared? In upshifting, this is when input RPM jumps before falling back
@@ -126,10 +146,16 @@ typedef struct {
 
     bool torque_cut;
 
+    int min_d_rpm;
+    int max_d_rpm;
+    int avg_d_rpm;
+    int target_d_rpm;
+
 } ShiftResponse;
 
 typedef struct {
-    uint16_t target_shift_time_ms;
+    // Target delta RPM per step (Each step ~= 40ms)
+    uint16_t target_d_rpm;
     // Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
     float shift_firmness;
     // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift

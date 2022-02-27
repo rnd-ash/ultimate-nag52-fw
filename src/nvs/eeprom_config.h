@@ -15,10 +15,7 @@
 #define NVS_UCFG_KEY_PROFILE "LAST_PROFILE"
 #define NVS_KEY_TCC_ADAPTATION "TCC_ADAPTATION"
 
-#define NVS_KEY_1_2_ADAPTATION "1_2_ADAPT"
-#define NVS_KEY_2_3_ADAPTATION "2_3_ADAPT"
-#define NVS_KEY_3_4_ADAPTATION "3_4_ADAPT"
-#define NVS_KEY_4_5_ADAPTATION "4_5_ADAPT"
+#define NVS_KEY_GEAR_ADAPTATION "GEAR_ADAPTATION"
 
 typedef struct {
     bool is_large_nag;
@@ -41,7 +38,6 @@ namespace EEPROM {
     bool read_core_scn_config(EEPROM_CORE_SCN_CONFIG* dest);
     bool save_core_scn_config(EEPROM_CORE_SCN_CONFIG* write);
     bool save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size);
-    bool save_nvs_gear_adaptation(const char* key, pressure_map* read_location, size_t store_size);
 };
 
 #define NUM_GEARS 5

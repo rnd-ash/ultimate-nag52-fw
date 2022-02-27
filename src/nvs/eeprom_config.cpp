@@ -131,17 +131,6 @@ bool EEPROM::save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t st
     return true;
 }
 
-bool EEPROM::save_nvs_gear_adaptation(const char* key, pressure_map* read_location, size_t store_size) {
-    nvs_handle_t handle;
-    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    esp_err_t e = nvs_set_blob(handle, key, read_location, store_size);
-    if (e != ESP_OK) {
-        ESP_LOGE("EEPROM", "Error saving gear map data (%s)", esp_err_to_name(e));
-        return false;
-    }
-    return true;
-}
-
 bool EEPROM::init_eeprom() {
     // Called on startup
 

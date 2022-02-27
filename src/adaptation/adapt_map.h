@@ -14,7 +14,7 @@
 #endif
 
 #define ADAPT_RPM_LIMIT 2500
-#define ADAPT_TEMP_THRESH 70
+#define ADAPT_TEMP_THRESH 60
 #define ADAPT_TEMP_LIMIT 100
 
 struct AdaptationData {
@@ -22,6 +22,11 @@ struct AdaptationData {
     int16_t offset_accel_idle; // Shift under no load whilst accelerating
     int16_t offset_decel_load; // Shift under load whilst decelerating
     int16_t offset_decel_idle; // Shift under no load whilst decelerating
+
+    float bite_speed_accel_load; // Shift under load whilst accelerating
+    float bite_speed_accel_idle; // Shift under no load whilst accelerating
+    float bite_speed_decel_load; // Shift under load whilst decelerating
+    float bite_speed_decel_idle; // Shift under no load whilst decelerating
 };
 
 // For now, we just do what EGS52 does
@@ -30,8 +35,10 @@ public:
     AdaptationMap();
     // Reset map to everything default
     void reset();
-    void save();
-    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response);
+    bool save();
+    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift);
+    int get_adaptation_offset(SensorData* sensors, ProfileGearChange change);
+    float get_adaptation_speed(SensorData* sensors, ProfileGearChange change);
 private:
     AdaptationData adapt_data[8];
     bool load_from_nvs();

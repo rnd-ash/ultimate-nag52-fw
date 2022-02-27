@@ -30,7 +30,7 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
-        .target_shift_time_ms = 500,
+        .target_d_rpm = 60,
         .shift_firmness = 6,
         // EXPERIMENTAL - Shift speed maps to pedal position!
         .shift_speed = ((float)(sensors->pedal_pos)*10/250) + 1, // Map pedal pos to 1-10
@@ -48,7 +48,7 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
-        .target_shift_time_ms = 500,
+        .target_d_rpm = 30,
         .shift_firmness = 2.0,
         .shift_speed = 2.0,
     };
@@ -92,7 +92,7 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
-        .target_shift_time_ms = 500,
+        .target_d_rpm = 20,
         .shift_firmness = 1.0,
         .shift_speed = 1.0,
     };
@@ -177,7 +177,7 @@ void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear,
 
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
-        .target_shift_time_ms = 500,
+        .target_d_rpm = 50,
         .shift_firmness = 4.0,
         .shift_speed = 4.0,
     };
@@ -259,7 +259,7 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
 
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
-        .target_shift_time_ms = 500,
+        .target_d_rpm = 70,
         .shift_firmness = 10.0,
         .shift_speed = 10.0,
     };

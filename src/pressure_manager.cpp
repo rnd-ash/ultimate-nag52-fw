@@ -126,7 +126,12 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             break;
     }
     sd.shift_firmness = chars.shift_firmness;
-    sd.targ_ms = chars.target_shift_time_ms;
+    sd.targ_d_rpm = chars.target_d_rpm;
     sd.shift_speed = chars.shift_speed;
+    if (this->adapt_map != nullptr) {
+        sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
+        sd.mpc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
+        sd.shift_firmness *= adapt_map->get_adaptation_speed(sensors, shift_request);
+    }
     return sd;
 }

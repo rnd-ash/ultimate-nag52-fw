@@ -142,9 +142,9 @@ public:
      */
     ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
-    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response) {
+    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
         if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(sensors, change, response);
+            this->adapt_map->perform_adaptation(sensors, change, response, upshift);
         }
     }
 

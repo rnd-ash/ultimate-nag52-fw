@@ -222,13 +222,13 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     int rpm_threshold = 0;
     // Load (idx) vs pedal
     if (current_gear == GearboxGear::First) {
-        rpm_threshold = 1500;
+        rpm_threshold = 1800;
     } else if (current_gear == GearboxGear::Second) {
-        rpm_threshold = 1500;
+        rpm_threshold = 1800;
     } else if (current_gear == GearboxGear::Third) {
-        rpm_threshold = 1500;
+        rpm_threshold = 1800;
     } else if (current_gear == GearboxGear::Fourth) {
-        rpm_threshold = 1500;
+        rpm_threshold = 1600;
     }
     unsigned long t =  esp_timer_get_time()/1000;
 
@@ -239,7 +239,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
 }
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-    if (current_gear == GearboxGear::Second || current_gear == GearboxGear::First) { return false; }
+    if (current_gear == GearboxGear::First) { return false; }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
     unsigned long t =  esp_timer_get_time()/1000;

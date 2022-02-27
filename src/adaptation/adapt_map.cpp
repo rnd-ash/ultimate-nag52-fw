@@ -235,8 +235,18 @@ int AdaptationMap::get_adaptation_offset(SensorData* sensors, ProfileGearChange 
 void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
     ESP_LOGI("ADAPT_MAP", "Adapting called");
     // Firstly, obey RPM and Torque limits
-    if (sensors->engine_rpm > ADAPT_RPM_LIMIT || sensors->static_torque > ADAPT_TORQUE_LIMIT) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Torque outside limits");
+    if (sensors->static_torque > ADAPT_TORQUE_LIMIT) {
+        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Torque outside limits. Got %d Nm, must be below %d Nm",
+            sensors->static_torque,
+            ADAPT_TORQUE_LIMIT
+        );
+        return;
+    }
+    if (sensors->engine_rpm > ADAPT_RPM_LIMIT) {
+        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Engine RPM outside limits. Got %d RPM, must be below %d RPM",
+            sensors->engine_rpm,
+            ADAPT_RPM_LIMIT
+        );
         return;
     }
     // Next check if measure was OK!
@@ -246,7 +256,11 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     }
 
     if (sensors->atf_temp < ADAPT_TEMP_THRESH || sensors->atf_temp > ADAPT_TEMP_LIMIT) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. ATF temp outside limits");
+        ESP_LOGW("ADAPT_MAP", "Cannot adapt. ATF temp outside limits. ATF at %d C, must be between %d and %d C",
+            sensors->atf_temp,
+            ADAPT_TEMP_THRESH,
+            ADAPT_TEMP_LIMIT
+        );
         return; // Too cold/hot to adapt
     }
 

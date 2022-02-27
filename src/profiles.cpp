@@ -29,11 +29,18 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+    float dp = ((float)(sensors->pedal_pos)/250.0f) *2;
+    if (dp > 1) {
+        dp = 1;
+    }
+    if (dp == 0) {
+        dp = 1;
+    }
+    dp *=10.0;
     return ShiftCharacteristics {
         .target_d_rpm = 60,
         .shift_firmness = 6,
-        // EXPERIMENTAL - Shift speed maps to pedal position!
-        .shift_speed = ((float)(sensors->pedal_pos)*10/250) + 1, // Map pedal pos to 1-10
+        .shift_speed = dp,
     };
 }
 

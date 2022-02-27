@@ -128,7 +128,9 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, LockupT
     if (this->curr_tcc_pwm != 0 ) {
         tcc_offset = 300;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10) + this->last_mpc_pwm/4, sensors->voltage);
+    if (!is_shifting) {
+        sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10) + this->last_mpc_pwm/4, sensors->voltage);
+    }
 }
 
 void TorqueConverter::save_adaptation_data() {
@@ -142,6 +144,10 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors) {
+    if (this->curr_tcc_pwm != 0 && !is_downshift) {
+        this->curr_tcc_pwm *= 1.2;
+        sol_tcc->write_pwm_12bit_with_voltage(300+(this->curr_tcc_pwm/10), sensors->voltage);
+    }
     /*
     if (is_downshift) {
         if (sensors->tcc_slip_rpm >= 0 && sensors->tcc_slip_rpm < 150) { // Only reduce if not slipping

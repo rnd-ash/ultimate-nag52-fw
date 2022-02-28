@@ -173,7 +173,7 @@ bool Sensors::init_sensors(){
 
     // Characterise ADC2
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_MAX, ADC2_WIDTH, 0, &adc2_cal_batt);
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_6, ADC2_WIDTH, 0, &adc2_cal_atf);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_0, ADC2_WIDTH, 0, &adc2_cal_atf);
 
     // Now configure PCNT to begin counting!
     CHECK_ESP_FUNC(pcnt_unit_config(&pcnt_cfg_n2), "Failed to configure PCNT for N2 RPM reading! %s", esp_err_to_name(res))

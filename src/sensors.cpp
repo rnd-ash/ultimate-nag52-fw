@@ -107,7 +107,8 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 #define TIMER_INTERVAL_MS 20 // Every 20ms we poll RPM (Same as other ECUs)
 #define PULSE_MULTIPLIER 1000/TIMER_INTERVAL_MS
 
-esp_adc_cal_characteristics_t adc2_cal = {};
+esp_adc_cal_characteristics_t adc2_cal_atf = {};
+esp_adc_cal_characteristics_t adc2_cal_batt = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -166,11 +167,13 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(gpio_set_pull_mode(PIN_N3, GPIO_PULLUP_ONLY), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
 
     // Configure ADC2 for analog readings
-    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_VBATT, ADC2_ATTEN), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC2_ATTEN), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_VBATT, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))
+    // Voltage on pin for ATF only goes from 0-838mV(for 170C), so 1100mV Max is OK
+    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_0db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
 
     // Characterise ADC2
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, ADC2_ATTEN, ADC2_WIDTH, 0, &adc2_cal);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_MAX, ADC2_WIDTH, 0, &adc2_cal_batt);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_6, ADC2_WIDTH, 0, &adc2_cal_atf);
 
     // Now configure PCNT to begin counting!
     CHECK_ESP_FUNC(pcnt_unit_config(&pcnt_cfg_n2), "Failed to configure PCNT for N2 RPM reading! %s", esp_err_to_name(res))
@@ -260,7 +263,7 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
 
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal, &v);
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_batt, &v);
     if (res != ESP_OK) {
         ESP_LOGW("READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
         return false;
@@ -277,12 +280,12 @@ bool Sensors::read_atf_temp(int* dest){
     uint32_t raw = 0;
     uint32_t avg = 0;
     for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
-        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &raw);
+        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
         if (res != ESP_OK) {
             ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
             return false;
         }
-        if (raw >= 2500) {
+        if (raw >= 1000) {
             return false; // Parking lock engaged, cannot read.
         }
         avg += raw;

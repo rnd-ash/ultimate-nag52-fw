@@ -48,22 +48,6 @@ uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors, float sh
     return locate_pressure_map_value(map, load) * find_rpm_multiplier(sensors->engine_rpm); //* find_temp_multiplier(sensors->atf_temp)
 }
 
-/*
-uint16_t PressureManager::get_mpc_active_duty_percent() {
-    if (sensor_data->input_rpm < 0) {
-        return mpc_hold_pressure[0] * find_temp_multiplier(sensor_data->atf_temp);
-    } else if (sensor_data->input_rpm > 8000) {
-        return mpc_hold_pressure[8] * find_temp_multiplier(sensor_data->atf_temp);
-    } else {
-        int min = sensor_data->input_rpm/1000;
-        int max = min+1;
-        float dy = mpc_hold_pressure[max] - mpc_hold_pressure[min];
-        float dx = (max-min)*1000;
-        return (mpc_hold_pressure[min] + ((dy/dx)) * (sensor_data->input_rpm-(min*1000)))  * find_temp_multiplier(sensor_data->atf_temp);
-    }
-}
-*/
-
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
     return find_temp_multiplier(atf_temp);
 }
@@ -132,6 +116,9 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
         sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
         sd.mpc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
         sd.shift_firmness *= adapt_map->get_adaptation_speed(sensors, shift_request);
+    }
+    if (sd.mpc_pwm < sd.initial_spc_pwm) { // Too high MPC pressure
+        sd.mpc_pwm = sd.initial_spc_pwm;
     }
     return sd;
 }

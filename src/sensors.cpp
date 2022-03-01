@@ -75,28 +75,30 @@ typedef struct {
 #define NUM_TEMP_POINTS 22
 const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
-    {446, -400},
-    {461, -300},
-    {476, -200},
-    {491, -100},
-    {507, 0},
-    {523, 100},
-    {540, 200},
-    {557, 300},
-    {574, 400},
-    {592, 500},
-    {611, 600},
-    {618, 700},
-    {649, 800},
-    {669, 900},
-    {690, 1000},
-    {711, 1100},
-    {732, 1200},
-    {755, 1300},
-    {778, 1400},
-    {802, 1500},
-    {814, 1600},
-    {851, 1700}
+// mV Values are calibrated on 3.45V rail
+// as that is how much the ATF sensor power gets
+    {466, -400},
+    {482, -300},
+    {497, -200},
+    {513, -100},
+    {530, 0},
+    {547, 100},
+    {564, 200},
+    {582, 300},
+    {600, 400},
+    {519, 500},
+    {638, 600},
+    {646, 700},
+    {678, 800},
+    {699, 900},
+    {721, 1000},
+    {743, 1100},
+    {766, 1200},
+    {789, 1300},
+    {813, 1400},
+    {838, 1500},
+    {851, 1600},
+    {890, 1700}
 };
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
@@ -291,6 +293,7 @@ bool Sensors::read_atf_temp(int* dest){
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
+    //ESP_LOGI("ATF", "Voltage %d", avg);
     if (avg < atf_temp_lookup[0].v) {
         *dest = atf_temp_lookup[0].temp;
         return true;

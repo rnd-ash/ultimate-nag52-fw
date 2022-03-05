@@ -1445,5 +1445,6 @@
 #define ZQ0A 1434
 #define SGDW 1435
 #define JCHE 1436
+#define SGDZ 1437
 
 #endif // SCN_INTERNAL_H_

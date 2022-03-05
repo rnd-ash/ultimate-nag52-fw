@@ -10592,4 +10592,10 @@
     #define TC_RATIO_LOW 2720
 #endif
 
+#if SCN_VARIANT_NAME == SGDZ
+    #define DIFF_RATIO 3070
+    #define TYRE_SIZE_MM 2315
+    #define TCC_INTERTIA_NM 50
+#endif
+
 #endif // SCN_H_

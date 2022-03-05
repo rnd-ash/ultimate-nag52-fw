@@ -1831,4 +1831,7 @@
 /** Jeep cherocy (V6 fiat engine) **/
 //#define SCN_VARIANT_NAME JCHE
 
+/** W208 test vehicle (USA) */
+// #define SCN_VARIANT_NAME  '208.365 CLK320 rear diff ratio=3.07'
+
 #endif // SCN_DEF_H_

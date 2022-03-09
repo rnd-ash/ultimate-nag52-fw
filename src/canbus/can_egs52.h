@@ -98,6 +98,7 @@ class Egs52Can: public AbstractCan {
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
         void set_solenoid_pwm(uint8_t duty, SolenoidName s) override;
+        void set_wheel_torque_multi_factor(float ratio) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;

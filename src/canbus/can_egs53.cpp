@@ -581,6 +581,10 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
     
 }
 
+void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
+    eng_rq2_tcm.set_EngWhlTrqRatio_TCM(ratio * 100);
+}
+
 /**
  * Calculates CRC based on SAE-J180.
  * As all the CAN Frames work the same, we always assume its the first 7 bytes, and result is to be placed

@@ -836,6 +836,10 @@ void Egs52Can::set_last_shift_time(uint16_t time_ms) {
     gs558.set_shift_time(time_ms);
 }
 
+void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
+    gs418.set_FMRAD(ratio * 100);
+}
+
 /**
  * Parity calculation for torque numbers on GS218 and GS418
  * 

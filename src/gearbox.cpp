@@ -518,6 +518,10 @@ void Gearbox::controller_loop() {
                 old_output_rpm = this->sensor_data.output_rpm;
                 last_output_measure_time = now;
             }
+            if (this->sensor_data.output_rpm > 0 && this->sensor_data.input_rpm > 0) {
+                // Store our ratio
+                this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+            }
             if (!shifting && this->sensor_data.output_rpm > 300 && this->sensor_data.input_rpm > 300) {
                 if (is_fwd_gear(this->actual_gear)) {
                     if (calcGearFromRatio(false) && this->est_gear_idx != 0) {
@@ -722,6 +726,40 @@ void Gearbox::controller_loop() {
         int min_torque = egs_can_hal->get_minimum_engine_torque(now, 500);
         if (min_torque != INT_MAX) {
             this->sensor_data.min_torque = min_torque;
+        }
+        // Wheel torque
+        if (this->sensor_data.gear_ratio == 0) {
+            // Fallback ratio for when gear ratio is actually 0
+            float f;
+            switch (this->target_gear) {
+                case GearboxGear::First:
+                    f = RAT_1;
+                    break;
+                case GearboxGear::Second:
+                    f = RAT_2;
+                    break;
+                case GearboxGear::Third:
+                    f = RAT_3;
+                    break;
+                case GearboxGear::Fourth:
+                    f = RAT_4;
+                    break;
+                case GearboxGear::Reverse_First:
+                    f = RAT_R1*-1;
+                    break;
+                case GearboxGear::Reverse_Second:
+                    f = RAT_R2*-1;
+                    break;
+                case GearboxGear::Park:
+                case GearboxGear::SignalNotAvaliable:
+                case GearboxGear::Neutral:
+                default:
+                    f = 0.0;
+                    break;
+            }
+            egs_can_hal->set_wheel_torque_multi_factor(f);
+        } else {
+            egs_can_hal->set_wheel_torque_multi_factor(this->sensor_data.gear_ratio);
         }
 
         //ESP_LOGI("GEARBOX", "Torque: MIN: %3d, MAX: %3d, STAT: %3d", min_torque, max_torque, static_torque);

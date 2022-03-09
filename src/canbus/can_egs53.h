@@ -100,6 +100,7 @@ class Egs53Can: public AbstractCan {
         void set_last_shift_time(uint16_t time_ms) override;
         void set_race_start(bool race_start) override;
         void set_solenoid_pwm(uint8_t duty, SolenoidName s) override;
+        void set_wheel_torque_multi_factor(float ratio) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;

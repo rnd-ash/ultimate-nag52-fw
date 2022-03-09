@@ -243,6 +243,8 @@ class AbstractCan {
         virtual void set_requested_torque(uint16_t torque_nm);
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm);
+        // Sets torque multiplier factor from Engine all the way to wheels 
+        virtual void set_wheel_torque_multi_factor(float ratio);
         // Sets the status of system error check
         virtual void set_error_check_status(SystemStatusCheck ssc);
         // Sets display profile

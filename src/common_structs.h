@@ -66,6 +66,8 @@ typedef struct {
     bool is_braking;
     /// Delta in output RPM, used for calculating if car is accelerating or slowing down
     int d_output_rpm;
+    /// Current gearbox ratio
+    float gear_ratio;
 } SensorData;
 
 /**

@@ -18,22 +18,85 @@ class Solenoid
 {
 public:
     /**
-     * Constructor params
-     * name - Name of solenoid (Human readable)
-     * pwm_pin - PWM pin to gate of MOSFET
-     * frequency - Default frequency of PWM for solenoid
-     * channel - LEDC channel designated to the solenoid
-     * timer - HW timer for controlling PWM
+     * @brief Construct a new Solenoid
+     * 
+     * @param name Name of the solenoid (Avaliable from 722.6 PDFs)
+     * @param pwm_pin GPIO Pin on the ESP32 to use for PWM control of the solenoid
+     * @param frequency Default frequency of the PWM signal for the solenoid
+     * @param channel LEDC Channel to use for controlling the solenoids PWM signal
+     * @param timer Timer to use for controlling the solenoids PWM signal
      */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
-    void write_pwm_percent(uint16_t percent); // Write PMW percentage (0 - 0%, 1000 = 100%)
-    void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv); // Write PWM percentage with voltage correction
-    void write_pwm_12_bit(uint16_t pwm_raw); // Write raw 12bit PWM signal to solenoid
-    void write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv); // Write 12bit PWM with voltage correction (Mainly used by torque converter solenoid)
-    uint16_t get_pwm(); // Returns PWM signal of solenoid
-    uint16_t get_current_estimate(); // Returns current estimate of the solenoid
-    bool init_ok() const; // Did the solenoid initialize OK?
-    uint16_t get_vref() const; // Gets the solenoids' vref's calibrated value
+    /**
+     * @brief Writes a PWM duty to the solenoid, using a percentage from 0-1000 (0-100%)
+     * 
+     * @param percent Percentage of solenoid duty (0-1000 = 0=100%)
+     */
+    void write_pwm_percent(uint16_t percent);
+
+    /**
+     * @brief Writes a PWM duty to the solenoid, using a percentage from 0-1000, but also takes
+     * the current voltage into account and adjusts PWM based on the current voltage to maintain
+     * a constant current.
+     * 
+     * NOTE: At this time, the reference voltage used is 12000mV (12.0V)
+     * 
+     * @param percent Percentage of solenoid duty (0-1000 = 0=100%)
+     * @param curr_v_mv The current supply voltage to the TCM, in mV
+     */
+    void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv);
+
+    /**
+     * @brief Writes a raw 12-bit PWM duty to the solenoid
+     * 
+     * @param percent Raw PWM duty (0-4096)
+     */
+    void write_pwm_12_bit(uint16_t pwm_raw);
+
+    /**
+     * @brief Writes a raw 12-bit PWM duty to the solenoid, but also takes
+     * the current voltage into account and adjusts PWM based on the current voltage to maintain
+     * a constant current.
+     * 
+     * NOTE: At this time, the reference voltage used is 12000mV (12.0V)
+     * 
+     * @param duty Raw PWM duty (0-4096)
+     * @param curr_v_mv The current supply voltage to the TCM, in mV
+     */
+    void write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv);
+    /**
+     * @brief Returns the current PWM duty of the solenoid
+     * 
+     * @return uint16_t current 12-bit PWM duty of the solenoid
+     */
+    uint16_t get_pwm();
+
+    /**
+     * @brief Gets an estimate of the current being used by the solenoid
+     * 
+     * This function updates approximatly every 200ms for each solenoid, so
+     * after requesting a PWM change, the current reading might not change instantly
+     * 
+     * @return uint16_t Current estimate of the solenoid, in milliamps (mA)
+     */
+    uint16_t get_current_estimate();
+
+    /**
+     * @brief Returns if the solenoid initialized OK
+     * 
+     * @return true LEDC / Timer initialized OK, and no short-circuit present within the solenoid circuit
+     * @return false Something went wrong trying to intialize the solenoid
+     */
+    bool init_ok() const;
+
+    /**
+     * @brief Returns the solenoids base-line voltage reference as seen by the current monitoring circuit for the solenoid
+     * 
+     * NOTE: This function should NOT be used, it is only for development purposes!
+     * 
+     * @return uint16_t Voltage reference point of the solenoid current measuring circuit, in mV
+     */
+    uint16_t get_vref() const;
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
@@ -50,6 +113,12 @@ private:
     uint16_t pwm = 0;
 };
 
+/**
+ * @brief Tries to initialize all the solenoids on the transmission (MPC,SPC,TCC,Y3,Y4,Y5)
+ * 
+ * @return true All solenoids initialized OK
+ * @return false A solenoid failed to initialize
+ */
 bool init_all_solenoids();
 
 extern Solenoid *sol_y3;

@@ -1,3 +1,4 @@
+/** @file */
 #ifndef COMMON_STRUCTS_H__
 #define COMMON_STRUCTS_H__
 
@@ -146,11 +147,17 @@ typedef struct {
      */
     int d_output_rpm;
 
-    bool torque_cut;
+    /**
+     * @brief SPC solenoid value where gear ratio began to change
+     * We can use this to tighten shifting (Less delay from request to shift)
+     */
+    int spc_change_start;
 
-    int min_d_rpm;
-    int max_d_rpm;
-    int avg_d_rpm;
+    /**
+     * @brief SPC solenoid value from the map
+     */
+    int spc_map_start;
+
     int target_d_rpm;
 
 } ShiftResponse;

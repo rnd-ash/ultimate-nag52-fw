@@ -10,7 +10,7 @@
 #include "pins.h"
 
 #define PULSES_PER_REV 60*2 // N2 and N3 are 60 pulses per revolution (NEW: Count on BOTH Rise and fall)
-#define SAMPLES_PER_REVOLUTION 20
+#define SAMPLES_PER_REVOLUTION 10
 #define RPM_AVERAGE_SAMPLES 5
 
 #define LOG_TAG "SENSORS"
@@ -169,7 +169,6 @@ bool Sensors::init_sensors(){
 
     // Configure ADC2 for analog readings
     CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_VBATT, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))
-    // Voltage on pin for ATF only goes from 0-838mV(for 170C), so 1100mV Max is OK
     CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
 
     // Characterise ADC2
@@ -222,8 +221,6 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
     CHECK_ESP_FUNC(timer_isr_register(TIMER_GROUP_0, TIMER_0, &RPM_TIMER_ISR, NULL, 0, &rpm_timer_handle), "%s", esp_err_to_name(res))
     CHECK_ESP_FUNC(timer_start(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
-
-
     ESP_LOGI(LOG_TAG, "Sensors INIT OK!");
     return true;
 }
@@ -232,7 +229,7 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
     dest->n2_raw = (((float)n2_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
     dest->n3_raw = (((float)n3_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
 
-    if (dest->n2_raw == 0 && dest->n3_raw == 0) { // Stationary, break here to avoid divideBy0Ex
+    if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;
         return true;
     } else if (dest->n2_raw == 0) { // In gears R1 or R2 (as N2 is 0)
@@ -291,7 +288,6 @@ bool Sensors::read_atf_temp(int* dest){
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
-    //ESP_LOGI("ATF", "Voltage %d", avg);
     if (avg < atf_temp_lookup[0].v) {
         *dest = atf_temp_lookup[0].temp;
         return true;

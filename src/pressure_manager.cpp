@@ -114,11 +114,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     sd.shift_speed = chars.shift_speed;
     if (this->adapt_map != nullptr) {
         sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
-        sd.mpc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
         sd.shift_firmness *= adapt_map->get_adaptation_speed(sensors, shift_request);
-    }
-    if (sd.mpc_pwm < sd.initial_spc_pwm) { // Too high MPC pressure
-        sd.mpc_pwm = sd.initial_spc_pwm;
     }
     return sd;
 }

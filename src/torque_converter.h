@@ -50,7 +50,6 @@ class TorqueConverter {
         void save_adaptation_data();
         void on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors);
         void on_shift_complete(uint64_t now);
-        uint16_t last_mpc_pwm = 0;
     private:
         LockupType current_lockup = LockupType::Open;
         uint8_t gear_idx = 0;

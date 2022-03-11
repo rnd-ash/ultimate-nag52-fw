@@ -235,6 +235,8 @@ int AdaptationMap::get_adaptation_offset(SensorData* sensors, ProfileGearChange 
 void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
     ESP_LOGI("ADAPT_MAP", "Adapting called");
     // Firstly, obey RPM and Torque limits
+    /*
+    Torque limit no longer needed - EGS will tell engine to always limit torque to a sensible place
     if (sensors->static_torque > ADAPT_TORQUE_LIMIT) {
         ESP_LOGW("ADAPT_MAP", "Cannot adapt. Torque outside limits. Got %d Nm, must be below %d Nm",
             sensors->static_torque,
@@ -242,6 +244,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
         );
         return;
     }
+    */
     if (sensors->engine_rpm > ADAPT_RPM_LIMIT) {
         ESP_LOGW("ADAPT_MAP", "Cannot adapt. Engine RPM outside limits. Got %d RPM, must be below %d RPM",
             sensors->engine_rpm,
@@ -296,46 +299,33 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     ESP_LOGI("ADAPT_MAP", "Adapting...");
     bool accel_shift = sensors->d_output_rpm > 0;
     bool idle_shift = sensors->static_torque > 0;
-    if ((upshift && response.max_d_rpm > 50) || (!upshift && response.min_d_rpm < -30)) { // Flaring, increase bite force
+
+    if (response.spc_map_start - response.spc_change_start > 20 || response.flared) { // SPC is taking too long to bite so reduce it || Gearbox flared so needs more SPC
         if (idle_shift) {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].offset_accel_idle -= 5; // +0.5% pressure
+                this->adapt_data[adaptation_idx].offset_accel_idle -= 10; // +1% pressure
             } else {
-                this->adapt_data[adaptation_idx].offset_decel_idle -= 5; // +0.5% pressure
+                this->adapt_data[adaptation_idx].offset_decel_idle -= 10; // +1% pressure
             }
         } else {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].offset_accel_load -= 10; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_accel_load -= 5; // +1% pressure
             } else {
-                this->adapt_data[adaptation_idx].offset_decel_load -= 10; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_decel_load -= 5; // +1% pressure
             }
         }
-    } else if (abs(response.avg_d_rpm) > response.target_d_rpm*1.2) { // Didn't flare but shift was too quick
+    } else if (response.spc_map_start - response.spc_change_start < 10) { // SPC tolorance is too tight, decrease initial SPC pressure
         if (idle_shift) {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].bite_speed_accel_idle *= 0.975;
+                this->adapt_data[adaptation_idx].offset_accel_idle += 2; // -0.5% pressure
             } else {
-                this->adapt_data[adaptation_idx].bite_speed_decel_idle *= 0.975;
+                this->adapt_data[adaptation_idx].offset_decel_idle += 2; // -0.5% pressure
             }
         } else {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].bite_speed_accel_load *= 0.95;
+                this->adapt_data[adaptation_idx].offset_accel_load += 5; // -0.5% pressure
             } else {
-                this->adapt_data[adaptation_idx].bite_speed_accel_load *= 0.95;
-            }
-        }
-    } else if (abs(response.avg_d_rpm) < response.target_d_rpm*0.8) { // Didn't fllare but shift was too slow
-        if (idle_shift) {
-            if (accel_shift) {
-                this->adapt_data[adaptation_idx].bite_speed_accel_idle *= 1.025;
-            } else {
-                this->adapt_data[adaptation_idx].bite_speed_decel_idle *= 1.025;
-            }
-        } else {
-            if (accel_shift) {
-                this->adapt_data[adaptation_idx].bite_speed_accel_load *= 1.05;
-            } else {
-                this->adapt_data[adaptation_idx].bite_speed_accel_load *= 1.05;
+                this->adapt_data[adaptation_idx].offset_decel_load += 5; // -0.5% pressure
             }
         }
     }

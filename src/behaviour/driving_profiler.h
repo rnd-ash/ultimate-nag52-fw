@@ -1,3 +1,4 @@
+/** @file */
 #ifndef __DRIVING_PROFILER_H__
 #define __DRIVING_PROFILER_H__
 

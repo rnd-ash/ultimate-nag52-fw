@@ -1,3 +1,4 @@
+/** @file */
 #ifndef __SENSORS_H_
 #define __SENSORS_H_
 

@@ -1,3 +1,4 @@
+/** @file */
 #ifndef __EEPROM_CONFIG_H_
 #define __EEPROM_CONFIG_H_
 

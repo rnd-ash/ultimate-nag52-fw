@@ -2,6 +2,7 @@
 #include <esp_ota_ops.h>
 #include <string>
 #include <time.h>
+#include "diag_data.h"
 
 typedef struct {
     uint8_t day;
@@ -339,18 +340,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             this->tx_msg.data[0] = SID_READ_DATA_LOCAL_IDENT+0x40;
         }
     }
-    if (args[0] == 0xFA) { // System supplier (THATS ME!) - CPU usage / heap
-        uint8_t buf[9] = {0xFA};
-        uint32_t heap = esp_get_free_heap_size();
-        buf[1] = this->cpu_usage.load_core_1 >> 8;
-        buf[2] = this->cpu_usage.load_core_1 & 0xFF;
-        buf[3] = this->cpu_usage.load_core_2 >> 8;
-        buf[4] = this->cpu_usage.load_core_2 & 0xFF;
-        buf[5] = heap >> 24;
-        buf[6] = heap >> 16;
-        buf[7] = heap >> 8;
-        buf[8] = heap & 0xFF;
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 9);
+    if (args[0] == RLI_GEARBOX_SENSORS) {
+        DATA_GEARBOX_SENSORS r = get_gearbox_sensors();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
         return;
     }
     make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);

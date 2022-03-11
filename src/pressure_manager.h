@@ -56,28 +56,28 @@ const pressure_map mpc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 
 */
 
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {590, 590, 580, 570, 560, 550, 520, 500, 480, 460, 450};
-const pressure_map mpc_1_2 = {590, 590, 580, 570, 560, 550, 520, 500, 480, 460, 450};
+const pressure_map spc_1_2 = {550, 540, 530, 520, 510, 500, 495, 490, 480, 460, 450};
+const pressure_map mpc_1_2 = {550, 540, 530, 520, 510, 500, 495, 490, 480, 460, 450};
 
 // 2 -> 3 upshift
-const pressure_map spc_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
-const pressure_map mpc_2_3 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+const pressure_map spc_2_3 = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_3 = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
 
 // 3 -> 4 upshift
 const pressure_map spc_3_4 = {500, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
-const pressure_map mpc_3_4 = {510, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map mpc_3_4 = {500, 490, 470, 450, 430, 410, 400, 390, 380, 370, 360};
 
 // 4 -> 5 upshift
 const pressure_map spc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
 const pressure_map mpc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
 
 // 2 -> 1 downshift
-const pressure_map spc_2_1 = {550, 520, 490, 485, 480, 475, 470, 460, 450, 420, 400};
-const pressure_map mpc_2_1 = {550, 520, 490, 485, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map spc_2_1 = {550, 530, 510, 490, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map mpc_2_1 = {550, 530, 510, 490, 480, 475, 470, 460, 450, 420, 400};
 
 // 3 -> 2 downshift
-const pressure_map spc_3_2 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 330, 320};
-const pressure_map mpc_3_2 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 330, 320};
+const pressure_map spc_3_2 = {480, 470, 460, 440, 420, 400, 380, 360, 340, 330, 320};
+const pressure_map mpc_3_2 = {480, 470, 460, 440, 420, 400, 380, 360, 340, 330, 320};
 
 // 4 -> 3 downshift
 const pressure_map spc_4_3 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
@@ -96,7 +96,7 @@ const float pressure_temp_normalizer[17] = {
 };
 
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
-const float rpm_normalizer[9] = {1.04, 1.02, 1.00, 0.98, 0.96, 0.94, 0.92, 0.9, 0.88};
+const float rpm_normalizer[9] = {1.03, 1.02, 1.00, 0.97, 0.93, 0.90, 0.85, 0.8, 0.75};
 
 // RPM vs MPC pressure when driving (0-8000RPM)
 //const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};

@@ -240,60 +240,72 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
-    bool torque_reduction = false;
-    bool torque_cut = false;
-    if (profile == manual && this->sensor_data.pedal_pos > 170 && is_upshift) {
-        egs_can_hal->set_torque_request(TorqueRequest::Minimum); // Test for manual upshift
-        torque_reduction = true;
-        torque_cut = true;
+    if (sensor_data.static_torque > 50 && is_upshift) {
+        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
+        egs_can_hal->set_requested_torque(max(55, (int)(sensor_data.static_torque*0.75)));
+    } else if (sensor_data.static_torque > 0 && sensor_data.static_torque < 50 && !is_upshift) {
+        egs_can_hal->set_torque_request(TorqueRequest::Maximum);
+        egs_can_hal->set_requested_torque(50);
     }
     uint32_t elapsed = 0; // Counter for shift timing
-    // Change gears begin  
-    int max_d_rpm = 0;
-    int min_d_rpm = 0;
-    float avg_d_rpm = 0;
-    bool first = false;
-    int rpm_samples = 0;
-    int start_rpm = this->sensor_data.input_rpm;  
-    int last_rpm = this->sensor_data.input_rpm;
     bool shift_measure_complete = false;
+
+    // Init counters for Input RPM measuring and ratio measuring
+    int shift_start_rpm = this->sensor_data.input_rpm;
+    int start_ratio = this->sensor_data.gear_ratio*100;
+    float spc_start = curr_spc_pwm;
+    float spc_shift_start_pwm = curr_spc_pwm;
+    bool monitor_shift = true;
+    if (sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) {
+        monitor_shift = false;
+    }
+    bool shift_in_progress = false;
+    bool flared = false;
     while(elapsed <= SHIFT_TIMEOUT_MS) {
         elapsed += SHIFT_DELAY_MS;
         vTaskDelay(SHIFT_DELAY_MS/portTICK_PERIOD_MS);
-        // Measure RPM deltas
-        // Measure D_RPM
-        int new_rpm = this->sensor_data.input_rpm;
-        int delta = new_rpm - last_rpm;
-        avg_d_rpm += delta;
-        if (first) {
-            min_d_rpm = delta;
-            max_d_rpm = delta;
-            first = false;
-        } else {
-            if (delta < min_d_rpm) {
-                min_d_rpm = delta;
-            } else if (delta > max_d_rpm) {
-                max_d_rpm = delta;
-            }
+        if ((sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) && monitor_shift) { // Set to false and leave at false (Shift monitoring could not occur)
+            monitor_shift = false;
         }
-        rpm_samples += 1;
-        last_rpm = new_rpm;
 
+        if (monitor_shift) {
+            int ratio_now = this->sensor_data.gear_ratio*100;
+            // Shift monitoring
+            if (is_upshift) {
+                if (ratio_now > start_ratio+10) { // Upshift - Ratio should get smaller so inverse means flaring)
+                    this->flaring = true;
+                    flared = true;
+                } else if (ratio_now < start_ratio-25){
+                    shift_in_progress = true;
+                }
+            } else {
+                if (ratio_now < start_ratio-10) { // Downshift - Ratio should get larger so inverse means flaring
+                    this->flaring = true;
+                    flared = true;
+                } else if (ratio_now > start_ratio+25) {
+                    shift_in_progress = true;
+                }
+            }
+            if (!flaring) {
+                // Not flaring, so check input RPM to see if SPC is biting yet.
+                if (is_upshift && sensor_data.input_rpm >= shift_start_rpm) { // Upshift but input RPM is still increasing without gear change
+                    spc_shift_start_pwm = curr_spc_pwm;
+                } else if (!is_upshift && sensor_data.input_rpm <= shift_start_rpm) { // Downshift but input RPM is still falling without gear change
+                    spc_shift_start_pwm = curr_spc_pwm;
+                }
+            }
+            // Add data to Ratio diff calculator
 
-        if (this->sensor_data.input_rpm > start_rpm+70 && is_upshift) {
-            this->flaring = true; // Upshift flare
-        } else if (this->sensor_data.input_rpm < start_rpm-100 && !is_upshift) {
-            this->flaring = true; // Downshift flare
         }
         sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
         if (curr_spc_pwm > sd.shift_speed) {
             curr_spc_pwm -= sd.shift_speed;
         }
         sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
-        // Check using actual gear ratios (high speed moving, easiest way)
-        if (this->est_gear_idx == 0 && torque_reduction && elapsed > 200) {
-            torque_reduction = false;
+        // Unlock torque reqest once box has started to change
+        if (shift_in_progress) {
             egs_can_hal->set_torque_request(TorqueRequest::None);
+            egs_can_hal->set_requested_torque(0);
         }
         if (this->est_gear_idx == sd.targ_g) {
             shift_measure_complete = true;
@@ -303,11 +315,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             break;
         }
     }
-    if (avg_d_rpm != 0 && rpm_samples != 0) {
-        avg_d_rpm /= (float)rpm_samples;
-    }
     this->gear_disagree_count = 0;
-    ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms - Target was %d d_rpm). DELTAS: (Max: %d, Min: %d, Avg: %.2f)", elapsed, sd.targ_d_rpm, max_d_rpm, min_d_rpm, avg_d_rpm);
+    ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms). SPC map %.2f, SPC start %.2f", elapsed, spc_start, spc_shift_start_pwm);
+    
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
     this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     sol_spc->write_pwm_12_bit(0);
@@ -316,24 +326,18 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     sol_mpc->write_pwm_12_bit(0);
     this->shifting = false;
     this->flaring = false;
-    bool shifted = true;
-    if (sensor_data.output_rpm > 200 && this->est_gear_idx == sd.curr_g) { // WTF Didn't change gears!!!!
-        shifted = false;
-    }
     ShiftResponse response = {
-        .shifted = shifted,
         .measure_ok = shift_measure_complete,
-        .flared = flaring,
+        .flared = flared,
         .d_output_rpm = (int)this->sensor_data.output_rpm-(int)pre_shift.output_rpm,
-        .torque_cut = torque_cut,
-        .min_d_rpm = min_d_rpm,
-        .max_d_rpm = max_d_rpm,
-        .avg_d_rpm = (int)avg_d_rpm,
-        .target_d_rpm = sd.targ_d_rpm,
+        .spc_change_start = (int)spc_shift_start_pwm,
+        .spc_map_start = (int)spc_start
     };
     if (this->pressure_mgr != nullptr) {
         this->pressure_mgr->perform_adaptation(&pre_shift, req_lookup, response, is_upshift);
     };
+    egs_can_hal->set_torque_request(TorqueRequest::None);
+    egs_can_hal->set_requested_torque(0);
     return response;
 }
 
@@ -431,7 +435,7 @@ void Gearbox::shift_thread() {
                 response = elapse_shift(pgc, prof, true);
                 this->actual_gear = curr_target;
                 this->start_second = true;
-                egs_can_hal->set_last_shift_time(abs(response.avg_d_rpm));
+                //egs_can_hal->set_last_shift_time(abs(response.avg_d_rpm));
                 goto cleanup;
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
@@ -456,7 +460,7 @@ void Gearbox::shift_thread() {
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
                 resp = elapse_shift(pgc, prof, false);
-                egs_can_hal->set_last_shift_time(abs(resp.avg_d_rpm));
+                //egs_can_hal->set_last_shift_time(abs(resp.avg_d_rpm));
                 this->actual_gear = curr_target;
                 goto cleanup;
             }

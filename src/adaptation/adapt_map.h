@@ -15,7 +15,7 @@
 
 #define ADAPT_RPM_LIMIT 2500
 #define ADAPT_TEMP_THRESH 60
-#define ADAPT_TEMP_LIMIT 100
+#define ADAPT_TEMP_LIMIT 110
 
 struct AdaptationData {
     int16_t offset_accel_load; // Shift under load whilst accelerating

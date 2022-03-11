@@ -503,21 +503,31 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
         case TorqueRequest::Maximum:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(true);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(true);
             break;
         case TorqueRequest::Minimum:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(true);
             break;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(false);
+            gs218.set_DYN1_EGS(false);
             break;
     }
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    gs218.set_M_EGS((torque_nm + 500) * 4);
+    if (torque_nm == 0) {
+        gs218.set_M_EGS(0);
+    } else {
+        gs218.set_M_EGS((torque_nm + 500) * 4);
+    }
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {

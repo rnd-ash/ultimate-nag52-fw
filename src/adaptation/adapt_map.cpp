@@ -300,7 +300,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     bool accel_shift = sensors->d_output_rpm > 0;
     bool idle_shift = sensors->static_torque > 0;
 
-    if (response.spc_map_start - response.spc_change_start > 20 || response.flared) { // SPC is taking too long to bite so reduce it || Gearbox flared so needs more SPC
+    if (response.spc_map_start - response.spc_change_start > 20) { // SPC is taking too long to bite so reduce it || Gearbox flared so needs more SPC
         if (idle_shift) {
             if (accel_shift) {
                 this->adapt_data[adaptation_idx].offset_accel_idle -= 10; // +1% pressure

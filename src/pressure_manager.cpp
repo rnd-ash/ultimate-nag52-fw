@@ -37,7 +37,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 
 uint16_t find_spc_pressure(const pressure_map map, SensorData* sensors) {
     int load = (sensors->pedal_pos*100/250);
-    return locate_pressure_map_value(map, load); //  * find_temp_multiplier(sensors->atf_temp)
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp);
 }
 
 uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors, float shift_firmness) {
@@ -115,6 +115,9 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     if (this->adapt_map != nullptr) {
         sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
         sd.shift_firmness *= adapt_map->get_adaptation_speed(sensors, shift_request);
+    }
+    if (sd.targ_g < sd.curr_g) {
+        sd.shift_firmness *= 0.5; // Slower speed when downshifting to avoid jerking
     }
     return sd;
 }

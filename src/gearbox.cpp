@@ -242,10 +242,10 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
     if (sensor_data.static_torque > 50 && is_upshift) {
         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-        egs_can_hal->set_requested_torque(max(55, (int)(sensor_data.static_torque*0.75)));
-    } else if (sensor_data.static_torque > 0 && sensor_data.static_torque < 50 && !is_upshift) {
-        egs_can_hal->set_torque_request(TorqueRequest::Maximum);
-        egs_can_hal->set_requested_torque(50);
+        egs_can_hal->set_requested_torque(max(55, (int)(sensor_data.static_torque*0.6)));
+    } else if (sensor_data.static_torque > 0 && !is_upshift) {
+        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
+        egs_can_hal->set_requested_torque(sensor_data.static_torque);
     }
     uint32_t elapsed = 0; // Counter for shift timing
     bool shift_measure_complete = false;
@@ -267,7 +267,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         if ((sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) && monitor_shift) { // Set to false and leave at false (Shift monitoring could not occur)
             monitor_shift = false;
         }
-
         if (monitor_shift) {
             int ratio_now = this->sensor_data.gear_ratio*100;
             // Shift monitoring
@@ -310,7 +309,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         if (this->est_gear_idx == sd.targ_g) {
             shift_measure_complete = true;
             break;
-        } else if (sensor_data.output_rpm < 100 && elapsed >= 1000) { // Fix for stationary shifts
+        } else if (sensor_data.output_rpm < 100 && elapsed >= 1500) { // Fix for stationary shifts
             shift_measure_complete = false; // Cannot measure for adaptation (Standstill)
             break;
         }

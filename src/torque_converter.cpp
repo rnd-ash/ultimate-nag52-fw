@@ -1,5 +1,6 @@
 #include "torque_converter.h"
 #include "solenoids/solenoids.h"
+#include "tcm_maths.h"
 
 int get_gear_idx(GearboxGear g) {
     switch (g) {
@@ -47,6 +48,25 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, LockupT
         sol_tcc->write_pwm_12_bit(0);
         return; 
     }
+
+    if (!is_shifting) {
+        int trq = sensors->static_torque;
+        if (trq < 0) {
+            trq *= -1;
+        }
+        // Only think about lockup on positive torque
+        int max_allowed_slip = MAX(50, trq*1.5);
+        int min_allowed_slip = MAX(10, trq/2);
+        if (sensors->tcc_slip_rpm > max_allowed_slip) {
+            // Increase pressure
+            this->curr_tcc_pwm += MAX(1, sensors->pedal_pos/20);
+        } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 2) {
+            // Decrease pressure, but only if we have pedal input
+            this->curr_tcc_pwm -= 1;
+        }
+    }
+    /*
+
     // What kind of lockup do we want?
     this->current_lockup = LockupType::Slip;
     this->targ_tcc_pwm = (torque_converter_adaptation[this->gear_idx].slip_values[atf_id]*10) ; // For 40(ish) Nm
@@ -60,9 +80,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, LockupT
         this->curr_tcc_pwm = 1000;
         this->was_idle = false;
     } else if (this->curr_tcc_pwm < this->targ_tcc_pwm) { // Smooth low->High TCC PWM (Under gas only)
-        if (sensors->pedal_pos != 0 && sensors->tcc_slip_rpm > 50) {
-            this->curr_tcc_pwm += sensors->pedal_pos/10 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-        }
+        
     } else if (this->curr_tcc_pwm > this->targ_tcc_pwm) { // Jump High->Low TCC PWM
         this->curr_tcc_pwm-=10;
     } else if (this->curr_tcc_pwm == this->targ_tcc_pwm) { // Adapt the current value (Only when in stable gear)
@@ -124,13 +142,15 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, LockupT
             }
         }
     }
+    */
     int tcc_offset = 0;
     if (this->curr_tcc_pwm != 0 ) {
         tcc_offset = 300;
     }
-    if (!is_shifting) {
-        sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10), sensors->voltage);
+    if (is_shifting && tcc_offset != 0) {
+        tcc_offset += sol_mpc->get_pwm() / 16;
     }
+    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10), sensors->voltage);
 }
 
 void TorqueConverter::save_adaptation_data() {
@@ -144,6 +164,12 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors) {
+    /*    if (is_downshift && sensors->static_torque > 0) {
+        // Unlock!
+        this->curr_tcc_pwm = 0;
+        sol_tcc->write_pwm_12bit_with_voltage(300, sensors->voltage);
+    }
+    */
     /*
     if (is_downshift) {
         if (sensors->tcc_slip_rpm < 200) {

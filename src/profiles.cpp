@@ -185,8 +185,8 @@ void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear,
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 50,
-        .shift_firmness = 4.0,
-        .shift_speed = 4.0,
+        .shift_firmness = 5.0,
+        .shift_speed = 5.0,
     };
 }
 

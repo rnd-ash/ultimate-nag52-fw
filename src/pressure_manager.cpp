@@ -37,7 +37,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 
 uint16_t find_spc_pressure(const pressure_map map, SensorData* sensors) {
     int load = (sensors->pedal_pos*100/250);
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp);
+    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp) * find_rpm_multiplier(sensors->engine_rpm);
 }
 
 uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors, float shift_firmness) {

@@ -37,11 +37,11 @@ AbstractProfile* profiles[NUM_PROFILES];
 SPEAKER_POST_CODE setup_tcm()
 {
 #ifdef EGS52_MODE
-    #warning "Building with EGS52 CAN support"
+    #pragma message("Building with EGS52 CAN support")
     egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
 #endif
 #ifdef EGS53_MODE
-    #warning "Building with EGS53 CAN support"
+    #pragma message("Building with EGS53 CAN support")
     egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
 #endif
     if (!egs_can_hal->begin_tasks()) {
@@ -88,31 +88,6 @@ void err_beep_loop(void* a) {
             vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);
-    }
-}
-
-
-void printer(void*) {
-    int atf_temp;
-    uint16_t vbatt;
-    bool parking;
-    uint32_t n2;
-    uint32_t n3;
-    while(1) {
-        Sensors::read_atf_temp(&atf_temp);
-        Sensors::read_vbatt(&vbatt);
-        Sensors::parking_lock_engaged(&parking);
-        ESP_LOGI(
-            "MAIN", 
-            "Y3: %d mA, Y4: %d mA, Y5: %d mA, MPC: %d mA, SPC: %d mA, TCC: %d mA.",
-            sol_y3->get_current_estimate(),
-            sol_y4->get_current_estimate(),
-            sol_y5->get_current_estimate(),
-            sol_mpc->get_current_estimate(),
-            sol_spc->get_current_estimate(),
-            sol_tcc->get_current_estimate()
-        );
-        vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 }
 
@@ -195,12 +170,10 @@ extern "C" void app_main(void)
         }
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
-        //xTaskCreate(printer, "PRINTER", 4096, nullptr, 2, nullptr);
     }
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
-    //xTaskCreate(solenoid_test, "TEST_LOOP", 8192, nullptr, 2, nullptr);
 }
 
 #endif // UNIT_TEST

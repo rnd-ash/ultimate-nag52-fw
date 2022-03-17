@@ -18,6 +18,7 @@ public:
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors);
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors);
     virtual ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
+    virtual TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear);
     virtual GearboxGear get_start_gear() const {
         return GearboxGear::First;
     }
@@ -38,6 +39,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
 };
 
 class ComfortProfile : public AbstractProfile {
@@ -47,6 +49,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -59,6 +62,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -71,6 +75,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     void on_upshift_complete(ShiftResponse response, uint8_t from_gear, SensorData* sensors);
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
 };
 
@@ -80,6 +85,7 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
 };
 

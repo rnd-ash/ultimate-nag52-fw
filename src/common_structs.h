@@ -171,4 +171,9 @@ typedef struct {
     float shift_speed;
 } ShiftCharacteristics;
 
+typedef struct {
+    int max_slip_rpm;
+    int min_slip_rpm;
+} TccLockupBounds;
+
 #endif

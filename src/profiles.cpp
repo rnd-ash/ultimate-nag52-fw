@@ -1,6 +1,7 @@
 #include "profiles.h"
 #include <gearbox_config.h>
 #include "adv_opts.h"
+#include "tcm_maths.h"
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
    switch (target) {
@@ -52,6 +53,13 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
     return standard->should_downshift(current_gear, sensors);
 }
 
+TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = (int)MAX(70, sensors->static_torque),
+        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.75)
+    };
+}
+
 
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
@@ -95,6 +103,13 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     return standard->should_downshift(current_gear, sensors);
+}
+
+TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
+        .min_slip_rpm = (int)MAX(50, sensors->static_torque)
+    };
 }
 
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
@@ -144,6 +159,16 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
     return false;
 #endif
 }
+
+// Minimum lockup
+TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = (int)MAX(100, sensors->static_torque*2),
+        .min_slip_rpm = (int)MAX(50, sensors->static_torque*1.5)
+    };
+}
+
+
 
 void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear, SensorData* sensors) {
     
@@ -229,9 +254,9 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     int rpm_threshold = 0;
     // Load (idx) vs pedal
     if (current_gear == GearboxGear::First) {
-        rpm_threshold = 1800;
+        rpm_threshold = 2000;
     } else if (current_gear == GearboxGear::Second) {
-        rpm_threshold = 1800;
+        rpm_threshold = 2000;
     } else if (current_gear == GearboxGear::Third) {
         rpm_threshold = 1800;
     } else if (current_gear == GearboxGear::Fourth) {
@@ -253,11 +278,11 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     if (current_gear == GearboxGear::Second && (sensors->input_rpm > 300 || sensors->engine_rpm > 800)) {
         return false;
     }
-    if (sensors->input_rpm < 1000) {
+    if (sensors->input_rpm < 900) {
         return true;
     }
     else if (sensors->input_rpm < 2000 && sensors->engine_rpm < 2500 && pedal_perc >= rpm_percent*4 && t-sensors->last_shift_time > 2000) {
-        if (current_gear == GearboxGear::Second) { // Prevent 2-1 downshift (Too twitchy)
+        if (current_gear == GearboxGear::Second) {
             return false;
         }
         return true;
@@ -265,6 +290,13 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
         return false;
     }
    return false;
+}
+
+TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = (int)MAX(50, sensors->static_torque*1.2),
+        .min_slip_rpm = (int)MAX(10, sensors->static_torque/2)
+    };
 }
 
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
@@ -315,6 +347,13 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 #else
     return false;
 #endif
+}
+
+TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = (int)MAX(30, sensors->static_torque),
+        .min_slip_rpm = (int)MAX(0, sensors->static_torque/4)
+    };
 }
 
 

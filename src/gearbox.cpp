@@ -243,9 +243,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     if (sensor_data.static_torque > 50 && is_upshift) {
         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
         egs_can_hal->set_requested_torque(max(55, (int)(sensor_data.static_torque*0.6)));
-    } else if (sensor_data.static_torque > 0 && !is_upshift) {
+    } else if (sensor_data.static_torque > MAX_TORQUE_RATING_NM/2 && !is_upshift) {
         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-        egs_can_hal->set_requested_torque(sensor_data.static_torque);
+        egs_can_hal->set_requested_torque(MAX_TORQUE_RATING_NM/2);
     }
     uint32_t elapsed = 0; // Counter for shift timing
     bool shift_measure_complete = false;
@@ -489,7 +489,6 @@ void Gearbox::controller_loop() {
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
     ESP_LOGI("GEARBOX", "GEARBOX START!");
     uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
-    bool lock = true; // P or N
     while (esp_timer_get_time() < expire_check) {
         this->shifter_pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
         last_position = this->shifter_pos;
@@ -581,9 +580,6 @@ void Gearbox::controller_loop() {
                         if (this->shifter_pos == ShifterPosition::P) {
                             this->target_gear = GearboxGear::Park;
                             last_position = this->shifter_pos;
-                            if (this->tcc != nullptr) {
-                                this->tcc->save_adaptation_data();
-                            }
                             if (this->pressure_mgr != nullptr) {
                                 this->pressure_mgr->save();
                             }
@@ -675,7 +671,7 @@ void Gearbox::controller_loop() {
                     if (is_fwd_gear(this->actual_gear) && is_fwd_gear(this->target_gear)) {
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr) {
-                            this->tcc->update(this->target_gear, this->pressure_mgr, LockupType::Shut, &this->sensor_data, this->shifting);
+                            this->tcc->update(this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting);
                         }
                     } else {
                         this->tcc_percent = 0;

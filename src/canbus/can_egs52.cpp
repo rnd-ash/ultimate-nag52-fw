@@ -625,22 +625,22 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->set_display_msg(this->curr_message);
 }
 
-void Egs52Can::set_solenoid_pwm(uint8_t duty, SolenoidName s) {
+void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
     switch (s) {
         case SolenoidName::Y3:
-            gs558.set_y3_pwm(duty);
+            gs558.set_y3_pwm(duty >> 4);
             break;
         case SolenoidName::Y4:
-            gs558.set_y4_pwm(duty);
+            gs558.set_y4_pwm(duty >> 4);
             break;
         case SolenoidName::Y5:
-            gs558.set_y5_pwm(duty);
+            gs558.set_y5_pwm(duty >> 4);
             break;
         case SolenoidName::SPC:
-            gs558.set_spc_pwm(duty);
+            gs558.set_spc_pwm(duty >> 4);
             break;
         case SolenoidName::MPC:
-            gs558.set_mpc_pwm(duty);
+            gs558.set_mpc_pwm(duty >> 4);
             break;
         case SolenoidName::TCC:
             gs558.set_tcc_pwm(duty);
@@ -840,10 +840,6 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
                 break;
         }
     }
-}
-
-void Egs52Can::set_last_shift_time(uint16_t time_ms) {
-    gs558.set_shift_time(time_ms);
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {

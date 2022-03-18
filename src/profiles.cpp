@@ -40,7 +40,6 @@ ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange
     dp *=10.0;
     return ShiftCharacteristics {
         .target_d_rpm = 60,
-        .shift_firmness = 6,
         .shift_speed = dp,
     };
 }
@@ -64,7 +63,6 @@ TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 30,
-        .shift_firmness = 2.0,
         .shift_speed = 2.0,
     };
 }
@@ -115,7 +113,6 @@ TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 20,
-        .shift_firmness = 1.0,
         .shift_speed = 1.0,
     };
 }
@@ -210,7 +207,6 @@ void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear,
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 50,
-        .shift_firmness = 5.0,
         .shift_speed = 5.0,
     };
 }
@@ -302,7 +298,6 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 70,
-        .shift_firmness = 10.0,
         .shift_speed = 10.0,
     };
 }

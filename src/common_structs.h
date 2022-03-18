@@ -106,8 +106,6 @@ typedef struct {
     uint16_t mpc_pwm;
     /// Target time in milliseconds for the shift to complete
     uint16_t targ_d_rpm;
-    // Shift firmness feel. Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
-    float shift_firmness;
     // Shift speed factor. Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
     float shift_speed;
     /// The shift solenoid required to change gears
@@ -119,7 +117,7 @@ typedef struct {
 } ShiftData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_d_rpm = 50, .shift_firmness = 1.0, .shift_speed = 5.0};
+const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_d_rpm = 50, .shift_speed = 5.0};
 
 typedef struct {
     /**
@@ -165,8 +163,6 @@ typedef struct {
 typedef struct {
     // Target delta RPM per step (Each step ~= 40ms)
     uint16_t target_d_rpm;
-    // Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = firmer shift
-    float shift_firmness;
     // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
     float shift_speed;
 } ShiftCharacteristics;

@@ -90,9 +90,15 @@ const pressure_map mpc_5_4 = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 
 #endif
 
 const float pressure_temp_normalizer[17] = {
-    0.7, 0.72, 0.75, 0.78, 0.81, // -40-0C (0-40)
-    0.85, 0.90, 0.92, 0.94, 0.96, // 10-50C (50-90)
-    0.98, 0.99, 1, 1, 1, 1, 1 //60C+ (100-160)
+    0.7, 0.72, 0.75, 0.78, 0.84, // -40-0C (0-40)
+    0.89, 0.93, 0.96, 0.98, 0.99, // 10-50C (50-90)
+    1, 1, 1, 1, 1, 1, 1.01 //60C-120C (100-160) - NOTE. Keep 60-110C as '1.0' to allow adaptation!
+};
+
+const float ramp_speed_temp_normalizer[17] = {
+    1.3, 1.28, 1.25, 1.22, 1.16, // -40-0C (0-40)
+    1.11, 1.07, 1.04, 1.02, 1.01, // 10-50C (50-90)
+    1, 1, 1, 1, 1, 1, 0.99 //60C-120C (100-160) - NOTE. Keep 60-110C as '1.0' to allow adaptation!
 };
 
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
@@ -110,17 +116,7 @@ public:
         this->sensor_data = sensor_ptr;
         this->adapt_map = new AdaptationMap();
     }
-    /**
-     * @brief Performs a gear change
-     * 
-     * @param shift_request Which gear change needs to be made?
-     * @param sensors Pointer to gearbox sensor data
-     * @param profile Drive profile currently running when the shift request was called. This is
-     * used to get the shift harshness and shift firmness request
-     * 
-     * @return Shift response data about how the shift went
-     */
-    ShiftResponse perform_and_monitor_shift(ProfileGearChange shift_request,  AbstractProfile* profile);
+
     /**
      * @brief In the event a gear change is in progress, and the gearbox needs to abort the shift
      * call this function. This ONLY applies to up shifting, where the gearbox may need to abort

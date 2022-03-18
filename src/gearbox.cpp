@@ -233,10 +233,10 @@ GearboxGear prev_gear(GearboxGear g) {
 ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
     SensorData pre_shift = this->sensor_data;
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
-    ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &pre_shift));
+    ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
     CLAMP(sd.shift_speed, 1, 10); // Ensure shift speed is a valid amount
     float curr_spc_pwm = sd.initial_spc_pwm;
-    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, sd.shift_firmness, &pre_shift);
+    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
@@ -248,7 +248,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         egs_can_hal->set_requested_torque(MAX_TORQUE_RATING_NM/2);
     }
     uint32_t elapsed = 0; // Counter for shift timing
-    bool shift_measure_complete = false;
 
     // Init counters for Input RPM measuring and ratio measuring
     int shift_start_rpm = this->sensor_data.input_rpm;
@@ -271,14 +270,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             int ratio_now = this->sensor_data.gear_ratio*100;
             // Shift monitoring
             if (is_upshift) {
-                if (ratio_now > start_ratio+10) { // Upshift - Ratio should get smaller so inverse means flaring)
+                if (ratio_now > start_ratio+20) { // Upshift - Ratio should get smaller so inverse means flaring)
                     this->flaring = true;
                     flared = true;
                 } else if (ratio_now < start_ratio-25){
                     shift_in_progress = true;
                 }
             } else {
-                if (ratio_now < start_ratio-10) { // Downshift - Ratio should get larger so inverse means flaring
+                if (ratio_now < start_ratio-20) { // Downshift - Ratio should get larger so inverse means flaring
                     this->flaring = true;
                     flared = true;
                 } else if (ratio_now > start_ratio+25) {
@@ -295,6 +294,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             }
             // Add data to Ratio diff calculator
 
+        } else {
+            // Cannot monitor, so set flare flag to false
+            this->flaring = false;
         }
         sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
         if (curr_spc_pwm > sd.shift_speed) {
@@ -307,10 +309,8 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             egs_can_hal->set_requested_torque(0);
         }
         if (this->est_gear_idx == sd.targ_g) {
-            shift_measure_complete = true;
             break;
         } else if (sensor_data.output_rpm < 100 && elapsed >= 1500) { // Fix for stationary shifts
-            shift_measure_complete = false; // Cannot measure for adaptation (Standstill)
             break;
         }
     }
@@ -326,7 +326,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     this->shifting = false;
     this->flaring = false;
     ShiftResponse response = {
-        .measure_ok = shift_measure_complete,
+        .measure_ok = monitor_shift,
         .flared = flared,
         .d_output_rpm = (int)this->sensor_data.output_rpm-(int)pre_shift.output_rpm,
         .spc_change_start = (int)spc_shift_start_pwm,
@@ -434,7 +434,6 @@ void Gearbox::shift_thread() {
                 response = elapse_shift(pgc, prof, true);
                 this->actual_gear = curr_target;
                 this->start_second = true;
-                //egs_can_hal->set_last_shift_time(abs(response.avg_d_rpm));
                 goto cleanup;
             } else { // Downshifting
                 ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
@@ -459,7 +458,6 @@ void Gearbox::shift_thread() {
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
                 resp = elapse_shift(pgc, prof, false);
-                //egs_can_hal->set_last_shift_time(abs(resp.avg_d_rpm));
                 this->actual_gear = curr_target;
                 goto cleanup;
             }
@@ -707,12 +705,12 @@ void Gearbox::controller_loop() {
 
         egs_can_hal->set_target_gear(this->target_gear);
         egs_can_hal->set_actual_gear(this->actual_gear);
-        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm() >> 4, SolenoidName::Y3);
-        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm() >> 4, SolenoidName::Y4);
-        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm() >> 4, SolenoidName::Y5);
-        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm() >> 4, SolenoidName::SPC);
-        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm() >> 4, SolenoidName::MPC);
-        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm() >> 4, SolenoidName::TCC);
+        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm(), SolenoidName::Y3);
+        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm(), SolenoidName::Y4);
+        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm(), SolenoidName::Y5);
+        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm(), SolenoidName::SPC);
+        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm(), SolenoidName::MPC);
+        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm(), SolenoidName::TCC);
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX) {

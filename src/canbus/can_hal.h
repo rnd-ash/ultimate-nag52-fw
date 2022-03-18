@@ -215,8 +215,7 @@ class AbstractCan {
 
         virtual void set_race_start(bool race_start);
         // Set solenoid PMW
-        virtual void set_solenoid_pwm(uint8_t duty, SolenoidName s);
-        virtual void set_last_shift_time(uint16_t time_ms);
+        virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s);
         // Set the gearbox clutch position on CAN
         virtual void set_clutch_status(ClutchStatus status);
         // Set the actual gear of the gearbox

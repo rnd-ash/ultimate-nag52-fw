@@ -59,10 +59,10 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
 
         if (sensors->tcc_slip_rpm > max_allowed_slip) {
             // Increase pressure
-            this->curr_tcc_pwm += MAX(1, (sensors->pedal_pos/11));
+            this->curr_tcc_pwm += MAX(1, (sensors->pedal_pos/11)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 2 && sensors->pedal_pos > 10) {
             // Decrease pressure, but only if we have pedal input
-            this->curr_tcc_pwm -= 1;
+            this->curr_tcc_pwm -= 1 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         }
     }
     int tcc_offset = 0;
@@ -72,14 +72,17 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     if (is_shifting && tcc_offset != 0 && !this->inhibit_increase) {
         tcc_offset += sol_mpc->get_pwm() / 20;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+(this->curr_tcc_pwm/10), sensors->voltage);
+    if (this->curr_tcc_pwm < 0) { // Just to be safe!
+        this->curr_tcc_pwm = 0;
+    }
+    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
     this->inhibit_increase = false;
 }
 
-void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, float shift_firmness, SensorData* sensors) {
+void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
     if (is_downshift && sensors->pedal_pos == 0) {
         this->inhibit_increase = true;
     }

@@ -9,9 +9,9 @@
 #include "esp_log.h"
 #include "pins.h"
 
-#define PULSES_PER_REV 60*2 // N2 and N3 are 60 pulses per revolution (NEW: Count on BOTH Rise and fall)
-#define SAMPLES_PER_REVOLUTION 10
+#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define RPM_AVERAGE_SAMPLES 5
+#define PCNT_H_LIM PULSES_PER_REV * 10
 
 #define LOG_TAG "SENSORS"
 
@@ -32,8 +32,8 @@ const pcnt_config_t pcnt_cfg_n2 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_INC,
-    .counter_h_lim = PULSES_PER_REV / SAMPLES_PER_REVOLUTION,
+    .neg_mode = PCNT_COUNT_DIS,
+    .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N2_RPM,
     .channel = PCNT_CHANNEL_0
@@ -45,8 +45,8 @@ const pcnt_config_t pcnt_cfg_n3 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_INC,
-    .counter_h_lim = PULSES_PER_REV / SAMPLES_PER_REVOLUTION,
+    .neg_mode = PCNT_COUNT_DIS,
+    .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N3_RPM,
     .channel = PCNT_CHANNEL_0
@@ -114,8 +114,8 @@ esp_adc_cal_characteristics_t adc2_cal = {};
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
-uint64_t n2_pulses;
-uint64_t n3_pulses;
+uint64_t n2_overflow = 0;
+uint64_t n3_overflow = 0;
 
 volatile RpmSampleData n2_rpm = {
     .readings = {0},
@@ -132,27 +132,33 @@ static intr_handle_t rpm_timer_handle;
 static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
     TIMERG0.int_clr_timers.t0 = 1;
     TIMERG0.hw_timer[0].config.alarm_en = 1;
-
+    int16_t t = 0;
     portENTER_CRITICAL_ISR(&n3_mux);
-    add_value_to_rpm(&n3_rpm, n3_pulses);
-    n3_pulses = 0;
+    pcnt_get_counter_value(PCNT_N3_RPM, &t);
+    pcnt_counter_clear(PCNT_N3_RPM);
+    t += (n3_overflow * PCNT_H_LIM);
+    n3_overflow = 0;
+    add_value_to_rpm(&n3_rpm, t);
     portEXIT_CRITICAL_ISR(&n3_mux);
 
     portENTER_CRITICAL_ISR(&n2_mux);
-    add_value_to_rpm(&n2_rpm, n2_pulses);
-    n2_pulses = 0;
+    pcnt_get_counter_value(PCNT_N2_RPM, &t);
+    pcnt_counter_clear(PCNT_N2_RPM);
+    t += (n2_overflow * PCNT_H_LIM);
+    n2_overflow = 0;
+    add_value_to_rpm(&n2_rpm, t);
     portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
     portENTER_CRITICAL_ISR(&n2_mux);
-    n2_pulses += PULSES_PER_REV/SAMPLES_PER_REVOLUTION;
+    n2_overflow++;
     portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
     portENTER_CRITICAL_ISR(&n3_mux);
-    n3_pulses += PULSES_PER_REV/SAMPLES_PER_REVOLUTION;
+    n3_overflow++;
     portEXIT_CRITICAL_ISR(&n3_mux);
 }
 
@@ -226,9 +232,9 @@ bool Sensors::init_sensors(){
 }
 
 bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
-    dest->n2_raw = (((float)n2_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
-    dest->n3_raw = (((float)n3_rpm.sum/2.0f) * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
-
+    dest->n2_raw = ((float)n2_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
+    dest->n3_raw = ((float)n3_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
+    ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
     if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;
         return true;

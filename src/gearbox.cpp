@@ -235,6 +235,8 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
     CLAMP(sd.shift_speed, 1, 10); // Ensure shift speed is a valid amount
+    float mpc_speed = sd.shift_speed/2;
+    float curr_mpc_pwm = sd.mpc_pwm;
     float curr_spc_pwm = sd.initial_spc_pwm;
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
@@ -298,7 +300,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             // Cannot monitor, so set flare flag to false
             this->flaring = false;
         }
-        sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
+        // Try increasing MPC PWM too to stop flaring
+        if (curr_mpc_pwm > mpc_speed) {
+            curr_mpc_pwm -= mpc_speed;
+        }
+        sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
         if (curr_spc_pwm > sd.shift_speed) {
             curr_spc_pwm -= sd.shift_speed;
         }

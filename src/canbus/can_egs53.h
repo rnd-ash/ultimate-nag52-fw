@@ -97,9 +97,8 @@ class Egs53Can: public AbstractCan {
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
-        void set_last_shift_time(uint16_t time_ms) override;
         void set_race_start(bool race_start) override;
-        void set_solenoid_pwm(uint8_t duty, SolenoidName s) override;
+        void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
     protected:
         [[noreturn]]

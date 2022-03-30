@@ -565,15 +565,11 @@ void Egs53Can::set_drive_profile(GearboxProfile p) {
     }
 }
 
-void Egs53Can::set_last_shift_time(uint16_t time_ms) {
-
-}
-
 void Egs53Can::set_race_start(bool race_start) {
 
 }
 
-void Egs53Can::set_solenoid_pwm(uint8_t duty, SolenoidName s) {
+void Egs53Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
 
 }
 

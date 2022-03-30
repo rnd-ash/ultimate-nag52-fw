@@ -234,12 +234,15 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     SensorData pre_shift = this->sensor_data;
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
-    CLAMP(sd.shift_speed, 1, 10); // Ensure shift speed is a valid amount
-    float mpc_speed = sd.shift_speed/2;
-    float curr_mpc_pwm = sd.mpc_pwm;
+    CLAMP(sd.spc_dec_speed, 1, 10); // Ensure shift speed is a valid amount
+    CLAMP(sd.mpc_dec_speed, 1, 10); // Ensure shift speed is a valid amount
+    if (sd.mpc_dec_speed < sd.spc_dec_speed) {
+        sd.mpc_dec_speed = sd.spc_dec_speed * 0.9;
+    }
     float curr_spc_pwm = sd.initial_spc_pwm;
+    float curr_mpc_pwm = sd.initial_mpc_pwm;
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
-    sol_mpc->write_pwm_percent_with_voltage(sd.mpc_pwm, this->sensor_data.voltage);
+    sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
     if (sensor_data.static_torque > 50 && is_upshift) {
@@ -301,12 +304,12 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             this->flaring = false;
         }
         // Try increasing MPC PWM too to stop flaring
-        if (curr_mpc_pwm > mpc_speed) {
-            curr_mpc_pwm -= mpc_speed;
+        if (curr_mpc_pwm > sd.mpc_dec_speed) {
+            curr_mpc_pwm -= sd.mpc_dec_speed;
         }
         sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
-        if (curr_spc_pwm > sd.shift_speed) {
-            curr_spc_pwm -= sd.shift_speed;
+        if (curr_spc_pwm > sd.spc_dec_speed) {
+            curr_spc_pwm -= sd.spc_dec_speed;
         }
         sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
         // Unlock torque reqest once box has started to change

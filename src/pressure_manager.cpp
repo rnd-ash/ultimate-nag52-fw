@@ -52,8 +52,9 @@ uint16_t find_spc_pressure(const pressure_map map, SensorData* sensors) {
 
 uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors) {
     // MPC reacts to Torque (Also sets pressure for SPC. Shift firmness can be increased)
-    int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
-    if (load < 0) { load *= -0.25; } // Pulling engine
+    //int load = sensors->static_torque*100/MAX_TORQUE_RATING_NM;
+    //if (load < 0) { load *= -0.25; } // Pulling engine
+    int load = (sensors->pedal_pos*100/250); // Try same as SPC
     // For now forget about shift_firmness (TODO work on shift_firmness 1-10 to 1.1-0.9)
     return locate_pressure_map_value(map, load);
 }

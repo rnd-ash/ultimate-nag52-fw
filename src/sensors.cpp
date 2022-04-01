@@ -77,28 +77,28 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
 // mV Values are calibrated on 3.45V rail
 // as that is how much the ATF sensor power gets
-    {466, -400},
-    {482, -300},
-    {497, -200},
-    {513, -100},
-    {530, 0},
-    {547, 100},
-    {564, 200},
-    {582, 300},
-    {600, 400},
-    {519, 500},
-    {638, 600},
-    {646, 700},
-    {678, 800},
-    {699, 900},
-    {721, 1000},
-    {743, 1100},
-    {766, 1200},
-    {789, 1300},
-    {813, 1400},
-    {838, 1500},
-    {851, 1600},
-    {890, 1700}
+    {495, -400},
+    {513, -300},
+    {526, -200},
+    {537, -100},
+    {553, 0},
+    {569, 100},
+    {585, 200},
+    {608, 300},
+    {625, 400},
+    {643, 500},
+    {663, 600},
+    {683, 700},
+    {707, 800},
+    {731, 900},
+    {755, 1000},
+    {779, 1100},
+    {803, 1200},
+    {827, 1300},
+    {851, 1400},
+    {875, 1500},
+    {899, 1600},
+    {923, 1700}
 };
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
@@ -234,7 +234,7 @@ bool Sensors::init_sensors(){
 bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
     dest->n2_raw = ((float)n2_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
     dest->n3_raw = ((float)n3_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
-    ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
+    //ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
     if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;
         return true;
@@ -294,6 +294,7 @@ bool Sensors::read_atf_temp(int* dest){
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
+    //ESP_LOGI("ATF", "AVG VOLTAGE %d", avg);
     if (avg < atf_temp_lookup[0].v) {
         *dest = atf_temp_lookup[0].temp;
         return true;

@@ -304,8 +304,10 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             this->flaring = false;
         }
         // Try increasing MPC PWM too to stop flaring
-        if (curr_mpc_pwm > sd.mpc_dec_speed) {
-            curr_mpc_pwm -= sd.mpc_dec_speed;
+        if (!shift_in_progress) {
+            if (curr_mpc_pwm > sd.mpc_dec_speed) {
+                curr_mpc_pwm -= sd.mpc_dec_speed;
+            }
         }
         sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
         if (curr_spc_pwm > sd.spc_dec_speed) {

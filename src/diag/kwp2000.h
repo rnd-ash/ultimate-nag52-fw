@@ -23,7 +23,17 @@
     #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
 #endif
 
+#define PROCESSOR_TYPE
+#define COMM_MATRIX_VERSION 0x0101 // 01.01
+#define CAN_DRIVER_VERSION 0x0101 // 01.01
+#define NM_VERSION 0x0101 // 01.01
+#define KWP_MOD_VERSION 0x0001 // 00.01
+#define TP_LAYER_VERSION 0x0001 // 00.01
+#define DBKOM_VERSION 0x0001 // 00.01
+#define FLEXER_VERSION 0x9999 // 99.99 (unsupported)
+
 #define ROUTINE_SOLENOID_TEST 0xDE
+#define ROUTINE_SPEAKER_TEST 0xDF
 
 class Kwp2000_server {
     public:
@@ -46,10 +56,14 @@ class Kwp2000_server {
         TaskHandle_t routine_task;
         uint8_t routine_id = 0x00;
         uint8_t routine_result[255];
+        uint8_t* running_routine_args;
         uint8_t routine_results_len = 0;
+
         CpuStats cpu_usage;
         bool send_resp;
         bool reboot_pending;
+
+        int allocate_routine_args(uint8_t* src, uint8_t arg_len);
 
         void process_start_diag_session(uint8_t* args, uint16_t arg_len);
         void process_ecu_reset(uint8_t* args, uint16_t arg_len);
@@ -79,9 +93,14 @@ class Kwp2000_server {
         void process_response_on_event(uint8_t* args, uint16_t arg_len);
 
         void make_diag_neg_msg(uint8_t sid, uint8_t nrc);
-        void make_diag_pos_msg(uint8_t sid, uint8_t* resp, uint16_t len);
+        void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
+        void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
 
         static void launch_solenoid_test(void *_this) {
+            static_cast<Kwp2000_server*>(_this)->run_solenoid_test();
+        }
+
+        static void launch_speaker_test(void *_this) {
             static_cast<Kwp2000_server*>(_this)->run_solenoid_test();
         }
 
@@ -89,6 +108,7 @@ class Kwp2000_server {
 
         Gearbox* gearbox_ptr;
         AbstractCan* can_layer;
+        xTaskHandle* running_routine;
 };
 
 #endif //_KWP_H__

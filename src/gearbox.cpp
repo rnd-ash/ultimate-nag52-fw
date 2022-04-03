@@ -241,17 +241,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     }
     float curr_spc_pwm = sd.initial_spc_pwm;
     float curr_mpc_pwm = sd.initial_mpc_pwm;
+    int start_torque = sensor_data.static_torque; // Save this for later
+    int limited_torque = start_torque;
+    if (sensor_data.static_torque > 0 && is_upshift) {
+        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
+        limited_torque = max(0, (int)(sensor_data.static_torque*sd.torque_cut_multiplier));
+        egs_can_hal->set_requested_torque(limited_torque);
+    }
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
     sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
-    if (sensor_data.static_torque > 50 && is_upshift) {
-        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-        egs_can_hal->set_requested_torque(max(55, (int)(sensor_data.static_torque*0.6)));
-    } else if (sensor_data.static_torque > MAX_TORQUE_RATING_NM/2 && !is_upshift) {
-        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-        egs_can_hal->set_requested_torque(MAX_TORQUE_RATING_NM/2);
-    }
     uint32_t elapsed = 0; // Counter for shift timing
 
     // Init counters for Input RPM measuring and ratio measuring
@@ -278,14 +278,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 if (ratio_now > start_ratio+20) { // Upshift - Ratio should get smaller so inverse means flaring)
                     this->flaring = true;
                     flared = true;
-                } else if (ratio_now < start_ratio-25){
+                } else if (ratio_now < sd.sip_threshold){
                     shift_in_progress = true;
                 }
             } else {
                 if (ratio_now < start_ratio-20) { // Downshift - Ratio should get larger so inverse means flaring
                     this->flaring = true;
                     flared = true;
-                } else if (ratio_now > start_ratio+25) {
+                } else if (ratio_now > sd.sip_threshold) {
                     shift_in_progress = true;
                 }
             }
@@ -308,11 +308,15 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             if (curr_mpc_pwm > sd.mpc_dec_speed) {
                 curr_mpc_pwm -= sd.mpc_dec_speed;
             }
+            if (curr_spc_pwm > sd.spc_dec_speed) {
+                curr_spc_pwm -= sd.spc_dec_speed;
+            }
+        } else {
+            if (curr_spc_pwm > sd.spc_dec_speed*0.75) {
+                curr_spc_pwm -= sd.spc_dec_speed*0.75;
+            }
         }
         sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
-        if (curr_spc_pwm > sd.spc_dec_speed) {
-            curr_spc_pwm -= sd.spc_dec_speed;
-        }
         sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
         // Unlock torque reqest once box has started to change
         if (shift_in_progress) {

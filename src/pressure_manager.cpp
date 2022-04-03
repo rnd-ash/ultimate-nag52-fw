@@ -71,47 +71,63 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_1_2, this->sensor_data);
             sd.targ_g = 2; sd.curr_g = 1;
             sd.shift_solenoid = sol_y3;
+            sd.torque_cut_multiplier = TC_1_2;
+            sd.sip_threshold = SIP_1_2;
             break;
         case ProfileGearChange::TWO_THREE:
             sd.initial_spc_pwm = find_spc_pressure(spc_2_3, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_2_3, this->sensor_data);
             sd.targ_g = 3; sd.curr_g = 2;
             sd.shift_solenoid = sol_y5;
+            sd.torque_cut_multiplier = TC_2_3;
+            sd.sip_threshold = SIP_2_3;
             break;
         case ProfileGearChange::THREE_FOUR:
             sd.initial_spc_pwm = find_spc_pressure(spc_3_4, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_3_4, this->sensor_data);
             sd.targ_g = 4; sd.curr_g = 3;
             sd.shift_solenoid = sol_y4;
+            sd.torque_cut_multiplier = TC_3_4;
+            sd.sip_threshold = SIP_3_4;
             break;
         case ProfileGearChange::FOUR_FIVE:
             sd.initial_spc_pwm = find_spc_pressure(spc_4_5, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_4_5, this->sensor_data);
             sd.targ_g = 5; sd.curr_g = 4;
             sd.shift_solenoid = sol_y3;
+            sd.torque_cut_multiplier = TC_4_5;
+            sd.sip_threshold = SIP_4_5;
             break;
         case ProfileGearChange::FIVE_FOUR:
             sd.initial_spc_pwm = find_spc_pressure(spc_5_4, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_5_4, this->sensor_data);
             sd.targ_g = 4; sd.curr_g = 5;
             sd.shift_solenoid = sol_y3;
+            sd.torque_cut_multiplier = 1.00;
+            sd.sip_threshold = SIP_5_4;
             break;
         case ProfileGearChange::FOUR_THREE:
             sd.initial_spc_pwm = find_spc_pressure(spc_4_3, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_4_3, this->sensor_data);
             sd.shift_solenoid = sol_y4;
+            sd.torque_cut_multiplier = 1.00;
+            sd.sip_threshold = SIP_4_3;
             break;
         case ProfileGearChange::THREE_TWO:
             sd.initial_spc_pwm = find_spc_pressure(spc_3_2, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_3_2, this->sensor_data);
             sd.targ_g = 2; sd.curr_g = 3;
             sd.shift_solenoid = sol_y5;
+            sd.torque_cut_multiplier = 1.00;
+            sd.sip_threshold = SIP_3_2;
             break;
         case ProfileGearChange::TWO_ONE:
             sd.initial_spc_pwm = find_spc_pressure(spc_2_1, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_2_1, this->sensor_data);
             sd.targ_g = 1; sd.curr_g = 2;
             sd.shift_solenoid = sol_y3;
+            sd.torque_cut_multiplier = 1.00;
+            sd.sip_threshold = SIP_2_1;
             break;
     }
     sd.spc_dec_speed = chars.shift_speed * find_temp_ramp_speed_multiplier(sensors->atf_temp);

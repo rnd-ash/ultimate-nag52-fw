@@ -37,7 +37,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
 
     if (this->was_idle && this->curr_tcc_pwm > 50) {
         this->was_idle = false;
-        this->curr_tcc_pwm -= 50; // Faster response for TCC
+        this->curr_tcc_pwm *= 0.5; // Faster response for TCC
     }
 
     if (!is_shifting) {
@@ -55,6 +55,10 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             TccLockupBounds bounds = profile->get_tcc_lockup_bounds(sensors, curr_gear);
             max_allowed_slip = bounds.max_slip_rpm;
             min_allowed_slip = bounds.min_slip_rpm;
+            if (sensors->output_rpm > 1900) {
+                max_allowed_slip /= 2; // Always
+                min_allowed_slip /= 2; // Always
+            }
         }
 
         if (sensors->tcc_slip_rpm > max_allowed_slip) {
@@ -62,12 +66,12 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             this->curr_tcc_pwm += MAX(1, (sensors->pedal_pos/11)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 2 && sensors->pedal_pos > 10) {
             // Decrease pressure, but only if we have pedal input
-            this->curr_tcc_pwm -= 1 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+            this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         }
     }
     int tcc_offset = 0;
     if (this->curr_tcc_pwm != 0 ) {
-        tcc_offset = 300;
+        tcc_offset = 250;
     }
     if (is_shifting && tcc_offset != 0 && !this->inhibit_increase) {
         tcc_offset += sol_mpc->get_pwm() / 20;

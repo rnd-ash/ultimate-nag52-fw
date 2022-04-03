@@ -48,3 +48,27 @@ DATA_SOLENOIDS get_solenoid_data() {
 
     return ret;
 }
+
+DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
+    DATA_CANBUS_RX ret = {};
+    uint64_t now = esp_timer_get_time() / 1000;
+
+    WheelData t = can_layer->get_rear_left_wheel(now, 250);
+    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
+    t = can_layer->get_rear_right_wheel(now, 250);
+    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
+
+    ret.paddle_position = can_layer->get_paddle_position(now, 250);
+    ret.pedal_pos = can_layer->get_pedal_value(now, 250);
+
+    int torque = 0xFFFF;
+    torque = can_layer->get_maximum_engine_torque(now, 250);
+    ret.max_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    torque = can_layer->get_minimum_engine_torque(now, 250);
+    ret.min_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    torque = can_layer->get_static_engine_torque(now, 250);
+    ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
+    ret.shifter_position = can_layer->get_shifter_position_ewm(now, 250);
+    return ret;
+}

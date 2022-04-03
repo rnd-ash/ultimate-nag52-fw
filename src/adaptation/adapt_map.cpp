@@ -300,18 +300,18 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     bool accel_shift = sensors->d_output_rpm > 0;
     bool idle_shift = sensors->static_torque > 0;
 
-    if (response.spc_map_start - response.spc_change_start > 20) { // SPC is taking too long to bite so reduce it || Gearbox flared so needs more SPC
+    if (response.spc_map_start - response.spc_change_start > 50) { // SPC is taking too long to bite so reduce it || Gearbox flared so needs more SPC
         if (idle_shift) {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].offset_accel_idle -= 10; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_accel_idle -= 5; // +1% pressure
             } else {
-                this->adapt_data[adaptation_idx].offset_decel_idle -= 10; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_decel_idle -= 5; // +1% pressure
             }
         } else {
             if (accel_shift) {
-                this->adapt_data[adaptation_idx].offset_accel_load -= 5; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_accel_load -= 10; // +1% pressure
             } else {
-                this->adapt_data[adaptation_idx].offset_decel_load -= 5; // +1% pressure
+                this->adapt_data[adaptation_idx].offset_decel_load -= 7; // +1% pressure
             }
         }
     } else if (response.spc_map_start - response.spc_change_start < 10) { // SPC tolorance is too tight, decrease initial SPC pressure

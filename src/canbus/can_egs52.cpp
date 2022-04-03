@@ -270,11 +270,13 @@ PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_
                 return PaddlePosition::Plus;
             case SBW_232h_LRT_PM3::MINUS:
                 return PaddlePosition::Minus;
+            case SBW_232h_LRT_PM3::SNV:
+                return PaddlePosition::SNV;
             default:
                 return PaddlePosition::None;
         }
     } else {
-        return PaddlePosition::None;
+        return PaddlePosition::SNV;
     }
 }
 

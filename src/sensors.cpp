@@ -9,8 +9,7 @@
 #include "esp_log.h"
 #include "pins.h"
 
-#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define RPM_AVERAGE_SAMPLES 5
+#define PULSES_PER_REV 120 // N2 and N3 are 60 pulses per revolution
 #define PCNT_H_LIM PULSES_PER_REV * 10
 
 #define LOG_TAG "SENSORS"
@@ -32,7 +31,7 @@ const pcnt_config_t pcnt_cfg_n2 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
+    .neg_mode = PCNT_COUNT_INC,
     .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N2_RPM,
@@ -45,25 +44,12 @@ const pcnt_config_t pcnt_cfg_n3 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
+    .neg_mode = PCNT_COUNT_INC,
     .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N3_RPM,
     .channel = PCNT_CHANNEL_0
 };
-
-struct RpmSampleData {
-    uint64_t readings[RPM_AVERAGE_SAMPLES];
-    uint8_t sample_id;
-    uint64_t sum;
-};
-
-void IRAM_ATTR add_value_to_rpm(volatile RpmSampleData* sample, uint64_t reading) {
-    sample->sum -= sample->readings[sample->sample_id];
-    sample->readings[sample->sample_id] = reading;
-    sample->sum += reading;
-    sample->sample_id = (sample->sample_id+1) % RPM_AVERAGE_SAMPLES;
-}
 
 typedef struct {
     // Voltage in mV
@@ -77,28 +63,28 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
 // mV Values are calibrated on 3.45V rail
 // as that is how much the ATF sensor power gets
-    {495, -400},
-    {513, -300},
-    {526, -200},
-    {537, -100},
-    {553, 0},
-    {569, 100},
-    {585, 200},
-    {608, 300},
-    {625, 400},
-    {643, 500},
-    {663, 600},
-    {683, 700},
-    {707, 800},
-    {731, 900},
-    {755, 1000},
-    {779, 1100},
-    {803, 1200},
-    {827, 1300},
-    {851, 1400},
-    {875, 1500},
-    {899, 1600},
-    {923, 1700}
+    {446, -400},
+    {461, -300},
+    {476, -200},
+    {491, -100},
+    {507, 0},
+    {523, 100},
+    {540, 200},
+    {557, 300},
+    {574, 400},
+    {592, 500},
+    {610, 600},
+    {629, 700},
+    {648, 800},
+    {669, 900},
+    {690, 1000},
+    {711, 1100},
+    {732, 1200},
+    {755, 1300},
+    {778, 1400},
+    {802, 1500},
+    {814, 1600},
+    {851, 1700}
 };
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
@@ -117,16 +103,8 @@ portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 uint64_t n2_overflow = 0;
 uint64_t n3_overflow = 0;
 
-volatile RpmSampleData n2_rpm = {
-    .readings = {0},
-    .sample_id = 0,
-    .sum = 0
-};
-volatile RpmSampleData n3_rpm = {
-    .readings = {0},
-    .sample_id = 0,
-    .sum = 0
-};
+volatile uint64_t n2_rpm = 0;
+volatile uint64_t n3_rpm = 0;
 
 static intr_handle_t rpm_timer_handle;
 static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
@@ -138,7 +116,7 @@ static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
     pcnt_counter_clear(PCNT_N3_RPM);
     t += (n3_overflow * PCNT_H_LIM);
     n3_overflow = 0;
-    add_value_to_rpm(&n3_rpm, t);
+    n3_rpm = t;
     portEXIT_CRITICAL_ISR(&n3_mux);
 
     portENTER_CRITICAL_ISR(&n2_mux);
@@ -146,7 +124,7 @@ static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
     pcnt_counter_clear(PCNT_N2_RPM);
     t += (n2_overflow * PCNT_H_LIM);
     n2_overflow = 0;
-    add_value_to_rpm(&n2_rpm, t);
+    n2_rpm = t;
     portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
@@ -232,8 +210,8 @@ bool Sensors::init_sensors(){
 }
 
 bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
-    dest->n2_raw = ((float)n2_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
-    dest->n3_raw = ((float)n3_rpm.sum * (float)PULSE_MULTIPLIER / (float)RPM_AVERAGE_SAMPLES);
+    dest->n2_raw = ((float)n2_rpm * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
+    dest->n3_raw = ((float)n3_rpm * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
     //ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
     if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;

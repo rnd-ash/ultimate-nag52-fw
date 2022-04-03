@@ -101,13 +101,16 @@ enum class ProfileGearChange {
 typedef struct {
     /// The initial SPC PWM value to start the shift off. This should be the 'biting point' of the clutch packs
     uint16_t initial_spc_pwm;
-    /// The intial MPC PWM value to start the shift off. This should allow for easy SPC movement, but not
-    /// too little otherwise the gearbox will slip too much
-    uint16_t mpc_pwm;
-    /// Target time in milliseconds for the shift to complete
-    uint16_t targ_d_rpm;
-    // Shift speed factor. Valid range = 1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
-    float shift_speed;
+    /// The intial MPC PWM value to start the shift off.
+    /// This must ALWAYS be more or equal to initial_spc_pwm, otherwise the box will hydralically
+    /// perform an ABORT shift
+    uint16_t initial_mpc_pwm;
+    /// SPC Ramp speed, denotes the speed of which SPC pressure will increase during the shift
+    float spc_dec_speed;
+    /// MPC Ramp speed, denotes the speed of which MPC pressure will increase during the shift
+    /// IMPORTANT: This value must ALWAYS be less than spc_dec_speed, otherwise the box will
+    /// fail to shift!
+    float mpc_dec_speed;
     /// The shift solenoid required to change gears
     Solenoid* shift_solenoid;
     /// Current gear the gearbox is in as an integer
@@ -117,7 +120,7 @@ typedef struct {
 } ShiftData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .mpc_pwm = 100, .targ_d_rpm = 50, .shift_speed = 5.0};
+const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0, .mpc_dec_speed = 3.0};
 
 typedef struct {
     /**

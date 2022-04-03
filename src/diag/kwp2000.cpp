@@ -137,12 +137,26 @@ void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
     this->send_resp = true;
 }
 
-void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t* resp, uint16_t len) {
+void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len) {
     this->tx_msg.id = KWP_ECU_TX_ID;
     this->tx_msg.data_size = len+1;
     this->tx_msg.data[0] = sid+0x40;
     memcpy(&this->tx_msg.data[1], resp, len);
     this->send_resp = true;
+}
+
+void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
+    this->tx_msg.id = KWP_ECU_TX_ID;
+    this->tx_msg.data_size = len+2;
+    this->tx_msg.data[0] = sid+0x40;
+    this->tx_msg.data[1] = pid;
+    memcpy(&this->tx_msg.data[2], resp, len);
+    this->send_resp = true;
+}
+
+int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
+    free(this->running_routine_args);
+    return 0;
 }
 
 void Kwp2000_server::server_loop() {
@@ -296,35 +310,61 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
     esp_ota_get_partition_description(running, &running_info);
     if (args[0] == 0x86) {
         ECU_Date date = fw_date_to_bcd(running_info.date);
-        uint8_t daimler_ident_data[17];
-        memset(daimler_ident_data, 0x00, 17);
+        uint8_t daimler_ident_data[16];
+        memset(daimler_ident_data, 0x00, 16);
         // Part number
-        daimler_ident_data[1] = 0x01;
-        daimler_ident_data[2] = 0x23;
-        daimler_ident_data[3] = 0x45;
-        daimler_ident_data[4] = 0x67;
-        daimler_ident_data[5] = 0x89;
+        daimler_ident_data[0] = 0x01;
+        daimler_ident_data[1] = 0x23;
+        daimler_ident_data[2] = 0x45;
+        daimler_ident_data[3] = 0x67;
+        daimler_ident_data[4] = 0x89;
         // ECU Hardware date
-        daimler_ident_data[6] = date.week;
-        daimler_ident_data[7] = date.year;
+        daimler_ident_data[5] = date.week;
+        daimler_ident_data[6] = date.year;
         // ECU Software date
-        daimler_ident_data[8] = date.week;
-        daimler_ident_data[9] = date.year;
-        daimler_ident_data[10] = SUPPLIER_ID;
-        daimler_ident_data[11] = DIAG_VARIANT_CODE >> 8;
-        daimler_ident_data[12] = DIAG_VARIANT_CODE & 0xFF;
-        daimler_ident_data[14] = date.year;
-        daimler_ident_data[15] = date.month;
-        daimler_ident_data[16] = date.day;
-        make_diag_pos_msg(SID_READ_ECU_IDENT, daimler_ident_data, 17);
-        return;
-    } else if (args[0] == 0x88) {
-        // VIN (Original) - Let this be partition name
-        make_diag_pos_msg(SID_READ_ECU_IDENT, (uint8_t*)running->label, 17);
-        return;
+        daimler_ident_data[7] = date.week;
+        daimler_ident_data[8] = date.year;
+        daimler_ident_data[9] = SUPPLIER_ID;
+        daimler_ident_data[10] = DIAG_VARIANT_CODE >> 8;
+        daimler_ident_data[11] = DIAG_VARIANT_CODE & 0xFF;
+        daimler_ident_data[13] = date.year;
+        daimler_ident_data[14] = date.month;
+        daimler_ident_data[15] = date.day;
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x86, daimler_ident_data, 16);
+    } else if (args[0] == 0x87) { // Daimler and Mitsubishi compatible identification
+        ECU_Date date = fw_date_to_bcd(running_info.date);
+        uint8_t ident_data[19];
+        memset(ident_data, 0x00, 19);
+        ident_data[0] = 0x00; // TODO ECU origin
+        ident_data[1] = SUPPLIER_ID;
+        ident_data[2] = DIAG_VARIANT_CODE >> 8;
+        ident_data[3] = DIAG_VARIANT_CODE & 0xFF;
+        ident_data[5] = 0x00;// HW version
+        ident_data[6] = 0x00;// HW version
+        ident_data[7] = date.day;// SW version
+        ident_data[8] = date.month;// SW version
+        ident_data[9] = date.year;// SW version
+        ident_data[10] = '0'; // Part number to end
+        ident_data[11] = '1'; // Part number to end
+        ident_data[12] = '2'; // Part number to end
+        ident_data[13] = '3'; // Part number to end
+        ident_data[14] = '4'; // Part number to end
+        ident_data[15] = '5'; // Part number to end
+        ident_data[16] = '6'; // Part number to end
+        ident_data[17] = '7'; // Part number to end
+        ident_data[18] = '8'; // Part number to end
+        ident_data[19] = '9'; // Part number to end
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x87, ident_data, 19);
+    } else if (args[0] == 0x88) { // VIN original
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+    } else if (args[0] == 0x89) { // Diagnostic variant code
+        int d = DIAG_VARIANT_CODE;
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, (const uint8_t*)d, 4);
+    } else if (args[0] == 0x90) { // VIN current
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+    } else {
+        make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-
-    make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
@@ -332,20 +372,27 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    if (args[0] >= 0x80 && args[1] <= 0x9F) { // ECU Ident
+    if (args[0] >= 0x80 && args[0] <= 0x9F) { // ECU Ident
         this->process_read_ecu_ident(args, arg_len); // Modify the SID byte in pos/neg response to be SID_READ_DATA_LOCAL_IDENT
         if(this->tx_msg.data[0] == 0x7F) {
             this->tx_msg.data[1] = SID_READ_DATA_LOCAL_IDENT;
         } else {
             this->tx_msg.data[0] = SID_READ_DATA_LOCAL_IDENT+0x40;
         }
-    }
-    if (args[0] == RLI_GEARBOX_SENSORS) {
+    } else if (args[0] == 0xE1) { // ECU Serial number
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)"ULTIMATENAG52", 14);
+    } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
-        return;
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
+    } else if (args[0] == RLI_SOLENOID_STATUS) {
+        DATA_SOLENOIDS r = get_solenoid_data();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SOLENOID_STATUS, (uint8_t*)&r, sizeof(DATA_SOLENOIDS));
+    } else if (args[0] == RLI_CAN_DATA_DUMP) {
+        DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CAN_DATA_DUMP, (uint8_t*)&r, sizeof(DATA_CANBUS_RX));
+    } else {
+        make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-    make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     
 }
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
@@ -415,6 +462,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+    } else if (arg_len == 3) {
+        if (args[0] == ROUTINE_SOLENOID_TEST) {
+            // Args[1] -> Freq/10
+            // Args[2] -> Time/10
+        } else {
+            make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        }
     } else {
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
@@ -480,7 +534,6 @@ void Kwp2000_server::process_control_dtc_settings(uint8_t* args, uint16_t arg_le
 void Kwp2000_server::process_response_on_event(uint8_t* args, uint16_t arg_len) {
 
 }
-
 
 
 void Kwp2000_server::run_solenoid_test() {

@@ -17,7 +17,7 @@ enum class WheelDirection {
     Forward, // Wheel going forwards
     Reverse, // Wheel going backwards
     Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvaliable // SNV
+    SignalNotAvaliable = 0xFF // SNV
 };
 
 struct WheelData {
@@ -44,7 +44,7 @@ enum class SystemStatusCheck {
 enum class EngineType {
     Diesel,
     Petrol,
-    Unknown
+    Unknown = 0xFF
 };
 
 enum class TorqueRequest {
@@ -63,14 +63,15 @@ enum class GearboxGear {
     Neutral = 9,
     Reverse_First = 10,
     Reverse_Second = 11,
-    SignalNotAvaliable = 12,
+    SignalNotAvaliable = 0xFF,
 };
 
 enum class PaddlePosition {
     None,
     Plus,
     Minus,
-    PlusAndMinus
+    PlusAndMinus,
+    SNV = 0xFF
 };
 
 enum class ClutchStatus {
@@ -106,7 +107,7 @@ enum class ShifterPosition {
     D,
     PLUS,
     MINUS,
-    SignalNotAvaliable // SNV
+    SignalNotAvaliable = 0xFF // SNV
 };
 
 enum class SolenoidName {
@@ -130,7 +131,7 @@ enum class GearboxDisplayGear {
     Four,
     Five,
     Failure,
-    SNA,
+    SNA = 0xFF,
 };
 
 enum class GearboxMessage {

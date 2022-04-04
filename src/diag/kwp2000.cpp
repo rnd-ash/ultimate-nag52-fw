@@ -3,6 +3,7 @@
 #include <string>
 #include <time.h>
 #include "diag_data.h"
+#include "egs_emulation.h"
 
 typedef struct {
     uint8_t day;
@@ -391,6 +392,14 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CAN_DATA_DUMP, (uint8_t*)&r, sizeof(DATA_CANBUS_RX));
     } else {
+
+        // EGS52 emulation
+#ifdef EGS52_MODE
+        if (args[0] == RLI_31) {
+            RLI_31_DATA r = get_rli_31(egs_can_hal);
+            return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+        }
+#endif
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     

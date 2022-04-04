@@ -117,6 +117,9 @@ typedef struct {
     uint8_t targ_g;
     /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
+
+    float torque_cut_multiplier;
+    int sip_threshold;
 } ShiftData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp

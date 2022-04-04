@@ -12,7 +12,7 @@
     #define RAT_5 0.8314
     #define RAT_R1 -3.1605
     #define RAT_R2 -1.9259
-    #define MAX_TORQUE_RATING_NM 580 // Little less than actual max of 580
+    #define MAX_TORQUE_RATING_NM 580
 #else
     #define RAT_1 3.9319 // 1.63 (1->2 D_RATO)
     #define RAT_2 2.4079 // 1.62 (2->3 D_RATO)
@@ -21,7 +21,7 @@
     #define RAT_5 0.8305
     #define RAT_R1 -3.1002
     #define RAT_R2 -1.8986
-    #define MAX_TORQUE_RATING_NM 330 // Little less than actual max of 330
+    #define MAX_TORQUE_RATING_NM 330
 #endif
 
 #define EGS52_MODE // EGS52 CAN layer

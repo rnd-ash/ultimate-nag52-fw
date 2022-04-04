@@ -1,3 +1,5 @@
+/** @file */
+
 /*
     Ultimate NAG52 advanced options
 
@@ -12,16 +14,15 @@
  * 
  * Default: Enabled
  */
-#define MANUAL_AUTO_DOWNSHIFT
+#define MANUAL_AUTO_DOWNSHIFT 1
 
 /**
- * @brief Possible fix for those with Blue topped MPC and SPC solenoids (Standard solenoids are black/brown)
+ * @brief Possible fix for those with Blue topped high-flow MPC and SPC solenoids (Standard solenoids are black/brown)
  * 
  * Default: Disabled
  */
-// #define BLUE_SOLENOIDS
+#define BLUE_SOLENOIDS 0
 
-// ----- SHIFT PRESSURE RAMP ALGORITHM SELECTOR ----- //
 
 #define SPC_RAMP_ALGO_LINEAR // Linear pressure ramp from start to end
 //#define SPC_RAMP_ALGO_EASE_IN_OUT // Ease in pressure ramp with ease out once shift completes

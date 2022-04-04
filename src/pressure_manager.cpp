@@ -103,14 +103,14 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_5_4, this->sensor_data);
             sd.targ_g = 4; sd.curr_g = 5;
             sd.shift_solenoid = sol_y3;
-            sd.torque_cut_multiplier = 1.00;
+            sd.torque_cut_multiplier = 0.9;
             sd.sip_threshold = SIP_5_4;
             break;
         case ProfileGearChange::FOUR_THREE:
             sd.initial_spc_pwm = find_spc_pressure(spc_4_3, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_4_3, this->sensor_data);
             sd.shift_solenoid = sol_y4;
-            sd.torque_cut_multiplier = 1.00;
+            sd.torque_cut_multiplier = 0.9;
             sd.sip_threshold = SIP_4_3;
             break;
         case ProfileGearChange::THREE_TWO:
@@ -118,7 +118,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_3_2, this->sensor_data);
             sd.targ_g = 2; sd.curr_g = 3;
             sd.shift_solenoid = sol_y5;
-            sd.torque_cut_multiplier = 1.00;
+            sd.torque_cut_multiplier = 0.9;
             sd.sip_threshold = SIP_3_2;
             break;
         case ProfileGearChange::TWO_ONE:
@@ -126,7 +126,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_2_1, this->sensor_data);
             sd.targ_g = 1; sd.curr_g = 2;
             sd.shift_solenoid = sol_y3;
-            sd.torque_cut_multiplier = 1.00;
+            sd.torque_cut_multiplier = 0.9;
             sd.sip_threshold = SIP_2_1;
             break;
     }
@@ -137,7 +137,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     if (sd.targ_g < sd.curr_g) {
         sd.spc_dec_speed *= 0.75; // Make downshifting a little smoother
     }
-    sd.mpc_dec_speed = sd.spc_dec_speed/2; // For now
+    sd.mpc_dec_speed = sd.spc_dec_speed/4.0; // For now
     return sd;
 }
 

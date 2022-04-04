@@ -29,6 +29,7 @@ class TorqueConverter {
         float curr_tcc_pwm = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
+        uint16_t mpc_curr_compensation = 0;
 };
 
 #endif

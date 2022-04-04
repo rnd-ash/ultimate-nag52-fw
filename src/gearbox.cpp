@@ -248,6 +248,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         limited_torque = max(0, (int)(sensor_data.static_torque*sd.torque_cut_multiplier));
         egs_can_hal->set_requested_torque(limited_torque);
     }
+    vTaskDelay(100);
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
@@ -296,6 +297,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 } else if (!is_upshift && sensor_data.input_rpm <= shift_start_rpm) { // Downshift but input RPM is still falling without gear change
                     spc_shift_start_pwm = curr_spc_pwm;
                 }
+                if (elapsed > 750 && !shift_in_progress) {
+                    sd.mpc_dec_speed = 0.0; // Stop MPC increase to allow SPC to take over (Only when not flaring)
+                }
             }
             // Add data to Ratio diff calculator
 
@@ -312,17 +316,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 curr_spc_pwm -= sd.spc_dec_speed;
             }
         } else {
-            if (curr_spc_pwm > sd.spc_dec_speed*0.75) {
-                curr_spc_pwm -= sd.spc_dec_speed*0.75;
+            if (curr_spc_pwm > sd.spc_dec_speed*0.5) {
+                curr_spc_pwm -= sd.spc_dec_speed*0.5;
             }
         }
         sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
         sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
         // Unlock torque reqest once box has started to change
-        if (shift_in_progress) {
-            egs_can_hal->set_torque_request(TorqueRequest::None);
-            egs_can_hal->set_requested_torque(0);
-        }
+        //if (shift_in_progress) {
+        //    egs_can_hal->set_torque_request(TorqueRequest::None);
+        //    egs_can_hal->set_requested_torque(0);
+        //}
         if (this->est_gear_idx == sd.targ_g) {
             break;
         } else if (sensor_data.output_rpm < 100 && elapsed >= 1500) { // Fix for stationary shifts
@@ -333,11 +337,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms). SPC map %.2f, SPC start %.2f", elapsed, spc_start, spc_shift_start_pwm);
     
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
-    this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     sol_spc->write_pwm_12_bit(0);
     vTaskDelay(100);
     sd.shift_solenoid->write_pwm_12_bit(0);
     sol_mpc->write_pwm_12_bit(0);
+    this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
+    egs_can_hal->set_torque_request(TorqueRequest::None);
+    egs_can_hal->set_requested_torque(0);
     this->shifting = false;
     this->flaring = false;
     ShiftResponse response = {
@@ -350,8 +356,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     if (this->pressure_mgr != nullptr) {
         this->pressure_mgr->perform_adaptation(&pre_shift, req_lookup, response, is_upshift);
     };
-    egs_can_hal->set_torque_request(TorqueRequest::None);
-    egs_can_hal->set_requested_torque(0);
     return response;
 }
 

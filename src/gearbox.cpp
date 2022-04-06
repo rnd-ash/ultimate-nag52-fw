@@ -234,21 +234,20 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     SensorData pre_shift = this->sensor_data;
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data));
-    CLAMP(sd.spc_dec_speed, 1, 10); // Ensure shift speed is a valid amount
-    CLAMP(sd.mpc_dec_speed, 1, 10); // Ensure shift speed is a valid amount
+    CLAMP(sd.spc_dec_speed, 1, 50); // Ensure shift speed is a valid amount
+    CLAMP(sd.mpc_dec_speed, 1, 50); // Ensure shift speed is a valid amount
     if (sd.mpc_dec_speed < sd.spc_dec_speed) {
-        sd.mpc_dec_speed = sd.spc_dec_speed * 0.9;
+        sd.mpc_dec_speed = sd.spc_dec_speed * 0.5;
     }
     float curr_spc_pwm = sd.initial_spc_pwm;
     float curr_mpc_pwm = sd.initial_mpc_pwm;
     int start_torque = sensor_data.static_torque; // Save this for later
     int limited_torque = start_torque;
-    if (sensor_data.static_torque > 0 && is_upshift) {
+    if (sensor_data.static_torque > 0) {
         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
         limited_torque = max(0, (int)(sensor_data.static_torque*sd.torque_cut_multiplier));
         egs_can_hal->set_requested_torque(limited_torque);
     }
-    vTaskDelay(100);
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
@@ -341,9 +340,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     vTaskDelay(100);
     sd.shift_solenoid->write_pwm_12_bit(0);
     sol_mpc->write_pwm_12_bit(0);
-    this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
+    this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     this->shifting = false;
     this->flaring = false;
     ShiftResponse response = {

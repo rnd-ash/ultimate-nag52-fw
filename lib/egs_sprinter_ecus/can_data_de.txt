@@ -1,0 +1,2575 @@
+ECU BSM_M
+	FRAME SG_APPL_BSM (0x0000069C)
+		SIGNAL SG_APPL_BSM, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_BSM (0x00000742)
+		SIGNAL SD_RS_BSM, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_BSM (0x00000752)
+		SIGNAL D_RS_BSM, OFFSET: 0, LEN: 64, DESC: Diagnostic-Response, DATA TYPE ISO_TP
+	FRAME BSM_WARN_RQ (0x0000017E)
+		SIGNAL BSM_ActvLmp_Lt_Brt, OFFSET: 0, LEN: 8, DESC: BSM Helligkeit aktive Lampe links
+BSM active lamp left brightness BSM Helligkeit aktive Lampe links, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BSM_ActvLmp_Rt_Brt, OFFSET: 8, LEN: 8, DESC: BSM Helligkeit aktive Lampe rechts, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BSM_WarnLmp_Lt_Brt, OFFSET: 16, LEN: 8, DESC: BSM Helligkeit Warnlampe link, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BSM_WarnLmp_Rt_Brt, OFFSET: 24, LEN: 8, DESC: BSM Helligkeit Warnlampe rechts, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BSM_MsgDisp_Rq, OFFSET: 33, LEN: 3, DESC: Anforderung BSM-Meldung anzeigen, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM MSG1, RAW: 1, DESC: Unknown
+			ENUM MSG2, RAW: 2, DESC: Unknown
+			ENUM MSG3, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL BSM_AcustcWarn_Rq, OFFSET: 40, LEN: 2, DESC: Actustische Warnung BSM, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM CONT, RAW: 1, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL BSM_Md_Rq_Ack, OFFSET: 42, LEN: 3, DESC: Bestätigung Anforderung BSM Modus, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ACTIVE, RAW: 1, DESC: Unknown
+			ENUM FLT_NA, RAW: 2, DESC: Unknown
+			ENUM FLT_RADAR_OFF, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL BSM_Master_Obj_Trans, OFFSET: 56, LEN: 2, DESC: Objekt Übergabe, DATA TYPE ENUM
+			ENUM NOOBJ, RAW: 0, DESC: Unknown
+			ENUM OBJ1, RAW: 1, DESC: Unknown
+			ENUM OBJ2, RAW: 2, DESC: Unknown
+		SIGNAL DTR_Beep_Rq_Src, OFFSET: 61, LEN: 3, DESC: Quelle der Anforderung DTR Warnton, DATA TYPE ENUM
+			ENUM DTR, RAW: 0, DESC: Unknown
+			ENUM CMS, RAW: 1, DESC: Unknown
+			ENUM APG, RAW: 2, DESC: Unknown
+			ENUM BSM, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+ECU BSM_S
+	FRAME SG_APPL_BSMSLAVE (0x00000674)
+		SIGNAL SG_APPL_BSMSLAVE, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_BSMSLAVE (0x00000743)
+		SIGNAL SD_RS_BSMSLAVE, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_BSMSLAVE (0x00000753)
+		SIGNAL D_RS_BSMSLAVE, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME BSM_SLAVE_RQ (0x00000182)
+		SIGNAL BSM_SlaveAvl_State, OFFSET: 1, LEN: 3, DESC: Status BSM Slave, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM BSM_PERM, RAW: 1, DESC: Unknown
+			ENUM BSM_TEMP, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL BSM_Slave_Obj_Trans, OFFSET: 4, LEN: 2, DESC: Objekt Übergabe, DATA TYPE ENUM
+			ENUM NOOBJ, RAW: 0, DESC: Unknown
+			ENUM OBJ1, RAW: 1, DESC: Unknown
+			ENUM OBJ2, RAW: 2, DESC: Unknown
+		SIGNAL BSM_SlaveWarn_Rq, OFFSET: 6, LEN: 2, DESC: BSM Slave Anforderung, DATA TYPE ENUM
+			ENUM AUS, RAW: 0, DESC: Unknown
+			ENUM EIN, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+ECU ESP_SBC
+	FRAME TBCC_RS (0x0000079E)
+		SIGNAL EngRun_Stat_TBCC, OFFSET: 0, LEN: 3, DESC: Engine running state, DATA TYPE ENUM
+			ENUM STOP, RAW: 0, DESC: Unknown
+			ENUM START, RAW: 1, DESC: Unknown
+			ENUM IDLE_UNSTBL, RAW: 2, DESC: Unknown
+			ENUM IDLE_STBL, RAW: 3, DESC: Unknown
+			ENUM UNLIMITED, RAW: 4, DESC: Unknown
+			ENUM LIMITED, RAW: 5, DESC: Unknown
+			ENUM NDEF6, RAW: 6, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL EngTrqMin_TBCC, OFFSET: 3, LEN: 13, DESC: Actual minimum engine torque, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BrkPdl_Stat_TBCC, OFFSET: 16, LEN: 2, DESC: Brake pedal state, DATA TYPE ENUM
+			ENUM UPSTOP, RAW: 0, DESC: Unknown
+			ENUM PSD, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+		SIGNAL EngRPM_TBCC, OFFSET: 18, LEN: 14, DESC: Actual engine rpm, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: rpm
+		SIGNAL MPkBrk_Stat_TBCC, OFFSET: 32, LEN: 1, DESC: Mech. parking brake state, DATA TYPE BOOL
+		SIGNAL TBCC_Enbl, OFFSET: 33, LEN: 1, DESC: Test bench cruise control enabled, DATA TYPE BOOL
+		SIGNAL EngWhlTrqRatio_TBCC, OFFSET: 34, LEN: 14, DESC: Crankshaft torque to wheel torque ratio, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_TBCC_RS, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Gr_TBCC, OFFSET: 52, LEN: 4, DESC: Actual gear, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D8, RAW: 8, DESC: Unknown
+			ENUM D9, RAW: 9, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM PWRFREE, RAW: 14, DESC: Unknown
+			ENUM SNA, RAW: 15, DESC: Unknown
+		SIGNAL CRC_TBCC_RS, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SD_RS_BS (0x00000722)
+		SIGNAL SD_RS_BS, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME PRW_MESS2 (0x000006A1)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME D_RS_BS (0x00000785)
+		SIGNAL D_RS_BS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+	FRAME BS_APPL4 (0x0000064B)
+		SIGNAL APPL4, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME BS_APPL2 (0x00000635)
+		SIGNAL APPL2, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME BS_330h (0x00000330)
+		SIGNAL RET_ABS_DEF, OFFSET: 0, LEN: 1, DESC: ABS gestört, DATA TYPE BOOL
+		SIGNAL ABH_ANF_2, OFFSET: 1, LEN: 1, DESC: ABH Anforderung 2, DATA TYPE BOOL
+		SIGNAL RET_AUS, OFFSET: 2, LEN: 1, DESC: Retarder abschalten, DATA TYPE BOOL
+		SIGNAL ABH_ANF_1, OFFSET: 3, LEN: 1, DESC: ABH Anforderung 1, DATA TYPE BOOL
+		SIGNAL EBV_KL, OFFSET: 4, LEN: 1, DESC: EBV defekt Kontrolleuchte, DATA TYPE BOOL
+		SIGNAL AAS_KL, OFFSET: 5, LEN: 1, DESC: Anfahrassistent defekt Kontrolleuchte, DATA TYPE BOOL
+		SIGNAL ASR_KL, OFFSET: 6, LEN: 1, DESC: ASR defekt Kontrolleuchte, DATA TYPE BOOL
+		SIGNAL SCHALT_UNT_VG, OFFSET: 7, LEN: 1, DESC: Schaltunterdrückung VG durch ESP, DATA TYPE BOOL
+		SIGNAL AAS_DEAKT, OFFSET: 8, LEN: 1, DESC: AAS deaktiviert, DATA TYPE BOOL
+		SIGNAL BAS_DEAKT, OFFSET: 9, LEN: 1, DESC: BAS deaktiviert, DATA TYPE BOOL
+		SIGNAL ROM_DEAKT, OFFSET: 10, LEN: 1, DESC: ROM deaktiviert, DATA TYPE BOOL
+		SIGNAL ESP_DEAKT, OFFSET: 11, LEN: 1, DESC: ESP deaktiviert, DATA TYPE BOOL
+		SIGNAL ASR_DEAKT, OFFSET: 12, LEN: 1, DESC: ASR deaktiviert, DATA TYPE BOOL
+		SIGNAL ABS_DEAKT, OFFSET: 13, LEN: 1, DESC: ABS deaktiviert, DATA TYPE BOOL
+		SIGNAL MSR_DEAKT, OFFSET: 14, LEN: 1, DESC: MSR deaktiviert, DATA TYPE BOOL
+		SIGNAL RT_VERL, OFFSET: 15, LEN: 1, DESC: Abgastest verlassen, DATA TYPE BOOL
+		SIGNAL AX_S, OFFSET: 16, LEN: 8, DESC: Fahrzeuglängsbeschleun. im Schwerpunkt, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MASSE, OFFSET: 24, LEN: 6, DESC: aktuelle Fzg.-Masse, DATA TYPE ENUM
+			ENUM SNV, RAW: 63, DESC: Unknown
+		SIGNAL MASSE_IO, OFFSET: 30, LEN: 1, DESC: Wert Fzg.-Masse gültig, DATA TYPE BOOL
+		SIGNAL P_BREMS, OFFSET: 32, LEN: 8, DESC: Bremsdruck, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BZ330h, OFFSET: 40, LEN: 3, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL GenMax_ESP, OFFSET: 43, LEN: 1, DESC: Anforderung BS: max Generatorspannung, DATA TYPE BOOL
+		SIGNAL SSA_Enbl_Rq_SBC, OFFSET: 44, LEN: 1, DESC: ASS enable, DATA TYPE BOOL
+		SIGNAL SSA_DsablPrmnt_Rq_SBC, OFFSET: 45, LEN: 1, DESC: ASS dauerhaft abschalten aufgrund eines Defekts, DATA TYPE BOOL
+		SIGNAL SSA_Enbl_Rq_AS, OFFSET: 46, LEN: 1, DESC: ASS enable, DATA TYPE BOOL
+		SIGNAL NEUTRAL_ESP, OFFSET: 47, LEN: 1, DESC: Schaltgetriebe in Neutralstellung (von ESP), DATA TYPE BOOL
+	FRAME BS_328h (0x00000328)
+		SIGNAL V_BEGR_ST2, OFFSET: 0, LEN: 1, DESC: Geschwindigkeitsbegrenzung 2.Stufe, DATA TYPE BOOL
+		SIGNAL ETS_ANF, OFFSET: 4, LEN: 1, DESC: ETS-geregeltes Anfahren, DATA TYPE BOOL
+		SIGNAL AX_S, OFFSET: 8, LEN: 8, DESC: Fahrzeuglängsbeschleun. im Schwerpunkt, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL AY_S, OFFSET: 16, LEN: 8, DESC: Fahrzeugquerbeschleun. im Schwerpunkt (+ = links), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ESP_ERR, OFFSET: 26, LEN: 3, DESC: ESP Fehlerinfo, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM USPGF, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL INF_RFE_FSG, OFFSET: 29, LEN: 1, DESC: FSG: EHB-ASG in Rückfallebene, DATA TYPE BOOL
+		SIGNAL LTG_CHK_POS, OFFSET: 31, LEN: 1, DESC: Leitungsüberwachung möglich, DATA TYPE BOOL
+		SIGNAL ESP_DSPL_VAN, OFFSET: 35, LEN: 5, DESC: ESP-Displaymeldungen, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM ESP_DEF, RAW: 1, DESC: Unknown
+			ENUM ESP_OFF, RAW: 2, DESC: Unknown
+			ENUM DIFF_GEARLOCK_SEL, RAW: 3, DESC: Unknown
+			ENUM DIFF_GEARLOCK_AKT, RAW: 8, DESC: Unknown
+			ENUM AAS_ESP_DEF, RAW: 9, DESC: Unknown
+			ENUM AAS_ASR_ESP_DEF, RAW: 10, DESC: Unknown
+			ENUM ASR_ESP_DEF, RAW: 12, DESC: Unknown
+			ENUM AAS_ASR_BAS_ESP_DEF, RAW: 13, DESC: Unknown
+			ENUM ALL_DEF, RAW: 16, DESC: Unknown
+			ENUM ALL_DEF_GBV, RAW: 17, DESC: Unknown
+			ENUM ALL_DIAG_GBV, RAW: 20, DESC: Unknown
+			ENUM AAS_DEF, RAW: 28, DESC: Unknown
+			ENUM SNV, RAW: 31, DESC: Unknown
+		SIGNAL AY_NOTOEFF, OFFSET: 41, LEN: 2, DESC: Notöffnung AY, DATA TYPE ENUM
+			ENUM AYLOW, RAW: 1, DESC: Unknown
+			ENUM AYHIGH, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL SSA_EmgBrk_Actv, OFFSET: 43, LEN: 1, DESC: Stoppverhinderer bei Gefahrenbremsung, DATA TYPE BOOL
+		SIGNAL KPL_OEF, OFFSET: 44, LEN: 1, DESC: Kupplung öffnen, DATA TYPE BOOL
+		SIGNAL BZ328h, OFFSET: 45, LEN: 3, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL RIZ_VL, OFFSET: 48, LEN: 8, DESC: Impuls-Ringzähler Rad vorne links (48 pro Umdrehung; 96 pro Umdrehung mit ESP9 / BB9), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL RIZ_VR, OFFSET: 56, LEN: 8, DESC: Impuls-Ringzähler Rad vorne rechts (48 pro Umdrehung; 96 pro Umdrehung mit ESP9 / BB9), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME BS_300h (0x00000300)
+		SIGNAL DMPAR_ART, OFFSET: 0, LEN: 1, DESC: Motormomentenanforderung Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL DMDYN_ART, OFFSET: 1, LEN: 1, DESC: Motormomentenanforderung Dynamisch, DATA TYPE BOOL
+		SIGNAL BAS_AKT, OFFSET: 2, LEN: 1, DESC: BAS-Regelung aktiv, DATA TYPE BOOL
+		SIGNAL VOLLBRE, OFFSET: 3, LEN: 1, DESC: Vollbremsung (ABS regelt alle 4 Räder), DATA TYPE BOOL
+		SIGNAL ESP_GIER_AKT, OFFSET: 5, LEN: 1, DESC: ESP-Giermomentregelung aktiv, DATA TYPE BOOL
+		SIGNAL MPAR_ESP, OFFSET: 8, LEN: 1, DESC: Motormomentenanforderung Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL MDYN_ESP, OFFSET: 9, LEN: 1, DESC: Motormomentenanforderung Dynamisch, DATA TYPE BOOL
+		SIGNAL AMR_AKT_ESP, OFFSET: 10, LEN: 1, DESC: Antriebsmomentenregelung aktiv, DATA TYPE BOOL
+		SIGNAL T_Z, OFFSET: 11, LEN: 2, DESC: Sendezykluszeit, DATA TYPE ENUM
+			ENUM T20_0, RAW: 1, DESC: Unknown
+			ENUM T23_1, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL SFB_PA, OFFSET: 13, LEN: 1, DESC: Fahrer bremst Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL SFB, OFFSET: 14, LEN: 2, DESC: Fahrer bremst, DATA TYPE ENUM
+			ENUM BREMSE_NEIN, RAW: 0, DESC: Unknown
+			ENUM BREMSE_JA, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DMTGL_ART, OFFSET: 16, LEN: 1, DESC: Motormomentenanf. Toggle 40ms +-10, DATA TYPE BOOL
+		SIGNAL DMMIN_ART, OFFSET: 17, LEN: 1, DESC: Motormomentenanforderung Min, DATA TYPE BOOL
+		SIGNAL DMMAX_ART, OFFSET: 18, LEN: 1, DESC: Motormomentenanforderung Max, DATA TYPE BOOL
+		SIGNAL DM_ART, OFFSET: 19, LEN: 13, DESC: Geford. Motormoment, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MTGL_ESP, OFFSET: 32, LEN: 1, DESC: Motormomentenanf. Toggle 40ms +-10, DATA TYPE BOOL
+		SIGNAL MMIN_ESP, OFFSET: 33, LEN: 1, DESC: Motormomentenanforderung Min, DATA TYPE BOOL
+		SIGNAL MMAX_ESP, OFFSET: 34, LEN: 1, DESC: Motormomentenanforderung Max, DATA TYPE BOOL
+		SIGNAL M_ESP, OFFSET: 35, LEN: 13, DESC: Geford. Motormoment, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL GIER_ROH, OFFSET: 48, LEN: 16, DESC: Rohsignal Gierrate ohne Abgleich/Filterung (+ = links), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME BS_270h (0x00000270)
+		SIGNAL RIZ_HL, OFFSET: 0, LEN: 8, DESC: Impuls-Ringzähler Rad hinten links (48 pro Umdrehung; 96 pro Umdrehung mit ESP9 / BB9), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL RIZ_HR, OFFSET: 8, LEN: 8, DESC: Impuls-Ringzähler Rad hinten rechts (48 pro Umdrehung; 96 pro Umdrehung mit ESP9 / BB9), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PRW_WARN, OFFSET: 16, LEN: 4, DESC: Warnmeldungen Plattrollwarner, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM WARN_OHNE, RAW: 1, DESC: Unknown
+			ENUM PRW_NV, RAW: 2, DESC: Unknown
+			ENUM NEU_AKT, RAW: 3, DESC: Unknown
+			ENUM WARN_VL, RAW: 4, DESC: Unknown
+			ENUM WARN_VR, RAW: 5, DESC: Unknown
+			ENUM WARN_HL, RAW: 6, DESC: Unknown
+			ENUM WARN_HR, RAW: 7, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL PRW_ST, OFFSET: 21, LEN: 3, DESC: Status Plattrollwarner, DATA TYPE ENUM
+			ENUM EIN, RAW: 0, DESC: Unknown
+			ENUM WARN, RAW: 1, DESC: Unknown
+			ENUM AUS, RAW: 2, DESC: Unknown
+			ENUM INIT, RAW: 3, DESC: Unknown
+			ENUM PRW_NV, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL BZ270h, OFFSET: 48, LEN: 4, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL ESP_OFF_AKT, OFFSET: 52, LEN: 1, DESC: ESP-Off ist aktiv, DATA TYPE BOOL
+	FRAME BS_241h (0x00000241)
+		SIGNAL P_UNTER, OFFSET: 0, LEN: 8, DESC: Unterdruck Bremssystem, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL HBC_IndLmp_On_Rq, OFFSET: 10, LEN: 1, DESC: HBC / VAC Indication Lamp On Request, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_CWA, OFFSET: 11, LEN: 1, DESC: Seitenwindassistent-Bremseneingriff aktiv, DATA TYPE BOOL
+		SIGNAL DSR_Disp_Rq_VAN, OFFSET: 12, LEN: 2, DESC: Anzeige Downhill Speed Regulation, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DSR_RDY, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM DSR_ON, RAW: 3, DESC: Unknown
+		SIGNAL Rd_Slope, OFFSET: 56, LEN: 8, DESC: Steigung / Gefälle der Straße (+ Gefälle), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME BS_208h (0x00000208)
+		SIGNAL AKT_R_ESP, OFFSET: 0, LEN: 1, DESC: ESP/ART-Wunsch: 'Aktive Rückschaltung', DATA TYPE BOOL
+		SIGNAL GMAX_ESP, OFFSET: 2, LEN: 3, DESC: Sollgang, obere Grenze, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL GMIN_ESP, OFFSET: 5, LEN: 3, DESC: Sollgang, untere Grenze, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL DDYN_UNT, OFFSET: 8, LEN: 1, DESC: Unterdrückung dynamische Vollastrückschaltung, DATA TYPE BOOL
+		SIGNAL SZS, OFFSET: 9, LEN: 2, DESC: Systemzustand, DATA TYPE ENUM
+			ENUM ERR_DIAG, RAW: 0, DESC: Unknown
+			ENUM NORM, RAW: 1, DESC: Unknown
+			ENUM N_DEF, RAW: 2, DESC: Unknown
+			ENUM ABGAS, RAW: 3, DESC: Unknown
+		SIGNAL TM_AUS, OFFSET: 11, LEN: 1, DESC: Tempomatbetrieb aus, DATA TYPE BOOL
+		SIGNAL SLV_ESP, OFFSET: 12, LEN: 4, DESC: Schaltlinienverschiebung ESP, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Unknown
+			ENUM SKL1, RAW: 1, DESC: Unknown
+			ENUM SKL2, RAW: 2, DESC: Unknown
+			ENUM SKL3, RAW: 3, DESC: Unknown
+			ENUM SKL4, RAW: 4, DESC: Unknown
+			ENUM SKL5, RAW: 5, DESC: Unknown
+			ENUM SKL6, RAW: 6, DESC: Unknown
+			ENUM SKL7, RAW: 7, DESC: Unknown
+			ENUM SKL8, RAW: 8, DESC: Unknown
+			ENUM SKL9, RAW: 9, DESC: Unknown
+			ENUM SKL10, RAW: 10, DESC: Unknown
+			ENUM SKL11, RAW: 11, DESC: Unknown
+			ENUM SKL12, RAW: 12, DESC: Unknown
+			ENUM SKL13, RAW: 13, DESC: Unknown
+			ENUM SKL14, RAW: 14, DESC: Unknown
+			ENUM SKL15, RAW: 15, DESC: Unknown
+		SIGNAL BRE_AKT_ESP, OFFSET: 16, LEN: 1, DESC: ESP-Bremseneingriff aktiv, DATA TYPE BOOL
+		SIGNAL ANFN, OFFSET: 17, LEN: 2, DESC: ESP-Wunsch: 'N' einlegen, DATA TYPE ENUM
+			ENUM ANF_N, RAW: 1, DESC: Unknown
+			ENUM IDLE, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL MBRE_ESP, OFFSET: 20, LEN: 12, DESC: Eingestelltes Bremsmoment (BR240 Faktor 1,8 größer), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL DRTGHR, OFFSET: 32, LEN: 2, DESC: Drehrichtung Rad hinten rechts, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DHR, OFFSET: 34, LEN: 14, DESC: Raddrehzahl hinten rechts, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL DRTGHL, OFFSET: 48, LEN: 2, DESC: Drehrichtung Rad hinten links, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DHL, OFFSET: 50, LEN: 14, DESC: Raddrehzahl hinten links, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME BS_200h (0x00000200)
+		SIGNAL BRE_KL, OFFSET: 0, LEN: 1, DESC: Bremse defekt Kontrolllampe, DATA TYPE BOOL
+		SIGNAL BAS_KL, OFFSET: 1, LEN: 1, DESC: BAS defekt Kontrollampe, DATA TYPE BOOL
+		SIGNAL ESP_INFO_BL, OFFSET: 2, LEN: 1, DESC: ESP Infolampe Blinklicht, DATA TYPE BOOL
+		SIGNAL ESP_INFO_DL, OFFSET: 3, LEN: 1, DESC: ESP Infolampe Dauerlicht, DATA TYPE BOOL
+		SIGNAL ESP_KL, OFFSET: 4, LEN: 1, DESC: ESP defekt Kontrollampe, DATA TYPE BOOL
+		SIGNAL ABS_KL, OFFSET: 5, LEN: 1, DESC: ABS defekt Kontrollampe, DATA TYPE BOOL
+		SIGNAL HAS_KL, OFFSET: 6, LEN: 1, DESC: Handbremse angezogen (Kontrolllampe), DATA TYPE BOOL
+		SIGNAL BLS_UNT, OFFSET: 8, LEN: 1, DESC: Bremslichtunterdrückung (EBV_KL bei 461/163/T0/T1N), DATA TYPE BOOL
+		SIGNAL BLS_PA, OFFSET: 9, LEN: 1, DESC: BLS Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL BZ200h, OFFSET: 10, LEN: 4, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL BLS, OFFSET: 14, LEN: 2, DESC: Bremslichtschalter, DATA TYPE ENUM
+			ENUM BREMSE_NBET, RAW: 0, DESC: Unknown
+			ENUM BREMSE_BET, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DRTGVL, OFFSET: 16, LEN: 2, DESC: Drehrichtung Rad vorne links, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DVL, OFFSET: 18, LEN: 14, DESC: Raddrehzahl vorne links, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL DRTGVR, OFFSET: 32, LEN: 2, DESC: Drehrichtung Rad vorne rechts, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL DVR, OFFSET: 34, LEN: 14, DESC: Raddrehzahl vorne rechts, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME BS_119h (0x00000119)
+		SIGNAL REQUEST_1, OFFSET: 0, LEN: 8, DESC: Request 1, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL REQUEST_2, OFFSET: 8, LEN: 8, DESC: Request 2, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL REQUEST_3, OFFSET: 16, LEN: 8, DESC: Request 3, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL REQUEST_4, OFFSET: 24, LEN: 8, DESC: Request 4, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL PTR_DIAG, OFFSET: 40, LEN: 8, DESC: Diagnosis block pointer, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MSG_CNT_0, OFFSET: 52, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_0, OFFSET: 56, LEN: 8, DESC: Checksum, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME BRK_STAT2 (0x0000005F)
+		SIGNAL RDU_Enbl_Rq, OFFSET: 2, LEN: 1, DESC: Enable RDU request, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_AS, OFFSET: 3, LEN: 1, DESC: Brake intervention by assistance system active, DATA TYPE BOOL
+		SIGNAL BrkTrq_D, OFFSET: 4, LEN: 12, DESC: Brake torque requested by driver (NCV2 Ecell Auflösung 3 Nm), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BrkTrq_Van, OFFSET: 20, LEN: 12, DESC: Actual driving brake torque (i.e. without brake torque of electrical machine), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ESP_Oprtn_Stat_AS, OFFSET: 34, LEN: 4, DESC: ESP operation state for assistance systems, DATA TYPE ENUM
+			ENUM NORM, RAW: 0, DESC: Unknown
+			ENUM INIT, RAW: 1, DESC: Unknown
+			ENUM DIAG, RAW: 2, DESC: Unknown
+			ENUM EMT, RAW: 3, DESC: Unknown
+			ENUM TBCC, RAW: 4, DESC: Unknown
+			ENUM FLT, RAW: 5, DESC: Unknown
+			ENUM CTRL_ACTV, RAW: 6, DESC: Unknown
+			ENUM AMG_OFF, RAW: 7, DESC: Unknown
+			ENUM OFF_AMG_SPORT, RAW: 8, DESC: Unknown
+		SIGNAL MC_BRK_STAT2, OFFSET: 48, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL OFC_Supp_Rq_AS, OFFSET: 52, LEN: 2, DESC: Anforderung Schubabschaltungsunterdrückung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM SUPP, RAW: 1, DESC: Unknown
+			ENUM ENBL, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL TBCC_Stat, OFFSET: 54, LEN: 2, DESC: Status Geschwindigkeitsregelung am Prüfstand, DATA TYPE ENUM
+			ENUM TBCC_OFF, RAW: 0, DESC: Unknown
+			ENUM TBCC_ON, RAW: 1, DESC: Unknown
+			ENUM TBCC_REG_ACTV, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL CRC_BRK_STAT2, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME ART_258h (0x00000258)
+		SIGNAL ART_DSPL_EIN, OFFSET: 0, LEN: 1, DESC: Display auf ART-Anzeige schalten, DATA TYPE BOOL
+		SIGNAL ART_MAX_SUM, OFFSET: 1, LEN: 1, DESC: Warnsummer ein, DATA TYPE BOOL
+		SIGNAL ART_WT, OFFSET: 2, LEN: 1, DESC: ART Warnton, DATA TYPE BOOL
+		SIGNAL ART_INFO, OFFSET: 3, LEN: 1, DESC: ART Infolampe, DATA TYPE BOOL
+		SIGNAL ART_ERR, OFFSET: 4, LEN: 4, DESC: ART Fehlercode, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM SCHMUTZ, RAW: 1, DESC: Unknown
+			ENUM ART_DEF, RAW: 2, DESC: Unknown
+			ENUM ART_LIM_DEF, RAW: 3, DESC: Unknown
+			ENUM EXT, RAW: 4, DESC: Unknown
+			ENUM DBC_DEF, RAW: 5, DESC: Unknown
+			ENUM SCHMUTZ_DBC_DEF, RAW: 6, DESC: Unknown
+			ENUM ART_DBC_DEF, RAW: 7, DESC: Unknown
+			ENUM ART_LIM_DBC_DEF, RAW: 8, DESC: Unknown
+			ENUM EXT_DBC, RAW: 9, DESC: Unknown
+		SIGNAL V_ART, OFFSET: 8, LEN: 8, DESC: eingestellte ART-Geschwindigkeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ART_DSPL_PGB, OFFSET: 32, LEN: 1, DESC: Anzeige 'Winterreifenbegrenzung erreicht' am Display, DATA TYPE BOOL
+		SIGNAL ART_VFBR, OFFSET: 33, LEN: 1, DESC: Anzeige 'DTR AUS [0]' am Display, DATA TYPE BOOL
+		SIGNAL ART_DSPL_LIM, OFFSET: 34, LEN: 1, DESC: Anzeige '---' am Display, DATA TYPE BOOL
+		SIGNAL ART_EIN, OFFSET: 35, LEN: 1, DESC: Abstandsregeltempomat eingeschaltet, DATA TYPE BOOL
+		SIGNAL ART_SEG_EIN, OFFSET: 37, LEN: 1, DESC: ART-Segmentanzeige einschalten, DATA TYPE BOOL
+		SIGNAL ART_DSPL_BL, OFFSET: 38, LEN: 1, DESC: Geschwindigkeitsanzeige blinken, DATA TYPE BOOL
+		SIGNAL TM_EIN_ART, OFFSET: 39, LEN: 1, DESC: ART-Tempomat eingeschaltet, DATA TYPE BOOL
+		SIGNAL ART_DSPL_NEU, OFFSET: 48, LEN: 1, DESC: Mindestanzeigezeit im Display neu triggern, DATA TYPE BOOL
+		SIGNAL ART_UEBERSP, OFFSET: 49, LEN: 1, DESC: ART wird vom Fahrer überspielt, DATA TYPE BOOL
+		SIGNAL ASSIST_ANZ_V2, OFFSET: 59, LEN: 5, DESC: Assistenzsystem Anzeigeanforderung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DBC_LIM, RAW: 1, DESC: Unknown
+			ENUM DBC_AUS, RAW: 2, DESC: Unknown
+			ENUM DBC_AUS_TON, RAW: 3, DESC: Unknown
+			ENUM DBC_NV_AKT, RAW: 4, DESC: Unknown
+			ENUM DBC_NV_LIM, RAW: 5, DESC: Unknown
+			ENUM AAS_EIN, RAW: 6, DESC: Unknown
+			ENUM AAS_AUS, RAW: 7, DESC: Unknown
+			ENUM AAS_AUS_TON, RAW: 8, DESC: Unknown
+			ENUM AAS_NV_LIM, RAW: 9, DESC: Unknown
+			ENUM AAS_NV_OBJ, RAW: 10, DESC: Unknown
+			ENUM AAS_NV_FBED, RAW: 11, DESC: Unknown
+			ENUM AAS_FOLGEN, RAW: 12, DESC: Unknown
+			ENUM AAS_OBJ_VERLUST, RAW: 13, DESC: Unknown
+			ENUM AAS_OBJ_WECHSEL, RAW: 14, DESC: Unknown
+			ENUM PAS_EIN, RAW: 15, DESC: Unknown
+			ENUM PAS_AUS, RAW: 16, DESC: Unknown
+			ENUM PAS_NV, RAW: 17, DESC: Unknown
+ECU EWM
+	FRAME SD_RS_EWM (0x00000724)
+		SIGNAL SD_RS_EWM, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME EWM_MESS2 (0x000006F1)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EWM_MESS1 (0x000006F0)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EWM_230h (0x00000230)
+		SIGNAL SPERR, OFFSET: 3, LEN: 1, DESC: Sperrmagnet bestromt, DATA TYPE BOOL
+		SIGNAL WHC, OFFSET: 4, LEN: 4, DESC: Getriebewählhebelstellung (nur NAG), DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: Unknown
+			ENUM N, RAW: 6, DESC: Unknown
+			ENUM R, RAW: 7, DESC: Unknown
+			ENUM P, RAW: 8, DESC: Unknown
+			ENUM PLUS, RAW: 9, DESC: Unknown
+			ENUM MINUS, RAW: 10, DESC: Unknown
+			ENUM N_ZW_D, RAW: 11, DESC: Unknown
+			ENUM R_ZW_N, RAW: 12, DESC: Unknown
+			ENUM P_ZW_R, RAW: 13, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+	FRAME D_RS_EWM (0x00000789)
+		SIGNAL D_RS_EWM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU EZS
+	FRAME ZGW_OBD_3D4h (0x000003D4)
+		SIGNAL F_STAT_T_AUSSEN, OFFSET: 5, LEN: 3, DESC: Fehlerstatus Aussentemperatursensor, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM RANGE_HIGH, RAW: 1, DESC: Unknown
+			ENUM RANGE_LOW, RAW: 2, DESC: Unknown
+			ENUM SHORT_BAT, RAW: 3, DESC: Unknown
+			ENUM OPEN, RAW: 4, DESC: Unknown
+			ENUM SHORT_GND, RAW: 5, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+	FRAME ZGW_24Ch (0x0000024C)
+		SIGNAL U_BATT2, OFFSET: 16, LEN: 8, DESC: Batteriespannung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ECO_BET, OFFSET: 26, LEN: 2, DESC: ECO betätigt, DATA TYPE ENUM
+			ENUM NBET, RAW: 0, DESC: Unknown
+			ENUM BET, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL MOT_AUF_PLAUS, OFFSET: 28, LEN: 2, DESC: Plausibilisierte Motorhaube, DATA TYPE ENUM
+			ENUM MH_ZU, RAW: 0, DESC: Unknown
+			ENUM MH_AUF, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL NACHT, OFFSET: 31, LEN: 1, DESC: Tag/Nacht Signal, DATA TYPE BOOL
+		SIGNAL BSM_WarnUnit_Rt_Stat, OFFSET: 48, LEN: 2, DESC: Status BSM Warneinheit rechts, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL BSM_WarnUnit_Lt_Stat, OFFSET: 50, LEN: 2, DESC: Status BSM Warneinheit links, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL TUNNEL, OFFSET: 52, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL LISR_DEF, OFFSET: 53, LEN: 1, DESC: Lichtsensor defekt/fehlt, DATA TYPE BOOL
+		SIGNAL NSL_EIN, OFFSET: 54, LEN: 1, DESC: Nebelschlusslicht einschalten, DATA TYPE BOOL
+		SIGNAL FL_ST_EIN, OFFSET: 55, LEN: 1, DESC: Fernlicht ist eingeschaltet, DATA TYPE BOOL
+	FRAME ZGW_248h (0x00000248)
+		SIGNAL AFL_ABL_EIN, OFFSET: 12, LEN: 1, DESC: AFL-Anforderung: Abblendlicht einschalten, DATA TYPE BOOL
+		SIGNAL GS_BF, OFFSET: 32, LEN: 2, DESC: Gurtschloss Beifahrer, DATA TYPE ENUM
+			ENUM GS_OK, RAW: 0, DESC: Unknown
+			ENUM GS_NOK, RAW: 1, DESC: Unknown
+			ENUM GS_FEHLER, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL GS_F, OFFSET: 34, LEN: 2, DESC: Gurtschloss Fahrer, DATA TYPE ENUM
+			ENUM GS_OK, RAW: 0, DESC: Unknown
+			ENUM GS_NOK, RAW: 1, DESC: Unknown
+			ENUM GS_FEHLER, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL KWS_KL, OFFSET: 41, LEN: 1, DESC: Kühlwasserstand zu niedrig Kontrolllampe, DATA TYPE BOOL
+		SIGNAL PTS_BET, OFFSET: 42, LEN: 2, DESC: Parctronic komplett ein/aus betätigt, DATA TYPE ENUM
+			ENUM NBET, RAW: 0, DESC: Unknown
+			ENUM NDEF, RAW: 1, DESC: Unknown
+			ENUM BET, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL CRASH, OFFSET: 45, LEN: 1, DESC: Crashsignal von Airbag-SG, DATA TYPE BOOL
+		SIGNAL CRASH_CNF, OFFSET: 46, LEN: 1, DESC: CRASH-Confirmbit, DATA TYPE BOOL
+		SIGNAL X_CRASH, OFFSET: 47, LEN: 1, DESC: Beliebiges Crashereignis, DATA TYPE BOOL
+	FRAME VIN (0x000006FA)
+		SIGNAL VIN_MSG, OFFSET: 6, LEN: 2, DESC: VIN Signalteil, DATA TYPE ENUM
+			ENUM N_DEF, RAW: 0, DESC: Unknown
+			ENUM LO, RAW: 1, DESC: Unknown
+			ENUM MID, RAW: 2, DESC: Unknown
+			ENUM HI, RAW: 3, DESC: Unknown
+		SIGNAL VIN_DATA, OFFSET: 8, LEN: 56, DESC: VIN Daten, DATA TYPE ISO_TP
+	FRAME TP_3CDh (0x000003CD)
+		SIGNAL TP_LT3_8, OFFSET: 0, LEN: 64, DESC: TP Signal LT3 mit 8 Byte, DATA TYPE ISO_TP
+	FRAME TP_3CCh (0x000003CC)
+		SIGNAL TP_LT3_8, OFFSET: 0, LEN: 64, DESC: TP Signal LT3 mit 8 Byte, DATA TYPE ISO_TP
+	FRAME TF_A2 (0x00000045)
+		SIGNAL FHR_AOE, OFFSET: 19, LEN: 1, DESC: Fenster hinten rechts - automatisch öffnen, DATA TYPE BOOL
+		SIGNAL FHL_AOE, OFFSET: 23, LEN: 1, DESC: Fenster hinten links - automatisch öffnen, DATA TYPE BOOL
+		SIGNAL FBF_AOE, OFFSET: 27, LEN: 1, DESC: Fenster Beifahrer - automatisch öffnen, DATA TYPE BOOL
+	FRAME TBCC_RQ (0x00000798)
+		SIGNAL ShftChrDsp_Rq_TBCC, OFFSET: 0, LEN: 4, DESC: Shift characteristic displacement request, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Unknown
+			ENUM SKL1, RAW: 1, DESC: Unknown
+			ENUM SKL2, RAW: 2, DESC: Unknown
+			ENUM SKL3, RAW: 3, DESC: Unknown
+			ENUM SKL4, RAW: 4, DESC: Unknown
+			ENUM SKL5, RAW: 5, DESC: Unknown
+			ENUM SKL6, RAW: 6, DESC: Unknown
+			ENUM SKL7, RAW: 7, DESC: Unknown
+			ENUM SKL8, RAW: 8, DESC: Unknown
+			ENUM SKL9, RAW: 9, DESC: Unknown
+			ENUM SKL10, RAW: 10, DESC: Unknown
+		SIGNAL DynFLDS_Supp_Rq_TBCC, OFFSET: 4, LEN: 1, DESC: Suppression of dynamic full load down shift request, DATA TYPE BOOL
+		SIGNAL BrkIntrvntn_Actv_TBCC, OFFSET: 5, LEN: 1, DESC: Brake intervention by TBCC active, DATA TYPE BOOL
+		SIGNAL TBCC_Reg_Actv, OFFSET: 6, LEN: 1, DESC: Test bench cruise control regulation active, DATA TYPE BOOL
+		SIGNAL TBCC_Ok, OFFSET: 7, LEN: 1, DESC: Test bench cruise control ok, DATA TYPE BOOL
+		SIGNAL EngTrqDyn_Rq_TBCC, OFFSET: 10, LEN: 1, DESC: Dynamic engine torque request, DATA TYPE BOOL
+		SIGNAL EngTrq_Rq_TBCC, OFFSET: 11, LEN: 13, DESC: Engine torque request, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BrkTrq_Rq_TBCC, OFFSET: 28, LEN: 12, DESC: Brake torque requested, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ActvDnShift_Rq_TBCC, OFFSET: 41, LEN: 1, DESC: Active Down Shift, DATA TYPE BOOL
+		SIGNAL GrMax_Rq_TBCC, OFFSET: 42, LEN: 3, DESC: Requested Gear, Upper Limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL GrMin_Rq_TBCC, OFFSET: 45, LEN: 3, DESC: Requested Gear, Lower Limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL MC_TBCC_RQ, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_TBCC_RQ, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SAM_F_A1 (0x00000007)
+		SIGNAL PN14_BackupBat_Volt, OFFSET: 48, LEN: 8, DESC: Backup battery voltage, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PN14_BackupRelay_HW_Fail, OFFSET: 62, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL PN14_BackupBat_Test_Fnshd, OFFSET: 63, LEN: 1, DESC: Backup battery test finished, DATA TYPE BOOL
+	FRAME PSM_A2 (0x00000036)
+		SIGNAL PSM_WBL_EIN_OBF, OFFSET: 2, LEN: 1, DESC: Warnblinklicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_LH_LSS, OFFSET: 3, LEN: 1, DESC: Lichthupe einschalten, DATA TYPE BOOL
+		SIGNAL PSM_FL_LSS, OFFSET: 4, LEN: 1, DESC: Fernlicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_BLI_RE_LSS, OFFSET: 5, LEN: 1, DESC: Richtungsblinken rechts, DATA TYPE BOOL
+		SIGNAL PSM_BLI_LI_LSS, OFFSET: 6, LEN: 1, DESC: Richtungsblinken links, DATA TYPE BOOL
+		SIGNAL PSM_SGH_LENK, OFFSET: 7, LEN: 1, DESC: Signalhorn einschalten (Lenkrad), DATA TYPE BOOL
+		SIGNAL PSM_SCH_W_2_L, OFFSET: 8, LEN: 1, DESC: LSS in Stellung III (Stufe 2), DATA TYPE BOOL
+		SIGNAL PSM_SCH_W_1_L, OFFSET: 9, LEN: 1, DESC: LSS in Stellung II (Stufe 1), DATA TYPE BOOL
+		SIGNAL PSM_SCH_W_INT, OFFSET: 10, LEN: 1, DESC: LSS in Stellung I (Regensensorbetrieb), DATA TYPE BOOL
+		SIGNAL PSM_WASCHEN_EIN, OFFSET: 11, LEN: 1, DESC: Waschen betätigt, DATA TYPE BOOL
+		SIGNAL PSM_TIPP_WISCH, OFFSET: 12, LEN: 1, DESC: Tippwischen betätigt, DATA TYPE BOOL
+		SIGNAL PSM_IL_HI_EIN, OFFSET: 13, LEN: 1, DESC: Innenlicht hinten einschalten, DATA TYPE BOOL
+		SIGNAL PSM_IL_VO_EIN, OFFSET: 14, LEN: 1, DESC: Innenlicht vorn einschalten, DATA TYPE BOOL
+		SIGNAL PSM_SUM, OFFSET: 15, LEN: 1, DESC: Summer einschalten vom PSM, DATA TYPE BOOL
+		SIGNAL PSM_NSL_LDS, OFFSET: 16, LEN: 1, DESC: Nebelschlusslicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_NSW_LDS, OFFSET: 17, LEN: 1, DESC: Nebelscheinwerfer einschalten, DATA TYPE BOOL
+		SIGNAL PSM_ABL_LDS, OFFSET: 18, LEN: 1, DESC: Abblendlicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_STL_LDS, OFFSET: 19, LEN: 1, DESC: Standlicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_AUS_LDS, OFFSET: 20, LEN: 1, DESC: Licht ausschalten, DATA TYPE BOOL
+		SIGNAL PSM_AUTO_LDS, OFFSET: 21, LEN: 1, DESC: Automatisches Fahrlicht einschalten, DATA TYPE BOOL
+		SIGNAL PSM_PR_LDS, OFFSET: 22, LEN: 1, DESC: Parklicht rechts einschalten, DATA TYPE BOOL
+		SIGNAL PSM_PL_LDS, OFFSET: 23, LEN: 1, DESC: Parklicht links einschalten, DATA TYPE BOOL
+		SIGNAL PSM_IRS_PASSIV, OFFSET: 24, LEN: 1, DESC: Innenraumschutz passiv vom PSM, DATA TYPE BOOL
+	FRAME PSM_3B8h (0x000003B8)
+		SIGNAL PSM_V_PAR, OFFSET: 0, LEN: 1, DESC: Geschwindigkeitsbegrenzung - Paritybit, DATA TYPE BOOL
+		SIGNAL PSM_V_TGL, OFFSET: 1, LEN: 1, DESC: Geschwindigkeitsbegrenzung - Togglebit, DATA TYPE BOOL
+		SIGNAL PSM_V_AKT, OFFSET: 2, LEN: 1, DESC: Geschwindigkeitsbegrenzung aktiv, DATA TYPE BOOL
+		SIGNAL PSM_V_SOLL, OFFSET: 8, LEN: 8, DESC: Geschwindigkeitsbegrenzung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PSM_MFSS_PAR, OFFSET: 16, LEN: 1, DESC: Motor Fern Start/Stop - Paritybit, DATA TYPE BOOL
+		SIGNAL PSM_MFSS_TGL, OFFSET: 17, LEN: 1, DESC: Motor Fern Start/Stop - Togglebit, DATA TYPE BOOL
+		SIGNAL PSM_FERN_START, OFFSET: 18, LEN: 1, DESC: Motor Fern Start aktiv, DATA TYPE BOOL
+		SIGNAL PSM_FERN_STOP, OFFSET: 19, LEN: 1, DESC: Motor Fern Stop aktiv, DATA TYPE BOOL
+		SIGNAL PSM_FPM_SP, OFFSET: 20, LEN: 1, DESC: Sperre Fahrpedalmodul, DATA TYPE BOOL
+		SIGNAL PSM_RET_STUFE, OFFSET: 24, LEN: 2, DESC: Retarder Stufe, DATA TYPE ENUM
+			ENUM STUFE1, RAW: 0, DESC: Unknown
+			ENUM STUFE2, RAW: 1, DESC: Unknown
+			ENUM STUFE3, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL PSM_RET_BET, OFFSET: 26, LEN: 1, DESC: Retarder betätigt, DATA TYPE BOOL
+		SIGNAL PSM_RET_VH, OFFSET: 27, LEN: 1, DESC: Retarder vorhanden, DATA TYPE BOOL
+		SIGNAL ABH_2_STAT, OFFSET: 28, LEN: 1, DESC: Status ABH 2, DATA TYPE BOOL
+		SIGNAL ABH_1_STAT, OFFSET: 29, LEN: 1, DESC: Status ABH 1, DATA TYPE BOOL
+	FRAME PSM_3B4h (0x000003B4)
+		SIGNAL PSM_ADR_PAR, OFFSET: 0, LEN: 1, DESC: Arbeitsdrehzahlregelung - Paritybit, DATA TYPE BOOL
+		SIGNAL PSM_ADR_TGL, OFFSET: 1, LEN: 1, DESC: Arbeitsdrehzahlregelung - Togglebit, DATA TYPE BOOL
+		SIGNAL PSM_ADR_AKT, OFFSET: 2, LEN: 1, DESC: Arbeitsdrehzahlregelung aktiv, DATA TYPE BOOL
+		SIGNAL SSA_Dsbl_Rq_MPM, OFFSET: 3, LEN: 1, DESC: Stop/Start disable request by MPM, DATA TYPE BOOL
+		SIGNAL PSM_N_SOLL, OFFSET: 8, LEN: 16, DESC: Motorsolldrehzahl ADR, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PSM_MOM_PAR, OFFSET: 24, LEN: 1, DESC: Momentenbegrenzung - Paritybit, DATA TYPE BOOL
+		SIGNAL PSM_MOM_TGL, OFFSET: 25, LEN: 1, DESC: Momentenbegrenzung - Togglebit, DATA TYPE BOOL
+		SIGNAL PSM_MOM_AKT, OFFSET: 26, LEN: 1, DESC: Momentenbegrenzung aktiv, DATA TYPE BOOL
+		SIGNAL PSM_MOM_SOLL, OFFSET: 27, LEN: 13, DESC: Maximales Motormoment, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PSM_DZ_PAR, OFFSET: 40, LEN: 1, DESC: Drehzahlbegrenzung - Paritybit, DATA TYPE BOOL
+		SIGNAL PSM_DZ_TGL, OFFSET: 41, LEN: 1, DESC: Drehzahlbegrenzung - Togglebit, DATA TYPE BOOL
+		SIGNAL PSM_DZ_AKT, OFFSET: 42, LEN: 1, DESC: Drehzahlbegrenzung aktiv, DATA TYPE BOOL
+		SIGNAL PSM_DZ_MAX, OFFSET: 48, LEN: 16, DESC: maximale Drehzahl, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME PN14_STAT (0x00000205)
+		SIGNAL PN14_BackupBat_Flt, OFFSET: 5, LEN: 1, DESC: Backup battery fault, DATA TYPE BOOL
+		SIGNAL PN14_SupBat_Volt, OFFSET: 8, LEN: 8, DESC: Supply battery voltage, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PN14_GM1_Avl, OFFSET: 20, LEN: 1, DESC: Generator management available, ready for activation, DATA TYPE BOOL
+		SIGNAL PN14_GM1_Actv, OFFSET: 21, LEN: 1, DESC: Generator management activated, DATA TYPE BOOL
+		SIGNAL PN14_LHC_Actv, OFFSET: 24, LEN: 1, DESC: 14 V powernet limp-home cutoff active, DATA TYPE BOOL
+		SIGNAL LHC_PkLmp_Rq, OFFSET: 25, LEN: 1, DESC: Limp-home cutoff parking lamps request, DATA TYPE BOOL
+		SIGNAL LHC_PosnLmp_Rq, OFFSET: 26, LEN: 1, DESC: Limp-home cutoff position lamps request, DATA TYPE BOOL
+		SIGNAL LHC_IntFan_F_50_Rq, OFFSET: 32, LEN: 1, DESC: Notabschaltung Innenlüfter vorne auf 50%, DATA TYPE BOOL
+		SIGNAL LHC_IntFan_R_50_Rq, OFFSET: 33, LEN: 1, DESC: Notabschaltung Innenlüfter hinten auf 50%, DATA TYPE BOOL
+		SIGNAL LHC_PTC1_Rq, OFFSET: 34, LEN: 1, DESC: Notabschaltung PTC 1. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_PTC2_Rq, OFFSET: 35, LEN: 1, DESC: Notabschaltung PTC 2. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_PTC3_Rq, OFFSET: 36, LEN: 1, DESC: Notabschaltung PTC 3. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_PTC4_Rq, OFFSET: 37, LEN: 1, DESC: Notabschaltung PTC 4. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_PTC5_Rq, OFFSET: 38, LEN: 1, DESC: Notabschaltung PTC 5. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_PTC6_Rq, OFFSET: 39, LEN: 1, DESC: Notabschaltung PTC 6. Zweig, DATA TYPE BOOL
+		SIGNAL LHC_Trlr_Sock_Rq, OFFSET: 40, LEN: 1, DESC: Notabschaltung Anhängersteckdose, DATA TYPE BOOL
+		SIGNAL LHC_Tlm_Rq, OFFSET: 41, LEN: 1, DESC: Limp-home cutoff Telematics/Audio/Phone/GPS request, DATA TYPE BOOL
+		SIGNAL LHC_SeatVn_Rq, OFFSET: 42, LEN: 1, DESC: Notabschaltung Sitzbelüftung, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg1_rq, OFFSET: 43, LEN: 1, DESC: Notabschaltung Sitzheizung Stufe 1, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg2_rq, OFFSET: 44, LEN: 1, DESC: Notabschaltung Sitzheizung Stufe 2, DATA TYPE BOOL
+		SIGNAL LHC_SeatHtStg3_rq, OFFSET: 45, LEN: 1, DESC: Notabschaltung Sitzheizung Stufe 3, DATA TYPE BOOL
+		SIGNAL LHC_FogLmp_Ft_Rq, OFFSET: 48, LEN: 1, DESC: Notabschaltung Nebelscheinwerfer, DATA TYPE BOOL
+		SIGNAL LHC_EngFan_50_Rq, OFFSET: 49, LEN: 1, DESC: Notabschaltung Motorlüfter auf 50%, DATA TYPE BOOL
+		SIGNAL LHC_CoolBox_R_Rq, OFFSET: 50, LEN: 1, DESC: Notabschaltung Fond-Kühlbox, DATA TYPE BOOL
+		SIGNAL LHC_MirrHt_Rq, OFFSET: 51, LEN: 1, DESC: Notabschaltung Außenspiegelbeheizung, DATA TYPE BOOL
+		SIGNAL LHC_WShHt_Rq, OFFSET: 52, LEN: 1, DESC: Notabschaltung Frontscheibenheizung, DATA TYPE BOOL
+		SIGNAL LHC_StW_Ht_Rq, OFFSET: 53, LEN: 1, DESC: Notabschaltung Lenkradbeheizung, DATA TYPE BOOL
+		SIGNAL LHC_EBL_Rq, OFFSET: 54, LEN: 1, DESC: Notabschaltung Heckscheibenheizung, DATA TYPE BOOL
+		SIGNAL LHC_WprPkHt_Rq, OFFSET: 55, LEN: 1, DESC: Notabschaltung Wischerablagenheizung, DATA TYPE BOOL
+		SIGNAL PN14_LHC_Taxi_Rq, OFFSET: 59, LEN: 1, DESC: Notabschaltung Taxidachzeichen, DATA TYPE BOOL
+		SIGNAL LHC_ICH_Rq, OFFSET: 60, LEN: 1, DESC: Notabschaltung Standheizung, DATA TYPE BOOL
+		SIGNAL LHC_RHU_Rq, OFFSET: 61, LEN: 1, DESC: Notabschaltung Restwärmenutzung, DATA TYPE BOOL
+		SIGNAL LHC_ComfLmp_Rq, OFFSET: 62, LEN: 1, DESC: Notabschaltung für Komfortlampen, DATA TYPE BOOL
+		SIGNAL LHC_TrkSock_Rq, OFFSET: 63, LEN: 1, DESC: Notabschaltung Kofferraumsteckdose/Zigarrenanzünder, DATA TYPE BOOL
+	FRAME PN14_SG_RQ3 (0x000000FE)
+		SIGNAL PN14_LmtVolt_Max, OFFSET: 6, LEN: 10, DESC: Maximum charge voltage during dynamic function, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PN14_LHC_Lvl, OFFSET: 16, LEN: 5, DESC: 14 V powernet limp-home cutoff level, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: Steps
+		SIGNAL PN14_SupBat_VoltHP, OFFSET: 38, LEN: 10, DESC: Supply battery voltage with high precision, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_PN14_SG_RQ3, OFFSET: 48, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_PN14_SG_RQ3, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME PN14_SG_RQ2 (0x000000FF)
+		SIGNAL PN14_BackupRelay_Rq, OFFSET: 2, LEN: 2, DESC: BNM backup relay request, DATA TYPE ENUM
+			ENUM NO_RQ, RAW: 0, DESC: Unknown
+			ENUM CLS_RQ, RAW: 1, DESC: Unknown
+			ENUM OPN_RQ, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL PN14_DecoupleRelay_Rq, OFFSET: 4, LEN: 2, DESC: BNM decouple relay request, DATA TYPE ENUM
+			ENUM NO_RQ, RAW: 0, DESC: Unknown
+			ENUM CLS_RQ, RAW: 1, DESC: Unknown
+			ENUM OPN_RQ, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL PN14_RecupVolt_Max, OFFSET: 6, LEN: 10, DESC: Maximum charge voltage during recuperation, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_PN14_SG_RQ2, OFFSET: 48, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_PN14_SG_RQ2, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME PN14_SG_RQ1 (0x000000DE)
+		SIGNAL PN14_GenLoadMin_Rq, OFFSET: 0, LEN: 1, DESC: Minimal generator load request (current=0), DATA TYPE BOOL
+		SIGNAL PN14_EngIdleRPM_Inc_Rq, OFFSET: 1, LEN: 1, DESC: Engine idle speed increase request, DATA TYPE BOOL
+		SIGNAL PN14_PrioLmt_Rch, OFFSET: 2, LEN: 1, DESC: Limit for ultimate priority of 14 V powernet control reached, no AGK-intervention, no engine start, DATA TYPE BOOL
+		SIGNAL PN14_PT_LoadLmt_Rch, OFFSET: 3, LEN: 1, DESC: Limit for no additional powertrain load reached, DATA TYPE BOOL
+		SIGNAL PN14_ChrgVolt_Rq, OFFSET: 6, LEN: 10, DESC: Charge voltage request, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SSA_Dsabl_Rq_PN14, OFFSET: 18, LEN: 2, DESC: Stop/Start disable request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DSABL_TMP, RAW: 1, DESC: Unknown
+			ENUM DASBL_PRMNT, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL PN14_StartVolt_Min, OFFSET: 38, LEN: 10, DESC: Minimum charge voltage or limit voltage during starter mode, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_PN14_SG_RQ1, OFFSET: 48, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL PN14_EngIdleRPM_Lvl_Rq, OFFSET: 53, LEN: 3, DESC: Engine idle speed level request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM PN, RAW: 1, DESC: Unknown
+			ENUM WSHHT, RAW: 2, DESC: Unknown
+			ENUM DIS1, RAW: 3, DESC: Unknown
+			ENUM DIS2, RAW: 4, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL CRC_PN14_SG_RQ1, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME KLA_410h (0x00000410)
+		SIGNAL LL_DZA, OFFSET: 1, LEN: 1, DESC: Leerlauf-Drehzahlanhebung zur Kälteleistungserhöhung, DATA TYPE BOOL
+		SIGNAL SENDE_NEU, OFFSET: 3, LEN: 1, DESC: Signalversion Kompressormoment, DATA TYPE BOOL
+		SIGNAL M_KOMP2PAR, OFFSET: 4, LEN: 1, DESC: Klima-Kompressormoment Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL M_KOMPPAR, OFFSET: 5, LEN: 1, DESC: Klima-Kompressormoment Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL M_KOMPTGL, OFFSET: 6, LEN: 1, DESC: Klima-Kompressormoment Toggle, DATA TYPE BOOL
+		SIGNAL KOMP_EIN, OFFSET: 7, LEN: 1, DESC: Kälte-Kompressor eingeschaltet, DATA TYPE BOOL
+		SIGNAL P_KAELTE8, OFFSET: 8, LEN: 8, DESC: Kältemitteldruck, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_KOMP, OFFSET: 16, LEN: 8, DESC: Drehmomentaufnahme Kältekompressor, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL KOMP_EIN2, OFFSET: 39, LEN: 1, DESC: Kälte-Kompressor hinten eingeschaltet, DATA TYPE BOOL
+		SIGNAL T_AUSSEN_WM, OFFSET: 40, LEN: 8, DESC: Außenlufttemperatur für Wärmemanagement, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_KOMP2, OFFSET: 48, LEN: 8, DESC: Drehmomentaufnahme Kältekompressor hinten, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME KLA_40Eh (0x0000040E)
+		SIGNAL HZL_ANF, OFFSET: 0, LEN: 8, DESC: Anforderung Heizleistung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SSA_Enbl_Rq_HVAC, OFFSET: 19, LEN: 2, DESC: Enable stop/start automatic request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM ENABLE_REQ, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL HEIZ_MAX_WM, OFFSET: 22, LEN: 1, DESC: Anforderung max. Heizen an Wärmemanagement, DATA TYPE BOOL
+		SIGNAL HEIZ_WM, OFFSET: 23, LEN: 1, DESC: Anforderung Heizen an Wärmemanagement, DATA TYPE BOOL
+	FRAME GW_I_M1 (0x0000000A)
+		SIGNAL SHD_ST, OFFSET: 1, LEN: 3, DESC: Status Schiebe-/Hebedach, DATA TYPE ENUM
+			ENUM SHD_ST_ZU, RAW: 0, DESC: Unknown
+			ENUM SHD_ST_AUF, RAW: 1, DESC: Unknown
+			ENUM HUB_ST_AUF, RAW: 2, DESC: Unknown
+			ENUM SHD_ST_ST, RAW: 3, DESC: Unknown
+			ENUM SHD_ST_AW, RAW: 4, DESC: Unknown
+			ENUM SHD_ST_ZW, RAW: 5, DESC: Unknown
+			ENUM HUB_ST_ZW, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL ZV_LADE, OFFSET: 4, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL ZV_FZG, OFFSET: 5, LEN: 1, DESC: Ver-/Entriegelung Gesamtfahrzeug, DATA TYPE BOOL
+		SIGNAL IHC_Stat_V2, OFFSET: 6, LEN: 2, DESC: Intelligent headlight control state, DATA TYPE ENUM
+			ENUM IHC_OFF, RAW: 0, DESC: Unknown
+			ENUM IHC_ACTV, RAW: 1, DESC: Unknown
+			ENUM TEMP_NAVL, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL NOTL_AKT, OFFSET: 11, LEN: 1, DESC: Notlicht aktiv, DATA TYPE BOOL
+		SIGNAL NSW_ST_EIN, OFFSET: 12, LEN: 1, DESC: Nebelscheinwerfer sind eingeschaltet, DATA TYPE BOOL
+		SIGNAL STL_EIN, OFFSET: 13, LEN: 1, DESC: Standlicht einschalten, DATA TYPE BOOL
+		SIGNAL PL_RE_EIN, OFFSET: 14, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL PL_LI_EIN, OFFSET: 15, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL ILS_ST, OFFSET: 20, LEN: 2, DESC: Status Innenlichtschalter, DATA TYPE ENUM
+			ENUM ILS_AUS, RAW: 0, DESC: Unknown
+			ENUM ILS_EIN, RAW: 1, DESC: Unknown
+			ENUM ILS_AUTO, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL IL_H_EIN, OFFSET: 22, LEN: 1, DESC: Innenlicht hinten ein, DATA TYPE BOOL
+		SIGNAL IL_V_EIN, OFFSET: 23, LEN: 1, DESC: Innenlicht vorne ein, DATA TYPE BOOL
+		SIGNAL WISCHER_EIN_2, OFFSET: 24, LEN: 1, DESC: Wischeranforderung Stufe 2, DATA TYPE BOOL
+		SIGNAL WISCHER_EIN_1, OFFSET: 25, LEN: 1, DESC: Wischeranforderung Stufe 1, DATA TYPE BOOL
+		SIGNAL FF_AUF, OFFSET: 31, LEN: 1, DESC: Fenster Fahrer auf, DATA TYPE BOOL
+		SIGNAL BSM_Sw_Psd, OFFSET: 37, LEN: 1, DESC: BSM Taste betätigt, DATA TYPE BOOL
+		SIGNAL ALDW_Sw_Psd, OFFSET: 38, LEN: 1, DESC: ALDW Taste betätigt, DATA TYPE BOOL
+		SIGNAL FCW_Sw_Psd, OFFSET: 39, LEN: 1, DESC: FCW Taste betätigt, DATA TYPE BOOL
+	FRAME FBS_112h (0x00000112)
+		SIGNAL FBS_GS, OFFSET: 0, LEN: 64, DESC: FBS-Botschaft an GS (8 Byte), DATA TYPE ISO_TP
+	FRAME FBS_111h (0x00000111)
+		SIGNAL FBS_MS, OFFSET: 0, LEN: 64, DESC: FBS-Botschaft an MS (8 Byte), DATA TYPE ISO_TP
+	FRAME EZS_MESS1 (0x0000060E)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EZS_A12 (0x00000180)
+		SIGNAL KB_FHR, OFFSET: 0, LEN: 1, DESC: Fenster hinten rechts öffnen/schliessen, DATA TYPE BOOL
+		SIGNAL KB_FHL, OFFSET: 1, LEN: 1, DESC: Fenster hinten links öffnen/schliessen, DATA TYPE BOOL
+		SIGNAL KB_FVR, OFFSET: 2, LEN: 1, DESC: Fenster vorne rechts öffnen/schliessen, DATA TYPE BOOL
+		SIGNAL KB_FVL, OFFSET: 3, LEN: 1, DESC: Fenster vorne links öffnen/schliessen, DATA TYPE BOOL
+	FRAME EZS_244h (0x00000244)
+		SIGNAL KL_50_EIN, OFFSET: 3, LEN: 1, DESC: Klemme 50 ist eingeschaltet, DATA TYPE BOOL
+		SIGNAL KL_15X_EIN, OFFSET: 4, LEN: 1, DESC: Klemme 15X ist eingeschaltet, DATA TYPE BOOL
+		SIGNAL KL_15_EIN, OFFSET: 5, LEN: 1, DESC: Klemme 15 ist eingeschaltet, DATA TYPE BOOL
+		SIGNAL U_BATT, OFFSET: 8, LEN: 8, DESC: Batteriespannung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME EZS_240h (0x00000240)
+		SIGNAL LL_RLC, OFFSET: 10, LEN: 2, DESC: Linkslenker/Rechtslenker, DATA TYPE ENUM
+			ENUM LL, RAW: 1, DESC: Unknown
+			ENUM RL, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL RG_SCHALT, OFFSET: 12, LEN: 1, DESC: Rückwärtsgang eingelegt (nur Schaltgetriebe), DATA TYPE BOOL
+		SIGNAL KL_15, OFFSET: 14, LEN: 1, DESC: Klemme 15, DATA TYPE BOOL
+		SIGNAL KL_50, OFFSET: 15, LEN: 1, DESC: Klemme 50, DATA TYPE BOOL
+		SIGNAL MOT_AUF, OFFSET: 16, LEN: 1, DESC: Motorhaube ist auf, DATA TYPE BOOL
+		SIGNAL Ltch_All_Stat, OFFSET: 19, LEN: 2, DESC: Status Türen, DATA TYPE ENUM
+			ENUM INVALID, RAW: 0, DESC: Unknown
+			ENUM CLS, RAW: 1, DESC: Unknown
+			ENUM OPN, RAW: 2, DESC: Unknown
+		SIGNAL HDT_AUF, OFFSET: 25, LEN: 1, DESC: Heckdrehtür ist auf, DATA TYPE BOOL
+		SIGNAL STR_AUF_SAM, OFFSET: 26, LEN: 1, DESC: Schiebetür rechts ist auf (von SAM), DATA TYPE BOOL
+		SIGNAL STL_AUF_SAM, OFFSET: 27, LEN: 1, DESC: Schiebetür links ist auf (von SAM), DATA TYPE BOOL
+		SIGNAL TVR_AUF, OFFSET: 28, LEN: 1, DESC: Tür vorne rechts ist auf, DATA TYPE BOOL
+		SIGNAL TVL_AUF, OFFSET: 29, LEN: 1, DESC: Tür vorne links ist auf, DATA TYPE BOOL
+		SIGNAL CRASH_CNF, OFFSET: 30, LEN: 1, DESC: CRASH-Confirmbit, DATA TYPE BOOL
+		SIGNAL CRASH, OFFSET: 31, LEN: 1, DESC: Crashsignal von Airbag-SG, DATA TYPE BOOL
+		SIGNAL ASR_BET, OFFSET: 33, LEN: 2, DESC: ASR ein/aus betätigt, DATA TYPE ENUM
+			ENUM NBET, RAW: 0, DESC: Unknown
+			ENUM AUS_BET, RAW: 1, DESC: Unknown
+			ENUM EIN_NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL HAS_KL, OFFSET: 35, LEN: 1, DESC: Handbremse angezogen (Kontrolllampe), DATA TYPE BOOL
+		SIGNAL KL_31B, OFFSET: 36, LEN: 1, DESC: Wischer außerhalb Parkstellung, DATA TYPE BOOL
+		SIGNAL BLI_RE, OFFSET: 38, LEN: 1, DESC: Richtungsblinken rechts, DATA TYPE BOOL
+		SIGNAL BLI_LI, OFFSET: 39, LEN: 1, DESC: Richtungsblinken links, DATA TYPE BOOL
+		SIGNAL ANH_ERK2, OFFSET: 40, LEN: 2, DESC: Anhängerbetrieb erkannt, DATA TYPE ENUM
+			ENUM KEIN, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL ABL_EIN, OFFSET: 46, LEN: 1, DESC: Abblendlicht einschalten, DATA TYPE BOOL
+		SIGNAL KL54_RM, OFFSET: 47, LEN: 1, DESC: Klemme 54 (Bremslicht) Rückmeldung, DATA TYPE BOOL
+		SIGNAL GBL_AUS, OFFSET: 57, LEN: 1, DESC: E-Sauglüfter: Grundbelüftung aus, DATA TYPE BOOL
+		SIGNAL LDC, OFFSET: 62, LEN: 2, DESC: Ländercode, DATA TYPE ENUM
+			ENUM RDW, RAW: 0, DESC: Unknown
+			ENUM USA_CAN, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+	FRAME ENR_3B6h (0x000003B6)
+		SIGNAL SENKEN, OFFSET: 0, LEN: 1, DESC: Fzg. wird abgesenkt, DATA TYPE BOOL
+		SIGNAL HEBEN, OFFSET: 1, LEN: 1, DESC: Fzg. wird angehoben, DATA TYPE BOOL
+		SIGNAL FZGN_H, OFFSET: 8, LEN: 8, DESC: Fahrzeugniveau hinten, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME DG_RQ_GLOBAL_UDS (0x00000441)
+		SIGNAL DG_RQ_GLOBAL_UDS, OFFSET: 0, LEN: 64, DESC: Funktionaler UDS Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_START_WFS (0x00000204)
+		SIGNAL D_START_WFS, OFFSET: 0, LEN: 56, DESC: Start Wegfahrsperre, DATA TYPE ISO_TP
+	FRAME D_START_TESTER (0x00000202)
+		SIGNAL D_START_TESTER, OFFSET: 0, LEN: 56, DESC: Start Tester, DATA TYPE ISO_TP
+	FRAME D_RQ_VG (0x000007B8)
+		SIGNAL D_RQ_VG, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_TCO (0x0000079C)
+		SIGNAL D_RQ_TCO, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_SSP (0x000006F2)
+		SIGNAL D_RQ_SSP, OFFSET: 0, LEN: 64, DESC: Diagnostic-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_SCRCM (0x000007E4)
+		SIGNAL D_RQ_SCRCM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_PTS_APX (0x0000078A)
+		SIGNAL D_RQ_PTS_APX, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_MS_LT3 (0x00000700)
+		SIGNAL D_RQ_MS_LT3, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_MRM (0x00000792)
+		SIGNAL D_RQ_MRM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_MPC (0x000006A2)
+		SIGNAL D_RQ_MPC, OFFSET: 0, LEN: 64, DESC: , DATA TYPE ISO_TP
+	FRAME D_RQ_LWR (0x00000794)
+		SIGNAL D_RQ_LWR, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_KOMBI_C (0x00000796)
+		SIGNAL D_RQ_KOMBI_C, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_GS_LT3 (0x00000703)
+		SIGNAL D_RQ_GS_LT3, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_GLOBAL (0x00000440)
+		SIGNAL D_RQ, OFFSET: 0, LEN: 64, DESC: Globaler KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_FSCM (0x00000778)
+		SIGNAL D_RQ_FSCM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_FCW (0x0000065E)
+		SIGNAL D_RQ_FCW, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RQ_EWM (0x00000788)
+		SIGNAL D_RQ_EWM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_ESG_UDS (0x00000710)
+		SIGNAL D_RQ_ESG_UDS, OFFSET: 0, LEN: 64, DESC: Diagnose-Request Energiesteuergerät, DATA TYPE ISO_TP
+	FRAME D_RQ_EPS (0x000007BC)
+		SIGNAL D_RQ_EPS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_CNG (0x000007B7)
+		SIGNAL D_RQ_CNG, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_BSMSLAVE3 (0x00000758)
+		SIGNAL D_RQ_BSMSLAVE3, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RQ_BSMSLAVE2 (0x00000757)
+		SIGNAL D_RQ_BSMSLAVE2, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RQ_BSMSLAVE (0x00000759)
+		SIGNAL D_RQ_BSMSLAVE, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RQ_BSM (0x00000751)
+		SIGNAL D_RQ_BSM, OFFSET: 0, LEN: 64, DESC: Diagnostic-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_BS (0x00000784)
+		SIGNAL D_RQ_BS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RQ_BAT_UDS (0x00000728)
+		SIGNAL D_RQ_BAT_UDS, OFFSET: 0, LEN: 64, DESC: Diagnose-Request Batterieregelung, DATA TYPE ISO_TP
+	FRAME D_RQ_BAT (0x0000032D)
+		SIGNAL D_RQ_BAT, OFFSET: 0, LEN: 64, DESC: Diagnose-Request Batterieregelung, DATA TYPE ISO_TP
+	FRAME CONFIG_6FFh (0x000006FF)
+		SIGNAL LENK_COD, OFFSET: 2, LEN: 2, DESC: , DATA TYPE ENUM
+			ENUM HPS, RAW: 0, DESC: Unknown
+			ENUM EHPS, RAW: 1, DESC: Unknown
+			ENUM EPS, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL LAND, OFFSET: 8, LEN: 4, DESC: Länderbezogene SA-Codierung, DATA TYPE ENUM
+			ENUM RDW, RAW: 0, DESC: Unknown
+			ENUM C494, RAW: 1, DESC: Unknown
+			ENUM C460, RAW: 2, DESC: Unknown
+			ENUM C498, RAW: 3, DESC: Unknown
+			ENUM C823, RAW: 4, DESC: Unknown
+			ENUM C625, RAW: 5, DESC: Unknown
+			ENUM C623, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL FCOD_ANBAU, OFFSET: 12, LEN: 3, DESC: Fahrzeugcode Anbauteile, DATA TYPE ENUM
+			ENUM SOAU, RAW: 0, DESC: Unknown
+			ENUM HAAU, RAW: 3, DESC: Unknown
+			ENUM BRAU, RAW: 4, DESC: Unknown
+			ENUM INAU, RAW: 5, DESC: Unknown
+			ENUM ANNA, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL VER_JAHR, OFFSET: 17, LEN: 5, DESC: Jahresangabe, DATA TYPE ENUM
+			ENUM JAHR00, RAW: 0, DESC: Unknown
+			ENUM JAHR01, RAW: 1, DESC: Unknown
+			ENUM JAHR29, RAW: 29, DESC: Unknown
+			ENUM N_DEF, RAW: 30, DESC: Unknown
+			ENUM SB, RAW: 31, DESC: Unknown
+		SIGNAL VER_AE, OFFSET: 22, LEN: 2, DESC: Änderungsjahr, DATA TYPE ENUM
+			ENUM AE1, RAW: 0, DESC: Unknown
+			ENUM AEX, RAW: 1, DESC: Unknown
+			ENUM AE2, RAW: 2, DESC: Unknown
+			ENUM SB, RAW: 3, DESC: Unknown
+		SIGNAL EM_Style, OFFSET: 26, LEN: 6, DESC: , DATA TYPE ENUM
+			ENUM NO_EM, RAW: 0, DESC: Unknown
+			ENUM MH15, RAW: 1, DESC: Unknown
+			ENUM FH_AHS_C_G1, RAW: 2, DESC: Unknown
+			ENUM MH16_P2, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 63, DESC: Unknown
+		SIGNAL FCW_Avl, OFFSET: 32, LEN: 1, DESC: Forward collision warning available, DATA TYPE BOOL
+		SIGNAL ENR_VH, OFFSET: 33, LEN: 1, DESC: ENR vorhanden, DATA TYPE BOOL
+		SIGNAL FSH_VH, OFFSET: 34, LEN: 1, DESC: Frontscheibenheizung vorhanden, DATA TYPE BOOL
+		SIGNAL RLS_VH, OFFSET: 35, LEN: 1, DESC: Regen-/Lichtsensor vorhanden, DATA TYPE BOOL
+		SIGNAL ALDW_Avl, OFFSET: 36, LEN: 1, DESC: Advanced lane departure warning available, DATA TYPE BOOL
+		SIGNAL FLA_VH, OFFSET: 37, LEN: 1, DESC: Fernlichtassistent vorhanden, DATA TYPE BOOL
+		SIGNAL XEN_VH, OFFSET: 38, LEN: 1, DESC: Xenonlicht vorhanden, DATA TYPE BOOL
+		SIGNAL BSM_Avl, OFFSET: 39, LEN: 1, DESC: Blind Spot Monitoring available, DATA TYPE BOOL
+		SIGNAL TACH_VH, OFFSET: 44, LEN: 1, DESC: Tachograph vorhanden, DATA TYPE BOOL
+		SIGNAL SSA_Avl, OFFSET: 45, LEN: 1, DESC: Stop/Start Automatic available, DATA TYPE BOOL
+		SIGNAL KLA_VH, OFFSET: 50, LEN: 1, DESC: Klimaanlage vorhanden, DATA TYPE BOOL
+		SIGNAL AHK_VH, OFFSET: 53, LEN: 1, DESC: Anhängerkupplung vorhanden, DATA TYPE BOOL
+	FRAME CONFIG_6F4h (0x000006F4)
+		SIGNAL ACHSE, OFFSET: 0, LEN: 4, DESC: Hinterachsübersetzung (NCV2), DATA TYPE ENUM
+			ENUM AC0, RAW: 0, DESC: Unknown
+			ENUM AC1, RAW: 1, DESC: Unknown
+			ENUM AC2, RAW: 2, DESC: Unknown
+			ENUM AC3, RAW: 3, DESC: Unknown
+			ENUM AC4, RAW: 4, DESC: Unknown
+			ENUM AC5, RAW: 5, DESC: Unknown
+			ENUM AC6, RAW: 6, DESC: Unknown
+			ENUM AC7, RAW: 7, DESC: Unknown
+			ENUM AC8, RAW: 8, DESC: Unknown
+			ENUM AC9, RAW: 9, DESC: Unknown
+			ENUM AC10, RAW: 10, DESC: Unknown
+			ENUM AC11, RAW: 11, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL FEDER, OFFSET: 4, LEN: 2, DESC: Feder-Variante, DATA TYPE ENUM
+			ENUM VAR1, RAW: 0, DESC: Unknown
+			ENUM VAR2, RAW: 1, DESC: Unknown
+			ENUM VAR3, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL STABI, OFFSET: 6, LEN: 2, DESC: Stabilisator-Variante, DATA TYPE ENUM
+			ENUM A, RAW: 0, DESC: Unknown
+			ENUM B, RAW: 1, DESC: Unknown
+			ENUM C, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL FCOD_UMFANG_V, OFFSET: 8, LEN: 8, DESC: Fahrzeugcode Radumfang vorne, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FCOD_UMFANG_H, OFFSET: 16, LEN: 8, DESC: Fahrzeugcode Radumfang hinten, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FCOD_ZGG_VAN, OFFSET: 24, LEN: 4, DESC: Fahrzeugcode zulässiges Gesamtgewicht, DATA TYPE ENUM
+			ENUM 3T, RAW: 0, DESC: Unknown
+			ENUM 35T, RAW: 1, DESC: Unknown
+			ENUM 388T, RAW: 2, DESC: Unknown
+			ENUM 46T, RAW: 3, DESC: Unknown
+			ENUM 5T, RAW: 4, DESC: Unknown
+			ENUM 5TAB, RAW: 5, DESC: Unknown
+			ENUM 42T, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL FCOD_HOEHE, OFFSET: 28, LEN: 2, DESC: Fahrzeuge Dachhöhe, DATA TYPE ENUM
+			ENUM HOEHE1, RAW: 0, DESC: Unknown
+			ENUM HOEHE2, RAW: 1, DESC: Unknown
+			ENUM HOEHE3, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL REIFEN, OFFSET: 30, LEN: 2, DESC: Reifenart, DATA TYPE ENUM
+			ENUM STAN, RAW: 0, DESC: Unknown
+			ENUM SUSI, RAW: 1, DESC: Unknown
+			ENUM ZWIL, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL FCOD_KAR, OFFSET: 32, LEN: 3, DESC: Fahrzeugcode Karosserie, DATA TYPE ENUM
+			ENUM FH, RAW: 0, DESC: Unknown
+			ENUM DOKA, RAW: 1, DESC: Unknown
+			ENUM KAWA, RAW: 2, DESC: Unknown
+			ENUM KOMBI, RAW: 3, DESC: Unknown
+			ENUM POD, RAW: 4, DESC: Unknown
+			ENUM PODTUER, RAW: 5, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL FCOD_TIEFRAHMEN, OFFSET: 35, LEN: 2, DESC: Fahrzeugcode Tiefrahmen, DATA TYPE ENUM
+			ENUM NORM, RAW: 0, DESC: Unknown
+			ENUM TIEF, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL FCOD_RADST, OFFSET: 37, LEN: 3, DESC: Fahrzeugcode Radstand, DATA TYPE ENUM
+			ENUM KURZ, RAW: 0, DESC: Unknown
+			ENUM MITTEL, RAW: 1, DESC: Unknown
+			ENUM LANG, RAW: 2, DESC: Unknown
+			ENUM ABH_OK, RAW: 3, DESC: Unknown
+			ENUM ABH_NOK, RAW: 4, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL FCOD_ALLRAD, OFFSET: 40, LEN: 3, DESC: Fahrzeugcode Allradantrieb, DATA TYPE ENUM
+			ENUM HECK, RAW: 0, DESC: Unknown
+			ENUM FRONT, RAW: 1, DESC: Unknown
+			ENUM PERM, RAW: 2, DESC: Unknown
+			ENUM PERM_UG, RAW: 3, DESC: Unknown
+			ENUM ZUSCH, RAW: 4, DESC: Unknown
+			ENUM ZUSCH_UG, RAW: 5, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL ROE_LIGHT_DEAKT, OFFSET: 43, LEN: 1, DESC: ROE-light deaktiviert, DATA TYPE BOOL
+		SIGNAL LT3, OFFSET: 44, LEN: 1, DESC: LT3, DATA TYPE BOOL
+		SIGNAL FCOD_UEBERHANG, OFFSET: 45, LEN: 3, DESC: Fahrzeugcode Überhang, DATA TYPE ENUM
+			ENUM UEB1, RAW: 0, DESC: Unknown
+			ENUM UEB2, RAW: 1, DESC: Unknown
+			ENUM UEB3, RAW: 2, DESC: Unknown
+			ENUM UEB4, RAW: 3, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL BS_VAR, OFFSET: 48, LEN: 4, DESC: Variantencodierung Bremssystem, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_ACHSE, OFFSET: 52, LEN: 12, DESC: Fahrzeugcode Achsübersetzung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+ECU FCW
+	FRAME TX_RQ_RDU (0x000001D8)
+		SIGNAL GrMax_Rq_RDU, OFFSET: 2, LEN: 3, DESC: Requested Gear, Upper Limit, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL GrMin_Rq_RDU, OFFSET: 5, LEN: 3, DESC: Requested Gear, Lower Limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL DynFLDS_Supp_Rq_RDU, OFFSET: 8, LEN: 1, DESC: Suppression of dynamic full load down shift request, DATA TYPE BOOL
+		SIGNAL ActvDnShift_Rq_RDU, OFFSET: 9, LEN: 1, DESC: Active Down Shift, DATA TYPE BOOL
+		SIGNAL PwrFreeD_Dsabl_Rq_RDU, OFFSET: 10, LEN: 2, DESC: Deaktivierungsanforderung Kraftfrei in D, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM SUPP, RAW: 1, DESC: Unknown
+			ENUM ENBL, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL ShftChrDsp_Rq_RDU, OFFSET: 12, LEN: 4, DESC: Shift characteristic displacement request, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Unknown
+			ENUM SKL1, RAW: 1, DESC: Unknown
+			ENUM SKL2, RAW: 2, DESC: Unknown
+			ENUM SKL3, RAW: 3, DESC: Unknown
+			ENUM SKL4, RAW: 4, DESC: Unknown
+			ENUM SKL5, RAW: 5, DESC: Unknown
+			ENUM SKL6, RAW: 6, DESC: Unknown
+			ENUM SKL7, RAW: 7, DESC: Unknown
+			ENUM SKL8, RAW: 8, DESC: Unknown
+			ENUM SKL9, RAW: 9, DESC: Unknown
+			ENUM SKL10, RAW: 10, DESC: Unknown
+		SIGNAL MC_TX_RQ_RDU, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_TX_RQ_RDU, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SG_APPL_FCW (0x00000510)
+		SIGNAL SG_APPL, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_FCW (0x00000587)
+		SIGNAL SD_RS_FCW, OFFSET: 0, LEN: 64, DESC: , DATA TYPE ISO_TP
+	FRAME FCW_DISP_RQ (0x0000038C)
+		SIGNAL FCW_Stat, OFFSET: 1, LEN: 3, DESC: Forward collision warning state, DATA TYPE ENUM
+			ENUM FCW_OFF, RAW: 0, DESC: Unknown
+			ENUM FCW_ACT, RAW: 1, DESC: Unknown
+			ENUM FCW_FLT, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL FCW_AcustWarn_Rq, OFFSET: 4, LEN: 2, DESC: FCW acoustical warning request, DATA TYPE ENUM
+			ENUM DSABL, RAW: 0, DESC: Unknown
+			ENUM ENBL, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL FCW_IndLmp_On_Rq, OFFSET: 6, LEN: 2, DESC: FCW indication lamp on request, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM BLINK1, RAW: 1, DESC: Unknown
+			ENUM BLINK2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL FCW_ObjIntrstDist, OFFSET: 8, LEN: 8, DESC: FCW object of interest distance, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FCW_ObjIntrstDist_SPEED_Hf, OFFSET: 16, LEN: 8, DESC: FCW object of interest distance equal to half speedometer, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FCW_ObjIntrstDist_SPEED_Qt, OFFSET: 24, LEN: 8, DESC: FCW object of interest distance equal to quarter speedometer, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FCW_MsgDisp_Rq, OFFSET: 37, LEN: 3, DESC: FCW Message Dispay Request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM MSG1, RAW: 1, DESC: Unknown
+			ENUM MSG2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+	FRAME ENG_BRK_RQ_RDU (0x000001CF)
+		SIGNAL EngTrqMin_Rq_RDU, OFFSET: 1, LEN: 1, DESC: Engine torque request minimum, DATA TYPE BOOL
+		SIGNAL EngTrqMax_Rq_RDU, OFFSET: 2, LEN: 1, DESC: Engine torque request maximum, DATA TYPE BOOL
+		SIGNAL EngTrq_Rq_RDU, OFFSET: 3, LEN: 13, DESC: Engine torque request, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SSA_Enbl_Rq_RDU, OFFSET: 17, LEN: 1, DESC: Enable stop/start automatic request, DATA TYPE BOOL
+		SIGNAL AS_Veh_Sp, OFFSET: 18, LEN: 1, DESC: Assistance system stopped vehicle, DATA TYPE BOOL
+		SIGNAL SPCR_Md_Rq_RDU, OFFSET: 20, LEN: 2, DESC: Stop coordinator mode request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM SUPP, RAW: 1, DESC: Unknown
+			ENUM ENBL, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL OFC_Supp_Rq_AS, OFFSET: 22, LEN: 2, DESC: Anforderung Schubabschaltungsunterdrückung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM SUPP, RAW: 1, DESC: Unknown
+			ENUM ENBL, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL SPCR_As_Act, OFFSET: 30, LEN: 2, DESC: Active Assistance System, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM ADTR_ACTV, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL SPCR_ErrEntry_Rq, OFFSET: 32, LEN: 1, DESC: Error storage caused by stop coordinator, DATA TYPE BOOL
+		SIGNAL BrkPrefill_Rq_RDU, OFFSET: 33, LEN: 1, DESC: Brake prefill request, DATA TYPE BOOL
+		SIGNAL RDU_Ok, OFFSET: 34, LEN: 1, DESC: RDU is ok, DATA TYPE BOOL
+		SIGNAL BrkTrqDyn_Rq_RDU, OFFSET: 35, LEN: 1, DESC: Dynamic brake torque requested, DATA TYPE BOOL
+		SIGNAL BrkTrq_Rq_RDU, OFFSET: 36, LEN: 12, DESC: Brake torque requested, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_ENG_BRK_RQ_RDU, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL As_Brk, OFFSET: 52, LEN: 4, DESC: Braking assistance system, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DAS_BRK, RAW: 2, DESC: Unknown
+			ENUM ABA_BRK, RAW: 5, DESC: Unknown
+			ENUM SNA, RAW: 15, DESC: Unknown
+		SIGNAL CRC_ENG_BRK_RQ_RDU, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850 (polynomial generator initial value 02h), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_FCW (0x0000048B)
+		SIGNAL D_RS_FCW, OFFSET: 0, LEN: 64, DESC: UDS Diagnose-Response, DATA TYPE ISO_TP
+	FRAME CMS_PI_STAT (0x000001B7)
+		SIGNAL CMS_VehDecel_Rq, OFFSET: 0, LEN: 8, DESC: Collision mitigation system vehicle decelaration request, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL CMS_Brk_Rq_V2, OFFSET: 11, LEN: 3, DESC: Collision mitigation system braking request, DATA TYPE ENUM
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL PI_Enbl, OFFSET: 14, LEN: 1, DESC: Pre-Impact enabled, DATA TYPE BOOL
+		SIGNAL PI_RelsRcmmnd_Ft, OFFSET: 15, LEN: 1, DESC: Pre-Impact release recommendation front, DATA TYPE BOOL
+		SIGNAL PI_ObjAhdRelSpd, OFFSET: 16, LEN: 8, DESC: Pre-Impact object ahead relative speed, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PI_TTI_Ft, OFFSET: 24, LEN: 8, DESC: Pre-Impact time to impact front, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL CMS_TTI_Rt, OFFSET: 32, LEN: 8, DESC: Collision mitigation system time to impact right, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL CMS_TTI_Lt, OFFSET: 40, LEN: 8, DESC: Collision mitigation system time to impact left, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_CMS_PI_STAT, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_CMS_PI_STAT, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+ECU GS
+	FRAME TCM_A2 (0x000002E2)
+		SIGNAL CurrDtyCyc_Rq, OFFSET: 0, LEN: 8, DESC: Requested current duty cycle, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SSA_Enbl_Rq_TCM, OFFSET: 8, LEN: 1, DESC: Enable Start/Stop automatic request, DATA TYPE BOOL
+		SIGNAL SSA_Clutch_Stat, OFFSET: 9, LEN: 2, DESC: Mode 1: State (torque converter lockup) clutch for Stop/Start Automatic (monitor layer), DATA TYPE ENUM
+			ENUM DSABL, RAW: 0, DESC: Unknown
+			ENUM ENBL, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+		SIGNAL SSA_Enbl_Stat_TCM, OFFSET: 16, LEN: 2, DESC: SSA enabling stat, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TxSlpRPM, OFFSET: 18, LEN: 14, DESC: Actual transmission slip rpm, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TxSlpRPM_Dsr, OFFSET: 34, LEN: 14, DESC: Desired transmission slip, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TCM_Data, OFFSET: 48, LEN: 8, DESC: CALID/CVN Data Byte, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCM_ErrChk_Stat, OFFSET: 56, LEN: 2, DESC: Error Check State, DATA TYPE ENUM
+			ENUM WAIT, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+		SIGNAL TCM_CALID_CVN_Actv, OFFSET: 58, LEN: 1, DESC: CALID/CVN transmission active, DATA TYPE BOOL
+		SIGNAL TCM_CALID_CVN_ErrNum, OFFSET: 59, LEN: 5, DESC: Error number or counter for CALID/CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SD_RS_GS (0x00000723)
+		SIGNAL SD_RS_GS, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME SBW_ANZ_GS (0x000003A0)
+		SIGNAL FSC_GS, OFFSET: 0, LEN: 8, DESC: Fahrstufe, DATA TYPE ENUM
+			ENUM M1, RAW: 1, DESC: Unknown
+			ENUM M2, RAW: 2, DESC: Unknown
+			ENUM M3, RAW: 3, DESC: Unknown
+			ENUM M4, RAW: 4, DESC: Unknown
+			ENUM M5, RAW: 5, DESC: Unknown
+			ENUM M6, RAW: 6, DESC: Unknown
+			ENUM M7, RAW: 7, DESC: Unknown
+			ENUM BLANK, RAW: 32, DESC: Unknown
+			ENUM D1, RAW: 49, DESC: Unknown
+			ENUM D2, RAW: 50, DESC: Unknown
+			ENUM D3, RAW: 51, DESC: Unknown
+			ENUM D4, RAW: 52, DESC: Unknown
+			ENUM D5, RAW: 53, DESC: Unknown
+			ENUM D6, RAW: 54, DESC: Unknown
+			ENUM D7, RAW: 55, DESC: Unknown
+			ENUM A, RAW: 65, DESC: Unknown
+			ENUM D, RAW: 68, DESC: Unknown
+			ENUM F, RAW: 70, DESC: Unknown
+			ENUM N, RAW: 78, DESC: Unknown
+			ENUM P, RAW: 80, DESC: Unknown
+			ENUM R, RAW: 82, DESC: Unknown
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FPC_GS, OFFSET: 8, LEN: 8, DESC: Fahrprogramm, DATA TYPE ENUM
+			ENUM BLANK, RAW: 32, DESC: Unknown
+			ENUM A, RAW: 65, DESC: Unknown
+			ENUM C, RAW: 67, DESC: Unknown
+			ENUM E, RAW: 69, DESC: Unknown
+			ENUM F, RAW: 70, DESC: Unknown
+			ENUM M, RAW: 77, DESC: Unknown
+			ENUM S, RAW: 83, DESC: Unknown
+			ENUM W, RAW: 87, DESC: Unknown
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SBW_WT_GS, OFFSET: 16, LEN: 1, DESC: Warnton Shift by Wire, DATA TYPE BOOL
+		SIGNAL GETR_SCH_E_GS, OFFSET: 17, LEN: 2, DESC: Anforderung Anzeige Getriebeschaltempfehlung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM UP, RAW: 1, DESC: Unknown
+			ENUM DOWN, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL SBW_DSPL_GS, OFFSET: 21, LEN: 3, DESC: Meldungen Shift by Wire, DATA TYPE ENUM
+			ENUM KEIN, RAW: 0, DESC: Unknown
+			ENUM M1, RAW: 1, DESC: Unknown
+			ENUM M2, RAW: 2, DESC: Unknown
+			ENUM M3, RAW: 3, DESC: Unknown
+			ENUM M4, RAW: 4, DESC: Unknown
+			ENUM M5, RAW: 5, DESC: Unknown
+			ENUM M6, RAW: 6, DESC: Unknown
+		SIGNAL BWH_SPERR2_GS, OFFSET: 24, LEN: 4, DESC: Anzeige Bewegungssperre 2 Bereichswahlhebel, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM PFEIL_OB, RAW: 1, DESC: Unknown
+			ENUM PFEIL_UN, RAW: 2, DESC: Unknown
+			ENUM PFEIL_LI, RAW: 3, DESC: Unknown
+			ENUM PFEIL_OB_UN, RAW: 4, DESC: Unknown
+			ENUM PFEIL_OB_HV, RAW: 9, DESC: Unknown
+			ENUM PFEIL_UN_HV, RAW: 10, DESC: Unknown
+			ENUM PFEIL_LI_HV, RAW: 11, DESC: Unknown
+			ENUM PFEIL_OB_UN_HV, RAW: 12, DESC: Unknown
+		SIGNAL BWH_SPERR1_GS, OFFSET: 28, LEN: 4, DESC: Anzeige Bewegungssperre 1 Bereichswahlhebel, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM PFEIL_OB, RAW: 1, DESC: Unknown
+			ENUM PFEIL_UN, RAW: 2, DESC: Unknown
+			ENUM PFEIL_LI, RAW: 3, DESC: Unknown
+			ENUM PFEIL_OB_UN, RAW: 4, DESC: Unknown
+			ENUM PFEIL_OB_HV, RAW: 9, DESC: Unknown
+			ENUM PFEIL_UN_HV, RAW: 10, DESC: Unknown
+			ENUM PFEIL_LI_HV, RAW: 11, DESC: Unknown
+			ENUM PFEIL_OB_UN_HV, RAW: 12, DESC: Unknown
+		SIGNAL BWH_SPERR4_GS, OFFSET: 32, LEN: 4, DESC: Anzeige Bewegungssperre 4 Bereichswahlhebel, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM PFEIL_OB, RAW: 1, DESC: Unknown
+			ENUM PFEIL_UN, RAW: 2, DESC: Unknown
+			ENUM PFEIL_LI, RAW: 3, DESC: Unknown
+			ENUM PFEIL_OB_UN, RAW: 4, DESC: Unknown
+			ENUM PFEIL_OB_HV, RAW: 9, DESC: Unknown
+			ENUM PFEIL_UN_HV, RAW: 10, DESC: Unknown
+			ENUM PFEIL_LI_HV, RAW: 11, DESC: Unknown
+			ENUM PFEIL_OB_UN_HV, RAW: 12, DESC: Unknown
+		SIGNAL BWH_SPERR3_GS, OFFSET: 36, LEN: 4, DESC: Anzeige Bewegungssperre 3 Bereichswahlhebel, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM PFEIL_OB, RAW: 1, DESC: Unknown
+			ENUM PFEIL_UN, RAW: 2, DESC: Unknown
+			ENUM PFEIL_LI, RAW: 3, DESC: Unknown
+			ENUM PFEIL_OB_UN, RAW: 4, DESC: Unknown
+			ENUM PFEIL_OB_HV, RAW: 9, DESC: Unknown
+			ENUM PFEIL_UN_HV, RAW: 10, DESC: Unknown
+			ENUM PFEIL_LI_HV, RAW: 11, DESC: Unknown
+			ENUM PFEIL_OB_UN_HV, RAW: 12, DESC: Unknown
+		SIGNAL ANZ_ZIELGNG_GS, OFFSET: 40, LEN: 8, DESC: Anforderung Anzeige Zielgang, DATA TYPE ENUM
+			ENUM BLANK, RAW: 32, DESC: Unknown
+			ENUM G1, RAW: 49, DESC: Unknown
+			ENUM G2, RAW: 50, DESC: Unknown
+			ENUM G3, RAW: 51, DESC: Unknown
+			ENUM G4, RAW: 52, DESC: Unknown
+			ENUM G5, RAW: 53, DESC: Unknown
+			ENUM G6, RAW: 54, DESC: Unknown
+			ENUM G7, RAW: 55, DESC: Unknown
+			ENUM FEHLER, RAW: 70, DESC: Unknown
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL RACE_START_ANZ, OFFSET: 48, LEN: 3, DESC: Anzeige Anfahren mit max. Beschleunigung, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM RACESTART_VERF, RAW: 1, DESC: Unknown
+			ENUM RACESTART_AKT, RAW: 2, DESC: Unknown
+			ENUM RACESTART_LFT, RAW: 3, DESC: Unknown
+			ENUM ABBRUCH, RAW: 4, DESC: Unknown
+			ENUM N_RACESTART, RAW: 5, DESC: Unknown
+			ENUM RACESTART_BEST, RAW: 6, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+	FRAME SBW_23Ah (0x0000023A)
+		SIGNAL SID_SBW_GS, OFFSET: 0, LEN: 2, DESC: Senderkennung, DATA TYPE ENUM
+			ENUM VGS, RAW: 0, DESC: Unknown
+			ENUM EGS, RAW: 1, DESC: Unknown
+			ENUM HYBRID, RAW: 2, DESC: Unknown
+			ENUM NA, RAW: 3, DESC: Unknown
+		SIGNAL ASK, OFFSET: 7, LEN: 1, DESC: Anlasssperrkontakt (nur bei EGS52), DATA TYPE BOOL
+		SIGNAL WBS_ST, OFFSET: 8, LEN: 4, DESC: Iststellung Wählbereichsschieber im Getriebe, DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: Unknown
+			ENUM N, RAW: 6, DESC: Unknown
+			ENUM R, RAW: 7, DESC: Unknown
+			ENUM P, RAW: 8, DESC: Unknown
+			ENUM N_ZW_D, RAW: 11, DESC: Unknown
+			ENUM R_ZW_N, RAW: 12, DESC: Unknown
+			ENUM P_ZW_R, RAW: 13, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL BWHST_SOLL, OFFSET: 12, LEN: 4, DESC: Sollstellung Bereichswahlhebel, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM D, RAW: 5, DESC: Unknown
+			ENUM N, RAW: 6, DESC: Unknown
+			ENUM R, RAW: 7, DESC: Unknown
+			ENUM P, RAW: 8, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL WBS_POS, OFFSET: 16, LEN: 8, DESC: Wert Wählbereichssensor, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BZ23Ah, OFFSET: 48, LEN: 4, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC23Ah, OFFSET: 56, LEN: 8, DESC: CRC-Checksumme Byte 1 - 7 nach SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME GS_HSH (0x00000509)
+		SIGNAL HSH, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSG (0x00000500)
+		SIGNAL HSG, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSF (0x0000050F)
+		SIGNAL HSF, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSE (0x0000050E)
+		SIGNAL HSE, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSD (0x0000050D)
+		SIGNAL HSD, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSC (0x0000050C)
+		SIGNAL HSC, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSB (0x0000050B)
+		SIGNAL HSB, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_HSA (0x0000050A)
+		SIGNAL HSA, OFFSET: 0, LEN: 64, DESC: Handsteuerung am Prüfstand, DATA TYPE ISO_TP
+	FRAME GS_APPL1 (0x0000051C)
+		SIGNAL APPL1, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME GS_418h (0x00000418)
+		SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: Fahrstufe, DATA TYPE ENUM
+			ENUM BLANK, RAW: 32, DESC: Unknown
+			ENUM EINS, RAW: 49, DESC: Unknown
+			ENUM ZWEI, RAW: 50, DESC: Unknown
+			ENUM DREI, RAW: 51, DESC: Unknown
+			ENUM VIER, RAW: 52, DESC: Unknown
+			ENUM FUENF, RAW: 53, DESC: Unknown
+			ENUM SECHS, RAW: 54, DESC: Unknown
+			ENUM SIEBEN, RAW: 55, DESC: Unknown
+			ENUM A, RAW: 65, DESC: Unknown
+			ENUM D, RAW: 68, DESC: Unknown
+			ENUM F, RAW: 70, DESC: Unknown
+			ENUM N, RAW: 78, DESC: Unknown
+			ENUM P, RAW: 80, DESC: Unknown
+			ENUM R, RAW: 82, DESC: Unknown
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: Fahrprogramm, DATA TYPE ENUM
+			ENUM C_MGFB_WT, RAW: 2, DESC: Unknown
+			ENUM C_MGSNN, RAW: 3, DESC: Unknown
+			ENUM C_MGBB, RAW: 4, DESC: Unknown
+			ENUM C_MGGEA, RAW: 6, DESC: Unknown
+			ENUM C_MGZSN, RAW: 7, DESC: Unknown
+			ENUM A_MGFB_WT, RAW: 10, DESC: Unknown
+			ENUM A_MGSNN, RAW: 11, DESC: Unknown
+			ENUM A_MGBB, RAW: 12, DESC: Unknown
+			ENUM A_MGGEA, RAW: 14, DESC: Unknown
+			ENUM A_MGZSN, RAW: 15, DESC: Unknown
+			ENUM S_MGFB_WT, RAW: 18, DESC: Unknown
+			ENUM S_MGSNN, RAW: 19, DESC: Unknown
+			ENUM S_MGBB, RAW: 20, DESC: Unknown
+			ENUM S_MGGEA, RAW: 22, DESC: Unknown
+			ENUM S_MGZSN, RAW: 23, DESC: Unknown
+			ENUM HOCH, RAW: 24, DESC: Unknown
+			ENUM RUNTER, RAW: 25, DESC: Unknown
+			ENUM RACE_START, RAW: 26, DESC: Unknown
+			ENUM BLANK, RAW: 32, DESC: Unknown
+			ENUM BLANK_MGN, RAW: 64, DESC: Unknown
+			ENUM A, RAW: 65, DESC: Unknown
+			ENUM C, RAW: 67, DESC: Unknown
+			ENUM F, RAW: 70, DESC: Unknown
+			ENUM S, RAW: 83, DESC: Unknown
+			ENUM S_PLUS, RAW: 84, DESC: Unknown
+			ENUM W, RAW: 87, DESC: Unknown
+			ENUM _, RAW: 95, DESC: Unknown
+			ENUM BLANK_MGW, RAW: 96, DESC: Unknown
+			ENUM A_MGN, RAW: 97, DESC: Unknown
+			ENUM C_MGN, RAW: 99, DESC: Unknown
+			ENUM M_MGN, RAW: 109, DESC: Unknown
+			ENUM S_MGN, RAW: 115, DESC: Unknown
+			ENUM W_MGN, RAW: 119, DESC: Unknown
+			ENUM UNDERSCORE_MGN, RAW: 127, DESC: Unknown
+			ENUM A_MGW, RAW: 129, DESC: Unknown
+			ENUM C_MGW, RAW: 131, DESC: Unknown
+			ENUM F_MGW, RAW: 134, DESC: Unknown
+			ENUM M_MGW, RAW: 141, DESC: Unknown
+			ENUM S_MGW, RAW: 147, DESC: Unknown
+			ENUM W_MGW, RAW: 151, DESC: Unknown
+			ENUM UNDERSCORE_MGW, RAW: 159, DESC: Unknown
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL T_GET, OFFSET: 16, LEN: 8, DESC: Getriebeöltemperatur, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ALLRAD, OFFSET: 24, LEN: 1, DESC: Allradantrieb, DATA TYPE BOOL
+		SIGNAL FRONT, OFFSET: 25, LEN: 1, DESC: Frontantrieb [1], Heckantrieb [0], DATA TYPE BOOL
+		SIGNAL SCHALT, OFFSET: 26, LEN: 1, DESC: Schaltung, DATA TYPE BOOL
+		SIGNAL CVT, OFFSET: 27, LEN: 1, DESC: Stufenloses Getriebe [1], Stufengetriebe [0], DATA TYPE BOOL
+		SIGNAL MECH, OFFSET: 28, LEN: 2, DESC: Getriebe-Mechanikvariante, DATA TYPE ENUM
+			ENUM GROSS, RAW: 0, DESC: Unknown
+			ENUM KLEIN, RAW: 1, DESC: Unknown
+			ENUM GROSS2, RAW: 2, DESC: Unknown
+			ENUM KLEIN2, RAW: 3, DESC: Unknown
+		SIGNAL ESV_BRE, OFFSET: 30, LEN: 1, DESC: Bremse anlegen bei Einschaltvorgang, DATA TYPE BOOL
+		SIGNAL GZC, OFFSET: 32, LEN: 4, DESC: Ziel-Gang, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D_CVT, RAW: 8, DESC: Unknown
+			ENUM R_CVT, RAW: 9, DESC: Unknown
+			ENUM R3, RAW: 10, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM R2, RAW: 12, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM ABBRUCH, RAW: 14, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL GIC, OFFSET: 36, LEN: 4, DESC: Ist-Gang, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D_CVT, RAW: 8, DESC: Unknown
+			ENUM R_CVT, RAW: 9, DESC: Unknown
+			ENUM R3, RAW: 10, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM R2, RAW: 12, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM KRAFTFREI, RAW: 14, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL M_VERL, OFFSET: 40, LEN: 8, DESC: Verlustmoment (FFh bei KSG), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FMRADPAR, OFFSET: 48, LEN: 1, DESC: Faktor Radmoment Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL FMRADTGL, OFFSET: 49, LEN: 1, DESC: Faktor Radmoment Toggle 40ms +-10, DATA TYPE BOOL
+		SIGNAL WHST, OFFSET: 50, LEN: 3, DESC: Getriebewählhebelstellung (NAG,  KSG, CVT), DATA TYPE ENUM
+			ENUM P, RAW: 0, DESC: Unknown
+			ENUM R, RAW: 1, DESC: Unknown
+			ENUM N, RAW: 2, DESC: Unknown
+			ENUM D, RAW: 4, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL FMRAD, OFFSET: 53, LEN: 11, DESC: Faktor Radmoment (7FFh bei KSG), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME GS_338h (0x00000338)
+		SIGNAL NAB, OFFSET: 0, LEN: 16, DESC: Getriebeabtriebsdrehzahl (nur 463/461, sonst FFFFh), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MIL_ANF_GS, OFFSET: 16, LEN: 1, DESC: Anforderung MIL durch GS, DATA TYPE BOOL
+		SIGNAL NAK_PA, OFFSET: 17, LEN: 1, DESC: NAK Schnittstelle Paritybit, DATA TYPE BOOL
+		SIGNAL NAK_TGL, OFFSET: 18, LEN: 1, DESC: NAK Schnittstelle Togglebit, DATA TYPE BOOL
+		SIGNAL KID, OFFSET: 19, LEN: 1, DESC: Funktion 'Kraftfrei in D' aktiviert, DATA TYPE BOOL
+		SIGNAL RACE_START, OFFSET: 20, LEN: 2, DESC: Anfahren mit maximaler Beschleunigung, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ON, RAW: 1, DESC: Unknown
+			ENUM ACTV, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL M_VORSTR, OFFSET: 22, LEN: 10, DESC: Vorsteuermoment (0h: Passivwert), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MABS_SW_ANFB, OFFSET: 32, LEN: 16, DESC: Betrag des Gesamt-Seitenwellenmoments für Anfahrbereich, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL NTURBINE, OFFSET: 48, LEN: 16, DESC: Turbinendrehzahl (EGS52-NAG, VGS-NAG2), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME GS_218h (0x00000218)
+		SIGNAL MTGL_EGS, OFFSET: 0, LEN: 1, DESC: Motormomentenanf. Toggle 40ms +-10, DATA TYPE BOOL
+		SIGNAL MMIN_EGS, OFFSET: 1, LEN: 1, DESC: Motormomentenanforderung Min, DATA TYPE BOOL
+		SIGNAL MMAX_EGS, OFFSET: 2, LEN: 1, DESC: Motormomentenanforderung Max, DATA TYPE BOOL
+		SIGNAL M_EGS, OFFSET: 3, LEN: 13, DESC: Geford. Motormoment, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL GZC, OFFSET: 16, LEN: 4, DESC: Ziel-Gang, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D_CVT, RAW: 8, DESC: Unknown
+			ENUM R_CVT, RAW: 9, DESC: Unknown
+			ENUM R3, RAW: 10, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM R2, RAW: 12, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM ABBRUCH, RAW: 14, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL GIC, OFFSET: 20, LEN: 4, DESC: Ist-Gang, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D_CVT, RAW: 8, DESC: Unknown
+			ENUM R_CVT, RAW: 9, DESC: Unknown
+			ENUM R3, RAW: 10, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM R2, RAW: 12, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM KRAFTFREI, RAW: 14, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL K_S_B, OFFSET: 24, LEN: 1, DESC: Best. (Wandlerüberbrück.-) Kupplung 'schlupfen', DATA TYPE BOOL
+		SIGNAL K_O_B, OFFSET: 25, LEN: 1, DESC: Best. (Wandlerüberbrück.-) Kupplung 'offen', DATA TYPE BOOL
+		SIGNAL K_G_B, OFFSET: 26, LEN: 1, DESC: Best. (Wandlerüberbrück.-) Kupplung 'geschlossen', DATA TYPE BOOL
+		SIGNAL G_G, OFFSET: 27, LEN: 1, DESC: Geländegang, DATA TYPE BOOL
+		SIGNAL GSP_OK, OFFSET: 28, LEN: 1, DESC: Grundschaltprogramm o.k., DATA TYPE BOOL
+		SIGNAL FW_HOCH, OFFSET: 29, LEN: 1, DESC: Fahrwiderstand hoch, DATA TYPE BOOL
+		SIGNAL SCHALT, OFFSET: 30, LEN: 1, DESC: Schaltung, DATA TYPE BOOL
+		SIGNAL HSM, OFFSET: 31, LEN: 1, DESC: Handschaltmodus, DATA TYPE BOOL
+		SIGNAL KS, OFFSET: 33, LEN: 1, DESC: Knallstart, DATA TYPE BOOL
+		SIGNAL ALF, OFFSET: 34, LEN: 1, DESC: Anlassfreigabe, DATA TYPE BOOL
+		SIGNAL GS_NOTL, OFFSET: 35, LEN: 1, DESC: Getriebestrg. im Notlauf, DATA TYPE BOOL
+		SIGNAL UEHITZ_GET, OFFSET: 36, LEN: 1, DESC: Übertemperatur Getriebe, DATA TYPE BOOL
+		SIGNAL FPC_AAD_NEU, OFFSET: 37, LEN: 3, DESC: Fahrprogramm für AAD, DATA TYPE ENUM
+			ENUM SPORT, RAW: 0, DESC: Unknown
+			ENUM KOMFORT, RAW: 1, DESC: Unknown
+			ENUM SPORT_PLUS, RAW: 2, DESC: Unknown
+			ENUM OFFROAD, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL MPAR_EGS, OFFSET: 40, LEN: 1, DESC: Motormomentenanforderung Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL DYN1_EGS, OFFSET: 41, LEN: 1, DESC: Eingriffsmodus/Antriebsmomentenregelung, DATA TYPE BOOL
+		SIGNAL DYN0_AMR_EGS, OFFSET: 42, LEN: 1, DESC: Eingriffsmodus/Antriebsmomentenregelung, DATA TYPE BOOL
+		SIGNAL K_LSTFR, OFFSET: 45, LEN: 1, DESC: Wandlerüberbrückungskupplung lastfrei, DATA TYPE BOOL
+		SIGNAL RS_Md_GS, OFFSET: 46, LEN: 2, DESC: Rückschaltmode Getriebsteuerung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM EINF, RAW: 1, DESC: Unknown
+			ENUM MEHRF, RAW: 2, DESC: Unknown
+			ENUM UEBERW, RAW: 3, DESC: Unknown
+		SIGNAL MKRIECH, OFFSET: 48, LEN: 8, DESC: Kriechmoment (FFh bei EGS, CVT) bzw. CALID/CVN, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FEHLPRF_ST, OFFSET: 56, LEN: 2, DESC: Status Fehlerprüfung, DATA TYPE ENUM
+			ENUM WAIT, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+		SIGNAL CALID_CVN_AKT, OFFSET: 58, LEN: 1, DESC: CALID/CVN-Übertragung aktiv, DATA TYPE BOOL
+		SIGNAL FEHLER, OFFSET: 59, LEN: 5, DESC: Fehlernummer bzw. Zähler für CALID/CVN-Übertragung, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME GS_102h (0x00000102)
+		SIGNAL GS_FBS, OFFSET: 0, LEN: 64, DESC: FBS-Botschaft an EZS (8 Byte), DATA TYPE ISO_TP
+	FRAME D_RS_GS (0x000007E9)
+		SIGNAL D_RS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU KOMBI
+	FRAME SD_RS_KOMBI (0x000007D4)
+		SIGNAL SD_RS_KOMBI, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME KOMBI_MESS2 (0x00000681)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME KOMBI_MESS1 (0x00000680)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME KOMBI_52Ah (0x0000052A)
+		SIGNAL RESET_2, OFFSET: 4, LEN: 2, DESC: Reset Trip Group 2, DATA TYPE ENUM
+			ENUM NOACT, RAW: 0, DESC: Unknown
+			ENUM RESET, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL RESET_1, OFFSET: 6, LEN: 2, DESC: Reset Trip Group 1, DATA TYPE ENUM
+			ENUM NOACT, RAW: 0, DESC: Unknown
+			ENUM RESET, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+	FRAME KOMBI_416h (0x00000416)
+		SIGNAL FCW_Ifc_ok, OFFSET: 2, LEN: 1, DESC: FCW interface ok, DATA TYPE BOOL
+		SIGNAL LDC_Ifc_ok, OFFSET: 3, LEN: 1, DESC: Longitudinal controller interface ok, DATA TYPE BOOL
+		SIGNAL DTR_AcustWarn_Off, OFFSET: 4, LEN: 1, DESC: DTR acoustic warning is off, DATA TYPE BOOL
+		SIGNAL DTR_Disp_Actv, OFFSET: 5, LEN: 1, DESC: DTR display is active, DATA TYPE BOOL
+		SIGNAL DTR_Disp_Off, OFFSET: 6, LEN: 1, DESC: DTR display is off, DATA TYPE BOOL
+		SIGNAL LDC_PresfBrkMd_Rq, OFFSET: 7, LEN: 1, DESC: Presafe brake mode request, DATA TYPE BOOL
+		SIGNAL IHC_Md_Rq, OFFSET: 14, LEN: 2, DESC: IHC mode request, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ON, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+		SIGNAL BSM_Md_Rq, OFFSET: 22, LEN: 2, DESC: Anforderung BSM Modus, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM PERM, RAW: 1, DESC: Unknown
+			ENUM AUTO, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+	FRAME KOMBI_412h (0x00000412)
+		SIGNAL V_ANZ, OFFSET: 12, LEN: 12, DESC: Angezeigte Geschwindigkeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL DRTGANZ, OFFSET: 24, LEN: 2, DESC: Raddrehrichtung zu V_ANZ, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL WIV_RESET, OFFSET: 41, LEN: 1, DESC: WIV wurde zurückgesetzt, DATA TYPE BOOL
+		SIGNAL MOT_AUF_SERVICE, OFFSET: 42, LEN: 1, DESC: Motorhaube länger als 30 s geöffnet, DATA TYPE BOOL
+		SIGNAL PRW_ANF, OFFSET: 46, LEN: 2, DESC: Anforderung Plattrollwarner, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM AUS, RAW: 1, DESC: Unknown
+			ENUM EIN, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL STH_AKT_PREV, OFFSET: 48, LEN: 2, DESC: Standheizung war in letzter Abstellphase aktiv, DATA TYPE ENUM
+			ENUM STH_NAKT, RAW: 0, DESC: Unknown
+			ENUM STH_AKT, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL MILES_KM, OFFSET: 50, LEN: 1, DESC: Wegstreckenanzeige in km [0] oder Meilen [1], DATA TYPE BOOL
+		SIGNAL MAZ_NEU, OFFSET: 52, LEN: 12, DESC: Motorabstellzeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME KOMBI_408h (0x00000408)
+		SIGNAL TANK_FS, OFFSET: 0, LEN: 8, DESC: Tankfüllstand, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TF_AUF, OFFSET: 8, LEN: 1, DESC: Fahrertür auf, DATA TYPE BOOL
+		SIGNAL V_DSPL_AUS, OFFSET: 9, LEN: 1, DESC: Geschw.begrenzer-/Tempomat-Anzeige nicht möglich, DATA TYPE BOOL
+		SIGNAL TACHO_SYM, OFFSET: 10, LEN: 1, DESC: Tachoeichung, DATA TYPE BOOL
+		SIGNAL V_MPH, OFFSET: 11, LEN: 1, DESC: mph statt km/h (variable Geschwindigkeitsbegr.), DATA TYPE BOOL
+		SIGNAL VGL_KL_DEF, OFFSET: 13, LEN: 1, DESC: Vorglüh Kontrollampe defekt, DATA TYPE BOOL
+		SIGNAL TFSM, OFFSET: 14, LEN: 1, DESC: Tankfüllstandsminimum, DATA TYPE BOOL
+		SIGNAL KL_61E, OFFSET: 15, LEN: 1, DESC: Klemme 61 entkoppelt, DATA TYPE BOOL
+		SIGNAL T_AUSSEN, OFFSET: 16, LEN: 8, DESC: Außenlufttemperatur, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL KL_58D, OFFSET: 24, LEN: 8, DESC: Helligkeit Instrumenten- und Suchbeleuchtung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MAZ, OFFSET: 32, LEN: 8, DESC: Motorabstellzeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL KM16, OFFSET: 40, LEN: 16, DESC: Kilometerstand, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL WRC3, OFFSET: 56, LEN: 1, DESC: Winterreifen-Höchstgeschwindigkeit Bit 3, DATA TYPE BOOL
+		SIGNAL V_DSPL_AKT, OFFSET: 57, LEN: 1, DESC: Geschw.begrenzer-/Tempomat-Anzeige aktiv, DATA TYPE BOOL
+		SIGNAL RT_EIN, OFFSET: 60, LEN: 1, DESC: Rollentestmodus ESP einschalten, DATA TYPE BOOL
+		SIGNAL WRC, OFFSET: 61, LEN: 3, DESC: Winterreifen-Höchstgeschwindigkeit mit 4 Bit, DATA TYPE ENUM
+			ENUM UBG, RAW: 0, DESC: Unknown
+			ENUM BG210, RAW: 1, DESC: Unknown
+			ENUM BG190, RAW: 2, DESC: Unknown
+			ENUM BG160, RAW: 3, DESC: Unknown
+			ENUM BG240, RAW: 4, DESC: Unknown
+			ENUM BG230, RAW: 5, DESC: Unknown
+			ENUM BG220, RAW: 6, DESC: Unknown
+			ENUM BG200, RAW: 7, DESC: Unknown
+			ENUM BG180, RAW: 128, DESC: Unknown
+			ENUM BG170, RAW: 129, DESC: Unknown
+			ENUM BG150, RAW: 130, DESC: Unknown
+			ENUM BG140, RAW: 131, DESC: Unknown
+			ENUM BG130, RAW: 132, DESC: Unknown
+			ENUM BG120, RAW: 133, DESC: Unknown
+			ENUM BG110, RAW: 134, DESC: Unknown
+			ENUM BG100, RAW: 135, DESC: Unknown
+	FRAME D_RS_KOMBI_C (0x00000797)
+		SIGNAL D_RS_KOMBI_C, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU LWR
+	FRAME SD_RS_ALWR (0x00000736)
+		SIGNAL SD_RS_ALWR, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME LWR_MESS2 (0x00000659)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME LWR_MESS1 (0x00000658)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME LWR_530h (0x00000530)
+		SIGNAL ALWR_DEF, OFFSET: 0, LEN: 1, DESC: Meldung 'ALWR defekt! Bitte Werkstatt aufsuchen', DATA TYPE BOOL
+		SIGNAL FZGN_V, OFFSET: 16, LEN: 8, DESC: Fahrzeugniveau vorne, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL FZGN_H, OFFSET: 24, LEN: 8, DESC: Fahrzeugniveau hinten, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME D_RS_LWR (0x00000795)
+		SIGNAL D_RS_LWR, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU MPC
+	FRAME SG_APPL_MPC (0x00000514)
+		SIGNAL SG_APPL, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_MPC (0x00000594)
+		SIGNAL SD_RS, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME MPC_IHC (0x0000018B)
+		SIGNAL IHC_Stat_MPC, OFFSET: 6, LEN: 2, DESC: IHC state  MPC, DATA TYPE ENUM
+			ENUM IHC_ACTV, RAW: 0, DESC: Unknown
+			ENUM IHC_FLT, RAW: 1, DESC: Unknown
+			ENUM TEMP_NAVL, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL IHC_Wthr_Dtct, OFFSET: 16, LEN: 2, DESC: IHC weather detection, DATA TYPE ENUM
+			ENUM NO_DTCT, RAW: 0, DESC: Unknown
+			ENUM ADV_WTHR_DTCT, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL IHC_City_Dtct, OFFSET: 18, LEN: 2, DESC: IHC City Detection, DATA TYPE ENUM
+			ENUM NO_DTCT, RAW: 0, DESC: Unknown
+			ENUM CITY_DTCT, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL IHC_HiBm_Stat, OFFSET: 20, LEN: 2, DESC: IHC high beam state, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ON, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL MC_MPC_IHC, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_MPC (0x00000494)
+		SIGNAL D_RS_MPC, OFFSET: 0, LEN: 64, DESC: , DATA TYPE ISO_TP
+	FRAME ALDW_A1 (0x0000021F)
+		SIGNAL ALDW_IndLmp_SwLED_On_Rq, OFFSET: 2, LEN: 2, DESC: ALDW indication lamp or switch LED on request, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ON, RAW: 1, DESC: Unknown
+			ENUM READY, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL ALDW_Menu_Sw_Enbl_Rq, OFFSET: 4, LEN: 1, DESC: ALDW menu or switch enable request, DATA TYPE BOOL
+		SIGNAL ALDW_MsgDisp_Rq, OFFSET: 5, LEN: 3, DESC: ALDW message display request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM ALDW_TEMP_NA, RAW: 1, DESC: Unknown
+			ENUM ALDW_NA, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL ALDW_Warn_Rq, OFFSET: 13, LEN: 3, DESC: ALDW warning request, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM WARN_LT, RAW: 1, DESC: Unknown
+			ENUM WARN_RT, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL MC_ALDW_A1, OFFSET: 48, LEN: 4, DESC: Message Counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_ALDW_A1, OFFSET: 56, LEN: 8, DESC: CRC-checksum byte 1 to 7 according to SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+ECU MRM
+	FRAME SG_APPL_MRM (0x00000625)
+		SIGNAL SG_APPL, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_MRM (0x00000729)
+		SIGNAL SD_RS_MRM, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME MRM_A2 (0x000004C1)
+		SIGNAL WIPPE_4_2, OFFSET: 0, LEN: 1, DESC: Taste rechts unten nach unten, DATA TYPE BOOL
+		SIGNAL WIPPE_4_1, OFFSET: 1, LEN: 1, DESC: Taste rechts unten nach oben, DATA TYPE BOOL
+		SIGNAL WIPPE_3_2, OFFSET: 2, LEN: 1, DESC: Taste rechts oben nach unten, DATA TYPE BOOL
+		SIGNAL WIPPE_3_1, OFFSET: 3, LEN: 1, DESC: Taste rechts oben nach oben, DATA TYPE BOOL
+		SIGNAL WIPPE_2_2, OFFSET: 4, LEN: 1, DESC: Taste links unten nach unten, DATA TYPE BOOL
+		SIGNAL WIPPE_2_1, OFFSET: 5, LEN: 1, DESC: Taste links unten nach oben, DATA TYPE BOOL
+		SIGNAL WIPPE_1_2, OFFSET: 6, LEN: 1, DESC: Taste links oben nach unten, DATA TYPE BOOL
+		SIGNAL WIPPE_1_1, OFFSET: 7, LEN: 1, DESC: Taste links oben nach oben, DATA TYPE BOOL
+		SIGNAL WIPPE_8_2, OFFSET: 8, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_8_1, OFFSET: 9, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_7_2, OFFSET: 10, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_7_1, OFFSET: 11, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_6_2, OFFSET: 12, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_6_1, OFFSET: 13, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_5_2, OFFSET: 14, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+		SIGNAL WIPPE_5_1, OFFSET: 15, LEN: 1, DESC: Reserve, DATA TYPE BOOL
+	FRAME MRM_A1 (0x000004C0)
+		SIGNAL SGH_EIN_LR, OFFSET: 0, LEN: 1, DESC: Signalhorn einschalten, DATA TYPE BOOL
+		SIGNAL LHP_EIN, OFFSET: 1, LEN: 1, DESC: Lichthupe einschalten, DATA TYPE BOOL
+		SIGNAL FL_EIN, OFFSET: 2, LEN: 1, DESC: Fernlicht einschalten, DATA TYPE BOOL
+		SIGNAL BLIH_RE_BET, OFFSET: 3, LEN: 1, DESC: Blinkerhebel Richtungsblinken rechts betätigt, DATA TYPE BOOL
+		SIGNAL BLIH_LI_BET, OFFSET: 4, LEN: 1, DESC: Blinkerhebel Richtungsblinken links betätigt, DATA TYPE BOOL
+		SIGNAL SCH_WI_2, OFFSET: 8, LEN: 1, DESC: LSS in Stellung III (Stufe 2), DATA TYPE BOOL
+		SIGNAL SCH_WI_1, OFFSET: 9, LEN: 1, DESC: LSS in Stellung II (Stufe 1), DATA TYPE BOOL
+		SIGNAL SCH_WI_INT, OFFSET: 10, LEN: 1, DESC: LSS in Stellung I (Regensensorbetrieb), DATA TYPE BOOL
+		SIGNAL WASCHEN, OFFSET: 11, LEN: 1, DESC: Waschen betätigt, DATA TYPE BOOL
+		SIGNAL TIPP_WISCH, OFFSET: 12, LEN: 1, DESC: Tippwischen betätigt, DATA TYPE BOOL
+		SIGNAL LW_PA_B, OFFSET: 24, LEN: 1, DESC: Lenkwinkel Parität Bit (gerade Parität), DATA TYPE BOOL
+		SIGNAL LW_OV_B, OFFSET: 25, LEN: 1, DESC: Lenkwinkelsensor: Überlauf, DATA TYPE BOOL
+		SIGNAL LW_CF_B, OFFSET: 26, LEN: 1, DESC: Lenkwinkelsensor: Codefehler, DATA TYPE BOOL
+		SIGNAL LW_INI_B, OFFSET: 27, LEN: 1, DESC: Lenkwinkelsensor: nicht initialisiert, DATA TYPE BOOL
+		SIGNAL LW_VZ_B, OFFSET: 28, LEN: 1, DESC: Lenkwinkel-Vorzeichen, DATA TYPE BOOL
+		SIGNAL LW_B, OFFSET: 29, LEN: 11, DESC: Lenkwinkel, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL HECK_INT, OFFSET: 40, LEN: 1, DESC: Heckscheibe Intervall-Wischen, DATA TYPE BOOL
+		SIGNAL HECK_WISCH, OFFSET: 41, LEN: 1, DESC: Heckscheibe wischen/waschen, DATA TYPE BOOL
+	FRAME MRM_238h (0x00000238)
+		SIGNAL WH_UP, OFFSET: 2, LEN: 1, DESC: Tempomatwählhebel unplausibel, DATA TYPE BOOL
+		SIGNAL VMAX_AKT, OFFSET: 3, LEN: 1, DESC: Bedienung variable Geschwindigkeitsbegrenzung, DATA TYPE BOOL
+		SIGNAL S_MINUS_B, OFFSET: 4, LEN: 1, DESC: Tempomatwählhebel: 'Setzen und verzögern Stufe0', DATA TYPE BOOL
+		SIGNAL S_PLUS_B, OFFSET: 5, LEN: 1, DESC: Tempomatwählhebel: 'Setzen und Beschleunigen Stufe0', DATA TYPE BOOL
+		SIGNAL WA, OFFSET: 6, LEN: 1, DESC: Tempomatwählhebel: 'Wiederaufnahme', DATA TYPE BOOL
+		SIGNAL AUS, OFFSET: 7, LEN: 1, DESC: Tempomatwählhebel: 'Ausschalten', DATA TYPE BOOL
+		SIGNAL WH_PA, OFFSET: 11, LEN: 1, DESC: Tempomatwählhebel Parity (gerade Parität), DATA TYPE BOOL
+		SIGNAL BZ238h, OFFSET: 12, LEN: 4, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL LW_PA, OFFSET: 16, LEN: 1, DESC: Lenkwinkel Parität (gerade Parität), DATA TYPE BOOL
+		SIGNAL LW_OV, OFFSET: 17, LEN: 1, DESC: Lenkwinkelsensor: Überlauf, DATA TYPE BOOL
+		SIGNAL LW_CF, OFFSET: 18, LEN: 1, DESC: Lenkwinkelsensor: Codefehler, DATA TYPE BOOL
+		SIGNAL LW_INI, OFFSET: 19, LEN: 1, DESC: Lenkwinkelsensor: nicht initialisiert, DATA TYPE BOOL
+		SIGNAL LW_VZ, OFFSET: 20, LEN: 1, DESC: Lenkwinkel-Vorzeichen, DATA TYPE BOOL
+		SIGNAL LW, OFFSET: 21, LEN: 11, DESC: Lenkwinkel, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME LRW_236h (0x00000236)
+		SIGNAL LRW, OFFSET: 2, LEN: 14, DESC: Lenkradwinkel, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL VLRW, OFFSET: 18, LEN: 14, DESC: Lenkradwinkelgeschwindigkeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BZ236h, OFFSET: 32, LEN: 4, DESC: Botschaftszähler, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL LRWS_ID, OFFSET: 36, LEN: 2, DESC: Identifikation Lenkradwinkelsensor, DATA TYPE ENUM
+			ENUM INIT_PSBL, RAW: 0, DESC: Unknown
+			ENUM INIT_SELF, RAW: 1, DESC: Unknown
+			ENUM INIT_MUST, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL LRWS_ST, OFFSET: 38, LEN: 2, DESC: Status Lenkradwinkelsensor, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM INI, RAW: 1, DESC: Unknown
+			ENUM ERR, RAW: 2, DESC: Unknown
+			ENUM ERR_INI, RAW: 3, DESC: Unknown
+		SIGNAL CRC236h, OFFSET: 56, LEN: 8, DESC: CRC-Checksumme Byte 1 - 7 nach SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME D_RS_MRM (0x00000793)
+		SIGNAL D_RS_MRM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU MS
+	FRAME TC_EBBC_DISP_RQ (0x00000249)
+		SIGNAL TC_EBBC_DispCnt1, OFFSET: 0, LEN: 6, DESC: Trip computer: energy balance bar chart display counter of data set #1, DATA TYPE ENUM
+			ENUM SNV, RAW: 63, DESC: Unknown
+		SIGNAL TC_EBBC_AvgFuelCons1, OFFSET: 6, LEN: 10, DESC: Trip computer: energy balance bar chart average fuel consumption of data set #1, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_EBBC_AvgRecupLvl1, OFFSET: 16, LEN: 8, DESC: Trip computer: energy balance bar chart average recuperation level of data set #1, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_EBBC_DispCnt2, OFFSET: 24, LEN: 6, DESC: Trip computer: energy balance bar chart display counter of data set #2, DATA TYPE ENUM
+			ENUM SNV, RAW: 63, DESC: Unknown
+		SIGNAL TC_EBBC_AvgFuelCons2, OFFSET: 30, LEN: 10, DESC: Trip computer: energy balance bar chart average fuel consumption of data set #2, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_EBBC_AvgRecupLvl2, OFFSET: 40, LEN: 8, DESC: Trip computer: energy balance bar chart average recuperation level of data set #2, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_EBBC_DispIdx, OFFSET: 48, LEN: 6, DESC: Trip computer: energy balance bar chart display index, DATA TYPE ENUM
+			ENUM SNV, RAW: 63, DESC: Unknown
+		SIGNAL TC_EBBC_FuelCons, OFFSET: 54, LEN: 10, DESC: Trip computer: energy balance bar chart actual or overall avgerage fuel consumption, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME TC_DISP_RQ (0x0000034F)
+		SIGNAL TC_FuelType_TC_DISP_RQ, OFFSET: 2, LEN: 2, DESC: TC_FuelType_TC_DISP_RQ, DATA TYPE ENUM
+			ENUM GASEOUS, RAW: 0, DESC: Unknown
+			ENUM LIQUID, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL TC_GasFuelCons_Start, OFFSET: 6, LEN: 10, DESC: Trip computer: gaseous fuel consumption from start, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_GasFuelCons_Reset, OFFSET: 22, LEN: 10, DESC: Trip computer: gaseous fuel consumption from reset, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_GasFuelCons, OFFSET: 38, LEN: 10, DESC: Trip computer: actual gaseous fuel consumption, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL TC_GasFuelTankLvl_Min_50, OFFSET: 52, LEN: 1, DESC: Trip computer: gasoline fuel tank level at 50% of minimum, DATA TYPE BOOL
+		SIGNAL TC_GasFuelTankRng, OFFSET: 53, LEN: 11, DESC: Trip computer: liquid fuel tank range, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME SG_APPL_MS (0x00000529)
+		SIGNAL SG_APPL_MS, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SG_A1_ECM (0x000002F7)
+		SIGNAL SG_OutDC_Curr_ECM, OFFSET: 0, LEN: 16, DESC: Starter/generator output DC current, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SG_OutDC_Volt_ECM, OFFSET: 16, LEN: 16, DESC: Starter/generator output DC voltage, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PN14_GenExctCurr, OFFSET: 32, LEN: 8, DESC: Generator excitation current, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PN14_GenStyle, OFFSET: 41, LEN: 4, DESC: Generator style, DATA TYPE ENUM
+			ENUM XS, RAW: 0, DESC: Unknown
+			ENUM S, RAW: 1, DESC: Unknown
+			ENUM M, RAW: 2, DESC: Unknown
+			ENUM L, RAW: 3, DESC: Unknown
+			ENUM XL1, RAW: 4, DESC: Unknown
+			ENUM XL2, RAW: 5, DESC: Unknown
+			ENUM XXL, RAW: 6, DESC: Unknown
+			ENUM XL3, RAW: 7, DESC: Unknown
+			ENUM RSG, RAW: 8, DESC: Unknown
+			ENUM SNA, RAW: 15, DESC: Unknown
+		SIGNAL PN14_GenSupplr, OFFSET: 45, LEN: 3, DESC: Generator supplier, DATA TYPE ENUM
+			ENUM BOSCH, RAW: 0, DESC: Unknown
+			ENUM VALEO, RAW: 1, DESC: Unknown
+			ENUM DELPHI, RAW: 2, DESC: Unknown
+			ENUM HITACHI, RAW: 3, DESC: Unknown
+			ENUM DENSO, RAW: 4, DESC: Unknown
+			ENUM MELCO, RAW: 5, DESC: Unknown
+			ENUM VISTEON, RAW: 6, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+	FRAME SD_RS_SCRCM (0x000005A5)
+		SIGNAL SD_RS_SCRCM, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME SD_RS_MS (0x00000720)
+		SIGNAL SD_RS, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME SD_RS_FSCM (0x0000059F)
+		SIGNAL SD_RS_FSCM, OFFSET: 0, LEN: 64, DESC: Systemdiagnostic Response, DATA TYPE ISO_TP
+	FRAME NM_ECM (0x000006CE)
+		SIGNAL NM_Mode, OFFSET: 0, LEN: 8, DESC: Network management mode, DATA TYPE ENUM
+			ENUM LHOM, RAW: 252, DESC: Unknown
+			ENUM RING, RAW: 253, DESC: Unknown
+			ENUM ALIVE, RAW: 254, DESC: Unknown
+			ENUM SNA, RAW: 255, DESC: Unknown
+		SIGNAL NM_Successor, OFFSET: 8, LEN: 8, DESC: Network management logical successor, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL NM_Sleep_Ind, OFFSET: 16, LEN: 1, DESC: Network management sleep indication, DATA TYPE BOOL
+		SIGNAL NM_Sleep_Ack, OFFSET: 17, LEN: 1, DESC: Network management sleep acknowledge, DATA TYPE BOOL
+		SIGNAL NM_Ud_Launch, OFFSET: 18, LEN: 6, DESC: Network management userdata launch type, DATA TYPE ENUM
+			ENUM BROADCAST, RAW: 4, DESC: Unknown
+			ENUM SNA, RAW: 63, DESC: Unknown
+		SIGNAL NM_Ud_Srv, OFFSET: 24, LEN: 8, DESC: Network management userdata service no., DATA TYPE ENUM
+			ENUM DATA_OK_BC, RAW: 1, DESC: Unknown
+			ENUM WAKEUP_SA, RAW: 2, DESC: Unknown
+			ENUM SBC_STAT_BC, RAW: 5, DESC: Unknown
+			ENUM AWAKE_BC, RAW: 15, DESC: Unknown
+			ENUM SNA, RAW: 255, DESC: Unknown
+		SIGNAL Awake_CCP_Actv, OFFSET: 33, LEN: 1, DESC: Stay awake for CCP measurement active, DATA TYPE BOOL
+		SIGNAL Awake_EngRestart, OFFSET: 34, LEN: 1, DESC: Stay awake for engine restart, DATA TYPE BOOL
+		SIGNAL Awake_EngFan_Actv, OFFSET: 35, LEN: 1, DESC: Stay awake for engine fan active, DATA TYPE BOOL
+		SIGNAL Awake_Afterrun_Actv, OFFSET: 36, LEN: 1, DESC: Stay awake for afterrun active, DATA TYPE BOOL
+		SIGNAL Awake_Ignition_On, OFFSET: 37, LEN: 1, DESC: Stay awake for ignition on, DATA TYPE BOOL
+		SIGNAL Awake_Diag_Actv, OFFSET: 38, LEN: 1, DESC: Stay awake for diagnostics active, DATA TYPE BOOL
+		SIGNAL Awake_NwSt, OFFSET: 39, LEN: 1, DESC: Stay awake for network startup, DATA TYPE BOOL
+		SIGNAL Nw_Id, OFFSET: 56, LEN: 8, DESC: Network identification, DATA TYPE ENUM
+			ENUM BACKBONE, RAW: 4, DESC: Unknown
+			ENUM DIAGNOSTICS, RAW: 5, DESC: Unknown
+			ENUM BODY, RAW: 6, DESC: Unknown
+			ENUM CHASSIS, RAW: 7, DESC: Unknown
+			ENUM POWERTRAIN, RAW: 8, DESC: Unknown
+			ENUM PT_SENSOR, RAW: 9, DESC: Unknown
+			ENUM DYNAMICS, RAW: 11, DESC: Unknown
+			ENUM HEADUNIT, RAW: 14, DESC: Unknown
+			ENUM IMPACT, RAW: 15, DESC: Unknown
+			ENUM SNA, RAW: 255, DESC: Unknown
+	FRAME MS_OBD_3D0h (0x000003D0)
+		SIGNAL PW_OBD, OFFSET: 0, LEN: 8, DESC: Pedalwert für OBD, DATA TYPE NUMBER(_MULTIPLIER_: 0.3921999931335449, _OFFSET_: 0.0), UNIT: %
+		SIGNAL LOAD_OBD, OFFSET: 8, LEN: 8, DESC: Motorlast für OBD, DATA TYPE NUMBER(_MULTIPLIER_: 0.3921999931335449, _OFFSET_: 0.0), UNIT: %
+		SIGNAL ClrLgsDiagInfo, OFFSET: 16, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL F_STAT_T_AUSSEN_AKTIV, OFFSET: 23, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL OBD_IgnCycCntCond_Stat, OFFSET: 27, LEN: 2, DESC: Conditions for ignition cycle counter (RBM) state, DATA TYPE ENUM
+			ENUM INACT, RAW: 0, DESC: Unknown
+			ENUM ACTV, RAW: 1, DESC: Unknown
+			ENUM FLT, RAW: 2, DESC: Unknown
+			ENUM NDEF3, RAW: 3, DESC: Unknown
+		SIGNAL OBD_GnrlDenCond_Stat, OFFSET: 29, LEN: 2, DESC: Conditions for general denominator (RBM) state, DATA TYPE ENUM
+			ENUM INACT, RAW: 0, DESC: Unknown
+			ENUM ACTV, RAW: 1, DESC: Unknown
+			ENUM FLT, RAW: 2, DESC: Unknown
+			ENUM NDEF3, RAW: 3, DESC: Unknown
+		SIGNAL OBD_WarmupCond_Actv, OFFSET: 31, LEN: 1, DESC: Conditions for warm-up fulfilled, DATA TYPE BOOL
+	FRAME MS_APPL7 (0x00000618)
+		SIGNAL APPL7, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME MS_APPL6 (0x00000610)
+		SIGNAL APPL6, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME MS_APPL5 (0x00000748)
+		SIGNAL APPL5, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME MS_APPL4 (0x000006E8)
+		SIGNAL APPL4, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME MS_APPL2 (0x000004A9)
+		SIGNAL APPL2, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME MS_ANZ (0x0000033D)
+		SIGNAL ASS_WARN, OFFSET: 16, LEN: 4, DESC: Nummer der ASS-Warnmeldung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM M1, RAW: 1, DESC: Unknown
+			ENUM M2, RAW: 2, DESC: Unknown
+			ENUM M3, RAW: 3, DESC: Unknown
+			ENUM M4, RAW: 4, DESC: Unknown
+			ENUM M5, RAW: 5, DESC: Unknown
+			ENUM M6, RAW: 6, DESC: Unknown
+			ENUM M7, RAW: 7, DESC: Unknown
+			ENUM M8, RAW: 8, DESC: Unknown
+			ENUM M9, RAW: 9, DESC: Unknown
+			ENUM M10, RAW: 10, DESC: Unknown
+			ENUM M11, RAW: 11, DESC: Unknown
+			ENUM M12, RAW: 12, DESC: Unknown
+			ENUM M13, RAW: 13, DESC: Unknown
+			ENUM M14, RAW: 14, DESC: Unknown
+			ENUM M15, RAW: 15, DESC: Unknown
+		SIGNAL ASS_DSPL, OFFSET: 20, LEN: 4, DESC: Nummer der ASS-Statusmeldung, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM M1, RAW: 1, DESC: Unknown
+			ENUM M2, RAW: 2, DESC: Unknown
+			ENUM M3, RAW: 3, DESC: Unknown
+			ENUM M4, RAW: 4, DESC: Unknown
+			ENUM M5, RAW: 5, DESC: Unknown
+			ENUM M6, RAW: 6, DESC: Unknown
+			ENUM M7, RAW: 7, DESC: Unknown
+			ENUM M8, RAW: 8, DESC: Unknown
+			ENUM M9, RAW: 9, DESC: Unknown
+			ENUM M10, RAW: 10, DESC: Unknown
+			ENUM M11, RAW: 11, DESC: Unknown
+			ENUM M12, RAW: 12, DESC: Unknown
+			ENUM M13, RAW: 13, DESC: Unknown
+			ENUM M14, RAW: 14, DESC: Unknown
+			ENUM M15, RAW: 15, DESC: Unknown
+		SIGNAL ASS_LTEST_AUS, OFFSET: 24, LEN: 1, DESC: Unterdrückung von Lampentest während Stopp-Phase, DATA TYPE BOOL
+	FRAME MS_608h (0x00000608)
+		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: Motorkühlmitteltemperatur, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM CONT, RAW: 1, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL T_LUFT, OFFSET: 8, LEN: 8, DESC: Ansauglufttemperatur, DATA TYPE ENUM
+			ENUM DTR, RAW: 0, DESC: Unknown
+			ENUM CMS, RAW: 1, DESC: Unknown
+			ENUM APG, RAW: 2, DESC: Unknown
+			ENUM BSM, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL FCOD_KAR, OFFSET: 16, LEN: 3, DESC: Fahrzeugcode Karosserie, DATA TYPE ENUM
+		SIGNAL FCOD_BR, OFFSET: 19, LEN: 5, DESC: Fahrzeugcode Baureihe, DATA TYPE ENUM
+			ENUM NOOBJ, RAW: 0, DESC: Unknown
+			ENUM OBJ1, RAW: 1, DESC: Unknown
+			ENUM OBJ2, RAW: 2, DESC: Unknown
+		SIGNAL FCOD_MOT6, OFFSET: 24, LEN: 1, DESC: Fahrzeugcode Motor mit 7 Bit, Bit 6, DATA TYPE BOOL
+		SIGNAL GS_NVH, OFFSET: 25, LEN: 1, DESC: Getriebesteuerung nicht vorhanden, DATA TYPE BOOL
+		SIGNAL FCOD_MOT, OFFSET: 26, LEN: 6, DESC: Fzgcod.Motor 7Bit, Bit0-5 (Bit6-->Signal FCOD_MOT6), DATA TYPE ENUM
+			ENUM M272E35, RAW: 0, DESC: Unknown
+			ENUM M271E18ML105, RAW: 1, DESC: Unknown
+			ENUM M271E18ML120, RAW: 2, DESC: Unknown
+			ENUM M112E37, RAW: 3, DESC: Unknown
+			ENUM M272E25, RAW: 4, DESC: Unknown
+			ENUM M272E30, RAW: 5, DESC: Unknown
+			ENUM PM2320_01, RAW: 6, DESC: Unknown
+			ENUM PM2320_02, RAW: 7, DESC: Unknown
+			ENUM M112E32, RAW: 8, DESC: Unknown
+			ENUM M273E46, RAW: 10, DESC: Unknown
+			ENUM M273E55, RAW: 11, DESC: Unknown
+			ENUM M112E26, RAW: 12, DESC: Unknown
+			ENUM M113E43, RAW: 13, DESC: Unknown
+			ENUM M113E50, RAW: 14, DESC: Unknown
+			ENUM M271E18ML135_140, RAW: 18, DESC: Unknown
+			ENUM M271DE18ML105, RAW: 19, DESC: Unknown
+			ENUM M271DE18ML125, RAW: 20, DESC: Unknown
+			ENUM M111E_E23ML, RAW: 22, DESC: Unknown
+			ENUM M111E_E20, RAW: 23, DESC: Unknown
+			ENUM M111E_E20ML, RAW: 24, DESC: Unknown
+			ENUM M112E32_140, RAW: 25, DESC: Unknown
+			ENUM M266E20ATL, RAW: 26, DESC: Unknown
+			ENUM M266E15, RAW: 27, DESC: Unknown
+			ENUM M266E17, RAW: 28, DESC: Unknown
+			ENUM M266E20, RAW: 29, DESC: Unknown
+			ENUM M275E55, RAW: 30, DESC: Unknown
+			ENUM M137E58, RAW: 31, DESC: Unknown
+			ENUM OM640DE20LA60, RAW: 32, DESC: Unknown
+			ENUM OM640DE20LA80, RAW: 34, DESC: Unknown
+			ENUM OM642DE30LA155_165, RAW: 35, DESC: Unknown
+			ENUM OM640DE20LA100, RAW: 36, DESC: Unknown
+			ENUM OM613DE32LA, RAW: 37, DESC: Unknown
+			ENUM OM639DE15LA, RAW: 38, DESC: Unknown
+			ENUM OM628DE40LA, RAW: 39, DESC: Unknown
+		SIGNAL V_MAX_FIX, OFFSET: 32, LEN: 8, DESC: Feste Höchstgeschwindigkeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL VB, OFFSET: 40, LEN: 16, DESC: Verbrauch, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ZWP_EIN_MS, OFFSET: 56, LEN: 1, DESC: Anforderung Zusatzwasserpumpe einschalten, DATA TYPE BOOL
+		SIGNAL PFW, OFFSET: 57, LEN: 2, DESC: Partikelfilterwarnung, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM PFW1, RAW: 1, DESC: Unknown
+			ENUM PFW2, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL ZVB_EIN_MS, OFFSET: 59, LEN: 1, DESC: Zusatzverbraucher einschalten, DATA TYPE BOOL
+		SIGNAL PFKO, OFFSET: 60, LEN: 4, DESC: Partikelfilterkorrekturoffset FMMOTMAX, DATA TYPE ENUM
+			ENUM SNV, RAW: 15, DESC: Unknown
+	FRAME MS_312h (0x00000312)
+		SIGNAL M_STA, OFFSET: 3, LEN: 13, DESC: Motormoment statisch, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_MAX_ATL, OFFSET: 19, LEN: 13, DESC: Motormoment maximal incl. dyn. Turboladeranteil, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_MAX, OFFSET: 35, LEN: 13, DESC: Motormoment maximal, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM MSG1, RAW: 1, DESC: Unknown
+			ENUM MSG2, RAW: 2, DESC: Unknown
+			ENUM MSG3, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL M_MIN_SCHUB, OFFSET: 51, LEN: 13, DESC: Motormoment minimal, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: Unknown
+			ENUM ACTIVE, RAW: 1, DESC: Unknown
+			ENUM FLT_NA, RAW: 2, DESC: Unknown
+			ENUM FLT_RADAR_OFF, RAW: 3, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+	FRAME MS_308h (0x00000308)
+		SIGNAL KPL, OFFSET: 0, LEN: 1, DESC: Kupplung getreten, DATA TYPE BOOL
+		SIGNAL KUEB_O_A, OFFSET: 1, LEN: 1, DESC: Anf. Wandlerüberbrückungskupplung 'öffnen', DATA TYPE BOOL
+		SIGNAL N_MAX_BG, OFFSET: 2, LEN: 1, DESC: Drehzahlbegrenzungsfunktion aktiv, DATA TYPE BOOL
+		SIGNAL SAST, OFFSET: 3, LEN: 1, DESC: Teilschubabschaltung, DATA TYPE BOOL
+		SIGNAL SASV, OFFSET: 4, LEN: 1, DESC: Schubabschaltung voll, DATA TYPE BOOL
+		SIGNAL KSF_KL, OFFSET: 5, LEN: 1, DESC: Kraftstofffilter verstopft Kontrollampe (nur CR2-USA), DATA TYPE BOOL
+		SIGNAL WKS_KL, OFFSET: 6, LEN: 1, DESC: Wasser im Kraftstoff Kontrollampe (nur CR2-USA), DATA TYPE BOOL
+		SIGNAL ZASBED, OFFSET: 7, LEN: 1, DESC: Zylinderabschaltbedingungen erfüllt, DATA TYPE BOOL
+		SIGNAL NMOT, OFFSET: 8, LEN: 16, DESC: Motordrehzahl, DATA TYPE ENUM
+			ENUM NOOBJ, RAW: 0, DESC: Unknown
+			ENUM OBJ1, RAW: 1, DESC: Unknown
+			ENUM OBJ2, RAW: 2, DESC: Unknown
+		SIGNAL PwrFreeD_Dsabl_Rq, OFFSET: 24, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL ELHP_WARN, OFFSET: 25, LEN: 1, DESC: Warnmeldung Eco-Lenkhelfpumpe, DATA TYPE BOOL
+		SIGNAL EOH, OFFSET: 26, LEN: 1, DESC: Ethanolbetrieb erkannt, DATA TYPE BOOL
+		SIGNAL LUFI_KL, OFFSET: 27, LEN: 1, DESC: Luftfilter verschmutzt Kontrollampe (nur Diesel), DATA TYPE BOOL
+		SIGNAL VGL_KL, OFFSET: 28, LEN: 1, DESC: Vorglüh Kontrollampe, DATA TYPE BOOL
+		SIGNAL OEL_KL, OFFSET: 29, LEN: 1, DESC: Ölstand/Öldruck Kontrolllampe, DATA TYPE BOOL
+		SIGNAL DIAG_KL, OFFSET: 30, LEN: 1, DESC: Diagnose Kontrolllampe (OBD II), DATA TYPE BOOL
+		SIGNAL TANK_KL, OFFSET: 31, LEN: 1, DESC: Tankdeckel offen Kontrollampe, DATA TYPE BOOL
+		SIGNAL UEHITZ, OFFSET: 32, LEN: 1, DESC: Motoröltemperatur zu hoch (Überhitzung), DATA TYPE BOOL
+		SIGNAL KPL2, OFFSET: 33, LEN: 1, DESC: Kupplung durchgetreten, DATA TYPE BOOL
+		SIGNAL ADR_KL, OFFSET: 34, LEN: 1, DESC: ADR Kontrollampe (nur Nfz), DATA TYPE BOOL
+		SIGNAL ADR_DEF_KL, OFFSET: 35, LEN: 1, DESC: ADR defekt Kontrollampe (nur Nfz), DATA TYPE BOOL
+		SIGNAL ANL_LFT, OFFSET: 36, LEN: 1, DESC: Anlasser läuft, DATA TYPE BOOL
+		SIGNAL LUEFT_MOT_KL, OFFSET: 37, LEN: 1, DESC: Motorlüfter defekt Kontrolllampe, DATA TYPE BOOL
+		SIGNAL DBAA, OFFSET: 38, LEN: 1, DESC: Drehzahlbegrenzung für Anzeige aktiv (0 bei CR), DATA TYPE BOOL
+		SIGNAL TEMP_KL, OFFSET: 39, LEN: 1, DESC: Kühlwassertemperatur zu hoch, DATA TYPE BOOL
+		SIGNAL T_OEL, OFFSET: 40, LEN: 8, DESC: Öltemperatur, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM BSM_PERM, RAW: 1, DESC: Unknown
+			ENUM BSM_TEMP, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL OEL_FS, OFFSET: 48, LEN: 8, DESC: Ölstand, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL OEL_QUAL, OFFSET: 56, LEN: 8, DESC: Ölqualität, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME MS_2F3h (0x000002F3)
+		SIGNAL Eng_Vac_Stat, OFFSET: 0, LEN: 1, DESC: Engine vacuum state, DATA TYPE BOOL
+		SIGNAL PT_Rdy, OFFSET: 1, LEN: 1, DESC: Powertrain ready, DATA TYPE BOOL
+		SIGNAL SSA_Sp_Warn, OFFSET: 2, LEN: 1, DESC: Start-Stop automatic prewarning engine stop, DATA TYPE BOOL
+		SIGNAL SSA_EngSp, OFFSET: 3, LEN: 1, DESC: Start/Stop automatic has engine stopped, DATA TYPE BOOL
+		SIGNAL GrN_Stat, OFFSET: 4, LEN: 1, DESC: Neutral gear state, DATA TYPE BOOL
+		SIGNAL EngRun_Stat, OFFSET: 5, LEN: 3, DESC: Engine running state, DATA TYPE ENUM
+			ENUM STOP, RAW: 0, DESC: Unknown
+			ENUM START, RAW: 1, DESC: Unknown
+			ENUM IDLE_UNSTBL, RAW: 2, DESC: Unknown
+			ENUM IDLE_STBL, RAW: 3, DESC: Unknown
+			ENUM UNLIMITED, RAW: 4, DESC: Unknown
+			ENUM LIMITED, RAW: 5, DESC: Unknown
+			ENUM NDEF6, RAW: 6, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL TxDrvPosn_Disp_Rq, OFFSET: 8, LEN: 4, DESC: Transmission driving position display request, DATA TYPE ENUM
+			ENUM N, RAW: 0, DESC: Unknown
+			ENUM D1, RAW: 1, DESC: Unknown
+			ENUM D2, RAW: 2, DESC: Unknown
+			ENUM D3, RAW: 3, DESC: Unknown
+			ENUM D4, RAW: 4, DESC: Unknown
+			ENUM D5, RAW: 5, DESC: Unknown
+			ENUM D6, RAW: 6, DESC: Unknown
+			ENUM D7, RAW: 7, DESC: Unknown
+			ENUM D8, RAW: 8, DESC: Unknown
+			ENUM D9, RAW: 9, DESC: Unknown
+			ENUM R, RAW: 11, DESC: Unknown
+			ENUM P, RAW: 13, DESC: Unknown
+			ENUM PWRFREE, RAW: 14, DESC: Unknown
+			ENUM SNA, RAW: 15, DESC: Unknown
+		SIGNAL Gr_Target_Prop_Disp_Rq, OFFSET: 12, LEN: 2, DESC: Proposed target gear, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ECO_LED_On_Rq, OFFSET: 14, LEN: 2, DESC: ECO LED on request, DATA TYPE ENUM
+			ENUM UPSTOP, RAW: 0, DESC: Unknown
+			ENUM PSD, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+		SIGNAL EngIdleRPMLevel_Act, OFFSET: 19, LEN: 2, DESC: Actual engine idle speed level, DATA TYPE ENUM
+			ENUM AUS, RAW: 0, DESC: Unknown
+			ENUM EIN, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL NOTL2, OFFSET: 21, LEN: 1, DESC: Motornotlauf mit erhöhter Maximaldrehzahl, DATA TYPE BOOL
+		SIGNAL ASS_LTEST_AUS, OFFSET: 22, LEN: 1, DESC: Unterdrückung von Lampentest während Stopp-Phase, DATA TYPE BOOL
+		SIGNAL ECO_MsgOn_Rq, OFFSET: 23, LEN: 1, DESC: ECO message on request, DATA TYPE BOOL
+	FRAME MS_268h (0x00000268)
+		SIGNAL IMIN_MS, OFFSET: 0, LEN: 8, DESC: Soll-Übersetzung, untere Grenze (FCVT), DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM ESP_DEF, RAW: 1, DESC: Unknown
+			ENUM ESP_OFF, RAW: 2, DESC: Unknown
+			ENUM DIFF_GEARLOCK_SEL, RAW: 3, DESC: Unknown
+			ENUM DIFF_GEARLOCK_AKT, RAW: 8, DESC: Unknown
+			ENUM AAS_ESP_DEF, RAW: 9, DESC: Unknown
+			ENUM AAS_ASR_ESP_DEF, RAW: 10, DESC: Unknown
+			ENUM ASR_ESP_DEF, RAW: 12, DESC: Unknown
+			ENUM AAS_ASR_BAS_ESP_DEF, RAW: 13, DESC: Unknown
+			ENUM ALL_DEF, RAW: 16, DESC: Unknown
+			ENUM ALL_DEF_GBV, RAW: 17, DESC: Unknown
+			ENUM ALL_DIAG_GBV, RAW: 20, DESC: Unknown
+			ENUM AAS_DEF, RAW: 28, DESC: Unknown
+			ENUM SNV, RAW: 31, DESC: Unknown
+		SIGNAL IMAX_MS, OFFSET: 8, LEN: 8, DESC: Soll-Übersetzung, obere Grenze (FCVT), DATA TYPE ENUM
+			ENUM AYLOW, RAW: 1, DESC: Unknown
+			ENUM AYHIGH, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL KL_61_EIN, OFFSET: 16, LEN: 1, DESC: Klemme 61 ist eingeschaltet, DATA TYPE BOOL
+		SIGNAL OEL_INFO_169, OFFSET: 17, LEN: 1, DESC: Öl-Info BR 169, Reserviert M266, DATA TYPE BOOL
+		SIGNAL ASV_KKL_169, OFFSET: 18, LEN: 1, DESC: Absperrventil Kühlkreislauf M266 ATL, DATA TYPE BOOL
+		SIGNAL MOT_ABGASNACHBEH_AKT, OFFSET: 19, LEN: 1, DESC: Motor-Abgasnachbehandlung aktiv, DATA TYPE BOOL
+		SIGNAL PLAUS_M_ERH_G_ENBL, OFFSET: 20, LEN: 1, DESC: Plausibilisierung Momentenerhöhung GS durchlaufen, Eingriff enabled, DATA TYPE BOOL
+		SIGNAL PLAUS_M_ERH_G_VH, OFFSET: 21, LEN: 1, DESC: Plausibilisierungsfkt. Momentenerhöhung vom Getriebe vorhanden, DATA TYPE BOOL
+		SIGNAL HZL_ST, OFFSET: 22, LEN: 2, DESC: Status Heizleistung, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL KID_MS, OFFSET: 24, LEN: 1, DESC: Anforderung Kraftfrei in 'D' (FCVT), DATA TYPE BOOL
+		SIGNAL LRS_MODE, OFFSET: 25, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL LAST_GEN, OFFSET: 26, LEN: 6, DESC: Generatorauslastung (nur bei LIN-Generatoren!), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_KOMP_MAX, OFFSET: 32, LEN: 8, DESC: Max. Klima-Kompressormoment (nur 169), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL PW_F, OFFSET: 40, LEN: 8, DESC: Pedalwert Fahrer, DATA TYPE ENUM
+			ENUM SNV, RAW: 63, DESC: Unknown
+		SIGNAL ALT_OUTDC_V_ECM, OFFSET: 48, LEN: 8, DESC: Sollspannungsvorgabe Generator, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL ALT_EXCCURR_ECM, OFFSET: 56, LEN: 8, DESC: Maximalreglerstromvorgabe Generator, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME MS_212h (0x00000212)
+		SIGNAL NMOTS, OFFSET: 0, LEN: 16, DESC: Motorleerlaufsolldrehzahl, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_ESPV_PA, OFFSET: 16, LEN: 1, DESC: Parity-Bit über M_ESPV, DATA TYPE BOOL
+		SIGNAL TM_MS, OFFSET: 17, LEN: 1, DESC: Serientempomat ist variantencodiert, DATA TYPE BOOL
+		SIGNAL M_ART_E, OFFSET: 18, LEN: 1, DESC: Enable Momentenanforderung ART, DATA TYPE BOOL
+		SIGNAL M_FV, OFFSET: 19, LEN: 13, DESC: Vorgabemoment Fahrer, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL M_ESPV_TGL, OFFSET: 32, LEN: 1, DESC: Toggle-Bit über M_ESPV, DATA TYPE BOOL
+		SIGNAL SME_E, OFFSET: 33, LEN: 1, DESC: Enable Schnelle Momenteneinstellung, DATA TYPE BOOL
+		SIGNAL M_ESP_E, OFFSET: 34, LEN: 1, DESC: Enable Momentenanforderung ESP, DATA TYPE BOOL
+		SIGNAL M_FEV, OFFSET: 35, LEN: 13, DESC: Ersatzvorgabemoment Fahrer, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL CALID_CVN_E, OFFSET: 48, LEN: 1, DESC: Übertragung CALID/CVN enable, DATA TYPE BOOL
+		SIGNAL M_EGS_Q, OFFSET: 49, LEN: 1, DESC: Quittierung Momentenanforderung EGS, DATA TYPE BOOL
+		SIGNAL M_EGS_E, OFFSET: 50, LEN: 1, DESC: Enable Momentenanforderung EGS, DATA TYPE BOOL
+		SIGNAL M_ESPV_SCHUB, OFFSET: 51, LEN: 13, DESC: Vorgabemoment ESP incl. Schubanteil, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM USPGF, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+	FRAME MS_210h (0x00000210)
+		SIGNAL KOMP_NOTAUS, OFFSET: 0, LEN: 1, DESC: Kälte-Kompressor Not-Ausschalten, DATA TYPE BOOL
+		SIGNAL SLV_MS, OFFSET: 1, LEN: 4, DESC: Schaltlinienverschiebung MS, DATA TYPE ENUM
+			ENUM EIN, RAW: 0, DESC: Unknown
+			ENUM WARN, RAW: 1, DESC: Unknown
+			ENUM AUS, RAW: 2, DESC: Unknown
+			ENUM INIT, RAW: 3, DESC: Unknown
+			ENUM PRW_NV, RAW: 6, DESC: Unknown
+			ENUM SNV, RAW: 7, DESC: Unknown
+		SIGNAL DZGBR_NTLF, OFFSET: 5, LEN: 1, DESC: Drehzahlgebernotlauf, DATA TYPE BOOL
+		SIGNAL KRIECH_AUS, OFFSET: 6, LEN: 1, DESC: KSG-Kriechen ausschalten, DATA TYPE BOOL
+		SIGNAL ANF1, OFFSET: 7, LEN: 1, DESC: MS-Wunsch: 'Anfahren 1.Gang', DATA TYPE BOOL
+		SIGNAL AKT_R_MS, OFFSET: 8, LEN: 1, DESC: MS-Wunsch: 'Aktive Rückschaltung', DATA TYPE BOOL
+		SIGNAL MSS_TUER, OFFSET: 9, LEN: 1, DESC: , DATA TYPE BOOL
+		SIGNAL GMAX_MS, OFFSET: 10, LEN: 3, DESC: Sollgang, obere Grenze, DATA TYPE ENUM
+			ENUM BREMSE_NEIN, RAW: 0, DESC: Unknown
+			ENUM BREMSE_JA, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL GMIN_MS, OFFSET: 13, LEN: 3, DESC: Sollgang, untere Grenze, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM WARN_OHNE, RAW: 1, DESC: Unknown
+			ENUM PRW_NV, RAW: 2, DESC: Unknown
+			ENUM NEU_AKT, RAW: 3, DESC: Unknown
+			ENUM WARN_VL, RAW: 4, DESC: Unknown
+			ENUM WARN_VR, RAW: 5, DESC: Unknown
+			ENUM WARN_HL, RAW: 6, DESC: Unknown
+			ENUM WARN_HR, RAW: 7, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+		SIGNAL PW, OFFSET: 16, LEN: 8, DESC: Pedalwert, DATA TYPE ENUM
+			ENUM T20_0, RAW: 1, DESC: Unknown
+			ENUM T23_1, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL V_DSPL_NEU, OFFSET: 24, LEN: 1, DESC: Mindestanzeigezeit im Display neu triggern, DATA TYPE BOOL
+		SIGNAL LL_STBL, OFFSET: 25, LEN: 1, DESC: Leerlauf ist stabil, DATA TYPE BOOL
+		SIGNAL VGL_ST, OFFSET: 26, LEN: 1, DESC: Vorglühstatus, DATA TYPE BOOL
+		SIGNAL MSS_DEF, OFFSET: 27, LEN: 1, DESC: Motor Start/Stop Anlage defekt, DATA TYPE BOOL
+		SIGNAL MSS_KL, OFFSET: 28, LEN: 1, DESC: Motor Start/Stop Anlage Kontrollampe, DATA TYPE BOOL
+		SIGNAL MSS_AKT, OFFSET: 29, LEN: 1, DESC: Motor Start/Stop Anlage aktiv, DATA TYPE BOOL
+		SIGNAL KOMP_BAUS, OFFSET: 30, LEN: 1, DESC: Kälte-Kompressor ausschalten: Beschleunigung, DATA TYPE BOOL
+		SIGNAL CRASH_MS, OFFSET: 31, LEN: 1, DESC: Crashsignal von Motorsteuerung, DATA TYPE BOOL
+		SIGNAL PWG_ERR, OFFSET: 32, LEN: 1, DESC: Fehler Pedalwertgeber, DATA TYPE BOOL
+		SIGNAL LL, OFFSET: 33, LEN: 1, DESC: Leerlauf, DATA TYPE BOOL
+		SIGNAL KUEB_S_A, OFFSET: 34, LEN: 1, DESC: Anf. Wandlerüberbrückungskupplung 'schlupfen', DATA TYPE BOOL
+		SIGNAL TM_REG, OFFSET: 35, LEN: 1, DESC: Tempomat regelt, DATA TYPE BOOL
+		SIGNAL V_MAX_EIN, OFFSET: 36, LEN: 1, DESC: Geschwindigkeitsbegrenzung eingeschaltet, DATA TYPE BOOL
+		SIGNAL KD_MS, OFFSET: 37, LEN: 1, DESC: Kickdown (Umstellungsszenario offen!), DATA TYPE BOOL
+		SIGNAL NOTL, OFFSET: 38, LEN: 1, DESC: Notlaufbetrieb, DATA TYPE BOOL
+		SIGNAL V_MAX_SUM, OFFSET: 39, LEN: 1, DESC: Warnsummer ein, DATA TYPE BOOL
+		SIGNAL FBS_SE, OFFSET: 40, LEN: 1, DESC: FBS: Start Error, DATA TYPE BOOL
+		SIGNAL V_DSPL_PGB, OFFSET: 41, LEN: 1, DESC: Anzeige 'Winterreifenbegrenzung erreicht' am Display, DATA TYPE BOOL
+		SIGNAL TM_EIN, OFFSET: 42, LEN: 1, DESC: Tempomat eingeschaltet, DATA TYPE BOOL
+		SIGNAL V_MAX_REG, OFFSET: 43, LEN: 1, DESC: Geschwindigkeitsbegrenzer regelt, DATA TYPE BOOL
+		SIGNAL V_DSPL_LIM, OFFSET: 44, LEN: 1, DESC: Anzeige 'Limit ?' am Display, DATA TYPE BOOL
+		SIGNAL V_DSPL_ERR, OFFSET: 45, LEN: 1, DESC: Anzeige 'Fehler' am Display, DATA TYPE BOOL
+		SIGNAL V_DSPL_BL, OFFSET: 46, LEN: 1, DESC: Display blinkt, DATA TYPE BOOL
+		SIGNAL V_DSPL_EIN, OFFSET: 47, LEN: 1, DESC: Geschw.begrenzer-/Tempomat-Display ein, DATA TYPE BOOL
+		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: Faktor für Abwert. d. max. Mom. bei abneh. A.druck, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL V_MAX_TM, OFFSET: 56, LEN: 8, DESC: Eingestellte Höchst- oder Tempomatgeschwindigkeit, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME MS_101h (0x00000101)
+		SIGNAL MS_FBS, OFFSET: 0, LEN: 64, DESC: FBS-Botschaft an EZS (8 Byte), DATA TYPE ISO_TP
+	FRAME MS_100h (0x00000100)
+		SIGNAL FBS, OFFSET: 0, LEN: 64, DESC: FBS-Botschaft an EZS (8 Byte), DATA TYPE ISO_TP
+	FRAME EDC_MESS8 (0x0000075F)
+		SIGNAL EDC_MESS8, OFFSET: 0, LEN: 64, DESC: Dauerlauf Messsignale, DATA TYPE ISO_TP
+	FRAME EDC_MESS7 (0x0000075E)
+		SIGNAL EDC_MESS7, OFFSET: 0, LEN: 64, DESC: Dauerlauf Messsignale, DATA TYPE ISO_TP
+	FRAME EDC_MESS6 (0x0000075D)
+		SIGNAL EDC_MESS6, OFFSET: 0, LEN: 64, DESC: Dauerlauf Messsignale, DATA TYPE ISO_TP
+	FRAME EDC_MESS5 (0x0000075C)
+		SIGNAL EDC_MESS5, OFFSET: 0, LEN: 64, DESC: Dauerlauf Messsignale, DATA TYPE ISO_TP
+	FRAME EDC_MESS4 (0x00000673)
+		SIGNAL EDC_MESS4, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EDC_MESS3 (0x00000672)
+		SIGNAL EDC_MESS3, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EDC_MESS2 (0x00000671)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME EDC_MESS1 (0x00000670)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME D_RS_SCRCM (0x000007EC)
+		SIGNAL D_RS_SCRCM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_MS (0x000007E8)
+		SIGNAL D_RS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_HCP (0x000007EA)
+		SIGNAL D_RS_HCP, OFFSET: 0, LEN: 64, DESC: Diagnostic-Response, DATA TYPE ISO_TP
+	FRAME D_RS_FSCM_OBD (0x000007EB)
+		SIGNAL D_RS_FSCM_OBD, OFFSET: 0, LEN: 64, DESC: OBD Diagnose-Request, DATA TYPE ISO_TP
+	FRAME D_RS_FSCM (0x00000779)
+		SIGNAL D_RS_FSCM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_CNG (0x000007B6)
+		SIGNAL D_RS_CNG, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+	FRAME CNG_ANZ (0x00000326)
+		SIGNAL TANK_FS_GAS, OFFSET: 0, LEN: 8, DESC: Tankfüllstand Erdgas, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL BTRBSART_UMSCH_BEST, OFFSET: 10, LEN: 1, DESC: Bestätigung Betriebsartumschaltung, DATA TYPE BOOL
+		SIGNAL BTRBSART, OFFSET: 11, LEN: 1, DESC: Betriebsart, DATA TYPE BOOL
+		SIGNAL BTRBSART_UMSCH_AKTIV, OFFSET: 12, LEN: 1, DESC: Betriebsartumschaltung aktiv, DATA TYPE BOOL
+		SIGNAL BTRBSART_STATUS, OFFSET: 13, LEN: 1, DESC: Status aktuelle Betriebsart, DATA TYPE BOOL
+		SIGNAL TANK_KL_GAS, OFFSET: 14, LEN: 1, DESC: Erdgas-Tankdeckel offen Kontrollampe, DATA TYPE BOOL
+		SIGNAL TFSM_GAS, OFFSET: 15, LEN: 1, DESC: Tankfüllstandsminimum Erdgas, DATA TYPE BOOL
+		SIGNAL CNG_M8, OFFSET: 16, LEN: 1, DESC: Meldung '', DATA TYPE BOOL
+		SIGNAL CNG_M7, OFFSET: 17, LEN: 1, DESC: Meldung '', DATA TYPE BOOL
+		SIGNAL CNG_M6, OFFSET: 18, LEN: 1, DESC: Meldung '', DATA TYPE BOOL
+		SIGNAL CNG_M5, OFFSET: 19, LEN: 1, DESC: Meldung '', DATA TYPE BOOL
+		SIGNAL CNG_M4, OFFSET: 20, LEN: 1, DESC: Meldung 'Verbot Betriebsart Benzin wegen Störung', DATA TYPE BOOL
+		SIGNAL CNG_M3, OFFSET: 21, LEN: 1, DESC: Meldung 'Verbot Betriebsart Benzin wegen Füllstand zu gering', DATA TYPE BOOL
+		SIGNAL CNG_M2, OFFSET: 22, LEN: 1, DESC: Meldung 'Verbot Betriebsart Erdgas wegen Störung', DATA TYPE BOOL
+		SIGNAL CNG_M1, OFFSET: 23, LEN: 1, DESC: Meldung 'Verbot Betriebsart Erdgas wegen Füllstand zu gering', DATA TYPE BOOL
+		SIGNAL P_CNG, OFFSET: 24, LEN: 8, DESC: Hochdruck CNG, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME ADBLUE_DISP_RQ (0x000002A2)
+		SIGNAL Adblue_RemainDist, OFFSET: 0, LEN: 16, DESC: Adblue remaining distance, DATA TYPE ENUM
+			ENUM ANF_N, RAW: 1, DESC: Unknown
+			ENUM IDLE, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL AdBlue_ResMrk_Disp, OFFSET: 16, LEN: 2, DESC: AdBlue reserve marker of AdBlue fuel level, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL AdBlue_MenueTxt_Disp, OFFSET: 18, LEN: 3, DESC: View text in instrument cluster of the possible values, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL Adblue_WarnLvl3, OFFSET: 21, LEN: 1, DESC: Start Restriction Counter, DATA TYPE BOOL
+		SIGNAL Adblue_WarnLvl2, OFFSET: 22, LEN: 1, DESC: Check Fluid, DATA TYPE BOOL
+		SIGNAL Adblue_WarnLvl1, OFFSET: 23, LEN: 1, DESC: Tank full, DATA TYPE BOOL
+		SIGNAL AdblueEU6_RefillChkMsg_Md, OFFSET: 24, LEN: 1, DESC: Adblue (EU6) refill and check message display request mode, DATA TYPE BOOL
+		SIGNAL AdBlue_ReplView_Disp_Rq, OFFSET: 25, LEN: 1, DESC: Show Replacement view in case of SCRCM failure, DATA TYPE BOOL
+		SIGNAL EngSt_Remain, OFFSET: 26, LEN: 6, DESC: Remaining engine starts, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL AdblueEU6_ChkMsg_Disp_Rq_V2, OFFSET: 32, LEN: 2, DESC: Adblue (EU6) check message display request, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL AdblueEU6_RefillMsg_Disp_Rq_V2, OFFSET: 34, LEN: 2, DESC: Adblue (EU6) refill message display request, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL AdblueEU6_RemainDist, OFFSET: 36, LEN: 12, DESC: Remaining distance until 'No Restart' (EU6), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL AdblueEU6_Msg_Disp_TrgrRq, OFFSET: 48, LEN: 1, DESC: Retrigger Display Remaining Distance (EU6), DATA TYPE BOOL
+		SIGNAL AdBlue_TankLvl_Disp_Rq, OFFSET: 49, LEN: 7, DESC: Füllstand AdBlue Tank, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DSR_RDY, RAW: 1, DESC: Unknown
+			ENUM NDEF2, RAW: 2, DESC: Unknown
+			ENUM DSR_ON, RAW: 3, DESC: Unknown
+		SIGNAL Adblue_RemainDistSrvce_Disp, OFFSET: 56, LEN: 8, DESC: Reichweite Adblue-Tank für das Service display, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME AAD_580h (0x00000580)
+		SIGNAL FTK_BMI, OFFSET: 0, LEN: 8, DESC: Kennziffer Beschleunigungstyp (>100: dynamischer), DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL FTK_LMI, OFFSET: 8, LEN: 8, DESC: Kennziffer Querbeschleunigungstyp (>100: dynamischer), DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL FTK_VMI, OFFSET: 16, LEN: 8, DESC: Kennziffer Bremstyp (>100: dynamischer), DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL FTK_DPW, OFFSET: 32, LEN: 8, DESC: Max. diff. Pedalwinkelwert pro Manöver, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Unknown
+			ENUM SKL1, RAW: 1, DESC: Unknown
+			ENUM SKL2, RAW: 2, DESC: Unknown
+			ENUM SKL3, RAW: 3, DESC: Unknown
+			ENUM SKL4, RAW: 4, DESC: Unknown
+			ENUM SKL5, RAW: 5, DESC: Unknown
+			ENUM SKL6, RAW: 6, DESC: Unknown
+			ENUM SKL7, RAW: 7, DESC: Unknown
+			ENUM SKL8, RAW: 8, DESC: Unknown
+			ENUM SKL9, RAW: 9, DESC: Unknown
+			ENUM SKL10, RAW: 10, DESC: Unknown
+			ENUM SKL11, RAW: 11, DESC: Unknown
+			ENUM SKL12, RAW: 12, DESC: Unknown
+			ENUM SKL13, RAW: 13, DESC: Unknown
+			ENUM SKL14, RAW: 14, DESC: Unknown
+			ENUM SKL15, RAW: 15, DESC: Unknown
+		SIGNAL AADKB, OFFSET: 40, LEN: 8, DESC: Kontinuierliche Fahrerbeobachtung, DATA TYPE ENUM
+			ENUM ERR_DIAG, RAW: 0, DESC: Unknown
+			ENUM NORM, RAW: 1, DESC: Unknown
+			ENUM N_DEF, RAW: 2, DESC: Unknown
+			ENUM ABGAS, RAW: 3, DESC: Unknown
+		SIGNAL AADKBDYN, OFFSET: 48, LEN: 1, DESC: Spontane Dynamikanforderung, DATA TYPE BOOL
+		SIGNAL AADNT, OFFSET: 56, LEN: 8, DESC: Nervosität, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+ECU PTS
+	FRAME SG_APPL_PTS_APX (0x00000531)
+		SIGNAL SG_APPL_PTS_APX, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME SD_RS_PTS_APX (0x000005B1)
+		SIGNAL SD_RS_PTS_APX, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Request, DATA TYPE ISO_TP
+	FRAME PTS_A1 (0x000002B0)
+		SIGNAL PTS_ST_AUS, OFFSET: 0, LEN: 1, DESC: PTS ist komplett ausgeschaltet, DATA TYPE BOOL
+	FRAME D_RS_PTS_APX (0x000004B1)
+		SIGNAL D_RS_PTS_APX, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU SSP
+	FRAME SSP_RS_SSP (0x00000381)
+		SIGNAL CurDtyCyc_Actl, OFFSET: 0, LEN: 8, DESC: Actual current duty cycle, DATA TYPE ENUM
+			ENUM PASSIV, RAW: 0, DESC: Unknown
+			ENUM VOR, RAW: 1, DESC: Unknown
+			ENUM RUECK, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL SSP_Diag_Stat, OFFSET: 8, LEN: 8, DESC: SSP diagnostics state, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MC_SSP_RS_SSP, OFFSET: 48, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL CRC_SSP_RS_SSP, OFFSET: 56, LEN: 8, DESC: CRC-Checksumme Byte 1 - 7 nach SAE J1850, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME SG_APPL_SSP (0x0000051E)
+		SIGNAL SG_APPL, OFFSET: 0, LEN: 64, DESC: Steuergerät an externe Applikation, DATA TYPE ISO_TP
+	FRAME SD_RS_SSP (0x0000059E)
+		SIGNAL SD_RS_SSP, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME MESS_SSP (0x00000786)
+		SIGNAL MESS_SSP, OFFSET: 0, LEN: 64, DESC: Measurement data, DATA TYPE ISO_TP
+	FRAME D_RS_SSP (0x0000049E)
+		SIGNAL D_RS_SSP, OFFSET: 0, LEN: 64, DESC: Diagnostic-Response, DATA TYPE ISO_TP
+ECU TCO
+	FRAME TCO_5BAh (0x000005BA)
+		SIGNAL TACH_ACK, OFFSET: 7, LEN: 1, DESC: Acknowledge, DATA TYPE BOOL
+	FRAME TCO_5B0h (0x000005B0)
+		SIGNAL SECONDS, OFFSET: 0, LEN: 8, DESC: Seconds, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM DBC_LIM, RAW: 1, DESC: Unknown
+			ENUM DBC_AUS, RAW: 2, DESC: Unknown
+			ENUM DBC_AUS_TON, RAW: 3, DESC: Unknown
+			ENUM DBC_NV_AKT, RAW: 4, DESC: Unknown
+			ENUM DBC_NV_LIM, RAW: 5, DESC: Unknown
+			ENUM AAS_EIN, RAW: 6, DESC: Unknown
+			ENUM AAS_AUS, RAW: 7, DESC: Unknown
+			ENUM AAS_AUS_TON, RAW: 8, DESC: Unknown
+			ENUM AAS_NV_LIM, RAW: 9, DESC: Unknown
+			ENUM AAS_NV_OBJ, RAW: 10, DESC: Unknown
+			ENUM AAS_NV_FBED, RAW: 11, DESC: Unknown
+			ENUM AAS_FOLGEN, RAW: 12, DESC: Unknown
+			ENUM AAS_OBJ_VERLUST, RAW: 13, DESC: Unknown
+			ENUM AAS_OBJ_WECHSEL, RAW: 14, DESC: Unknown
+			ENUM PAS_EIN, RAW: 15, DESC: Unknown
+			ENUM PAS_AUS, RAW: 16, DESC: Unknown
+			ENUM PAS_NV, RAW: 17, DESC: Unknown
+		SIGNAL MINUTES, OFFSET: 8, LEN: 8, DESC: Minutes, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL HOURS, OFFSET: 16, LEN: 8, DESC: Hours, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL MONTH, OFFSET: 24, LEN: 8, DESC: Month, DATA TYPE ENUM
+			ENUM NORM, RAW: 0, DESC: Unknown
+			ENUM INIT, RAW: 1, DESC: Unknown
+			ENUM DIAG, RAW: 2, DESC: Unknown
+			ENUM EMT, RAW: 3, DESC: Unknown
+			ENUM TBCC, RAW: 4, DESC: Unknown
+			ENUM FLT, RAW: 5, DESC: Unknown
+			ENUM CTRL_ACTV, RAW: 6, DESC: Unknown
+			ENUM AMG_OFF, RAW: 7, DESC: Unknown
+			ENUM OFF_AMG_SPORT, RAW: 8, DESC: Unknown
+		SIGNAL DAY, OFFSET: 32, LEN: 8, DESC: Day, DATA TYPE ENUM
+			ENUM TBCC_OFF, RAW: 0, DESC: Unknown
+			ENUM TBCC_ON, RAW: 1, DESC: Unknown
+			ENUM TBCC_REG_ACTV, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL YEAR, OFFSET: 40, LEN: 8, DESC: Year, DATA TYPE ENUM
+			ENUM IDLE, RAW: 0, DESC: Unknown
+			ENUM SUPP, RAW: 1, DESC: Unknown
+			ENUM ENBL, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL M_OFFSET, OFFSET: 48, LEN: 8, DESC: Local Minute Offset, DATA TYPE ENUM
+			ENUM BREMSE_NBET, RAW: 0, DESC: Unknown
+			ENUM BREMSE_BET, RAW: 1, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL D_OFFSET, OFFSET: 56, LEN: 8, DESC: Local Hour Offset, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME TCO_4B0h (0x000004B0)
+		SIGNAL DIST_TOTAL, OFFSET: 0, LEN: 32, DESC: Vehicle Distance, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM SCHMUTZ, RAW: 1, DESC: Unknown
+			ENUM ART_DEF, RAW: 2, DESC: Unknown
+			ENUM ART_LIM_DEF, RAW: 3, DESC: Unknown
+			ENUM EXT, RAW: 4, DESC: Unknown
+			ENUM DBC_DEF, RAW: 5, DESC: Unknown
+			ENUM SCHMUTZ_DBC_DEF, RAW: 6, DESC: Unknown
+			ENUM ART_DBC_DEF, RAW: 7, DESC: Unknown
+			ENUM ART_LIM_DBC_DEF, RAW: 8, DESC: Unknown
+			ENUM EXT_DBC, RAW: 9, DESC: Unknown
+		SIGNAL DIST_TRIP, OFFSET: 32, LEN: 32, DESC: Trip Distance, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+	FRAME TCO_3B0h (0x000003B0)
+		SIGNAL D_REC, OFFSET: 0, LEN: 2, DESC: Drive recognize, DATA TYPE ENUM
+			ENUM N_DEF, RAW: 0, DESC: Unknown
+			ENUM LO, RAW: 1, DESC: Unknown
+			ENUM MID, RAW: 2, DESC: Unknown
+			ENUM HI, RAW: 3, DESC: Unknown
+		SIGNAL D2_W_STAT, OFFSET: 2, LEN: 3, DESC: Driver 2 working state, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL D1_W_STAT, OFFSET: 5, LEN: 3, DESC: Driver 1 working state, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: Unknown
+			ENUM G1, RAW: 1, DESC: Unknown
+			ENUM G2, RAW: 2, DESC: Unknown
+			ENUM G3, RAW: 3, DESC: Unknown
+			ENUM G4, RAW: 4, DESC: Unknown
+			ENUM G5, RAW: 5, DESC: Unknown
+			ENUM G6, RAW: 6, DESC: Unknown
+			ENUM G7, RAW: 7, DESC: Unknown
+		SIGNAL OVERSPEED, OFFSET: 8, LEN: 2, DESC: Overspeed, DATA TYPE ENUM
+			ENUM NBET, RAW: 0, DESC: Unknown
+			ENUM NDEF, RAW: 1, DESC: Unknown
+			ENUM BET, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL D1_CARD, OFFSET: 10, LEN: 2, DESC: Driver 1 card, DATA TYPE ENUM
+			ENUM GS_OK, RAW: 0, DESC: Unknown
+			ENUM GS_NOK, RAW: 1, DESC: Unknown
+			ENUM GS_FEHLER, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL D1_TR_STAT, OFFSET: 12, LEN: 4, DESC: Driver 1 time related states, DATA TYPE ENUM
+			ENUM GS_OK, RAW: 0, DESC: Unknown
+			ENUM GS_NOK, RAW: 1, DESC: Unknown
+			ENUM GS_FEHLER, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL D2_CARD, OFFSET: 18, LEN: 2, DESC: Driver 2 card, DATA TYPE ENUM
+			ENUM MH_ZU, RAW: 0, DESC: Unknown
+			ENUM MH_AUF, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL D2_TR_STAT, OFFSET: 20, LEN: 4, DESC: Driver 2 time related states, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL SYS_PER, OFFSET: 26, LEN: 2, DESC: system performance, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL HAND_INFO, OFFSET: 28, LEN: 2, DESC: handling information, DATA TYPE ENUM
+			ENUM NDEF0, RAW: 0, DESC: Unknown
+			ENUM OK, RAW: 1, DESC: Unknown
+			ENUM ERROR, RAW: 2, DESC: Unknown
+			ENUM SNA, RAW: 3, DESC: Unknown
+		SIGNAL SYS_EVENT, OFFSET: 30, LEN: 2, DESC: system event, DATA TYPE ENUM
+			ENUM NBET, RAW: 0, DESC: Unknown
+			ENUM BET, RAW: 1, DESC: Unknown
+			ENUM NDEF, RAW: 2, DESC: Unknown
+			ENUM SNV, RAW: 3, DESC: Unknown
+		SIGNAL TACH_ROTA, OFFSET: 32, LEN: 16, DESC: Tachograph Output Shaft Speed, DATA TYPE ENUM
+			ENUM OK, RAW: 0, DESC: Unknown
+			ENUM RANGE_HIGH, RAW: 1, DESC: Unknown
+			ENUM RANGE_LOW, RAW: 2, DESC: Unknown
+			ENUM SHORT_BAT, RAW: 3, DESC: Unknown
+			ENUM OPEN, RAW: 4, DESC: Unknown
+			ENUM SHORT_GND, RAW: 5, DESC: Unknown
+			ENUM SNA, RAW: 7, DESC: Unknown
+		SIGNAL TACH_SPEED, OFFSET: 48, LEN: 16, DESC: Tachograph vehicle speed, DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: Unknown
+			ENUM N, RAW: 6, DESC: Unknown
+			ENUM R, RAW: 7, DESC: Unknown
+			ENUM P, RAW: 8, DESC: Unknown
+			ENUM PLUS, RAW: 9, DESC: Unknown
+			ENUM MINUS, RAW: 10, DESC: Unknown
+			ENUM N_ZW_D, RAW: 11, DESC: Unknown
+			ENUM R_ZW_N, RAW: 12, DESC: Unknown
+			ENUM P_ZW_R, RAW: 13, DESC: Unknown
+			ENUM SNV, RAW: 15, DESC: Unknown
+	FRAME D_RS_TCO (0x0000079D)
+		SIGNAL D_RS_TCO, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP
+ECU VG
+	FRAME VG_MESS4 (0x000006B3)
+		SIGNAL MESS4, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME VG_MESS3 (0x000006B2)
+		SIGNAL MESS3, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME VG_MESS2 (0x000006B1)
+		SIGNAL MESS2, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME VG_MESS1 (0x000006B0)
+		SIGNAL MESS1, OFFSET: 0, LEN: 64, DESC: Messwerte, DATA TYPE ISO_TP
+	FRAME VG_APPL1 (0x00000638)
+		SIGNAL APPL1, OFFSET: 0, LEN: 64, DESC: Applikation, DATA TYPE ISO_TP
+	FRAME VG_428h (0x00000428)
+		SIGNAL SH_IMP, OFFSET: 0, LEN: 1, DESC: Schaltbedingungen nicht erfüllt (shift impossible), DATA TYPE BOOL
+		SIGNAL VG_LOL, OFFSET: 1, LEN: 1, DESC: Geländegang Infolampe (low lamp), DATA TYPE BOOL
+		SIGNAL VG_ERR, OFFSET: 2, LEN: 1, DESC: Fehler VG (ECU failure detected), DATA TYPE BOOL
+		SIGNAL SH_ABTD, OFFSET: 4, LEN: 1, DESC: Schaltvorgang abgebrochen (shift aborted), DATA TYPE BOOL
+		SIGNAL VG_GANG, OFFSET: 5, LEN: 3, DESC: Aktueller Gang Verteilergetriebe, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL VG_TGL, OFFSET: 16, LEN: 1, DESC: Toggle Bit, DATA TYPE BOOL
+		SIGNAL VG_VA_SIP, OFFSET: 17, LEN: 1, DESC: Vorderachse: Shift in progress, DATA TYPE BOOL
+		SIGNAL VG_LOCK_Y, OFFSET: 18, LEN: 1, DESC: Triebstrang gekoppelt quer, DATA TYPE BOOL
+		SIGNAL VG_VA_ST, OFFSET: 19, LEN: 2, DESC: Status Vorderachse, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: Unknown
+		SIGNAL VG_FZG_UG, OFFSET: 21, LEN: 1, DESC: Fzg. mit Untersetzungsgetriebe, DATA TYPE BOOL
+		SIGNAL VG_FZG_LOCK, OFFSET: 22, LEN: 1, DESC: Fzg. mit koppelbarem Triebstrang, DATA TYPE BOOL
+		SIGNAL VG_FZG_VA, OFFSET: 23, LEN: 1, DESC: Fzg. mit abschaltbarer Vorderachse, DATA TYPE BOOL
+	FRAME SD_RS_DSH (0x0000073C)
+		SIGNAL SD_RS_VG, OFFSET: 0, LEN: 64, DESC: Systemdiagnose-Response, DATA TYPE ISO_TP
+	FRAME D_RS_VG (0x000007B9)
+		SIGNAL D_RS_VG, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnose-Response, DATA TYPE ISO_TP

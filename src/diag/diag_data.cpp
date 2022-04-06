@@ -2,7 +2,7 @@
 #include "sensors.h"
 #include "solenoids/solenoids.h"
 
-DATA_GEARBOX_SENSORS get_gearbox_sensors() {
+DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
     RpmReading d;
     bool b = false;
@@ -26,6 +26,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors() {
     } else {
         ret.parking_lock = 0xFF;
     }
+    ret.calc_ratio = g->get_gear_ratio();
     return ret;
 }
 

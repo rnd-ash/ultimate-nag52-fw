@@ -383,7 +383,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == 0xE1) { // ECU Serial number
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)"ULTIMATENAG52", 14);
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
-        DATA_GEARBOX_SENSORS r = get_gearbox_sensors();
+        DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
     } else if (args[0] == RLI_SOLENOID_STATUS) {
         DATA_SOLENOIDS r = get_solenoid_data();

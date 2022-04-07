@@ -23,7 +23,7 @@ float find_temp_ramp_speed_multiplier(int temp_c) {
     return (ramp_speed_temp_normalizer[min] + ((dy/dx)) * (temp_raw-(min*10)));
 }
 
-float find_rpm_multiplier(int engine_rpm) {
+float find_rpm_pressure_multiplier(int engine_rpm) {
     if (engine_rpm <= 0) { return rpm_normalizer[0]; }
     else if (engine_rpm > 8000) { return rpm_normalizer[8]; }
     int min = engine_rpm/1000;
@@ -109,6 +109,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
         case ProfileGearChange::FOUR_THREE:
             sd.initial_spc_pwm = find_spc_pressure(spc_4_3, this->sensor_data);
             sd.initial_mpc_pwm = find_mpc_pressure(mpc_4_3, this->sensor_data);
+            sd.targ_g = 3; sd.curr_g = 4;
             sd.shift_solenoid = sol_y4;
             sd.torque_cut_multiplier = 0.9;
             sd.sip_threshold = SIP_4_3;
@@ -130,9 +131,12 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.sip_threshold = SIP_2_1;
             break;
     }
-    sd.spc_dec_speed = chars.shift_speed * find_temp_ramp_speed_multiplier(sensors->atf_temp);
+    sd.spc_dec_speed = (chars.shift_speed * find_temp_ramp_speed_multiplier(sensors->atf_temp));
     if (this->adapt_map != nullptr) {
         sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
+    }
+    if (sd.initial_mpc_pwm > 10) {
+        sd.initial_mpc_pwm-=10;
     }
     if (sd.targ_g < sd.curr_g) {
         sd.spc_dec_speed *= 0.75; // Make downshifting a little smoother

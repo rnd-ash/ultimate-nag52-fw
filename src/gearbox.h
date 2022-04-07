@@ -59,6 +59,9 @@ public:
     void diag_inhibit_control() { this->control_solenoids = false; }
     void diag_regain_control() { this->control_solenoids = true; }
     SensorData sensor_data;
+        uint16_t get_gear_ratio() {
+        return this->sensor_data.gear_ratio * 100;
+    }
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);

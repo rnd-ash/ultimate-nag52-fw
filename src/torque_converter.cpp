@@ -28,17 +28,27 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
+#define TCC_PREFILL 200
+
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     if (sensors->input_rpm < 1000) { // RPM too low!
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
         sol_tcc->write_pwm_12_bit(0);
+        prefilling = false;
         return;
     }
 
-    if (this->was_idle && this->curr_tcc_pwm > 50) {
+    uint64_t now = esp_timer_get_time() / 1000;
+    if (this->was_idle && !prefilling) {
         this->was_idle = false;
-        this->curr_tcc_pwm *= 0.5; // Faster response for TCC
+        this->prefilling = true;
+        prefill_start_time = now;
+        this->curr_tcc_pwm = 0;
+    }
+    if (now - prefill_start_time < 3000) {
+        sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
+        return;
     }
 
     int trq = sensors->static_torque;
@@ -59,6 +69,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             // Hard coded for coasting
             max_allowed_slip = 250;
             min_allowed_slip = 50;
+
 
         }
         // This means that at 1000Rpm, we will get 0.9 the slip (More slip)
@@ -81,20 +92,10 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         // Decrease pressure, but only if we have pedal input
         this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
     }
-    int tcc_offset = 0;
-    if (this->curr_tcc_pwm != 0 ) {
-        tcc_offset = 250;
-    } else {
-        this->mpc_curr_compensation = 0;
-    }
-    //if (this->curr_tcc_pwm != 0 && !this->inhibit_increase) {
-    //    mpc_curr_compensation = is_shifting ? (sol_mpc->get_pwm() / 30) : 0;
-    //    this->curr_tcc_pwm += mpc_curr_compensation;
-    //}
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
+    sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {

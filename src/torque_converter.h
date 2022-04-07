@@ -30,6 +30,8 @@ class TorqueConverter {
         bool inhibit_increase = false;
         bool was_idle = false;
         uint16_t mpc_curr_compensation = 0;
+        bool prefilling = false;
+        uint64_t prefill_start_time = 0;
 };
 
 #endif

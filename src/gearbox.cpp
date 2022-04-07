@@ -243,17 +243,18 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     float curr_mpc_pwm = sd.initial_mpc_pwm;
     int start_torque = sensor_data.static_torque; // Save this for later
     int limited_torque = start_torque;
-    if (sensor_data.static_torque > 0) {
+    sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm/2.0, this->sensor_data.voltage); // Open MPC, but pressure HIGH
+    sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC to lower than MPC (prevents gear change)
+    sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start prefill
+    vTaskDelay(500); // prefill (TODO - Adjust time delay)
+    if (sensor_data.static_torque > 0) { // Cut torque now!
         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
         limited_torque = max(0, (int)(sensor_data.static_torque*sd.torque_cut_multiplier));
         egs_can_hal->set_requested_torque(limited_torque);
     }
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
-    sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage);
-    sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Start shifting
-    sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
+    sol_mpc->write_pwm_percent_with_voltage(curr_mpc_pwm, this->sensor_data.voltage); // Drop MPC pressure, shift should now start!
     uint32_t elapsed = 0; // Counter for shift timing
-
     // Init counters for Input RPM measuring and ratio measuring
     int shift_start_rpm = this->sensor_data.input_rpm;
     int start_ratio = this->sensor_data.gear_ratio*100;
@@ -339,9 +340,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     sol_spc->write_pwm_12_bit(0);
     vTaskDelay(100);
     sd.shift_solenoid->write_pwm_12_bit(0);
-    sol_mpc->write_pwm_12_bit(0);
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
+    sol_mpc->write_pwm_12_bit(0);
     this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     this->shifting = false;
     this->flaring = false;

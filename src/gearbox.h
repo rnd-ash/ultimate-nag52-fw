@@ -43,7 +43,7 @@ const static GearRatioLimit GEAR_RATIO_LIMITS[7] {
     GearRatioLimit { .max = RAT_2*(1.0+MAX_LIMIT), .min = RAT_2*(1.0-MAX_LIMIT) }, // 2
     GearRatioLimit { .max = RAT_3*(1.0+MAX_LIMIT), .min = RAT_3*(1.0-MAX_LIMIT) }, // 3
     GearRatioLimit { .max = RAT_4*(1.0+MAX_LIMIT), .min = RAT_4*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5*(1.0+MAX_LIMIT), .min = RAT_5*(1.0-MAX_LIMIT) }, // 5
+    GearRatioLimit { .max = RAT_5*(1.0+MAX_LIMIT/2), .min = RAT_5*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
     GearRatioLimit { .max = RAT_R1*(1.0-MAX_LIMIT), .min = RAT_R1*(1.0+MAX_LIMIT) }, // R1
     GearRatioLimit { .max = RAT_R2*(1.0-MAX_LIMIT), .min = RAT_R2*(1.0+MAX_LIMIT) }, // R2
 };

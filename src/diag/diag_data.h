@@ -17,6 +17,7 @@
 #define RLI_GEARBOX_SENSORS 0x20 // Sensor data status
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
+#define RLI_SYS_USAGE       0x23 // Brain usage
 
 // Gearbox sensor struct
 typedef struct {
@@ -58,9 +59,17 @@ typedef struct {
     PaddlePosition paddle_position;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
+/// System usage stats 
+typedef struct {
+    uint16_t core1_usage;
+    uint16_t core2_usage;
+    uint32_t free_heap;
+} __attribute__ ((packed)) DATA_SYS_USAGE;
+
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data();
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
+DATA_SYS_USAGE get_sys_usage();
 
 
 #endif // __DIAG_DATA_H__

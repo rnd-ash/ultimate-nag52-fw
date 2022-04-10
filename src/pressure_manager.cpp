@@ -59,6 +59,23 @@ uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors) {
     return locate_pressure_map_value(map, load);
 }
 
+uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors) {
+    int torque = sensors->static_torque;
+    if (torque < 0) {
+        torque *= -1;
+    }
+    int torque_load = (torque*100/MAX_TORQUE_RATING_NM);
+    uint16_t raw = locate_pressure_map_value(working_norm_pressure, torque_load);
+    uint16_t engine_rpm = sensors->engine_rpm;
+    if (engine_rpm <= 0) { return rpm_normalizer[0]; }
+    else if (engine_rpm > 8000) { return rpm_normalizer[8]; }
+    int min = engine_rpm/1000;
+    int max = min+1;
+    float dy = rpm_working_normalizer[max] - rpm_working_normalizer[min];
+    float dx = (max-min)*1000;
+    return raw*(rpm_working_normalizer[min] + ((dy/dx)) * (engine_rpm-(min*1000)));
+}
+
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
     return find_temp_multiplier(atf_temp);
 }
@@ -132,16 +149,13 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             break;
     }
     sd.spc_dec_speed = (chars.shift_speed * find_temp_ramp_speed_multiplier(sensors->atf_temp));
-    if (this->adapt_map != nullptr) {
-        sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
-    }
-    if (sd.initial_mpc_pwm > 10) {
-        sd.initial_mpc_pwm-=10;
-    }
+    //if (this->adapt_map != nullptr) {
+    //    sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
+    //}
     if (sd.targ_g < sd.curr_g) {
         sd.spc_dec_speed *= 0.75; // Make downshifting a little smoother
     }
-    sd.mpc_dec_speed = sd.spc_dec_speed/4.0; // For now
+    sd.mpc_dec_speed = sd.spc_dec_speed/2.0; // For now
     return sd;
 }
 

@@ -1,6 +1,7 @@
 #include "diag_data.h"
 #include "sensors.h"
 #include "solenoids/solenoids.h"
+#include "perf_mon.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -15,16 +16,15 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
         ret.n3_rpm = d.n3_raw;
         ret.calculated_rpm = d.calc_rpm;
     }
-    if(!Sensors::read_atf_temp(&ret.atf_temp_c)) {
+    if (Sensors::parking_lock_engaged(&b)) {
+         ret.parking_lock = b;
+         ret.atf_temp_c = g->sensor_data.atf_temp;
+    } else {
+        ret.parking_lock = 0xFF;
         ret.atf_temp_c = 0xFFFF;
     }
     if (!Sensors::read_vbatt(&ret.v_batt)) {
         ret.v_batt = 0xFFFF;
-    }
-    if (Sensors::parking_lock_engaged(&b)) {
-         ret.parking_lock = b;
-    } else {
-        ret.parking_lock = 0xFF;
     }
     ret.calc_ratio = g->get_gear_ratio();
     return ret;
@@ -71,5 +71,15 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
     ret.shifter_position = can_layer->get_shifter_position_ewm(now, 250);
+    return ret;
+}
+
+DATA_SYS_USAGE get_sys_usage() {
+    DATA_SYS_USAGE ret = {};
+
+    ret.free_heap = esp_get_free_heap_size();
+    CpuStats s = get_cpu_usage();
+    ret.core1_usage = s.load_core_1;
+    ret.core2_usage = s.load_core_2;
     return ret;
 }

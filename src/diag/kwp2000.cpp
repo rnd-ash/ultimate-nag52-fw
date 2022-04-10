@@ -391,7 +391,11 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_CAN_DATA_DUMP) {
         DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CAN_DATA_DUMP, (uint8_t*)&r, sizeof(DATA_CANBUS_RX));
-    } else {
+    } else if (args[0] == RLI_SYS_USAGE) {
+        DATA_SYS_USAGE r = get_sys_usage();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
+    }
+    else {
 
         // EGS52 emulation
 #ifdef EGS52_MODE

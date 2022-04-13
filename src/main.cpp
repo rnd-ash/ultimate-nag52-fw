@@ -54,21 +54,27 @@ SPEAKER_POST_CODE setup_tcm()
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
 
-    profiles[0] = manual;
-    profiles[1] = agility;
-    profiles[2] = comfort;
-    profiles[3] = standard;
-    profiles[4] = winter;
+    profiles[0] = standard;
+    profiles[1] = comfort;
+    profiles[2] = winter;
+    profiles[3] = agility;
+    profiles[4] = manual;
 
     if (!EEPROM::init_eeprom()) {
         return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
+
+    // Read profile ID on startup based on TCM config
+    profile_id = VEHICLE_CONFIG.default_profile;
+    if (profile_id > 4) {
+        profile_id = 0;
     }
 
     gearbox = new Gearbox();
     if (!gearbox->start_controller()) {
         return SPEAKER_POST_CODE::CONTROLLER_FAIL;
     }
-    gearbox->set_profile(profiles[0]);
+    gearbox->set_profile(profiles[profile_id]);
     return SPEAKER_POST_CODE::INIT_OK;
 }
 
@@ -84,7 +90,7 @@ void err_beep_loop(void* a) {
         egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
         egs_can_hal->set_gearbox_ok(false);
         while(1) {
-            spkr.post(p);
+            //spkr.post(p);
             vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);

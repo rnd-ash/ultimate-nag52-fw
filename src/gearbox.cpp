@@ -21,18 +21,18 @@ const float diff_ratio_f = (float)DIFF_RATIO / 1000.0;
     } \
 
 // ONLY FOR FORWARD GEARS!
-int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear) {
+int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, FwdRatios ratios) {
     switch (req_gear) {
         case GearboxGear::First:
-            return output_rpm*RAT_1;
+            return output_rpm*ratios[0];
         case GearboxGear::Second:
-            return output_rpm*RAT_2;
+            return output_rpm*ratios[1];
         case GearboxGear::Third:
-            return output_rpm*RAT_3;
+            return output_rpm*ratios[2];
         case GearboxGear::Fourth:
-            return output_rpm*RAT_4;
+            return output_rpm*ratios[3];
         case GearboxGear::Fifth:
-            return output_rpm*RAT_5;
+            return output_rpm*ratios[4];
         default:
             return output_rpm;
     }
@@ -60,6 +60,27 @@ Gearbox::Gearbox() {
     };
     this->tcc = new TorqueConverter();
     this->pressure_mgr = new PressureManager(&this->sensor_data);
+
+    if(VEHICLE_CONFIG.is_large_nag) {
+        this->gearboxConfig = GearboxConfiguration {
+            .max_torque = MAX_TORQUE_RATING_NM_LARGE,
+            .bounds = GEAR_RATIO_LIMITS_LARGE,
+            .ratios = RATIOS_LARGE,
+        };
+    } else {
+        this->gearboxConfig = GearboxConfiguration {
+            .max_torque = MAX_TORQUE_RATING_NM_SMALL,
+            .bounds = GEAR_RATIO_LIMITS_SMALL,
+            .ratios = RATIOS_SMALL,
+        };
+    }
+    ESP_LOGI("GEARBOX", "---GEARBOX INFO---");
+    ESP_LOGI("GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
+    for (int i = 0; i < 7; i++) {
+        char c = i < 5 ? 'D' : 'R';
+        int g = i < 5 ? i+1 : i-4;
+        ESP_LOGI("GEARBOX", "Gear ratio %c%d %.2f. Bounds: (%.2f - %.2f)", c, g, gearboxConfig.ratios[i], gearboxConfig.bounds[i].max, gearboxConfig.bounds[i].min);
+    }
 }
 
 void Gearbox::set_profile(AbstractProfile* prof) {
@@ -213,20 +234,11 @@ GearboxGear prev_gear(GearboxGear g) {
     }
 }
 
-int find_target_ratio(int targ_gear) {
-    switch(targ_gear) {
-        case 1:
-            return RAT_1*100;
-        case 2:
-            return RAT_2*100;
-        case 3:
-            return RAT_3*100;
-        case 4:
-            return RAT_4*100;
-        case 5:
-            return RAT_5*100;
-        default:
-            return 100;
+int find_target_ratio(int targ_gear, FwdRatios ratios) {
+    if (targ_gear >= 1 && targ_gear <= 5) {
+        return ratios[targ_gear-1]*100;
+    } else {
+        return 100; // Invalid
     }
 }
 
@@ -276,17 +288,12 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     // Init counters for Input RPM measuring and ratio measuring
     int shift_start_rpm = this->sensor_data.input_rpm;
     int start_ratio = this->sensor_data.gear_ratio*100;
-    int targ_end_ratio = find_target_ratio(sd.targ_g);
-
-    // (%x in range a,b) = (x-a)/(b-a)
-
     float spc_start = curr_spc_pwm;
     float spc_shift_start_pwm = curr_spc_pwm;
     bool monitor_shift = true;
     if (sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) {
         monitor_shift = false;
     }
-    bool shift_in_progress = false;
     bool flared = false;
     
     while(elapsed <= SHIFT_TIMEOUT_MS) {
@@ -302,15 +309,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 if (ratio_now > start_ratio+20) { // Upshift - Ratio should get smaller so inverse means flaring)
                     this->flaring = true;
                     flared = true;
-                } else if (ratio_now < sd.sip_threshold){
-                    shift_in_progress = true;
                 }
             } else {
                 if (ratio_now < start_ratio-20) { // Downshift - Ratio should get larger so inverse means flaring
                     this->flaring = true;
                     flared = true;
-                } else if (ratio_now > sd.sip_threshold) {
-                    shift_in_progress = true;
                 }
             }
             if (!flaring) {
@@ -632,7 +635,7 @@ void Gearbox::controller_loop() {
         }
         if (this->sensor_data.engine_rpm > 500) {
             if (control_solenoids && is_controllable_gear(this->actual_gear)) {
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
                 sol_mpc->write_pwm_percent_with_voltage(this->mpc_working + this->mpc_offset, sensor_data.voltage);
                 if (this->mpc_offset != 0 && !shifting) {
 #define MPC_DOWN_RAMP 3
@@ -668,13 +671,13 @@ void Gearbox::controller_loop() {
                     } else if ((this->ask_upshift || want_upshift) && this->actual_gear < GearboxGear::Fifth) {
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next) > STALL_RPM+100) {
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > STALL_RPM+100) {
                             this->target_gear = next;
                         }
                     } else if ((this->ask_downshift || want_downshift) && this->actual_gear > GearboxGear::First) {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev) < REDLINE_RPM-400) {
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, this->gearboxConfig.ratios) < REDLINE_RPM-400) {
                             this->target_gear = prev;
                         }
                     }
@@ -772,22 +775,22 @@ void Gearbox::controller_loop() {
             float f;
             switch (this->target_gear) {
                 case GearboxGear::First:
-                    f = RAT_1;
+                    f = gearboxConfig.ratios[0];
                     break;
                 case GearboxGear::Second:
-                    f = RAT_2;
+                    f = gearboxConfig.ratios[1];
                     break;
                 case GearboxGear::Third:
-                    f = RAT_3;
+                    f = gearboxConfig.ratios[2];
                     break;
                 case GearboxGear::Fourth:
-                    f = RAT_4;
+                    f = gearboxConfig.ratios[3];
                     break;
                 case GearboxGear::Reverse_First:
-                    f = RAT_R1*-1;
+                    f = gearboxConfig.ratios[4]*-1;
                     break;
                 case GearboxGear::Reverse_Second:
-                    f = RAT_R2*-1;
+                    f = gearboxConfig.ratios[4]*-1;
                     break;
                 case GearboxGear::Park:
                 case GearboxGear::SignalNotAvaliable:
@@ -887,7 +890,7 @@ bool Gearbox::calcGearFromRatio(bool is_reverse) {
     if (is_reverse) {
         ratio *=-1;
         for(uint8_t i = 0; i < 2; i++) { // Scan the 2 reverse gears
-            GearRatioLimit limits = GEAR_RATIO_LIMITS[i+5];
+            GearRatioLimit limits = gearboxConfig.bounds[i+5];
             if (ratio >= limits.min && ratio <= limits.max) {
                 this->est_gear_idx = i+1;
                 return true;
@@ -895,7 +898,7 @@ bool Gearbox::calcGearFromRatio(bool is_reverse) {
         }
     } else {
         for(uint8_t i = 0; i < 5; i++) { // Scan the 5 forwards gears
-            GearRatioLimit limits = GEAR_RATIO_LIMITS[i];
+            GearRatioLimit limits = gearboxConfig.bounds[i];
             if (ratio > limits.min && ratio < limits.max) {
                 this->est_gear_idx = i+1;
                 return true;

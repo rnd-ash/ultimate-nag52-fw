@@ -62,7 +62,7 @@ void CanEndpoint::iso_tp_server_loop() {
                 default:
                     ESP_LOGE("CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", msg[0]);
                     break;
-            } 
+            }
         }
 
         // Check if we have stuff to send

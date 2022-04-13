@@ -113,10 +113,22 @@ typedef struct {
     uint8_t targ_g;
     /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
-
     float torque_cut_multiplier;
-    int sip_threshold;
 } ShiftData;
+
+typedef struct {
+    float max;
+    float min;
+} GearRatioLimit;
+
+typedef const GearRatioLimit GearboxRatioBounds[7];
+typedef const float FwdRatios[7];
+
+typedef struct {
+    uint16_t max_torque;
+    const GearRatioLimit* bounds;
+    const float* ratios; // 1-5 and R1+R2
+} GearboxConfiguration;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
 const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0};

@@ -19,7 +19,7 @@
 typedef struct {
     uint8_t is_large_nag;
     uint16_t diff_ratio;
-    uint16_t wheel_diameter;
+    uint16_t wheel_circumference;
     uint8_t is_four_matic;
     uint16_t transfer_case_high_ratio;
     uint16_t transfer_case_low_ratio;

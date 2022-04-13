@@ -94,7 +94,7 @@ bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .is_large_nag = 0,
 #endif
             .diff_ratio = DIFF_RATIO,
-            .wheel_diameter = TYRE_SIZE_MM,
+            .wheel_circumference = TYRE_SIZE_MM,
 #ifdef FOUR_MATIC
             .is_four_matic = 1,
             .transfer_case_high_ratio = TC_RATIO_HIGH,

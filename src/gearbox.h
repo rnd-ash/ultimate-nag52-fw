@@ -24,11 +24,6 @@
 
 #define OVERSPEED_RPM 15000
 
-typedef struct {
-    float max;
-    float min;
-} GearRatioLimit;
-
 #define ATF_TEMP_SAMPLES 20
 struct TempSampleData {
     int samples[ATF_TEMP_SAMPLES];
@@ -38,14 +33,44 @@ struct TempSampleData {
 
 #define MAX_LIMIT 0.10 // 10% drift
 
-const static GearRatioLimit GEAR_RATIO_LIMITS[7] {
-    GearRatioLimit { .max = RAT_1*(1.0+MAX_LIMIT), .min = RAT_1*(1.0-MAX_LIMIT) }, // 1
-    GearRatioLimit { .max = RAT_2*(1.0+MAX_LIMIT), .min = RAT_2*(1.0-MAX_LIMIT) }, // 2
-    GearRatioLimit { .max = RAT_3*(1.0+MAX_LIMIT), .min = RAT_3*(1.0-MAX_LIMIT) }, // 3
-    GearRatioLimit { .max = RAT_4*(1.0+MAX_LIMIT), .min = RAT_4*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5*(1.0+MAX_LIMIT/2), .min = RAT_5*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
-    GearRatioLimit { .max = RAT_R1*(1.0-MAX_LIMIT), .min = RAT_R1*(1.0+MAX_LIMIT) }, // R1
-    GearRatioLimit { .max = RAT_R2*(1.0-MAX_LIMIT), .min = RAT_R2*(1.0+MAX_LIMIT) }, // R2
+const static GearRatioLimit GEAR_RATIO_LIMITS_SMALL[7] {
+    GearRatioLimit { .max = RAT_1_SMALL*(1.0+MAX_LIMIT), .min = RAT_1_SMALL*(1.0-MAX_LIMIT) }, // 1
+    GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT), .min = RAT_2_SMALL*(1.0-MAX_LIMIT) }, // 2
+    GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT), .min = RAT_3_SMALL*(1.0-MAX_LIMIT) }, // 3
+    GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT), .min = RAT_4_SMALL*(1.0-MAX_LIMIT) }, // 4
+    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT/2), .min = RAT_5_SMALL*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
+    GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT) }, // R1
+    GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT) }, // R2
+};
+
+const static GearRatioLimit GEAR_RATIO_LIMITS_LARGE[7] {
+    GearRatioLimit { .max = RAT_1_LARGE*(1.0+MAX_LIMIT), .min = RAT_1_LARGE*(1.0-MAX_LIMIT) }, // 1
+    GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT), .min = RAT_2_LARGE*(1.0-MAX_LIMIT) }, // 2
+    GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT), .min = RAT_3_LARGE*(1.0-MAX_LIMIT) }, // 3
+    GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT), .min = RAT_4_LARGE*(1.0-MAX_LIMIT) }, // 4
+    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT/2), .min = RAT_5_LARGE*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
+    GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT) }, // R1
+    GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT) }, // R2
+};
+
+const static FwdRatios RATIOS_LARGE {
+    RAT_1_LARGE,
+    RAT_2_LARGE,
+    RAT_3_LARGE,
+    RAT_4_LARGE,
+    RAT_5_LARGE,
+    RAT_R1_LARGE,
+    RAT_R2_LARGE
+};
+
+const static FwdRatios RATIOS_SMALL {
+    RAT_1_SMALL,
+    RAT_2_SMALL,
+    RAT_3_SMALL,
+    RAT_4_SMALL,
+    RAT_5_SMALL,
+    RAT_R1_SMALL,
+    RAT_R2_SMALL
 };
 
 class Gearbox {
@@ -106,6 +131,7 @@ private:
     bool control_solenoids = true;
     PressureManager* pressure_mgr = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
+    GearboxConfiguration gearboxConfig;
 };
 
 #endif

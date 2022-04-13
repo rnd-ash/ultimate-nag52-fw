@@ -94,21 +94,6 @@ const pressure_map mpc_5_4 = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 
 
 #define SHIFT_IN_PROGRESS_THRESH 25 // 25%
 
-const int SIP_1_2 = ((RAT_1*(100+SHIFT_IN_PROGRESS_THRESH))+(RAT_2*(100-SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_2_3 = ((RAT_2*(100+SHIFT_IN_PROGRESS_THRESH))+(RAT_3*(100-SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_3_4 = ((RAT_3*(100+SHIFT_IN_PROGRESS_THRESH))+(RAT_4*(100-SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_4_5 = ((RAT_4*(100+SHIFT_IN_PROGRESS_THRESH))+(RAT_5*(100-SHIFT_IN_PROGRESS_THRESH)))/2;
-
-const int SIP_2_1 = ((RAT_1*(100-SHIFT_IN_PROGRESS_THRESH))+(RAT_2*(100+SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_3_2 = ((RAT_2*(100-SHIFT_IN_PROGRESS_THRESH))+(RAT_3*(100+SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_4_3 = ((RAT_3*(100-SHIFT_IN_PROGRESS_THRESH))+(RAT_4*(100+SHIFT_IN_PROGRESS_THRESH)))/2;
-const int SIP_5_4 = ((RAT_4*(100-SHIFT_IN_PROGRESS_THRESH))+(RAT_5*(100+SHIFT_IN_PROGRESS_THRESH)))/2;
-
-const float TC_1_2 = (RAT_2/RAT_1);
-const float TC_2_3 = (RAT_3/RAT_2);
-const float TC_3_4 = (RAT_4/RAT_3);
-const float TC_4_5 = (RAT_5/RAT_4);
-
 /*
 const float pressure_temp_normalizer[17] = {
     0.7, 0.72, 0.75, 0.78, 0.84, // -40-0C (0-40)
@@ -175,7 +160,7 @@ public:
         }
     }
 
-    uint16_t find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors);
+    uint16_t find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors, int max_rated_torque);
 
     float get_tcc_temp_multiplier(int atf_temp);
 private:

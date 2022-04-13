@@ -1,6 +1,6 @@
 #include "pressure_manager.h"
 
-
+/*
 float find_temp_multiplier(int temp_c) {
     int temp_raw = temp_c+50;
     if (temp_raw < 0) { return pressure_temp_normalizer[0]; }
@@ -11,6 +11,7 @@ float find_temp_multiplier(int temp_c) {
     float dx = (max-min)*10;
     return (pressure_temp_normalizer[min] + ((dy/dx)) * (temp_raw-(min*10)));
 }
+*/
 
 float find_temp_ramp_speed_multiplier(int temp_c) {
     int temp_raw = temp_c+50;
@@ -47,7 +48,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 
 uint16_t find_spc_pressure(const pressure_map map, SensorData* sensors) {
     int load = (sensors->pedal_pos*100/250);
-    return locate_pressure_map_value(map, load) * find_temp_multiplier(sensors->atf_temp);
+    return locate_pressure_map_value(map, load); //* find_temp_multiplier(sensors->atf_temp);
 }
 
 uint16_t find_mpc_pressure(const pressure_map map, SensorData* sensors) {
@@ -77,7 +78,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, SensorDa
 }
 
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
-    return find_temp_multiplier(atf_temp);
+    return 1.0/find_temp_ramp_speed_multiplier(atf_temp);
 }
 
 ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars) {
@@ -152,13 +153,5 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     //if (this->adapt_map != nullptr) {
     //    sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
     //}
-    if (sd.targ_g < sd.curr_g) {
-        sd.spc_dec_speed *= 0.75; // Make downshifting a little smoother
-    }
-    sd.mpc_dec_speed = sd.spc_dec_speed/2.0; // For now
     return sd;
-}
-
-float get_tcc_temp_multiplier(int atf_temp) {
-    return find_temp_multiplier(atf_temp);
 }

@@ -68,16 +68,16 @@ const pressure_map spc_3_4 = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 
 const pressure_map mpc_3_4 = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
 
 // 4 -> 5 upshift
-const pressure_map spc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
-const pressure_map mpc_4_5 = {510, 500, 490, 480, 470, 460, 450, 440, 430, 420, 400};
+const pressure_map spc_4_5 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
+const pressure_map mpc_4_5 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
 
 // 2 -> 1 downshift
 const pressure_map spc_2_1 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
 const pressure_map mpc_2_1 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
 
 // 3 -> 2 downshift
-const pressure_map spc_3_2 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 330, 320};
-const pressure_map mpc_3_2 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 330, 320};
+const pressure_map spc_3_2 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+const pressure_map mpc_3_2 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
 
 // 4 -> 3 downshift
 const pressure_map spc_4_3 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
@@ -109,11 +109,13 @@ const float TC_2_3 = (RAT_3/RAT_2);
 const float TC_3_4 = (RAT_4/RAT_3);
 const float TC_4_5 = (RAT_5/RAT_4);
 
+/*
 const float pressure_temp_normalizer[17] = {
     0.7, 0.72, 0.75, 0.78, 0.84, // -40-0C (0-40)
     0.89, 0.93, 0.96, 0.98, 0.99, // 10-50C (50-90)
     1, 1, 1, 1, 1, 1, 1.01 //60C-120C (100-160) - NOTE. Keep 60-110C as '1.0' to allow adaptation!
 };
+*/
 
 const float ramp_speed_temp_normalizer[17] = {
     1.3, 1.28, 1.25, 1.22, 1.16, // -40-0C (0-40)
@@ -124,7 +126,7 @@ const float ramp_speed_temp_normalizer[17] = {
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
 const float rpm_normalizer[9] = {1.03, 1.02, 1.00, 0.97, 0.93, 0.90, 0.85, 0.8, 0.75};
 
-const float rpm_working_normalizer[9] = {0.9, 0.95, 1.00, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3};
+const float rpm_working_normalizer[9] = {0.9, 0.95, 1.00, 1.1, 1.2, 1.25, 1.3, 1.35, 1.4};
 // 0 -> 100% rated torque
 const pressure_map working_norm_pressure = {400, 380, 360, 340, 320, 300, 280, 260, 240, 220, 200};
 // RPM vs MPC pressure when driving (0-8000RPM)

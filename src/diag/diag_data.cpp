@@ -2,6 +2,7 @@
 #include "sensors.h"
 #include "solenoids/solenoids.h"
 #include "perf_mon.h"
+#include <tcm_maths.h>
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -81,5 +82,9 @@ DATA_SYS_USAGE get_sys_usage() {
     CpuStats s = get_cpu_usage();
     ret.core1_usage = s.load_core_1;
     ret.core2_usage = s.load_core_2;
+    ret.num_tasks = uxTaskGetNumberOfTasks();
+    multi_heap_info_t info;
+    heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
+    ret.free_psram = info.total_free_bytes;
     return ret;
 }

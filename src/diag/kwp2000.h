@@ -10,6 +10,7 @@
 #include "canbus/can_hal.h"
 #include "gearbox_config.h"
 #include "perf_mon.h"
+#include "esp32/spiram.h"
 
 // Ident data
 

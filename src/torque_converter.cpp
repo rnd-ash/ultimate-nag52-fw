@@ -28,7 +28,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 250
+#define TCC_PREFILL 300
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     if (sensors->input_rpm < 1000) { // RPM too low!
@@ -69,19 +69,25 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         // At 2100RPM, we will get half the slip as at 1100rpm
         // Dynamic slip :D
         float multiplier = MIN(0.9, (float)(sensors->engine_rpm/1000.0));
-        //if (sensors->output_rpm > 2000) {
         max_allowed_slip *= multiplier;
         min_allowed_slip *= multiplier;
-        //}
     }
     int slip = sensors->tcc_slip_rpm;
+    if (is_shifting || sensors->current_timestamp_ms - sensors->last_shift_time < 2000) {
+        goto write_pwm;
+    }
     if (slip > max_allowed_slip) {
         // Increase pressure
-        this->curr_tcc_pwm += MAX(0.1, (sensors->pedal_pos/10)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+        if (TCC_PREFILL+this->curr_tcc_pwm < 4000) {
+            this->curr_tcc_pwm += MAX(0.2, (sensors->pedal_pos/7)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+        } else {
+            this->curr_tcc_pwm += MAX(0.1, (sensors->pedal_pos/15)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+        }
     } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0) {
         // Decrease pressure, but only if we have pedal input
         this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
     }
+write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }

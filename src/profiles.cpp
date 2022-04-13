@@ -105,7 +105,7 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
+        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.2),
         .min_slip_rpm = (int)MAX(50, sensors->static_torque)
     };
 }
@@ -160,8 +160,8 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 // Minimum lockup
 TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(100, sensors->static_torque*2),
-        .min_slip_rpm = (int)MAX(50, sensors->static_torque*1.5)
+        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
+        .min_slip_rpm = (int)MAX(50, sensors->static_torque)
     };
 }
 
@@ -270,14 +270,13 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     if (current_gear == GearboxGear::First) { return false; }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
-    unsigned long t =  esp_timer_get_time()/1000;
     if (current_gear == GearboxGear::Second && (sensors->input_rpm > 300 || sensors->engine_rpm > 800)) {
         return false;
     }
     if (sensors->input_rpm < 900) {
         return true;
     }
-    else if (sensors->input_rpm < 2000 && sensors->engine_rpm < 2500 && pedal_perc >= rpm_percent*4 && t-sensors->last_shift_time > 2000) {
+    else if (sensors->input_rpm < 2200 && sensors->engine_rpm < 2500 && pedal_perc >= rpm_percent*4) {
         if (current_gear == GearboxGear::Second) {
             return false;
         }
@@ -290,8 +289,8 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
 
 TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(50, sensors->static_torque*1.2),
-        .min_slip_rpm = (int)MAX(10, sensors->static_torque/2)
+        .max_slip_rpm = (int)MAX(50, sensors->static_torque),
+        .min_slip_rpm = (int)MAX(1, sensors->static_torque/2)
     };
 }
 
@@ -346,7 +345,7 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 
 TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(30, sensors->static_torque),
+        .max_slip_rpm = (int)MAX(30, sensors->static_torque/2),
         .min_slip_rpm = (int)MAX(0, sensors->static_torque/4)
     };
 }

@@ -64,6 +64,8 @@ typedef struct {
     uint16_t core1_usage;
     uint16_t core2_usage;
     uint32_t free_heap;
+    uint32_t free_psram;
+    uint32_t num_tasks;
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);

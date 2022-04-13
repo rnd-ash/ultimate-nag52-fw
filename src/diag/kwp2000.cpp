@@ -117,9 +117,10 @@ ECU_Date fw_date_to_bcd(char* date) {
 }
 
 Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
+    // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
-    this->usb_diag_endpoint = new UsbEndpoint();
+    this->usb_diag_endpoint = new UsbEndpoint(true);
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
@@ -139,6 +140,10 @@ void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len) {
+    if (len + 2 > DIAG_CAN_MAX_SIZE) {
+        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
+        return;
+    }
     this->tx_msg.id = KWP_ECU_TX_ID;
     this->tx_msg.data_size = len+1;
     this->tx_msg.data[0] = sid+0x40;
@@ -147,6 +152,10 @@ void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
+    if (len + 3 > DIAG_CAN_MAX_SIZE) {
+        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
+        return;
+    }
     this->tx_msg.id = KWP_ECU_TX_ID;
     this->tx_msg.data_size = len+2;
     this->tx_msg.data[0] = sid+0x40;
@@ -354,7 +363,7 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         ident_data[16] = '6'; // Part number to end
         ident_data[17] = '7'; // Part number to end
         ident_data[18] = '8'; // Part number to end
-        ident_data[19] = '9'; // Part number to end
+        //ident_data[19] = '9'; // Part number to end
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x87, ident_data, 19);
     } else if (args[0] == 0x88) { // VIN original
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
@@ -381,7 +390,11 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             this->tx_msg.data[0] = SID_READ_DATA_LOCAL_IDENT+0x40;
         }
     } else if (args[0] == 0xE1) { // ECU Serial number
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)"ULTIMATENAG52", 14);
+        uint8_t mac[6] = {0};
+        esp_efuse_mac_get_default(mac);
+        char resp[13];
+        sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));

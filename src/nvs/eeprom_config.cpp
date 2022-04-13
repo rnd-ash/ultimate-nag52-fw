@@ -35,35 +35,6 @@ bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t 
     return (e == ESP_OK);
 }
 
-bool read_nvs_core_scn(nvs_handle_t handle, const char* key, EEPROM_CORE_SCN_CONFIG* scn, size_t store_size) {
-    esp_err_t e = nvs_get_blob(handle, key, scn, &store_size);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW("EEPROM", "SCN Config not found. Creating a new one");
-        EEPROM_CORE_SCN_CONFIG s = {
-            .is_large_nag = false,
-            .diff_ratio = DIFF_RATIO,
-            .wheel_diameter = TYRE_SIZE_MM,
-            .is_four_matic = false,
-            .transfer_case_high_ratio = 1000, // 1.0
-            .transfer_case_low_ratio = 1000, // 1.0
-        };
-        e = nvs_set_blob(handle, key, &s, sizeof(s));
-        if (e != ESP_OK) {
-            ESP_LOGE("EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
-            return false;
-        }
-        e = nvs_commit(handle);
-        if (e != ESP_OK) {
-            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-            return false;
-        }
-        ESP_LOGI("EEPROM", "New TCC map creation OK!");
-        memcpy(scn, &s, sizeof(s));
-        return true;
-    }
-    return (e == ESP_OK);
-}
-
 bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
     esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
     if (e == ESP_ERR_NVS_NOT_FOUND) {
@@ -86,51 +57,6 @@ bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map
     return (e == ESP_OK);
 }
 
-bool read_nvs_tcc_adaptation(nvs_handle_t handle, const char* key, TccAdaptationData* store_location, size_t store_size) {
-    esp_err_t e = nvs_get_blob(handle, key, store_location, &store_size);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW("EEPROM", "TCC lockup map not found. Creating a new one");
-        // Init default map
-        TccAdaptationData new_map[NUM_GEARS];
-        for (int i = 0; i < NUM_GEARS; i++) {
-            for (int j = 0; j < 17; j++) {
-                new_map[i].slip_values[j] = 250;
-                new_map[i].learned[j] = false;
-            }
-        }
-        e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
-        if (e != ESP_OK) {
-            ESP_LOGE("EEPROM", "Error initializing default TCC map data (%s)", esp_err_to_name(e));
-            return false;
-        }
-        e = nvs_commit(handle);
-        if (e != ESP_OK) {
-            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-            return false;
-        }
-        ESP_LOGI("EEPROM", "New TCC map creation OK!");
-        memcpy(store_location, new_map, sizeof(new_map));
-        return true;
-    }
-    return (e == ESP_OK);
-}
-
-bool EEPROM::save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size) {
-    nvs_handle_t handle;
-    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    esp_err_t e = nvs_set_blob(handle, NVS_KEY_TCC_ADAPTATION, read_location, store_size);
-    if (e != ESP_OK) {
-        ESP_LOGE("EEPROM", "Error initializing default TCC map data (%s)", esp_err_to_name(e));
-        return false;
-    }
-    e = nvs_commit(handle);
-    if (e != ESP_OK) {
-        ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-        return false;
-    }
-    return true;
-}
-
 bool EEPROM::init_eeprom() {
     // Called on startup
 
@@ -141,27 +67,83 @@ bool EEPROM::init_eeprom() {
         return false;
     }
     nvs_handle_t config_handle;    
-    err = nvs_open("Configuration", NVS_READWRITE, &config_handle);
+    err = nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &config_handle);
     if (err != ESP_OK) {
         ESP_LOGE("EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
         return false;
     }
-    if (read_nvs_tcc_adaptation(config_handle, NVS_KEY_TCC_ADAPTATION, torque_converter_adaptation, (size_t)sizeof(torque_converter_adaptation)) != true) {
+    bool res = read_core_config(&VEHICLE_CONFIG);
+    if (!res) {
+        ESP_LOGE("EEPROM", "EEPROM SCN config read failed! %s", esp_err_to_name(err));
         return false;
     }
     return true;
 }
 
-bool read_core_scn_config(EEPROM_CORE_SCN_CONFIG* dest) {
+bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     nvs_handle_t handle;
-    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    return read_nvs_core_scn(handle, NVS_KEY_SCN_CONFIG, dest, sizeof(EEPROM_CORE_SCN_CONFIG));
+    nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    size_t s = sizeof(TCM_CORE_CONFIG);
+    esp_err_t e = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
+    if (e == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("EEPROM", "SCN Config not found. Creating a new one");
+        TCM_CORE_CONFIG s = {
+#ifdef LARGE_NAG
+            .is_large_nag = 1,
+#else
+            .is_large_nag = 0,
+#endif
+            .diff_ratio = DIFF_RATIO,
+            .wheel_diameter = TYRE_SIZE_MM,
+#ifdef FOUR_MATIC
+            .is_four_matic = 1,
+            .transfer_case_high_ratio = TC_RATIO_HIGH,
+            .transfer_case_low_ratio = TC_RATIO_LOW,
+#else
+            .is_four_matic = 0,
+            .transfer_case_high_ratio = 1000,
+            .transfer_case_low_ratio = 1000,
+#endif
+            .default_profile = 0, // Standard
+            .red_line_rpm_diesel = 4500, // Safe for diesels, petrol-heads can change this!
+            .red_line_rpm_petrol = 6000,
+            .engine_type = 0 // Diesel by default - TODO We should read this via CAN
+        };
+        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &s, sizeof(s));
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
+            return false;
+        }
+        e = nvs_commit(handle);
+        if (e != ESP_OK) {
+            ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+            return false;
+        }
+        ESP_LOGI("EEPROM", "New SCN  creation OK!");
+        memcpy(dest, &s, sizeof(s));
+        return true;
+    } else if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Could not read SCN config: %s", esp_err_to_name(e));
+    }
+    return (e == ESP_OK);
 }
 
-bool save_core_scn_config(EEPROM_CORE_SCN_CONFIG* write) {
+bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     nvs_handle_t handle;
-    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    return false; // TODO
+    esp_err_t e;
+    size_t s = sizeof(TCM_CORE_CONFIG);
+    nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
+    e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, write, s);
+    if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Error Saving SCN config (%s)", esp_err_to_name(e));
+        return false;
+    }
+    e = nvs_commit(handle);
+    if (e != ESP_OK) {
+        ESP_LOGE("EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        return false;
+    }
+    return true;
 }
 
-TccAdaptationData torque_converter_adaptation[NUM_GEARS];
+TCM_CORE_CONFIG VEHICLE_CONFIG = {};

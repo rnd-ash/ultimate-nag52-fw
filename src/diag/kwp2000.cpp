@@ -200,6 +200,9 @@ void Kwp2000_server::server_loop() {
                 case SID_READ_DATA_LOCAL_IDENT:
                     this->process_read_data_local_ident(args_ptr, args_size);
                     break;
+                case SID_WRITE_DATA_BY_LOCAL_IDENT:
+                    this->process_write_data_by_local_ident(args_ptr, args_size);
+                    break;
                 case SID_READ_MEM_BY_ADDRESS:
                     this->process_read_mem_address(args_ptr, args_size);
                     break;
@@ -215,6 +218,7 @@ void Kwp2000_server::server_loop() {
                 case SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT:
                     this->process_request_routine_resutls_by_local_ident(args_ptr, args_size);
                     break;
+
                 default:
                     ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
@@ -293,7 +297,7 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
                 this->reboot_pending = true;
                 make_diag_pos_msg(SID_ECU_RESET, nullptr, 0);
             } else {
-                make_diag_neg_msg(SID_ECU_RESET, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                make_diag_neg_msg(SID_ECU_RESET, NRC_REQUEST_OUT_OF_RANGE);
             }
         }
     } else {
@@ -373,7 +377,7 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
     } else if (args[0] == 0x90) { // VIN current
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
     } else {
-        make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
 }
 
@@ -407,9 +411,11 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
+    } else if (args[0] == RLI_TCM_CONFIG) {
+        TCM_CORE_CONFIG r = get_tcm_config();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
     }
     else {
-
         // EGS52 emulation
 #ifdef EGS52_MODE
         if (args[0] == RLI_31) {
@@ -417,7 +423,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
         }
 #endif
-        make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
     
 }
@@ -462,7 +468,6 @@ void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len
 
 }
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
-
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
@@ -535,7 +540,32 @@ void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
 
 }
 void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t arg_len) {
-
+    if (
+        this->session_mode == SESSION_EXTENDED ||
+        this->session_mode == SESSION_REPROGRAMMING ||
+        this->session_mode == SESSION_STANDBY ||
+        this->session_mode == SESSION_CUSTOM_UN52
+    ) {
+        if (args[0] == RLI_TCM_CONFIG) {
+            if (arg_len-1 != sizeof(TCM_CORE_CONFIG)) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            } else {
+                // TCM Core config size ok
+                TCM_CORE_CONFIG cfg;
+                memcpy(&cfg, &args[1], sizeof(TCM_CORE_CONFIG));
+                uint8_t res = set_tcm_config(cfg);
+                if (res == 0x00) {
+                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
+                } else {
+                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
+                }
+            }
+        } else {
+            make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
+        }
+    } else  {
+        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+    }
 }
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
 

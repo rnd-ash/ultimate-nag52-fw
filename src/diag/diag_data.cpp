@@ -3,6 +3,7 @@
 #include "solenoids/solenoids.h"
 #include "perf_mon.h"
 #include <tcm_maths.h>
+#include "kwp2000.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -87,4 +88,36 @@ DATA_SYS_USAGE get_sys_usage() {
     heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
     ret.free_psram = info.total_free_bytes;
     return ret;
+}
+
+
+TCM_CORE_CONFIG get_tcm_config() {
+    TCM_CORE_CONFIG cfg;
+    memcpy(&cfg, &VEHICLE_CONFIG, sizeof(TCM_CORE_CONFIG));
+    return cfg;
+}
+
+uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
+    ShifterPosition p = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    if (p == ShifterPosition::R || p == ShifterPosition::D || p == ShifterPosition::PLUS|| p == ShifterPosition::MINUS) {
+        return NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR; // Cannot write to SCN if in Drive or Reverse!
+    }
+    // S,C,W,A,M = 5 profiles, so 4 is max value
+    if (cfg.default_profile > 4) {
+        ESP_LOGE("SET_TCM_CFG", "Default profile ID of %d was greater than 4", cfg.default_profile);
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
+    if (cfg.engine_type != 0 && cfg.engine_type != 1) {
+        ESP_LOGE("SET_TCM_CFG", "Engine type was not 0 (Diesel) or 1 (Petrol)");
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
+    if (cfg.is_four_matic && (cfg.transfer_case_high_ratio == 0 || cfg.transfer_case_low_ratio == 0)) {
+        ESP_LOGE("SET_TCM_CFG", "4Matic was requested, but TC ratio was 0");
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
+    if (EEPROM::save_core_config(&cfg)) {
+        return 0x00; // OK!
+    } else {
+        return NRC_GENERAL_REJECT; // SCN write error
+    }
 }

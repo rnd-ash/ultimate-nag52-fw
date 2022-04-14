@@ -6,7 +6,7 @@
 #include "solenoids/solenoids.h"
 
 typedef int16_t pressure_map[11];
-
+typedef float rpm_modifier_map[9];
 
 template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
     T readings[MAX_SIZE];
@@ -129,6 +129,38 @@ typedef struct {
     const GearRatioLimit* bounds;
     const float* ratios; // 1-5 and R1+R2
 } GearboxConfiguration;
+
+
+typedef struct {
+    pressure_map spc_1_2;
+    pressure_map mpc_1_2;
+
+    pressure_map spc_2_3;
+    pressure_map mpc_2_3;
+
+    pressure_map spc_3_4;
+    pressure_map mpc_3_4;
+
+    pressure_map spc_4_5;
+    pressure_map mpc_4_5;
+
+    pressure_map spc_5_4;
+    pressure_map mpc_5_4;
+
+    pressure_map spc_4_3;
+    pressure_map mpc_4_3;
+
+    pressure_map spc_3_2;
+    pressure_map mpc_3_2;
+
+    pressure_map spc_2_1;
+    pressure_map mpc_2_1;
+
+    pressure_map working_mpc;
+
+    rpm_modifier_map ramp_speed_multiplier;
+    rpm_modifier_map working_multiplier;
+} PressureMgrData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
 const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0};

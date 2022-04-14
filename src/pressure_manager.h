@@ -5,89 +5,84 @@
 #include "profiles.h"
 #include "adaptation/adapt_map.h"
 #include <gearbox_config.h>
-
-// Default maps (Needs modifying!)
+#include "nvs/eeprom_config.h"
 
 /*
-    Large NAG W5A580 gearbox pressure maps
+    Large NAG W5A580 gearbox pressure maps (Defaults)
 */
 
-#ifdef LARGE_NAG
-
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
-const pressure_map mpc_1_2 = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
+const pressure_map spc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
+const pressure_map mpc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
 
 // 2 -> 3 upshift
-const pressure_map spc_2_3 = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
-const pressure_map mpc_2_3 = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
+const pressure_map spc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
+const pressure_map mpc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
 
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
-const pressure_map mpc_3_4 = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
+const pressure_map spc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
+const pressure_map mpc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
 
  
 // 4 -> 5 upshift
-const pressure_map spc_4_5 = {450, 440, 430, 420, 410, 400, 390, 380, 360, 340, 300};
-const pressure_map mpc_4_5 = {450, 440, 430, 420, 410, 400, 390, 380, 360, 340, 300};
+const pressure_map spc_4_5_large = {450, 440, 430, 420, 410, 400, 390, 380, 360, 340, 300};
+const pressure_map mpc_4_5_large = {450, 440, 430, 420, 410, 400, 390, 380, 360, 340, 300};
 
 
 // 2 -> 1 downshift
-const pressure_map spc_2_1 = {530, 510, 500, 490, 480, 475, 470, 460, 450, 420, 400};
-const pressure_map mpc_2_1 = {530, 510, 500, 490, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map spc_2_1_large = {530, 510, 500, 490, 480, 475, 470, 460, 450, 420, 400};
+const pressure_map mpc_2_1_large = {530, 510, 500, 490, 480, 475, 470, 460, 450, 420, 400};
 
 // 3 -> 2 downshift
-const pressure_map spc_3_2 = {400, 390, 380, 360, 350, 340, 330, 320, 310, 300, 300};
-const pressure_map mpc_3_2 = {400, 390, 380, 360, 350, 340, 330, 320, 310, 300, 300};
+const pressure_map spc_3_2_large = {400, 390, 380, 360, 350, 340, 330, 320, 310, 300, 300};
+const pressure_map mpc_3_2_large = {400, 390, 380, 360, 350, 340, 330, 320, 310, 300, 300};
 
 // 4 -> 3 downshift
-const pressure_map spc_4_3 = {420, 415, 410, 400, 390, 380, 370, 350, 330, 310, 290};
-const pressure_map mpc_4_3 = {420, 415, 410, 400, 390, 380, 370, 350, 330, 310, 290};
+const pressure_map spc_4_3_large = {420, 415, 410, 400, 390, 380, 370, 350, 330, 310, 290};
+const pressure_map mpc_4_3_large = {420, 415, 410, 400, 390, 380, 370, 350, 330, 310, 290};
 
 // 5 -> 4 downshift
-const pressure_map spc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
-const pressure_map mpc_5_4 = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+const pressure_map spc_5_4_large = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+const pressure_map mpc_5_4_large = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
 
-#else
 
 /*
-    Small NAG W5A330 gearbox pressure maps
+    Small NAG W5A330 gearbox pressure maps (Defaults)
 */
 
 // 1 -> 2 upshift
-const pressure_map spc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
-const pressure_map mpc_1_2 = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
+const pressure_map spc_1_2_small = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
+const pressure_map mpc_1_2_small = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
 
 // 2 -> 3 upshift
-const pressure_map spc_2_3 = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
-const pressure_map mpc_2_3 = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
+const pressure_map spc_2_3_small = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_3_small = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4 = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
-const pressure_map mpc_3_4 = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map spc_3_4_small = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map mpc_3_4_small = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
 
 // 4 -> 5 upshift
-const pressure_map spc_4_5 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
-const pressure_map mpc_4_5 = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
+const pressure_map spc_4_5_small = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
+const pressure_map mpc_4_5_small = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
 
 // 2 -> 1 downshift
-const pressure_map spc_2_1 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
-const pressure_map mpc_2_1 = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+const pressure_map spc_2_1_small = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_1_small = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
 
 // 3 -> 2 downshift
-const pressure_map spc_3_2 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
-const pressure_map mpc_3_2 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+const pressure_map spc_3_2_small = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+const pressure_map mpc_3_2_small = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
 
 // 4 -> 3 downshift
-const pressure_map spc_4_3 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
-const pressure_map mpc_4_3 = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
+const pressure_map spc_4_3_small = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
+const pressure_map mpc_4_3_small = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
 
 // 5 -> 4 downshift
-const pressure_map spc_5_4 = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
-const pressure_map mpc_5_4 = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
+const pressure_map spc_5_4_small = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
+const pressure_map mpc_5_4_small = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
 
-#endif
 
 // These values are autogenerated by the compiler. Please do NOT modify!
 // The gearbox uses these values to work out when to stop torque cutting and monitoring shift progress
@@ -109,9 +104,9 @@ const float ramp_speed_temp_normalizer[17] = {
 };
 
 // 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
-const float rpm_normalizer[9] = {1.03, 1.02, 1.00, 0.97, 0.93, 0.90, 0.85, 0.8, 0.75};
+const rpm_modifier_map rpm_normalizer = {1.03, 1.02, 1.00, 0.97, 0.93, 0.90, 0.85, 0.8, 0.75};
 
-const float rpm_working_normalizer[9] = {0.9, 0.95, 1.00, 1.1, 1.2, 1.25, 1.3, 1.35, 1.4};
+const rpm_modifier_map rpm_working_normalizer = {0.9, 0.95, 1.00, 1.1, 1.2, 1.25, 1.3, 1.35, 1.4};
 // 0 -> 100% rated torque
 const pressure_map working_norm_pressure = {400, 380, 360, 340, 320, 300, 280, 260, 240, 220, 200};
 // RPM vs MPC pressure when driving (0-8000RPM)
@@ -122,10 +117,7 @@ typedef void (*P_RAMP_FUNC)(float, float);
 class PressureManager {
 
 public:
-    PressureManager(SensorData* sensor_ptr) {
-        this->sensor_data = sensor_ptr;
-        this->adapt_map = new AdaptationMap();
-    }
+    PressureManager(SensorData* sensor_ptr);
 
     /**
      * @brief In the event a gear change is in progress, and the gearbox needs to abort the shift
@@ -167,6 +159,7 @@ private:
     bool abort = false;
     SensorData* sensor_data;
     AdaptationMap* adapt_map;
+    PressureMgrData map_data;
 };
 
 #endif

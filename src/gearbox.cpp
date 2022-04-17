@@ -4,7 +4,7 @@
 #include "adv_opts.h"
 #include <tcm_maths.h>
 
-const float diff_ratio_f = (float)DIFF_RATIO / 1000.0;
+uint16_t Gearbox::redline_rpm = 4000;
 
 #define max(a,b) \
   ({ \
@@ -81,6 +81,18 @@ Gearbox::Gearbox() {
         int g = i < 5 ? i+1 : i-4;
         ESP_LOGI("GEARBOX", "Gear ratio %c%d %.2f. Bounds: (%.2f - %.2f)", c, g, gearboxConfig.ratios[i], gearboxConfig.bounds[i].max, gearboxConfig.bounds[i].min);
     }
+    if (VEHICLE_CONFIG.engine_type == 1) {
+        this->redline_rpm = VEHICLE_CONFIG.red_line_rpm_petrol;
+    } else {
+        this->redline_rpm = VEHICLE_CONFIG.red_line_rpm_diesel;
+    }
+    if (this->redline_rpm < 4000) {
+        this->redline_rpm = 4000; // just in case
+    }
+    ESP_LOGI("GEAROX", "---OTHER CONFIG---");
+    ESP_LOGI("GEARBOX", "Redline RPM: %d", this->redline_rpm);
+    this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio/1000.0;
+    ESP_LOGI("GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
 }
 
 void Gearbox::set_profile(AbstractProfile* prof) {
@@ -667,13 +679,13 @@ void Gearbox::controller_loop() {
                     } else if ((this->ask_upshift || want_upshift) && this->actual_gear < GearboxGear::Fifth) {
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > STALL_RPM+100) {
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > MIN_WORKING_RPM+100) {
                             this->target_gear = next;
                         }
                     } else if ((this->ask_downshift || want_downshift) && this->actual_gear > GearboxGear::First) {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, this->gearboxConfig.ratios) < REDLINE_RPM-400) {
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, this->gearboxConfig.ratios) < this->redline_rpm-500) {
                             this->target_gear = prev;
                         }
                     }
@@ -875,7 +887,7 @@ bool Gearbox::calc_output_rpm(int* dest, uint64_t now) {
     } else { // Both sensors OK!
         rpm = abs(left.double_rpm) > abs(right.double_rpm) ? left.double_rpm : right.double_rpm;
     }
-    rpm *= diff_ratio_f;
+    rpm *= this->diff_ratio_f;
     rpm /= 2;
     *dest = rpm;
     return true;

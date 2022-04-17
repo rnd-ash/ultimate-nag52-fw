@@ -2,6 +2,7 @@
 #include <gearbox_config.h>
 #include "adv_opts.h"
 #include "tcm_maths.h"
+#include "gearbox.h"
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
    switch (target) {
@@ -30,9 +31,9 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    float dp = ((float)(sensors->pedal_pos)/250.0f) *2;
-    if (dp > 1) {
-        dp = 1;
+    float dp = ((float)(sensors->pedal_pos*100)/250.0f);
+    if (dp > 10) {
+        dp = 10;
     }
     if (dp == 0) {
         dp = 1;
@@ -113,7 +114,7 @@ TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 20,
-        .shift_speed = 1.0,
+        .shift_speed = 3.0,
     };
 }
 
@@ -239,7 +240,7 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::Fifth) { return false; }
     int curr_rpm = sensors->input_rpm;
-    if (curr_rpm > 4500) { // Protect da engine
+    if (curr_rpm >= Gearbox::redline_rpm) {
         return true;
     }
     if (sensors->pedal_pos == 0 || sensors->is_braking) { // Don't upshift if not pedal or braking
@@ -269,14 +270,14 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
-    float rpm_percent = (float)(sensors->input_rpm-1000)*100.0/(float)(4500-1000);
+    float rpm_percent = (float)(sensors->input_rpm-MIN_WORKING_RPM)*100.0/(float)(Gearbox::redline_rpm-MIN_WORKING_RPM);
     if (current_gear == GearboxGear::Second && (sensors->input_rpm > 300 || sensors->engine_rpm > 800)) {
         return false;
     }
-    if (sensors->input_rpm < 900) {
+    if (sensors->input_rpm < MIN_WORKING_RPM && sensors->engine_rpm < MIN_WORKING_RPM) {
         return true;
     }
-    else if (sensors->input_rpm < 2200 && sensors->engine_rpm < 2500 && pedal_perc >= rpm_percent*4) {
+    else if (sensors->input_rpm < Gearbox::redline_rpm/2 && sensors->engine_rpm < Gearbox::redline_rpm/2 && pedal_perc >= rpm_percent*4) {
         if (current_gear == GearboxGear::Second) {
             return false;
         }
@@ -297,7 +298,7 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 70,
-        .shift_speed = 10.0,
+        .shift_speed = 20.0,
     };
 }
 
@@ -334,7 +335,7 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 #ifdef MANUAL_AUTO_DOWNSHIFT
     if (current_gear == GearboxGear::First) {
         return false;
-    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < 800 && sensors->pedal_pos == 0) {
+    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < MIN_WORKING_RPM && sensors->pedal_pos == 0) {
         return true;
     }
     return false;

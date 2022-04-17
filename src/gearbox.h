@@ -18,7 +18,6 @@
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
-#define REDLINE_RPM 4000
 #define STALL_RPM 700
 #define MIN_WORKING_RPM 1000
 
@@ -87,6 +86,7 @@ public:
         uint16_t get_gear_ratio() {
         return this->sensor_data.gear_ratio * 100;
     }
+    static uint16_t redline_rpm;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -132,6 +132,7 @@ private:
     PressureManager* pressure_mgr = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
     GearboxConfiguration gearboxConfig;
+    float diff_ratio_f;
 };
 
 #endif

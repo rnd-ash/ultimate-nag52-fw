@@ -244,11 +244,7 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
 
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 
-#ifdef BLUE_SOLENOIDS
-    #define SHIFT_DELAY_MS 60 // 50% slower ramping for blue solenoids
-#else
-    #define SHIFT_DELAY_MS 40
-#endif
+#define SHIFT_DELAY_MS 50 // 50% slower ramping for blue solenoids
 
 /**
  * @brief Used to shift between forward gears

@@ -36,7 +36,7 @@
 CMakeCache.txt
 CMakeFiles/**
 
-.pio
+.pio/
 .pio/**
 .idea/**
 .settings/**

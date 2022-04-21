@@ -154,6 +154,8 @@ Solenoid *sol_mpc = nullptr;
 Solenoid *sol_spc = nullptr;
 Solenoid *sol_tcc = nullptr;
 
+Solenoid *pressure_pwm_solenoids[2] = { sol_spc, sol_mpc };
+
 #define BYTES_PER_SAMPLE 2
 #define NUM_SAMPLES 1024
 
@@ -297,5 +299,6 @@ bool init_all_solenoids()
         return false;
     }
 
+    
     return true;
 }

@@ -7,7 +7,7 @@
 #include "string.h"
 #include "canbus/can_hal.h"
 
-#define DIAG_CAN_MAX_SIZE 256
+#define DIAG_CAN_MAX_SIZE 1024
 
 typedef struct {
     uint16_t id;
@@ -40,12 +40,22 @@ public:
 #define UART_NUM 
 class UsbEndpoint: public AbstractEndpoint {
     public:
-        UsbEndpoint() : AbstractEndpoint() {
+        UsbEndpoint(bool can_use_spiram) : AbstractEndpoint() {
+            const size_t read_buffer_size = DIAG_CAN_MAX_SIZE+6;
             esp_err_t e;
-
-            e = uart_driver_install(0, 515, 515, 0, nullptr, 0);
+            this->allocation_psram = can_use_spiram;
+            e = uart_driver_install(0, 515, 3+(2*DIAG_CAN_MAX_SIZE), 0, nullptr, 0);
             if (e != ESP_OK) {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
+                return;
+            }
+
+            if (this->allocation_psram) {
+                this->read_buffer = (char*)heap_caps_malloc(read_buffer_size, MALLOC_CAP_SPIRAM);
+            } else {
+                this->read_buffer = (char*)malloc(read_buffer_size);
+            }
+            if (this->read_buffer == nullptr) {
                 return;
             }
             uart_flush(0);
@@ -55,7 +65,12 @@ class UsbEndpoint: public AbstractEndpoint {
         void send_data(DiagMessage* msg) override {
             // 2 chars per byte, 4 bytes for (CID), 2 bytes for '#' and '\n'
             int size = (msg->data_size*2)+6;
-            char* buffer = (char*)malloc(size);
+            char* buffer;
+            if (this->allocation_psram) {
+                buffer = (char*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            } else {
+                buffer = (char*)malloc(size);
+            }
             if (buffer == nullptr) {
                 ESP_LOGE("USBEndpoint", "Failed to allocate buffer for Tx DiagMessage!");
                 return;
@@ -102,12 +117,13 @@ class UsbEndpoint: public AbstractEndpoint {
             return false;
         }
     private:
-        char read_buffer[DIAG_CAN_MAX_SIZE+6];
+        char* read_buffer;
         uint16_t read_pos;
         QueueHandle_t uart_queue;
         bool clear_to_send = false;
         bool is_sending = false;
         uint8_t pci = 0x20;
+        bool allocation_psram = false;
 };
 
 /**

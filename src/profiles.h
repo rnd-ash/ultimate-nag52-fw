@@ -8,6 +8,12 @@
 
 #define MAX_PROFILES 4
 
+#define PROFILE_ID_STANDARD 0
+#define PROFILE_ID_COMFORT 1
+#define PROFILE_ID_WINTER 2
+#define PROFILE_ID_AGILITY 3
+#define PROFILE_ID_MANUAL 4
+
 /**
  * A profile is designed to read the current conditions of the gearbox and request the gearbox to do something
  */

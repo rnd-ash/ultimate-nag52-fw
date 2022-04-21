@@ -6,7 +6,7 @@
 #include "solenoids/solenoids.h"
 
 typedef int16_t pressure_map[11];
-
+typedef float rpm_modifier_map[9];
 
 template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
     T readings[MAX_SIZE];
@@ -107,23 +107,63 @@ typedef struct {
     uint16_t initial_mpc_pwm;
     /// SPC Ramp speed, denotes the speed of which SPC pressure will increase during the shift
     float spc_dec_speed;
-    /// MPC Ramp speed, denotes the speed of which MPC pressure will increase during the shift
-    /// IMPORTANT: This value must ALWAYS be less than spc_dec_speed, otherwise the box will
-    /// fail to shift!
-    float mpc_dec_speed;
     /// The shift solenoid required to change gears
     Solenoid* shift_solenoid;
     /// Current gear the gearbox is in as an integer
     uint8_t targ_g;
     /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
-
     float torque_cut_multiplier;
-    int sip_threshold;
 } ShiftData;
 
+typedef struct {
+    float max;
+    float min;
+} GearRatioLimit;
+
+typedef const GearRatioLimit GearboxRatioBounds[7];
+typedef const float FwdRatios[7];
+
+typedef struct {
+    uint16_t max_torque;
+    const GearRatioLimit* bounds;
+    const float* ratios; // 1-5 and R1+R2
+} GearboxConfiguration;
+
+
+typedef struct {
+    pressure_map spc_1_2;
+    pressure_map mpc_1_2;
+
+    pressure_map spc_2_3;
+    pressure_map mpc_2_3;
+
+    pressure_map spc_3_4;
+    pressure_map mpc_3_4;
+
+    pressure_map spc_4_5;
+    pressure_map mpc_4_5;
+
+    pressure_map spc_5_4;
+    pressure_map mpc_5_4;
+
+    pressure_map spc_4_3;
+    pressure_map mpc_4_3;
+
+    pressure_map spc_3_2;
+    pressure_map mpc_3_2;
+
+    pressure_map spc_2_1;
+    pressure_map mpc_2_1;
+
+    pressure_map working_mpc;
+
+    rpm_modifier_map ramp_speed_multiplier;
+    rpm_modifier_map working_multiplier;
+} PressureMgrData;
+
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0, .mpc_dec_speed = 3.0};
+const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0};
 
 typedef struct {
     /**

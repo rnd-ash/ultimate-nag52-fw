@@ -35,6 +35,7 @@
 .vscode/**
 CMakeCache.txt
 CMakeFiles/**
+cmake-build-debug/
 
 .pio/
 .pio/**

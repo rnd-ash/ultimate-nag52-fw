@@ -408,7 +408,7 @@ typedef union {
     void set_y5_pwm(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value) << 40; }
     void set_spc_pwm(uint8_t value){ raw = (raw & 0xfffff00ffffffff) | ((uint64_t)value) << 32; }
     void set_mpc_pwm(uint8_t value){ raw = (raw & 0xfffffff00ffffff) | ((uint64_t)value) << 24; }
-    void set_tcc_pwm(uint16_t value){ raw =(raw & 0xfffffffff0000ff) | ((uint64_t)value) << 16; }
+    void set_tcc_pwm(uint16_t value){ raw =(raw & 0xfffffffff000fff) | ((uint64_t)value & 0xFFF) << 12; }
 } GS_558_CUSTOM;
 
 

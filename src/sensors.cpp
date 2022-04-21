@@ -271,7 +271,7 @@ bool Sensors::read_atf_temp(int* dest){
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
-    if (avg >= 2000) {
+    if (avg >= 3000) {
         return false; // Parking lock engaged, cannot read.
     }
     if (avg < atf_temp_lookup[0].v) {
@@ -301,7 +301,7 @@ bool Sensors::parking_lock_engaged(bool* dest){
         ESP_LOGW("READ_VBATT", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;
     } else {
-        *dest = raw >= 3900;
+        *dest = raw >= 4000;
         return true;
     }
 }

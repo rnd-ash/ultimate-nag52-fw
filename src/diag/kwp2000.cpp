@@ -182,7 +182,7 @@ void Kwp2000_server::server_loop() {
             read_msg = true;
         }
         if (read_msg) {
-            ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
+            //ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 continue; // Huh?
             }
@@ -294,6 +294,12 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
+                bool engaged = false;
+                if (!Sensors::parking_lock_engaged(&engaged) || !engaged) {
+                    // P or R, we CANNOT reset the ECU!
+                    make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+                    return;
+                }
                 this->reboot_pending = true;
                 make_diag_pos_msg(SID_ECU_RESET, nullptr, 0);
             } else {

@@ -90,7 +90,7 @@ void err_beep_loop(void* a) {
         egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
         egs_can_hal->set_gearbox_ok(false);
         while(1) {
-            //spkr.post(p);
+            spkr.post(p);
             vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);

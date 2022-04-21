@@ -159,7 +159,6 @@ typedef struct {
     pressure_map working_mpc;
 
     rpm_modifier_map ramp_speed_multiplier;
-    rpm_modifier_map working_multiplier;
 } PressureMgrData;
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp

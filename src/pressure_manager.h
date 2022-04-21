@@ -60,8 +60,11 @@ const pressure_map spc_2_3_small = {490, 480, 470, 460, 450, 445, 440, 430, 420,
 const pressure_map mpc_2_3_small = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
 
 // 3 -> 4 upshift
-const pressure_map spc_3_4_small = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
-const pressure_map mpc_3_4_small = {490, 480, 470, 450, 430, 410, 400, 390, 380, 370, 360};
+const pressure_map spc_3_4_small = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300}; // Pedal position
+const pressure_map mpc_3_4_small = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300}; // Torque 0-100% of gearbox rating
+
+//const pressure_map spc_3_4_small = {390, 380, 370, 350, 330, 310, 300, 290, 280, 270, 260};
+//const pressure_map mpc_3_4_small = {390, 380, 370, 350, 330, 310, 300, 290, 280, 270, 260};
 
 // 4 -> 5 upshift
 const pressure_map spc_4_5_small = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
@@ -103,12 +106,11 @@ const float ramp_speed_temp_normalizer[17] = {
     1, 1, 1, 1, 1, 1, 0.99 //60C-120C (100-160) - NOTE. Keep 60-110C as '1.0' to allow adaptation!
 };
 
-// 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM
-const rpm_modifier_map rpm_normalizer = {1.03, 1.02, 1.00, 0.97, 0.93, 0.90, 0.85, 0.8, 0.75};
+// 0, 1k, 2k, 3k, 4k, 5k, 6k, 7k, 8k RPM (SPC Ramp speed multiplier)
+const rpm_modifier_map rpm_normalizer = {0.98, 0.99, 1.00, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12};
 
-const rpm_modifier_map rpm_working_normalizer = {0.9, 0.95, 1.00, 1.1, 1.2, 1.25, 1.3, 1.35, 1.4};
 // 0 -> 100% rated torque
-const pressure_map working_norm_pressure = {400, 380, 360, 340, 320, 300, 280, 260, 240, 220, 200};
+const pressure_map working_norm_pressure = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200};
 // RPM vs MPC pressure when driving (0-8000RPM)
 //const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
 
@@ -138,7 +140,7 @@ public:
      * @param shift_speed Speed of the shift (higer = faster shift)
      * @return ShiftData 
      */
-    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars);
+    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque);
 
     void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
         if (this->adapt_map != nullptr) { 

@@ -528,7 +528,7 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    if (torque_nm == 0) {
+    if (torque_nm == 0 && gs218.get_DYN1_EGS() == false) {
         gs218.set_M_EGS(0);
     } else {
         gs218.set_M_EGS((torque_nm + 500) * 4);

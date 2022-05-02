@@ -6,19 +6,19 @@
 #include "esp_log.h"
 #include "string.h"
 #include "canbus/can_hal.h"
-
+#include "esp_core_dump.h"
 #define DIAG_CAN_MAX_SIZE 1024
 
 typedef struct {
     uint16_t id;
-    uint8_t data_size;
+    uint16_t data_size;
     uint8_t data[DIAG_CAN_MAX_SIZE]; // 512B messages max (EGS52/3 is always max 256 bytes)
 } DiagMessage;
 
 typedef struct {
     uint8_t data[DIAG_CAN_MAX_SIZE];
-    uint8_t curr_pos;
-    uint8_t max_pos;
+    uint16_t curr_pos;
+    uint16_t max_pos;
 } CanEndpointMsg;
 
 /**
@@ -41,10 +41,10 @@ public:
 class UsbEndpoint: public AbstractEndpoint {
     public:
         UsbEndpoint(bool can_use_spiram) : AbstractEndpoint() {
-            const size_t read_buffer_size = DIAG_CAN_MAX_SIZE+6;
+            const size_t read_buffer_size = 3+(2*DIAG_CAN_MAX_SIZE);
             esp_err_t e;
             this->allocation_psram = can_use_spiram;
-            e = uart_driver_install(0, 515, 3+(2*DIAG_CAN_MAX_SIZE), 0, nullptr, 0);
+            e = uart_driver_install(0, 3+(2*DIAG_CAN_MAX_SIZE), 3+(2*DIAG_CAN_MAX_SIZE), 0, nullptr, 0);
             if (e != ESP_OK) {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
                 return;
@@ -93,7 +93,12 @@ class UsbEndpoint: public AbstractEndpoint {
                     if (this->read_buffer[this->read_pos] == '\n') {
                         if (this->read_buffer[0] == '#' && this->read_pos % 2 != 0) { // Check if odd (Even would be length, -1 as we haven't yet called read_pos++)
                             uint16_t size = (this->read_pos-1) / 2;
-                            uint8_t* buffer = (uint8_t*)malloc(size); // How many bytes we actually have
+                            uint8_t* buffer = nullptr;
+                            if (this->allocation_psram) {
+                                buffer = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+                            } else {
+                                buffer = (uint8_t*)malloc(size);
+                            }
                             char tmp[3] = {0,0,0};
                             for (uint16_t i = 0; i < size*2; i+=2) {
                                 strncpy(tmp, &this->read_buffer[1+i], 2);

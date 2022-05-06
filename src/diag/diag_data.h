@@ -19,6 +19,7 @@
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
 #define RLI_SYS_USAGE       0x23 // Brain usage
+#define RLI_COREDUMP_SIZE   0x24 // Coredump size
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct
@@ -70,6 +71,11 @@ typedef struct {
     uint32_t num_tasks;
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
+typedef struct {
+    uint32_t address;
+    uint32_t size;
+} __attribute__ ((packed)) COREDUMP_INFO;
+
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data();
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
@@ -79,6 +85,8 @@ DATA_SYS_USAGE get_sys_usage();
 // Read and write SCN config
 TCM_CORE_CONFIG get_tcm_config();
 uint8_t set_tcm_config(TCM_CORE_CONFIG cfg);
+
+COREDUMP_INFO get_coredump_info();
 
 
 #endif // __DIAG_DATA_H__

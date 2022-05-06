@@ -4,6 +4,7 @@
 #include <time.h>
 #include "diag_data.h"
 #include "egs_emulation.h"
+#include "kwp_utils.h"
 
 typedef struct {
     uint8_t day;
@@ -131,15 +132,19 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
+    /*
     this->tx_msg.id = KWP_ECU_TX_ID;
     this->tx_msg.data_size = 3;
     this->tx_msg.data[0] = 0x7F;
     this->tx_msg.data[1] = sid;
     this->tx_msg.data[2] = nrc;
+    */
+    global_make_diag_neg_msg(&this->tx_msg, sid, nrc);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len) {
+    /*
     if (len + 2 > DIAG_CAN_MAX_SIZE) {
         make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
         return;
@@ -148,10 +153,13 @@ void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_
     this->tx_msg.data_size = len+1;
     this->tx_msg.data[0] = sid+0x40;
     memcpy(&this->tx_msg.data[1], resp, len);
+    */
+    global_make_diag_pos_msg(&this->tx_msg, sid, resp, len);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
+    /*
     if (len + 3 > DIAG_CAN_MAX_SIZE) {
         make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
         return;
@@ -161,6 +169,8 @@ void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* 
     this->tx_msg.data[0] = sid+0x40;
     this->tx_msg.data[1] = pid;
     memcpy(&this->tx_msg.data[2], resp, len);
+    */
+    global_make_diag_pos_msg(&this->tx_msg, sid, pid, resp, len);
     this->send_resp = true;
 }
 
@@ -218,6 +228,18 @@ void Kwp2000_server::server_loop() {
                 case SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT:
                     this->process_request_routine_resutls_by_local_ident(args_ptr, args_size);
                     break;
+                case SID_REQ_UPLOAD:
+                    this->process_request_upload(args_ptr, args_size);
+                    break;
+                case SID_REQ_DOWNLOAD:
+                    this->process_request_download(args_ptr, args_size);
+                    break;
+                case SID_TRANSFER_DATA:
+                    this->process_transfer_data(args_ptr, args_size);
+                    break;
+                case SID_TRANSFER_EXIT:
+                    this->process_transfer_exit(args_ptr, args_size);
+                    break;
 
                 default:
                     ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
@@ -227,6 +249,7 @@ void Kwp2000_server::server_loop() {
 
         }
         if (this->send_resp) {
+            //ESP_LOGI("KWP", "Sending msg of %d size", tx_msg.data_size);
             if (endpoint_was_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
             } else {
@@ -247,8 +270,20 @@ void Kwp2000_server::server_loop() {
             vTaskDelay(50); // Wait for message to send (Specifically on CAN)
             esp_restart();
         }
+        if (this->session_mode == SESSION_DEFAULT && this->flash_handler != nullptr) {
+            delete this->flash_handler; // Remove flash handler
+            this->flash_handler = nullptr;
+        }
         this->cpu_usage = get_cpu_usage();
-        vTaskDelay(50);
+        if ((
+            this->session_mode == SESSION_EXTENDED ||
+            this->session_mode == SESSION_REPROGRAMMING ||
+            this->session_mode == SESSION_CUSTOM_UN52)
+        ) {
+            vTaskDelay(5);
+        } else {
+            vTaskDelay(50);
+        }
     }
 }
 
@@ -294,8 +329,7 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
-                bool engaged = false;
-                if (!Sensors::parking_lock_engaged(&engaged) || !engaged) {
+                if (!is_shifter_passive(this->can_layer)) {
                     // P or R, we CANNOT reset the ECU!
                     make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                     return;
@@ -417,6 +451,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
+    } else if (args[0] == RLI_COREDUMP_SIZE) {
+        COREDUMP_INFO r = get_coredump_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
@@ -476,7 +513,7 @@ void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
@@ -493,6 +530,14 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 xTaskCreate(Kwp2000_server::launch_solenoid_test, "RT_SOL_TEST", 2048, this, 5, &this->routine_task);
                 uint8_t resp[1] = {ROUTINE_SOLENOID_TEST};
                 make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else {
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
+        } else if (args[0] == ROUTINE_FLASH_CHECK) {
+            if (this->flash_handler != nullptr) {
+                this->tx_msg = this->flash_handler->on_request_verification(args, arg_len);
+                this->send_resp = true;
+                return;
             } else {
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
@@ -514,7 +559,7 @@ void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t
     
 }
 void Kwp2000_server::process_request_routine_resutls_by_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52  && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
@@ -533,18 +578,69 @@ void Kwp2000_server::process_request_routine_resutls_by_local_ident(uint8_t* arg
     }
     make_diag_pos_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, this->routine_result, this->routine_results_len);
 }
+
+
 void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
-
+    // Valid session only
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->flash_handler != nullptr) {
+        delete this->flash_handler;
+    }
+    // Make a new flash handler!
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->tx_msg = this->flash_handler->on_request_download(args, arg_len);
+    this->send_resp = true;
 }
+
 void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
-
+    // Valid session only
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->flash_handler != nullptr) {
+        delete this->flash_handler;
+    }
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->tx_msg = this->flash_handler->on_request_upload(args, arg_len);
+    this->send_resp = true;
 }
+
 void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
-
+    // Valid session only
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_TRANSFER_DATA, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->flash_handler == nullptr) {
+        make_diag_neg_msg(SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return;
+    } else {
+        // Flasher will do the rest for us
+        this->tx_msg = this->flash_handler->on_transfer_data(args, arg_len);
+        this->send_resp = true;
+    }
 }
+
 void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
-
+    // Valid session only
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_TRANSFER_EXIT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (this->flash_handler == nullptr) {
+        make_diag_neg_msg(SID_TRANSFER_EXIT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return;
+    }  else {
+        // Flasher will do the rest for us
+        this->tx_msg = this->flash_handler->on_transfer_exit(args, arg_len);
+        this->send_resp = true;
+    }
 }
+
 void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (
         this->session_mode == SESSION_EXTENDED ||

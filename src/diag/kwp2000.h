@@ -11,6 +11,7 @@
 #include "gearbox_config.h"
 #include "perf_mon.h"
 #include "esp32/spiram.h"
+#include "flasher.h"
 
 // Ident data
 
@@ -44,6 +45,11 @@ class Kwp2000_server {
             static_cast<Kwp2000_server*>(_this)->server_loop();
         }
 
+        void make_diag_neg_msg(uint8_t sid, uint8_t nrc);
+        void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
+        void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
+        Gearbox* gearbox_ptr;
+        AbstractCan* can_layer;
     private:
         [[noreturn]]
         void server_loop();
@@ -93,10 +99,6 @@ class Kwp2000_server {
         void process_control_dtc_settings(uint8_t* args, uint16_t arg_len);
         void process_response_on_event(uint8_t* args, uint16_t arg_len);
 
-        void make_diag_neg_msg(uint8_t sid, uint8_t nrc);
-        void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
-        void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
-
         static void launch_solenoid_test(void *_this) {
             static_cast<Kwp2000_server*>(_this)->run_solenoid_test();
         }
@@ -106,10 +108,8 @@ class Kwp2000_server {
         }
 
         void run_solenoid_test();
-
-        Gearbox* gearbox_ptr;
-        AbstractCan* can_layer;
         xTaskHandle* running_routine;
+        Flasher* flash_handler = nullptr;
 };
 
 #endif //_KWP_H__

@@ -80,8 +80,8 @@ public:
     bool start_controller();
     void inc_gear_request();
     void dec_gear_request();
-    void diag_inhibit_control() { this->control_solenoids = false; }
-    void diag_regain_control() { this->control_solenoids = true; }
+    void diag_inhibit_control() { this->diag_stop_control = true; }
+    void diag_regain_control() { this->diag_stop_control = false; }
     SensorData sensor_data;
         uint16_t get_gear_ratio() {
         return this->sensor_data.gear_ratio * 100;
@@ -128,7 +128,7 @@ private:
     int mpc_working = 0;
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
-    bool control_solenoids = true;
+    bool diag_stop_control = false;
     PressureManager* pressure_mgr = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
     GearboxConfiguration gearboxConfig;

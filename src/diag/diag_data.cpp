@@ -4,6 +4,7 @@
 #include "perf_mon.h"
 #include <tcm_maths.h>
 #include "kwp2000.h"
+#include "esp_core_dump.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -98,9 +99,13 @@ TCM_CORE_CONFIG get_tcm_config() {
 }
 
 uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition p = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
-    if (p == ShifterPosition::R || p == ShifterPosition::D || p == ShifterPosition::PLUS|| p == ShifterPosition::MINUS) {
-        return NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR; // Cannot write to SCN if in Drive or Reverse!
+    ShifterPosition pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    if (
+        pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
+        pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
+        ) {
+            ESP_LOGE("SET_TCM_CFG", "Rejecting download request. Shifter not in valid position");
+            return NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR;
     }
     // S,C,W,A,M = 5 profiles, so 4 is max value
     if (cfg.default_profile > 4) {
@@ -120,4 +125,14 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     } else {
         return NRC_GENERAL_REJECT; // SCN write error
     }
+}
+
+COREDUMP_INFO get_coredump_info() {
+    size_t addr = 0;
+    size_t size = 0;
+    esp_core_dump_image_get(&addr, &size);
+    return COREDUMP_INFO {
+        .address = addr,
+        .size = size
+    };
 }

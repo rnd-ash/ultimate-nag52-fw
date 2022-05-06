@@ -13,7 +13,7 @@
 #include <freertos/queue.h>
 #include <string.h>
 
-enum class WheelDirection {
+enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
     Reverse, // Wheel going backwards
     Stationary, // Stationary (Not forward or backwards)
@@ -32,7 +32,7 @@ struct DiagIsoTpInfo {
     uint8_t st_min;
 };
 
-enum class SystemStatusCheck {
+enum class SystemStatusCheck: uint8_t {
     // Waiting for check to complete
     Waiting,
     // No errors. Gearbox is OK
@@ -41,19 +41,19 @@ enum class SystemStatusCheck {
     Error
 };
 
-enum class EngineType {
+enum class EngineType: uint8_t {
     Diesel,
     Petrol,
     Unknown = 0xFF
 };
 
-enum class TorqueRequest {
+enum class TorqueRequest: uint8_t {
     Maximum,
     Minimum,
     None
 };
 
-enum class GearboxGear {
+enum class GearboxGear: uint8_t {
     First = 1,
     Second = 2,
     Third = 3,
@@ -66,7 +66,7 @@ enum class GearboxGear {
     SignalNotAvaliable = 0xFF,
 };
 
-enum class PaddlePosition {
+enum class PaddlePosition: uint8_t {
     None,
     Plus,
     Minus,
@@ -74,13 +74,13 @@ enum class PaddlePosition {
     SNV = 0xFF
 };
 
-enum class ClutchStatus {
+enum class ClutchStatus: uint8_t {
     Open,
     Slipping,
     Closed
 };
 
-enum class GearboxProfile {
+enum class GearboxProfile: uint8_t {
     // Comfort (C)
     Comfort,
     // Manual (M)
@@ -97,7 +97,7 @@ enum class GearboxProfile {
     Underscore
 };
 
-enum class ShifterPosition {
+enum class ShifterPosition: uint8_t {
     P,
     P_R,
     R,
@@ -110,7 +110,7 @@ enum class ShifterPosition {
     SignalNotAvaliable = 0xFF // SNV
 };
 
-enum class SolenoidName {
+enum class SolenoidName: uint8_t {
     Y3,
     Y4,
     Y5,
@@ -119,7 +119,7 @@ enum class SolenoidName {
     TCC
 };
 
-enum class GearboxDisplayGear {
+enum class GearboxDisplayGear: uint8_t {
     P,
     R,
     N,
@@ -134,7 +134,7 @@ enum class GearboxDisplayGear {
     SNA = 0xFF,
 };
 
-enum class GearboxMessage {
+enum class GearboxMessage: uint8_t {
     // No message
     None,
     // "Activate gearbox, parking brake!" with warning tone

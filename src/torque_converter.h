@@ -21,7 +21,7 @@ class TorqueConverter {
          * @param sensors Sensor data used as input
          * @param shifting True if the car is currently transitioning to new gear
          */
-        void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
+        void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset);
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
         void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors);
         void on_shift_complete(uint64_t now);
@@ -30,6 +30,8 @@ class TorqueConverter {
         bool inhibit_increase = false;
         bool was_idle = false;
         uint16_t mpc_curr_compensation = 0;
+        bool prefilling = false;
+        uint64_t prefill_start_time = 0;
 };
 
 #endif

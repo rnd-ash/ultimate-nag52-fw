@@ -100,6 +100,13 @@ public:
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
+
+
+    // IMPORTANT - ONLY CALL THESE 2 FUNCTIONS FROM SPC AND MPC solenoid!
+    void set_fade_from_current_pwm_with_voltage(uint16_t targ_pwm, uint16_t time_ms);
+    void set_fade_with_voltage(uint16_t start_pwm, uint16_t targ_pwm, uint16_t time_ms);
+
+    // -- These functions are only accessed by sw_fader class! -- //
 private:
     uint32_t default_freq;
     bool ready;
@@ -128,5 +135,12 @@ extern Solenoid *sol_y5;
 extern Solenoid *sol_mpc;
 extern Solenoid *sol_spc;
 extern Solenoid *sol_tcc;
+
+enum PwmSolenoid {
+    PWM_SPC = 0,
+    PWM_MPC = 1
+};
+
+extern Solenoid* pressure_pwm_solenoids[2];
 
 #endif // __SOLENOID_H_

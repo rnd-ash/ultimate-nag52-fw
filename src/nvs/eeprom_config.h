@@ -14,34 +14,29 @@
 
 #define NVS_PARTITION_USER_CFG "tcm_user_config"
 #define NVS_UCFG_KEY_PROFILE "LAST_PROFILE"
-#define NVS_KEY_TCC_ADAPTATION "TCC_ADAPTATION"
-
 #define NVS_KEY_GEAR_ADAPTATION "GEAR_ADAPTATION"
 
 typedef struct {
-    bool is_large_nag;
+    uint8_t is_large_nag;
     uint16_t diff_ratio;
-    uint16_t wheel_diameter;
-    bool is_four_matic;
+    uint16_t wheel_circumference;
+    uint8_t is_four_matic;
     uint16_t transfer_case_high_ratio;
     uint16_t transfer_case_low_ratio;
-} EEPROM_CORE_SCN_CONFIG;
-
-struct TccAdaptationData { // 1 per gear
-    // -40C - 120C (16 steps)
-    bool learned[17];
-    uint16_t slip_values[17]; // Where slip is (100-200RPM) (Torque is 50-120Nm)
-};
+    uint8_t default_profile;
+    uint16_t red_line_rpm_diesel;
+    uint16_t red_line_rpm_petrol;
+    uint8_t engine_type; // 0 for diesel, 1 for petrol
+} __attribute__ ((packed)) TCM_CORE_CONFIG;
 
 namespace EEPROM {
     bool init_eeprom();
     uint8_t get_last_profile();
-    bool read_core_scn_config(EEPROM_CORE_SCN_CONFIG* dest);
-    bool save_core_scn_config(EEPROM_CORE_SCN_CONFIG* write);
-    bool save_nvs_tcc_adaptation(TccAdaptationData* read_location, size_t store_size);
+    bool read_core_config(TCM_CORE_CONFIG* dest);
+    bool save_core_config(TCM_CORE_CONFIG* write);
 };
 
 #define NUM_GEARS 5
-extern TccAdaptationData torque_converter_adaptation[NUM_GEARS];
+extern TCM_CORE_CONFIG VEHICLE_CONFIG;
 
 #endif

@@ -624,7 +624,7 @@ ECU GS
 			ENUM S_MGBB, RAW: 20, DESC: "S", message "Activate gearbox, brake!"
 			ENUM S_MGGEA, RAW: 22, DESC: "S", message "Request transmission, gear again!"
 			ENUM S_MGZSN, RAW: 23, DESC: "S", message "Transmission, insert it to start n!"
-			ENUM HOCH, RAW: 24, DESC: switching recommendation "Upsheet"
+			ENUM HOCH, RAW: 24, DESC: switching recommendation "Upshift"
 			ENUM RUNTER, RAW: 25, DESC: Shift recommendation "Down"
 			ENUM BLANK, RAW: 32, DESC: "" (blank)
 			ENUM BLANK_MGN, RAW: 64, DESC: "" (blank), message "Enter transmission, n!"

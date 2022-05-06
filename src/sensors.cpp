@@ -95,7 +95,8 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 #define TIMER_INTERVAL_MS 20 // Every 20ms we poll RPM (Same as other ECUs)
 #define PULSE_MULTIPLIER 1000/TIMER_INTERVAL_MS
 
-esp_adc_cal_characteristics_t adc2_cal = {};
+esp_adc_cal_characteristics_t adc2_cal_vbatt = {};
+esp_adc_cal_characteristics_t adc2_cal_atf = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -156,7 +157,8 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
 
     // Characterise ADC2
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal_atf);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal_vbatt);
 
     // Now configure PCNT to begin counting!
     CHECK_ESP_FUNC(pcnt_unit_config(&pcnt_cfg_n2), "Failed to configure PCNT for N2 RPM reading! %s", esp_err_to_name(res))
@@ -244,7 +246,7 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
 
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal, &v);
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_vbatt, &v);
     if (res != ESP_OK) {
         ESP_LOGW("READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
         return false;
@@ -261,23 +263,22 @@ bool Sensors::read_atf_temp(int* dest){
     uint32_t raw = 0;
     uint32_t avg = 0;
     for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
-        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &raw);
+        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
         if (res != ESP_OK) {
             ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
             return false;
         }
-        if (raw >= 1000) {
-            return false; // Parking lock engaged, cannot read.
-        }
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
-    //ESP_LOGI("ATF", "AVG VOLTAGE %d", avg);
+    if (avg >= 3000) {
+        return false; // Parking lock engaged, cannot read.
+    }
     if (avg < atf_temp_lookup[0].v) {
-        *dest = atf_temp_lookup[0].temp;
+        *dest = (float)atf_temp_lookup[0].temp * 0.8;
         return true;
     } else if (avg > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-        *dest = (atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10;
+        *dest = 0.8 * (float)(atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10.0;
         return true;
     } else {
         for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
@@ -285,7 +286,7 @@ bool Sensors::read_atf_temp(int* dest){
             if (atf_temp_lookup[i].v <= avg && atf_temp_lookup[i+1].v >= avg) {
                 float dx = avg - atf_temp_lookup[i].v;
                 float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                *dest = (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
+                *dest = 0.8 * (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
                 return true;
             }
         }
@@ -300,7 +301,7 @@ bool Sensors::parking_lock_engaged(bool* dest){
         ESP_LOGW("READ_VBATT", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;
     } else {
-        *dest = raw >= 3900;
+        *dest = raw >= 4000;
         return true;
     }
 }

@@ -1,0 +1,18 @@
+#
+# Ultimate-NAG52 diagnostic specification file
+# This is loaded into the configuration app
+#
+# It is stored here as new functions get added on the firmware side,
+# not the config app!.
+#
+# This way, people can stay on older versions of the config app, but enjoy
+# the latest firmware readouts and functions!
+
+version: 0.1
+
+read_functions:
+  - name: DL_GB_SENSORS
+    description: 'Read gearbox core sensors'
+    payload: '2201'
+    outputs:
+      

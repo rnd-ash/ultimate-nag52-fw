@@ -478,12 +478,15 @@ void Egs52Can::set_shifter_position(ShifterPosition pos) {
             gs418.set_WHST(GS_418h_WHST::P);
             break;
         case ShifterPosition::R:
+        case ShifterPosition::R_N:
+        case ShifterPosition::P_R:
             gs418.set_WHST(GS_418h_WHST::R);
             break;
         case ShifterPosition::N:
             gs418.set_WHST(GS_418h_WHST::N);
             break;
         case ShifterPosition::D:
+        case ShifterPosition::N_D:
             gs418.set_WHST(GS_418h_WHST::D);
             break;
         case ShifterPosition::SignalNotAvaliable:
@@ -525,7 +528,7 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    if (torque_nm == 0) {
+    if (torque_nm == 0 && gs218.get_DYN1_EGS() == false) {
         gs218.set_M_EGS(0);
     } else {
         gs218.set_M_EGS((torque_nm + 500) * 4);

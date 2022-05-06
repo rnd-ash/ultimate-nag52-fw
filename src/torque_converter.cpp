@@ -28,79 +28,70 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
+#define TCC_PREFILL 300
+
+void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
         sol_tcc->write_pwm_12_bit(0);
+        prefilling = false;
         return;
     }
 
-    if (this->was_idle && this->curr_tcc_pwm > 50) {
+    uint64_t now = esp_timer_get_time() / 1000;
+    if (this->was_idle && !prefilling) {
         this->was_idle = false;
-        this->curr_tcc_pwm *= 0.5; // Faster response for TCC
+        this->prefilling = true;
+        prefill_start_time = now;
+        this->curr_tcc_pwm = 0;
+    }
+    if (now - prefill_start_time < 3000) {
+        sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
+        return;
     }
 
-    if (!is_shifting) {
-        int trq = sensors->static_torque;
-        if (trq < 0) {
-            trq *= -1;
-        }
-        // Only think about lockup on positive torque
-        int max_allowed_slip;
-        int min_allowed_slip;
-        if (profile == nullptr) {
-            max_allowed_slip = MAX(100, trq);
-            min_allowed_slip = MAX(10, trq/2);
-        } else {
-            TccLockupBounds bounds = profile->get_tcc_lockup_bounds(sensors, curr_gear);
-            max_allowed_slip = bounds.max_slip_rpm;
-            min_allowed_slip = bounds.min_slip_rpm;
-            if (sensors->pedal_pos == 0) {
-                // Hard coded for coasting
-                max_allowed_slip = 250;
-                min_allowed_slip = 50;
-
-            }
-            // This means that at 1000Rpm, we will get 0.9 the slip (More slip)
-            // At 2100RPM, we will get half the slip as at 1100rpm
-            // Dynamic slip :D
-            //float multiplier = MIN(0.9, (float)(sensors->input_rpm-100.0)/1000.0);
-            if (sensors->output_rpm > 2000) {
-                max_allowed_slip /= 2;
-                min_allowed_slip /= 2;
-            }
-        }
-
-        if (sensors->tcc_slip_rpm > max_allowed_slip) {
-            // Increase pressure
-            this->curr_tcc_pwm += MAX(1, (sensors->pedal_pos/11)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-        } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0) {
-            // Decrease pressure, but only if we have pedal input
-            this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-        }
+    int trq = sensors->static_torque;
+    if (trq < 0) {
+        trq *= -1;
     }
-    int tcc_offset = 0;
-    if (this->curr_tcc_pwm != 0 ) {
-        tcc_offset = 250;
+    // Only think about lockup on positive torque
+    int max_allowed_slip;
+    int min_allowed_slip;
+    if (profile == nullptr) {
+        max_allowed_slip = MAX(100, trq);
+        min_allowed_slip = MAX(10, trq/2);
     } else {
-        this->mpc_curr_compensation = 0;
+        TccLockupBounds bounds = profile->get_tcc_lockup_bounds(sensors, curr_gear);
+        max_allowed_slip = bounds.max_slip_rpm;
+        min_allowed_slip = bounds.min_slip_rpm;
+        // This means that at 1000Rpm, we will get 0.9 the slip (More slip)
+        // At 2100RPM, we will get half the slip as at 1100rpm
+        // Dynamic slip :D
+        float multiplier = MIN(0.9, (float)(sensors->input_rpm/1000.0));
+        max_allowed_slip *= multiplier;
+        min_allowed_slip *= multiplier;
     }
-    /*
-    if (this->curr_tcc_pwm != 0 && !this->inhibit_increase) {
-        uint16_t compensation_multiplier = is_shifting ? (sol_mpc->get_pwm() / 50) : 0;
-        if (compensation_multiplier == 0) {
-            mpc_curr_compensation = 0;
-        } else if (this->mpc_curr_compensation < compensation_multiplier) {
-            mpc_curr_compensation++;
+    int slip = sensors->tcc_slip_rpm;
+    if (is_shifting) {
+        goto write_pwm;
+    }
+    if (slip > max_allowed_slip) {
+        // Increase pressure
+        if (TCC_PREFILL+this->curr_tcc_pwm < 4500) {
+            this->curr_tcc_pwm += MAX(0.2, (sensors->pedal_pos/7)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+        } else {
+            this->curr_tcc_pwm += MAX(0.1, (sensors->pedal_pos/15)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
         }
-        this->curr_tcc_pwm += mpc_curr_compensation;
+    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->pedal_pos > 5 && sensors->static_torque > 50) {
+        // Decrease pressure, but only if we have pedal input
+        this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
     }
-    */
+write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(tcc_offset+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
+    sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10))+(mpc_offset), sensors->voltage);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
@@ -108,4 +99,7 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
+    if (is_downshift) {
+        this->inhibit_increase = true;
+    }
 }

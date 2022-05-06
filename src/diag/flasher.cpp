@@ -37,7 +37,7 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
             return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         }
         this->update_handle = 0;
-        esp_err_t err = esp_ota_begin(this->update_partition, OTA_WITH_SEQUENTIAL_WRITES, &update_handle);
+        esp_err_t err = esp_ota_begin(this->update_partition, dest_mem_size, &update_handle);
         if (err != ESP_OK) {
             // HUH!?
             ESP_LOGE("FLASHER", "esp_ota_begin failed! %s", esp_err_to_name(err));

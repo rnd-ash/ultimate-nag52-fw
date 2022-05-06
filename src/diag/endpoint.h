@@ -7,7 +7,9 @@
 #include "string.h"
 #include "canbus/can_hal.h"
 #include "esp_core_dump.h"
-#define DIAG_CAN_MAX_SIZE 1024
+#include "tcm_maths.h"
+
+#define DIAG_CAN_MAX_SIZE 2048
 
 typedef struct {
     uint16_t id;
@@ -41,7 +43,7 @@ public:
 class UsbEndpoint: public AbstractEndpoint {
     public:
         UsbEndpoint(bool can_use_spiram) : AbstractEndpoint() {
-            const size_t read_buffer_size = 3+(2*DIAG_CAN_MAX_SIZE);
+            const size_t read_buffer_size = 5+(2*DIAG_CAN_MAX_SIZE);
             esp_err_t e;
             this->allocation_psram = can_use_spiram;
             e = uart_driver_install(0, 3+(2*DIAG_CAN_MAX_SIZE), 3+(2*DIAG_CAN_MAX_SIZE), 0, nullptr, 0);
@@ -49,7 +51,6 @@ class UsbEndpoint: public AbstractEndpoint {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
                 return;
             }
-
             if (this->allocation_psram) {
                 this->read_buffer = (char*)heap_caps_malloc(read_buffer_size, MALLOC_CAP_SPIRAM);
             } else {
@@ -63,26 +64,14 @@ class UsbEndpoint: public AbstractEndpoint {
         }
 
         void send_data(DiagMessage* msg) override {
-            // 2 chars per byte, 4 bytes for (CID), 2 bytes for '#' and '\n'
-            int size = (msg->data_size*2)+6;
-            char* buffer;
-            if (this->allocation_psram) {
-                buffer = (char*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-            } else {
-                buffer = (char*)malloc(size);
-            }
-            if (buffer == nullptr) {
-                ESP_LOGE("USBEndpoint", "Failed to allocate buffer for Tx DiagMessage!");
-                return;
-            }
-            int len = 0;
-            len = sprintf(len+buffer, "#%04X", msg->id);
+            char buf[6];
+            sprintf(buf, "#%04X", msg->id);
+            uart_write_bytes(0, buf, 5);
             for (uint16_t i = 0; i < msg->data_size; i++) {
-                len += sprintf(buffer+len, "%02X", msg->data[i]);
+                sprintf(buf, "%02X", msg->data[i]);
+                uart_write_bytes(0, buf, 2);
             }
-            buffer[len] = '\n';
-            uart_write_bytes(0, buffer, size);
-            free(buffer);
+            uart_write_bytes(0, "\n", 1);
         }
 
         bool read_data(DiagMessage* dest) override {
@@ -92,22 +81,24 @@ class UsbEndpoint: public AbstractEndpoint {
                 while (uart_read_bytes(0, &this->read_buffer[this->read_pos], 1, 2) == 1) {
                     if (this->read_buffer[this->read_pos] == '\n') {
                         if (this->read_buffer[0] == '#' && this->read_pos % 2 != 0) { // Check if odd (Even would be length, -1 as we haven't yet called read_pos++)
-                            uint16_t size = (this->read_pos-1) / 2;
-                            uint8_t* buffer = nullptr;
-                            if (this->allocation_psram) {
-                                buffer = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
-                            } else {
-                                buffer = (uint8_t*)malloc(size);
-                            }
+                            uint16_t data_size = MIN(DIAG_CAN_MAX_SIZE, (this->read_pos-5) / 2);
                             char tmp[3] = {0,0,0};
-                            for (uint16_t i = 0; i < size*2; i+=2) {
-                                strncpy(tmp, &this->read_buffer[1+i], 2);
-                                buffer[i/2] = strtol(tmp, nullptr, 16);
+                            // INDEX DATA
+                            // 0 - #
+                            // 1-5 - ID
+                            // 6..n - CAN DATA
+                            // n - \n
+                            // Copy ID
+                            strncpy(tmp, &this->read_buffer[1], 2);
+                            dest->id = strtol(tmp, nullptr, 16) & 0xFF << 8;
+                            strncpy(tmp, &this->read_buffer[3], 2);
+                            dest->id |= strtol(tmp, nullptr, 16) & 0xFF;
+                            // Now copy data
+                            for (uint16_t i = 0; i < data_size*2; i+=2) {
+                                strncpy(tmp, &this->read_buffer[5+i], 2);
+                                dest->data[i/2] = strtol(tmp, nullptr, 16);
                             }
-                            dest->data_size = size-2;
-                            dest->id = buffer[0] << 8 | buffer[1];
-                            memcpy(dest->data, &buffer[2], size-2);
-                            free(buffer); // Don't forget to free memory!
+                            dest->data_size = data_size;
                             this->read_pos = 0;
                             return true;
                         } else {
@@ -122,6 +113,10 @@ class UsbEndpoint: public AbstractEndpoint {
             return false;
         }
     private:
+        // NOTE TO SELF
+        // Every USB MSG:
+        // {ID: 0x07E0, Data: [0x00, 0x11, 0x22, 0x33]} = '#07E100112233\n'
+        // Read msg size: 6 bytes: USB message size: 14 = (Read size *2) + 2
         char* read_buffer;
         uint16_t read_pos;
         QueueHandle_t uart_queue;

@@ -99,8 +99,6 @@ void Gearbox::set_profile(AbstractProfile* prof) {
     if (prof != nullptr) { // Only change if not nullptr!
         portENTER_CRITICAL(&this->profile_mutex);
         this->current_profile = prof;
-        // Set CAN display
-        egs_can_hal->set_drive_profile(this->current_profile->get_profile());
         portEXIT_CRITICAL(&this->profile_mutex);
     }
 }
@@ -580,6 +578,11 @@ void Gearbox::controller_loop() {
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
         this->sensor_data.current_timestamp_ms = now;
+        if (this->diag_stop_control) {
+            vTaskDelay(50);
+            continue;
+        }
+
         bool can_read = true;
         if (!this->calc_input_rpm(&sensor_data.input_rpm)) {
             can_read = false;
@@ -677,7 +680,7 @@ void Gearbox::controller_loop() {
             }
         }
         if (this->sensor_data.engine_rpm > 500) {
-            if (control_solenoids && is_controllable_gear(this->actual_gear)) {
+            if (is_controllable_gear(this->actual_gear)) {
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
                 sol_mpc->write_pwm_percent_with_voltage(this->mpc_working + this->mpc_offset, sensor_data.voltage);
                 if (this->mpc_offset != 0 && !shifting) {
@@ -766,16 +769,12 @@ void Gearbox::controller_loop() {
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         } else {
-            if (control_solenoids) {
                 sol_mpc->write_pwm_12_bit(0);
                 sol_spc->write_pwm_12_bit(0);
                 sol_tcc->write_pwm_12_bit(0);
                 sol_y3->write_pwm_12_bit(0);
                 sol_y4->write_pwm_12_bit(0);
                 sol_y5->write_pwm_12_bit(0);
-            } else {
-                egs_can_hal->set_safe_start(false); // Inhibit engine starting when solenoids are not controlled!
-            }
         }
         int tmp_atf = 0;
         if (!Sensors::read_atf_temp(&tmp_atf)) {
@@ -876,6 +875,7 @@ void Gearbox::controller_loop() {
         // Lastly, set display gear
         portENTER_CRITICAL(&this->profile_mutex);
         if (this->current_profile != nullptr) {
+            egs_can_hal->set_drive_profile(this->current_profile->get_profile());
             if (this->flaring) {
                 // Takes president
                 egs_can_hal->set_display_msg(GearboxMessage::None);

@@ -32,3 +32,24 @@ void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, uint8_t pid, const
     dest->data[1] = pid;
     memcpy(&dest->data[2], resp, len);
 }
+
+bool is_engine_off(AbstractCan* can) {
+    // Engine MUST be off (Ignition state)
+    int rpm = egs_can_hal->get_engine_rpm(esp_timer_get_time()/1000, 250);
+    if (rpm != 0 && rpm != UINT16_MAX) { // 0 = 0RPM, MAX = SNV (Engine ECU is offline)
+        return false;
+    }
+    return true;
+}
+
+bool is_shifter_passive(AbstractCan* can) {
+    // Shifter must be Offline (SNV) or P or N
+    ShifterPosition pos = can->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    if (
+        pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
+        pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
+        ) {
+            return false;
+    }
+    return true;
+}

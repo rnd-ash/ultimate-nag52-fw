@@ -18,6 +18,9 @@
 #define UPDATE_TYPE_OTA 0x00 // Read and write
 #define UPDATE_TYPE_COREDUMP 0x01 // Read only
 
+#define DATA_DIR_UPLOAD 0x02
+#define DATA_DIR_DOWNLOAD 0x01
+
 class Flasher {
     public:
         Flasher(AbstractCan *can_ref, Gearbox* gearbox);
@@ -36,7 +39,13 @@ class Flasher {
         esp_ota_handle_t update_handle = 0;
         uint32_t written_data = 0;
         const esp_partition_t *update_partition;
-        
+        int data_dir = 0;
+
+        // For reading
+        size_t read_base_addr;
+        size_t read_bytes;
+        size_t read_bytes_total;
+
         DiagMessage make_diag_neg_msg(uint8_t sid, uint8_t nrc){
             DiagMessage msg;
             global_make_diag_neg_msg(&msg, sid, nrc);

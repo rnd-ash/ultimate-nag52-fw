@@ -329,8 +329,7 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
-                bool engaged = false;
-                if (!Sensors::parking_lock_engaged(&engaged) || !engaged) {
+                if (!is_shifter_passive(this->can_layer)) {
                     // P or R, we CANNOT reset the ECU!
                     make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                     return;
@@ -454,7 +453,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
     } else if (args[0] == RLI_COREDUMP_SIZE) {
         COREDUMP_INFO r = get_coredump_info();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
@@ -602,11 +601,12 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (this->flash_handler == nullptr) {
-
+    if (this->flash_handler != nullptr) {
+        delete this->flash_handler;
     }
-    // TODO
-    make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->tx_msg = this->flash_handler->on_request_upload(args, arg_len);
+    this->send_resp = true;
 }
 
 void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
@@ -638,9 +638,6 @@ void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
         // Flasher will do the rest for us
         this->tx_msg = this->flash_handler->on_transfer_exit(args, arg_len);
         this->send_resp = true;
-
-        // We can now destroy the flasher
-        delete this->flash_handler;
     }
 }
 

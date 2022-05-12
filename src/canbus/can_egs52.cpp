@@ -878,8 +878,6 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 
 [[noreturn]]
 void Egs52Can::tx_task_loop() {
-    uint64_t start_time;
-    uint32_t taken;
     twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_338 gs_338tx;
@@ -915,6 +913,11 @@ void Egs52Can::tx_task_loop() {
         gs_218tx.set_FEHLER(cvn_counter);
         cvn_counter++;
 
+        if (!this->send_messages) {
+            vTaskDelay(50);
+            continue;
+        }
+
         // Now send CAN Data!
 
         /**
@@ -924,36 +927,19 @@ void Egs52Can::tx_task_loop() {
          * GS_418
          * GS_CUSTOM_558 ;)
          */
-        start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
-        // Todo handle additional ISOTP communication
-        if (this->diag_tx_queue != nullptr) {
-            DiagCanMessage buffer;
-            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
-                // Popped message!
-                tx.data_length_code = 8;
-                tx.identifier = this->diag_tx_id;
-                memcpy(tx.data, buffer, 8);
-                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
-                twai_transmit(&tx, 5);
-            }
-        }
-
-        taken = (esp_timer_get_time() / 1000) - start_time;
-        if (taken < this->tx_time_ms) {
-            vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
-        }
+        twai_transmit(&tx, 5);
+        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
 
@@ -989,7 +975,7 @@ void Egs52Can::rx_task_loop() {
                                 ESP_LOGE("EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
-                    } 
+                    }
                 }
             }
             vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here

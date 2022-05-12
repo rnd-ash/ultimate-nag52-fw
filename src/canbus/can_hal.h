@@ -162,7 +162,6 @@ class AbstractCan {
             this->tx_time_ms = tx_time_ms;
             this->tx_task = nullptr;
             this->rx_task = nullptr;
-            this->diag_tx_queue = nullptr;
             this->diag_rx_queue = nullptr;
         };
         virtual bool begin_tasks();
@@ -265,11 +264,9 @@ class AbstractCan {
         }
 
         // For diagnostics
-        void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id, QueueHandle_t* tx_queue, uint16_t tx_id) {
+        void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id) {
             this->diag_rx_queue = rx_queue;
-            this->diag_tx_queue = tx_queue;
             this->diag_rx_id = rx_id;
-            this->diag_tx_id = tx_id;
         }
 
     protected:
@@ -294,7 +291,6 @@ class AbstractCan {
         bool send_messages = true;
 
         QueueHandle_t* diag_rx_queue;
-        QueueHandle_t* diag_tx_queue;
     private:
         const char* name;
 };

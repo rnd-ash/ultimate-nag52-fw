@@ -644,9 +644,6 @@ void Egs53Can::tx_task_loop() {
         sbw_rs_tcm_tx = {sbw_rs_tcm.raw};
         tcm_disp_rq_tx = {tcm_disp_rq.raw};
         nm_tcm_tx = {nm_tcm.raw};
-        // Now send CAN Data!
-
-        start_time = esp_timer_get_time() / 1000;
 
         tcm_a2_tx.set_TCM_CALID_CVN_ErrNum(cvn_counter);
         cvn_counter++;
@@ -659,31 +656,37 @@ void Egs53Can::tx_task_loop() {
         eng_rq2_tcm_tx.set_MC_ENG_RQ2_TCM(msg_counter);
         eng_rq3_tcm_tx.set_MC_ENG_RQ3_TCM(msg_counter);
         sbw_rs_tcm_tx.set_MC_SBW_RS_TCM(msg_counter);
-        msg_counter++; // Global for all messages out of TCM
 
+        if (this->send_messages) {
+            vTaskDelay(50);
+            continue;
+        }
+
+        msg_counter++; // Global for all messages out of TCM
+        // Now send CAN Data!
         tx.identifier = ENG_RQ1_TCM_CAN_ID;
         to_bytes(eng_rq1_tcm_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         
         tx.identifier = ENG_RQ2_TCM_CAN_ID;
         to_bytes(eng_rq2_tcm_tx.raw, tx.data);  
         calc_crc_in_place(tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
 
         tx.identifier = TCM_A2_CAN_ID;
         to_bytes(tcm_a2_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
 
         tx.identifier = TCM_A1_CAN_ID;
         to_bytes(tcm_a1_tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
 
         if (counter == 5) {
             tx.identifier = TCM_DISP_RQ_CAN_ID;
             to_bytes(tcm_disp_rq_tx.raw, tx.data);
-            if (this->send_messages) { twai_transmit(&tx, 5); }
+            twai_transmit(&tx, 5);
             counter = 0;
         }
         counter++;
@@ -691,24 +694,9 @@ void Egs53Can::tx_task_loop() {
         tx.identifier = SBW_RS_TCM_CAN_ID;
         to_bytes(sbw_rs_tcm_tx.raw, tx.data);
         calc_crc_in_place(tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
 
-        // Todo handle additional ISOTP communication
-        if (this->diag_tx_queue != nullptr) {
-            DiagCanMessage buffer;
-            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
-                // Popped message!
-                tx.data_length_code = 8;
-                tx.identifier = this->diag_tx_id;
-                memcpy(tx.data, buffer, 8);
-                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
-                twai_transmit(&tx, 5);
-            }
-        }
-        taken = (esp_timer_get_time() / 1000) - start_time;
-        if (taken < this->tx_time_ms) {
-            vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
-        }
+        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
 

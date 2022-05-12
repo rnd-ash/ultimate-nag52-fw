@@ -8,6 +8,7 @@
 #include "canbus/can_hal.h"
 #include "esp_core_dump.h"
 #include "tcm_maths.h"
+#include "driver/twai.h"
 
 #define DIAG_CAN_MAX_SIZE 2048
 
@@ -149,7 +150,7 @@ private:
     void iso_tp_server_loop();
     AbstractCan* can;
     QueueHandle_t rx_queue;
-    QueueHandle_t tx_queue;
+    //QueueHandle_t tx_queue;
     CanEndpointMsg tx_msg;
     CanEndpointMsg rx_msg;
     QueueHandle_t read_msg_queue;
@@ -163,6 +164,10 @@ private:
     uint64_t last_rx_time;
     uint64_t last_tx_time;
     uint8_t tx_bs = 8;
+    uint8_t frames_received = 0;
+    twai_message_t tx_can;
+
+    bool send_to_twai(DiagCanMessage msg);
 };
 
 

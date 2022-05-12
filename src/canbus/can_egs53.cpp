@@ -14,8 +14,8 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     ESP_LOGI("EGS52_CAN", "CAN constructor called");
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
-    gen_config.rx_queue_len = 10;
-    gen_config.tx_queue_len = 6;
+    gen_config.rx_queue_len = 32;
+    gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
@@ -727,7 +727,7 @@ void Egs53Can::rx_task_loop() {
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(2)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));
@@ -739,18 +739,14 @@ void Egs53Can::rx_task_loop() {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
                             // Send the frame
-                            DiagCanMessage msg;
-                            memcpy(msg, rx.data, 8);
-                            if (xQueueSend(*this->diag_rx_queue, msg, 0) != pdTRUE) {
+                            if (xQueueSend(*this->diag_rx_queue, tx.data, 0) != pdTRUE) {
                                 ESP_LOGE("EGS53_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
                     } 
-                } else {
-                    vTaskDelay(2 / portTICK_PERIOD_MS);
                 }
             }
-            vTaskDelay(1 / portTICK_PERIOD_MS); // Reset watchdog here
+            vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here
         }
     }
 }

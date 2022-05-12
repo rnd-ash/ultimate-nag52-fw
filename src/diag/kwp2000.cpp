@@ -192,6 +192,7 @@ void Kwp2000_server::server_loop() {
             read_msg = true;
         }
         if (read_msg) {
+            this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
             //ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 continue; // Huh?

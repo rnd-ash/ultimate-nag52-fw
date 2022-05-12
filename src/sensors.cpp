@@ -104,8 +104,14 @@ portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 uint64_t n2_overflow = 0;
 uint64_t n3_overflow = 0;
 
-volatile uint64_t n2_rpm = 0;
-volatile uint64_t n3_rpm = 0;
+#define RPM_SAMPLES 3
+volatile uint64_t n3_rpm_avg[RPM_SAMPLES] = {0,0,0};
+volatile uint64_t n2_rpm_avg[RPM_SAMPLES] = {0,0,0};
+uint8_t rpm_idx = 0;
+
+
+volatile uint64_t n2_rpm_sum = 0;
+volatile uint64_t n3_rpm_sum = 0;
 
 static intr_handle_t rpm_timer_handle;
 static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
@@ -117,7 +123,8 @@ static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
     pcnt_counter_clear(PCNT_N3_RPM);
     t += (n3_overflow * PCNT_H_LIM);
     n3_overflow = 0;
-    n3_rpm = t;
+    //n3_rpm = t;
+    n3_rpm_avg[rpm_idx] = t;
     portEXIT_CRITICAL_ISR(&n3_mux);
 
     portENTER_CRITICAL_ISR(&n2_mux);
@@ -125,8 +132,20 @@ static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
     pcnt_counter_clear(PCNT_N2_RPM);
     t += (n2_overflow * PCNT_H_LIM);
     n2_overflow = 0;
-    n2_rpm = t;
+    n2_rpm_avg[rpm_idx] = t;
     portEXIT_CRITICAL_ISR(&n2_mux);
+    rpm_idx++;
+    if (rpm_idx >= RPM_SAMPLES) {
+        rpm_idx=0;
+    }
+    uint64_t n2 = 0;
+    uint64_t n3 = 0;
+    for (uint8_t i = 0; i < RPM_SAMPLES; i++) {
+        n2 += n2_rpm_avg[i];
+        n3 += n3_rpm_avg[i];
+    }
+    n2_rpm_sum = n2;
+    n3_rpm_sum = n3;
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
@@ -212,8 +231,8 @@ bool Sensors::init_sensors(){
 }
 
 bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
-    dest->n2_raw = ((float)n2_rpm * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
-    dest->n3_raw = ((float)n3_rpm * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
+    dest->n2_raw = ((float)n2_rpm_sum / (float)RPM_SAMPLES * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
+    dest->n3_raw = ((float)n3_rpm_sum / (float)RPM_SAMPLES * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
     //ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
     if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;

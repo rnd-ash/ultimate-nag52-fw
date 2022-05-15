@@ -28,7 +28,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 300
+#define TCC_PREFILL 350
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!

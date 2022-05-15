@@ -207,7 +207,7 @@ void read_solenoids_i2s(void*) {
             sample_id += 1;
         }
         for (uint8_t i = 0; i < SAMPLE_COUNT; i++) {
-            avg += samples[i];
+            avg += samples[i];  
         }
         avg /= SAMPLE_COUNT;
         sol_order[solenoid_id]->__set_current_internal(avg);
@@ -227,15 +227,12 @@ void read_solenoids_i2s(void*) {
 bool init_all_solenoids()
 {
     // Read calibration for ADC1
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 0, &adc1_cal);
-
     sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0);
     sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0);
     sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0);
     sol_mpc = new Solenoid("MPC", PIN_MPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_1);
     sol_spc = new Solenoid("SPC", PIN_SPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_1);
     sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_2);
-
     esp_err_t res = ledc_fade_func_install(0);
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "FATAL. Could not load insert LEDC fade function %s", esp_err_to_name(res));
@@ -251,15 +248,7 @@ bool init_all_solenoids()
     ) { // Init error, don't do anything else
         return false;
     }
-
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
-    sol_y3->write_pwm_12_bit(0);
-    sol_y4->write_pwm_12_bit(0);
-    sol_y5->write_pwm_12_bit(0);
-    sol_mpc->write_pwm_12_bit(0);
-    sol_spc->write_pwm_12_bit(0);
-    sol_tcc->write_pwm_12_bit(0);
-
     while(!all_calibrated) {
         vTaskDelay(2/portTICK_PERIOD_MS);
     }

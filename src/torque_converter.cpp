@@ -90,7 +90,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         float diff = slip - midpoint;
         // Increase pressure
         this->curr_tcc_pwm += MAX(0.1, (diff/15.0)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->static_torque > 80) {
+    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->static_torque > 40) {
         // Decrease pressure, but only if we have pedal input
         this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
     }

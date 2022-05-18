@@ -13,7 +13,7 @@
 
 // 1 -> 2 upshift
 const pressure_map spc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
-const pressure_map mpc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
+const pressure_map mpc_1_2_large = {550, 530, 510, 490, 460, 440, 420, 400, 380, 370, 350};
 
 // 2 -> 3 upshift
 const pressure_map spc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
@@ -22,7 +22,7 @@ const pressure_map mpc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300,
 
 // 3 -> 4 upshift
 const pressure_map spc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
-const pressure_map mpc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
+const pressure_map mpc_3_4_large = {400, 390, 380, 370, 360, 350, 340, 330, 300, 280, 260};
 
  
 // 4 -> 5 upshift

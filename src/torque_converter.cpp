@@ -34,7 +34,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     if (sensors->input_rpm < 1000) { // RPM too low!
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
-        sol_tcc->write_pwm_12_bit(0);
+        pm->set_target_tcc_percent(0, -1);
+        //sol_tcc->write_pwm_12_bit(0);
         prefilling = false;
         return;
     }
@@ -43,11 +44,12 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     if (this->was_idle && !prefilling) {
         this->was_idle = false;
         this->prefilling = true;
-        prefill_start_time = now;
+        prefill_start_time = sensors->current_timestamp_ms;
         this->curr_tcc_pwm = 0;
     }
-    if (now - prefill_start_time < 3000) {
-        sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
+    if (sensors->current_timestamp_ms - prefill_start_time < 3000) {
+        pm->set_target_tcc_percent(TCC_PREFILL/4, -1);
+        //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
         return;
     }
 
@@ -89,7 +91,8 @@ write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10))+(mpc_offset), sensors->voltage);
+    pm->set_target_tcc_percent((TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)))/4, -1);
+    //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {

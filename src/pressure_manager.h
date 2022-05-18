@@ -92,6 +92,19 @@ const pressure_map mpc_5_4_small = {500, 480, 460, 440, 420, 400, 360, 360, 350,
 
 #define SHIFT_IN_PROGRESS_THRESH 25 // 25%
 
+typedef struct {
+    uint16_t targ_pwm_percent;
+    uint16_t curr_pwm_percent;
+    float ramp_speed;
+    bool write_pwm;
+} PSolenoidData;
+
+typedef enum {
+    MPC,
+    SPC,
+    TCC
+} PSolenoidType;
+
 /*
 const float pressure_temp_normalizer[17] = {
     0.7, 0.72, 0.75, 0.78, 0.84, // -40-0C (0-40)
@@ -127,19 +140,14 @@ typedef void (*P_RAMP_FUNC)(float, float);
 class PressureManager {
 
 public:
+
+    void set_target_mpc_percent(uint16_t targ, int speed);
+    void set_target_spc_percent(uint16_t targ, int speed);
+    void set_target_tcc_percent(uint16_t targ, int speed);
+
     PressureManager(SensorData* sensor_ptr);
 
-    /**
-     * @brief In the event a gear change is in progress, and the gearbox needs to abort the shift
-     * call this function. This ONLY applies to up shifting, where the gearbox may need to abort
-     * the upshift due to a sudden load demand change
-     * 
-     * @return Boolean value indicating if the abort request can be carried out. Sometimes
-     * it is not possible for the gearbox to abort the gear change (EG, already at red-line when upshifting
-     * cannot result in an abort shift as that would over-rev the engine)
-     * 
-     */
-    void abort_shift();
+    void update(GearboxGear curr_gear, GearboxGear targ_gear);
 
     /**
      * @brief Get the shift data object for the requested shift
@@ -170,6 +178,11 @@ private:
     SensorData* sensor_data;
     AdaptationMap* adapt_map;
     PressureMgrData map_data;
+
+    PSolenoidData tcc;
+    PSolenoidData mpc;
+    PSolenoidData spc;
+
 };
 
 #endif

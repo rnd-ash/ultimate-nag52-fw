@@ -28,10 +28,17 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 350
+#define TCC_PREFILL 370
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
+        if (sensors->engine_rpm > 900) {
+            this->prefilling = true;
+            prefill_start_time = sensors->current_timestamp_ms;
+            this->curr_tcc_pwm = 0;
+            pm->set_target_tcc_percent(TCC_PREFILL/4, -1); // Being early prefil
+            return;
+        }
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
         pm->set_target_tcc_percent(0, -1);

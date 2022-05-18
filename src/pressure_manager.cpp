@@ -91,16 +91,51 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     COPY_MAP(mpc_2_1)
     COPY_MAP(spc_2_1)
     memcpy(this->map_data.ramp_speed_multiplier, rpm_normalizer, sizeof(rpm_modifier_map));
-    memcpy(this->map_data.working_mpc, working_norm_pressure, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_p, working_norm_pressure_p, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_r, working_norm_pressure_r, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_1, working_norm_pressure_1, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_2, working_norm_pressure_2, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_3, working_norm_pressure_3, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_4, working_norm_pressure_4, sizeof(pressure_map));
+    memcpy(this->map_data.working_mpc_5, working_norm_pressure_5, sizeof(pressure_map));
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors, int max_rated_torque) {
     int torque = sensors->static_torque;
     if (torque < 0) {
-        torque = 0;
+        torque *= -1;
     }
+
+    int16_t* targ_map = map_data.working_mpc_p;
+    switch(curr_g) {
+        case GearboxGear::First:
+            targ_map = map_data.working_mpc_1;
+            break;
+        case GearboxGear::Second:
+            targ_map = map_data.working_mpc_2;
+            break;
+        case GearboxGear::Third:
+            targ_map = map_data.working_mpc_3;
+            break;
+        case GearboxGear::Fourth:
+            targ_map = map_data.working_mpc_4;
+            break;
+        case GearboxGear::Fifth:
+            targ_map = map_data.working_mpc_5;
+            break;
+        case GearboxGear::Reverse_First:
+        case GearboxGear::Reverse_Second:
+            targ_map = map_data.working_mpc_r;
+            break;
+        case GearboxGear::Park:
+        case GearboxGear::Neutral:
+        case GearboxGear::SignalNotAvaliable:
+        default: // Already set
+            break;
+    }
+
     int torque_load = (torque*100/max_rated_torque);
-    uint16_t raw = locate_pressure_map_value(map_data.working_mpc, torque_load);
+    uint16_t raw = locate_pressure_map_value(targ_map, torque_load);
     return raw;
 }
 

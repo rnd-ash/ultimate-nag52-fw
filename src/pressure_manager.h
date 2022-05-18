@@ -110,7 +110,15 @@ const float ramp_speed_temp_normalizer[17] = {
 const rpm_modifier_map rpm_normalizer = {0.98, 0.99, 1.00, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12};
 
 // 0 -> 100% rated torque
-const pressure_map working_norm_pressure = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200};
+const pressure_map working_norm_pressure_p = {490, 460, 450, 440, 430, 420, 410, 400, 390, 380, 370}; // Park or N
+const pressure_map working_norm_pressure_r = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // R1 or R2
+const pressure_map working_norm_pressure_1 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 1
+const pressure_map working_norm_pressure_2 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 2
+const pressure_map working_norm_pressure_3 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 3
+const pressure_map working_norm_pressure_4 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 4
+const pressure_map working_norm_pressure_5 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 5
+
+
 // RPM vs MPC pressure when driving (0-8000RPM)
 //const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
 

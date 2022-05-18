@@ -5,9 +5,9 @@
 
 // For EGS52/53 compatibility reasons, we adopt their timing standards
 // and CAN IDs
-#define KWP_TP_TIMEOUT_MS 2500
-#define KWP_CAN_ST_MIN 20 // ISO-TP CAN Sep time min ms
-#define KWP_CAN_BS 8 // ISO-TP CAN block size
+#define KWP_TP_TIMEOUT_MS 4500
+#define KWP_CAN_ST_MIN 0 // ISO-TP CAN Sep time min ms
+#define KWP_CAN_BS 0 // ISO-TP CAN block size
 #define KWP_ECU_TX_ID 0x07E9 // ECU Sends on this ID
 #define KWP_ECU_RX_ID 0x07E1 // Tester requests on this ID
 

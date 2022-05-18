@@ -28,26 +28,33 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 300
+#define TCC_PREFILL 370
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
+        if (sensors->engine_rpm > 900) {
+            this->prefilling = true;
+            prefill_start_time = sensors->current_timestamp_ms;
+            this->curr_tcc_pwm = 0;
+            pm->set_target_tcc_percent(TCC_PREFILL/4, -1); // Being early prefil
+            return;
+        }
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
-        sol_tcc->write_pwm_12_bit(0);
+        pm->set_target_tcc_percent(0, -1);
+        //sol_tcc->write_pwm_12_bit(0);
         prefilling = false;
         return;
     }
-
-    uint64_t now = esp_timer_get_time() / 1000;
     if (this->was_idle && !prefilling) {
         this->was_idle = false;
         this->prefilling = true;
-        prefill_start_time = now;
+        prefill_start_time = sensors->current_timestamp_ms;
         this->curr_tcc_pwm = 0;
     }
-    if (now - prefill_start_time < 3000) {
-        sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
+    if (sensors->current_timestamp_ms - prefill_start_time < 3000) {
+        pm->set_target_tcc_percent(TCC_PREFILL/4, -1);
+        //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
         return;
     }
 
@@ -73,17 +80,15 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         min_allowed_slip *= multiplier;
     }
     int slip = sensors->tcc_slip_rpm;
-    if (is_shifting) {
+    if (is_shifting || mpc_offset != 0 || sensors->current_timestamp_ms-sensors->last_shift_time < 1500) {
         goto write_pwm;
     }
     if (slip > max_allowed_slip) {
+        int midpoint = (max_allowed_slip+min_allowed_slip*2)/3;
+        float diff = slip - midpoint;
         // Increase pressure
-        if (TCC_PREFILL+this->curr_tcc_pwm < 4500) {
-            this->curr_tcc_pwm += MAX(0.2, (sensors->pedal_pos/7)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-        } else {
-            this->curr_tcc_pwm += MAX(0.1, (sensors->pedal_pos/15)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-        }
-    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->pedal_pos > 5 && sensors->static_torque > 50) {
+        this->curr_tcc_pwm += MAX(0.1, (diff/15.0)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->static_torque > 40) {
         // Decrease pressure, but only if we have pedal input
         this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
     }
@@ -91,7 +96,8 @@ write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
-    sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10))+(mpc_offset), sensors->voltage);
+    pm->set_target_tcc_percent((TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)))/4, -1);
+    //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {

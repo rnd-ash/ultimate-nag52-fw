@@ -268,41 +268,22 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     CLAMP(sd.spc_dec_speed, 1, 10); // Ensure shift speed is a valid amount  
     float curr_spc_pwm = sd.initial_spc_pwm;
     float start_spc_pwm = sd.initial_spc_pwm;
-    // Start this a tiny bit earlier
-    //if (is_upshift) {
-    //    sd.initial_mpc_pwm = sd.initial_spc_pwm * 1.1;
-    //} else {
-    //    sd.initial_mpc_pwm = sd.initial_spc_pwm * 0.9;
-    //}
-    sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm*1.1, this->sensor_data.voltage);
-    vTaskDelay(100);
+    int target_offset = (int)sd.initial_mpc_pwm - this->mpc_working;
+    this->mpc_offset = target_offset*1.2;
+    this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, -1);
+    //sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage);
+    vTaskDelay(200);
     int start_torque = sensor_data.static_torque; // Save this for later
     int limited_torque = start_torque;
-    float tm = 0.8;
-    if (sensor_data.static_torque > 10 && is_upshift) { // Cut torque now!
-        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-        // Set torque limit to be dynamic based on current output torque combined with delta of gears
-        // At 100% gearbox's rated torque, youll get 100% of torque_cut_multiplier, which is in itself
-        // based on the difference in ratios between gears
-        if (profile == manual) {
-            tm = 0.2;
-        } else if (profile == standard) {
-            tm = 0.6;
-        } else if (profile == agility) {
-            tm = 1.00 - ((float)sensor_data.pedal_pos/250.0);
-            CLAMP(tm, 0.2, 0.8);
-        }
-        limited_torque = (int)((float)sensor_data.static_torque * tm);
+    float tm = 0.85;
+    if (profile == manual) {
+        tm = 0.3;
+    } else if (profile == standard) {
+        tm = 0.75;
+    } else if (profile == agility) {
+        tm = 1.00 - ((float)sensor_data.pedal_pos/250.0);
+        CLAMP(tm, 0.2, 0.8);
     }
-    egs_can_hal->set_requested_torque(limited_torque);
-    int target_offset = (int)sd.initial_mpc_pwm - this->mpc_working;
-    //#define MPC_RAMP_INC 5
-    //while(this->mpc_offset < target_offset) {
-    //    sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Keep refreshing this solenoid
-    //    this->mpc_offset += MPC_RAMP_INC;
-    //    vTaskDelay(10);
-    //}
-    this->mpc_offset = target_offset * 1.1;
     this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage);
     uint32_t elapsed = 0; // Counter for shift timing
@@ -321,6 +302,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     while(elapsed <= SHIFT_TIMEOUT_MS) {
         elapsed += SHIFT_DELAY_MS;
         vTaskDelay(SHIFT_DELAY_MS/portTICK_PERIOD_MS);
+        if (!shift_in_progress) {
+            this->mpc_offset = sd.initial_mpc_pwm - this->mpc_working;
+        }
         if ((sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) && monitor_shift) { // Set to false and leave at false (Shift monitoring could not occur)
             monitor_shift = false;
         }
@@ -328,16 +312,20 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         if (monitor_shift) {
             // Shift monitoring
             if (is_upshift) {
-                if (ratio_now > start_ratio+20) { // Upshift - Ratio should get smaller so inverse means flaring)
+                if (ratio_now > start_ratio+10) { // Upshift - Ratio should get smaller so inverse means flaring)
                     this->flaring = true;
                     flared = true;
-                    egs_can_hal->set_requested_torque(0); // STOP POWER!
+                    //egs_can_hal->set_requested_torque(0); // STOP POWER!
                 } else if (ratio_now < start_ratio+10) {
+                    if (!shift_in_progress) {
+                        limited_torque = (int)((float)sensor_data.static_torque * tm);
+                        egs_can_hal->set_torque_request(TorqueRequest::Minimum);
+                        egs_can_hal->set_requested_torque(limited_torque);
+                    }
                     shift_in_progress = true;
-                    egs_can_hal->set_requested_torque(limited_torque);
                 }
             } else {
-                if (ratio_now < start_ratio-20) { // Downshift - Ratio should get larger so inverse means flaring
+                if (ratio_now < start_ratio-10) { // Downshift - Ratio should get larger so inverse means flaring
                     this->flaring = true;
                     flared = true;
                 } else if (ratio_now > start_ratio+10) {
@@ -363,7 +351,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         }
         //ShiftData sd_now = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
         //float offset = start_spc_pwm - curr_spc_pwm;
-        sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
+        this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, -1);
+        //sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
+        //sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Keep Shift solenoid open
         if (this->est_gear_idx == sd.targ_g) {
             break;
         } else if (sensor_data.output_rpm < 100 && elapsed >= 1500) { // Fix for stationary shifts
@@ -384,16 +374,26 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms). SPC map %.2f, SPC start %.2f", elapsed, spc_start, spc_shift_start_pwm);
     
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
+    /*
+    int x = 1000;
     while (curr_spc_pwm > 25) {
         curr_spc_pwm -= 20;
+        x *= 0.95;
         vTaskDelay(50);
-        sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage);
-        if (this->mpc_offset > 0) {
-            this->mpc_offset-=2;
+        if (x < 10) {
+            break;
+        } else {
         }
+        this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, this->sensor_data.voltage);
     }
-    sd.shift_solenoid->write_pwm_12_bit(0);
-    sol_spc->write_pwm_12_bit(0);
+    */
+    this->pressure_mgr->set_target_spc_percent(0, this->sensor_data.voltage);
+    vTaskDelay(200);
+    sd.shift_solenoid->write_pwm_percent_with_voltage(0, this->sensor_data.voltage);
+    //this->pressure_mgr->set_target_spc_percent(0, -1);
+    //sd.shift_solenoid->write_pwm_percent_with_voltage(0, this->sensor_data.voltage);
+    //sd.shift_solenoid->write_pwm_12_bit(0);
+    //sol_spc->write_pwm_12_bit(0);
     this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     ShiftResponse response = {
         .measure_ok = monitor_shift,
@@ -421,8 +421,9 @@ void Gearbox::shift_thread() {
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
-        sol_mpc->write_pwm_percent_with_voltage(333, sensor_data.voltage);
-        sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage); // 40%
+        //sol_mpc->write_pwm_percent_with_voltage(333, sensor_data.voltage);
+        this->pressure_mgr->set_target_spc_percent(400, -1);
+        //sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage); // 40%
         sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
@@ -445,23 +446,29 @@ void Gearbox::shift_thread() {
                 y4_pwm_val = 800;
                 spc_ramp = 5;
             }
-            sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
-            sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
+            pressure_mgr->set_target_mpc_percent(mpc_start, -1);
+            pressure_mgr->set_target_spc_percent(spc_start, -1);
+            //sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
+            //sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
             sol_y4->write_pwm_percent_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
             while (spc_start > 50) {
                 spc_start -= spc_ramp;
                 mpc_start -= mpc_ramp;
-                sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
-                sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
+                pressure_mgr->set_target_mpc_percent(mpc_start, -1);
+                pressure_mgr->set_target_spc_percent(spc_start, -1);        
+                //sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
+                //sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
                 vTaskDelay(20/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);
             sol_y4->write_pwm_percent(0);
-            sol_spc->write_pwm_percent(0);
+            pressure_mgr->set_target_spc_percent(0, -1);        
+            //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage);
-            sol_mpc->write_pwm_percent_with_voltage(330, sensor_data.voltage);
+            pressure_mgr->set_target_spc_percent(400, -1);
+            //sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage);
+            //sol_mpc->write_pwm_percent_with_voltage(330, sensor_data.voltage);
             sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // Back to idle
         }
         if (is_fwd_gear(curr_target)) {
@@ -680,16 +687,18 @@ void Gearbox::controller_loop() {
             }
         }
         if (this->sensor_data.engine_rpm > 500) {
-            if (is_controllable_gear(this->actual_gear)) {
+            this->pressure_mgr->set_target_mpc_percent(this->mpc_working + this->mpc_offset, -1);
+            this->pressure_mgr->update(this->actual_gear, this->target_gear);
+            if (!shifting) {
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
-                sol_mpc->write_pwm_percent_with_voltage(this->mpc_working + this->mpc_offset, sensor_data.voltage);
-                if (this->mpc_offset != 0 && !shifting) {
-#define MPC_DOWN_RAMP 2
-                    if (abs(this->mpc_offset) < MPC_DOWN_RAMP) {
-                        this->mpc_offset = 0;
-                    } else {
-                        if (this->mpc_offset < 0) { mpc_offset+=MPC_DOWN_RAMP; } else { mpc_offset-=MPC_DOWN_RAMP; }
-                    }
+            }
+            //sol_mpc->write_pwm_percent_with_voltage(this->mpc_working + this->mpc_offset - spc_offset, sensor_data.voltage);
+            if (this->mpc_offset != 0 && !shifting) {
+#define MPC_DOWN_RAMP 1
+                if (abs(this->mpc_offset) < MPC_DOWN_RAMP) {
+                    this->mpc_offset = 0;
+                } else {
+                    if (this->mpc_offset < 0) { mpc_offset+=MPC_DOWN_RAMP; } else { mpc_offset-=MPC_DOWN_RAMP; }
                 }
             }
             if (is_fwd_gear(this->actual_gear)) {
@@ -760,7 +769,8 @@ void Gearbox::controller_loop() {
                         }
                     } else {
                         this->tcc_percent = 0;
-                        sol_tcc->write_pwm_12_bit(0);
+                        this->pressure_mgr->set_target_tcc_percent(0, -1);
+                        //sol_tcc->write_pwm_12_bit(0);
                     }
                 }
             }

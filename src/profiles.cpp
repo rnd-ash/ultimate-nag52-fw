@@ -31,14 +31,13 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    float dp = ((float)(sensors->pedal_pos*100)/250.0f);
+    float dp = ((float)(sensors->pedal_pos*10)/250.0f);
     if (dp > 10) {
         dp = 10;
     }
     if (dp == 0) {
         dp = 1;
     }
-    dp *=10.0;
     return ShiftCharacteristics {
         .target_d_rpm = 60,
         .shift_speed = dp,

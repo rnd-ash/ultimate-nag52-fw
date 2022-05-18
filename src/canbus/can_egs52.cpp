@@ -12,8 +12,8 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     ESP_LOGI("EGS52_CAN", "CAN constructor called");
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
-    gen_config.rx_queue_len = 10;
-    gen_config.tx_queue_len = 6;
+    gen_config.rx_queue_len = 32;
+    gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
@@ -73,7 +73,7 @@ bool Egs52Can::begin_tasks() {
     }
     if (this->tx_task == nullptr) {
         ESP_LOGI("EGS52_CAN", "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 8192, this, 5, this->tx_task) != pdPASS) {
+        if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
             ESP_LOGE("EGS52_CAN", "CAN Tx task creation failed!");
             return false;
         }
@@ -878,8 +878,6 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 
 [[noreturn]]
 void Egs52Can::tx_task_loop() {
-    uint64_t start_time;
-    uint32_t taken;
     twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_338 gs_338tx;
@@ -915,6 +913,11 @@ void Egs52Can::tx_task_loop() {
         gs_218tx.set_FEHLER(cvn_counter);
         cvn_counter++;
 
+        if (!this->send_messages) {
+            vTaskDelay(50);
+            continue;
+        }
+
         // Now send CAN Data!
 
         /**
@@ -924,36 +927,19 @@ void Egs52Can::tx_task_loop() {
          * GS_418
          * GS_CUSTOM_558 ;)
          */
-        start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
-        // Todo handle additional ISOTP communication
-        if (this->diag_tx_queue != nullptr) {
-            DiagCanMessage buffer;
-            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
-                // Popped message!
-                tx.data_length_code = 8;
-                tx.identifier = this->diag_tx_id;
-                memcpy(tx.data, buffer, 8);
-                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
-                twai_transmit(&tx, 5);
-            }
-        }
-
-        taken = (esp_timer_get_time() / 1000) - start_time;
-        if (taken < this->tx_time_ms) {
-            vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
-        }
+        twai_transmit(&tx, 5);
+        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
 
@@ -972,7 +958,7 @@ void Egs52Can::rx_task_loop() {
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(2)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));
@@ -985,18 +971,14 @@ void Egs52Can::rx_task_loop() {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
                             // Send the frame
-                            DiagCanMessage msg;
-                            memcpy(msg, rx.data, 8);
-                            if (xQueueSend(*this->diag_rx_queue, msg, 0) != pdTRUE) {
+                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
                                 ESP_LOGE("EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
-                    } 
-                } else {
-                    vTaskDelay(2 / portTICK_PERIOD_MS);
+                    }
                 }
             }
-            vTaskDelay(1 / portTICK_PERIOD_MS); // Reset watchdog here
+            vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here
         }
     }
 }

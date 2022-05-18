@@ -13,7 +13,7 @@
 
 // 1 -> 2 upshift
 const pressure_map spc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
-const pressure_map mpc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
+const pressure_map mpc_1_2_large = {550, 530, 510, 490, 460, 440, 420, 400, 380, 370, 350};
 
 // 2 -> 3 upshift
 const pressure_map spc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300, 280, 260};
@@ -22,7 +22,7 @@ const pressure_map mpc_2_3_large = {450, 430, 420, 400, 380, 360, 340, 320, 300,
 
 // 3 -> 4 upshift
 const pressure_map spc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
-const pressure_map mpc_3_4_large = {380, 370, 360, 350, 340, 330, 320, 300, 280, 260, 240};
+const pressure_map mpc_3_4_large = {400, 390, 380, 370, 360, 350, 340, 330, 300, 280, 260};
 
  
 // 4 -> 5 upshift
@@ -92,6 +92,19 @@ const pressure_map mpc_5_4_small = {500, 480, 460, 440, 420, 400, 360, 360, 350,
 
 #define SHIFT_IN_PROGRESS_THRESH 25 // 25%
 
+typedef struct {
+    uint16_t targ_pwm_percent;
+    uint16_t curr_pwm_percent;
+    float ramp_speed;
+    bool write_pwm;
+} PSolenoidData;
+
+typedef enum {
+    MPC,
+    SPC,
+    TCC
+} PSolenoidType;
+
 /*
 const float pressure_temp_normalizer[17] = {
     0.7, 0.72, 0.75, 0.78, 0.84, // -40-0C (0-40)
@@ -101,8 +114,8 @@ const float pressure_temp_normalizer[17] = {
 */
 
 const float ramp_speed_temp_normalizer[17] = {
-    1.3, 1.28, 1.25, 1.22, 1.16, // -40-0C (0-40)
-    1.11, 1.07, 1.04, 1.02, 1.01, // 10-50C (50-90)
+    1.2, 1.18, 1.16, 1.14, 1.12, // -40-0C (0-40)
+    1.1, 1.08, 1.06, 1.04, 1.02, // 10-50C (50-90)
     1, 1, 1, 1, 1, 1, 0.99 //60C-120C (100-160) - NOTE. Keep 60-110C as '1.0' to allow adaptation!
 };
 
@@ -110,7 +123,15 @@ const float ramp_speed_temp_normalizer[17] = {
 const rpm_modifier_map rpm_normalizer = {0.98, 0.99, 1.00, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12};
 
 // 0 -> 100% rated torque
-const pressure_map working_norm_pressure = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200};
+const pressure_map working_norm_pressure_p = {490, 460, 450, 440, 430, 420, 410, 400, 390, 380, 370}; // Park or N
+const pressure_map working_norm_pressure_r = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // R1 or R2
+const pressure_map working_norm_pressure_1 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 1
+const pressure_map working_norm_pressure_2 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 2
+const pressure_map working_norm_pressure_3 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 3
+const pressure_map working_norm_pressure_4 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 4
+const pressure_map working_norm_pressure_5 = {460, 450, 430, 400, 370, 340, 310, 290, 260, 230, 200}; // 5
+
+
 // RPM vs MPC pressure when driving (0-8000RPM)
 //const uint16_t mpc_hold_pressure[9] = {300, 320, 340, 360, 370, 380, 390, 400, 400};
 
@@ -119,19 +140,14 @@ typedef void (*P_RAMP_FUNC)(float, float);
 class PressureManager {
 
 public:
+
+    void set_target_mpc_percent(uint16_t targ, int speed);
+    void set_target_spc_percent(uint16_t targ, int speed);
+    void set_target_tcc_percent(uint16_t targ, int speed);
+
     PressureManager(SensorData* sensor_ptr);
 
-    /**
-     * @brief In the event a gear change is in progress, and the gearbox needs to abort the shift
-     * call this function. This ONLY applies to up shifting, where the gearbox may need to abort
-     * the upshift due to a sudden load demand change
-     * 
-     * @return Boolean value indicating if the abort request can be carried out. Sometimes
-     * it is not possible for the gearbox to abort the gear change (EG, already at red-line when upshifting
-     * cannot result in an abort shift as that would over-rev the engine)
-     * 
-     */
-    void abort_shift();
+    void update(GearboxGear curr_gear, GearboxGear targ_gear);
 
     /**
      * @brief Get the shift data object for the requested shift
@@ -162,6 +178,11 @@ private:
     SensorData* sensor_data;
     AdaptationMap* adapt_map;
     PressureMgrData map_data;
+
+    PSolenoidData tcc;
+    PSolenoidData mpc;
+    PSolenoidData spc;
+
 };
 
 #endif

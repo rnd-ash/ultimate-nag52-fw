@@ -14,7 +14,15 @@ Flasher::~Flasher() {
 }
 
 DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
-    uint32_t now = esp_timer_get_time()/1000;
+    // Shifter must be Offline (SNV) or P or N
+    if (!is_shifter_passive(this->can_ref)) {
+        ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
+    if (!is_engine_off(this->can_ref)) {
+        ESP_LOGE("FLASHER", "Rejecting download request. Engine is on");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
     // data format
@@ -47,15 +55,6 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
     } else { // Invalid memory region
         return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-    // Shifter must be Offline (SNV) or P or N
-    if (!is_shifter_passive(this->can_ref)) {
-        ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    }
-    if (!is_engine_off(this->can_ref)) {
-        ESP_LOGE("FLASHER", "Rejecting download request. Engine is on");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    }
     // Ok, conditions are correct, now we need to prepare
     this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
     vTaskDelay(50);
@@ -73,6 +72,16 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
 }
 
 DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
+    // Shifter must be Offline (SNV) or P or N
+    if (!is_shifter_passive(this->can_ref)) {
+        ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
+    if (!is_engine_off(this->can_ref)) {
+        ESP_LOGE("FLASHER", "Rejecting download request. Engine is on");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
+
     uint32_t now = esp_timer_get_time()/1000;
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
@@ -93,21 +102,6 @@ DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
         ESP_LOGI("FLASHER", "Upload coredump requested");
     } else { // Invalid memory region
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-    }
-    // Shifter must be Offline (SNV) or P or N
-    ShifterPosition pos = this->can_ref->get_shifter_position_ewm(now, 250);
-    if (
-        pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
-        pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
-        ) {
-            ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
-            return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    }
-    // Engine MUST be off (Ignition state)
-    int rpm = egs_can_hal->get_engine_rpm(now, 250);
-    if (rpm != 0 && rpm != UINT16_MAX) { // 0 = 0RPM, MAX = SNV (Engine ECU is offline)
-        ESP_LOGE("FLASHER", "Rejecting download request. Engine RPM is %d", rpm);
-        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
     // Ok, conditions are correct, now we need to prepare
     this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller

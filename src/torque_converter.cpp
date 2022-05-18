@@ -46,8 +46,6 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         prefilling = false;
         return;
     }
-
-    uint64_t now = esp_timer_get_time() / 1000;
     if (this->was_idle && !prefilling) {
         this->was_idle = false;
         this->prefilling = true;

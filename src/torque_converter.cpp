@@ -105,7 +105,5 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
-    if (is_downshift) {
-        this->inhibit_increase = true;
-    }
+    this->curr_tcc_pwm *= 0.95;
 }

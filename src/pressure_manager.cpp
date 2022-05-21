@@ -206,15 +206,20 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
             sd.torque_cut_multiplier = 0.9;
             break;
     }
-    sd.spc_dec_speed = (chars.shift_speed * find_temp_ramp_speed_multiplier(sensors->atf_temp));
+    sd.spc_dec_speed = chars.shift_speed;// * find_temp_ramp_speed_multiplier(sensors->atf_temp));
     //if (this->adapt_map != nullptr) {
     //    sd.initial_spc_pwm += adapt_map->get_adaptation_offset(sensors, shift_request);
     //}
+    sd.temp_multi =  find_temp_ramp_speed_multiplier(sensors->atf_temp);
     return sd;
 }
 
 
 void PressureManager::set_target_mpc_percent(uint16_t targ, int speed) {
+    if (targ == this->mpc.curr_pwm_percent) {
+        this->mpc.write_pwm = false;
+        return;
+    }
     this->mpc.write_pwm = true;
     if (speed < 0) {
         this->mpc.curr_pwm_percent = targ;
@@ -227,6 +232,10 @@ void PressureManager::set_target_mpc_percent(uint16_t targ, int speed) {
 }
 
 void PressureManager::set_target_spc_percent(uint16_t targ, int speed) {
+    if (targ == this->spc.curr_pwm_percent) {
+        this->mpc.write_pwm = false;
+        return;
+    }
     this->spc.write_pwm = true;
     if (speed < 0) {
         this->spc.curr_pwm_percent = targ;
@@ -239,6 +248,10 @@ void PressureManager::set_target_spc_percent(uint16_t targ, int speed) {
 }
 
 void PressureManager::set_target_tcc_percent(uint16_t targ, int speed) {
+    if (targ == this->tcc.curr_pwm_percent) {
+        this->mpc.write_pwm = false;
+        return;
+    }
     this->tcc.write_pwm = true;
     if (speed < 0) {
         this->tcc.curr_pwm_percent = targ;
@@ -248,6 +261,13 @@ void PressureManager::set_target_tcc_percent(uint16_t targ, int speed) {
         this->tcc.targ_pwm_percent = targ;
         this->tcc.ramp_speed = speed;
     }
+}
+
+void PressureManager::set_spc_compensation_factor(float amount) {
+    if (amount < 0) {
+        amount = 0;
+    }
+    this->spc_compensation_amount = amount;
 }
 
 void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
@@ -264,7 +284,6 @@ void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
                 this->spc.curr_pwm_percent += this->spc.ramp_speed;
             }
         }
-        sol_spc->write_pwm_percent_with_voltage(this->spc.curr_pwm_percent, this->sensor_data->voltage);
     }
     if (this->tcc.write_pwm) {
         if (abs(this->tcc.curr_pwm_percent - this->tcc.targ_pwm_percent) < this->tcc.ramp_speed) {
@@ -278,7 +297,6 @@ void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
                 this->tcc.curr_pwm_percent += this->tcc.ramp_speed;
             }
         }
-        sol_tcc->write_pwm_percent_with_voltage(this->tcc.curr_pwm_percent, this->sensor_data->voltage);
     }
     if (this->mpc.write_pwm) {
         if (abs(this->mpc.curr_pwm_percent - this->mpc.targ_pwm_percent) < this->mpc.ramp_speed) {
@@ -293,6 +311,12 @@ void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
             }
         }
     }
+    float spc_compensation = ((float)(this->spc.curr_pwm_percent/4.0)) * this->spc_compensation_amount;
+    if (spc_compensation > this->mpc.curr_pwm_percent) {
+        spc_compensation = this->mpc.curr_pwm_percent;
+    }
     // Always write MPC as it regulates everyone else
-    sol_mpc->write_pwm_percent_with_voltage(this->mpc.curr_pwm_percent-(this->spc.curr_pwm_percent/10)-(this->tcc.curr_pwm_percent/7), this->sensor_data->voltage);
+    sol_spc->write_pwm_percent_with_voltage(this->spc.curr_pwm_percent, this->sensor_data->voltage);
+    sol_mpc->write_pwm_percent_with_voltage(this->mpc.curr_pwm_percent-spc_compensation, this->sensor_data->voltage);
+    sol_tcc->write_pwm_percent_with_voltage(this->tcc.curr_pwm_percent, this->sensor_data->voltage);
 }

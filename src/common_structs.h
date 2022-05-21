@@ -114,6 +114,7 @@ typedef struct {
     /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
     float torque_cut_multiplier;
+    float temp_multi;
 } ShiftData;
 
 typedef struct {
@@ -222,5 +223,42 @@ typedef struct {
     int max_slip_rpm;
     int min_slip_rpm;
 } TccLockupBounds;
+
+typedef struct {
+    /** 
+     * @brief Initial MPC pwm (From map)
+     */
+    int initial_mpc_pwm;
+    /** 
+     * @brief Initial SPC pwm (From map)
+     */
+    int initial_spc_pwm;
+    /** 
+     * @brief Ramp down speed of SPC PWM (Ramp down -> Increase pressure) (1 = 0.1% per 50ms)
+     */
+    float spc_ramp_down_speed;
+    /** 
+     * @brief Once the shift has started, how quickly do we reduce `spc_ramp_down_speed` 
+     *        to smooth out the end of the shift so we don't slam the clutches into place
+     */
+    float spc_ramp_down_fade_multiplier;
+    /** 
+     * @brief PWM for SPC to open before shift valve is commanded
+     */
+    int spc_pre_open_pwm;
+    /** 
+     * @brief Time for SPC to open before shift valve is commanded
+     */
+    int spc_pre_open_time;
+    /** 
+     * @brief Time for SPC to stick to initial_spc_pwm once shift valve has opened
+     */
+    int spc_prefill_time;
+    /** 
+     * @brief The multiplier for MPC to increase its pressure by whilst SPC is prefilling
+     *        (Aids flare reduction by compensating for lost pressure on MPC line)
+     */
+    int mpc_compensation_prefill;
+} ShiftData2;
 
 #endif

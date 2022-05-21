@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include <string.h>
 #include "pressure_manager.h"
+#include "canbus/can_hal.h"
 
 class TorqueConverter {
     public:
@@ -25,6 +26,7 @@ class TorqueConverter {
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
         void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors);
         void on_shift_complete(uint64_t now);
+        ClutchStatus get_clutch_state();
     private:
         float curr_tcc_pwm = 0;
         bool inhibit_increase = false;
@@ -32,6 +34,7 @@ class TorqueConverter {
         uint16_t mpc_curr_compensation = 0;
         bool prefilling = false;
         uint64_t prefill_start_time = 0;
+        ClutchStatus state = ClutchStatus::Open;
 };
 
 #endif

@@ -12,6 +12,7 @@
 */
 
 // 1 -> 2 upshift
+/*
 const pressure_map spc_1_2_large = {520, 500, 480, 460, 440, 420, 400, 390, 380, 370, 350};
 const pressure_map mpc_1_2_large = {550, 530, 510, 490, 460, 440, 420, 400, 380, 370, 350};
 
@@ -45,7 +46,40 @@ const pressure_map mpc_4_3_large = {420, 415, 410, 400, 390, 380, 370, 350, 330,
 // 5 -> 4 downshift
 const pressure_map spc_5_4_large = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
 const pressure_map mpc_5_4_large = {430, 420, 395, 385, 385, 370, 360, 360, 350, 340, 325};
+*/
+const pressure_map spc_1_2_large = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
+const pressure_map mpc_1_2_large = {550, 540, 530, 520, 510, 500, 490, 480, 470, 460, 450};
 
+// 2 -> 3 upshift
+const pressure_map spc_2_3_large = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_3_large = {490, 480, 470, 460, 450, 445, 440, 430, 420, 410, 400};
+
+// 3 -> 4 upshift
+const pressure_map spc_3_4_large = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300}; // Pedal position
+const pressure_map mpc_3_4_large = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300}; // Torque 0-100% of gearbox rating
+
+//const pressure_map spc_3_4_small = {390, 380, 370, 350, 330, 310, 300, 290, 280, 270, 260};
+//const pressure_map mpc_3_4_small = {390, 380, 370, 350, 330, 310, 300, 290, 280, 270, 260};
+
+// 4 -> 5 upshift
+const pressure_map spc_4_5_large = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
+const pressure_map mpc_4_5_large = {500, 480, 460, 440, 420, 400, 380, 360, 340, 320, 300};
+
+// 2 -> 1 downshift
+const pressure_map spc_2_1_large = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+const pressure_map mpc_2_1_large = {500, 490, 480, 470, 460, 450, 440, 430, 420, 410, 400};
+
+// 3 -> 2 downshift
+const pressure_map spc_3_2_large = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+const pressure_map mpc_3_2_large = {480, 470, 460, 450, 440, 430, 420, 410, 400, 380, 360};
+
+// 4 -> 3 downshift
+const pressure_map spc_4_3_large = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
+const pressure_map mpc_4_3_large = {480, 470, 460, 450, 440, 430, 420, 410, 400, 390, 380};
+
+// 5 -> 4 downshift
+const pressure_map spc_5_4_large = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
+const pressure_map mpc_5_4_large = {500, 480, 460, 440, 420, 400, 360, 360, 350, 340, 325};
 
 /*
     Small NAG W5A330 gearbox pressure maps (Defaults)
@@ -144,6 +178,7 @@ public:
     void set_target_mpc_percent(uint16_t targ, int speed);
     void set_target_spc_percent(uint16_t targ, int speed);
     void set_target_tcc_percent(uint16_t targ, int speed);
+    void set_spc_compensation_factor(float amount);
 
     PressureManager(SensorData* sensor_ptr);
 
@@ -182,6 +217,7 @@ private:
     PSolenoidData tcc;
     PSolenoidData mpc;
     PSolenoidData spc;
+    float spc_compensation_amount = 1.0;
 
 };
 

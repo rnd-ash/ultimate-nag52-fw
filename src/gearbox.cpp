@@ -273,7 +273,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     this->pressure_mgr->set_spc_compensation_factor(1.2); // Start compensating for SPC opening
     this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, -1);
     //sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage);
-    vTaskDelay(200);
+    vTaskDelay(200*sd.temp_multi);
     int start_torque = sensor_data.static_torque; // Save this for later
     int limited_torque = start_torque;
     float tm = 0.85;
@@ -305,12 +305,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     while(elapsed <= SHIFT_TIMEOUT_MS) {
         elapsed += SHIFT_DELAY_MS;
         vTaskDelay(SHIFT_DELAY_MS/portTICK_PERIOD_MS);
-        sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
-        if (elapsed > 300) {
+        if (elapsed > 300*sd.temp_multi) {
             compen = 0;
         }
         this->pressure_mgr->set_spc_compensation_factor(compen);
-            this->mpc_offset = sd.initial_mpc_pwm - this->mpc_working;
+        this->mpc_offset = sd.initial_mpc_pwm - this->mpc_working;
         if ((sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) && monitor_shift) { // Set to false and leave at false (Shift monitoring could not occur)
             monitor_shift = false;
         }
@@ -446,15 +445,13 @@ void Gearbox::shift_thread() {
             }
             vTaskDelay(200);
             sol_y4->write_pwm_percent(0);
-            pressure_mgr->set_target_spc_percent(0, -1);        
+            pressure_mgr->set_target_spc_percent(0, -1); 
             pressure_mgr->set_spc_compensation_factor(1.0);       
             //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
             pressure_mgr->set_spc_compensation_factor(0.0); 
             pressure_mgr->set_target_spc_percent(400, -1);
-            //sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage);
-            //sol_mpc->write_pwm_percent_with_voltage(330, sensor_data.voltage);
             sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // Back to idle
         }
         if (is_fwd_gear(curr_target)) {
@@ -752,10 +749,12 @@ void Gearbox::controller_loop() {
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr) {
                             this->tcc->update(this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting, this->mpc_offset);
+                            egs_can_hal->set_clutch_status(this->tcc->get_clutch_state());
                         }
                     } else {
                         this->tcc_percent = 0;
                         this->pressure_mgr->set_target_tcc_percent(0, -1);
+                        egs_can_hal->set_clutch_status(ClutchStatus::Open);
                         //sol_tcc->write_pwm_12_bit(0);
                     }
                 }

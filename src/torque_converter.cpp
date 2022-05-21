@@ -28,33 +28,39 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 370
+#define TCC_PREFILL 90
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
         if (sensors->engine_rpm > 900) {
-            this->prefilling = true;
-            prefill_start_time = sensors->current_timestamp_ms;
-            this->curr_tcc_pwm = 0;
-            pm->set_target_tcc_percent(TCC_PREFILL/4, -1); // Being early prefil
+            if (!this->prefilling) {
+                this->prefilling = true;
+                prefill_start_time = sensors->current_timestamp_ms;
+                this->curr_tcc_pwm = 0;
+                pm->set_target_tcc_percent(TCC_PREFILL, -1); // Being early prefil
+            }
+            this->state = ClutchStatus::Open;
             return;
         }
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
         pm->set_target_tcc_percent(0, -1);
-        //sol_tcc->write_pwm_12_bit(0);
         prefilling = false;
+        this->state = ClutchStatus::Open;
         return;
     }
-    if (this->was_idle && !prefilling) {
+    if (this->was_idle) {
+        if (!prefilling) {
+            this->prefilling = true;
+            prefill_start_time = sensors->current_timestamp_ms;
+        }
         this->was_idle = false;
-        this->prefilling = true;
-        prefill_start_time = sensors->current_timestamp_ms;
         this->curr_tcc_pwm = 0;
+        this->state = ClutchStatus::Open;
     }
     if (sensors->current_timestamp_ms - prefill_start_time < 3000) {
-        pm->set_target_tcc_percent(TCC_PREFILL/4, -1);
-        //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL, sensors->voltage);
+        pm->set_target_tcc_percent(TCC_PREFILL, -1);
+        this->state = ClutchStatus::Open;
         return;
     }
 
@@ -96,8 +102,8 @@ write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
-    pm->set_target_tcc_percent((TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)))/4, -1);
-    //sol_tcc->write_pwm_12bit_with_voltage(TCC_PREFILL+((uint16_t)(this->curr_tcc_pwm/10)), sensors->voltage);
+    this->state = (slip > 100 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
+    pm->set_target_tcc_percent(TCC_PREFILL+(uint16_t)(this->curr_tcc_pwm/40.0), -1);
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
@@ -105,5 +111,9 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
-    this->curr_tcc_pwm *= 0.95;
+    //this->curr_tcc_pwm *= 0.95;
+}
+
+ClutchStatus TorqueConverter::get_clutch_state() {
+    return this->state;
 }

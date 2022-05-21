@@ -80,7 +80,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         min_allowed_slip *= multiplier;
     }
     int slip = sensors->tcc_slip_rpm;
-    if (is_shifting || mpc_offset != 0 || sensors->current_timestamp_ms-sensors->last_shift_time < 1500) {
+    if (is_shifting || mpc_offset != 0 || sensors->current_timestamp_ms-sensors->last_shift_time < 3500) {
         goto write_pwm;
     }
     if (slip > max_allowed_slip) {

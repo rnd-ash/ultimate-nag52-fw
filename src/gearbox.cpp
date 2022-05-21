@@ -269,7 +269,8 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     float curr_spc_pwm = sd.initial_spc_pwm;
     float start_spc_pwm = sd.initial_spc_pwm;
     int target_offset = (int)sd.initial_mpc_pwm - this->mpc_working;
-    this->mpc_offset = target_offset*1.2;
+    this->mpc_offset = target_offset;
+    this->pressure_mgr->set_spc_compensation_factor(1.2); // Start compensating for SPC opening
     this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, -1);
     //sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage);
     vTaskDelay(200);
@@ -284,7 +285,8 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         tm = 1.00 - ((float)sensor_data.pedal_pos/250.0);
         CLAMP(tm, 0.2, 0.8);
     }
-    this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
+    float compen = 1.0;
+    this->pressure_mgr->set_spc_compensation_factor(compen); // Briefey increase pressure for accounting shift solenoid opening
     sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage);
     uint32_t elapsed = 0; // Counter for shift timing
     // Init counters for Input RPM measuring and ratio measuring
@@ -299,12 +301,16 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     bool flared = false;
     bool shift_in_progress = false;
     uint16_t confirm_count = 0;
+    float curr_spc_speed = sd.spc_dec_speed;
     while(elapsed <= SHIFT_TIMEOUT_MS) {
         elapsed += SHIFT_DELAY_MS;
         vTaskDelay(SHIFT_DELAY_MS/portTICK_PERIOD_MS);
-        if (!shift_in_progress) {
-            this->mpc_offset = sd.initial_mpc_pwm - this->mpc_working;
+        sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
+        if (elapsed > 300) {
+            compen = 0;
         }
+        this->pressure_mgr->set_spc_compensation_factor(compen);
+            this->mpc_offset = sd.initial_mpc_pwm - this->mpc_working;
         if ((sensor_data.input_rpm < 100 || sensor_data.output_rpm < 100) && monitor_shift) { // Set to false and leave at false (Shift monitoring could not occur)
             monitor_shift = false;
         }
@@ -318,9 +324,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                     //egs_can_hal->set_requested_torque(0); // STOP POWER!
                 } else if (ratio_now < start_ratio+10) {
                     if (!shift_in_progress) {
+                        this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &this->sensor_data);
                         limited_torque = (int)((float)sensor_data.static_torque * tm);
                         egs_can_hal->set_torque_request(TorqueRequest::Minimum);
                         egs_can_hal->set_requested_torque(limited_torque);
+                        compen = 0.0;
                     }
                     shift_in_progress = true;
                 }
@@ -330,6 +338,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                     flared = true;
                 } else if (ratio_now > start_ratio+10) {
                     shift_in_progress = true;
+                    compen = 0.0;
                 }
             }
             if (!flaring) {
@@ -346,14 +355,10 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             this->flaring = false;
         }
         // Try increasing MPC PWM too to stop flaring
-        if (curr_spc_pwm > sd.spc_dec_speed) {
-            curr_spc_pwm -= sd.spc_dec_speed;
+        if (curr_spc_pwm > curr_spc_speed) {
+            curr_spc_pwm -= curr_spc_speed;
         }
-        //ShiftData sd_now = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
-        //float offset = start_spc_pwm - curr_spc_pwm;
         this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, -1);
-        //sol_spc->write_pwm_percent_with_voltage(curr_spc_pwm, this->sensor_data.voltage); // Open SPC
-        //sd.shift_solenoid->write_pwm_percent_with_voltage(1000, this->sensor_data.voltage); // Keep Shift solenoid open
         if (this->est_gear_idx == sd.targ_g) {
             break;
         } else if (sensor_data.output_rpm < 100 && elapsed >= 1500) { // Fix for stationary shifts
@@ -362,38 +367,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         if (shift_in_progress && sd.spc_dec_speed > 2) {
             sd.spc_dec_speed *= 0.95;
         }
-        //float multi = (float)(csensor_data.pedal_pos)/250.0;
-        //if (shift_in_progress && limited_torque < (sensor_data.max_torque*multi)) {
-        //    limited_torque += 1;
-        //    egs_can_hal->set_requested_torque(limited_torque);
-        //}
     }
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
+    this->pressure_mgr->set_spc_compensation_factor(1.0); // Re-enable SPC compensation
     this->gear_disagree_count = 0;
     ESP_LOGI("ELAPSE_SHIFT", "SHIFT_END (Actual time %d ms). SPC map %.2f, SPC start %.2f", elapsed, spc_start, spc_shift_start_pwm);
     
     // Shift complete - Return the elapsed time for the shift to feedback into the adaptation system
-    /*
-    int x = 1000;
-    while (curr_spc_pwm > 25) {
-        curr_spc_pwm -= 20;
-        x *= 0.95;
-        vTaskDelay(50);
-        if (x < 10) {
-            break;
-        } else {
-        }
-        this->pressure_mgr->set_target_spc_percent(curr_spc_pwm, this->sensor_data.voltage);
-    }
-    */
-    this->pressure_mgr->set_target_spc_percent(0, this->sensor_data.voltage);
+    this->pressure_mgr->set_target_spc_percent(0, -1);
     vTaskDelay(200);
     sd.shift_solenoid->write_pwm_percent_with_voltage(0, this->sensor_data.voltage);
-    //this->pressure_mgr->set_target_spc_percent(0, -1);
-    //sd.shift_solenoid->write_pwm_percent_with_voltage(0, this->sensor_data.voltage);
-    //sd.shift_solenoid->write_pwm_12_bit(0);
-    //sol_spc->write_pwm_12_bit(0);
     this->tcc->on_shift_complete(this->sensor_data.current_timestamp_ms);
     ShiftResponse response = {
         .measure_ok = monitor_shift,
@@ -421,9 +405,8 @@ void Gearbox::shift_thread() {
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
-        //sol_mpc->write_pwm_percent_with_voltage(333, sensor_data.voltage);
+        pressure_mgr->set_spc_compensation_factor(0.0); 
         this->pressure_mgr->set_target_spc_percent(400, -1);
-        //sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage); // 40%
         sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
@@ -446,6 +429,7 @@ void Gearbox::shift_thread() {
                 y4_pwm_val = 800;
                 spc_ramp = 5;
             }
+            pressure_mgr->set_spc_compensation_factor(0.0);
             pressure_mgr->set_target_mpc_percent(mpc_start, -1);
             pressure_mgr->set_target_spc_percent(spc_start, -1);
             //sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
@@ -463,9 +447,11 @@ void Gearbox::shift_thread() {
             vTaskDelay(200);
             sol_y4->write_pwm_percent(0);
             pressure_mgr->set_target_spc_percent(0, -1);        
+            pressure_mgr->set_spc_compensation_factor(1.0);       
             //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
+            pressure_mgr->set_spc_compensation_factor(0.0); 
             pressure_mgr->set_target_spc_percent(400, -1);
             //sol_spc->write_pwm_percent_with_voltage(400, sensor_data.voltage);
             //sol_mpc->write_pwm_percent_with_voltage(330, sensor_data.voltage);

@@ -314,13 +314,13 @@ bool Sensors::read_atf_temp(int* dest){
 }
 
 bool Sensors::parking_lock_engaged(bool* dest){
-    int raw;
-    esp_err_t res = adc2_get_raw(ADC_CHANNEL_ATF, ADC2_WIDTH, &raw);
+    uint32_t raw;
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
     if (res != ESP_OK) {
-        ESP_LOGW("READ_VBATT", "Failed to query parking lock. %s", esp_err_to_name(res));
+        ESP_LOGW("READ_PLL", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;
     } else {
-        *dest = raw >= 4000;
+        *dest = raw >= 3000;
         return true;
     }
 }

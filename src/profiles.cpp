@@ -256,10 +256,9 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     } else if (current_gear == GearboxGear::Third) {
         rpm_threshold = 2000;
     } else if (current_gear == GearboxGear::Fourth) {
-        rpm_threshold = 1900;
+        rpm_threshold = 1500;
     }
-    unsigned long t =  esp_timer_get_time()/1000;
-    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && t-sensors->last_shift_time > 2000) {
+    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && sensors->current_timestamp_ms-sensors->last_shift_time > 500) {
         return true;
     }
     return false;

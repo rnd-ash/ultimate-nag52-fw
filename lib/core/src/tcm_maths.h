@@ -1,6 +1,8 @@
 #ifndef __TCM_MATHS_H__
 #define __TCM_MATHS_H__
 
+#include <stdint.h>
+
 // Core maths and calculation stuff this the TCM uses
 
 #ifndef MAX
@@ -11,47 +13,29 @@
     #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-/*
 
-template <typename T, int MAP_SIZE>
-struct TcmMap {
-    T map[MAP_SIZE];
 
-    T get_value(T min, T actual, T max) {
-        if (actual <= min) {
-            return map[0];
-        } else if (actual >= max) {
-            return map[MAP_SIZE-1];
-        } else {
-            // Linear interpolate
-            float dy = rpm_normalizer[max] - rpm_normalizer[min];
-            float dx = max-min;
-            return (rpm_normalizer[min] + ((dy/dx)) * (engine_rpm-(min*1000)));
-        }
-    }
+class TcmMap {
+public:
+    /// Creates a 0'ed map
+    TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids);
+    /// MUST call after constructor to ensure that memory was allocated
+    /// OK for the map!
+    bool allocate_ok();
+    /// Adds a new row to the map
+    bool add_data(int16_t* map, int size);
+
+    int16_t* get_row(uint16_t id);
+
+
+    float get_value(int16_t x_value, int16_t y_value);
+private:
+    int16_t* data;
+    int16_t* x_headers;
+    int16_t* y_headers;
+    uint16_t x_size;
+    uint16_t y_size;
+    bool alloc_ok;
 };
-
-template <typename T, int size>
-struct MovingAverageData {
-    T array[size];
-    uint8_t sample_id;
-    T sum;
-    T total;
-    T prev_avg;
-    T curr_avg;
-
-    MovingAverageData() {
-        sum = 0;
-        total = 0;
-        sample_id = 0;
-        prev_avg = 0;
-        curr_avg = 0;
-        memset(array, 0x00, sizeof(array));
-    }
-    void add_to_avg();
-    T get_avg();
-};
-
-*/
 
 #endif // __TCM_MATHS_H__

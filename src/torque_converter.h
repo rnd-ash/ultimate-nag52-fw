@@ -35,6 +35,7 @@ class TorqueConverter {
         bool prefilling = false;
         uint64_t prefill_start_time = 0;
         ClutchStatus state = ClutchStatus::Open;
+        uint64_t last_inc_time = 0;
 };
 
 #endif

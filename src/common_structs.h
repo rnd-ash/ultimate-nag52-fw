@@ -94,27 +94,66 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
+typedef struct {
+    /// Ramp down from current PWM to PWM Percent
+    uint16_t ramp_time;
+    /// Hold time at PWM Percent
+    uint16_t hold_time;
+    /// PWM Percent
+    uint16_t pwm_percent;
+} ShiftPhase;
+
 /**
  * @brief Shift data request structure
  * 
  */
 typedef struct {
-    /// The initial SPC PWM value to start the shift off. This should be the 'biting point' of the clutch packs
-    uint16_t initial_spc_pwm;
-    /// The intial MPC PWM value to start the shift off.
-    /// This must ALWAYS be more or equal to initial_spc_pwm, otherwise the box will hydralically
-    /// perform an ABORT shift
-    uint16_t initial_mpc_pwm;
-    /// SPC Ramp speed, denotes the speed of which SPC pressure will increase during the shift
-    float spc_dec_speed;
-    /// The shift solenoid required to change gears
     Solenoid* shift_solenoid;
-    /// Current gear the gearbox is in as an integer
     uint8_t targ_g;
-    /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
-    float torque_cut_multiplier;
-    float temp_multi;
+ 
+    /** 
+     * Phase 1 hold
+     * Shift solenoid has not opened yet
+     * This reduces the line pressure of the SPC line so that
+     * there is not a spike in pressure when Shift solenoid opens
+     */
+    ShiftPhase hold1_data;
+
+    /** 
+     * Phase 2 hold 
+     * Shift solenoid opens, PWM instantly jumps rather than ramps
+     * This bleeds air out of the lines
+     */
+
+    ShiftPhase hold2_data;
+
+    /** 
+     * Phase 3 hold 
+     * Removing any play in the new clutches to engage
+     */
+
+    ShiftPhase hold3_data;
+
+    /** 
+     * Shift torque phase 
+     * New clutches start to spin to take the torque of the old ones
+     */
+    ShiftPhase torque_data;
+
+    /** 
+     * Shift overlap phase
+     * New clutches are moved into place and old once released
+     */
+
+    ShiftPhase overlap_data;
+
+    /** 
+     * Shift complete max pressure phase 
+     * New clutches are locked into place
+     */
+
+    ShiftPhase max_pressure_data;
 } ShiftData;
 
 typedef struct {
@@ -167,9 +206,6 @@ typedef struct {
 
     rpm_modifier_map ramp_speed_multiplier;
 } PressureMgrData;
-
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0};
 
 typedef struct {
     /**

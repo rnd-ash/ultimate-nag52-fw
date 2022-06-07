@@ -241,6 +241,9 @@ void Kwp2000_server::server_loop() {
                 case SID_TRANSFER_EXIT:
                     this->process_transfer_exit(args_ptr, args_size);
                     break;
+                case SID_SHIFT_MGR_OP:
+                    this->process_shift_mgr_op(args_ptr, args_size);
+                    break;
 
                 default:
                     ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
@@ -692,6 +695,68 @@ void Kwp2000_server::process_control_dtc_settings(uint8_t* args, uint16_t arg_le
 }
 void Kwp2000_server::process_response_on_event(uint8_t* args, uint16_t arg_len) {
 
+}
+
+void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
+    if (
+        this->session_mode == SESSION_EXTENDED ||
+        this->session_mode == SESSION_CUSTOM_UN52
+    ) {
+        // Make request message
+        // Should be 1 byte argument
+        // 0x00 0x00 - Request shift summary
+        // 0x01 0xzz - Request shift by ID
+        // 0x02 0x00 - Clear shift data
+        // 0x03 0x00 - Request current ID of shift index (Can be used to see if new data is avaliable)
+
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        if (gearbox_ptr->shifting) {
+            // Cannot read WHILST shifting
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            return;
+        }
+        ShiftReportNvsGroup* grp = this->gearbox_ptr->shift_reporter->diag_get_nvs_group_ptr();
+        if (grp == nullptr) {
+            // Conditions are not correct as underlying EEPROM error
+            // is stopping this from being allocated!
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            return;
+        }
+
+        if (args[0] == 0x00) {
+            // Each report needs 4 bytes, [ID, TAR_CUR_GEAR, ATF, ATF]
+            uint8_t resp[4*MAX_REPORTS];
+            memset(resp, 0x00, sizeof(resp));
+            for (uint8_t i = 0; i < MAX_REPORTS; i++) {
+                uint8_t* ptr = &resp[i*4];
+                ptr[0] = i;
+                ptr[1] = grp->reports[i].targ_curr;
+                ptr[2] = grp->reports[i].atf_temp_c >> 8;
+                ptr[3] = grp->reports[i].atf_temp_c & 0xFF;
+            }
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, resp, 6*MAX_REPORTS);
+            return;
+        } else if (args[0] == 0x01) {
+            if (args[1] >= MAX_REPORTS) {
+                make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            // OK, get the data
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, (const uint8_t*)&grp->reports[args[1]], sizeof(ShiftReport));
+        } else if (args[0] == 0x02) {
+            // TODO clear shift data
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, nullptr, 0);
+        } else if (args[0] == 0x03) {
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, &grp->index, 1);
+        } else {
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        }
+    } else {
+        make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+    }
 }
 
 

@@ -98,7 +98,8 @@ class Kwp2000_server {
         void process_tester_present(uint8_t* args, uint16_t arg_len);
         void process_control_dtc_settings(uint8_t* args, uint16_t arg_len);
         void process_response_on_event(uint8_t* args, uint16_t arg_len);
-
+        void process_shift_mgr_op(uint8_t* args, uint16_t arg_len);
+        
         static void launch_solenoid_test(void *_this) {
             static_cast<Kwp2000_server*>(_this)->run_solenoid_test();
         }

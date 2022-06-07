@@ -15,6 +15,7 @@
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
+#include "adaptation/shift_report.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -88,6 +89,7 @@ public:
     }
     static uint16_t redline_rpm;
     ShiftReporter* shift_reporter;
+    bool shifting = false;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);

@@ -47,7 +47,7 @@ int16_t* TcmMap::get_row(uint16_t id) {
 }
 
 
-float TcmMap::get_value(int16_t x_value, int16_t y_value) {
+float TcmMap::get_value(float x_value, float y_value) {
     uint16_t x_idx_min = 0;
     uint16_t x_idx_max = 0;
 
@@ -117,7 +117,7 @@ float TcmMap::get_value(int16_t x_value, int16_t y_value) {
             rx_max = 0.5;
         } else {
             dx = this->x_headers[x_idx_max] - this->x_headers[x_idx_min];
-            rx_min = (x_value-this->x_headers[x_idx_min])/dx;
+            rx_min = 1.0 - ((x_value-this->x_headers[x_idx_min])/dx);
             rx_max = 1.0-rx_min;
         }
         if (y_idx_max == y_idx_min) {
@@ -126,7 +126,7 @@ float TcmMap::get_value(int16_t x_value, int16_t y_value) {
             ry_max = 0.5;
         } else {
             dy = this->y_headers[y_idx_max] - this->y_headers[y_idx_min];
-            ry_min = (y_value-this->y_headers[y_idx_min])/dy;
+            ry_min = 1.0 - ((y_value-this->y_headers[y_idx_min])/dy);
             ry_max = 1.0-ry_min;
         }
 

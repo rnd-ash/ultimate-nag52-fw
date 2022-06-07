@@ -28,7 +28,7 @@ public:
     int16_t* get_row(uint16_t id);
 
 
-    float get_value(int16_t x_value, int16_t y_value);
+    float get_value(float x_value, float y_value);
 private:
     int16_t* data;
     int16_t* x_headers;

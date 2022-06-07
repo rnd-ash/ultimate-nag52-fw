@@ -95,12 +95,12 @@ enum class ProfileGearChange {
 };
 
 typedef struct {
-    /// Ramp down from current PWM to PWM Percent
+    /// Ramp down from current pressure to new pressure
     uint16_t ramp_time;
-    /// Hold time at PWM Percent
+    /// Hold time at requested pressure
     uint16_t hold_time;
-    /// PWM Percent
-    uint16_t pwm_percent;
+    /// request pressure in mBar
+    uint16_t pressure;
 } ShiftPhase;
 
 /**

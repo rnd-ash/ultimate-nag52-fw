@@ -254,7 +254,6 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
 }
 
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
-
 #define SHIFT_DELAY_MS 20 // 20ms steps
 
 /**
@@ -266,7 +265,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     SensorData pre_shift = this->sensor_data;
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
-    
+
     ShiftReport dest_report;
     memset(&dest_report, 0x00, sizeof(ShiftReport));
     // Copy data
@@ -284,20 +283,24 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     uint16_t total_elapsed = 0;
     uint8_t shift_stage = SHIFT_PHASE_HOLD_1;
     // Open SPC for bleeding (Start of phase 1)
-    float curr_spc_pwm_percent = 900;
+    float curr_spc_pressure = 50;
     uint16_t curr_sd_percent = 0;
-    pressure_mgr->set_target_spc_percent(curr_spc_pwm_percent ,-1);
+    pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
     ShiftPhase* curr_phase = &sd.hold1_data;
     uint8_t timeout = 0;
+    float ramp = ((float)(curr_phase->pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
     ESP_LOGI("SHIFT", "Shift start phase hold 1");
     while(true) {
+        this->shift_stage = shift_stage;
         // Execute the current phase
         if (curr_phase != nullptr) {
-            if (stage_elapsed < curr_phase->ramp_time) {
-                curr_spc_pwm_percent -= ramp;
+            if (stage_elapsed < curr_phase->ramp_time && curr_spc_pressure < curr_phase->pressure) {
+                curr_spc_pressure += ramp;
+                this->is_ramp = true;
             } else {
+                this->is_ramp = false;
                 // Holding
-                curr_spc_pwm_percent = curr_phase->pwm_percent;
+                curr_spc_pressure = curr_phase->pressure;
                 if (stage_elapsed >= curr_phase->ramp_time+curr_phase->hold_time) {
                     // Fire next phase!
                     stage_elapsed = 0;
@@ -320,11 +323,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
                         // Restrict vehicle torque now
-                        if (sensor_data.static_torque > 50) {
-                            int limited = (float)sensor_data.static_torque * 0.6;
-                            egs_can_hal->set_requested_torque(limited);
-                            egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-                        }
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         ESP_LOGI("SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
@@ -335,11 +333,12 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         shift_stage = SHIFT_PHASE_MAX_P;
                         curr_phase = &sd.max_pressure_data;
                     } else if (shift_stage == SHIFT_PHASE_MAX_P) {
+                        shift_stage++;
                         // We are done! return
                         curr_phase = nullptr;
                     }
                     if (curr_phase != nullptr) {
-                        ramp = (curr_spc_pwm_percent-(float)(curr_phase->pwm_percent)) / MAX(((float)curr_phase->ramp_time/(float)SHIFT_DELAY_MS), 1);
+                        ramp = ((float)(curr_phase->pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
                     }
                 }
             }
@@ -363,13 +362,16 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             index++;
         }
         add_report = !add_report;
+        pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
         sd.shift_solenoid->write_pwm_percent_with_voltage(curr_sd_percent, sensor_data.voltage); // Write to shift solenoid
         vTaskDelay(SHIFT_DELAY_MS);
         total_elapsed += SHIFT_DELAY_MS;
         stage_elapsed += SHIFT_DELAY_MS;
     }
+    this->shift_stage = 0;
+    this->is_ramp = false;
     ESP_LOGI("SHIFT", "Shift done");
-    pressure_mgr->set_target_spc_percent(0, -1);
+    pressure_mgr->disable_spc(); // Max pressure!
     sd.shift_solenoid->write_pwm_percent(0); // Close SPC and Shift solenoid
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
@@ -406,7 +408,7 @@ void Gearbox::shift_thread() {
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
-        this->pressure_mgr->set_target_spc_percent(400, -1);
+        this->pressure_mgr->set_target_spc_pressure(100);
         sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
@@ -417,39 +419,35 @@ void Gearbox::shift_thread() {
             egs_can_hal->set_torque_request(TorqueRequest::Minimum); // Minimum torque during garage shifts
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            int spc_start = 400;
-            int mpc_start = 800;
+            int spc_start = 600;
+            int mpc_start = 600;
             int spc_ramp = 10;
-            int mpc_ramp = 1;
+            int mpc_ramp = 5;
             int y4_pwm_val = 800;
 
             if (!start_second) { // Starting in 1st
-                mpc_start = 650;
-                spc_start = 300;
+                mpc_start = 600;
+                spc_start = 50;
                 y4_pwm_val = 800;
                 spc_ramp = 5;
             }
-            pressure_mgr->set_target_mpc_percent(mpc_start, -1);
-            pressure_mgr->set_target_spc_percent(spc_start, -1);
-            //sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
-            //sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
+            pressure_mgr->set_target_mpc_pressure(mpc_start);
+            pressure_mgr->set_target_spc_pressure(spc_start);
             sol_y4->write_pwm_percent_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
-            while (spc_start > 50) {
-                spc_start -= spc_ramp;
-                mpc_start -= mpc_ramp;
-                pressure_mgr->set_target_mpc_percent(mpc_start, -1);
-                pressure_mgr->set_target_spc_percent(spc_start, -1);        
-                //sol_spc->write_pwm_percent_with_voltage(spc_start, sensor_data.voltage);
-                //sol_mpc->write_pwm_percent_with_voltage(mpc_start, sensor_data.voltage);
-                vTaskDelay(20/portTICK_PERIOD_MS);
+            while (spc_start <= 2500) {
+                spc_start += spc_ramp;
+                mpc_start += mpc_ramp;
+                pressure_mgr->set_target_mpc_pressure(mpc_start);
+                pressure_mgr->set_target_spc_pressure(spc_start);        
+                vTaskDelay(10/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);
             sol_y4->write_pwm_percent(0);
-            pressure_mgr->set_target_spc_percent(0, -1);      
+            pressure_mgr->disable_spc();      
             //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            pressure_mgr->set_target_spc_percent(400, -1);
+            pressure_mgr->set_target_spc_pressure(50);
             sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // Back to idle
         }
         if (is_fwd_gear(curr_target)) {
@@ -673,8 +671,7 @@ void Gearbox::controller_loop() {
             if (!shifting) {
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
             }
-            uint16_t pwm_percent = this->pressure_mgr->get_p_solenoid_pwm_percent(this->mpc_working);
-            this->pressure_mgr->set_target_mpc_percent(pwm_percent, -1);
+            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
             this->pressure_mgr->update(this->actual_gear, this->target_gear);
             if (is_fwd_gear(this->actual_gear)) {
                 bool want_upshift = false;
@@ -785,6 +782,7 @@ void Gearbox::controller_loop() {
         egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm(), SolenoidName::SPC);
         egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm(), SolenoidName::MPC);
         egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm(), SolenoidName::TCC);
+        egs_can_hal->set_shift_stage(this->shift_stage, this->is_ramp);
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX) {

@@ -116,7 +116,6 @@ private:
     }
     uint16_t temp_raw = 0;
     TaskHandle_t shift_task = nullptr;
-    bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
     float tcc_percent = 0;
@@ -135,6 +134,8 @@ private:
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;
+    bool is_ramp = false;
+    uint8_t shift_stage = 0;
 };
 
 #endif

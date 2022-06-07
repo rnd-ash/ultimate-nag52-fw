@@ -10,7 +10,7 @@
 #include "tcm_maths.h"
 #include "driver/twai.h"
 
-#define DIAG_CAN_MAX_SIZE 2047 // ISO-TP Maximum (Do not increase this, on the 203 platform setting it higher to this causes other ECU issues?)!
+#define DIAG_CAN_MAX_SIZE 4095 // ISO-TP Maximum
 
 const char HEX_DEF[17] = "0123456789ABCDEF";
 

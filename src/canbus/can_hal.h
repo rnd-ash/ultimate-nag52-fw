@@ -252,6 +252,11 @@ class AbstractCan {
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message
         virtual void set_display_msg(GearboxMessage msg);
+        
+        /// Custom setters
+        virtual void set_spc_pressure(uint16_t p){}
+        virtual void set_mpc_pressure(uint16_t p){}
+        virtual void set_shift_stage(uint8_t stage, bool is_ramp){}
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

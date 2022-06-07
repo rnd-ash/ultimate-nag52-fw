@@ -648,11 +648,23 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
             gs558.set_mpc_pwm(duty >> 4);
             break;
         case SolenoidName::TCC:
-            gs558.set_tcc_pwm(duty);
+            gs558.set_tcc_pwm(duty >> 4);
             break;
         default:
             break;
     }
+}
+
+void Egs52Can::set_spc_pressure(uint16_t p) {
+    this->gs668.set_spc_pressure_est(p);
+}
+
+void Egs52Can::set_mpc_pressure(uint16_t p) {
+    this->gs668.set_mpc_pressure_est(p);
+}
+
+void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
+    this->gs668.set_shift_stage(stage, is_ramp);
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
@@ -884,6 +896,7 @@ void Egs52Can::tx_task_loop() {
     GS_218 gs_218tx;
     GS_418 gs_418tx;
     GS_558_CUSTOM gs_558tx;
+    GS_668_CUSTOM gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;
@@ -894,6 +907,7 @@ void Egs52Can::tx_task_loop() {
         gs_218tx = {gs218.raw};
         gs_418tx = {gs418.raw};
         gs_558tx = {gs558.raw};
+        gs_668tx = {gs668.raw};
 
         // Firstly we have to deal with toggled bits!
         // As toggle bits need to be toggled every 40ms,
@@ -938,6 +952,9 @@ void Egs52Can::tx_task_loop() {
         twai_transmit(&tx, 5);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
+        twai_transmit(&tx, 5);
+        tx.identifier = GS_CUSTOM_668_CAN_ID;
+        to_bytes(gs_668tx.raw, tx.data);
         twai_transmit(&tx, 5);
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }

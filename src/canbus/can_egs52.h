@@ -97,6 +97,9 @@ class Egs52Can: public AbstractCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
+        void set_spc_pressure(uint16_t p) override;
+        void set_mpc_pressure(uint16_t p) override;
+        void set_shift_stage(uint8_t stage, bool is_ramp) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;
@@ -110,6 +113,7 @@ class Egs52Can: public AbstractCan {
         GS_418 gs418 = {0};
         GS_338 gs338 = {0};
         GS_558_CUSTOM gs558 = {0};
+        GS_668_CUSTOM gs668 = {0};
         // ECU Data to Rx to
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();

@@ -260,41 +260,29 @@ typedef struct {
     int min_slip_rpm;
 } TccLockupBounds;
 
+#define MAX_POINTS_PER_SR_ARRAY 6000/20/2
 typedef struct {
-    /** 
-     * @brief Initial MPC pwm (From map)
-     */
-    int initial_mpc_pwm;
-    /** 
-     * @brief Initial SPC pwm (From map)
-     */
-    int initial_spc_pwm;
-    /** 
-     * @brief Ramp down speed of SPC PWM (Ramp down -> Increase pressure) (1 = 0.1% per 50ms)
-     */
-    float spc_ramp_down_speed;
-    /** 
-     * @brief Once the shift has started, how quickly do we reduce `spc_ramp_down_speed` 
-     *        to smooth out the end of the shift so we don't slam the clutches into place
-     */
-    float spc_ramp_down_fade_multiplier;
-    /** 
-     * @brief PWM for SPC to open before shift valve is commanded
-     */
-    int spc_pre_open_pwm;
-    /** 
-     * @brief Time for SPC to open before shift valve is commanded
-     */
-    int spc_pre_open_time;
-    /** 
-     * @brief Time for SPC to stick to initial_spc_pwm once shift valve has opened
-     */
-    int spc_prefill_time;
-    /** 
-     * @brief The multiplier for MPC to increase its pressure by whilst SPC is prefilling
-     *        (Aids flare reduction by compensating for lost pressure on MPC line)
-     */
-    int mpc_compensation_prefill;
-} ShiftData2;
+    int atf_temp_c;
+    // Target << 4 | current
+    uint8_t targ_curr;
+    uint8_t interval_points;
+    uint16_t report_array_len;
+    uint16_t engine_rpm[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t input_rpm[MAX_POINTS_PER_SR_ARRAY];
+    int16_t engine_torque[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t total_ms;
+    ShiftPhase hold1_data;
+    ShiftPhase hold2_data;
+    ShiftPhase hold3_data;
+    ShiftPhase torque_data;
+    ShiftPhase overlap_data;
+    ShiftPhase max_pressure_data;
+
+    // Flags for reporting shift errors
+    uint16_t flare_timestamp;
+    uint8_t shift_timeout;
+}  __attribute__ ((packed)) ShiftReport;
+
+const int SD_Size = sizeof(ShiftReport);
 
 #endif

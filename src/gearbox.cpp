@@ -60,6 +60,7 @@ Gearbox::Gearbox() {
     };
     this->tcc = new TorqueConverter();
     this->pressure_mgr = new PressureManager(&this->sensor_data);
+    this->shift_reporter = new ShiftReporter();
 
     if(VEHICLE_CONFIG.is_large_nag) {
         this->gearboxConfig = GearboxConfiguration {
@@ -266,7 +267,19 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
     
+    ShiftReport dest_report;
+    memset(&dest_report, 0x00, sizeof(ShiftReport));
+    // Copy data
+    dest_report.hold1_data = sd.hold1_data;
+    dest_report.hold2_data = sd.hold2_data;
+    dest_report.hold3_data = sd.hold3_data;
+    dest_report.torque_data = sd.torque_data;
+    dest_report.overlap_data = sd.overlap_data;
+    dest_report.max_pressure_data = sd.max_pressure_data;
+    dest_report.atf_temp_c = sensor_data.atf_temp;
 
+    uint16_t index = 0;
+    bool add_report = true;
     uint16_t stage_elapsed = 0;
     uint16_t total_elapsed = 0;
     uint8_t shift_stage = SHIFT_PHASE_HOLD_1;
@@ -275,7 +288,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     uint16_t curr_sd_percent = 0;
     pressure_mgr->set_target_spc_percent(curr_spc_pwm_percent ,-1);
     ShiftPhase* curr_phase = &sd.hold1_data;
-    float ramp = (curr_spc_pwm_percent-(float)(curr_phase->pwm_percent)) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
+    uint8_t timeout = 0;
     ESP_LOGI("SHIFT", "Shift start phase hold 1");
     while(true) {
         // Execute the current phase
@@ -338,12 +351,18 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 break;
             }
             if (stage_elapsed > SHIFT_TIMEOUT_MS) { // Too long at max p and car didn't shift!?
+                timeout = 1;
                 break;
             }
         }
 
-        // Always monitor the progress of the shift!
-        pressure_mgr->set_target_spc_percent(curr_spc_pwm_percent ,-1);
+        if (add_report && index < MAX_POINTS_PER_SR_ARRAY) {
+            dest_report.engine_rpm[index] = (uint16_t)sensor_data.engine_rpm;
+            dest_report.input_rpm[index] = (uint16_t)sensor_data.input_rpm;
+            dest_report.engine_torque[index] = (int16_t)sensor_data.static_torque;
+            index++;
+        }
+        add_report = !add_report;
         sd.shift_solenoid->write_pwm_percent_with_voltage(curr_sd_percent, sensor_data.voltage); // Write to shift solenoid
         vTaskDelay(SHIFT_DELAY_MS);
         total_elapsed += SHIFT_DELAY_MS;
@@ -354,6 +373,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     sd.shift_solenoid->write_pwm_percent(0); // Close SPC and Shift solenoid
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
+
+    // Copy the response len
+    dest_report.report_array_len = index-1;
+    dest_report.interval_points = SHIFT_DELAY_MS*2;
+    dest_report.total_ms = total_elapsed;
+    dest_report.shift_timeout = timeout;
+    this->shift_reporter->add_report(dest_report);
     ShiftResponse response = {
         .measure_ok = false,
         .flared = false,
@@ -619,6 +645,7 @@ void Gearbox::controller_loop() {
                             if (this->pressure_mgr != nullptr) {
                                 this->pressure_mgr->save();
                             }
+                            this->shift_reporter->save();
                         } else if (this->shifter_pos == ShifterPosition::N) {
                             this->target_gear = GearboxGear::Neutral;
                             last_position = this->shifter_pos;

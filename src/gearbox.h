@@ -87,6 +87,7 @@ public:
         return this->sensor_data.gear_ratio * 100;
     }
     static uint16_t redline_rpm;
+    ShiftReporter* shift_reporter;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);

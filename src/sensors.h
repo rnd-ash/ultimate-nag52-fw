@@ -46,7 +46,7 @@ namespace Sensors {
      * @return false 
      */
     bool read_vbatt(uint16_t* dest);
-    bool read_atf_temp(int* dest);
+    bool read_atf_temp(int16_t* dest);
     bool parking_lock_engaged(bool* dest);
 }
 

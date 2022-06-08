@@ -277,7 +277,7 @@ bool Sensors::read_vbatt(uint16_t *dest){
 }
 
 // Returns ATF temp in *C
-bool Sensors::read_atf_temp(int* dest){
+bool Sensors::read_atf_temp(int16_t* dest){
     #define NUM_ATF_SAMPLES 5
     uint32_t raw = 0;
     uint32_t avg = 0;
@@ -294,10 +294,10 @@ bool Sensors::read_atf_temp(int* dest){
         return false; // Parking lock engaged, cannot read.
     }
     if (avg < atf_temp_lookup[0].v) {
-        *dest = (float)atf_temp_lookup[0].temp * 0.8;
+        *dest = (int16_t)((float)atf_temp_lookup[0].temp * 0.8);
         return true;
     } else if (avg > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-        *dest = 0.8 * (float)(atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10.0;
+        *dest = (int16_t)(0.8 * (float)(atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10.0);
         return true;
     } else {
         for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
@@ -305,7 +305,7 @@ bool Sensors::read_atf_temp(int* dest){
             if (atf_temp_lookup[i].v <= avg && atf_temp_lookup[i+1].v >= avg) {
                 float dx = avg - atf_temp_lookup[i].v;
                 float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                *dest = 0.8 * (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10;
+                *dest = (int16_t)(0.8 * (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10.0);
                 return true;
             }
         }

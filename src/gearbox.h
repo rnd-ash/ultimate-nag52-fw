@@ -99,8 +99,8 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
-    bool calc_input_rpm(int* dest);
-    bool calc_output_rpm(int* dest, uint64_t now);
+    bool calc_input_rpm(uint16_t* dest);
+    bool calc_output_rpm(uint16_t* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
 

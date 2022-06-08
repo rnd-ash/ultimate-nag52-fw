@@ -760,7 +760,7 @@ void Gearbox::controller_loop() {
                 sol_y4->write_pwm_12_bit(0);
                 sol_y5->write_pwm_12_bit(0);
         }
-        int tmp_atf = 0;
+        int16_t tmp_atf = 0;
         if (!Sensors::read_atf_temp(&tmp_atf)) {
             // Default to engine coolant
             this->sensor_data.atf_temp = (egs_can_hal->get_engine_coolant_temp(now, 1000));
@@ -874,7 +874,7 @@ void Gearbox::controller_loop() {
     }
 }
 
-bool Gearbox::calc_input_rpm(int* dest) {
+bool Gearbox::calc_input_rpm(uint16_t* dest) {
     RpmReading rpm{};
     bool ok = false;
     bool conduct_sanity_check = gear_disagree_count == 0 && 
@@ -890,7 +890,7 @@ bool Gearbox::calc_input_rpm(int* dest) {
     return ok;
 }
 
-bool Gearbox::calc_output_rpm(int* dest, uint64_t now) {
+bool Gearbox::calc_output_rpm(uint16_t* dest, uint64_t now) {
     WheelData left = egs_can_hal->get_rear_left_wheel(now, 250);
     WheelData right = egs_can_hal->get_rear_right_wheel(now, 250);
     //ESP_LOGI("WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);

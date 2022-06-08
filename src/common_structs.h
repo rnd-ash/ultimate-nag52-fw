@@ -40,25 +40,25 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
  */
 typedef struct {
     /// Gearbox input RPM
-    int input_rpm;
+    uint16_t input_rpm;
     /// Engine RPM
-    int engine_rpm;
+    uint16_t engine_rpm;
     /// Output shaft RPM
-    int output_rpm;
+    uint16_t output_rpm;
     /// TCM voltage
     uint16_t voltage;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
     /// Transmission oil temperature in Celcius
-    int atf_temp;
+    int16_t atf_temp;
     /// Current 'static' torque of the engine in Nm
-    int static_torque;
+    int16_t static_torque;
     /// Engine torque limit maximum in Nm
-    int max_torque;
+    int16_t max_torque;
     /// Engine torque limit minimum in Nm
-    int min_torque;
+    int16_t min_torque;
     /// Torque converter slip RPM (Calculated)
-    int tcc_slip_rpm;
+    int16_t tcc_slip_rpm;
     /// Last time the gearbox changed gear (in milliseconds)
     uint64_t last_shift_time;
     /// Current clock time in milliseconds
@@ -66,7 +66,7 @@ typedef struct {
     /// Is the brake pedal depressed?
     bool is_braking;
     /// Delta in output RPM, used for calculating if car is accelerating or slowing down
-    int d_output_rpm;
+    int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
 } SensorData;
@@ -262,7 +262,7 @@ typedef struct {
 
 #define MAX_POINTS_PER_SR_ARRAY 6000/20/2
 typedef struct {
-    int atf_temp_c;
+    int16_t atf_temp_c;
     // Target << 4 | current
     uint8_t targ_curr;
     uint8_t interval_points;

@@ -28,7 +28,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 90
+#define TCC_PREFILL 360
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
@@ -37,14 +37,14 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 this->prefilling = true;
                 prefill_start_time = sensors->current_timestamp_ms;
                 this->curr_tcc_pwm = 0;
-                pm->set_target_tcc_percent(TCC_PREFILL, -1); // Being early prefil
+                pm->set_target_tcc_pwm(TCC_PREFILL); // Being early prefil
             }
             this->state = ClutchStatus::Open;
             return;
         }
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
-        pm->set_target_tcc_percent(0, -1);
+        pm->set_target_tcc_pwm(0);
         prefilling = false;
         this->state = ClutchStatus::Open;
         return;
@@ -59,7 +59,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         this->state = ClutchStatus::Open;
     }
     if (sensors->current_timestamp_ms - prefill_start_time < 1000) {
-        pm->set_target_tcc_percent(TCC_PREFILL, -1);
+        pm->set_target_tcc_pwm(TCC_PREFILL);
         this->state = ClutchStatus::Open;
         return;
     }
@@ -120,7 +120,7 @@ write_pwm:
         this->curr_tcc_pwm = 0;
     }
     this->state = (slip > 100 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
-    pm->set_target_tcc_percent(TCC_PREFILL+(uint16_t)(this->curr_tcc_pwm/40.0), -1);
+    pm->set_target_tcc_pwm(TCC_PREFILL+(uint16_t)(this->curr_tcc_pwm/10.0));
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {

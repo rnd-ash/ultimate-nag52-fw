@@ -62,7 +62,6 @@ class UsbEndpoint: public AbstractEndpoint {
         UsbEndpoint(bool can_use_spiram) : AbstractEndpoint() {
             esp_err_t e;
             this->allocation_psram = can_use_spiram;
-            e = uart_set_baudrate(0, 921600);
             e = uart_driver_install(0, UART_MSG_SIZE/2, UART_MSG_SIZE/2, 0, nullptr, 0);
             if (e != ESP_OK) {
                 ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
@@ -83,6 +82,7 @@ class UsbEndpoint: public AbstractEndpoint {
         }
 
         void send_data(DiagMessage* msg) override {
+            //esp_log_level_set("*", ESP_LOG_NONE);
             sprintf(&this->write_buffer[0], "#%04X", msg->id);
             for (uint16_t i = 0; i < msg->data_size; i++) {
                 this->write_buffer[5+(i*2)] = HEX_DEF[(msg->data[i] >> 4) & 0x0F];
@@ -90,6 +90,7 @@ class UsbEndpoint: public AbstractEndpoint {
             }
             this->write_buffer[(msg->data_size*2)+5] = '\n';
             uart_write_bytes(0, &this->write_buffer[0], (msg->data_size*2)+6);
+            //esp_log_level_set("*", ESP_LOG_INFO);
         }
 
         int find_char(char targ, size_t from, size_t to) {
@@ -156,7 +157,6 @@ class UsbEndpoint: public AbstractEndpoint {
         uint16_t read_pos;
         QueueHandle_t uart_queue;
         bool clear_to_send = false;
-        bool is_sending = false;
         uint8_t pci = 0x20;
         bool allocation_psram = false;
 };

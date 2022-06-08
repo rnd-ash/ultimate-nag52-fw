@@ -22,10 +22,10 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
 
     /** Pressure PWM map **/
 
-    int16_t pwm_x_headers[7] = {50, 600, 1000, 2350, 5600, 6600, 7700};
+    int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
     int16_t pwm_y_headers[4] = {-25, 20, 60, 150}; 
 
-    pressure_pwm_map = new TcmMap(7, 4, pwm_x_headers, pwm_y_headers);
+    pressure_pwm_map = new TcmMap(8, 4, pwm_x_headers, pwm_y_headers);
 
     if (!this->pressure_pwm_map->allocate_ok()) {
         this->pressure_pwm_map = nullptr;
@@ -34,14 +34,16 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     }
     // Allocation OK, add the data to the map
 
-    // Values are PWM % (0-1000) for SPC and MPC solenoid
+    // Values are PWM 12bit (0-1000) for SPC and MPC solenoid
     // This table takes into account resistance change based on ATF temp
-    int16_t pwm_map[7*4] = {
-    /*              50   600  1000  2350  5600  6600  7700 <- mBar */
-    /* -25C */     396,  391,  344,  252,  162,  126,   72,
-    /*  20C */     472,  406,  364,  296,  182,  140,    0,
-    /*  60C */     508,  424,  396,  330,  203,  146,    0,
-    /* 150C */     648,  529,  495,  412,  246,  173,    0
+    int16_t pwm_map[8*4] = {
+    /*               0    50   600  1000  2350  5600  6600  7700 <- mBar */
+    /* -25C */     2000, 1625, 1603, 1409, 1034,  665,  517, 295,
+    /*  20C */     2100, 1935, 1662, 1662, 1213,  746,  575,   0,
+    /*  60C */     2200, 2081, 1738, 1738, 1353,  833,  600,   0,
+    /* 150C */     3000, 2653, 2163, 2163, 1701, 1007,  708,   0
+    };
+    pressure_pwm_map->add_data(pwm_map, 8*4);
     };
     pressure_pwm_map->add_data(pwm_map, 7*4);
 

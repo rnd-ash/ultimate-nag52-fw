@@ -12,7 +12,6 @@ ShiftReporter::ShiftReporter() {
 
     // Ok so now we have our default grp structure,
     // Try to allocate memory
-    memset(&this->report_group, 0x00, sizeof(ShiftReportNvsGroup));
     size_t s = sizeof(ShiftReportNvsGroup);
     esp_err_t e = nvs_get_blob(this->nvs_handle, NVS_NAME_SS, &this->report_group, &s);
 
@@ -34,6 +33,7 @@ ShiftReporter::ShiftReporter() {
     if(!failure) {
         ESP_LOGI("SHIFT_REPORTER", "Init OK!");
     }
+    memset(&this->report_group, 0x00, sizeof(ShiftReportNvsGroup));
 }
 
 ShiftReporter::~ShiftReporter() {

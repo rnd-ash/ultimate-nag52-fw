@@ -718,14 +718,7 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
             make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             return;
         }
-        ShiftReportNvsGroup* grp = this->gearbox_ptr->shift_reporter->diag_get_nvs_group_ptr();
-        if (grp == nullptr) {
-            // Conditions are not correct as underlying EEPROM error
-            // is stopping this from being allocated!
-            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-            return;
-        }
-
+        ShiftReportNvsGroup grp = this->gearbox_ptr->shift_reporter->diag_get_nvs_group_ptr();
         if (args[0] == 0x00) {
             // Each report needs 4 bytes, [ID, TAR_CUR_GEAR, ATF, ATF]
             uint8_t resp[4*MAX_REPORTS];
@@ -733,11 +726,11 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
             for (uint8_t i = 0; i < MAX_REPORTS; i++) {
                 uint8_t* ptr = &resp[i*4];
                 ptr[0] = i;
-                ptr[1] = grp->reports[i].targ_curr;
-                ptr[2] = grp->reports[i].atf_temp_c >> 8;
-                ptr[3] = grp->reports[i].atf_temp_c & 0xFF;
+                ptr[1] = grp.reports[i].targ_curr;
+                ptr[2] = grp.reports[i].atf_temp_c >> 8;
+                ptr[3] = grp.reports[i].atf_temp_c & 0xFF;
             }
-            make_diag_pos_msg(SID_SHIFT_MGR_OP, resp, 6*MAX_REPORTS);
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, resp, sizeof(resp));
             return;
         } else if (args[0] == 0x01) {
             if (args[1] >= MAX_REPORTS) {
@@ -745,12 +738,12 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
                 return;
             }
             // OK, get the data
-            make_diag_pos_msg(SID_SHIFT_MGR_OP, (const uint8_t*)&grp->reports[args[1]], sizeof(ShiftReport));
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, (const uint8_t*)&grp.reports[args[1]], sizeof(ShiftReport));
         } else if (args[0] == 0x02) {
             // TODO clear shift data
             make_diag_pos_msg(SID_SHIFT_MGR_OP, nullptr, 0);
         } else if (args[0] == 0x03) {
-            make_diag_pos_msg(SID_SHIFT_MGR_OP, &grp->index, 1);
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, &grp.index, 1);
         } else {
             make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }

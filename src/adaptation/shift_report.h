@@ -22,7 +22,7 @@ public:
     void add_report(ShiftReport src);
 
     void save();
-    ShiftReportNvsGroup* diag_get_nvs_group_ptr() { return &this->report_group; }
+    ShiftReportNvsGroup diag_get_nvs_group_ptr() { return this->report_group; }
 private:
     bool has_change = false;
     ShiftReportNvsGroup report_group;

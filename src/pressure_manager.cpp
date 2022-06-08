@@ -44,8 +44,31 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     /* 150C */     3000, 2653, 2163, 2163, 1701, 1007,  708,   0
     };
     pressure_pwm_map->add_data(pwm_map, 8*4);
+
+    /** Pressure PWM map (TCC) **/
+
+    int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
+    int16_t pwm_tcc_y_headers[5] = {-25, 20, 60, 150}; 
+
+    tcc_pwm_map = new TcmMap(7, 5, pwm_tcc_x_headers, pwm_tcc_y_headers);
+
+    if (!this->tcc_pwm_map->allocate_ok()) {
+        this->tcc_pwm_map = nullptr;
+        ESP_LOGE("PM", "Allocation of TCC pressure pwm map failed!");
+        return;
+    }
+    // Allocation OK, add the data to the map
+
+    // Values are PWM 12bit (0-1000) for TCC solenoid
+    int16_t tc_pwm_map[7*5] = {
+    /*               0   2000  4000  5000  7500  10000  15000   <- mBar */
+    /*   0C */       0,   480,  960, 1280, 1920,  2560,  4096,
+    /*  30C */       0,   560, 1040, 1280, 1920,  2560,  4096,
+    /*  60C */       0,   640, 1120, 1280, 1920,  2560,  4096,
+    /*  90C */       0,   640, 1120, 1280, 1920,  2560,  4096,
+    /* 120C */       0,   640, 1120, 1280, 1920,  2560,  4096,
     };
-    pressure_pwm_map->add_data(pwm_map, 7*4);
+    tcc_pwm_map->add_data(tc_pwm_map, 7*5);
 
 
     /** Pressure Hold 2 time map **/

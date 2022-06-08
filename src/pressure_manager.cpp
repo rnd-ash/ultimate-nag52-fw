@@ -16,7 +16,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 PressureManager::PressureManager(SensorData* sensor_ptr) {
     this->sensor_data = sensor_ptr;
     this->adapt_map = new AdaptationMap();
-    memset(&this->tcc, 0, sizeof(PSolenoidData));
+    this->req_tcc_pwm = 0;
     this->req_mpc_pressure = 0;
     this->req_mpc_pressure = 0;
 
@@ -182,7 +182,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     return sd;
 }
 
-uint16_t PressureManager::get_p_solenoid_pwm_percent(uint16_t request_mbar) {
+uint16_t PressureManager::get_p_solenoid_pwm_duty(uint16_t request_mbar) {
     if (this->pressure_pwm_map == nullptr) {
         return 100; // 10% (Failsafe)
     }
@@ -193,13 +193,13 @@ uint16_t PressureManager::get_p_solenoid_pwm_percent(uint16_t request_mbar) {
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
-    sol_mpc->write_pwm_percent_with_voltage(this->get_p_solenoid_pwm_percent(this->req_mpc_pressure), this->sensor_data->voltage);
+    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure), this->sensor_data->voltage);
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
     this->spc_off = false;
     egs_can_hal->set_spc_pressure(targ);
-    sol_spc->write_pwm_percent_with_voltage(this->get_p_solenoid_pwm_percent(this->req_spc_pressure), this->sensor_data->voltage);
+    sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure), this->sensor_data->voltage);
     this->req_spc_pressure = targ;
 }
 
@@ -209,37 +209,16 @@ void PressureManager::disable_spc() {
     this->spc_off = true;
 }
 
-void PressureManager::set_target_tcc_percent(uint16_t targ, int speed) {
-    this->tcc.write_pwm = true;
-    if (speed < 0) {
-        this->tcc.curr_pwm_percent = targ;
-        this->tcc.targ_pwm_percent = targ;
-        this->tcc.ramp_speed = 0;
-    } else {
-        this->tcc.targ_pwm_percent = targ;
-        this->tcc.ramp_speed = speed;
-    }
+void PressureManager::set_target_tcc_pwm(uint16_t targ) {
+    this->req_tcc_pwm = targ;
 }
 
 void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
-    if (this->tcc.write_pwm) {
-        if (abs(this->tcc.curr_pwm_percent - this->tcc.targ_pwm_percent) < this->tcc.ramp_speed) {
-            this->tcc.curr_pwm_percent = this->tcc.targ_pwm_percent;
-            this->tcc.write_pwm = false;
-            this->tcc.ramp_speed = 0;
-        } else {
-            if (this->tcc.curr_pwm_percent > this->tcc.targ_pwm_percent) {
-                this->tcc.curr_pwm_percent -= this->tcc.ramp_speed;
-            } else {
-                this->tcc.curr_pwm_percent += this->tcc.ramp_speed;
-            }
-        }
-    }
+    sol_tcc->write_pwm_12bit_with_voltage(this->req_tcc_pwm, this->sensor_data->voltage);
     if (spc_off) {
-        sol_spc->write_pwm_percent(0);
+        sol_spc->write_pwm_12_bit(0);
     } else {
-        sol_spc->write_pwm_percent_with_voltage(this->get_p_solenoid_pwm_percent(this->req_spc_pressure), this->sensor_data->voltage);
+        sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure), this->sensor_data->voltage);
     }
-    sol_mpc->write_pwm_percent_with_voltage(this->get_p_solenoid_pwm_percent(this->req_mpc_pressure), this->sensor_data->voltage);
-    sol_tcc->write_pwm_percent_with_voltage(this->tcc.curr_pwm_percent, this->sensor_data->voltage);
+    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure), this->sensor_data->voltage);
 }

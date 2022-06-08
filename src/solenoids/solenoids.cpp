@@ -55,8 +55,8 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 }
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
-    pwm_raw = pwm_raw & 0xFFF;
-    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm_raw, 0); // Convert from 8bit to 12bit
+    pwm_raw &= 0xFFF;
+    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm_raw, 0);
     if (res != ESP_OK) {
         ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
         return;
@@ -75,31 +75,13 @@ void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
     this->write_pwm_12_bit(want_duty);
 }
 
-void Solenoid::write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv) {
-    if (percent == 0) {
-        this->write_pwm_12_bit(0);
-    }
-    uint16_t want_percent = (float)percent * solenoid_vref / (float)curr_v_mv;;
-    if (want_percent > 1000) {
-        want_percent = 1000; // Clamp to max
-    }
-    this->write_pwm_percent(want_percent);
-
+uint16_t Solenoid::get_pwm()
+{   
+    return this->pwm;
 }
 
 uint16_t Solenoid::get_vref() const {
     return this->vref;
-}
-
-void Solenoid::write_pwm_percent(uint16_t percent) {
-    uint32_t clamped = (percent > 1000) ? 1000 : percent;
-    uint32_t request = (4096 * clamped) / 1000;
-    this->write_pwm_12_bit(request);
-}
-
-uint16_t Solenoid::get_pwm()
-{   
-    return this->pwm;
 }
 
 uint16_t Solenoid::get_current_estimate()

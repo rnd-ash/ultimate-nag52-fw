@@ -274,14 +274,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     memset(&dest_report, 0x00, sizeof(ShiftReport));
     
     if (gen_report) {
-    // Copy data
-    dest_report.hold1_data = sd.hold1_data;
-    dest_report.hold2_data = sd.hold2_data;
-    dest_report.hold3_data = sd.hold3_data;
-    dest_report.torque_data = sd.torque_data;
-    dest_report.overlap_data = sd.overlap_data;
-    dest_report.max_pressure_data = sd.max_pressure_data;
-    dest_report.atf_temp_c = sensor_data.atf_temp;
+        // Copy data
+        dest_report.hold1_data = sd.hold1_data;
+        dest_report.hold2_data = sd.hold2_data;
+        dest_report.hold3_data = sd.hold3_data;
+        dest_report.torque_data = sd.torque_data;
+        dest_report.overlap_data = sd.overlap_data;
+        dest_report.max_pressure_data = sd.max_pressure_data;
+        dest_report.atf_temp_c = sensor_data.atf_temp;
         dest_report.requested_torque = UINT16_MAX; // Max if no request
         if (profile == nullptr) {
             dest_report.profile = 0xFF;
@@ -297,11 +297,10 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     uint16_t total_elapsed = 0;
     uint8_t shift_stage = SHIFT_PHASE_HOLD_1;
     // Open SPC for bleeding (Start of phase 1)
-    float curr_spc_pressure = 50;
-    uint16_t curr_sd_percent = 0;
+    float curr_spc_pressure = 0;
+    uint16_t curr_sd_pwm = 0;
     pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
     ShiftPhase* curr_phase = &sd.hold1_data;
-    uint8_t timeout = 0;
     float ramp = ((float)(curr_phase->pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
     ESP_LOGI("SHIFT", "Shift start phase hold 1");
     while(true) {
@@ -323,13 +322,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         ESP_LOGI("SHIFT", "Shift start phase hold 2");
                         // Going to hold 2
                         // open partial the shift solenoid
-                        curr_sd_percent = 500;
+                        curr_sd_pwm = 2048;
                         shift_stage = SHIFT_PHASE_HOLD_2;
                         curr_phase = &sd.hold2_data;
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
                         ESP_LOGI("SHIFT", "Shift start phase hold 3");
                         // Full open shift solenoid
-                        curr_sd_percent = 1000;
+                        curr_sd_pwm = 4096;
                         shift_stage = SHIFT_PHASE_HOLD_3;
                         curr_phase = &sd.hold3_data;
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
@@ -382,7 +381,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         }
         add_report = !add_report;
         pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
-        sd.shift_solenoid->write_pwm_percent_with_voltage(curr_sd_percent, sensor_data.voltage); // Write to shift solenoid
+        sd.shift_solenoid->write_pwm_12bit_with_voltage(curr_sd_pwm, sensor_data.voltage); // Write to shift solenoid
         vTaskDelay(SHIFT_DELAY_MS);
         total_elapsed += SHIFT_DELAY_MS;
         stage_elapsed += SHIFT_DELAY_MS;
@@ -391,17 +390,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     this->is_ramp = false;
     ESP_LOGI("SHIFT", "Shift done");
     pressure_mgr->disable_spc(); // Max pressure!
-    sd.shift_solenoid->write_pwm_percent(0); // Close SPC and Shift solenoid
+    sd.shift_solenoid->write_pwm_12_bit(0); // Close SPC and Shift solenoid
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
 
     if (gen_report) {
-    // Copy the response len
-    dest_report.report_array_len = index-1;
-    dest_report.interval_points = SHIFT_DELAY_MS*2;
-    dest_report.total_ms = total_elapsed;
+        // Copy the response len
+        dest_report.report_array_len = index-1;
+        dest_report.interval_points = SHIFT_DELAY_MS*2;
+        dest_report.total_ms = total_elapsed;
         dest_report.targ_curr = ((sd.targ_g & 0x0F) << 4) | (sd.curr_g & 0x0F);
-    this->shift_reporter->add_report(dest_report);
+        this->shift_reporter->add_report(dest_report);
     }
     ShiftResponse response = {
         .measure_ok = false,
@@ -430,7 +429,7 @@ void Gearbox::shift_thread() {
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
         this->pressure_mgr->set_target_spc_pressure(100);
-        sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // 3-4 is pulsed at 20%
+        sol_y4->write_pwm_12bit_with_voltage(800, sensor_data.voltage); // 3-4 is pulsed at 20%
         ESP_LOGI("SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
@@ -444,17 +443,17 @@ void Gearbox::shift_thread() {
             int mpc_start = 600;
             int spc_ramp = 10;
             int mpc_ramp = 5;
-            int y4_pwm_val = 800;
+            uint16_t y4_pwm_val = 3500;
 
             if (!start_second) { // Starting in 1st
                 mpc_start = 600;
                 spc_start = 50;
-                y4_pwm_val = 800;
+                y4_pwm_val = 3500;
                 spc_ramp = 5;
             }
             pressure_mgr->set_target_mpc_pressure(mpc_start);
             pressure_mgr->set_target_spc_pressure(spc_start);
-            sol_y4->write_pwm_percent_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
+            sol_y4->write_pwm_12bit_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
             while (spc_start <= 2500) {
                 spc_start += spc_ramp;
                 mpc_start += mpc_ramp;
@@ -463,13 +462,13 @@ void Gearbox::shift_thread() {
                 vTaskDelay(10/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);
-            sol_y4->write_pwm_percent(0);
+            sol_y4->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();      
             //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
             pressure_mgr->set_target_spc_pressure(50);
-            sol_y4->write_pwm_percent_with_voltage(200, sensor_data.voltage); // Back to idle
+            sol_y4->write_pwm_12bit_with_voltage(800, sensor_data.voltage); // Back to idle
         }
         if (is_fwd_gear(curr_target)) {
             // Last forward known gear
@@ -639,8 +638,8 @@ void Gearbox::controller_loop() {
                 //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
             }
         }
-        sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(now, 250);
-        this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 250);
+        sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(now, 1000);
+        this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
             this->sensor_data.engine_rpm = 0;
         }
@@ -763,7 +762,7 @@ void Gearbox::controller_loop() {
                         }
                     } else {
                         this->tcc_percent = 0;
-                        this->pressure_mgr->set_target_tcc_percent(0, -1);
+                        this->pressure_mgr->set_target_tcc_pwm(0);
                         egs_can_hal->set_clutch_status(ClutchStatus::Open);
                         //sol_tcc->write_pwm_12_bit(0);
                     }
@@ -773,7 +772,7 @@ void Gearbox::controller_loop() {
                 // Create shift task to change gears for us!
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
-        } else {
+        } else if (!shifting) {
                 sol_mpc->write_pwm_12_bit(0);
                 sol_spc->write_pwm_12_bit(0);
                 sol_tcc->write_pwm_12_bit(0);

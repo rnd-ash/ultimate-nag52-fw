@@ -266,8 +266,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, profile->get_shift_characteristics(req_lookup, &this->sensor_data), gearboxConfig.max_torque);
 
+    bool gen_report = sensor_data.output_rpm > 100;
+
+
+
     ShiftReport dest_report;
     memset(&dest_report, 0x00, sizeof(ShiftReport));
+    
+    if (gen_report) {
     // Copy data
     dest_report.hold1_data = sd.hold1_data;
     dest_report.hold2_data = sd.hold2_data;
@@ -276,6 +282,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     dest_report.overlap_data = sd.overlap_data;
     dest_report.max_pressure_data = sd.max_pressure_data;
     dest_report.atf_temp_c = sensor_data.atf_temp;
+        dest_report.requested_torque = UINT16_MAX; // Max if no request
+        if (profile == nullptr) {
+            dest_report.profile = 0xFF;
+        } else {
+            dest_report.profile = profile->get_profile_id();
+        }
+    }
+    
 
     uint16_t index = 0;
     bool add_report = true;
@@ -350,16 +364,21 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                 break;
             }
             if (stage_elapsed > SHIFT_TIMEOUT_MS) { // Too long at max p and car didn't shift!?
-                timeout = 1;
+                dest_report.shift_timeout = 1;
                 break;
             }
         }
 
-        if (add_report && index < MAX_POINTS_PER_SR_ARRAY) {
+        if (gen_report && add_report && index < MAX_POINTS_PER_SR_ARRAY) {
             dest_report.engine_rpm[index] = (uint16_t)sensor_data.engine_rpm;
             dest_report.input_rpm[index] = (uint16_t)sensor_data.input_rpm;
             dest_report.engine_torque[index] = (int16_t)sensor_data.static_torque;
             index++;
+        }
+        if (this->est_gear_idx == sd.curr_g) {
+            dest_report.transition_start = total_elapsed;
+        } else if (this->est_gear_idx == sd.targ_g && dest_report.transition_end == 0) {
+            dest_report.transition_end = total_elapsed;
         }
         add_report = !add_report;
         pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
@@ -376,12 +395,14 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
 
+    if (gen_report) {
     // Copy the response len
     dest_report.report_array_len = index-1;
     dest_report.interval_points = SHIFT_DELAY_MS*2;
     dest_report.total_ms = total_elapsed;
-    dest_report.shift_timeout = timeout;
+        dest_report.targ_curr = ((sd.targ_g & 0x0F) << 4) | (sd.curr_g & 0x0F);
     this->shift_reporter->add_report(dest_report);
+    }
     ShiftResponse response = {
         .measure_ok = false,
         .flared = false,

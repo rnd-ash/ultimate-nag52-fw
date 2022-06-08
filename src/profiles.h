@@ -34,6 +34,7 @@ public:
             profile_id = 0;
         }
     }
+    virtual const uint8_t get_profile_id() = 0;
 protected:
     uint8_t profile_id = 0;
 };
@@ -46,6 +47,7 @@ public:
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
+    const uint8_t get_profile_id() override { return PROFILE_ID_AGILITY; }
 };
 
 class ComfortProfile : public AbstractProfile {
@@ -56,6 +58,7 @@ public:
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
+    const uint8_t get_profile_id() override { return PROFILE_ID_COMFORT; }
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -69,6 +72,7 @@ public:
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
+    const uint8_t get_profile_id() override { return PROFILE_ID_WINTER; }
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
@@ -83,6 +87,7 @@ public:
     void on_upshift_complete(ShiftResponse response, uint8_t from_gear, SensorData* sensors);
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
+    const uint8_t get_profile_id() override { return PROFILE_ID_STANDARD; }
 };
 
 class ManualProfile : public AbstractProfile {
@@ -93,6 +98,7 @@ public:
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
+    const uint8_t get_profile_id() override { return PROFILE_ID_MANUAL; }
 };
 
 extern AgilityProfile* agility;

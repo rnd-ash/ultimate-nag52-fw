@@ -265,6 +265,8 @@ typedef struct {
     int16_t atf_temp_c;
     // Target << 4 | current
     uint8_t targ_curr;
+    uint8_t profile;
+    uint16_t requested_torque;
     uint8_t interval_points;
     uint16_t report_array_len;
     uint16_t engine_rpm[MAX_POINTS_PER_SR_ARRAY];
@@ -277,6 +279,8 @@ typedef struct {
     ShiftPhase torque_data;
     ShiftPhase overlap_data;
     ShiftPhase max_pressure_data;
+    uint16_t transition_start;
+    uint16_t transition_end;
 
     // Flags for reporting shift errors
     uint16_t flare_timestamp;

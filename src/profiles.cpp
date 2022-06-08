@@ -348,7 +348,6 @@ TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
     };
 }
 
-
 AgilityProfile* agility = new AgilityProfile();
 ComfortProfile* comfort = new ComfortProfile();
 WinterProfile* winter = new WinterProfile();

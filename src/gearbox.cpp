@@ -493,15 +493,15 @@ void Gearbox::shift_thread() {
             // Defaults (Start in 2nd)
             int spc_start = 600;
             int mpc_start = 600;
-            int spc_ramp = 10;
-            int mpc_ramp = 5;
+            int spc_ramp = 20;
+            int mpc_ramp = 10;
             uint16_t y4_pwm_val = 3500;
 
             if (!start_second) { // Starting in 1st
                 mpc_start = 600;
                 spc_start = 50;
                 y4_pwm_val = 3500;
-                spc_ramp = 5;
+                spc_ramp = 10;
             }
             pressure_mgr->set_target_mpc_pressure(mpc_start);
             pressure_mgr->set_target_spc_pressure(spc_start);

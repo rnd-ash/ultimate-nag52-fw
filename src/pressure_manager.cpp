@@ -72,10 +72,10 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
 
 
     /** Pressure Hold 2 time map **/
-    int16_t hold2_x_headers[5] = {1, 2, 3, 4, 5};
+    int16_t hold2_x_headers[8] = {1, 2, 3, 4, 5, 6, 7, 8};
     int16_t hold2_y_headers[4] = {-20, 5, 25, 60}; 
 
-    hold2_time_map = new TcmMap(5, 4, hold2_x_headers, hold2_y_headers);
+    hold2_time_map = new TcmMap(8, 4, hold2_x_headers, hold2_y_headers);
 
     if (!this->hold2_time_map->allocate_ok()) {
         this->hold2_time_map = nullptr;
@@ -85,14 +85,33 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     // Allocation OK, add the data to the map
 
     // Values are in millsecond for SPC to hold at Hold2 phase
-    int16_t hold2_map[5*4] = {
-    /* Curr gear    1      2     3     4     5 */
-    /* -20C */     600, 1620,  860,  600,  820,
-    /*   5C */     300,  600,  440,  380,  400,
-    /*  25C */     180,  240,  160,  220,  180,
-    /*  60C */     160,  140,  140,  180,  120
+    // Derived from this table
+    /*              K1    K2    K3    B1    B2 */
+    /* -20C        600, 1620,  860,  600,  820, */
+    /*   5C        300,  600,  440,  380,  400, */
+    /*  25C        180,  240,  160,  220,  180, */
+    /*  60C        160,  140,  140,  180,  120  */
+    /**
+     * 1-2 prefill K1
+     * 2-1 prefill B1
+     * 
+     * 2-3 prefill K2
+     * 3-2 prefill K1 and K3
+     * 
+     * 3-4 prefill K1 and K3
+     * 4-3 prefill B2
+     * 
+     * 4-5 prefill B1
+     * 5-4 prefill K1
+     */
+    int16_t hold2_map[8*4] = {
+    /* Curr gear   1-2   2-3   3-4   4-5   5-4   4-3   3-2   2-1 */
+    /* -20C */     600, 1620,  860,  600,  600,  820,  860,  600, 
+    /*   5C */     300,  600,  440,  380,  300,  400,  440,  380,
+    /*  25C */     180,  240,  180,  220,  180,  180,  180,  220,
+    /*  60C */     160,  140,  160,  180,  160,  120,  160,  180
     };
-    hold2_time_map->add_data(hold2_map, 5*4);
+    hold2_time_map->add_data(hold2_map, 8*4);
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors, int max_rated_torque) {
@@ -138,39 +157,42 @@ float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
     return 1.0;
 }
 
-ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque) {
+
+
+ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
     ShiftData sd; 
+    uint8_t map_gear;
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:
-            sd.targ_g = 2; sd.curr_g = 1;
+            sd.targ_g = 2; sd.curr_g = 1; map_gear = 1;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::TWO_THREE:
-            sd.targ_g = 3; sd.curr_g = 2;
+            sd.targ_g = 3; sd.curr_g = 2; map_gear = 2;
             sd.shift_solenoid = sol_y5;
             break;
         case ProfileGearChange::THREE_FOUR:
-            sd.targ_g = 4; sd.curr_g = 3;
+            sd.targ_g = 4; sd.curr_g = 3; map_gear = 3;
             sd.shift_solenoid = sol_y4;
             break;
         case ProfileGearChange::FOUR_FIVE:
-            sd.targ_g = 5; sd.curr_g = 4;
+            sd.targ_g = 5; sd.curr_g = 4; map_gear = 4;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::FIVE_FOUR:
-            sd.targ_g = 4; sd.curr_g = 5;
+            sd.targ_g = 4; sd.curr_g = 5; map_gear = 5;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::FOUR_THREE:
-            sd.targ_g = 3; sd.curr_g = 4;
+            sd.targ_g = 3; sd.curr_g = 4; map_gear = 6;
             sd.shift_solenoid = sol_y4;
             break;
         case ProfileGearChange::THREE_TWO:
-            sd.targ_g = 2; sd.curr_g = 3;
+            sd.targ_g = 2; sd.curr_g = 3; map_gear = 7;
             sd.shift_solenoid = sol_y5;
             break;
         case ProfileGearChange::TWO_ONE:
-            sd.targ_g = 1; sd.curr_g = 2;
+            sd.targ_g = 1; sd.curr_g = 2; map_gear = 8;
             sd.shift_solenoid = sol_y3;
             break;
     }

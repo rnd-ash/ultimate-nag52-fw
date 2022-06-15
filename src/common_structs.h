@@ -260,7 +260,8 @@ typedef struct {
     int min_slip_rpm;
 } TccLockupBounds;
 
-#define MAX_POINTS_PER_SR_ARRAY 6000/20/2
+#define SR_REPORT_INTERVAL 50
+#define MAX_POINTS_PER_SR_ARRAY 6000/SR_REPORT_INTERVAL // Every 50ms
 typedef struct {
     int16_t atf_temp_c;
     // Target << 4 | current
@@ -271,8 +272,10 @@ typedef struct {
     uint16_t report_array_len;
     uint16_t engine_rpm[MAX_POINTS_PER_SR_ARRAY];
     uint16_t input_rpm[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t output_rpm[MAX_POINTS_PER_SR_ARRAY];
     int16_t engine_torque[MAX_POINTS_PER_SR_ARRAY];
     uint16_t total_ms;
+    uint16_t initial_mpc_pressure; // used to calculate with the ramps what MPC is doing
     ShiftPhase hold1_data;
     ShiftPhase hold2_data;
     ShiftPhase hold3_data;

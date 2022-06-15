@@ -8,7 +8,8 @@
 typedef struct {
     ShiftReport reports[MAX_REPORTS];
     uint8_t index;
-} ShiftReportNvsGroup;
+    uint16_t crc;
+} __attribute__ ((packed)) ShiftReportNvsGroup;
 
 // 0x7D000 from partitions.csv (tcm_shift_store) partition
 static_assert(sizeof(ShiftReportNvsGroup) < 0x7D000, "ShiftReportNvsGroup cannot fit into designated partition!");
@@ -22,11 +23,11 @@ public:
     void add_report(ShiftReport src);
 
     void save();
-    ShiftReportNvsGroup diag_get_nvs_group_ptr() { return this->report_group; }
+    ShiftReportNvsGroup diag_get_nvs_group_ptr() { return *this->report_group; }
 private:
     bool has_change = false;
-    ShiftReportNvsGroup report_group;
-    nvs_handle_t nvs_handle;
+    ShiftReportNvsGroup* report_group;
+    uint32_t spiffs_addr;
 };
 
 

@@ -743,7 +743,7 @@ void Gearbox::controller_loop() {
             if (!shifting) {
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
             }
-            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
+            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working+this->mpc_offset);
             this->pressure_mgr->update(this->actual_gear, this->target_gear);
             if (is_fwd_gear(this->actual_gear)) {
                 bool want_upshift = false;

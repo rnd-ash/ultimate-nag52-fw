@@ -99,8 +99,10 @@ typedef struct {
     uint16_t ramp_time;
     /// Hold time at requested pressure
     uint16_t hold_time;
-    /// request pressure in mBar
-    uint16_t pressure;
+    /// request pressure in mBar for SPC
+    uint16_t spc_pressure;
+    /// How much to modify MPC pressure by in mBar
+    int16_t mpc_pressure_offset;
 } ShiftPhase;
 
 /**
@@ -109,6 +111,7 @@ typedef struct {
  */
 typedef struct {
     Solenoid* shift_solenoid;
+    float torque_down_amount;
     uint8_t targ_g;
     uint8_t curr_g;
  

@@ -288,7 +288,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         }
     }
     
-
+    
     uint16_t index = 0;
     bool add_report = true;
     uint16_t stage_elapsed = 0;

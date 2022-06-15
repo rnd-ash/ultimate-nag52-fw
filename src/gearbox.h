@@ -127,6 +127,7 @@ private:
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
+    int mpc_offset = 0;
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
     bool diag_stop_control = false;

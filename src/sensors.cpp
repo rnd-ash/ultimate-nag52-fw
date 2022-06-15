@@ -8,18 +8,12 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "pins.h"
+#include "macros.h"
 
-#define PULSES_PER_REV 120 // N2 and N3 are 60 pulses per revolution
-#define PCNT_H_LIM PULSES_PER_REV * 10
+#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
+#define PCNT_H_LIM 1
 
 #define LOG_TAG "SENSORS"
-
-#define CHECK_ESP_FUNC(x, msg, ...) \
-res = x; \
-if (res != ESP_OK) { \
-    ESP_LOGE(LOG_TAG, msg, ##__VA_ARGS__); \
-    return false; \
-}   \
 
 const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
@@ -31,7 +25,7 @@ const pcnt_config_t pcnt_cfg_n2 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_INC,
+    .neg_mode = PCNT_COUNT_DIS,
     .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N2_RPM,
@@ -44,7 +38,7 @@ const pcnt_config_t pcnt_cfg_n3 {
     .lctrl_mode = PCNT_MODE_KEEP,
     .hctrl_mode = PCNT_MODE_KEEP,
     .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_INC,
+    .neg_mode = PCNT_COUNT_DIS,
     .counter_h_lim = PCNT_H_LIM,
     .counter_l_lim = 0,
     .unit = PCNT_N3_RPM,
@@ -101,62 +95,21 @@ esp_adc_cal_characteristics_t adc2_cal_atf = {};
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
-uint64_t n2_overflow = 0;
-uint64_t n3_overflow = 0;
-
-#define RPM_SAMPLES 3
-volatile uint64_t n3_rpm_avg[RPM_SAMPLES] = {0,0,0};
-volatile uint64_t n2_rpm_avg[RPM_SAMPLES] = {0,0,0};
-uint8_t rpm_idx = 0;
-
-
-volatile uint64_t n2_rpm_sum = 0;
-volatile uint64_t n3_rpm_sum = 0;
-
-static intr_handle_t rpm_timer_handle;
-static void IRAM_ATTR RPM_TIMER_ISR(void* arg) {
-    TIMERG0.int_clr_timers.t0 = 1;
-    TIMERG0.hw_timer[0].config.alarm_en = 1;
-    int16_t t = 0;
-    portENTER_CRITICAL_ISR(&n3_mux);
-    pcnt_get_counter_value(PCNT_N3_RPM, &t);
-    pcnt_counter_clear(PCNT_N3_RPM);
-    t += (n3_overflow * PCNT_H_LIM);
-    n3_overflow = 0;
-    //n3_rpm = t;
-    n3_rpm_avg[rpm_idx] = t;
-    portEXIT_CRITICAL_ISR(&n3_mux);
-
-    portENTER_CRITICAL_ISR(&n2_mux);
-    pcnt_get_counter_value(PCNT_N2_RPM, &t);
-    pcnt_counter_clear(PCNT_N2_RPM);
-    t += (n2_overflow * PCNT_H_LIM);
-    n2_overflow = 0;
-    n2_rpm_avg[rpm_idx] = t;
-    portEXIT_CRITICAL_ISR(&n2_mux);
-    rpm_idx++;
-    if (rpm_idx >= RPM_SAMPLES) {
-        rpm_idx=0;
-    }
-    uint64_t n2 = 0;
-    uint64_t n3 = 0;
-    for (uint8_t i = 0; i < RPM_SAMPLES; i++) {
-        n2 += n2_rpm_avg[i];
-        n3 += n3_rpm_avg[i];
-    }
-    n2_rpm_sum = n2;
-    n3_rpm_sum = n3;
-}
+#define RPM_SAMPLES 2
+volatile uint64_t n3_intr_times[RPM_SAMPLES] = {0,0};
+volatile uint64_t n2_intr_times[RPM_SAMPLES] = {0,0};
 
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
     portENTER_CRITICAL_ISR(&n2_mux);
-    n2_overflow++;
+    n2_intr_times[0] = n2_intr_times[1];
+    n2_intr_times[1] = esp_timer_get_time();
     portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
     portENTER_CRITICAL_ISR(&n3_mux);
-    n3_overflow++;
+    n3_intr_times[0] = n3_intr_times[1];
+    n3_intr_times[1] = esp_timer_get_time();
     portEXIT_CRITICAL_ISR(&n3_mux);
 }
 
@@ -212,28 +165,38 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N2_RPM), "Failed to resume PCNT N2 RPM! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N3_RPM), "Failed to resume PCNT N3 RPM! %s", esp_err_to_name(res))
 
-    timer_config_t config = {
-            .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
-            .counter_en = timer_start_t::TIMER_START,
-            .intr_type = TIMER_INTR_LEVEL,
-            .counter_dir = TIMER_COUNT_UP,
-            .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
-            .divider = 80   /* 1 us per tick */
-    };
-    CHECK_ESP_FUNC(timer_init(TIMER_GROUP_0, TIMER_0, &config), "Failed to init timer 0 for PCNT measuring! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "%s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, TIMER_INTERVAL_MS*1000), "%s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(timer_isr_register(TIMER_GROUP_0, TIMER_0, &RPM_TIMER_ISR, NULL, 0, &rpm_timer_handle), "%s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(timer_start(TIMER_GROUP_0, TIMER_0), "%s", esp_err_to_name(res))
     ESP_LOGI(LOG_TAG, "Sensors INIT OK!");
     return true;
 }
 
+#define US_PER_SECOND 1000000 // Microseconds per pulse per RPM
+
+// 1rpm = 60 pulse/sec -> 1 pulse every 20ms at MINIMUM
 bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
-    dest->n2_raw = ((float)n2_rpm_sum / (float)RPM_SAMPLES * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
-    dest->n3_raw = ((float)n3_rpm_sum / (float)RPM_SAMPLES * (float)PULSE_MULTIPLIER * 0.5); // *0.5 as counting both Inc and Dec pulse dir
-    //ESP_LOGI("RPM", "N2 %d, N3 %d", dest->n2_raw, dest->n3_raw);
+    uint64_t n2[2];
+    uint64_t n3[2];
+    portENTER_CRITICAL(&n2_mux);
+    n2[0] = n2_intr_times[0];
+    n2[1] = n2_intr_times[1];
+    portEXIT_CRITICAL(&n2_mux);
+    portENTER_CRITICAL(&n3_mux);
+    n3[0] = n3_intr_times[0];
+    n3[1] = n3_intr_times[1];
+    portEXIT_CRITICAL(&n3_mux);
+
+    uint64_t d_n2 = n2[1] - n2[0];
+    uint64_t d_n3 = n3[1] - n3[0];
+    uint64_t now = esp_timer_get_time();
+    if (d_n2 == 0 || now - n2_intr_times[1] > 20000) {
+        dest->n2_raw = 0;
+    } else {
+        dest->n2_raw = 1000000 / d_n2;
+    }
+    if (d_n3 == 0 || now - n3_intr_times[1] > 20000) {
+        dest->n3_raw = 0;
+    } else {
+        dest->n3_raw = 1000000 / d_n3;
+    }
     if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
         dest->calc_rpm = 0;
         return true;

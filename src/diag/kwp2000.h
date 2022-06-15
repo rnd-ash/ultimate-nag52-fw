@@ -40,6 +40,7 @@
 class Kwp2000_server {
     public:
         Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox);
+        ~Kwp2000_server();
 
         static void start_kwp_server(void *_this) {
             static_cast<Kwp2000_server*>(_this)->server_loop();
@@ -65,13 +66,10 @@ class Kwp2000_server {
         uint8_t routine_result[255];
         uint8_t* running_routine_args;
         uint8_t routine_results_len = 0;
-
-        CpuStats cpu_usage;
         bool send_resp;
         bool reboot_pending;
 
         int allocate_routine_args(uint8_t* src, uint8_t arg_len);
-
         void process_start_diag_session(uint8_t* args, uint16_t arg_len);
         void process_ecu_reset(uint8_t* args, uint16_t arg_len);
         void process_clear_diag_info(uint8_t* args, uint16_t arg_len);

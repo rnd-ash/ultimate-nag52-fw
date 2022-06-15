@@ -81,7 +81,7 @@ DATA_SYS_USAGE get_sys_usage() {
     DATA_SYS_USAGE ret = {};
 
     ret.free_heap = esp_get_free_heap_size();
-    CpuStats s = get_cpu_usage();
+    CpuStats s = get_cpu_stats();
     ret.core1_usage = s.load_core_1;
     ret.core2_usage = s.load_core_2;
     ret.num_tasks = uxTaskGetNumberOfTasks();

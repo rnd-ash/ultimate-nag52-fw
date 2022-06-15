@@ -115,11 +115,6 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors, int max_rated_torque) {
-    int torque = sensors->static_torque;
-    if (torque < 0) {
-        torque *= -1;
-    }
-
     const int16_t* targ_map = working_norm_pressure_p;
     switch(curr_g) {
         case GearboxGear::First:

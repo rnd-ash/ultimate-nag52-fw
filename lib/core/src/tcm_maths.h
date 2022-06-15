@@ -13,7 +13,7 @@
     #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-
+float scale_number(int16_t raw, int16_t new_min, int16_t new_max, int16_t raw_min, int16_t raw_max);
 
 class TcmMap {
 public:

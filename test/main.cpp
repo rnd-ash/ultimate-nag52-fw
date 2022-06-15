@@ -34,13 +34,34 @@ void test_map(void) {
 
     UNITY_TEST_ASSERT_EQUAL_FLOAT(500, test_map.get_value(5, 0), TEST_LINE_NUM, "Data mismatch X 25/75 interpolate!");
     UNITY_TEST_ASSERT_EQUAL_FLOAT(500, test_map.get_value(2, 6.25), TEST_LINE_NUM, "Data mismatch Y 25/75 interpolate!");
-
 }
+
+void test_scale(void) {
+    int new_max_large = 100;
+    int new_min_large = 0;
+
+    int new_max_small = 3;
+    int new_min_small = 1;
+
+    int old_max = 50;
+    int old_min = 10;
+
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(50, scale_number(30, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+    // Should be clipped
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(0, scale_number(-10, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+
+
+
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(2, scale_number(30, new_min_small, new_max_small, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+
+
+} 
 
 
 extern "C" void app_main(void) {
     vTaskDelay(100);
     UNITY_BEGIN();
     RUN_TEST(test_map);
+    RUN_TEST(test_scale);
     UNITY_END();
 }

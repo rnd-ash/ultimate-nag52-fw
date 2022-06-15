@@ -2,6 +2,25 @@
 #include "string.h"
 #include "esp_heap_caps.h"
 
+
+
+
+
+
+
+float scale_number(int16_t raw, int16_t new_min, int16_t new_max, int16_t raw_min, int16_t raw_max) {
+    raw = MAX(raw_min, MIN(raw, raw_max));
+    return ((float)((new_max-new_min) * (raw - raw_min)) / ((float)(raw_max-raw_min))) + (float)new_min;
+}
+
+
+
+
+
+
+
+
+
 TcmMap::TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids) {
 
     this->x_size = X_Size;

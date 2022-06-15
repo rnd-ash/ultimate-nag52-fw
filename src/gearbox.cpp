@@ -833,7 +833,7 @@ void Gearbox::controller_loop() {
                 sol_y5->write_pwm_12_bit(0);
         }
         int16_t tmp_atf = 0;
-        if (!Sensors::read_atf_temp(&tmp_atf)) {
+        if (lock_state || !Sensors::read_atf_temp(&tmp_atf)) {
             // Default to engine coolant
             this->sensor_data.atf_temp = (egs_can_hal->get_engine_coolant_temp(now, 1000));
         } else {

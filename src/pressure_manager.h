@@ -13,16 +13,22 @@
 #define CLUTCH_RELEASE 2
 
 // For each of the tables:
-// K1, K2, K3, B1, B2, B3
+//                                           K1,   K2,   K3,   B1,   B2,   B3
 const uint16_t clutch_torque_factor_pn[6] {7003,    0,    0, 4765,    0,    0}; // N/P 11769
+
 const uint16_t clutch_torque_factor_d1[6] {   0,    0, 4331, 3004, 3194,    0}; // D1  10529
 const uint16_t clutch_torque_factor_d2[6] {2708,    0, 2656,    0, 1959,    0}; // D2  7323
 const uint16_t clutch_torque_factor_d3[6] {   0, 1652,    0,    0, 1329,    0}; // D3  2981
 const uint16_t clutch_torque_factor_d4[6] {1403, 2507, 1376,    0,    0,    0}; // D4  5286
 const uint16_t clutch_torque_factor_d5[6] {   0, 2089, 1146,  795,    0,    0}; // D5  4030
+
 const uint16_t clutch_torque_factor_r1[6] {   0,    0, 4331, 3004,    0, 4204}; // R1
 const uint16_t clutch_torque_factor_r2[6] {   0,    0, 2656,    0,    0, 2579}; // R2
 
+/**
+ *                               K  K  K  B  B  B
+ *                               1  2  3  1  2  3
+ */
 // Garage shifting
 const bool clutch_move_pn_d1[6] {2, 0, 1, 0, 1, 0}; // N  -> D1
 const bool clutch_move_pn_d2[6] {0, 0, 1, 2, 1, 0}; // N  -> D2
@@ -57,11 +63,11 @@ const bool clutch_move_d5_d4[6] {1, 0, 0, 2, 0, 0}; // D5 -> D4
 // 0 -> 100% rated torque (In mbar)
 const pressure_map working_norm_pressure_p = { 500,  600, 700,   800,  900, 1000, 1100, 1200, 1300, 1400, 1500}; // Park or N
 const pressure_map working_norm_pressure_r = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // R1 or R2
-const pressure_map working_norm_pressure_1 = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // 1
-const pressure_map working_norm_pressure_2 = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // 2
-const pressure_map working_norm_pressure_3 = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // 3
-const pressure_map working_norm_pressure_4 = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // 4
-const pressure_map working_norm_pressure_5 = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // 5
+const pressure_map working_norm_pressure_1 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 1
+const pressure_map working_norm_pressure_2 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 2
+const pressure_map working_norm_pressure_3 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 3
+const pressure_map working_norm_pressure_4 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 4
+const pressure_map working_norm_pressure_5 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 5
 
 typedef void (*P_RAMP_FUNC)(float, float);
 
@@ -85,7 +91,7 @@ public:
      * @param shift_speed Speed of the shift (higher = faster shift)
      * @return ShiftData 
      */
-    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque);
+    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
     void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
         if (this->adapt_map != nullptr) { 

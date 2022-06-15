@@ -193,33 +193,56 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 
 
     sd.hold1_data.ramp_time = 100;
-    sd.hold1_data.hold_time = 250;
-    sd.hold1_data.pressure = 50;
+    sd.hold1_data.hold_time = 0;
+    sd.hold1_data.spc_pressure = 10;
+    sd.hold1_data.mpc_pressure_offset = 0;
 
     sd.hold2_data.ramp_time = 0; // Hold 2 has no ramp time
     sd.hold2_data.hold_time = hold2_time_map->get_value(sd.targ_g, sensors->atf_temp);
-    sd.hold2_data.pressure = 200;
+    sd.hold2_data.spc_pressure = 200;
+    sd.hold2_data.mpc_pressure_offset = 0;
 
     sd.hold3_data.ramp_time = 60;
     sd.hold3_data.hold_time = 100;
-    sd.hold3_data.pressure = 800;
+    sd.hold3_data.spc_pressure = 650;
+    sd.hold3_data.mpc_pressure_offset = 0;
 
-    sd.torque_data.ramp_time = 400;
-    sd.torque_data.hold_time = 500;
-    sd.torque_data.pressure = 1500;
-
-    sd.overlap_data.ramp_time = 200;
-    if (shift_request == ProfileGearChange::ONE_TWO) {
-        sd.overlap_data.hold_time = 20;
-    } else {
-        sd.overlap_data.hold_time = 0;
+    // MPC MUST be higher than SPC for all the hold phases
+    // to prevent an early shift. For now keep the offset to 200mBar
+    // (MPC > SPC+200mBar)
+    if (curr_mpc < sd.hold3_data.spc_pressure + 200) {
+        sd.hold3_data.mpc_pressure_offset = sd.hold3_data.spc_pressure + 200 - curr_mpc;
     }
-    sd.overlap_data.pressure = 2500;
 
-    sd.max_pressure_data.ramp_time = 300;
-    sd.max_pressure_data.hold_time = 500;
-    sd.max_pressure_data.pressure = 7000;
+    sd.torque_data.ramp_time = 100;
+    sd.torque_data.hold_time = 100;
+    sd.torque_data.spc_pressure = scale_number(abs(sensor_data->static_torque), 650, 900, 0, 330);
+    sd.torque_data.mpc_pressure_offset = 0;
+    if (curr_mpc < sd.torque_data.spc_pressure + 200) {
+        sd.torque_data.mpc_pressure_offset = sd.torque_data.spc_pressure + 200 - curr_mpc;
+    }
 
+    sd.overlap_data.hold_time = 0;
+    if (shift_request == ProfileGearChange::ONE_TWO) {
+        sd.overlap_data.ramp_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
+    }
+    sd.overlap_data.ramp_time = scale_number(sensor_data->static_torque, 600, 200, 80, 200);
+    sd.overlap_data.spc_pressure = scale_number(abs(sensor_data->static_torque), 1200, 2500, 0, 330);
+    
+    // Now during the overlap phase, we want MPC to drop in line with SPC rising
+    // to create a nice overlap, depending on how late in the ramp_time we swap MPC and SPC pressures,
+    // we can get different shift feeling
+    int targ_mpc_pressure = (sd.overlap_data.spc_pressure / 4) * 3; // At end of ramp time we want MPC to be 25% less than SPC
+
+
+    sd.overlap_data.mpc_pressure_offset = targ_mpc_pressure - curr_mpc;
+
+    sd.max_pressure_data.ramp_time = 200;
+    sd.max_pressure_data.hold_time  = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
+    sd.max_pressure_data.spc_pressure = curr_mpc*2;
+    sd.max_pressure_data.mpc_pressure_offset = 0; // MPC back to normal
+
+    sd.torque_down_amount = 0.8;
     return sd;
 }
 

@@ -102,7 +102,7 @@ typedef struct {
     /// request pressure in mBar for SPC
     uint16_t spc_pressure;
     /// How much to modify MPC pressure by in mBar
-    int16_t mpc_pressure_offset;
+    int16_t mpc_pressure;
 } ShiftPhase;
 
 /**

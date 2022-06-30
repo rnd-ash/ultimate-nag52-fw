@@ -126,6 +126,10 @@ private:
     TcmMap* tcc_pwm_map;
     TcmMap* hold2_time_map;
 
+    void make_hold3_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_torque_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_overlap_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+
 };
 
 #endif

@@ -112,7 +112,7 @@ WheelData Egs52Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 
 WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
         switch(bs200.get_DRTGVR()) {
             case BS_200h_DRTGVR::FWD:
@@ -143,7 +143,7 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 
 WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
         switch(bs200.get_DRTGVL()) {
             case BS_200h_DRTGVL::FWD:
@@ -648,7 +648,7 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
             gs558.set_mpc_pwm(duty >> 4);
             break;
         case SolenoidName::TCC:
-            gs558.set_tcc_pwm(duty >> 4);
+            gs558.set_tcc_pwm(duty);
             break;
         default:
             break;
@@ -975,7 +975,7 @@ void Egs52Can::rx_task_loop() {
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));

@@ -53,6 +53,42 @@ typedef struct {
 } temp_reading_t;
 
 #define NUM_TEMP_POINTS 22
+
+#ifdef BOARD_V2
+
+const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
+//    mV, Temp(x10)
+// mV Values are calibrated on 3.45V rail
+// as that is how much the ATF sensor power gets
+    {725, -400},
+    {784, -300},
+    {842, -200},
+    {900, -100},
+    {957, 0},
+    {1013, 100},
+    {1068, 200},
+    {1123, 300},
+    {1177, 400},
+    {1230, 500},
+    {1281, 600},
+    {1332, 700},
+    {1384, 800},
+    {1438, 900},
+    {1488, 1000},
+    {1538, 1100},
+    {1587, 1200},
+    {1636, 1300},
+    {1685, 1400},
+    {1732, 1500},
+    {1779, 1600},
+    {1826, 1700}
+};
+
+#define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
+#define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_7
+
+#else 
+
 const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
 // mV Values are calibrated on 3.45V rail
@@ -83,6 +119,9 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 
 #define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
 #define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
+
+#endif
+
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
 
@@ -99,17 +138,28 @@ portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 volatile uint64_t n3_intr_times[RPM_SAMPLES] = {0,0};
 volatile uint64_t n2_intr_times[RPM_SAMPLES] = {0,0};
 
+uint64_t t_n2 = 0;
+uint64_t t_n3 = 0;
+
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
+    t_n2 = esp_timer_get_time();
+    if (t_n2 - n2_intr_times[1] < 10) {
+        return;
+    }
     portENTER_CRITICAL_ISR(&n2_mux);
     n2_intr_times[0] = n2_intr_times[1];
-    n2_intr_times[1] = esp_timer_get_time();
+    n2_intr_times[1] = t_n2;
     portEXIT_CRITICAL_ISR(&n2_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
+    t_n3 = esp_timer_get_time();
+    if (t_n3 - n3_intr_times[1] < 10) {
+        return;
+    }
     portENTER_CRITICAL_ISR(&n3_mux);
     n3_intr_times[0] = n3_intr_times[1];
-    n3_intr_times[1] = esp_timer_get_time();
+    n3_intr_times[1] = t_n3;
     portEXIT_CRITICAL_ISR(&n3_mux);
 }
 
@@ -197,7 +247,9 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
     } else {
         dest->n3_raw = 1000000 / d_n3;
     }
-    if (dest->n2_raw < 10 && dest->n3_raw < 10) { // Stationary, break here to avoid divideBy0Ex
+    if (dest->n2_raw < 60 && dest->n3_raw < 60) { // Stationary ( < 1rpm ), break here to avoid divideBy0Ex, and also noise
+        dest->n2_raw = 0;
+        dest->n3_raw = 0;
         dest->calc_rpm = 0;
         return true;
     } else if (dest->n2_raw == 0) { // In gears R1 or R2 (as N2 is 0)
@@ -240,10 +292,24 @@ bool Sensors::read_vbatt(uint16_t *dest){
 }
 
 // Returns ATF temp in *C
-bool Sensors::read_atf_temp(int16_t* dest){
+bool Sensors::read_atf_temp(int16_t* dest) {
+uint32_t raw = 0;
+uint32_t avg = 0;
+
+#ifdef BOARD_V2
+    static const float ATF_TEMP_CORR = 1.0;
+#else
+    static const float ATF_TEMP_CORR = 0.8;
+#endif
+
+#ifdef BOARD_V2
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
+    if (res != ESP_OK) {
+        ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
+        return false;
+    }
+#else
     #define NUM_ATF_SAMPLES 5
-    uint32_t raw = 0;
-    uint32_t avg = 0;
     for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
         esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
         if (res != ESP_OK) {
@@ -253,14 +319,15 @@ bool Sensors::read_atf_temp(int16_t* dest){
         avg += raw;
     }
     avg /= NUM_ATF_SAMPLES;
+#endif
     if (avg >= 3000) {
         return false; // Parking lock engaged, cannot read.
     }
-    if (avg < atf_temp_lookup[0].v) {
-        *dest = (int16_t)((float)atf_temp_lookup[0].temp * 0.8);
+    if (avg <= atf_temp_lookup[0].v) {
+        *dest = (int16_t)((float)atf_temp_lookup[0].temp * ATF_TEMP_CORR);
         return true;
-    } else if (avg > atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
-        *dest = (int16_t)(0.8 * (float)(atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10.0);
+    } else if (avg >= atf_temp_lookup[NUM_TEMP_POINTS-1].v) {
+        *dest = (int16_t)(ATF_TEMP_CORR * (float)(atf_temp_lookup[NUM_TEMP_POINTS-1].temp) / 10.0);
         return true;
     } else {
         for (uint8_t i = 0; i < NUM_TEMP_POINTS-1; i++) {
@@ -268,7 +335,7 @@ bool Sensors::read_atf_temp(int16_t* dest){
             if (atf_temp_lookup[i].v <= avg && atf_temp_lookup[i+1].v >= avg) {
                 float dx = avg - atf_temp_lookup[i].v;
                 float dy = atf_temp_lookup[i+1].v - atf_temp_lookup[i].v;
-                *dest = (int16_t)(0.8 * (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10.0);
+                *dest = (int16_t)(ATF_TEMP_CORR * (atf_temp_lookup[i].temp + (atf_temp_lookup[i+1].temp-atf_temp_lookup[i].temp) * ((dx)/dy)) / 10.0);
                 return true;
             }
         }
@@ -278,7 +345,11 @@ bool Sensors::read_atf_temp(int16_t* dest){
 
 bool Sensors::parking_lock_engaged(bool* dest){
     uint32_t raw;
+#ifdef BOARD_V2
+    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &raw);
+#else
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
+#endif
     if (res != ESP_OK) {
         ESP_LOGW("READ_PLL", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;

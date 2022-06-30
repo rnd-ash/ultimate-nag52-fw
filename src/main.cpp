@@ -17,6 +17,10 @@
 #include "diag/kwp2000.h"
 #include "adaptation/adapt_map.h"
 
+#ifdef BOARD_V2
+#include "legacy_shifter.h"
+#endif
+
 #define NUM_PROFILES 5 // A, C, W, M, S
 
 // Sanity check
@@ -167,6 +171,12 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    //LegacyShifter lshifter = LegacyShifter();
+    //while(true) {
+    //    lshifter.kickdown_pressed();
+    //    vTaskDelay(5000);
+    //}
+
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {

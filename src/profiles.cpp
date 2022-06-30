@@ -55,7 +55,7 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
         .max_slip_rpm = (int)MAX(70, sensors->static_torque),
-        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.75)
+        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.25)
     };
 }
 
@@ -105,8 +105,8 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.2),
-        .min_slip_rpm = (int)MAX(50, sensors->static_torque)
+        .max_slip_rpm = 50,
+        .min_slip_rpm = 10
     };
 }
 
@@ -295,7 +295,7 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 70,
-        .shift_speed = 20.0,
+        .shift_speed = 9.0,
     };
 }
 

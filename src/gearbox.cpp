@@ -13,13 +13,6 @@ uint16_t Gearbox::redline_rpm = 4000;
     _a > _b ? _a : _b; \
   })
 
-#define CLAMP(value, min, max) \
-    if (value < min) { \
-        value = min; \
-    } else if (value >= max) { \
-        value = max-1; \
-    } \
-
 // ONLY FOR FORWARD GEARS!
 int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, FwdRatios ratios) {
     switch (req_gear) {

@@ -8,3 +8,11 @@
         ESP_LOGE(LOG_TAG, msg, ##__VA_ARGS__); \
         return false; \
     }   \
+
+
+#define CLAMP(value, min, max) \
+    if (value < min) { \
+        value = min; \
+    } else if (value >= max) { \
+        value = max-1; \
+    }

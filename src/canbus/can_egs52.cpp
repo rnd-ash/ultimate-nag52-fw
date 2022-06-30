@@ -15,6 +15,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
+    timing_config.triple_sampling = true;
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t res;
@@ -944,18 +945,23 @@ void Egs52Can::tx_task_loop() {
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_CUSTOM_668_CAN_ID;
         to_bytes(gs_668tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }

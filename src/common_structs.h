@@ -40,25 +40,25 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
  */
 typedef struct {
     /// Gearbox input RPM
-    int input_rpm;
+    uint16_t input_rpm;
     /// Engine RPM
-    int engine_rpm;
+    uint16_t engine_rpm;
     /// Output shaft RPM
-    int output_rpm;
+    uint16_t output_rpm;
     /// TCM voltage
     uint16_t voltage;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
     /// Transmission oil temperature in Celcius
-    int atf_temp;
+    int16_t atf_temp;
     /// Current 'static' torque of the engine in Nm
-    int static_torque;
+    int16_t static_torque;
     /// Engine torque limit maximum in Nm
-    int max_torque;
+    int16_t max_torque;
     /// Engine torque limit minimum in Nm
-    int min_torque;
+    int16_t min_torque;
     /// Torque converter slip RPM (Calculated)
-    int tcc_slip_rpm;
+    int16_t tcc_slip_rpm;
     /// Last time the gearbox changed gear (in milliseconds)
     uint64_t last_shift_time;
     /// Current clock time in milliseconds
@@ -66,7 +66,7 @@ typedef struct {
     /// Is the brake pedal depressed?
     bool is_braking;
     /// Delta in output RPM, used for calculating if car is accelerating or slowing down
-    int d_output_rpm;
+    int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
 } SensorData;
@@ -94,27 +94,69 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
+typedef struct {
+    /// Ramp down from current pressure to new pressure
+    uint16_t ramp_time;
+    /// Hold time at requested pressure
+    uint16_t hold_time;
+    /// request pressure in mBar for SPC
+    uint16_t spc_pressure;
+    /// How much to modify MPC pressure by in mBar
+    int16_t mpc_pressure;
+} ShiftPhase;
+
 /**
  * @brief Shift data request structure
  * 
  */
 typedef struct {
-    /// The initial SPC PWM value to start the shift off. This should be the 'biting point' of the clutch packs
-    uint16_t initial_spc_pwm;
-    /// The intial MPC PWM value to start the shift off.
-    /// This must ALWAYS be more or equal to initial_spc_pwm, otherwise the box will hydralically
-    /// perform an ABORT shift
-    uint16_t initial_mpc_pwm;
-    /// SPC Ramp speed, denotes the speed of which SPC pressure will increase during the shift
-    float spc_dec_speed;
-    /// The shift solenoid required to change gears
     Solenoid* shift_solenoid;
-    /// Current gear the gearbox is in as an integer
+    float torque_down_amount;
     uint8_t targ_g;
-    /// The requested gear the gearbox will change into as an integer
     uint8_t curr_g;
-    float torque_cut_multiplier;
-    float temp_multi;
+ 
+    /** 
+     * Phase 1 hold
+     * Shift solenoid has not opened yet
+     * This reduces the line pressure of the SPC line so that
+     * there is not a spike in pressure when Shift solenoid opens
+     */
+    ShiftPhase hold1_data;
+
+    /** 
+     * Phase 2 hold 
+     * Shift solenoid opens, PWM instantly jumps rather than ramps
+     * This bleeds air out of the lines
+     */
+
+    ShiftPhase hold2_data;
+
+    /** 
+     * Phase 3 hold 
+     * Removing any play in the new clutches to engage
+     */
+
+    ShiftPhase hold3_data;
+
+    /** 
+     * Shift torque phase 
+     * New clutches start to spin to take the torque of the old ones
+     */
+    ShiftPhase torque_data;
+
+    /** 
+     * Shift overlap phase
+     * New clutches are moved into place and old once released
+     */
+
+    ShiftPhase overlap_data;
+
+    /** 
+     * Shift complete max pressure phase 
+     * New clutches are locked into place
+     */
+
+    ShiftPhase max_pressure_data;
 } ShiftData;
 
 typedef struct {
@@ -167,9 +209,6 @@ typedef struct {
 
     rpm_modifier_map ramp_speed_multiplier;
 } PressureMgrData;
-
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers" // This is ALWAYS correctly initialized in pressure_manager.cpp
-const ShiftData DEFAULT_SHIFT_DATA = { .initial_spc_pwm = 100, .initial_mpc_pwm = 100, .spc_dec_speed = 5.0};
 
 typedef struct {
     /**
@@ -224,41 +263,36 @@ typedef struct {
     int min_slip_rpm;
 } TccLockupBounds;
 
+#define SR_REPORT_INTERVAL 50
+#define MAX_POINTS_PER_SR_ARRAY 6000/SR_REPORT_INTERVAL // Every 50ms
 typedef struct {
-    /** 
-     * @brief Initial MPC pwm (From map)
-     */
-    int initial_mpc_pwm;
-    /** 
-     * @brief Initial SPC pwm (From map)
-     */
-    int initial_spc_pwm;
-    /** 
-     * @brief Ramp down speed of SPC PWM (Ramp down -> Increase pressure) (1 = 0.1% per 50ms)
-     */
-    float spc_ramp_down_speed;
-    /** 
-     * @brief Once the shift has started, how quickly do we reduce `spc_ramp_down_speed` 
-     *        to smooth out the end of the shift so we don't slam the clutches into place
-     */
-    float spc_ramp_down_fade_multiplier;
-    /** 
-     * @brief PWM for SPC to open before shift valve is commanded
-     */
-    int spc_pre_open_pwm;
-    /** 
-     * @brief Time for SPC to open before shift valve is commanded
-     */
-    int spc_pre_open_time;
-    /** 
-     * @brief Time for SPC to stick to initial_spc_pwm once shift valve has opened
-     */
-    int spc_prefill_time;
-    /** 
-     * @brief The multiplier for MPC to increase its pressure by whilst SPC is prefilling
-     *        (Aids flare reduction by compensating for lost pressure on MPC line)
-     */
-    int mpc_compensation_prefill;
-} ShiftData2;
+    int16_t atf_temp_c;
+    // Target << 4 | current
+    uint8_t targ_curr;
+    uint8_t profile;
+    uint16_t requested_torque;
+    uint8_t interval_points;
+    uint16_t report_array_len;
+    uint16_t engine_rpm[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t input_rpm[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t output_rpm[MAX_POINTS_PER_SR_ARRAY];
+    int16_t engine_torque[MAX_POINTS_PER_SR_ARRAY];
+    uint16_t total_ms;
+    uint16_t initial_mpc_pressure; // used to calculate with the ramps what MPC is doing
+    ShiftPhase hold1_data;
+    ShiftPhase hold2_data;
+    ShiftPhase hold3_data;
+    ShiftPhase torque_data;
+    ShiftPhase overlap_data;
+    ShiftPhase max_pressure_data;
+    uint16_t transition_start;
+    uint16_t transition_end;
+
+    // Flags for reporting shift errors
+    uint16_t flare_timestamp;
+    uint8_t shift_timeout;
+}  __attribute__ ((packed)) ShiftReport;
+
+const int SD_Size = sizeof(ShiftReport);
 
 #endif

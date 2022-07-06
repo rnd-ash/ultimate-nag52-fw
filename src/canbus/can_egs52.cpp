@@ -15,6 +15,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
+    timing_config.triple_sampling = true;
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t res;
@@ -112,7 +113,7 @@ WheelData Egs52Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 
 WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
         switch(bs200.get_DRTGVR()) {
             case BS_200h_DRTGVR::FWD:
@@ -143,7 +144,7 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 
 WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
         switch(bs200.get_DRTGVL()) {
             case BS_200h_DRTGVL::FWD:
@@ -655,6 +656,18 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
     }
 }
 
+void Egs52Can::set_spc_pressure(uint16_t p) {
+    this->gs668.set_spc_pressure_est(p);
+}
+
+void Egs52Can::set_mpc_pressure(uint16_t p) {
+    this->gs668.set_mpc_pressure_est(p);
+}
+
+void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
+    this->gs668.set_shift_stage(stage, is_ramp);
+}
+
 void Egs52Can::set_display_msg(GearboxMessage msg) {
     this->curr_message = msg;
     if (this->curr_profile_bit == GearboxProfile::Agility) {
@@ -884,6 +897,7 @@ void Egs52Can::tx_task_loop() {
     GS_218 gs_218tx;
     GS_418 gs_418tx;
     GS_558_CUSTOM gs_558tx;
+    GS_668_CUSTOM gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;
@@ -894,6 +908,7 @@ void Egs52Can::tx_task_loop() {
         gs_218tx = {gs218.raw};
         gs_418tx = {gs418.raw};
         gs_558tx = {gs558.raw};
+        gs_668tx = {gs668.raw};
 
         // Firstly we have to deal with toggled bits!
         // As toggle bits need to be toggled every 40ms,
@@ -930,15 +945,23 @@ void Egs52Can::tx_task_loop() {
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
         twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+        tx.identifier = GS_CUSTOM_668_CAN_ID;
+        to_bytes(gs_668tx.raw, tx.data);
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
@@ -958,7 +981,7 @@ void Egs52Can::rx_task_loop() {
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));

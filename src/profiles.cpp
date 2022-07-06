@@ -55,7 +55,7 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
         .max_slip_rpm = (int)MAX(70, sensors->static_torque),
-        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.75)
+        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.25)
     };
 }
 
@@ -105,8 +105,8 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.2),
-        .min_slip_rpm = (int)MAX(50, sensors->static_torque)
+        .max_slip_rpm = 50,
+        .min_slip_rpm = 10
     };
 }
 
@@ -256,10 +256,9 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     } else if (current_gear == GearboxGear::Third) {
         rpm_threshold = 2000;
     } else if (current_gear == GearboxGear::Fourth) {
-        rpm_threshold = 1900;
+        rpm_threshold = 1500;
     }
-    unsigned long t =  esp_timer_get_time()/1000;
-    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && t-sensors->last_shift_time > 2000) {
+    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && sensors->current_timestamp_ms-sensors->last_shift_time > 500) {
         return true;
     }
     return false;
@@ -296,7 +295,7 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 70,
-        .shift_speed = 20.0,
+        .shift_speed = 9.0,
     };
 }
 
@@ -348,7 +347,6 @@ TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
         .min_slip_rpm = (int)MAX(0, sensors->static_torque/4)
     };
 }
-
 
 AgilityProfile* agility = new AgilityProfile();
 ComfortProfile* comfort = new ComfortProfile();

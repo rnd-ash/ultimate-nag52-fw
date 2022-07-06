@@ -5,7 +5,11 @@
 #include "canbus/can_hal.h"
 #include "gearbox.h"
 #include "nvs/eeprom_config.h"
+#include "common_structs.h"
+#include "endpoint.h"
 
+// Needed extra bytes for response, SID, RLI, Shift ID
+static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too big to fit in Diag message!");
 // Diagnostic data IDs and data structures
 // used by the KWP2000 server on the TCM
 

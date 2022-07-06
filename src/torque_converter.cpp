@@ -1,6 +1,7 @@
 #include "torque_converter.h"
 #include "solenoids/solenoids.h"
 #include "tcm_maths.h"
+#include "macros.h"
 
 int get_gear_idx(GearboxGear g) {
     switch (g) {
@@ -28,7 +29,7 @@ int get_temp_idx(int temp_raw) {
     return temp_raw/10;
 }
 
-#define TCC_PREFILL 90
+#define TCC_PREFILL 360
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting, int mpc_offset) {
     if (sensors->input_rpm < 1000) { // RPM too low!
@@ -37,14 +38,14 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 this->prefilling = true;
                 prefill_start_time = sensors->current_timestamp_ms;
                 this->curr_tcc_pwm = 0;
-                pm->set_target_tcc_percent(TCC_PREFILL, -1); // Being early prefil
+                pm->set_target_tcc_pwm(TCC_PREFILL); // Being early prefil
             }
             this->state = ClutchStatus::Open;
             return;
         }
         this->was_idle = true;
         this->mpc_curr_compensation = 0;
-        pm->set_target_tcc_percent(0, -1);
+        pm->set_target_tcc_pwm(0);
         prefilling = false;
         this->state = ClutchStatus::Open;
         return;
@@ -58,8 +59,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         this->curr_tcc_pwm = 0;
         this->state = ClutchStatus::Open;
     }
-    if (sensors->current_timestamp_ms - prefill_start_time < 3000) {
-        pm->set_target_tcc_percent(TCC_PREFILL, -1);
+    if (sensors->current_timestamp_ms - prefill_start_time < 1000) {
+        pm->set_target_tcc_pwm(TCC_PREFILL);
         this->state = ClutchStatus::Open;
         return;
     }
@@ -71,6 +72,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     // Only think about lockup on positive torque
     int max_allowed_slip;
     int min_allowed_slip;
+    float temp_force_multiplier = pm->get_tcc_temp_multiplier(sensors->atf_temp);
+    float temp_time_multiplier = 1.0/temp_force_multiplier;
     if (profile == nullptr) {
         max_allowed_slip = MAX(100, trq);
         min_allowed_slip = MAX(10, trq/2);
@@ -78,40 +81,60 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         TccLockupBounds bounds = profile->get_tcc_lockup_bounds(sensors, curr_gear);
         max_allowed_slip = bounds.max_slip_rpm;
         min_allowed_slip = bounds.min_slip_rpm;
+        // When producing less thats 44Nm, we should always be locked
+        // as that is the turbines inertia force, if we are not then we trigger
+        // more pressure with this code 
+        if (sensors->static_torque <= 44 && sensors->static_torque > 0) {
+            max_allowed_slip = 10;
+            min_allowed_slip = 0;
+        }
         // This means that at 1000Rpm, we will get 0.9 the slip (More slip)
         // At 2100RPM, we will get half the slip as at 1100rpm
         // Dynamic slip :D
-        float multiplier = MIN(0.9, (float)(sensors->input_rpm/1000.0));
+        float multiplier = MIN(0.9, (float)(1000.0/MAX(1000.0, sensors->engine_rpm)));
         max_allowed_slip *= multiplier;
         min_allowed_slip *= multiplier;
     }
-    int slip = sensors->tcc_slip_rpm;
-    if (is_shifting || mpc_offset != 0 || sensors->current_timestamp_ms-sensors->last_shift_time < 3500) {
+    int slip = abs(sensors->tcc_slip_rpm);
+    float rpm_multi = 2000.0/sensors->engine_rpm;
+    if (is_shifting) { //|| sensors->current_timestamp_ms-sensors->last_shift_time < 3500*temp_time_multiplier) {
+        this->last_inc_time = sensors->current_timestamp_ms;
         goto write_pwm;
     }
-    if (slip > max_allowed_slip) {
-        int midpoint = (max_allowed_slip+min_allowed_slip*2)/3;
-        float diff = slip - midpoint;
-        // Increase pressure
-        this->curr_tcc_pwm += MAX(0.1, (diff/15.0)) * pm->get_tcc_temp_multiplier(sensors->atf_temp);
-    } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->static_torque > 40) {
-        // Decrease pressure, but only if we have pedal input
-        this->curr_tcc_pwm -= 0.5 * pm->get_tcc_temp_multiplier(sensors->atf_temp);
+    if (sensors->current_timestamp_ms - last_inc_time > 500*temp_time_multiplier * rpm_multi) {
+        if (slip > max_allowed_slip) {
+            int midpoint = (max_allowed_slip+min_allowed_slip*2)/3;
+            float diff = slip - midpoint;
+            // Increase pressure
+            // Take into account delta of slip
+            // if delta large, then engine RPM is jumping but clutch is slipping way more
+            // if delta is small, then we only need a tiny adjustment as it is slipping but gripping
+            float force = MAX(0.1, (diff/4.0)) * temp_force_multiplier;
+            float p_percent_m = 1.0 - ((float)sensors->pedal_pos/250.0); // 0 - 1
+            force *= p_percent_m; // Low pedal = low increase, high pedal = higher increase
+            this->curr_tcc_pwm += force;
+            this->last_inc_time = sensors->current_timestamp_ms;
+        } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pwm >= 0 && sensors->static_torque > 40) {
+            // Decrease pressure, but only if we have pedal input
+            this->curr_tcc_pwm -= 2 * temp_force_multiplier;
+            this->last_inc_time = sensors->current_timestamp_ms;
+        }
     }
 write_pwm:
     if (this->curr_tcc_pwm <=- 0) { // Just to be safe!
         this->curr_tcc_pwm = 0;
     }
     this->state = (slip > 100 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
-    pm->set_target_tcc_percent(TCC_PREFILL+(uint16_t)(this->curr_tcc_pwm/40.0), -1);
+    pm->set_target_tcc_pwm(TCC_PREFILL+(uint16_t)(this->curr_tcc_pwm/10.0));
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
-    this->inhibit_increase = false;
+    this->curr_tcc_pwm *= (0.95);
 }
 
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
-    //this->curr_tcc_pwm *= 0.95;
+    // TODO any extra code for when ratio starts to change
+    this->curr_tcc_pwm *= (1.05);
 }
 
 ClutchStatus TorqueConverter::get_clutch_state() {

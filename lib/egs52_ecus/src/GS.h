@@ -19,6 +19,7 @@
 #define GS_338_CAN_ID 0x0338
 #define GS_418_CAN_ID 0x0418
 #define GS_CUSTOM_558_CAN_ID 0x0558
+#define GS_CUSTOM_668_CAN_ID 0x0668
 
 /** Goal Gang */
 enum class GS_218h_GZC {
@@ -400,7 +401,7 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of GS_338 */
+	/** Gets CAN ID of GS_558 */
 	uint32_t get_canid(){ return GS_CUSTOM_558_CAN_ID; }
 
     void set_y3_pwm(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value) << 56; }
@@ -411,6 +412,18 @@ typedef union {
     void set_tcc_pwm(uint16_t value){ raw =(raw &0xffffffffff000fff) | ((uint64_t)value & 0xFFF) << 12; }
 } GS_558_CUSTOM;
 
+
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+
+	/** Gets CAN ID of GS_668 */
+	uint32_t get_canid(){ return GS_CUSTOM_558_CAN_ID; }
+
+    void set_spc_pressure_est(uint16_t mbar) { raw = (raw & 0x0000ffffffffffff) | ((uint64_t)mbar << 48); }
+    void set_mpc_pressure_est(uint16_t mbar) { raw = (raw & 0xffff0000ffffffff) | ((uint64_t)mbar << 32); }
+    void set_shift_stage(uint8_t stage, bool is_ramp){ raw = (raw & 0xffffffff00ffffff) | (((uint64_t)stage & 0xf) | (is_ramp << 4)) << 24; }
+} GS_668_CUSTOM;
 
 
 typedef union {

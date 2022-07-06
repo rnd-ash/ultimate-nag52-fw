@@ -132,7 +132,7 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
             // Next block
             this->block_counter++;
             if (this->update_type == UPDATE_TYPE_OTA) {
-                // Write to OTA partiton
+                // Write to OTA partition
                 if (esp_ota_write(this->update_handle, (const void*)&args[1], arg_len-1) == ESP_OK) {
                     this->written_data += arg_len-1;
                     return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);

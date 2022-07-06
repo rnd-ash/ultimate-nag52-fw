@@ -131,6 +131,14 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
     init_perfmon();
 }
 
+Kwp2000_server::~Kwp2000_server() {
+    if (this->flash_handler != nullptr) {
+        delete this->flash_handler;
+    }
+    // Remove timer interrupt for CPU stats
+    remove_perfmon();
+}
+
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
     /*
     this->tx_msg.id = KWP_ECU_TX_ID;
@@ -181,7 +189,9 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
+    uint64_t timestamp;
     while(1) {
+        timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
         bool endpoint_was_usb = false;
         if (this->usb_diag_endpoint->read_data(&this->rx_msg)) {
@@ -192,7 +202,7 @@ void Kwp2000_server::server_loop() {
             read_msg = true;
         }
         if (read_msg) {
-            this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
+            this->next_tp_time = timestamp+KWP_TP_TIMEOUT_MS;
             //ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 continue; // Huh?
@@ -241,16 +251,16 @@ void Kwp2000_server::server_loop() {
                 case SID_TRANSFER_EXIT:
                     this->process_transfer_exit(args_ptr, args_size);
                     break;
-
+                case SID_SHIFT_MGR_OP:
+                    this->process_shift_mgr_op(args_ptr, args_size);
+                    break;
                 default:
                     ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
                     break;
             }
-
         }
         if (this->send_resp) {
-            //ESP_LOGI("KWP", "Sending msg of %d size", tx_msg.data_size);
             if (endpoint_was_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
             } else {
@@ -262,7 +272,7 @@ void Kwp2000_server::server_loop() {
             this->session_mode == SESSION_EXTENDED ||
             this->session_mode == SESSION_REPROGRAMMING ||
             this->session_mode == SESSION_CUSTOM_UN52)
-            && esp_timer_get_time()/1000 > this->next_tp_time
+            && timestamp > this->next_tp_time
         ) {
             ESP_LOGI("KWP2000", "Tester present interval has expired, returning to default mode");
             this->session_mode = SESSION_DEFAULT;
@@ -275,13 +285,12 @@ void Kwp2000_server::server_loop() {
             delete this->flash_handler; // Remove flash handler
             this->flash_handler = nullptr;
         }
-        this->cpu_usage = get_cpu_usage();
         if ((
             this->session_mode == SESSION_EXTENDED ||
             this->session_mode == SESSION_REPROGRAMMING ||
             this->session_mode == SESSION_CUSTOM_UN52)
         ) {
-            vTaskDelay(5);
+            vTaskDelay(2);
         } else {
             vTaskDelay(50);
         }
@@ -294,24 +303,20 @@ void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len)
         make_diag_neg_msg(SID_START_DIAGNOSTIC_SESSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    bool advance_tp_interval = true;
     switch (args[0]) {
         case SESSION_DEFAULT:
         case SESSION_PASSIVE:
         case SESSION_STANDBY:
-            advance_tp_interval = false;
             break;
         case SESSION_EXTENDED:
         case SESSION_REPROGRAMMING:
         case SESSION_CUSTOM_UN52:
+            this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
             break;
         default:
             // Not supported session mode!
             make_diag_neg_msg(SID_START_DIAGNOSTIC_SESSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
             return;
-    }
-    if (advance_tp_interval) {
-        this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
     }
     this->session_mode = args[0];
     make_diag_pos_msg(SID_START_DIAGNOSTIC_SESSION, &args[0], 1);
@@ -320,7 +325,6 @@ void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len)
 void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
     if (
         this->session_mode == SESSION_EXTENDED || 
-        this->session_mode == SESSION_STANDBY || 
         this->session_mode == SESSION_REPROGRAMMING ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
@@ -692,6 +696,61 @@ void Kwp2000_server::process_control_dtc_settings(uint8_t* args, uint16_t arg_le
 }
 void Kwp2000_server::process_response_on_event(uint8_t* args, uint16_t arg_len) {
 
+}
+
+void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
+    if (
+        this->session_mode == SESSION_EXTENDED ||
+        this->session_mode == SESSION_CUSTOM_UN52
+    ) {
+        // Make request message
+        // Should be 1 byte argument
+        // 0x00 0x00 - Request shift summary
+        // 0x01 0xzz - Request shift by ID
+        // 0x02 0x00 - Clear shift data
+        // 0x03 0x00 - Request current ID of shift index (Can be used to see if new data is avaliable)
+
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        if (gearbox_ptr->shifting) {
+            // Cannot read WHILST shifting
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            return;
+        }
+        ShiftReportNvsGroup grp = this->gearbox_ptr->shift_reporter->diag_get_nvs_group_ptr();
+        if (args[0] == 0x00) {
+            // Each report needs 4 bytes, [ID, TAR_CUR_GEAR, ATF, ATF]
+            uint8_t resp[4*MAX_REPORTS];
+            memset(resp, 0x00, sizeof(resp));
+            for (uint8_t i = 0; i < MAX_REPORTS; i++) {
+                uint8_t* ptr = &resp[i*4];
+                ptr[0] = i;
+                ptr[1] = grp.reports[i].targ_curr;
+                ptr[2] = grp.reports[i].atf_temp_c >> 8;
+                ptr[3] = grp.reports[i].atf_temp_c & 0xFF;
+            }
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, resp, sizeof(resp));
+            return;
+        } else if (args[0] == 0x01) {
+            if (args[1] >= MAX_REPORTS) {
+                make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            // OK, get the data
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, (const uint8_t*)&grp.reports[args[1]], sizeof(ShiftReport));
+        } else if (args[0] == 0x02) {
+            // TODO clear shift data
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, nullptr, 0);
+        } else if (args[0] == 0x03) {
+            make_diag_pos_msg(SID_SHIFT_MGR_OP, &grp.index, 1);
+        } else {
+            make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        }
+    } else {
+        make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+    }
 }
 
 

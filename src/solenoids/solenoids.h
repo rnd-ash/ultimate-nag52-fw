@@ -27,24 +27,6 @@ public:
      * @param timer Timer to use for controlling the solenoids PWM signal
      */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
-    /**
-     * @brief Writes a PWM duty to the solenoid, using a percentage from 0-1000 (0-100%)
-     * 
-     * @param percent Percentage of solenoid duty (0-1000 = 0=100%)
-     */
-    void write_pwm_percent(uint16_t percent);
-
-    /**
-     * @brief Writes a PWM duty to the solenoid, using a percentage from 0-1000, but also takes
-     * the current voltage into account and adjusts PWM based on the current voltage to maintain
-     * a constant current.
-     * 
-     * NOTE: At this time, the reference voltage used is 12000mV (12.0V)
-     * 
-     * @param percent Percentage of solenoid duty (0-1000 = 0=100%)
-     * @param curr_v_mv The current supply voltage to the TCM, in mV
-     */
-    void write_pwm_percent_with_voltage(uint16_t percent, uint16_t curr_v_mv);
 
     /**
      * @brief Writes a raw 12-bit PWM duty to the solenoid
@@ -100,11 +82,6 @@ public:
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
-
-
-    // IMPORTANT - ONLY CALL THESE 2 FUNCTIONS FROM SPC AND MPC solenoid!
-    void set_fade_from_current_pwm_with_voltage(uint16_t targ_pwm, uint16_t time_ms);
-    void set_fade_with_voltage(uint16_t start_pwm, uint16_t targ_pwm, uint16_t time_ms);
 
     // -- These functions are only accessed by sw_fader class! -- //
 private:

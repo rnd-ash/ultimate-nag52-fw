@@ -15,6 +15,7 @@
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
+#include "adaptation/shift_report.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -87,6 +88,8 @@ public:
         return this->sensor_data.gear_ratio * 100;
     }
     static uint16_t redline_rpm;
+    ShiftReporter* shift_reporter;
+    bool shifting = false;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -96,8 +99,8 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
-    bool calc_input_rpm(int* dest);
-    bool calc_output_rpm(int* dest, uint64_t now);
+    bool calc_input_rpm(uint16_t* dest);
+    bool calc_output_rpm(uint16_t* dest, uint64_t now);
     [[noreturn]]
     void controller_loop();
 
@@ -113,7 +116,6 @@ private:
     }
     uint16_t temp_raw = 0;
     TaskHandle_t shift_task = nullptr;
-    bool shifting = false;
     bool ask_upshift = false;
     bool ask_downshift = false;
     float tcc_percent = 0;
@@ -124,7 +126,6 @@ private:
     bool flaring = false;
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
-    int mpc_offset = 0;
     int mpc_working = 0;
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
@@ -133,6 +134,8 @@ private:
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;
+    bool is_ramp = false;
+    uint8_t shift_stage = 0;
 };
 
 #endif

@@ -42,6 +42,9 @@ KWP2000 SERVICE IDENTIFIERS
 #define SID_CONTROL_DTC_SETTING 0x85
 #define SID_RESPONSE_ON_EVENT 0x86
 
+/* Custom SIDs for UN52 */
+#define SID_SHIFT_MGR_OP 0x88
+
 /*
 KWP2000 Negative response codes
 */

@@ -680,14 +680,29 @@ void Gearbox::controller_loop() {
                 //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
             }
         }
+        uint8_t p_tmp = egs_can_hal->get_pedal_value(now, 1000);
+        if (p_tmp != 0xFF) {
+            this->sensor_data.pedal_pos = p_tmp;
+        }
+        if (!Sensors::read_vbatt(&this->sensor_data.voltage)) {
+            this->sensor_data.voltage = 12000;
+        }
         sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(now, 1000);
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
             this->sensor_data.engine_rpm = 0;
         }
+        // Update solenoids, only if engine RPM is OK
+        if (this->sensor_data.engine_rpm > 500) {
+            if (!shifting) { // If shifting then shift manager has control over MPC working
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
+            }
+            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
+            this->pressure_mgr->update(this->actual_gear, this->target_gear);
+        }
         if (Sensors::parking_lock_engaged(&lock_state)) {
             egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 500);
+            this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||
@@ -730,11 +745,6 @@ void Gearbox::controller_loop() {
             }
         }
         if (this->sensor_data.engine_rpm > 500) {
-            if (!shifting) { // If shifting then shift manager has control over MPC working
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
-            }
-            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
-            this->pressure_mgr->update(this->actual_gear, this->target_gear);
             if (is_fwd_gear(this->actual_gear)) {
                 bool want_upshift = false;
                 bool want_downshift = false;
@@ -788,14 +798,6 @@ void Gearbox::controller_loop() {
                     }
                 }
                 if (can_read) {
-                    uint8_t p_tmp = egs_can_hal->get_pedal_value(now, 500);
-                    if (p_tmp != 0xFF) {
-                        this->sensor_data.pedal_pos = p_tmp;
-                    }
-                    if (!Sensors::read_vbatt(&this->sensor_data.voltage)) {
-                        this->sensor_data.voltage = 12000;
-                    }
-
                     if (is_fwd_gear(this->actual_gear) && is_fwd_gear(this->target_gear)) {
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr) {
@@ -837,8 +839,8 @@ void Gearbox::controller_loop() {
             }
         }
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
-        egs_can_hal->set_shifter_position(egs_can_hal->get_shifter_position_ewm(now, 500));
-
+        egs_can_hal->set_shifter_position(this->shifter_pos);
+        egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);
         egs_can_hal->set_target_gear(this->target_gear);
         egs_can_hal->set_actual_gear(this->actual_gear);
         egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm(), SolenoidName::Y3);
@@ -848,6 +850,8 @@ void Gearbox::controller_loop() {
         egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm(), SolenoidName::MPC);
         egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm(), SolenoidName::TCC);
         egs_can_hal->set_shift_stage(this->shift_stage, this->is_ramp);
+        egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio*100);
+        egs_can_hal->set_gear_disagree(this->gear_disagree_count);
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX) {

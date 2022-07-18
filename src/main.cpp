@@ -113,7 +113,7 @@ void input_manager(void*) {
         } else { // Released
             if (pressed) {
                 pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position_ewm(now, 100) == ShifterPosition::PLUS) {
+                if (egs_can_hal->get_shifter_position_ewm(now, 1000) == ShifterPosition::PLUS) {
                     gearbox->inc_subprofile();
                 } else {
                     profile_id++;
@@ -136,7 +136,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 100);
+        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 1000);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {
@@ -174,7 +174,7 @@ extern "C" void app_main(void)
     //LegacyShifter lshifter = LegacyShifter();
     //while(true) {
     //    lshifter.kickdown_pressed();
-    //    vTaskDelay(5000);
+    //    vTaskDelay(500);
     //}
 
     SPEAKER_POST_CODE s = setup_tcm();

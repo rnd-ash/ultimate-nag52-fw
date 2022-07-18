@@ -86,7 +86,11 @@ uint16_t Solenoid::get_current_estimate()
     portENTER_CRITICAL(&this->adc_reading_mutex);
     float r = this->adc_reading - this->vref; // Vref is static noise on the line, discount it
     portEXIT_CRITICAL(&this->adc_reading_mutex);
-    return r*0.0974;
+#ifdef BOARD_V2
+    return r*(0.0974/2.0); // 10mOhm
+#else
+    return r*0.0974; // 5mOhm
+#endif
 }
 
 void Solenoid::__set_current_internal(uint16_t c)

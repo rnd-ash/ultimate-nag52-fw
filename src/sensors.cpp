@@ -125,18 +125,14 @@ const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
 
-#define TIMER_INTERVAL_MS 20 // Every 20ms we poll RPM (Same as other ECUs)
-#define PULSE_MULTIPLIER 1000/TIMER_INTERVAL_MS
-
 esp_adc_cal_characteristics_t adc2_cal_vbatt = {};
 esp_adc_cal_characteristics_t adc2_cal_atf = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
 
-#define RPM_SAMPLES 2
-volatile uint64_t n3_intr_times[RPM_SAMPLES] = {0,0};
-volatile uint64_t n2_intr_times[RPM_SAMPLES] = {0,0};
+volatile uint64_t n3_intr_times[2] = {0,0};
+volatile uint64_t n2_intr_times[2] = {0,0};
 
 uint64_t t_n2 = 0;
 uint64_t t_n3 = 0;
@@ -248,15 +244,13 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
         dest->n3_raw = 1000000 / d_n3;
     }
     if (dest->n2_raw < 60 && dest->n3_raw < 60) { // Stationary ( < 1rpm ), break here to avoid divideBy0Ex, and also noise
-        dest->n2_raw = 0;
-        dest->n3_raw = 0;
         dest->calc_rpm = 0;
         return true;
     } else if (dest->n2_raw == 0) { // In gears R1 or R2 (as N2 is 0)
         dest->calc_rpm = dest->n3_raw;
         return true;
     } else {
-        if (abs((int)dest->n2_raw - (int)dest->n3_raw) < 50) {
+        if (abs((int)dest->n2_raw - (int)dest->n3_raw) < 10) {
             dest->calc_rpm = (dest->n2_raw+dest->n3_raw)/2;
             return true;
         }
@@ -293,12 +287,12 @@ bool Sensors::read_vbatt(uint16_t *dest){
 
 // Returns ATF temp in *C
 bool Sensors::read_atf_temp(int16_t* dest) {
-uint32_t raw = 0;
 uint32_t avg = 0;
 
 #ifdef BOARD_V2
     static const float ATF_TEMP_CORR = 1.0;
 #else
+    uint32_t raw = 0;
     static const float ATF_TEMP_CORR = 0.8;
 #endif
 

@@ -799,12 +799,12 @@ void Gearbox::controller_loop() {
                     if (is_fwd_gear(this->actual_gear) && is_fwd_gear(this->target_gear)) {
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr) {
-                            this->tcc->update(this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting, 0);
+                            this->tcc->update(this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting);
                             egs_can_hal->set_clutch_status(this->tcc->get_clutch_state());
                         }
                     } else {
                         this->tcc_percent = 0;
-                        this->pressure_mgr->set_target_tcc_pwm(0);
+                        this->pressure_mgr->set_target_tcc_pressure(0);
                         egs_can_hal->set_clutch_status(ClutchStatus::Open);
                         //sol_tcc->write_pwm_12_bit(0);
                     }

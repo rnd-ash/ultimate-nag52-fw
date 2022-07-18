@@ -17,7 +17,7 @@ inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 PressureManager::PressureManager(SensorData* sensor_ptr) {
     this->sensor_data = sensor_ptr;
     this->adapt_map = new AdaptationMap();
-    this->req_tcc_pwm = 0;
+    this->req_tcc_pressure = 0;
     this->req_mpc_pressure = 0;
     this->req_mpc_pressure = 0;
 
@@ -303,12 +303,14 @@ void PressureManager::disable_spc() {
     this->spc_off = true;
 }
 
-void PressureManager::set_target_tcc_pwm(uint16_t targ) {
-    this->req_tcc_pwm = targ;
+void PressureManager::set_target_tcc_pressure(uint16_t targ) {
+    egs_can_hal->set_tcc_pressure(targ);
+    this->req_tcc_pressure = targ;
+    sol_tcc->write_pwm_12bit_with_voltage(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure), this->sensor_data->voltage);
 }
 
 void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
-    sol_tcc->write_pwm_12bit_with_voltage(this->req_tcc_pwm, this->sensor_data->voltage);
+    sol_tcc->write_pwm_12bit_with_voltage(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure), this->sensor_data->voltage);
     if (spc_off) {
         sol_spc->write_pwm_12_bit(0);
     } else {

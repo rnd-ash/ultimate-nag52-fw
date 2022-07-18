@@ -974,7 +974,7 @@ bool Gearbox::calc_output_rpm(uint16_t* dest, uint64_t now) {
         ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
         rpm = left.double_rpm;
     } else { // Both sensors OK!
-        rpm = abs(left.double_rpm) > abs(right.double_rpm) ? left.double_rpm : right.double_rpm;
+        rpm = (abs(left.double_rpm) + abs(right.double_rpm)) / 2;
     }
     rpm *= this->diff_ratio_f;
     rpm /= 2;

@@ -10,6 +10,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
     RpmReading d;
     bool b = false;
+
     if (!Sensors::read_input_rpm(&d, false)) {
         ret.n2_rpm = 0xFFFF;
         ret.n3_rpm = 0xFFFF;
@@ -79,8 +80,6 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
 
 DATA_SYS_USAGE get_sys_usage() {
     DATA_SYS_USAGE ret = {};
-
-    ret.free_heap = esp_get_free_heap_size();
     CpuStats s = get_cpu_stats();
     ret.core1_usage = s.load_core_1;
     ret.core2_usage = s.load_core_2;
@@ -88,6 +87,10 @@ DATA_SYS_USAGE get_sys_usage() {
     multi_heap_info_t info;
     heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
     ret.free_psram = info.total_free_bytes;
+    ret.total_psram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    heap_caps_get_info(&info, MALLOC_CAP_INTERNAL);
+    ret.free_ram = info.total_free_bytes;
+    ret.total_ram = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
     return ret;
 }
 

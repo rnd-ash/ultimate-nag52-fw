@@ -65,7 +65,7 @@ void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
     if (duty == 0) {
         this->write_pwm_12_bit(0);
     }
-    uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;;
+    uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;
     if (want_duty > 4096) {
         want_duty = 4096; // Clamp to max
     }

@@ -11,6 +11,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->name = name;
     this->adc_reading = 0;
     this->adc_reading_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->pwm_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->vref = 0;
     this->vref_calibrated = false;
     this->default_freq = frequency;
@@ -53,28 +54,32 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
     pwm_raw &= 0xFFF;
-    esp_err_t res = ledc_set_duty_and_update(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, (uint32_t)pwm_raw, 0);
-    if (res != ESP_OK) {
-        ESP_LOGE("SOLENOID", "Solenoid %s failed to set duty to %d!", name, pwm);
-        return;
-    }
+    portENTER_CRITICAL(&this->pwm_mutex);
     this->pwm = pwm_raw;
+    portEXIT_CRITICAL(&this->pwm_mutex);
 }
 
 void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
     if (duty == 0) {
-        this->write_pwm_12_bit(0);
+        portENTER_CRITICAL(&this->pwm_mutex);
+        this->pwm = 0;
+        portEXIT_CRITICAL(&this->pwm_mutex);
+    } else {
+        uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;
+        if (want_duty > 4096) {
+            want_duty = 4096; // Clamp to max
+        }
+        portENTER_CRITICAL(&this->pwm_mutex);
+        this->pwm = want_duty;
+        portEXIT_CRITICAL(&this->pwm_mutex);
     }
-    uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;
-    if (want_duty > 4096) {
-        want_duty = 4096; // Clamp to max
-    }
-    this->write_pwm_12_bit(want_duty);
 }
 
 uint16_t Solenoid::get_pwm()
-{   
-    return this->pwm;
+{   portENTER_CRITICAL(&this->pwm_mutex);
+    uint16_t p = this->pwm;
+    portEXIT_CRITICAL(&this->pwm_mutex);
+    return p;
 }
 
 uint16_t Solenoid::get_vref() const {
@@ -91,6 +96,13 @@ uint16_t Solenoid::get_current_estimate()
 #else
     return r*0.0974; // 5mOhm
 #endif
+}
+
+void Solenoid::__write_pwm() {
+    portENTER_CRITICAL(&this->pwm_mutex);
+    ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
+    portEXIT_CRITICAL(&this->pwm_mutex);
+    ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
 }
 
 void Solenoid::__set_current_internal(uint16_t c)
@@ -129,8 +141,8 @@ esp_adc_cal_characteristics_t adc1_cal;
 #define BYTES_PER_SAMPLE 2
 
 #ifdef BOARD_V2
-    #define SAMPLE_COUNT 1
-    #define NUM_SAMPLES 512
+    #define SAMPLE_COUNT 2
+    #define NUM_SAMPLES 1024
 #else
     #define SAMPLE_COUNT 3
     #define NUM_SAMPLES 1024
@@ -199,9 +211,10 @@ void read_solenoids_i2s(void*) {
                 sample_id += 1;
             }
             for (uint8_t i = 0; i < SAMPLE_COUNT; i++) {
-                avg += samples[i];  
+                avg += samples[i]; 
             }
             avg /= SAMPLE_COUNT;
+
             sol_order[solenoid_id]->__set_current_internal(avg);
             if (!all_calibrated) {
                 sol_order[solenoid_id]->__set_vref(avg);
@@ -220,6 +233,16 @@ void read_solenoids_i2s(void*) {
     }
 }
 
+void update_solenoids(void*) {
+    Solenoid* sol_order[6] = { sol_y3, sol_y4, sol_y5, sol_mpc, sol_spc, sol_tcc };
+    while(true) {
+        for (int i = 0; i < 6; i++) {
+            sol_order[i]->__write_pwm();
+        }
+        vTaskDelay(5);
+    }
+}
+
 bool init_all_solenoids()
 {
     // Read calibration for ADC1
@@ -231,7 +254,7 @@ bool init_all_solenoids()
     sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1);
     esp_err_t res = ledc_fade_func_install(0);
     if (res != ESP_OK) {
-        ESP_LOGE("SOLENOID", "FATAL. Could not load insert LEDC fade function %s", esp_err_to_name(res));
+        ESP_LOGE("SOLENOID", "Could not insert LEDC_FADE: %s", esp_err_to_name(res));
         return false;
     }
     if (!(
@@ -245,6 +268,7 @@ bool init_all_solenoids()
         return false;
     }
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
+    xTaskCreate(update_solenoids, "LEDC-Update", 1024, nullptr, 10, nullptr);
     while(!all_calibrated) {
         vTaskDelay(2/portTICK_PERIOD_MS);
     }

@@ -50,6 +50,7 @@ enum class EngineType: uint8_t {
 enum class TorqueRequest: uint8_t {
     Maximum,
     Minimum,
+    Exact,
     None
 };
 
@@ -256,7 +257,10 @@ class AbstractCan {
         /// Custom setters
         virtual void set_spc_pressure(uint16_t p){}
         virtual void set_mpc_pressure(uint16_t p){}
+        virtual void set_tcc_pressure(uint16_t p){}
         virtual void set_shift_stage(uint8_t stage, bool is_ramp){}
+        virtual void set_gear_disagree(uint8_t count){}
+        virtual void set_gear_ratio(int16_t g100){};
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

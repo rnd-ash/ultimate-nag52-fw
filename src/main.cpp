@@ -17,6 +17,10 @@
 #include "diag/kwp2000.h"
 #include "adaptation/adapt_map.h"
 
+#ifdef BOARD_V2
+#include "legacy_shifter.h"
+#endif
+
 #define NUM_PROFILES 5 // A, C, W, M, S
 
 // Sanity check
@@ -109,7 +113,7 @@ void input_manager(void*) {
         } else { // Released
             if (pressed) {
                 pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position_ewm(now, 100) == ShifterPosition::PLUS) {
+                if (egs_can_hal->get_shifter_position_ewm(now, 1000) == ShifterPosition::PLUS) {
                     gearbox->inc_subprofile();
                 } else {
                     profile_id++;
@@ -132,7 +136,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 100);
+        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 1000);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {
@@ -167,6 +171,12 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    //LegacyShifter lshifter = LegacyShifter();
+    //while(true) {
+    //    lshifter.kickdown_pressed();
+    //    vTaskDelay(500);
+    //}
+
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {

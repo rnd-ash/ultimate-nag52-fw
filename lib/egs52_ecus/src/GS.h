@@ -409,7 +409,8 @@ typedef union {
     void set_y5_pwm(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value) << 40; }
     void set_spc_pwm(uint8_t value){ raw = (raw &0xffffff00ffffffff) | ((uint64_t)value) << 32; }
     void set_mpc_pwm(uint8_t value){ raw = (raw &0xffffffff00ffffff) | ((uint64_t)value) << 24; }
-    void set_tcc_pwm(uint16_t value){ raw =(raw &0xffffffffff000fff) | ((uint64_t)value & 0xFFF) << 12; }
+    void set_tcc_pwm(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value) << 16; }
+    void set_gear_ratio(int16_t value) { raw = (raw & 0xffffffffffff0000) | ((uint64_t)value); }
 } GS_558_CUSTOM;
 
 
@@ -418,11 +419,13 @@ typedef union {
 	uint8_t bytes[8];
 
 	/** Gets CAN ID of GS_668 */
-	uint32_t get_canid(){ return GS_CUSTOM_558_CAN_ID; }
+	uint32_t get_canid(){ return GS_CUSTOM_668_CAN_ID; }
 
     void set_spc_pressure_est(uint16_t mbar) { raw = (raw & 0x0000ffffffffffff) | ((uint64_t)mbar << 48); }
     void set_mpc_pressure_est(uint16_t mbar) { raw = (raw & 0xffff0000ffffffff) | ((uint64_t)mbar << 32); }
-    void set_shift_stage(uint8_t stage, bool is_ramp){ raw = (raw & 0xffffffff00ffffff) | (((uint64_t)stage & 0xf) | (is_ramp << 4)) << 24; }
+    void set_tcc_pressure_est(uint16_t mbar) { raw = (raw & 0xffffffff0000ffff) | ((uint64_t)mbar << 16); }
+    void set_shift_stage(uint8_t stage, bool is_ramp){ raw = (raw & 0xffffffffffff00ff) | (((uint64_t)stage & 0xf) | (is_ramp << 4)) << 8; }
+    void set_gear_disagree(uint8_t count) { raw = (raw & 0xffffffffffffff00) | ((uint64_t)count); }
 } GS_668_CUSTOM;
 
 
@@ -626,7 +629,7 @@ class ECU_GS {
         bool get_GS_218(uint64_t now, uint64_t max_expire_time, GS_218* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];
@@ -644,7 +647,7 @@ class ECU_GS {
         bool get_GS_338(uint64_t now, uint64_t max_expire_time, GS_338* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[1];
@@ -662,7 +665,7 @@ class ECU_GS {
         bool get_GS_418(uint64_t now, uint64_t max_expire_time, GS_418* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[2];
@@ -680,7 +683,7 @@ class ECU_GS {
         bool get_GS_CUSTOM_558(uint64_t now, uint64_t max_expire_time, GS_CUSTOM_558* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[3];

@@ -1,5 +1,6 @@
 #include "endpoint.h"
 #include "kwp2000_defines.h"
+#include "driver/twai.h"
 
 const DiagCanMessage FLOW_CONTROL = {0x30, KWP_CAN_BS, KWP_CAN_ST_MIN, 0, 0, 0, 0, 0};
 const DiagCanMessage FLOW_CONTROL_BUSY = {0x31, 0, 0, 0, 0, 0, 0, 0};

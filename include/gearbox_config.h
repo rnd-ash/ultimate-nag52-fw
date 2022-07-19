@@ -2,6 +2,8 @@
 #define __GEARBOX_CONFIG_H_
 
 
+//#define BOARD_V2 // Uncomment for the red beta boards!!!
+
 // https://en.wikipedia.org/wiki/Mercedes-Benz_5G-Tronic_transmission
     #define RAT_1_LARGE 3.5876 // 1.64 (1->2 D_RATIO)
     #define RAT_2_LARGE 2.1862 // 1.55 (2->3 D_RATIO)

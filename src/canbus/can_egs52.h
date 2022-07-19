@@ -99,7 +99,10 @@ class Egs52Can: public AbstractCan {
         void set_wheel_torque_multi_factor(float ratio) override;
         void set_spc_pressure(uint16_t p) override;
         void set_mpc_pressure(uint16_t p) override;
+        void set_tcc_pressure(uint16_t p) override;
         void set_shift_stage(uint8_t stage, bool is_ramp) override;
+        void set_gear_disagree(uint8_t count) override;
+        void set_gear_ratio(int16_t g100) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;

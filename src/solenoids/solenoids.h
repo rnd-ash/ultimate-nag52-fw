@@ -82,6 +82,7 @@ public:
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
     void __set_vref(uint16_t ref);
+    void __write_pwm();
 
     // -- These functions are only accessed by sw_fader class! -- //
 private:
@@ -93,6 +94,7 @@ private:
     ledc_channel_t channel;
     ledc_timer_t timer;
     portMUX_TYPE adc_reading_mutex;
+    portMUX_TYPE pwm_mutex;
     volatile uint16_t adc_reading;
     uint16_t pwm = 0;
 };

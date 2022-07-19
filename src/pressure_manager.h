@@ -77,8 +77,8 @@ public:
 
     void set_target_mpc_pressure(uint16_t targ);
     void set_target_spc_pressure(uint16_t targ);
+    void set_target_tcc_pressure(uint16_t targ);
     void disable_spc();
-    void set_target_tcc_pwm(uint16_t targ);
 
     PressureManager(SensorData* sensor_ptr);
 
@@ -115,10 +115,16 @@ private:
      */
     uint16_t get_p_solenoid_pwm_duty(uint16_t request_mbar);
 
+    /**
+     * Returns the estimated PWM to send to the TCC solenoid
+     * based on the requested pressure that is needed
+     */
+    uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar);
+
     SensorData* sensor_data;
     AdaptationMap* adapt_map;
 
-    uint16_t req_tcc_pwm; // TODO change to pressure (Rewrite TCC.cpp)
+    uint16_t req_tcc_pressure;
     uint16_t req_spc_pressure;
     uint16_t req_mpc_pressure;
     bool spc_off = false;
@@ -126,9 +132,9 @@ private:
     TcmMap* tcc_pwm_map;
     TcmMap* hold2_time_map;
 
-    void make_hold3_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-    void make_torque_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-    void make_overlap_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
 
 };
 

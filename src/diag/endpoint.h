@@ -83,6 +83,11 @@ class UsbEndpoint: public AbstractEndpoint {
 
         void send_data(DiagMessage* msg) override {
             //esp_log_level_set("*", ESP_LOG_NONE);
+            this->write_buffer[0] = '#';
+            this->write_buffer[1] = HEX_DEF[(msg->id >> 12) & 0x0F];
+            this->write_buffer[2] = HEX_DEF[(msg->id >> 8) & 0x0F];
+            this->write_buffer[3] = HEX_DEF[(msg->id >> 4) & 0x0F];
+            this->write_buffer[4] = HEX_DEF[msg->id & 0x0F];
             sprintf(&this->write_buffer[0], "#%04X", msg->id);
             for (uint16_t i = 0; i < msg->data_size; i++) {
                 this->write_buffer[5+(i*2)] = HEX_DEF[(msg->data[i] >> 4) & 0x0F];
@@ -101,11 +106,11 @@ class UsbEndpoint: public AbstractEndpoint {
         }
 
         bool read_data(DiagMessage* dest) override {
-            size_t length = 0;
+            this->length = 0;
             uart_get_buffered_data_len(0, &length);
             if (length != 0) {
-                int max_bytes_left = UART_MSG_SIZE - this->read_pos;
-                int to_read = MIN(length, max_bytes_left);
+                max_bytes_left = UART_MSG_SIZE - this->read_pos;
+                to_read = MIN(length, max_bytes_left);
                 uart_read_bytes(0, &this->read_buffer[this->read_pos], to_read, 0);
                 if (this->read_buffer[0] != '#') {
                     // Discard
@@ -113,7 +118,7 @@ class UsbEndpoint: public AbstractEndpoint {
                     this->read_pos = 0;
                     return false;
                 }
-                int line_idx = find_char('\n', this->read_pos, this->read_pos+to_read);
+                line_idx = find_char('\n', this->read_pos, this->read_pos+to_read);
                 if (line_idx == -1) {
                     // No new line, full msg has not come in yet
                     this->read_pos += to_read;
@@ -125,7 +130,7 @@ class UsbEndpoint: public AbstractEndpoint {
                     return false;
                 }
                 this->read_pos += to_read;
-                uint16_t data_size = MIN(DIAG_CAN_MAX_SIZE, (line_idx-5) / 2);
+                this->data_size = MIN(DIAG_CAN_MAX_SIZE, (line_idx-5) / 2);
                 // INDEX DATA
                 // 0 - #
                 // 1-5 - ID
@@ -138,10 +143,8 @@ class UsbEndpoint: public AbstractEndpoint {
                     dest->data[i/2] = hexToByte(&this->read_buffer[5+i]);
                 }
                 dest->data_size = data_size;
-                // Circular move buffer
-                for (size_t i = line_idx; i < this->read_pos+to_read; i++) {
-                    this->read_buffer[i-line_idx] = this->read_buffer[i];
-                }
+                // Circular move buffer (memove is faster!)
+                memmove(&this->read_buffer[0], &this->read_buffer[line_idx], this->read_pos+to_read-line_idx);
                 this->read_pos -= (line_idx+1);
                 return true;
             }
@@ -155,10 +158,13 @@ class UsbEndpoint: public AbstractEndpoint {
         char* read_buffer;
         char* write_buffer;
         uint16_t read_pos;
-        QueueHandle_t uart_queue;
         bool clear_to_send = false;
-        uint8_t pci = 0x20;
         bool allocation_psram = false;
+        int data_size;
+        int line_idx;
+        int max_bytes_left;
+        int to_read;
+        size_t length;
 };
 
 /**

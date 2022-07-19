@@ -15,7 +15,6 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
-    timing_config.triple_sampling = true;
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t res;
@@ -510,21 +509,26 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(true);
             gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(true);
+            gs218.set_DYN1_EGS(false);
             break;
         case TorqueRequest::Minimum:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(false);
-            gs218.set_DYN1_EGS(true);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(false);
             break;
+        case TorqueRequest::Exact:
+            gs218.set_MMIN_EGS(true);
+            gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(true);
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(false);
             gs218.set_DYN1_EGS(false);
-            break;
+            return;
     }
 }
 
@@ -649,7 +653,7 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
             gs558.set_mpc_pwm(duty >> 4);
             break;
         case SolenoidName::TCC:
-            gs558.set_tcc_pwm(duty);
+            gs558.set_tcc_pwm(duty >> 4);
             break;
         default:
             break;
@@ -664,8 +668,20 @@ void Egs52Can::set_mpc_pressure(uint16_t p) {
     this->gs668.set_mpc_pressure_est(p);
 }
 
+void Egs52Can::set_tcc_pressure(uint16_t p) {
+    this->gs668.set_tcc_pressure_est(p);
+}
+
 void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
     this->gs668.set_shift_stage(stage, is_ramp);
+}
+
+void Egs52Can::set_gear_disagree(uint8_t count) {
+    this->gs668.set_gear_disagree(count);
+}
+
+void Egs52Can::set_gear_ratio(int16_t g100) {
+    this->gs558.set_gear_ratio(g100);
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
@@ -975,12 +991,14 @@ void Egs52Can::rx_task_loop() {
     uint8_t i;
     while(true) {
         twai_get_status_info(&can_status);
-        uint8_t f_count  = can_status.msgs_to_rx;
-        if (f_count == 0) {
+        if (can_status.msgs_to_rx == 0) {
             vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
         } else { // We have frames, read them
-            now = esp_timer_get_time()/1000;
-            for(uint8_t x = 0; x < f_count; x++) { // Read all frames
+            now = (esp_timer_get_time()/1000);
+            if (now > 2) {
+                now -= 2;
+            }
+            for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {

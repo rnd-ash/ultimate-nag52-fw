@@ -76,8 +76,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     // Only think about lockup on positive torque
     int max_allowed_slip;
     int min_allowed_slip;
-    float temp_force_multiplier = pm->get_tcc_temp_multiplier(sensors->atf_temp);
-    float temp_time_multiplier = 1.0/temp_force_multiplier;
+    float temp_time_multiplier = pm->get_tcc_temp_multiplier(sensors->atf_temp);
     if (profile == nullptr) {
         max_allowed_slip = MAX(100, trq);
         min_allowed_slip = MAX(10, trq/2);
@@ -116,7 +115,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         this->curr_tcc_pressure = 1100;
         goto write_pressure;
     }
-    if (sensors->current_timestamp_ms - last_inc_time > 500 * rpm_multi && strike_count >= 10) {
+    if (sensors->current_timestamp_ms - last_inc_time > 500 * rpm_multi * temp_time_multiplier && strike_count >= 10) {
         if (slip > max_allowed_slip) {
             if (this->curr_tcc_pressure < 1100) {
                 this->curr_tcc_pressure += 75; // 50mbar
@@ -154,23 +153,13 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 // 1600 - lock
 // 1000 - slip
 // 500 - prefill
-void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors) {
-    /*
-    this->is_temp_pressure = true;
-    if (this->curr_tcc_pressure+TCC_PREFILL < 1200 && !is_downshift) {
-        uint16_t targ_pressure = scale_number(sensors->input_rpm, 1000, 1600, 1000, 4000);
-        this->curr_tcc_pressure = targ_pressure-TCC_PREFILL;
-        this->tmp_pressure = targ_pressure;
-
-    } else if (this->curr_tcc_pressure+TCC_PREFILL > 1200 && is_downshift) {
-        uint16_t targ_pressure = scale_number(sensors->input_rpm, 800, 1600, 1000, 4000);
-        this->curr_tcc_pressure = targ_pressure-TCC_PREFILL;
-        this->tmp_pressure = targ_pressure;
+void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness) {
+    if (this->curr_tcc_pressure < 1200) {
+        this->curr_tcc_pressure = 1200;
+    } else if (this->curr_tcc_pressure >= 1400) {
+        uint32_t additional_reduction = scale_number(shift_firmness*10, 100, 0, 0, 100);
+        this->curr_tcc_pressure -= additional_reduction;
     }
-    */
-    // TODO any extra code for when ratio starts to change
-    //this->curr_tcc_pressure *= (1.05);
-    //this->curr_tcc_pressure += 250;
 }
 
 ClutchStatus TorqueConverter::get_clutch_state() {

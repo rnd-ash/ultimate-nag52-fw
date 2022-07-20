@@ -64,7 +64,7 @@ class UsbEndpoint: public AbstractEndpoint {
             this->allocation_psram = can_use_spiram;
             e = uart_driver_install(0, UART_MSG_SIZE/2, UART_MSG_SIZE/2, 0, nullptr, 0);
             if (e != ESP_OK) {
-                ESP_LOGE("USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint","Error installing UART driver: %s", esp_err_to_name(e));
                 return;
             }
             if (this->allocation_psram) {
@@ -114,7 +114,7 @@ class UsbEndpoint: public AbstractEndpoint {
                 uart_read_bytes(0, &this->read_buffer[this->read_pos], to_read, 0);
                 if (this->read_buffer[0] != '#') {
                     // Discard
-                    ESP_LOGE("USBEndpoint", "Corrupt incoming msg. Ignoring, rb[0] was '%02X', peak is '%02X'", this->read_buffer[0], this->read_buffer[1]);
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Ignoring, rb[0] was '%02X', peak is '%02X'", this->read_buffer[0], this->read_buffer[1]);
                     this->read_pos = 0;
                     return false;
                 }
@@ -125,7 +125,7 @@ class UsbEndpoint: public AbstractEndpoint {
                     return false;
                 }
                 if(line_idx % 2 == 0) {
-                    ESP_LOGE("USBEndpoint", "Corrupt incoming msg line IDX was %d. Ignoring", line_idx);
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg line IDX was %d. Ignoring", line_idx);
                     this->read_pos = 0;
                     return false;
                 }

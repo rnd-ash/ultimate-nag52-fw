@@ -522,6 +522,7 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(true);
+            break;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);

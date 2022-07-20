@@ -2,6 +2,7 @@
 #include "string.h"
 #include "esp_flash.h"
 #include "esp_partition.h"
+#include "esp_log.h"
 
 #define NVS_NAME_SS "SHIFT_STORE"
 
@@ -18,11 +19,11 @@ uint16_t calc_shift_report_group_crc(ShiftReportNvsGroup* rpt) {
 bool load_shift_report_from_partition(ShiftReportNvsGroup* dest, uint32_t addr) {
     esp_err_t e = esp_flash_read(esp_flash_default_chip, dest, addr, sizeof(ShiftReportNvsGroup));
     if (e != ESP_OK) {
-        ESP_LOGW("SHIFT_REPORTER", "Error reading SPIFFS for shift data: %s", esp_err_to_name(e));
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFT_REPORTER", "Error reading SPIFFS for shift data: %s", esp_err_to_name(e));
     }
     uint16_t raw_crc = calc_shift_report_group_crc(dest);
     if (dest->crc != raw_crc) {
-        ESP_LOGI("SHIFT_REPORT", "Load from SPIFFS was invalid, resetting. CRC was %08X, wanted CRC: %08X", dest->crc, raw_crc);
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT_REPORT", "Load from SPIFFS was invalid, resetting. CRC was %08X, wanted CRC: %08X", dest->crc, raw_crc);
         memset(dest, 0x00, sizeof(ShiftReportNvsGroup)); // Blank it if invalid!
         return false;
     }
@@ -33,7 +34,7 @@ bool save_shift_report_to_partition(ShiftReportNvsGroup* src, uint32_t addr) {
     src->crc = calc_shift_report_group_crc(src);
     esp_err_t e = esp_flash_write(esp_flash_default_chip, src, addr, sizeof(ShiftReportNvsGroup));
     if (e != ESP_OK) {
-        ESP_LOGW("SHIFT_REPORTER", "Error writing shift data to SPIFFS: %s", esp_err_to_name(e));
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFT_REPORTER", "Error writing shift data to SPIFFS: %s", esp_err_to_name(e));
     }
     return e == ESP_OK;
 }
@@ -42,7 +43,7 @@ bool save_shift_report_to_partition(ShiftReportNvsGroup* src, uint32_t addr) {
 ShiftReporter::ShiftReporter() {
     this->report_group = (ShiftReportNvsGroup*)heap_caps_malloc(sizeof(ShiftReportNvsGroup), MALLOC_CAP_SPIRAM);
     if (this->report_group == nullptr) {
-        ESP_LOGE("SHIFT_REPORT", "Cannot allocate memory!");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SHIFT_REPORT", "Cannot allocate memory!");
         return;
     }
 
@@ -50,13 +51,13 @@ ShiftReporter::ShiftReporter() {
     if (p != nullptr) {
         this->spiffs_addr = p->address;
         if (load_shift_report_from_partition(this->report_group, this->spiffs_addr)) {
-            ESP_LOGI("SHIFT_REPORT", "Load from SPIFFS OK!");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT_REPORT", "Load from SPIFFS OK!");
         } else {
-            ESP_LOGI("SHIFT_REPORT", "Load from SPIFFS was invalid. Resetting data");
+            ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFT_REPORT", "Load from SPIFFS was invalid. Resetting data");
         }
     } else {
         this->spiffs_addr = 0;
-        ESP_LOGW("SHIFT_REPORT", "Partition not found! Shift reports won't be saved");
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFT_REPORT", "Partition not found! Shift reports won't be saved");
     }
 }
 
@@ -72,7 +73,7 @@ void ShiftReporter::add_report(ShiftReport src) {
         this->report_group->index = 0;
     }
     uint8_t idx = this->report_group->index;
-    ESP_LOGI("SHIFTER", "Writing to report %d as writable", idx);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Writing to report %d as writable", idx);
     this->report_group->reports[idx] = src;
     this->report_group->index++;
     this->has_change = true;

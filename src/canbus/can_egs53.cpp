@@ -11,7 +11,7 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {
     // Firstly try to init CAN
-    ESP_LOGI("EGS52_CAN", "CAN constructor called");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
     gen_config.rx_queue_len = 32;
@@ -22,11 +22,11 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     esp_err_t res;
     res = twai_driver_install(&gen_config, &timing_config, &filter_config);
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
     }
     res = twai_start();
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
     }
 
     // Create CRC table
@@ -61,16 +61,16 @@ bool Egs53Can::begin_tasks() {
     }
     // Prevent starting again
     if (this->rx_task == nullptr) {
-        ESP_LOGI("EGS53_CAN", "Starting CAN Rx task");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS53_CAN", "Starting CAN Rx task");
         if (xTaskCreate(this->start_rx_task_loop, "EGS53_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
-            ESP_LOGE("EGS53_CAN", "CAN Rx task creation failed!");
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS53_CAN", "CAN Rx task creation failed!");
             return false;
         }
     }
     if (this->tx_task == nullptr) {
-        ESP_LOGI("EGS53_CAN", "Starting CAN Tx task");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS53_CAN", "Starting CAN Tx task");
         if (xTaskCreate(this->start_tx_task_loop, "EGS53_CAN_TX", 8192, this, 5, this->tx_task) != pdPASS) {
-            ESP_LOGE("EGS53_CAN", "CAN Tx task creation failed!");
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS53_CAN", "CAN Tx task creation failed!");
             return false;
         }
     }
@@ -728,7 +728,7 @@ void Egs53Can::rx_task_loop() {
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
                             // Send the frame
                             if (xQueueSend(*this->diag_rx_queue, tx.data, 0) != pdTRUE) {
-                                ESP_LOGE("EGS53_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS53_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
                     } 

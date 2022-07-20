@@ -68,12 +68,12 @@ Gearbox::Gearbox() {
             .ratios = RATIOS_SMALL,
         };
     }
-    ESP_LOGI("GEARBOX", "---GEARBOX INFO---");
-    ESP_LOGI("GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---GEARBOX INFO---");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
     for (int i = 0; i < 7; i++) {
         char c = i < 5 ? 'D' : 'R';
         int g = i < 5 ? i+1 : i-4;
-        ESP_LOGI("GEARBOX", "Gear ratio %c%d %.2f. Bounds: (%.2f - %.2f)", c, g, gearboxConfig.ratios[i], gearboxConfig.bounds[i].max, gearboxConfig.bounds[i].min);
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Gear ratio %c%d %.2f. Bounds: (%.2f - %.2f)", c, g, gearboxConfig.ratios[i], gearboxConfig.bounds[i].max, gearboxConfig.bounds[i].min);
     }
     if (VEHICLE_CONFIG.engine_type == 1) {
         this->redline_rpm = VEHICLE_CONFIG.red_line_rpm_petrol;
@@ -83,10 +83,10 @@ Gearbox::Gearbox() {
     if (this->redline_rpm < 4000) {
         this->redline_rpm = 4000; // just in case
     }
-    ESP_LOGI("GEAROX", "---OTHER CONFIG---");
-    ESP_LOGI("GEARBOX", "Redline RPM: %d", this->redline_rpm);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEAROX", "---OTHER CONFIG---");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Redline RPM: %d", this->redline_rpm);
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio/1000.0;
-    ESP_LOGI("GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
 }
 
 void Gearbox::set_profile(AbstractProfile* prof) {
@@ -257,7 +257,7 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
  */
 ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
     SensorData pre_shift = this->sensor_data;
-    ESP_LOGI("ELAPSE_SHIFT", "Shift started!");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
     ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
     ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
     bool gen_report = sensor_data.output_rpm > 100;
@@ -297,7 +297,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     float ramp = ((float)(curr_phase->spc_pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
     float ramp_mpc = ((float)(curr_phase->mpc_pressure)-this->mpc_working) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
     
-    ESP_LOGI("SHIFT", "Shift start phase hold 1");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 1");
     uint16_t start_ratio = sensor_data.gear_ratio*100;
     bool shift_in_progress = false;
     while(true) {
@@ -318,7 +318,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                     stage_elapsed = 0;
                     // Current phase, so what do we do before firing the next phase?
                     if (shift_stage == SHIFT_PHASE_HOLD_1) {
-                        ESP_LOGI("SHIFT", "Shift start phase hold 2");
+                        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 2");
                         // Going to hold 2
                         // open partial the shift solenoid
                         shift_stage = SHIFT_PHASE_HOLD_2;
@@ -326,13 +326,12 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         curr_sd_pwm = 4096;
                         start_ratio = sensor_data.gear_ratio*100; // Shift valve opens here so now take note of start ratio
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
-                        ESP_LOGI("SHIFT", "Shift start phase hold 3");
+                        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
                         // Full open shift solenoid
                         shift_stage = SHIFT_PHASE_HOLD_3;
                         curr_phase = &sd.hold3_data;
-
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
-                        ESP_LOGI("SHIFT", "Shift start phase torque");
+                        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
                         this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
@@ -344,13 +343,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
                         }
-                        ESP_LOGI("SHIFT", "Shift start phase overlap");
+                        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
                         curr_phase = &sd.overlap_data;
                     } else if (shift_stage == SHIFT_PHASE_OVERLAP) {
                         egs_can_hal->set_torque_request(TorqueRequest::None);
                         egs_can_hal->set_requested_torque(0);
-                        ESP_LOGI("SHIFT", "Shift start phase max pressure");
+                        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase max pressure");
                         // No solenoids to touch, just inc counter
                         shift_stage = SHIFT_PHASE_MAX_P;
                         curr_phase = &sd.max_pressure_data;
@@ -442,7 +441,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
     }
     this->shift_stage = 0;
     this->is_ramp = false;
-    ESP_LOGI("SHIFT", "Shift done");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift done");
     pressure_mgr->disable_spc(); // Max pressure!
     sd.shift_solenoid->write_pwm_12_bit(0); // Close SPC and Shift solenoid
     egs_can_hal->set_torque_request(TorqueRequest::None);
@@ -478,17 +477,17 @@ void Gearbox::shift_thread() {
     uint16_t batt_voltage = 12000; // Assume 12V
     Sensors::read_vbatt(&batt_voltage);
     if (curr_actual == curr_target) {
-        ESP_LOGW("SHIFTER", "Gears are the same????");
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFTER", "Gears are the same????");
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
         this->pressure_mgr->set_target_spc_pressure(100);
         sol_y4->write_pwm_12bit_with_voltage(800, sensor_data.voltage); // 3-4 is pulsed at 20%
-        ESP_LOGI("SHIFTER", "No need to shift");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
     } else if (is_controllable_gear(curr_actual) != is_controllable_gear(curr_target)) { // This would be a garage shift, either in or out
-        ESP_LOGI("SHIFTER", "Garage shift");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Garage shift");
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
             // Defaults (Start in 2nd)
@@ -532,16 +531,16 @@ void Gearbox::shift_thread() {
         }
         goto cleanup;
     } else { // Both gears are controllable
-        ESP_LOGI("SHIFTER", "Both gears are controllable");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Both gears are controllable");
         if (is_fwd_gear(curr_target) != is_fwd_gear(curr_actual)) {
             // In this case, we set the current gear to neutral, then thread will re-spawn
-            ESP_LOGI("SHIFTER", "Shifter got stuck in R-D. Returning and trying again");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Shifter got stuck in R-D. Returning and trying again");
             this->actual_gear = GearboxGear::Neutral;
             goto cleanup;
         } else if (is_fwd_gear(curr_target) && is_fwd_gear(curr_actual)){
             // Forward shift logic
             if (curr_target > curr_actual) { // Upshifting
-                ESP_LOGI("SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 //this->show_upshift = true;
                 ProfileGearChange pgc;
                 ShiftResponse response;
@@ -565,7 +564,7 @@ void Gearbox::shift_thread() {
                 this->start_second = true;
                 goto cleanup;
             } else { // Downshifting
-                ESP_LOGI("SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+                ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 //this->show_downshift = true;
                 ProfileGearChange pgc;
                 ShiftResponse resp;
@@ -591,12 +590,12 @@ void Gearbox::shift_thread() {
                 goto cleanup;
             }
         } else {
-            ESP_LOGI("SHIFTER", "Ignoring request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Ignoring request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
         }
         goto cleanup;
     }
 cleanup:
-    ESP_LOGI("SHIFTER", "Shift complete");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Shift complete");
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
     this->shifting = false;
@@ -614,7 +613,7 @@ void Gearbox::inc_subprofile() {
 void Gearbox::controller_loop() {
     bool lock_state = false;
     ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
-    ESP_LOGI("GEARBOX", "GEARBOX START!");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
     uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
     while (esp_timer_get_time() < expire_check) {
         this->shifter_pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
@@ -686,7 +685,7 @@ void Gearbox::controller_loop() {
         if (can_read && this->sensor_data.output_rpm >= 100) {
             bool rev = !is_fwd_gear(this->target_gear);
             if (!this->calcGearFromRatio(rev)) {
-                //ESP_LOGE("GEARBOX", "GEAR RATIO IMPLAUSIBLE");
+                //ESP_LOG_LEVEL(ESP_LOG_ERROR, "GEARBOX", "GEAR RATIO IMPLAUSIBLE");
             }
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(now, 1000);
@@ -909,7 +908,7 @@ void Gearbox::controller_loop() {
             egs_can_hal->set_wheel_torque_multi_factor(this->sensor_data.gear_ratio);
         }
 
-        //ESP_LOGI("GEARBOX", "Torque: MIN: %3d, MAX: %3d, STAT: %3d", min_torque, max_torque, static_torque);
+        //ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Torque: MIN: %3d, MAX: %3d, STAT: %3d", min_torque, max_torque, static_torque);
         // Show debug symbols on IC
         if (this->show_upshift && this->show_downshift) {
             egs_can_hal->set_display_msg(GearboxMessage::RequestGearAgain);
@@ -971,16 +970,16 @@ bool Gearbox::calc_input_rpm(uint16_t* dest) {
 bool Gearbox::calc_output_rpm(uint16_t* dest, uint64_t now) {
     WheelData left = egs_can_hal->get_rear_left_wheel(now, 500);
     WheelData right = egs_can_hal->get_rear_right_wheel(now, 500);
-    //ESP_LOGI("WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
+    //ESP_LOG_LEVEL(ESP_LOG_INFO, "WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
     float rpm = 0;
     if (left.current_dir == WheelDirection::SignalNotAvaliable && right.current_dir == WheelDirection::SignalNotAvaliable) {
-        //ESP_LOGE("CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
+        //ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
         return false;
     } else if (left.current_dir == WheelDirection::SignalNotAvaliable) { // Right OK
-        ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
         rpm = right.double_rpm;
     } else if (right.current_dir == WheelDirection::SignalNotAvaliable) { // Left OK
-        ESP_LOGW("CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
         rpm = left.double_rpm;
     } else { // Both sensors OK!
         rpm = (abs(left.double_rpm) + abs(right.double_rpm)) / 2;

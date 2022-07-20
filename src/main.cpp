@@ -176,12 +176,11 @@ extern "C" void app_main(void)
     //    lshifter.kickdown_pressed();
     //    vTaskDelay(500);
     //}
-
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
-            ESP_LOGE("INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
             vTaskDelay(1000/portTICK_PERIOD_MS);
         }
     } else { // INIT OK!

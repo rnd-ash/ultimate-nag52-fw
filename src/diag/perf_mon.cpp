@@ -84,7 +84,7 @@ bool init_perfmon() {
     CHECK_ESP_FUNC(esp_register_freertos_idle_hook_for_cpu(idle_hook_c1, 0), "Failed to set idle hook for Core 0: %s", esp_err_to_name(res));
     CHECK_ESP_FUNC(esp_register_freertos_idle_hook_for_cpu(idle_hook_c2, 1), "Failed to set idle hook for Core 1: %s", esp_err_to_name(res));
     perfmon_running = true;
-    ESP_LOGI(LOG_TAG, "Init OK!");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Init OK!");
     return true;
 }
 

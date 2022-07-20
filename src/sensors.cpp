@@ -211,7 +211,7 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N2_RPM), "Failed to resume PCNT N2 RPM! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N3_RPM), "Failed to resume PCNT N3 RPM! %s", esp_err_to_name(res))
 
-    ESP_LOGI(LOG_TAG, "Sensors INIT OK!");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
     return true;
 }
 
@@ -276,7 +276,7 @@ bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_vbatt, &v);
     if (res != ESP_OK) {
-        ESP_LOGW("READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
         return false;
     } else {
         // Vin = Vout(R1+R2)/R2
@@ -299,7 +299,7 @@ uint32_t avg = 0;
 #ifdef BOARD_V2
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
     if (res != ESP_OK) {
-        ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
         return false;
     }
 #else
@@ -307,7 +307,7 @@ uint32_t avg = 0;
     for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
         esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
         if (res != ESP_OK) {
-            ESP_LOGW("READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
+            ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
             return false;
         }
         avg += raw;
@@ -345,7 +345,7 @@ bool Sensors::parking_lock_engaged(bool* dest){
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
 #endif
     if (res != ESP_OK) {
-        ESP_LOGW("READ_PLL", "Failed to query parking lock. %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_PLL", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;
     } else {
         *dest = raw >= 3000;

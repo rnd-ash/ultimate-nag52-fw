@@ -35,7 +35,7 @@ void CanEndpoint::send_data(DiagMessage* msg) {
     this->tmp.max_pos = msg->data_size;
     memcpy(this->tmp.data, msg->data, msg->data_size);
     if (xQueueSend(this->send_msg_queue, &this->tmp, 0) != pdTRUE) {
-        ESP_LOGE("CanEndpoint", "Tx queue is full!?");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Tx queue is full!?");
     }
 }
 
@@ -72,7 +72,7 @@ void CanEndpoint::iso_tp_server_loop() {
                     this->process_flow_control(rx);
                     break;
                 default:
-                    ESP_LOGE("CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", rx[0]);
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", rx[0]);
                     break;
             }
             if (esp_timer_get_time()/1000 - now > 1) {
@@ -89,7 +89,7 @@ void CanEndpoint::iso_tp_server_loop() {
                     memcpy(&tx_can.data[1], tx_msg.data, tx_msg.max_pos);
                     res = twai_transmit(&tx_can, 5);
                     if (res != ESP_OK) {
-                        ESP_LOGE("CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
+                        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
                     }
                 } else { // Multi frame send, send the first frame and await flow control
                     this->is_sending = true; // We are sending now
@@ -101,7 +101,7 @@ void CanEndpoint::iso_tp_server_loop() {
                     tx_msg.curr_pos = 6;
                     res = twai_transmit(&tx_can, 5);
                     if (res != ESP_OK) {
-                        ESP_LOGE("CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
+                        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
                         this->is_sending = false; // Abort send
                     } else {
                         this->last_tx_time = now;
@@ -122,7 +122,7 @@ void CanEndpoint::iso_tp_server_loop() {
             memcpy(&tx_can.data[1], &this->tx_msg.data[tx_msg.curr_pos], max_cpy);
             res = twai_transmit(&tx_can, 5);
             if (res != ESP_OK) {
-                ESP_LOGE("CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Could not send CAN frame %s", esp_err_to_name(res));
                 this->is_sending = false; // Abort send
                 continue;
             } else {
@@ -146,12 +146,12 @@ void CanEndpoint::iso_tp_server_loop() {
 
         if (is_receiving && (now - this->last_rx_time) > ISO_TP_TIMEOUT) {
             // Timeout, mark as not receiving anymore
-            ESP_LOGW("CAN_ENDPOINT", "Timeout waiting for rest of ISO-TP message");
+            ESP_LOG_LEVEL(ESP_LOG_WARN, "CAN_ENDPOINT", "Timeout waiting for rest of ISO-TP message");
             this->is_receiving = false;
         }
 
         if (is_sending && (now - this->last_tx_time) > ISO_TP_TIMEOUT) {
-            ESP_LOGW("CAN_ENDPOINT", "Timeout sending rest of ISO-TP message");
+            ESP_LOG_LEVEL(ESP_LOG_WARN, "CAN_ENDPOINT", "Timeout sending rest of ISO-TP message");
             this->is_sending = false;
         }
         if (is_receiving || is_sending) { // Rx
@@ -167,7 +167,7 @@ void CanEndpoint::process_single_frame(DiagCanMessage msg) {
     m.max_pos = msg[0];
     memcpy(m.data, &msg[1], msg[0]);
     if (xQueueSend(this->read_msg_queue, &m, 0) != pdTRUE) {
-        ESP_LOGE("CanEndpoint_psf", "Tx queue is full!?");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
     }
 }
 
@@ -205,7 +205,7 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
             // Done!
             this->is_receiving = false;
             if (xQueueSend(this->read_msg_queue, &this->rx_msg, 0) != pdTRUE) {
-                ESP_LOGE("CanEndpoint_psf", "Tx queue is full!?");
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
             }
         } else if (this->frames_received >= KWP_CAN_BS && KWP_CAN_BS != 0) { // Send flow control when we overflow
             if (!this->send_to_twai((uint8_t*)FLOW_CONTROL)) {

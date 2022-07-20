@@ -255,7 +255,7 @@ void Kwp2000_server::server_loop() {
                     this->process_shift_mgr_op(args_ptr, args_size);
                     break;
                 default:
-                    ESP_LOGW("KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
                     break;
             }
@@ -274,7 +274,7 @@ void Kwp2000_server::server_loop() {
             this->session_mode == SESSION_CUSTOM_UN52)
             && timestamp > this->next_tp_time
         ) {
-            ESP_LOGI("KWP2000", "Tester present interval has expired, returning to default mode");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "KWP2000", "Tester present interval has expired, returning to default mode");
             this->session_mode = SESSION_DEFAULT;
         }
         if (this->reboot_pending) {
@@ -497,7 +497,7 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    ESP_LOGI("RMA","Pointer: %p", address);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "RMA","Pointer: %p", address);
     make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, address, args[arg_len-1]); // Copy args[3] len bytes from address into positive message
 }
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
@@ -756,7 +756,7 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
 
 void Kwp2000_server::run_solenoid_test() {
     this->gearbox_ptr->diag_inhibit_control();
-    ESP_LOGI("RT_SOL_TEST", "Starting solenoid test");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Starting solenoid test");
     this->routine_results_len = 7;
     // Routine results format
     // 6 bytes (1 per solenoid)
@@ -773,34 +773,34 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y5->write_pwm_12_bit(0);
     vTaskDelay(1000);
     if (sol_mpc->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "MPC overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "MPC overcurrent");
         this->routine_result[1] = 0x0F;
     }
     if (sol_spc->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "SPC overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "SPC overcurrent");
         this->routine_result[2] = 0x0F;
     }
     if (sol_tcc->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "TCC overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "TCC overcurrent");
         this->routine_result[3] = 0x0F;
     }
     if (sol_y3->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "Y3 overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y3 overcurrent");
         this->routine_result[4] = 0x0F;
     }
     if (sol_y4->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "Y4 overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y4 overcurrent");
         this->routine_result[5] = 0x0F;
     }
     if (sol_y5->get_current_estimate() > 100) {
-        ESP_LOGE("RT_SOL_TEST", "Y5 overcurrent");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y5 overcurrent");
         this->routine_result[6] = 0x0F;
     }
     // Now test each solenoid 1x1
     sol_mpc->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_mpc->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "MPC undercurrent %d", sol_mpc->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "MPC undercurrent %d", sol_mpc->get_current_estimate());
         this->routine_result[1] |= 0xF0;
         //goto cleanup;
     }
@@ -808,7 +808,7 @@ void Kwp2000_server::run_solenoid_test() {
     sol_spc->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_spc->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "SPC undercurrent %d", sol_spc->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "SPC undercurrent %d", sol_spc->get_current_estimate());
         this->routine_result[2] |= 0xF0;
         //goto cleanup;
     }
@@ -816,7 +816,7 @@ void Kwp2000_server::run_solenoid_test() {
     sol_tcc->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_tcc->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "TCC undercurrent %d", sol_tcc->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "TCC undercurrent %d", sol_tcc->get_current_estimate());
         this->routine_result[3] |= 0xF0;
         //goto cleanup;
     }
@@ -824,7 +824,7 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y3->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_y3->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "Y3 undercurrent %d", sol_y3->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y3 undercurrent %d", sol_y3->get_current_estimate());
         this->routine_result[4] |= 0xF0;
         //goto cleanup;
     }
@@ -832,7 +832,7 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y4->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_y4->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "Y4 undercurrent %d", sol_y4->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y4 undercurrent %d", sol_y4->get_current_estimate());
         this->routine_result[5] |= 0xF0;
         //goto cleanup;
     }
@@ -840,12 +840,12 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y5->write_pwm_12_bit(2048);
     vTaskDelay(600);
     if (sol_y5->get_current_estimate() < 500) {
-        ESP_LOGE("RT_SOL_TEST", "Y5 undercurrent %d", sol_y5->get_current_estimate());
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y5 undercurrent %d", sol_y5->get_current_estimate());
         this->routine_result[6] |= 0xF0;
         //goto cleanup;
     }
     sol_y5->write_pwm_12_bit(0);
-    ESP_LOGI("RT_SOL_TEST", "Cleaning up");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Cleaning up");
     this->routine_running = false;
     this->gearbox_ptr->diag_regain_control();
     vTaskDelete(nullptr);

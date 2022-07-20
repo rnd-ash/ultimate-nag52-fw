@@ -107,20 +107,20 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
         ) {
-            ESP_LOGE("SET_TCM_CFG", "Rejecting download request. Shifter not in valid position");
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "SET_TCM_CFG", "Rejecting download request. Shifter not in valid position");
             return NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR;
     }
     // S,C,W,A,M = 5 profiles, so 4 is max value
     if (cfg.default_profile > 4) {
-        ESP_LOGE("SET_TCM_CFG", "Default profile ID of %d was greater than 4", cfg.default_profile);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SET_TCM_CFG", "Default profile ID of %d was greater than 4", cfg.default_profile);
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
     }
     if (cfg.engine_type != 0 && cfg.engine_type != 1) {
-        ESP_LOGE("SET_TCM_CFG", "Engine type was not 0 (Diesel) or 1 (Petrol)");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SET_TCM_CFG", "Engine type was not 0 (Diesel) or 1 (Petrol)");
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
     }
     if (cfg.is_four_matic && (cfg.transfer_case_high_ratio == 0 || cfg.transfer_case_low_ratio == 0)) {
-        ESP_LOGE("SET_TCM_CFG", "4Matic was requested, but TC ratio was 0");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SET_TCM_CFG", "4Matic was requested, but TC ratio was 0");
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
     }
     if (EEPROM::save_core_config(&cfg)) {

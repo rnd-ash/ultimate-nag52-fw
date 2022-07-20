@@ -28,7 +28,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     if (res != ESP_OK)
     {
         this->ready = false;
-        ESP_LOGE("SOLENOID", "Solenoid %s timer init failed. Status code %d!", name, res);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Solenoid %s timer init failed. Status code %d!", name, res);
         return;
     }
 
@@ -46,10 +46,10 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     if (res != ESP_OK)
     {
         this->ready = false;
-        ESP_LOGE("SOLENOID", "Solenoid %s channel init failed. Status code %d!", name, res);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Solenoid %s channel init failed. Status code %d!", name, res);
         return;
     }
-    ESP_LOGI("SOLENOID", "Solenoid %s init OK!", name);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", "Solenoid %s init OK!", name);
 }
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
@@ -254,7 +254,7 @@ bool init_all_solenoids()
     sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1);
     esp_err_t res = ledc_fade_func_install(0);
     if (res != ESP_OK) {
-        ESP_LOGE("SOLENOID", "Could not insert LEDC_FADE: %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Could not insert LEDC_FADE: %s", esp_err_to_name(res));
         return false;
     }
     if (!(
@@ -272,7 +272,7 @@ bool init_all_solenoids()
     while(!all_calibrated) {
         vTaskDelay(2/portTICK_PERIOD_MS);
     }
-    ESP_LOGI("SOLENOID", 
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", 
         "Solenoid calibration readings: Y3: %d, Y4: %d, Y5: %d, MPC: %d, SPC: %d, TCC: %d",
             sol_y3->get_vref(),
             sol_y4->get_vref(),
@@ -284,27 +284,27 @@ bool init_all_solenoids()
 #define SOL_THRESHOLD_ADC 500
 
     if (sol_y3->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
     if (sol_y4->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID Y4 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y4->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y4 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y4->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
     if (sol_y5->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID Y5 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y5->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y5 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y5->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
     if (sol_mpc->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID MPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_mpc->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID MPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_mpc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
     if (sol_spc->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID SPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_spc->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID SPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_spc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
     if (sol_tcc->get_vref() > 500) {
-        ESP_LOGE("SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
         return false;
     }
 

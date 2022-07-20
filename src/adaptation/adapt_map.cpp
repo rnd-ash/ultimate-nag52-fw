@@ -7,11 +7,11 @@
 
 AdaptationMap::AdaptationMap() {
     if(!this->load_from_nvs()) { // Init our map
-        ESP_LOGE("ADAPT_MAP", "Load from NVS failed, starting a new map");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Load from NVS failed, starting a new map");
         this->reset();
     } else {
-        ESP_LOGI("ADAPT_MAP", "Adapt map loaded!");
-        ESP_LOGI("ADAPT_MAP", "Values for 1->2: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Adapt map loaded!");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 1->2: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[0].offset_accel_idle,
             this->adapt_data[0].bite_speed_accel_idle,
             this->adapt_data[0].offset_accel_load,
@@ -21,7 +21,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[0].offset_decel_load,
             this->adapt_data[0].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 2->3: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 2->3: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[1].offset_accel_idle,
             this->adapt_data[1].bite_speed_accel_idle,
             this->adapt_data[1].offset_accel_load,
@@ -31,7 +31,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[1].offset_decel_load,
             this->adapt_data[1].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 3->4: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 3->4: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[2].offset_accel_idle,
             this->adapt_data[2].bite_speed_accel_idle,
             this->adapt_data[2].offset_accel_load,
@@ -41,7 +41,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[2].offset_decel_load,
             this->adapt_data[2].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 4->5: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 4->5: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[3].offset_accel_idle,
             this->adapt_data[3].bite_speed_accel_idle,
             this->adapt_data[3].offset_accel_load,
@@ -51,7 +51,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[3].offset_decel_load,
             this->adapt_data[3].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 2->1: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 2->1: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[4].offset_accel_idle,
             this->adapt_data[4].bite_speed_accel_idle,
             this->adapt_data[4].offset_accel_load,
@@ -61,7 +61,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[4].offset_decel_load,
             this->adapt_data[4].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 3->2: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 3->2: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[5].offset_accel_idle,
             this->adapt_data[5].bite_speed_accel_idle,
             this->adapt_data[5].offset_accel_load,
@@ -71,7 +71,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[5].offset_decel_load,
             this->adapt_data[5].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 4->3: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 4->3: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[6].offset_accel_idle,
             this->adapt_data[6].bite_speed_accel_idle,
             this->adapt_data[6].offset_accel_load,
@@ -81,7 +81,7 @@ AdaptationMap::AdaptationMap() {
             this->adapt_data[6].offset_decel_load,
             this->adapt_data[6].bite_speed_decel_load
         );
-        ESP_LOGI("ADAPT_MAP", "Values for 5->4: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for 5->4: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[7].offset_accel_idle,
             this->adapt_data[7].bite_speed_accel_idle,
             this->adapt_data[7].offset_accel_load,
@@ -112,7 +112,7 @@ bool AdaptationMap::load_from_nvs() {
     nvs_handle_t config_handle;    
     esp_err_t err = nvs_open("Configuration", NVS_READWRITE, &config_handle);
     if (err != ESP_OK) {
-        ESP_LOGE("ADAPT_MAP", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
         return false;
     }
     size_t map_size = sizeof(this->adapt_data);
@@ -130,12 +130,12 @@ bool AdaptationMap::save() {
     nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     esp_err_t e = nvs_set_blob(handle, NVS_KEY_GEAR_ADAPTATION, &this->adapt_data, sizeof(this->adapt_data));
     if (e != ESP_OK) {
-        ESP_LOGE("ADAPT_MAP", "Error setting AdaptMap blob (%s)", esp_err_to_name(e));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Error setting AdaptMap blob (%s)", esp_err_to_name(e));
         return false;
     }
     e = nvs_commit(handle);
     if (e != ESP_OK) {
-        ESP_LOGE("ADAPT_MAP", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Error calling nvs_commit: %s", esp_err_to_name(e));
         return false;
     }
     return true;
@@ -233,12 +233,12 @@ int AdaptationMap::get_adaptation_offset(SensorData* sensors, ProfileGearChange 
 }
 
 void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
-    ESP_LOGI("ADAPT_MAP", "Adapting called");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Adapting called");
     // Firstly, obey RPM and Torque limits
     /*
     Torque limit no longer needed - EGS will tell engine to always limit torque to a sensible place
     if (sensors->static_torque > ADAPT_TORQUE_LIMIT) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Torque outside limits. Got %d Nm, must be below %d Nm",
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Torque outside limits. Got %d Nm, must be below %d Nm",
             sensors->static_torque,
             ADAPT_TORQUE_LIMIT
         );
@@ -246,7 +246,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     }
     */
     if (sensors->engine_rpm > ADAPT_RPM_LIMIT) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Engine RPM outside limits. Got %d RPM, must be below %d RPM",
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Engine RPM outside limits. Got %d RPM, must be below %d RPM",
             sensors->engine_rpm,
             ADAPT_RPM_LIMIT
         );
@@ -254,12 +254,12 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
     }
     // Next check if measure was OK!
     if (!response.measure_ok) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. Shift measure was invalid");
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Shift measure was invalid");
         return;
     }
 
     if (sensors->atf_temp < ADAPT_TEMP_THRESH || sensors->atf_temp > ADAPT_TEMP_LIMIT) {
-        ESP_LOGW("ADAPT_MAP", "Cannot adapt. ATF temp outside limits. ATF at %d C, must be between %d and %d C",
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. ATF temp outside limits. ATF at %d C, must be between %d and %d C",
             sensors->atf_temp,
             ADAPT_TEMP_THRESH,
             ADAPT_TEMP_LIMIT
@@ -296,7 +296,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
         default:
             return; // huh??
     }
-    ESP_LOGI("ADAPT_MAP", "Adapting...");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Adapting...");
     bool accel_shift = sensors->d_output_rpm > 0;
     bool idle_shift = sensors->static_torque > 0;
 
@@ -329,7 +329,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ProfileGearChange ch
             }
         }
     }
-    ESP_LOGI("ADAPT_MAP", "Values MODIFIED!: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values MODIFIED!: AI: (%d, %.2f) AL: (%d, %.2f) DI: (%d, %.2f) DL: (%d, %.2f)", 
             this->adapt_data[adaptation_idx].offset_accel_idle,
             this->adapt_data[adaptation_idx].bite_speed_accel_idle,
             this->adapt_data[adaptation_idx].offset_accel_load,

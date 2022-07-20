@@ -200,7 +200,7 @@ void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear,
             *target -= 0.01;
         }
     }
-    ESP_LOGI("ADAPT", "Adaptation block is now %.2f %.2f %.2f %.2f", adaptation_1_2, adaptation_2_3, adaptation_3_4, adaptation_4_5);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT", "Adaptation block is now %.2f %.2f %.2f %.2f", adaptation_1_2, adaptation_2_3, adaptation_3_4, adaptation_4_5);
     */
 }
 

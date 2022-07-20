@@ -31,14 +31,14 @@ struct TempSampleData {
     uint8_t sample_id;
 };
 
-#define MAX_LIMIT 0.10 // 10% drift
+#define MAX_LIMIT 0.05 // 5% drift
 
 const static GearRatioLimit GEAR_RATIO_LIMITS_SMALL[7] {
     GearRatioLimit { .max = RAT_1_SMALL*(1.0+MAX_LIMIT), .min = RAT_1_SMALL*(1.0-MAX_LIMIT) }, // 1
     GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT), .min = RAT_2_SMALL*(1.0-MAX_LIMIT) }, // 2
     GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT), .min = RAT_3_SMALL*(1.0-MAX_LIMIT) }, // 3
     GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT), .min = RAT_4_SMALL*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT/2), .min = RAT_5_SMALL*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
+    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT/2), .min = RAT_5_SMALL*(1.0-MAX_LIMIT) }, // 5
     GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT) }, // R1
     GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT) }, // R2
 };
@@ -48,7 +48,7 @@ const static GearRatioLimit GEAR_RATIO_LIMITS_LARGE[7] {
     GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT), .min = RAT_2_LARGE*(1.0-MAX_LIMIT) }, // 2
     GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT), .min = RAT_3_LARGE*(1.0-MAX_LIMIT) }, // 3
     GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT), .min = RAT_4_LARGE*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT/2), .min = RAT_5_LARGE*(1.0-MAX_LIMIT/2) }, // 5 (Half tolorance so no overlap with 4th gear)
+    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT/2), .min = RAT_5_LARGE*(1.0-MAX_LIMIT) }, // 5
     GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT) }, // R1
     GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT) }, // R2
 };

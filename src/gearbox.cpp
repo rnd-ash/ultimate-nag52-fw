@@ -325,16 +325,17 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         curr_phase = &sd.hold2_data;
                         curr_sd_pwm = 4096;
                         start_ratio = sensor_data.gear_ratio*100; // Shift valve opens here so now take note of start ratio
+                        egs_can_hal->set_torque_request(TorqueRequest::Exact);
+                        egs_can_hal->set_requested_torque(sensor_data.static_torque);
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
-                        // Full open shift solenoid
                         shift_stage = SHIFT_PHASE_HOLD_3;
                         curr_phase = &sd.hold3_data;
+                        this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
-                        this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                         // Restrict vehicle torque now
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0) {

@@ -492,26 +492,23 @@ void Gearbox::shift_thread() {
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            int spc_start = 600;
-            int mpc_start = 600;
-            int spc_ramp = 20;
-            int mpc_ramp = 10;
-            uint16_t y4_pwm_val = 3500;
-
-            if (!start_second) { // Starting in 1st
-                mpc_start = 600;
-                spc_start = 50;
-                y4_pwm_val = 3500;
-                spc_ramp = 10;
-            }
-            pressure_mgr->set_target_mpc_pressure(mpc_start);
+            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)/2;
+            int spc_ramp = 10;
+            uint16_t y4_pwm_val = 4096;
+            pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque));
             pressure_mgr->set_target_spc_pressure(spc_start);
             sol_y4->write_pwm_12bit_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
-            while (spc_start <= 2500) {
+            vTaskDelay(150);
+            uint16_t del = 0;
+            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)) {
                 spc_start += spc_ramp;
-                mpc_start += mpc_ramp;
-                pressure_mgr->set_target_mpc_pressure(mpc_start);
+                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque));
                 pressure_mgr->set_target_spc_pressure(spc_start);        
+                if (del > 100) {
+                    y4_pwm_val = 1024; // 25% on to prevent burnout
+                }
+                sol_y4->write_pwm_12bit_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on   
+                del += 10;   
                 vTaskDelay(10/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);

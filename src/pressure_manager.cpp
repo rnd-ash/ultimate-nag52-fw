@@ -34,17 +34,16 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
         return;
     }
     // Allocation OK, add the data to the map
-
-    // Values are PWM 12bit (0-1000) for SPC and MPC solenoid
-    // This table takes into account resistance change based on ATF temp
-    int16_t pwm_map[8*4] = {
-    /*               0    50   600  1000  2350  5600  6600  7700 <- mBar */
-    /* -25C */     3000, 1501, 1480, 1301,  955,  614,  477, 272,
-    /*  20C */     3000, 1794, 1541, 1383, 1124,  691,  533,   0,
-    /*  60C */     3000, 1934, 1615, 1509, 1257,  773,  557,   0,
-    /* 150C */     3000, 2474, 2017, 1891, 1586,  939,  659,   0
+    // Values are current (mA) for SPC and MPC solenoid
+    int16_t pcs_current_map[8*4] = {
+    /*               0    50    600  1000  2350  5600  6600  7700 <- mBar */
+    /* -25C */     1500, 1100, 1085,  954,  700,  450,  350, 200,
+    /*  20C */     1500, 1077,  925,  830,  675,  415,  320,   0,
+    /*  60C */     1500, 1000,  835,  780,  650,  400,  288,   0,
+    /* 150C */     1500,  975,  795,  745,  625,  370,  260,   0
     };
-    pressure_pwm_map->add_data(pwm_map, 8*4);
+    
+    pressure_pwm_map->add_data(pcs_current_map, 8*4);
 
     /** Pressure PWM map (TCC) **/
 
@@ -345,11 +344,22 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
     dest->mpc_pressure = curr_mpc;
 }
 
-uint16_t PressureManager::get_p_solenoid_pwm_duty(uint16_t request_mbar) {
+#define TEMP_COEFFICIENT_COPPER 0.393
+
+uint16_t PressureManager::get_p_solenoid_pwm_duty(uint16_t request_mbar, bool spc) {
+
     if (this->pressure_pwm_map == nullptr) {
         return 100; // 10% (Failsafe)
     }
-    return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
+    float resistance = spc ? resistance_spc : resistance_mpc;
+    float temp = sensor_data->atf_temp;
+    float resistance_at_temp = resistance + resistance*(((temp - (float)temp_at_test)*TEMP_COEFFICIENT_COPPER)/100.0);
+
+    float targ_current = this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
+    if (targ_current == 0) {
+        return 0;
+    }
+    return (float)4096 * ( targ_current / (12000.0 / resistance_at_temp)); // 12.0V assumed, Solenoid API can auto correct for this
 }
 
 uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
@@ -365,13 +375,13 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
-    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure), this->sensor_data->voltage);
+    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false), this->sensor_data->voltage);
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
     this->spc_off = false;
     egs_can_hal->set_spc_pressure(targ);
-    sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure), this->sensor_data->voltage);
+    sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true), this->sensor_data->voltage);
     this->req_spc_pressure = targ;
 }
 
@@ -392,7 +402,7 @@ void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
     if (spc_off) {
         sol_spc->write_pwm_12_bit(0);
     } else {
-        sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure), this->sensor_data->voltage);
+        sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true), this->sensor_data->voltage);
     }
-    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure), this->sensor_data->voltage);
+    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false), this->sensor_data->voltage);
 }

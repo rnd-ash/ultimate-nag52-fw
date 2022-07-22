@@ -113,7 +113,7 @@ private:
      * Returns the estimated PWM to send to either SPC or MPC solenoid
      * Based on the requested pressure that is needed withint either pressure rail.
      */
-    uint16_t get_p_solenoid_pwm_duty(uint16_t request_mbar);
+    uint16_t get_p_solenoid_pwm_duty(uint16_t request_mbar, bool spc);
 
     /**
      * Returns the estimated PWM to send to the TCC solenoid

@@ -26,7 +26,7 @@ public:
      * @param channel LEDC Channel to use for controlling the solenoids PWM signal
      * @param timer Timer to use for controlling the solenoids PWM signal
      */
-    Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer);
+    Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel);
 
     /**
      * @brief Writes a raw 12-bit PWM duty to the solenoid
@@ -81,8 +81,9 @@ public:
     uint16_t get_vref() const;
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_current_internal(uint16_t c);
-    void __set_vref(uint16_t ref);
     void __write_pwm();
+
+    uint16_t diag_adc_read_current();
 
     // -- These functions are only accessed by sw_fader class! -- //
 private:
@@ -90,12 +91,12 @@ private:
     bool ready;
     const char *name;
     uint16_t vref;
-    bool vref_calibrated;
     ledc_channel_t channel;
     ledc_timer_t timer;
     portMUX_TYPE adc_reading_mutex;
     portMUX_TYPE pwm_mutex;
     volatile uint16_t adc_reading;
+    adc1_channel_t adc_channel;
     uint16_t pwm = 0;
 };
 
@@ -107,6 +108,8 @@ private:
  */
 bool init_all_solenoids();
 
+void diag_toggle_i2s_thread(bool state);
+
 extern Solenoid *sol_y3;
 extern Solenoid *sol_y4;
 extern Solenoid *sol_y5;
@@ -114,6 +117,11 @@ extern Solenoid *sol_y5;
 extern Solenoid *sol_mpc;
 extern Solenoid *sol_spc;
 extern Solenoid *sol_tcc;
+
+extern float resistance_spc;
+extern float resistance_mpc;
+extern bool temp_cal;
+extern int16_t temp_at_test;
 
 enum PwmSolenoid {
     PWM_SPC = 0,

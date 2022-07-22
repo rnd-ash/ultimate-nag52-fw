@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "esp_adc_cal.h"
 #include "pins.h"
+#include "../sensors.h"
 
 esp_adc_cal_characteristics_t adc1_cal;
 
@@ -57,7 +58,9 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 }
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
-    pwm_raw &= 0xFFF;
+    if (pwm_raw > 4096) {
+        pwm_raw = 4096;
+    }
     portENTER_CRITICAL(&this->pwm_mutex);
     this->pwm = pwm_raw;
     portEXIT_CRITICAL(&this->pwm_mutex);
@@ -125,14 +128,6 @@ void Solenoid::__set_current_internal(uint16_t c)
     portEXIT_CRITICAL(&this->adc_reading_mutex);
 }
 
-void Solenoid::__set_vref(uint16_t ref)
-{
-    portENTER_CRITICAL(&this->adc_reading_mutex);
-    this->vref = ref;
-    this->vref_calibrated = true;
-    portEXIT_CRITICAL(&this->adc_reading_mutex);
-}
-
 bool Solenoid::init_ok() const
 {
     return this->ready;
@@ -147,9 +142,6 @@ Solenoid *sol_spc = nullptr;
 Solenoid *sol_tcc = nullptr;
 
 bool all_calibrated = false;
-
-
-esp_adc_cal_characteristics_t adc1_cal;
 
 #define BYTES_PER_SAMPLE 2
 
@@ -215,33 +207,33 @@ void read_solenoids_i2s(void*) {
     uint64_t avg;
     while(true) {
         if (i2s_reader_enable) {
-        for (uint8_t solenoid_id = 0; solenoid_id < 6; solenoid_id++) {
-            i2s_set_adc_mode(ADC_UNIT_1, solenoid_channels[solenoid_id]);
-            i2s_adc_enable(I2S_NUM_0);
-            sample_id = 0;
-            avg = 0;
-            while(sample_id < SAMPLE_COUNT) {
-                bytes_read = 0;
-                i2s_read(I2S_NUM_0, &dma_buffer, NUM_SAMPLES*BYTES_PER_SAMPLE, &bytes_read, portMAX_DELAY);
-                uint32_t tmp = 0;
-                for (int i = 0; i < BYTES_PER_SAMPLE*NUM_SAMPLES; i += BYTES_PER_SAMPLE) {
-                    tmp += (uint32_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
+            for (uint8_t solenoid_id = 0; solenoid_id < 6; solenoid_id++) {
+                i2s_set_adc_mode(ADC_UNIT_1, solenoid_channels[solenoid_id]);
+                i2s_adc_enable(I2S_NUM_0);
+                sample_id = 0;
+                avg = 0;
+                while(sample_id < SAMPLE_COUNT) {
+                    bytes_read = 0;
+                    i2s_read(I2S_NUM_0, &dma_buffer, NUM_SAMPLES*BYTES_PER_SAMPLE, &bytes_read, portMAX_DELAY);
+                    uint32_t tmp = 0;
+                    for (int i = 0; i < BYTES_PER_SAMPLE*NUM_SAMPLES; i += BYTES_PER_SAMPLE) {
+                        tmp += (uint32_t)(dma_buffer[i] << 8 | dma_buffer[i+1]);
+                    }
+                    samples[sample_id] = tmp / NUM_SAMPLES;
+                    sample_id += 1;
                 }
-                samples[sample_id] = tmp / NUM_SAMPLES;
-                sample_id += 1;
-            }
-            for (uint8_t i = 0; i < SAMPLE_COUNT; i++) {
-                avg += samples[i]; 
-            }
-            avg /= SAMPLE_COUNT;
+                for (uint8_t i = 0; i < SAMPLE_COUNT; i++) {
+                    avg += samples[i]; 
+                }
+                avg /= SAMPLE_COUNT;
 
-            sol_order[solenoid_id]->__set_current_internal(avg);
-            if (solenoid_id == 5) {
-                all_calibrated = true;
+                sol_order[solenoid_id]->__set_current_internal(avg);
+                if (solenoid_id == 5) {
+                    all_calibrated = true;
+                }
+                // Configure ADC again and loop to read the next solenoid!
+                i2s_adc_disable(I2S_NUM_0);
             }
-            // Configure ADC again and loop to read the next solenoid!
-            i2s_adc_disable(I2S_NUM_0);
-        }
         }
 #ifdef BOARD_V2
         vTaskDelay(10 / portTICK_PERIOD_MS); // Approx 10 refreshes per second
@@ -260,6 +252,11 @@ void update_solenoids(void*) {
         vTaskDelay(5);
     }
 }
+
+float resistance_mpc = 5.0;
+float resistance_spc = 5.0;
+bool temp_cal = false;
+int16_t temp_at_test = 25;
 
 bool init_all_solenoids()
 {
@@ -286,47 +283,54 @@ bool init_all_solenoids()
     ) { // Init error, don't do anything else
         return false;
     }
-    xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
     xTaskCreate(update_solenoids, "LEDC-Update", 1024, nullptr, 10, nullptr);
-    while(!all_calibrated) {
-        vTaskDelay(2/portTICK_PERIOD_MS);
-    }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", 
-        "Solenoid calibration readings: Y3: %d, Y4: %d, Y5: %d, MPC: %d, SPC: %d, TCC: %d",
-            sol_y3->get_vref(),
-            sol_y4->get_vref(),
-            sol_y5->get_vref(),
-            sol_mpc->get_vref(),
-            sol_spc->get_vref(),
-            sol_tcc->get_vref()
-    );
-#define SOL_THRESHOLD_ADC 500
-
-    if (sol_y3->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y3 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y3->get_vref(), SOL_THRESHOLD_ADC);
-        return false;
-    }
-    if (sol_y4->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y4 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y4->get_vref(), SOL_THRESHOLD_ADC);
-        return false;
-    }
-    if (sol_y5->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID Y5 is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_y5->get_vref(), SOL_THRESHOLD_ADC);
-        return false;
-    }
-    if (sol_mpc->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID MPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_mpc->get_vref(), SOL_THRESHOLD_ADC);
-        return false;
-    }
-    if (sol_spc->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID SPC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_spc->get_vref(), SOL_THRESHOLD_ADC);
-        return false;
-    }
-    if (sol_tcc->get_vref() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SOLENOID TCC is drawing too much current at idle! (ADC Reading: %d, threshold: %d). Short circuit!?", sol_tcc->get_vref(), SOL_THRESHOLD_ADC);
+    if(sol_spc->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
         return false;
     }
 
+    if(sol_mpc->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
+        return false;
+    }
+
+    if(sol_tcc->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
+        return false;
+    }
+
+    if(sol_y3->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
+        return false;
+    }
+
+    if(sol_y4->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
+        return false;
+    }
+
+    if(sol_y5->diag_adc_read_current() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
+        return false;
+    }
     
+    // Get resistance values from SPC and MPC
+    uint16_t batt = 12000;
+    if (Sensors::read_vbatt(&batt) && batt > 11000) {
+        // Get current values from SPC and MPC
+        sol_mpc->write_pwm_12_bit(4096);
+        vTaskDelay(70);
+        resistance_mpc = (float)batt / (float)sol_mpc->diag_adc_read_current();
+        sol_mpc->write_pwm_12_bit(0);
+        vTaskDelay(20);
+        Sensors::read_vbatt(&batt);
+        sol_spc->write_pwm_12_bit(4096);
+        vTaskDelay(70);
+        resistance_spc = (float)batt / (float)sol_spc->diag_adc_read_current();
+        sol_mpc->write_pwm_12_bit(0);
+        sol_spc->write_pwm_12_bit(0);
+        ESP_LOGI("SOLENOID", "Resistance values. SPC: %.1f Ohms, MPC: %.2f Ohms", resistance_spc, resistance_mpc);
+    }
+    xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
     return true;
 }

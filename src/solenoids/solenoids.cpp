@@ -3,7 +3,9 @@
 #include "esp_adc_cal.h"
 #include "pins.h"
 
-Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer)
+esp_adc_cal_characteristics_t adc1_cal;
+
+Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel)
 {
     this->channel = channel;
     this->timer = timer;
@@ -13,8 +15,10 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->adc_reading_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->pwm_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->vref = 0;
-    this->vref_calibrated = false;
     this->default_freq = frequency;
+    this->adc_channel = read_channel;
+
+    adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11);
 
     ledc_timer_config_t timer_cfg = {
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
@@ -73,6 +77,15 @@ void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
         this->pwm = want_duty;
         portEXIT_CRITICAL(&this->pwm_mutex);
     }
+}
+
+uint16_t Solenoid::diag_adc_read_current() {
+    int raw = adc1_get_raw(this->adc_channel);
+#ifdef BOARD_V2
+    return esp_adc_cal_raw_to_voltage(raw, &adc1_cal); // 10mOhm shunt
+#else
+    return esp_adc_cal_raw_to_voltage(raw, &adc1_cal)*2; // For v1 board with 5mOhm shunt
+#endif
 }
 
 uint16_t Solenoid::get_pwm()
@@ -184,6 +197,12 @@ const i2s_config_t i2s_config = {
 
 #endif
 
+bool i2s_reader_enable = true;
+
+void diag_toggle_i2s_thread(bool state) {
+    i2s_reader_enable = state;
+}
+
 void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
     // Y3, Y4, Y5, MPC, SPC, TCC
@@ -195,6 +214,7 @@ void read_solenoids_i2s(void*) {
     uint32_t sample_id;
     uint64_t avg;
     while(true) {
+        if (i2s_reader_enable) {
         for (uint8_t solenoid_id = 0; solenoid_id < 6; solenoid_id++) {
             i2s_set_adc_mode(ADC_UNIT_1, solenoid_channels[solenoid_id]);
             i2s_adc_enable(I2S_NUM_0);
@@ -216,14 +236,12 @@ void read_solenoids_i2s(void*) {
             avg /= SAMPLE_COUNT;
 
             sol_order[solenoid_id]->__set_current_internal(avg);
-            if (!all_calibrated) {
-                sol_order[solenoid_id]->__set_vref(avg);
-            }
             if (solenoid_id == 5) {
                 all_calibrated = true;
             }
             // Configure ADC again and loop to read the next solenoid!
             i2s_adc_disable(I2S_NUM_0);
+        }
         }
 #ifdef BOARD_V2
         vTaskDelay(10 / portTICK_PERIOD_MS); // Approx 10 refreshes per second
@@ -246,12 +264,13 @@ void update_solenoids(void*) {
 bool init_all_solenoids()
 {
     // Read calibration for ADC1
-    sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0);
-    sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0);
-    sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0);
-    sol_mpc = new Solenoid("MPC", PIN_MPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_0);
-    sol_spc = new Solenoid("SPC", PIN_SPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_0);
-    sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1);
+    sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_0);
+    sol_y4 = new Solenoid("Y4", PIN_Y4_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_3);
+    sol_y5 = new Solenoid("Y5", PIN_Y5_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_7);
+    sol_mpc = new Solenoid("MPC", PIN_MPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_6);
+    sol_spc = new Solenoid("SPC", PIN_SPC_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_4);
+    sol_tcc = new Solenoid("TCC", PIN_TCC_PWM, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1, ADC1_CHANNEL_5);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);
     esp_err_t res = ledc_fade_func_install(0);
     if (res != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Could not insert LEDC_FADE: %s", esp_err_to_name(res));

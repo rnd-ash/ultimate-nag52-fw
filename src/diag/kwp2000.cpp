@@ -529,7 +529,14 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     }
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
-            if (gearbox_ptr->sensor_data.engine_rpm == 0 && gearbox_ptr->sensor_data.input_rpm == 0) {
+            bool pl = false;
+            if (
+                    gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
+                    gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
+                    gearbox_ptr->sensor_data.voltage > 10000 && // Enough battery voltage
+                    Sensors::parking_lock_engaged(&pl) &&
+                    !pl // Parking lock off (In D/R)
+                ) {
                 this->routine_running = true;
                 this->routine_id = ROUTINE_SOLENOID_TEST;
                 xTaskCreate(Kwp2000_server::launch_solenoid_test, "RT_SOL_TEST", 2048, this, 5, &this->routine_task);
@@ -755,16 +762,19 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
 
 
 void Kwp2000_server::run_solenoid_test() {
-    this->gearbox_ptr->diag_inhibit_control();
     ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Starting solenoid test");
-    this->routine_results_len = 7;
-    // Routine results format
-    // 6 bytes (1 per solenoid)
-    // 0x00 - OK
-    // 0x0F - Overcurrent when 0 (Short detected)
-    // 0xF0 - Undercurrent when open (Possible sensor fault)
-    memset(this->routine_result, 0, 7);
+    this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
+    memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
+    // Routine results format
+    int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
+    uint16_t batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[1] = atf & 0xFF;
+    this->routine_result[2] = (atf >> 8) & 0xFF;
+
+    this->gearbox_ptr->diag_inhibit_control();
+    diag_toggle_i2s_thread(false);
+    vTaskDelay(50);
     sol_mpc->write_pwm_12_bit(0);
     sol_spc->write_pwm_12_bit(0);
     sol_tcc->write_pwm_12_bit(0);
@@ -772,81 +782,100 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y4->write_pwm_12_bit(0);
     sol_y5->write_pwm_12_bit(0);
     vTaskDelay(1000);
-    if (sol_mpc->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "MPC overcurrent");
-        this->routine_result[1] = 0x0F;
-    }
-    if (sol_spc->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "SPC overcurrent");
-        this->routine_result[2] = 0x0F;
-    }
-    if (sol_tcc->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "TCC overcurrent");
-        this->routine_result[3] = 0x0F;
-    }
-    if (sol_y3->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y3 overcurrent");
-        this->routine_result[4] = 0x0F;
-    }
-    if (sol_y4->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y4 overcurrent");
-        this->routine_result[5] = 0x0F;
-    }
-    if (sol_y5->get_current_estimate() > 100) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y5 overcurrent");
-        this->routine_result[6] = 0x0F;
-    }
-    // Now test each solenoid 1x1
-    sol_mpc->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_mpc->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "MPC undercurrent %d", sol_mpc->get_current_estimate());
-        this->routine_result[1] |= 0xF0;
-        //goto cleanup;
-    }
+
+    uint16_t curr = sol_mpc->diag_adc_read_current();
+    this->routine_result[3] = curr & 0xFF;
+    this->routine_result[4] = (curr >> 8) & 0xFF;
+
+    curr = sol_spc->diag_adc_read_current();
+    this->routine_result[5] = curr & 0xFF;
+    this->routine_result[6] = (curr >> 8) & 0xFF;
+
+    curr = sol_tcc->diag_adc_read_current();
+    this->routine_result[7] = curr & 0xFF;
+    this->routine_result[8] = (curr >> 8) & 0xFF;
+
+    curr = sol_y3->diag_adc_read_current();
+    this->routine_result[9] = curr & 0xFF;
+    this->routine_result[10] = (curr >> 8) & 0xFF;
+
+    curr = sol_y4->diag_adc_read_current();
+    this->routine_result[11] = curr & 0xFF;
+    this->routine_result[12] = (curr >> 8) & 0xFF;
+
+    curr = sol_y5->diag_adc_read_current();
+    this->routine_result[13] = curr & 0xFF;
+    this->routine_result[14] = (curr >> 8) & 0xFF;
+
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[15] = batt & 0xFF;
+    this->routine_result[16] = (batt >> 8) & 0xFF;
+    sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
+    vTaskDelay(250);
+    curr = sol_mpc->diag_adc_read_current();
+    this->routine_result[17] = curr & 0xFF;
+    this->routine_result[18] = (curr >> 8) & 0xFF;
     sol_mpc->write_pwm_12_bit(0);
-    sol_spc->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_spc->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "SPC undercurrent %d", sol_spc->get_current_estimate());
-        this->routine_result[2] |= 0xF0;
-        //goto cleanup;
-    }
+    vTaskDelay(100);
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[19] = batt & 0xFF;
+    this->routine_result[20] = (batt >> 8) & 0xFF;
+    sol_spc->write_pwm_12_bit(4096); // 2. SPC solenoid
+    vTaskDelay(250);
+    curr = sol_spc->diag_adc_read_current();
+    this->routine_result[21] = curr & 0xFF;
+    this->routine_result[22] = (curr >> 8) & 0xFF;
     sol_spc->write_pwm_12_bit(0);
-    sol_tcc->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_tcc->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "TCC undercurrent %d", sol_tcc->get_current_estimate());
-        this->routine_result[3] |= 0xF0;
-        //goto cleanup;
-    }
+    vTaskDelay(100);
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[23] = batt & 0xFF;
+    this->routine_result[24] = (batt >> 8) & 0xFF;
+    sol_tcc->write_pwm_12_bit(4096); // 3. TCC solenoid
+    vTaskDelay(250);
+    curr = sol_tcc->diag_adc_read_current();
+    this->routine_result[25] = curr & 0xFF;
+    this->routine_result[26] = (curr >> 8) & 0xFF;
     sol_tcc->write_pwm_12_bit(0);
-    sol_y3->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_y3->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y3 undercurrent %d", sol_y3->get_current_estimate());
-        this->routine_result[4] |= 0xF0;
-        //goto cleanup;
-    }
+    vTaskDelay(100);
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[27] = batt & 0xFF;
+    this->routine_result[28] = (batt >> 8) & 0xFF;
+    sol_y3->write_pwm_12_bit(4096); // 4. Y3 Solenoid
+    vTaskDelay(250);
+    curr = sol_y3->diag_adc_read_current();
+    this->routine_result[29] = curr & 0xFF;
+    this->routine_result[30] = (curr >> 8) & 0xFF;
     sol_y3->write_pwm_12_bit(0);
-    sol_y4->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_y4->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y4 undercurrent %d", sol_y4->get_current_estimate());
-        this->routine_result[5] |= 0xF0;
-        //goto cleanup;
-    }
+    vTaskDelay(100);
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[31] = batt & 0xFF;
+    this->routine_result[32] = (batt >> 8) & 0xFF;
+    sol_y4->write_pwm_12_bit(4096); // 5. Y4 Solenoid
+    vTaskDelay(250);
+    curr = sol_y4->diag_adc_read_current();
+    this->routine_result[33] = curr & 0xFF;
+    this->routine_result[34] = (curr >> 8) & 0xFF;
     sol_y4->write_pwm_12_bit(0);
-    sol_y5->write_pwm_12_bit(2048);
-    vTaskDelay(600);
-    if (sol_y5->get_current_estimate() < 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "RT_SOL_TEST", "Y5 undercurrent %d", sol_y5->get_current_estimate());
-        this->routine_result[6] |= 0xF0;
-        //goto cleanup;
-    }
+    vTaskDelay(100);
+
+    batt = this->gearbox_ptr->sensor_data.voltage;
+    this->routine_result[35] = batt & 0xFF;
+    this->routine_result[36] = (batt >> 8) & 0xFF;
+    sol_y5->write_pwm_12_bit(4096); // 6. Y5 Solenoid
+    vTaskDelay(250);
+    curr = sol_y5->diag_adc_read_current();
+    this->routine_result[37] = curr & 0xFF;
+    this->routine_result[38] = (curr >> 8) & 0xFF;
     sol_y5->write_pwm_12_bit(0);
+
     ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Cleaning up");
     this->routine_running = false;
     this->gearbox_ptr->diag_regain_control();
+    diag_toggle_i2s_thread(true);
     vTaskDelete(nullptr);
 }

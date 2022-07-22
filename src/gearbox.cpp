@@ -838,6 +838,10 @@ void Gearbox::controller_loop() {
                 this->sensor_data.atf_temp = tmp_atf;
             }
         } else {
+            if (!temp_cal) {
+                temp_cal = true;
+                temp_at_test = tmp_atf;
+            }
             // SPC and MPC can cause voltage swing on the ATF line, so disable
             // monitoring when shifting gears!
             if (!shifting) {

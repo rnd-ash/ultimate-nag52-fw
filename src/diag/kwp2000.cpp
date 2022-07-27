@@ -5,6 +5,7 @@
 #include "diag_data.h"
 #include "egs_emulation.h"
 #include "kwp_utils.h"
+#include "solenoids/constant_current.h"
 
 typedef struct {
     uint8_t day;
@@ -448,7 +449,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
     } else if (args[0] == RLI_SOLENOID_STATUS) {
-        DATA_SOLENOIDS r = get_solenoid_data();
+        DATA_SOLENOIDS r = get_solenoid_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SOLENOID_STATUS, (uint8_t*)&r, sizeof(DATA_SOLENOIDS));
     } else if (args[0] == RLI_CAN_DATA_DUMP) {
         DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
@@ -459,6 +460,12 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_COREDUMP_SIZE) {
         COREDUMP_INFO r = get_coredump_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
+    } else if (args[0] == RLI_PRESSURES) {
+        DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
+    } else if (args[0] == RLI_DMA_DUMP) {
+        DATA_DMA_BUFFER r = dump_i2s_dma();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_DMA_DUMP, (uint8_t*)&r, sizeof(DATA_DMA_BUFFER));
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
@@ -533,7 +540,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-                    gearbox_ptr->sensor_data.voltage > 10000 && // Enough battery voltage
+                    Solenoids::get_solenoid_voltage() > 10000 && // Enough battery voltage
                     Sensors::parking_lock_engaged(&pl) &&
                     !pl // Parking lock off (In D/R)
                 ) {
@@ -762,18 +769,20 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
 
 
 void Kwp2000_server::run_solenoid_test() {
+    vTaskDelay(50);
     ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Starting solenoid test");
     this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
     // Routine results format
     int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
-    uint16_t batt = this->gearbox_ptr->sensor_data.voltage;
+    uint16_t batt = Solenoids::get_solenoid_voltage();
     this->routine_result[1] = atf & 0xFF;
     this->routine_result[2] = (atf >> 8) & 0xFF;
 
     this->gearbox_ptr->diag_inhibit_control();
-    diag_toggle_i2s_thread(false);
+    mpc_cc->toggle_state(false);
+    spc_cc->toggle_state(false);
     vTaskDelay(50);
     sol_mpc->write_pwm_12_bit(0);
     sol_spc->write_pwm_12_bit(0);
@@ -781,101 +790,145 @@ void Kwp2000_server::run_solenoid_test() {
     sol_y3->write_pwm_12_bit(0);
     sol_y4->write_pwm_12_bit(0);
     sol_y5->write_pwm_12_bit(0);
-    vTaskDelay(1000);
+    vTaskDelay(250);
 
-    uint16_t curr = sol_mpc->diag_adc_read_current();
+    uint16_t curr = sol_mpc->get_current_avg();
     this->routine_result[3] = curr & 0xFF;
     this->routine_result[4] = (curr >> 8) & 0xFF;
 
-    curr = sol_spc->diag_adc_read_current();
+    curr = sol_spc->get_current_avg();
     this->routine_result[5] = curr & 0xFF;
     this->routine_result[6] = (curr >> 8) & 0xFF;
 
-    curr = sol_tcc->diag_adc_read_current();
+    curr = sol_tcc->get_current_avg();
     this->routine_result[7] = curr & 0xFF;
     this->routine_result[8] = (curr >> 8) & 0xFF;
 
-    curr = sol_y3->diag_adc_read_current();
+    curr = sol_y3->get_current_avg();
     this->routine_result[9] = curr & 0xFF;
     this->routine_result[10] = (curr >> 8) & 0xFF;
 
-    curr = sol_y4->diag_adc_read_current();
+    curr = sol_y4->get_current_avg();
     this->routine_result[11] = curr & 0xFF;
     this->routine_result[12] = (curr >> 8) & 0xFF;
 
-    curr = sol_y5->diag_adc_read_current();
+    curr = sol_y5->get_current_avg();
     this->routine_result[13] = curr & 0xFF;
     this->routine_result[14] = (curr >> 8) & 0xFF;
 
-
-    batt = this->gearbox_ptr->sensor_data.voltage;
+#define NUM_CURRENT_SAMPLES 10
+    float total_batt = 0;
+    float total_curr = 0;
+    sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
+    vTaskDelay(100);
+    total_batt = 0;
+    total_curr = 0;
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_mpc->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[15] = batt & 0xFF;
     this->routine_result[16] = (batt >> 8) & 0xFF;
-    sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
-    vTaskDelay(250);
-    curr = sol_mpc->diag_adc_read_current();
     this->routine_result[17] = curr & 0xFF;
     this->routine_result[18] = (curr >> 8) & 0xFF;
     sol_mpc->write_pwm_12_bit(0);
-    vTaskDelay(100);
+    vTaskDelay(250);
 
-    batt = this->gearbox_ptr->sensor_data.voltage;
+    sol_spc->write_pwm_12_bit(4096); // 2. SPC solenoid
+    total_batt = 0;
+    total_curr = 0;
+    vTaskDelay(100);
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_spc->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[19] = batt & 0xFF;
     this->routine_result[20] = (batt >> 8) & 0xFF;
-    sol_spc->write_pwm_12_bit(4096); // 2. SPC solenoid
-    vTaskDelay(250);
-    curr = sol_spc->diag_adc_read_current();
     this->routine_result[21] = curr & 0xFF;
     this->routine_result[22] = (curr >> 8) & 0xFF;
     sol_spc->write_pwm_12_bit(0);
-    vTaskDelay(100);
+    vTaskDelay(250);
 
-    batt = this->gearbox_ptr->sensor_data.voltage;
+    sol_tcc->write_pwm_12_bit(4096); // 3. TCC solenoid
+    total_batt = 0;
+    total_curr = 0;
+    vTaskDelay(100);
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_tcc->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[23] = batt & 0xFF;
     this->routine_result[24] = (batt >> 8) & 0xFF;
-    sol_tcc->write_pwm_12_bit(4096); // 3. TCC solenoid
-    vTaskDelay(250);
-    curr = sol_tcc->diag_adc_read_current();
     this->routine_result[25] = curr & 0xFF;
     this->routine_result[26] = (curr >> 8) & 0xFF;
     sol_tcc->write_pwm_12_bit(0);
+    vTaskDelay(250);
+    sol_y3->write_pwm_12_bit(4096); // 4. Y3 Solenoid
     vTaskDelay(100);
-
-    batt = this->gearbox_ptr->sensor_data.voltage;
+    total_batt = 0;
+    total_curr = 0;
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_y3->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[27] = batt & 0xFF;
     this->routine_result[28] = (batt >> 8) & 0xFF;
-    sol_y3->write_pwm_12_bit(4096); // 4. Y3 Solenoid
-    vTaskDelay(250);
-    curr = sol_y3->diag_adc_read_current();
     this->routine_result[29] = curr & 0xFF;
     this->routine_result[30] = (curr >> 8) & 0xFF;
     sol_y3->write_pwm_12_bit(0);
-    vTaskDelay(100);
+    vTaskDelay(250);
 
-    batt = this->gearbox_ptr->sensor_data.voltage;
+    sol_y4->write_pwm_12_bit(4096); // 5. Y4 Solenoid
+    total_batt = 0;
+    total_curr = 0;
+    vTaskDelay(100);
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_y4->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[31] = batt & 0xFF;
     this->routine_result[32] = (batt >> 8) & 0xFF;
-    sol_y4->write_pwm_12_bit(4096); // 5. Y4 Solenoid
-    vTaskDelay(250);
-    curr = sol_y4->diag_adc_read_current();
     this->routine_result[33] = curr & 0xFF;
     this->routine_result[34] = (curr >> 8) & 0xFF;
     sol_y4->write_pwm_12_bit(0);
-    vTaskDelay(100);
+    vTaskDelay(250);
 
-    batt = this->gearbox_ptr->sensor_data.voltage;
+    sol_y5->write_pwm_12_bit(4096); // 6. Y5 Solenoid
+    total_batt = 0;
+    total_curr = 0;
+    vTaskDelay(100);
+    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
+        total_curr += sol_y5->get_current_avg();
+        total_batt += Solenoids::get_solenoid_voltage();
+        vTaskDelay(10);
+    }
+    curr = total_curr / NUM_CURRENT_SAMPLES;
+    batt = total_batt / NUM_CURRENT_SAMPLES;
     this->routine_result[35] = batt & 0xFF;
     this->routine_result[36] = (batt >> 8) & 0xFF;
-    sol_y5->write_pwm_12_bit(4096); // 6. Y5 Solenoid
-    vTaskDelay(250);
-    curr = sol_y5->diag_adc_read_current();
     this->routine_result[37] = curr & 0xFF;
     this->routine_result[38] = (curr >> 8) & 0xFF;
     sol_y5->write_pwm_12_bit(0);
 
     ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Cleaning up");
     this->routine_running = false;
+    mpc_cc->toggle_state(true);
+    spc_cc->toggle_state(true);
     this->gearbox_ptr->diag_regain_control();
-    diag_toggle_i2s_thread(true);
     vTaskDelete(nullptr);
 }

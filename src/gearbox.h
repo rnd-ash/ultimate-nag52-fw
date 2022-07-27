@@ -90,6 +90,7 @@ public:
     static uint16_t redline_rpm;
     ShiftReporter* shift_reporter;
     bool shifting = false;
+    PressureManager* pressure_mgr = nullptr;
 private:
     ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -130,7 +131,6 @@ private:
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
     bool diag_stop_control = false;
-    PressureManager* pressure_mgr = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;

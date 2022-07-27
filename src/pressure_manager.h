@@ -132,7 +132,6 @@ private:
     uint16_t req_mpc_pressure;
     uint16_t req_current_spc;
     uint16_t req_current_mpc;
-    bool spc_off = false;
     TcmMap* pressure_pwm_map;
     TcmMap* tcc_pwm_map;
     TcmMap* hold2_time_map;

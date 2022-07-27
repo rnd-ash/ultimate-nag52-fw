@@ -380,7 +380,6 @@ void PressureManager::set_target_mpc_pressure(uint16_t targ) {
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
-    this->spc_off = false;
     egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
@@ -390,7 +389,7 @@ void PressureManager::disable_spc() {
     this->req_spc_pressure = 7000;
     this->req_current_spc = 0;
     egs_can_hal->set_spc_pressure(7000);
-    this->spc_off = true;
+    spc_cc->set_target_current(0);
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {

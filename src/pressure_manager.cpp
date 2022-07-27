@@ -347,13 +347,12 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
 #define TEMP_COEFFICIENT_COPPER 0.393
 
 uint16_t PressureManager::get_p_solenoid_pwm_duty(uint16_t request_mbar, bool spc) {
-
     if (this->pressure_pwm_map == nullptr) {
         return 100; // 10% (Failsafe)
     }
-    float resistance = spc ? resistance_spc : resistance_mpc;
-    float temp = sensor_data->atf_temp;
-    float resistance_at_temp = resistance + resistance*(((temp - (float)temp_at_test)*TEMP_COEFFICIENT_COPPER)/100.0);
+    float resistance = resistance_mpc;
+    if (spc) { resistance = resistance_spc; }
+    float resistance_at_temp = resistance + resistance*((((float)sensor_data->atf_temp - (float)temp_at_test)*TEMP_COEFFICIENT_COPPER)/100.0);
 
     float targ_current = this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
     if (targ_current == 0) {
@@ -375,13 +374,13 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
-    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false), this->sensor_data->voltage);
+    sol_mpc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false));
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
     this->spc_off = false;
     egs_can_hal->set_spc_pressure(targ);
-    sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true), this->sensor_data->voltage);
+    sol_spc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true));
     this->req_spc_pressure = targ;
 }
 
@@ -394,15 +393,15 @@ void PressureManager::disable_spc() {
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
-    sol_tcc->write_pwm_12bit_with_voltage(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure), this->sensor_data->voltage);
+    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure));
 }
 
 void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
-    sol_tcc->write_pwm_12bit_with_voltage(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure), this->sensor_data->voltage);
+    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure));
     if (spc_off) {
         sol_spc->write_pwm_12_bit(0);
     } else {
-        sol_spc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true), this->sensor_data->voltage);
+        sol_spc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true));
     }
-    sol_mpc->write_pwm_12bit_with_voltage(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false), this->sensor_data->voltage);
+    sol_mpc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false));
 }

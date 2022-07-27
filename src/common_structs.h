@@ -45,8 +45,6 @@ typedef struct {
     uint16_t engine_rpm;
     /// Output shaft RPM
     uint16_t output_rpm;
-    /// TCM voltage
-    uint16_t voltage;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
     /// Transmission oil temperature in Celcius

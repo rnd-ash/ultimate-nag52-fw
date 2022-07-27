@@ -157,7 +157,7 @@ void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData
     if (this->curr_tcc_pressure < 1200) {
         this->curr_tcc_pressure = 1200;
     } else if (this->curr_tcc_pressure >= 1400) {
-        uint32_t additional_reduction = scale_number(shift_firmness*10, 100, 0, 0, 100);
+        uint32_t additional_reduction = scale_number(shift_firmness*10, 200, 0, 0, 100);
         this->curr_tcc_pressure -= additional_reduction;
     }
 }

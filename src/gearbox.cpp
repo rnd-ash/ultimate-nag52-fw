@@ -3,6 +3,7 @@
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
 #include <tcm_maths.h>
+#include "solenoids/constant_current.h"
 
 uint16_t Gearbox::redline_rpm = 4000;
 
@@ -38,8 +39,7 @@ Gearbox::Gearbox() {
     this->sensor_data = SensorData {
         .input_rpm = 0,
         .engine_rpm = 0,
-        .output_rpm = 0,
-        .voltage = 12000,   
+        .output_rpm = 0, 
         .pedal_pos = 0,
         .atf_temp = 0,
         .static_torque = 0,
@@ -425,15 +425,13 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         add_report = !add_report;
         if (shift_stage >= SHIFT_PHASE_MAX_P && est_gear_idx == sd.targ_g) {
             this->mpc_working = this->pressure_mgr->find_working_mpc_pressure(target_gear, &sensor_data, gearboxConfig.max_torque);
-            pressure_mgr->set_target_spc_pressure(this->mpc_working*2);
-        } else {
-            pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
         }
-        sd.shift_solenoid->write_pwm_12bit_with_voltage(curr_sd_pwm, sensor_data.voltage); // Write to shift solenoid
+        pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
+        sd.shift_solenoid->write_pwm_12_bit(curr_sd_pwm); // Write to shift solenoid
         if (ss_open > 100) {
             curr_sd_pwm = 1200; // ~25% PWM (When adjusted for voltage) requested after 100ms to prevent SS from burning up
         }
-        if (sd.shift_solenoid->get_pwm() != 0) {
+        if (sd.shift_solenoid->get_pwm_compensated() != 0) {
             ss_open += SHIFT_DELAY_MS;
         }
         vTaskDelay(SHIFT_DELAY_MS);
@@ -475,15 +473,13 @@ void Gearbox::shift_thread() {
     this->shifting = true;
     GearboxGear curr_target = this->target_gear;
     GearboxGear curr_actual = this->actual_gear;
-    uint16_t batt_voltage = 12000; // Assume 12V
-    Sensors::read_vbatt(&batt_voltage);
     if (curr_actual == curr_target) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFTER", "Gears are the same????");
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target)) { // N->P or P->N
         this->pressure_mgr->set_target_spc_pressure(100);
-        sol_y4->write_pwm_12bit_with_voltage(800, sensor_data.voltage); // 3-4 is pulsed at 20%
+        sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
@@ -492,33 +488,32 @@ void Gearbox::shift_thread() {
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)/2;
+            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque);
             int spc_ramp = 10;
             uint16_t y4_pwm_val = 4096;
             pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque));
             pressure_mgr->set_target_spc_pressure(spc_start);
-            sol_y4->write_pwm_12bit_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on
+            sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
             vTaskDelay(150);
             uint16_t del = 0;
-            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)) {
+            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*3) {
                 spc_start += spc_ramp;
-                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque));
-                pressure_mgr->set_target_spc_pressure(spc_start);        
+                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*1.1);
+                pressure_mgr->set_target_spc_pressure(spc_start);  
                 if (del > 100) {
                     y4_pwm_val = 1024; // 25% on to prevent burnout
                 }
-                sol_y4->write_pwm_12bit_with_voltage(y4_pwm_val, sensor_data.voltage); // Full on   
+                sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on   
                 del += 10;   
                 vTaskDelay(10/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);
             sol_y4->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();      
-            //sol_spc->write_pwm_percent(0);
         } else {
             // Garage shifting to N or P, we can just set the pressure back to idle
             pressure_mgr->set_target_spc_pressure(50);
-            sol_y4->write_pwm_12bit_with_voltage(800, sensor_data.voltage); // Back to idle
+            sol_y4->write_pwm_12_bit(800); // Back to idle
         }
         if (is_fwd_gear(curr_target)) {
             // Last forward known gear
@@ -690,9 +685,6 @@ void Gearbox::controller_loop() {
         if (p_tmp != 0xFF) {
             this->sensor_data.pedal_pos = p_tmp;
         }
-        if (!Sensors::read_vbatt(&this->sensor_data.voltage)) {
-            this->sensor_data.voltage = 12000;
-        }
         sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(now, 1000);
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
@@ -716,7 +708,11 @@ void Gearbox::controller_loop() {
                 this->shifter_pos == ShifterPosition::R_N ||
                 this->shifter_pos == ShifterPosition::N ||
                 this->shifter_pos == ShifterPosition::N_D ||
-                this->shifter_pos == ShifterPosition::D
+                this->shifter_pos == ShifterPosition::D ||
+                this->shifter_pos == ShifterPosition::FOUR ||
+                this->shifter_pos == ShifterPosition::THREE ||
+                this->shifter_pos == ShifterPosition::TWO ||
+                this->shifter_pos == ShifterPosition::ONE 
             ) {
                 if (this->shifter_pos != last_position) {
                     if (lock_state) {
@@ -823,8 +819,8 @@ void Gearbox::controller_loop() {
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         } else if (!shifting) {
-                sol_mpc->write_pwm_12_bit(0);
-                sol_spc->write_pwm_12_bit(0);
+                mpc_cc->set_target_current(0);
+                spc_cc->set_target_current(0);
                 sol_tcc->write_pwm_12_bit(0);
                 sol_y3->write_pwm_12_bit(0);
                 sol_y4->write_pwm_12_bit(0);
@@ -841,6 +837,11 @@ void Gearbox::controller_loop() {
             if (!temp_cal) {
                 temp_cal = true;
                 temp_at_test = tmp_atf;
+                if (temp_at_test != 25) {
+                    resistance_mpc = resistance_mpc + (resistance_mpc*(((25.0-(float)temp_at_test)*0.393)/100.0));
+                    resistance_spc = resistance_spc + (resistance_spc*(((25.0-(float)temp_at_test)*0.393)/100.0));
+                }
+                ESP_LOGI("GB", "Calibrated solenoids at %d C. Adjusted for 25C: SPC %.2f MPC %.2f", tmp_atf, resistance_spc, resistance_mpc);
             }
             // SPC and MPC can cause voltage swing on the ATF line, so disable
             // monitoring when shifting gears!
@@ -853,12 +854,12 @@ void Gearbox::controller_loop() {
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);
         egs_can_hal->set_target_gear(this->target_gear);
         egs_can_hal->set_actual_gear(this->actual_gear);
-        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm(), SolenoidName::Y3);
-        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm(), SolenoidName::Y4);
-        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm(), SolenoidName::Y5);
-        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm(), SolenoidName::SPC);
-        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm(), SolenoidName::MPC);
-        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm(), SolenoidName::TCC);
+        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm_compensated(), SolenoidName::Y3);
+        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm_compensated(), SolenoidName::Y4);
+        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm_compensated(), SolenoidName::Y5);
+        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm_compensated(), SolenoidName::SPC);
+        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm_compensated(), SolenoidName::MPC);
+        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm_compensated(), SolenoidName::TCC);
         egs_can_hal->set_shift_stage(this->shift_stage, this->is_ramp);
         egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio*100);
         egs_can_hal->set_gear_disagree(this->gear_disagree_count);

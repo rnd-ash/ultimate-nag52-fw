@@ -57,7 +57,13 @@ class LegacyShifter {
 public:
     LegacyShifter();
     ShifterPosition get_shifter_position();
-    bool prog_button_pressed();
+    /**
+     * Unlike EWM module, this shifter does NOT
+     * have a button for switching profiles.
+     * Instead, it has a toggle switch between
+     * W and S mode
+     */
+    bool prog_button_position();
     bool brake_pressed();
     bool kickdown_pressed();
 

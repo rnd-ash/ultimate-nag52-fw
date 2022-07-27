@@ -62,24 +62,8 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw) {
         pwm_raw = 4096;
     }
     portENTER_CRITICAL(&this->pwm_mutex);
-    this->pwm = pwm_raw;
+    this->pwm_raw = pwm_raw;
     portEXIT_CRITICAL(&this->pwm_mutex);
-}
-
-void Solenoid::write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv) {
-    if (duty == 0) {
-        portENTER_CRITICAL(&this->pwm_mutex);
-        this->pwm = 0;
-        portEXIT_CRITICAL(&this->pwm_mutex);
-    } else {
-        uint16_t want_duty = (float)duty * solenoid_vref / (float)curr_v_mv;
-        if (want_duty > 4096) {
-            want_duty = 4096; // Clamp to max
-        }
-        portENTER_CRITICAL(&this->pwm_mutex);
-        this->pwm = want_duty;
-        portEXIT_CRITICAL(&this->pwm_mutex);
-    }
 }
 
 uint16_t Solenoid::diag_adc_read_current() {
@@ -115,10 +99,24 @@ uint16_t Solenoid::get_current_estimate()
 }
 
 void Solenoid::__write_pwm() {
-    portENTER_CRITICAL(&this->pwm_mutex);
-    ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
-    portEXIT_CRITICAL(&this->pwm_mutex);
-    ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+    if (this->pwm_raw == 0) {
+        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, 0);
+        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+        this->pwm = 0;
+    } else {
+        uint16_t vbatt = 14000;
+        if (!Sensors::read_vbatt(&vbatt)) {
+            vbatt = 14000;
+        }
+        portENTER_CRITICAL(&this->pwm_mutex);
+        this->pwm = (float)this->pwm_raw * solenoid_vref / (float)vbatt;
+        if (this->pwm > 4096) {
+            this->pwm = 4096; // Clamp to max
+        }
+        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
+        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+        portEXIT_CRITICAL(&this->pwm_mutex);
+    }
 }
 
 void Solenoid::__set_current_internal(uint16_t c)

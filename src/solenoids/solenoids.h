@@ -34,18 +34,6 @@ public:
      * @param percent Raw PWM duty (0-4096)
      */
     void write_pwm_12_bit(uint16_t pwm_raw);
-
-    /**
-     * @brief Writes a raw 12-bit PWM duty to the solenoid, but also takes
-     * the current voltage into account and adjusts PWM based on the current voltage to maintain
-     * a constant current.
-     * 
-     * NOTE: At this time, the reference voltage used is 12000mV (12.0V)
-     * 
-     * @param duty Raw PWM duty (0-4096)
-     * @param curr_v_mv The current supply voltage to the TCM, in mV
-     */
-    void write_pwm_12bit_with_voltage(uint16_t duty, uint16_t curr_v_mv);
     /**
      * @brief Returns the current PWM duty of the solenoid
      * 
@@ -98,6 +86,7 @@ private:
     volatile uint16_t adc_reading;
     adc1_channel_t adc_channel;
     uint16_t pwm = 0;
+    uint16_t pwm_raw = 0;
 };
 
 /**

@@ -106,8 +106,12 @@ enum class ShifterPosition: uint8_t {
     N,
     N_D,
     D,
-    PLUS,
-    MINUS,
+    PLUS, // For EWM only
+    MINUS, // For EWM only
+    FOUR, // For TRRS only
+    THREE, // For TRRS only
+    TWO, // For TRRS only
+    ONE, // For TRRS only
     SignalNotAvaliable = 0xFF // SNV
 };
 

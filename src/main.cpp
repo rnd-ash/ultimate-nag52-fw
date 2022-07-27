@@ -171,11 +171,6 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
-    //LegacyShifter lshifter = LegacyShifter();
-    //while(true) {
-    //    lshifter.kickdown_pressed();
-    //    vTaskDelay(500);
-    //}
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
@@ -189,6 +184,11 @@ extern "C" void app_main(void)
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
+    //LegacyShifter lshifter = LegacyShifter();
+    //while(true) {
+    //    lshifter.get_shifter_position();
+    //    vTaskDelay(100);
+    //}
 }
 
 #endif // UNIT_TEST

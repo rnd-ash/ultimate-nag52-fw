@@ -399,17 +399,6 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
 
-void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
-    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
-    if (spc_off) {
-        this->req_current_spc = 0;
-        spc_cc->set_target_current(0);
-    } else {
-        spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
-    }
-    mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
-}
-
 uint16_t PressureManager::get_targ_mpc_pressure(){ return this->req_mpc_pressure; }
 uint16_t PressureManager::get_targ_spc_pressure(){ return this->req_spc_pressure; }
 uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure; }

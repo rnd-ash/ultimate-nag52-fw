@@ -87,8 +87,6 @@ public:
 
     PressureManager(SensorData* sensor_ptr);
 
-    void update(GearboxGear curr_gear, GearboxGear targ_gear);
-
     /**
      * @brief Get the shift data object for the requested shift
      * 

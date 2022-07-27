@@ -78,6 +78,11 @@ public:
     void set_target_mpc_pressure(uint16_t targ);
     void set_target_spc_pressure(uint16_t targ);
     void set_target_tcc_pressure(uint16_t targ);
+    uint16_t get_targ_mpc_pressure();
+    uint16_t get_targ_spc_pressure();
+    uint16_t get_targ_tcc_pressure();
+    uint16_t get_targ_spc_current();
+    uint16_t get_targ_mpc_current();
     void disable_spc();
 
     PressureManager(SensorData* sensor_ptr);
@@ -113,7 +118,7 @@ private:
      * Returns the estimated PWM to send to either SPC or MPC solenoid
      * Based on the requested pressure that is needed withint either pressure rail.
      */
-    uint16_t get_p_solenoid_pwm_duty(uint16_t request_mbar, bool spc);
+    uint16_t get_p_solenoid_current(uint16_t request_mbar, bool is_spc);
 
     /**
      * Returns the estimated PWM to send to the TCC solenoid
@@ -127,6 +132,8 @@ private:
     uint16_t req_tcc_pressure;
     uint16_t req_spc_pressure;
     uint16_t req_mpc_pressure;
+    uint16_t req_current_spc;
+    uint16_t req_current_mpc;
     bool spc_off = false;
     TcmMap* pressure_pwm_map;
     TcmMap* tcc_pwm_map;

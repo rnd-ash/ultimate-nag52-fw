@@ -16,6 +16,7 @@
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
 #include "adaptation/adapt_map.h"
+#include "solenoids/constant_current.h"
 
 #ifdef BOARD_V2
 #include "legacy_shifter.h"
@@ -54,7 +55,10 @@ SPEAKER_POST_CODE setup_tcm()
     if (!Sensors::init_sensors()) {
         return SPEAKER_POST_CODE::SENSOR_FAIL;
     }
-    if(!init_all_solenoids()) {
+    if(!Solenoids::init_all_solenoids()) {
+        return SPEAKER_POST_CODE::SOLENOID_FAIL;
+    }
+    if(!CurrentDriver::init_current_driver()) {
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
 

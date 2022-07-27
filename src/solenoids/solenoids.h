@@ -12,7 +12,7 @@
 #include <driver/adc.h>
 #include <esp_event.h>
 
-const static float solenoid_vref = 12000.0f; // 12V Vref for solenoids
+const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
 
 class Solenoid
 {
@@ -25,31 +25,63 @@ public:
      * @param frequency Default frequency of the PWM signal for the solenoid
      * @param channel LEDC Channel to use for controlling the solenoids PWM signal
      * @param timer Timer to use for controlling the solenoids PWM signal
+     * @param read_channel The ADC 1 Channel used for current sense feedback
      */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel);
 
     /**
-     * @brief Writes a raw 12-bit PWM duty to the solenoid
+     * @brief Writes a 12-bit PWM duty to the solenoid
      * 
-     * @param percent Raw PWM duty (0-4096)
+     * @param percent Requested PWM duty (0-4096)
+     * @param voltage_compensate (Default true) - Tells the solenoid API
+     * weather to take into account the real voltage being supplied to the solenoid
+     * in order to maintain a constant current. 
+     * 
+     * For instance, if the desired PWM is based on a 12.0V voltage, but the actual
+     * voltage being supplied to the solenoid is 14.0V, then a ~16% reduction in PWM
+     * will be made in order to keep the current being sent to the solenoid the same
      */
-    void write_pwm_12_bit(uint16_t pwm_raw);
+    void write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate = true);
     /**
-     * @brief Returns the current PWM duty of the solenoid
+     * @brief Returns the raw PWM that was requested by write_pwm_12_bit
      * 
-     * @return uint16_t current 12-bit PWM duty of the solenoid
+     * @return The raw PWM duty that was requested
      */
-    uint16_t get_pwm();
+    uint16_t get_pwm_raw();
 
     /**
-     * @brief Gets an estimate of the current being used by the solenoid
+     * @brief returns the actual PWM that is being written to the solenoid
      * 
-     * This function updates approximatly every 200ms for each solenoid, so
-     * after requesting a PWM change, the current reading might not change instantly
+     * This can differ from get_pwm_raw when voltage_compensate is being used
+     * by write_pwm_12_bit
      * 
-     * @return uint16_t Current estimate of the solenoid, in milliamps (mA)
+     * @return The current PWM being written to the solenoid
      */
-    uint16_t get_current_estimate();
+    uint16_t get_pwm_compensated();
+
+    /**
+     * @brief Gets the average current consumed by the solenoid
+     * This accounts for BOTH when the solenoid is on, and off.
+     * 
+     * This is similar to what a bench power supply would report
+     */
+    uint16_t get_current_avg();
+
+    /**
+     * @brief Gets the current consumed by the solenoid,
+     * but only during the 'ON' phase of the PWM cycle.
+     * 
+     * This is used to calculate the armature position and thus
+     * pressure within the SPC and MPC solenoid specifically, which
+     * are direct proportional solenoids
+     */
+    uint16_t get_current_on();
+
+    /**
+     * @brief returns the ADC1 channel being used to read
+     * the current of the solenoid
+     */
+    adc1_channel_t get_adc_channel();
 
     /**
      * @brief Returns if the solenoid initialized OK
@@ -59,45 +91,43 @@ public:
      */
     bool init_ok() const;
 
-    /**
-     * @brief Returns the solenoids base-line voltage reference as seen by the current monitoring circuit for the solenoid
-     * 
-     * NOTE: This function should NOT be used, it is only for development purposes!
-     * 
-     * @return uint16_t Voltage reference point of the solenoid current measuring circuit, in mV
-     */
-    uint16_t get_vref() const;
     // Internal functions - Don't touch, handled by I2S thread!
-    void __set_current_internal(uint16_t c);
-    void __write_pwm();
-
-    uint16_t diag_adc_read_current();
+    void __set_adc_reading_avg(uint16_t c);
+    void __set_adc_reading_on(uint16_t c);
+    void __write_pwm(uint16_t vbatt_now);
 
     // -- These functions are only accessed by sw_fader class! -- //
 private:
     uint32_t default_freq;
     bool ready;
     const char *name;
-    uint16_t vref;
     ledc_channel_t channel;
     ledc_timer_t timer;
     portMUX_TYPE adc_reading_mutex;
     portMUX_TYPE pwm_mutex;
-    volatile uint16_t adc_reading;
+    volatile uint16_t adc_reading_avg;
+    volatile uint16_t adc_reading_now;
+    bool voltage_compensate = true;
     adc1_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
 };
 
-/**
- * @brief Tries to initialize all the solenoids on the transmission (MPC,SPC,TCC,Y3,Y4,Y5)
- * 
- * @return true All solenoids initialized OK
- * @return false A solenoid failed to initialize
- */
-bool init_all_solenoids();
+#define I2S_LOOP_INTERVAL_CC_ONLY 10
+#define I2S_LOOP_INVERVAL_ALL 20
 
-void diag_toggle_i2s_thread(bool state);
+namespace Solenoids {
+    /**
+     * @brief Tries to initialize all the solenoids on the transmission (MPC,SPC,TCC,Y3,Y4,Y5)
+     * 
+     * @return true All solenoids initialized OK
+     * @return false A solenoid failed to initialize
+     */
+    bool init_all_solenoids();
+    uint16_t get_solenoid_voltage();
+    void toggle_all_solenoid_current_monitoring(bool enable);
+    bool is_monitoring_all_solenoids();
+}
 
 extern Solenoid *sol_y3;
 extern Solenoid *sol_y4;
@@ -112,11 +142,7 @@ extern float resistance_mpc;
 extern bool temp_cal;
 extern int16_t temp_at_test;
 
-enum PwmSolenoid {
-    PWM_SPC = 0,
-    PWM_MPC = 1
-};
-
-extern Solenoid* pressure_pwm_solenoids[2];
+#define I2S_DMA_BUF_LEN 500
+extern uint16_t* buf;
 
 #endif // __SOLENOID_H_

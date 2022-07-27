@@ -1,6 +1,7 @@
 #include "pressure_manager.h"
 #include <tcm_maths.h>
 #include "macros.h"
+#include "solenoids/constant_current.h"
 
 inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
     if (percent <= 0) { return map[0]; }
@@ -20,6 +21,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     this->req_tcc_pressure = 0;
     this->req_mpc_pressure = 0;
     this->req_mpc_pressure = 0;
+    this->req_current_mpc = 0;
+    this->req_current_spc = 0;
 
     /** Pressure PWM map **/
 
@@ -37,10 +40,10 @@ PressureManager::PressureManager(SensorData* sensor_ptr) {
     // Values are current (mA) for SPC and MPC solenoid
     int16_t pcs_current_map[8*4] = {
     /*               0    50    600  1000  2350  5600  6600  7700 <- mBar */
-    /* -25C */     1500, 1100, 1085,  954,  700,  450,  350, 200,
-    /*  20C */     1500, 1077,  925,  830,  675,  415,  320,   0,
-    /*  60C */     1500, 1000,  835,  780,  650,  400,  288,   0,
-    /* 150C */     1500,  975,  795,  745,  625,  370,  260,   0
+    /* -25C */     1300, 1100, 1085,  954,  700,  450,  350, 200,
+    /*  20C */     1277, 1077,  925,  830,  675,  415,  320,   0,
+    /*  60C */     1200, 1000,  835,  780,  650,  400,  288,   0,
+    /* 150C */     1175,  975,  795,  745,  625,  370,  260,   0
     };
     
     pressure_pwm_map->add_data(pcs_current_map, 8*4);
@@ -253,7 +256,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 
     // Update hold2 and hold1 MPC
     sd.hold2_data.mpc_pressure = sd.hold3_data.mpc_pressure;
-    sd.hold1_data.mpc_pressure = (sd.hold2_data.mpc_pressure+curr_mpc)/2; // Make hold 1 50% between Hold2 and curr_mpc
+    sd.hold1_data.mpc_pressure = sd.hold3_data.mpc_pressure*1.2; // Hold 1 MPC should be higher as SPC is bleeding more
 
     // All hold times should be changed based on engine RPM (Assumed 2K RPM when selecting the pressures)
     //float multi = (float)sensor_data->input_rpm / 3000.0;
@@ -313,7 +316,7 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftC
             dest->spc_pressure = 1400;
             break;
     }
-    dest->mpc_pressure = dest->spc_pressure*1.5;
+    dest->mpc_pressure = dest->spc_pressure*1.3;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -346,19 +349,18 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
 
 #define TEMP_COEFFICIENT_COPPER 0.393
 
-uint16_t PressureManager::get_p_solenoid_pwm_duty(uint16_t request_mbar, bool spc) {
+// Get PWM value (out of 4096) to write to the solenoid
+uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar, bool is_spc) {
     if (this->pressure_pwm_map == nullptr) {
-        return 100; // 10% (Failsafe)
+        return 0; // 10% (Failsafe)
     }
-    float resistance = resistance_mpc;
-    if (spc) { resistance = resistance_spc; }
-    float resistance_at_temp = resistance + resistance*((((float)sensor_data->atf_temp - (float)temp_at_test)*TEMP_COEFFICIENT_COPPER)/100.0);
-
-    float targ_current = this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
-    if (targ_current == 0) {
-        return 0;
+    uint16_t c = this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
+    if (is_spc) {
+        this->req_current_spc = c;
+    } else {
+        this->req_current_mpc = c;
     }
-    return (float)4096 * ( targ_current / (12000.0 / resistance_at_temp)); // 12.0V assumed, Solenoid API can auto correct for this
+    return c;
 }
 
 uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
@@ -374,18 +376,19 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
-    sol_mpc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false));
+    mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
     this->spc_off = false;
     egs_can_hal->set_spc_pressure(targ);
-    sol_spc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true));
     this->req_spc_pressure = targ;
+    spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
 }
 
 void PressureManager::disable_spc() {
     this->req_spc_pressure = 7000;
+    this->req_current_spc = 0;
     egs_can_hal->set_spc_pressure(7000);
     this->spc_off = true;
 }
@@ -393,15 +396,22 @@ void PressureManager::disable_spc() {
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
-    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure));
+    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
 
 void PressureManager::update(GearboxGear curr_gear, GearboxGear targ_gear) {
-    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure));
+    sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
     if (spc_off) {
-        sol_spc->write_pwm_12_bit(0);
+        this->req_current_spc = 0;
+        spc_cc->set_target_current(0);
     } else {
-        sol_spc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_spc_pressure, true));
+        spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
     }
-    sol_mpc->write_pwm_12_bit(this->get_p_solenoid_pwm_duty(this->req_mpc_pressure, false));
+    mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
+
+uint16_t PressureManager::get_targ_mpc_pressure(){ return this->req_mpc_pressure; }
+uint16_t PressureManager::get_targ_spc_pressure(){ return this->req_spc_pressure; }
+uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure; }
+uint16_t PressureManager::get_targ_spc_current(){ return this->req_current_spc; }
+uint16_t PressureManager::get_targ_mpc_current(){ return this->req_current_mpc; }

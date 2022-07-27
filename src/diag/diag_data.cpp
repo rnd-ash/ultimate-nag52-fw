@@ -1,6 +1,7 @@
 #include "diag_data.h"
 #include "sensors.h"
 #include "solenoids/solenoids.h"
+#include "solenoids/constant_current.h"
 #include "perf_mon.h"
 #include <tcm_maths.h>
 #include "kwp2000.h"
@@ -27,29 +28,38 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
         ret.parking_lock = 0xFF;
         ret.atf_temp_c = 0xFFFF;
     }
-    if (!Sensors::read_vbatt(&ret.v_batt)) {
-        ret.v_batt = 0xFFFF;
-    }
+    ret.v_batt = Solenoids::get_solenoid_voltage();
     ret.calc_ratio = g->get_gear_ratio();
     return ret;
 }
 
-DATA_SOLENOIDS get_solenoid_data() {
+DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     DATA_SOLENOIDS ret = {};
 
-    ret.mpc_current = sol_mpc->get_current_estimate();
-    ret.spc_current = sol_spc->get_current_estimate();
-    ret.tcc_current = sol_tcc->get_current_estimate();
-    ret.y3_current = sol_y3->get_current_estimate();
-    ret.y4_current = sol_y4->get_current_estimate();
-    ret.y5_current = sol_y5->get_current_estimate();
+    ret.mpc_current = sol_mpc->get_current_on(); //sol_mpc->get_current_estimate();
+    ret.spc_current = sol_spc->get_current_on();//sol_spc->get_current_estimate();
+    ret.tcc_current = sol_tcc->get_current_on();//sol_tcc->get_current_estimate();
+    ret.y3_current = sol_y3->get_current_on();//sol_y3->get_current_estimate();
+    ret.y4_current = sol_y4->get_current_on();//sol_y4->get_current_estimate();
+    ret.y5_current = sol_y5->get_current_on();//sol_y5->get_current_estimate();
+    ret.adjustment_mpc = mpc_cc->get_adjustment()*100;
+    ret.adjustment_spc = spc_cc->get_adjustment()*100;
+    ret.mpc_pwm = sol_mpc->get_pwm_compensated();
+    ret.spc_pwm = sol_spc->get_pwm_compensated();
+    ret.tcc_pwm = sol_tcc->get_pwm_compensated();
+    ret.y3_pwm = sol_y3->get_pwm_compensated();
+    ret.y4_pwm = sol_y4->get_pwm_compensated();
+    ret.y5_pwm = sol_y5->get_pwm_compensated();
 
-    ret.mpc_pwm = sol_mpc->get_pwm();
-    ret.spc_pwm = sol_spc->get_pwm();
-    ret.tcc_pwm = sol_tcc->get_pwm();
-    ret.y3_pwm = sol_y3->get_pwm();
-    ret.y4_pwm = sol_y4->get_pwm();
-    ret.y5_pwm = sol_y5->get_pwm();
+    if (gb_ptr->pressure_mgr != nullptr) {
+        ret.targ_mpc_current = gb_ptr->pressure_mgr->get_targ_mpc_current();
+        ret.targ_spc_current = gb_ptr->pressure_mgr->get_targ_spc_current();
+    } else {
+        ret.targ_mpc_current = 0xFFFF;
+        ret.targ_spc_current = 0xFFFF;
+    }
+    return ret;
+}
 
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     DATA_PRESSURES ret = {};
@@ -66,6 +76,13 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
         ret.tcc_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
     }
     return ret;
+}
+
+DATA_DMA_BUFFER dump_i2s_dma() {
+    DATA_DMA_BUFFER dma = {};
+    memcpy(dma.dma_buffer, buf, I2S_DMA_BUF_LEN*sizeof(uint16_t));
+    dma.channel_id = 0;
+    return dma;
 }
 
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {

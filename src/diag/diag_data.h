@@ -25,6 +25,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_SYS_USAGE       0x23 // Brain usage
 #define RLI_COREDUMP_SIZE   0x24 // Coredump size
 #define RLI_PRESSURES       0x25
+#define RLI_DMA_DUMP        0x26
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct
@@ -49,6 +50,10 @@ typedef struct {
     uint16_t spc_current;
     uint16_t mpc_current;
     uint16_t tcc_current;
+    uint16_t targ_spc_current;
+    uint16_t targ_mpc_current;
+    int16_t adjustment_spc;
+    int16_t adjustment_mpc;
     uint16_t y3_current;
     uint16_t y4_current;
     uint16_t y5_current;
@@ -89,14 +94,21 @@ typedef struct {
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
 typedef struct {
+    uint8_t channel_id;
+    uint16_t dma_buffer[I2S_DMA_BUF_LEN];
+} __attribute__ ((packed)) DATA_DMA_BUFFER;
+
+typedef struct {
     uint32_t address;
     uint32_t size;
 } __attribute__ ((packed)) COREDUMP_INFO;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
+DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
 DATA_SYS_USAGE get_sys_usage();
+DATA_DMA_BUFFER dump_i2s_dma();
 
 
 // Read and write SCN config

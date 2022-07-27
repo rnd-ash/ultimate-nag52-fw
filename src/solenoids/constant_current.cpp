@@ -9,10 +9,14 @@ ConstantCurrentDriver::ConstantCurrentDriver(Solenoid* target, const char *name)
     this->pwm_adjustment_percent = 1.0;
     this->current_target = 0;
     this->last_off_time = esp_timer_get_time()/1000;
+    this->last_change_time = esp_timer_get_time()/1000;
     this->name = name;
 }
 
 void ConstantCurrentDriver::set_target_current(uint16_t current) {
+    if (current != this->current_target) {
+        this->last_change_time = esp_timer_get_time()/1000;
+    }
     this->current_target = current;
 }
 
@@ -30,26 +34,26 @@ void ConstantCurrentDriver::update() {
         return;
     }
     uint16_t pwm;
+    uint64_t now = esp_timer_get_time()/1000;
     if (this->current_target == 0) {
         pwm = 0;
-        this->last_off_time = esp_timer_get_time()/1000;
+        this->last_off_time = now;
     } else {
         uint16_t actual_current = this->solenoid->get_current_on();
         float error; // Current error (reading vs target)
          // Solenoid was commanded on but hasn't activated yet, or req current is too small to measure
-        if ((actual_current == 0 && this->current_target != 0) || (esp_timer_get_time()/1000 - this->last_off_time < 50) ) {
+        if (actual_current < 400 || this->current_target == 0 || now-this->last_change_time < 100) {
             error = 0;
         } else {
             error = (float)(this->current_target-actual_current)/(float)this->current_target;
+            ESP_LOGI("CC", "%s ERROR IS %.3f", this->name, error*100);
         }
-        if ((error < -0.005 || error > 0.005) && this->current_target > 500) {
-            if (error > 0.01) {
-                error = 0.01;
-            } else if (error < -0.01) {
-                error = -0.01;
-            }
-            this->pwm_adjustment_percent += (error);
+        if (error > 0.01) {
+            error = 0.01;
+        } else if (error < -0.01) {
+            error = -0.01;
         }
+        this->pwm_adjustment_percent += (error);
         // Assume 12.0V and target resistance, errors will be compensated by solenoid API and this error
         float req_pwm = (4096.0*((float)this->current_target/((float)Solenoids::get_solenoid_voltage()/REFERENCE_RESISTANCE)))*this->pwm_adjustment_percent;
         pwm = req_pwm;

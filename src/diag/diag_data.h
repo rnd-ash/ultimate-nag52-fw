@@ -24,6 +24,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
 #define RLI_SYS_USAGE       0x23 // Brain usage
 #define RLI_COREDUMP_SIZE   0x24 // Coredump size
+#define RLI_PRESSURES       0x25
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct
@@ -52,6 +53,16 @@ typedef struct {
     uint16_t y4_current;
     uint16_t y5_current;
 }  __attribute__ ((packed)) DATA_SOLENOIDS;
+
+// Pressure command struct
+typedef struct {
+    uint16_t spc_pwm;
+    uint16_t mpc_pwm;
+    uint16_t tcc_pwm;
+    uint16_t spc_pressure;
+    uint16_t mpc_pressure;
+    uint16_t tcc_pressure;
+}  __attribute__ ((packed)) DATA_PRESSURES;
 
 // Solenoid command struct
 typedef struct {
@@ -83,7 +94,7 @@ typedef struct {
 } __attribute__ ((packed)) COREDUMP_INFO;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
-DATA_SOLENOIDS get_solenoid_data();
+DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
 DATA_SYS_USAGE get_sys_usage();
 

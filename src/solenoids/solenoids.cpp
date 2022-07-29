@@ -6,8 +6,10 @@
 #include "soc/syscon_periph.h"
 #include "soc/i2s_periph.h"
 #include "string.h"
+#include "driver/adc_deprecated.h"
 
 esp_adc_cal_characteristics_t adc1_cal;
+uint16_t voltage = 12000;
 
 Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel)
 {
@@ -15,12 +17,12 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->timer = timer;
     this->ready = true; // Assume ready unless error!
     this->name = name;
-    this->adc_reading_now = 0;
-    this->adc_reading_avg = 0;
-    this->adc_reading_mutex = portMUX_INITIALIZER_UNLOCKED;
-    this->pwm_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->adc_reading_current = 0;
     this->default_freq = frequency;
     this->adc_channel = read_channel;
+    this->adc_sample_idx = 0;
+    this->adc_total = 0;
+    memset(this->adc_avgs, 0, sizeof(this->adc_avgs));
 
     adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11);
 
@@ -65,17 +67,15 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
     if (pwm_raw > 4096) {
         pwm_raw = 4096;
     }
-    portENTER_CRITICAL(&this->pwm_mutex);
     this->pwm_raw = pwm_raw;
     this->voltage_compensate = voltage_compensate;
-    portEXIT_CRITICAL(&this->pwm_mutex);
 }
 
-uint16_t Solenoid::get_current_on() {
+uint16_t Solenoid::get_current() {
     #ifdef BOARD_V2
-        uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_now, &adc1_cal);
-        if (v < 200) {
-            v = this->adc_reading_now; // Less accurate
+        uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_current, &adc1_cal);
+        if (v <= adc1_cal.coeff_b) {
+            v = this->adc_reading_current; // Less accurate
         }
         return v;
     #else
@@ -84,26 +84,25 @@ uint16_t Solenoid::get_current_on() {
 }
 
 uint16_t Solenoid::get_pwm_raw()
-{   portENTER_CRITICAL(&this->pwm_mutex);
-    uint16_t p = this->pwm_raw;
-    portEXIT_CRITICAL(&this->pwm_mutex);
-    return p;
+{
+    return this->pwm_raw;
 }
 
 uint16_t Solenoid::get_pwm_compensated()
 {   
-    portENTER_CRITICAL(&this->pwm_mutex);
-    uint16_t p = this->pwm;
-    portEXIT_CRITICAL(&this->pwm_mutex);
-    return p;
+    return this->pwm;
+}
+
+uint16_t Solenoid::diag_get_adc_peak_raw() {
+    return this->adc_reading_current;
 }
 
 
 uint16_t Solenoid::get_current_avg()
-{
-    uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_avg, &adc1_cal);
-    if (v < 200) {
-        v = this->adc_reading_avg; // Less accurate
+{   
+    uint32_t v = esp_adc_cal_raw_to_voltage((float)this->adc_total/SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
+    if (v <= adc1_cal.coeff_b) {
+        v = this->adc_reading_current; // Less accurate
     }
 #ifdef BOARD_V2
         return v;
@@ -112,27 +111,24 @@ uint16_t Solenoid::get_current_avg()
 #endif
 }
 
-void Solenoid::__write_pwm(uint16_t vbatt_now) {
+void Solenoid::__write_pwm() {
     if (this->pwm_raw == 0) {
-        if (this->pwm_raw == ledc_get_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel)) { return; }
+        if (this->pwm_raw == this->pwm) { return; }
         ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, 0);
         ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
         this->pwm = 0;
     } else {
-        portENTER_CRITICAL(&this->pwm_mutex);
         if (this->voltage_compensate) {
-            this->pwm = (float)this->pwm_raw * SOLENOID_VREF / (float)vbatt_now;
+            Sensors::read_vbatt(&voltage);
+            this->pwm = (float)this->pwm_raw * SOLENOID_VREF / (float)voltage;
             if (this->pwm > 4096) {
                 this->pwm = 4096; // Clamp to max
             }
         } else {
             this->pwm = this->pwm_raw;
         }
-        if (this->pwm != ledc_get_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel)) {
-            ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
-            ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
-        }
-        portEXIT_CRITICAL(&this->pwm_mutex);
+        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
+        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
     }
 }
 
@@ -172,18 +168,18 @@ void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     esp_err_t e;
-                i2s_config_t i2s_conf = {
-                    .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
+    i2s_config_t i2s_conf = {
+        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
         .sample_rate = 600000,
-                    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-                    .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-                    .communication_format = I2S_COMM_FORMAT_STAND_MSB,
-                    .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
-                    .dma_buf_count = 4,
-                    .dma_buf_len = I2S_DMA_BUF_LEN,
-                    .use_apll = false,
-                    .tx_desc_auto_clear = false
-                };
+        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .communication_format = I2S_COMM_FORMAT_STAND_MSB,
+        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
+        .dma_buf_count = 4,
+        .dma_buf_len = I2S_DMA_BUF_LEN,
+        .use_apll = false,
+        .tx_desc_auto_clear = false
+    };
     ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_conf, 0, nullptr));
     ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0)); // Don't care about this
     vTaskDelay(10);
@@ -208,7 +204,7 @@ void read_solenoids_i2s(void*) {
     uint16_t value;
     while(true) {
         // Invert back data from ADC
-            uint32_t read = 0;
+        uint32_t read = 0;
         memset(samples, 0, sizeof(samples));
         memset(totals, 0, sizeof(totals));
         for (int sample_id = 0; sample_id < 1; sample_id++) {
@@ -219,9 +215,9 @@ void read_solenoids_i2s(void*) {
                 if (value != 0) {
                     totals[channel]+=value;
                     samples[channel]++;
-            }
-            }
                 }
+            }
+        }
         for (int solenoid = 0; solenoid < 6; solenoid++) {
             uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
             float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];
@@ -260,7 +256,6 @@ int16_t temp_at_test = 25;
 
 bool Solenoids::init_all_solenoids()
 {
-    buf = (uint16_t*)malloc(I2S_DMA_BUF_LEN*sizeof(uint16_t));
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
     // Read calibration for ADC1
     sol_y3 = new Solenoid("Y3", PIN_Y3_PWM, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_0);
@@ -286,8 +281,8 @@ bool Solenoids::init_all_solenoids()
     }
     toggle_all_solenoid_current_monitoring(true);
     vTaskDelay(50);
-    xTaskCreate(update_solenoids, "LEDC-Update", 2048, nullptr, 10, nullptr);
-    xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192, nullptr, 3, nullptr);
+    xTaskCreate(update_solenoids, "LEDC-Update", 4096, nullptr, 10, nullptr);
+    xTaskCreate(read_solenoids_i2s, "I2S-Reader", 16000, nullptr, 3, nullptr);
     if(sol_spc->get_current_avg() > 500) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
         return false;

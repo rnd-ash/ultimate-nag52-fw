@@ -145,7 +145,8 @@ extern float resistance_mpc;
 extern bool temp_cal;
 extern int16_t temp_at_test;
 
-#define I2S_DMA_BUF_LEN 500
+#define DIAG_DMA_BUFFER_LEN 500
+#define I2S_DMA_BUF_LEN 1024
 extern uint16_t* buf;
 
 #endif // __SOLENOID_H_

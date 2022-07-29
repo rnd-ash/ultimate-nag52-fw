@@ -274,9 +274,7 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
 
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_vbatt, &v);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_VBATT", "Failed to query VBATT. %s", esp_err_to_name(res));
+    if (esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_vbatt, &v) != ESP_OK) {
         return false;
     } else {
         // Vin = Vout(R1+R2)/R2
@@ -299,7 +297,6 @@ uint32_t avg = 0;
 #ifdef BOARD_V2
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
     if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
         return false;
     }
 #else
@@ -345,7 +342,6 @@ bool Sensors::parking_lock_engaged(bool* dest){
     esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
 #endif
     if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_PLL", "Failed to query parking lock. %s", esp_err_to_name(res));
         return false;
     } else {
         *dest = raw >= 3000;

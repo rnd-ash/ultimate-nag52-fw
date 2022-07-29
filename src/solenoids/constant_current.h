@@ -3,8 +3,6 @@
 
 #include "solenoids.h"
 
-
-
 class ConstantCurrentDriver {
 public:
     ConstantCurrentDriver(Solenoid* target, const char *name);

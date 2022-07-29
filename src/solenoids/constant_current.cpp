@@ -1,15 +1,18 @@
 #include "constant_current.h"
 #include "esp_log.h"
+#include "math.h"
+#include "gearbox.h"
 
-#define REFERENCE_RESISTANCE 6.0 // Ohms
+#define REFERENCE_RESISTANCE 5.3 // 
+#define REFERENCE_TEMP 25 // Celcius
 
 ConstantCurrentDriver::ConstantCurrentDriver(Solenoid* target, const char *name) {
     this->solenoid = target;
     this->is_cc_mode = true;
-    this->pwm_adjustment_percent = 1.0;
+    this->pwm_adjustment_percent = 0;
     this->current_target = 0;
-    this->last_off_time = esp_timer_get_time()/1000;
-    this->last_change_time = esp_timer_get_time()/1000;
+    this->last_off_time = 0;
+    this->last_change_time = 0;
     this->name = name;
 }
 
@@ -39,27 +42,43 @@ void ConstantCurrentDriver::update() {
         pwm = 0;
         this->last_off_time = now;
     } else {
-        uint16_t actual_current = this->solenoid->get_current_on();
-        float error; // Current error (reading vs target)
+
+        float calc_resistance = REFERENCE_RESISTANCE;
+        if (gearbox != nullptr) {
+            calc_resistance = (float)REFERENCE_RESISTANCE+(((float)REFERENCE_RESISTANCE*(gearbox->sensor_data.atf_temp-REFERENCE_TEMP)*0.393)/100.0);
+        }
+        // Assume 12.0V and target resistance, errors will be compensated by solenoid API and this error
+        float req_pwm = (4096.0*((float)this->current_target/((float)12000.0/calc_resistance)))*(1.0+this->pwm_adjustment_percent);
+        pwm = req_pwm;
+        // Calc PWM before we look at previous error
+
+        uint16_t actual_current = this->solenoid->get_current();
+        float error = 0; // Current error (reading vs target)
          // Solenoid was commanded on but hasn't activated yet, or req current is too small to measure
-        if (actual_current < 400 || this->current_target == 0 || now-this->last_change_time < 100) {
+        if (this->current_target == 0 || actual_current == 0 || actual_current < 142*2){ //(now-this->last_change_time) < 50) {
             error = 0;
         } else {
-            error = (float)(this->current_target-actual_current)/(float)this->current_target;
-            ESP_LOGI("CC", "%s ERROR IS %.3f", this->name, error*100);
+            error = (float)(this->current_target-actual_current)/((float)12000.0/calc_resistance);
+            error *= this->current_target/((float)12000.0/calc_resistance);
+            //if (error > 0.05) {
+            //    error = 0.05;
+            //} else if (error < -0.05) {
+            //    error = -0.05;
+            //}
         }
-        if (error > 0.01) {
-            error = 0.01;
-        } else if (error < -0.01) {
-            error = -0.01;
+        //ESP_LOGI("CC", "SOL %s, E %.2f, ADJ %.2f", this->name, error, this->pwm_adjustment_percent);
+        if (abs(this->current_target-actual_current) > 10 && error != 0) {
+            this->pwm_adjustment_percent += (error);
+            this->last_change_time = now;
         }
-        this->pwm_adjustment_percent += (error);
-        // Assume 12.0V and target resistance, errors will be compensated by solenoid API and this error
-        float req_pwm = (4096.0*((float)this->current_target/((float)Solenoids::get_solenoid_voltage()/REFERENCE_RESISTANCE)))*this->pwm_adjustment_percent;
-        pwm = req_pwm;
+        if(this->pwm_adjustment_percent > 2) {
+            this->pwm_adjustment_percent = 2;
+        } else if (this->pwm_adjustment_percent < -2) {
+            this->pwm_adjustment_percent = -2;
+        }
         //ESP_LOGI("CC","%s: ADJ %.2f, REQ: %d, READ %d, PWM %d", this->name, this->pwm_adjustment_percent, this->current_target, actual_current, pwm);
     }
-    this->solenoid->write_pwm_12_bit(pwm, false);
+    this->solenoid->write_pwm_12_bit(pwm);
 }
 
 void constant_current_driver_thread(void*) {

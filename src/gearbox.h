@@ -138,4 +138,6 @@ private:
     uint8_t shift_stage = 0;
 };
 
+extern Gearbox* gearbox;
+
 #endif

@@ -170,27 +170,11 @@ bool monitor_all = false;
 
 void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
-    Solenoid* sol_order[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
+    Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     esp_err_t e;
-    uint32_t sample_rate;
-    uint8_t different_sample_idx = 2; // sol_tcc
-    bool state = false;
-    while(true) {
-        uint64_t l = esp_timer_get_time()/1000;
-        uint8_t max = (monitor_all == true) ? 6 : 2;
-        for (uint8_t solenoid_id = 0; solenoid_id < max ; solenoid_id++) {
-            if (solenoid_id == different_sample_idx || !state) {
-                if (max == 2) {
-                    sample_rate = 100000;
-                } else {
-                    sample_rate = 250000;
-                }
-                if (solenoid_id == different_sample_idx) {
-                    sample_rate = 25000;
-                }
                 i2s_config_t i2s_conf = {
                     .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
-                    .sample_rate = sample_rate,
+        .sample_rate = 600000,
                     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
                     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
                     .communication_format = I2S_COMM_FORMAT_STAND_MSB,
@@ -200,51 +184,52 @@ void read_solenoids_i2s(void*) {
                     .use_apll = false,
                     .tx_desc_auto_clear = false
                 };
-                ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_conf, 0, NULL));
-                state = true;
-            }
-            ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, sol_order[solenoid_id]->get_adc_channel()));
-            ESP_ERROR_CHECK(i2s_adc_enable(I2S_NUM_0));
-
+    ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_conf, 0, nullptr));
+    ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0)); // Don't care about this
+    vTaskDelay(10);
+    // Enable ADC I2S. Then manipulate registers of SAR
+    i2s_adc_enable(I2S_NUM_0);
+    // Now modify SAR1 register so that it scans for ALL 6 channels at once
+    // This lets us scan all 6 Solenoid feedback channels at one time!
+    SYSCON.saradc_sar1_patt_tab[0] = 
+        (((sol_batch[0]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 24) |
+        (((sol_batch[1]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 16) |
+        (((sol_batch[2]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 8)  |
+        (((sol_batch[3]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 0);
+    SYSCON.saradc_sar1_patt_tab[1] = 
+        (((sol_batch[4]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 24) |
+        (((sol_batch[5]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 16);
+    SYSCON.saradc_ctrl.sar1_patt_len = 0x05; // 0x05 = 6 channel patterns stored in SAR registers
+    SET_PERI_REG_MASK(SYSCON_SARADC_CTRL2_REG, SYSCON_SARADC_SAR1_INV); // Invert SAR data to correct endienness
+    ESP_LOGI("CC", "Starting");
+    uint32_t samples[ADC_CHANNEL_MAX];
+    uint64_t totals[ADC_CHANNEL_MAX];
+    uint8_t channel;
+    uint16_t value;
+    while(true) {
+        // Invert back data from ADC
             uint32_t read = 0;
-            uint64_t total = 0;
-            uint32_t samples = 0;
-            ESP_ERROR_CHECK(i2s_read(I2S_NUM_0, glob_dma_buf, I2S_DMA_BUF_LEN*sizeof(uint16_t), &read, portMAX_DELAY));
-            e = i2s_adc_disable(I2S_NUM_0);
-            if (solenoid_id == different_sample_idx || solenoid_id == different_sample_idx-1) {
-                e = i2s_driver_uninstall(I2S_NUM_0);
-                state = false;
+        memset(samples, 0, sizeof(samples));
+        memset(totals, 0, sizeof(totals));
+        for (int sample_id = 0; sample_id < 1; sample_id++) {
+            i2s_read(I2S_NUM_0, glob_dma_buf, I2S_DMA_BUF_LEN*2, &read, portMAX_DELAY);
+            for (int i = 0; i < read/2; i++) {
+                channel = (glob_dma_buf[i] >> 12) & 0x07;
+                value = glob_dma_buf[i] & 0xFFF;
+                if (value != 0) {
+                    totals[channel]+=value;
+                    samples[channel]++;
             }
-            if (e != ESP_OK) {
-                ESP_LOGE("", "i2s_stop failed %s", esp_err_to_name(e));
             }
-            for (int b = 0; b < I2S_DMA_BUF_LEN; b++) {
-                if ((glob_dma_buf[b] & 0xFFF) != 0) {
-                    total += glob_dma_buf[b] & 0x0FFF;
-                    samples++;
                 }
-            }
-            if (solenoid_id == 1) {
-                memcpy(buf, glob_dma_buf, I2S_DMA_BUF_LEN*sizeof(uint16_t));
-            }
-            float avg = (float)(total)/((float)samples); // Average when solenoid is just 'on'
-            if (samples == 0) { 
-                avg = 0;
-            }
-            float avg_all = (float)(total)/((float)samples); // Average of all time
-            sol_order[solenoid_id]->__set_adc_reading_on(avg);
-            sol_order[solenoid_id]->__set_adc_reading_avg(avg_all);
+        for (int solenoid = 0; solenoid < 6; solenoid++) {
+            uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
+            float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];
+            sol_batch[solenoid]->__set_adc_reading(avg);
         }
         first_read_complete = true;
-        uint64_t now = esp_timer_get_time()/1000;
-        uint16_t sleep_time = (max == 2) ? I2S_LOOP_INTERVAL_CC_ONLY : I2S_LOOP_INVERVAL_ALL; // If only querying MPC and SPC, 10ms sleep (100hz update)
-        if (now-l < sleep_time) {
-            vTaskDelay(sleep_time-(now-l));
-        }
     }
 }
-
-uint16_t voltage = 12000;
 
 uint16_t Solenoids::get_solenoid_voltage() {
     return voltage;

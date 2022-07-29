@@ -33,7 +33,6 @@
     #error "Both EGS52 and EGS53 modes CANNOT be enabled at the same time!"
 #endif
 
-Gearbox* gearbox;
 Kwp2000_server* diag_server;
 
 uint8_t profile_id = 0;

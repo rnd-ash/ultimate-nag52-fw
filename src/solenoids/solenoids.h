@@ -14,6 +14,8 @@
 
 const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
 
+#define SOLENOID_CURRENT_AVG_SAMPLES 3
+
 class Solenoid
 {
 public:
@@ -66,21 +68,14 @@ public:
 
     /**
      * @brief Gets the average current consumed by the solenoid
-     * This accounts for BOTH when the solenoid is on, and off.
-     * 
-     * This is similar to what a bench power supply would report
+     * over multiple I2S samples
      */
     uint16_t get_current_avg();
 
     /**
-     * @brief Gets the current consumed by the solenoid,
-     * but only during the 'ON' phase of the PWM cycle.
-     * 
-     * This is used to calculate the armature position and thus
-     * pressure within the SPC and MPC solenoid specifically, which
-     * are direct proportional solenoids
+     * @brief Gets the current consumed by the solenoid at the previous I2S sample
      */
-    uint16_t get_current_on();
+    uint16_t get_current();
 
     /**
      * @brief returns the ADC1 channel being used to read
@@ -97,9 +92,10 @@ public:
     bool init_ok() const;
 
     // Internal functions - Don't touch, handled by I2S thread!
-    void __set_adc_reading_avg(uint16_t c);
-    void __set_adc_reading_on(uint16_t c);
-    void __write_pwm(uint16_t vbatt_now);
+    void __set_adc_reading(uint16_t c);
+    void __write_pwm();
+
+    uint16_t diag_get_adc_peak_raw();
 
     // -- These functions are only accessed by sw_fader class! -- //
 private:
@@ -108,14 +104,16 @@ private:
     const char *name;
     ledc_channel_t channel;
     ledc_timer_t timer;
-    portMUX_TYPE adc_reading_mutex;
-    portMUX_TYPE pwm_mutex;
-    volatile uint16_t adc_reading_avg;
-    volatile uint16_t adc_reading_now;
+    uint16_t adc_reading_current;
     bool voltage_compensate = true;
     adc1_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
+
+    // For avg current
+    uint16_t adc_avgs[SOLENOID_CURRENT_AVG_SAMPLES];
+    uint64_t adc_total;
+    uint8_t  adc_sample_idx;
 };
 
 #define I2S_LOOP_INTERVAL_CC_ONLY 10

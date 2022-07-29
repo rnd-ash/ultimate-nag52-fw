@@ -136,18 +136,13 @@ void Solenoid::__write_pwm(uint16_t vbatt_now) {
     }
 }
 
-void Solenoid::__set_adc_reading_avg(uint16_t c)
+void Solenoid::__set_adc_reading(uint16_t c)
 {
-    portENTER_CRITICAL(&this->adc_reading_mutex);
-    this->adc_reading_avg = c;
-    portEXIT_CRITICAL(&this->adc_reading_mutex);
-}
-
-void Solenoid::__set_adc_reading_on(uint16_t c)
-{
-    portENTER_CRITICAL(&this->adc_reading_mutex);
-    this->adc_reading_now = c;
-    portEXIT_CRITICAL(&this->adc_reading_mutex);
+    this->adc_reading_current = c;
+    this->adc_total -= this->adc_avgs[this->adc_sample_idx];
+    this->adc_avgs[this->adc_sample_idx] = c;
+    this->adc_total += c;
+    this->adc_sample_idx = (this->adc_sample_idx+1)%SOLENOID_CURRENT_AVG_SAMPLES;
 }
 
 adc1_channel_t Solenoid::get_adc_channel() {

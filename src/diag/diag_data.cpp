@@ -36,14 +36,14 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     DATA_SOLENOIDS ret = {};
 
-    ret.mpc_current = sol_mpc->get_current_on(); //sol_mpc->get_current_estimate();
-    ret.spc_current = sol_spc->get_current_on();//sol_spc->get_current_estimate();
-    ret.tcc_current = sol_tcc->get_current_on();//sol_tcc->get_current_estimate();
-    ret.y3_current = sol_y3->get_current_on();//sol_y3->get_current_estimate();
-    ret.y4_current = sol_y4->get_current_on();//sol_y4->get_current_estimate();
-    ret.y5_current = sol_y5->get_current_on();//sol_y5->get_current_estimate();
-    ret.adjustment_mpc = mpc_cc->get_adjustment()*100;
-    ret.adjustment_spc = spc_cc->get_adjustment()*100;
+    ret.mpc_current = sol_mpc->get_current_avg(); //sol_mpc->get_current_estimate();
+    ret.spc_current = sol_spc->get_current_avg();//sol_spc->get_current_estimate();
+    ret.tcc_current = sol_tcc->get_current_avg();//sol_tcc->get_current_estimate();
+    ret.y3_current = sol_y3->get_current_avg();//sol_y3->get_current_estimate();
+    ret.y4_current = sol_y4->get_current_avg();//sol_y4->get_current_estimate();
+    ret.y5_current = sol_y5->get_current_avg();//sol_y5->get_current_estimate();
+    ret.adjustment_mpc = (mpc_cc->get_adjustment()+1)*1000;
+    ret.adjustment_spc = (spc_cc->get_adjustment()+1)*1000;
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
@@ -80,8 +80,8 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 
 DATA_DMA_BUFFER dump_i2s_dma() {
     DATA_DMA_BUFFER dma = {};
-    memcpy(dma.dma_buffer, buf, I2S_DMA_BUF_LEN*sizeof(uint16_t));
-    dma.channel_id = 0;
+    dma.dma = 0;
+    dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
     return dma;
 }
 

@@ -52,8 +52,8 @@ typedef struct {
     uint16_t tcc_current;
     uint16_t targ_spc_current;
     uint16_t targ_mpc_current;
-    int16_t adjustment_spc;
-    int16_t adjustment_mpc;
+    uint16_t adjustment_spc;
+    uint16_t adjustment_mpc;
     uint16_t y3_current;
     uint16_t y4_current;
     uint16_t y5_current;
@@ -94,8 +94,8 @@ typedef struct {
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
 typedef struct {
-    uint8_t channel_id;
-    uint16_t dma_buffer[I2S_DMA_BUF_LEN];
+    uint16_t adc_reading;
+    uint16_t dma;
 } __attribute__ ((packed)) DATA_DMA_BUFFER;
 
 typedef struct {

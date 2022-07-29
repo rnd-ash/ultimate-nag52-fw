@@ -29,6 +29,11 @@ public:
      */
     Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel);
 
+
+    const char* get_name() {
+        return this->name;
+    }
+
     /**
      * @brief Writes a 12-bit PWM duty to the solenoid
      * 

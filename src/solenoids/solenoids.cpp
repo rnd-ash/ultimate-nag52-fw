@@ -246,11 +246,10 @@ bool Solenoids::is_monitoring_all_solenoids() {
 void update_solenoids(void*) {
     Solenoid* sol_order[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5 };
     while(true) {
-        Sensors::read_vbatt(&voltage);
         for (int i = 0; i < 6; i++) {
-            sol_order[i]->__write_pwm(voltage);
+            sol_order[i]->__write_pwm();
         }
-        vTaskDelay(5);
+        vTaskDelay(1);
     }
 }
 

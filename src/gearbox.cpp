@@ -331,18 +331,20 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
                         shift_stage = SHIFT_PHASE_HOLD_3;
                         curr_phase = &sd.hold3_data;
-                        this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
                         // Restrict vehicle torque now
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
-                        if (sensor_data.static_torque > 0) {
+                        if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
                             float torque_amount = sd.torque_down_amount * (float)sensor_data.static_torque;
                             dest_report.requested_torque = torque_amount;
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
+                        }
+                        if(this->est_gear_idx == sd.curr_g) {
+                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                         }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
@@ -1015,3 +1017,5 @@ bool Gearbox::calcGearFromRatio(bool is_reverse) {
     this->est_gear_idx = 0;
     return false;
 }
+
+Gearbox* gearbox = nullptr;

@@ -52,7 +52,7 @@ void ConstantCurrentDriver::update() {
         pwm = req_pwm;
         // Calc PWM before we look at previous error
 
-        uint16_t actual_current = this->solenoid->get_current();
+        uint16_t actual_current = this->solenoid->get_current_avg();
         float error = 0; // Current error (reading vs target)
          // Solenoid was commanded on but hasn't activated yet, or req current is too small to measure
         if (this->current_target == 0 || actual_current == 0 || actual_current < 142*2){ //(now-this->last_change_time) < 50) {

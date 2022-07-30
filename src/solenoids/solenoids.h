@@ -14,7 +14,7 @@
 
 const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
 
-#define SOLENOID_CURRENT_AVG_SAMPLES 3
+#define SOLENOID_CURRENT_AVG_SAMPLES 10
 
 class Solenoid
 {

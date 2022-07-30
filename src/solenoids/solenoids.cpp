@@ -100,7 +100,7 @@ uint16_t Solenoid::diag_get_adc_peak_raw() {
 
 uint16_t Solenoid::get_current_avg()
 {   
-    uint32_t v = esp_adc_cal_raw_to_voltage((float)this->adc_total/SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
+    uint32_t v = esp_adc_cal_raw_to_voltage((float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
     if (v <= adc1_cal.coeff_b) {
         v = this->adc_reading_current; // Less accurate
     }
@@ -207,17 +207,17 @@ void read_solenoids_i2s(void*) {
         uint32_t read = 0;
         memset(samples, 0, sizeof(samples));
         memset(totals, 0, sizeof(totals));
-        for (int sample_id = 0; sample_id < 1; sample_id++) {
-            i2s_read(I2S_NUM_0, glob_dma_buf, I2S_DMA_BUF_LEN*2, &read, portMAX_DELAY);
-            for (int i = 0; i < read/2; i++) {
-                channel = (glob_dma_buf[i] >> 12) & 0x07;
-                value = glob_dma_buf[i] & 0xFFF;
-                if (value != 0) {
-                    totals[channel]+=value;
-                    samples[channel]++;
-                }
+        //for (int sample_id = 0; sample_id < 5; sample_id++) {
+        i2s_read(I2S_NUM_0, glob_dma_buf, I2S_DMA_BUF_LEN*2, &read, portMAX_DELAY);
+        for (int i = 0; i < read/2; i++) {
+            channel = (glob_dma_buf[i] >> 12) & 0x07;
+            value = glob_dma_buf[i] & 0xFFF;
+            if (value != 0) {
+                totals[channel]+=value;
+                samples[channel]++;
             }
         }
+        //}
         for (int solenoid = 0; solenoid < 6; solenoid++) {
             uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
             float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];

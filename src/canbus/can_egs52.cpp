@@ -71,6 +71,7 @@ bool Egs52Can::begin_tasks() {
             return false;
         }
     }
+    /*
     if (this->tx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "Starting CAN Tx task");
         if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
@@ -78,6 +79,7 @@ bool Egs52Can::begin_tasks() {
             return false;
         }
     }
+    */
     return true; // Ready!
 }
 
@@ -990,6 +992,7 @@ void Egs52Can::rx_task_loop() {
     uint64_t now;
     uint64_t tmp;
     uint8_t i;
+    char buffer[40];
     while(true) {
         twai_get_status_info(&can_status);
         if (can_status.msgs_to_rx == 0) {
@@ -1001,10 +1004,18 @@ void Egs52Can::rx_task_loop() {
             }
             for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
+                    char* pos = buffer;
+                // Print msg
+                    pos += sprintf(pos, "0x%04X ", rx.identifier);
+                    for (int i = 0; i < rx.data_length_code; i++) {
+                        pos += sprintf(pos, "%02X ", rx.data[i]);
+                    }
+                    printf("%s\n", buffer);
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));
                     }
+
                     if(this->ecu_ms.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {

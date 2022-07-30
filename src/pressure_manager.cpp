@@ -214,7 +214,7 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 
     sd.hold1_data.ramp_time = 0;
     sd.hold1_data.hold_time = 100;
-    sd.hold1_data.spc_pressure = 10;
+    sd.hold1_data.spc_pressure = 650;
     sd.hold1_data.mpc_pressure = curr_mpc;
 
     sd.hold2_data.ramp_time = 100;
@@ -251,12 +251,12 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 
     sd.max_pressure_data.ramp_time = 500;
     sd.max_pressure_data.hold_time  = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
-    sd.max_pressure_data.spc_pressure = curr_mpc+(sd.overlap_data.spc_pressure*2);
+    sd.max_pressure_data.spc_pressure = curr_mpc+sd.overlap_data.spc_pressure;
     sd.max_pressure_data.mpc_pressure = curr_mpc;
 
     // Update hold2 and hold1 MPC
-    sd.hold2_data.mpc_pressure = sd.hold3_data.mpc_pressure;
-    sd.hold1_data.mpc_pressure = sd.hold3_data.mpc_pressure*1.2; // Hold 1 MPC should be higher as SPC is bleeding more
+    sd.hold2_data.mpc_pressure = sd.hold3_data.mpc_pressure*1.2;
+    sd.hold1_data.mpc_pressure = sd.hold3_data.mpc_pressure*1.1; // Hold 1 MPC should be higher as SPC is bleeding more
 
     // All hold times should be changed based on engine RPM (Assumed 2K RPM when selecting the pressures)
     //float multi = (float)sensor_data->input_rpm / 3000.0;
@@ -278,10 +278,8 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 }
 
 void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->ramp_time = 250;
+    dest->ramp_time = 60;
     dest->hold_time = 100;
-    dest->spc_pressure = 650;
-    dest->mpc_pressure = dest->spc_pressure + 200;
     /*
      * 1-2 prefill K1 release B1
      * 2-1 prefill B1 release K1
@@ -309,19 +307,19 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftC
             break;
         case ProfileGearChange::THREE_TWO: // Prefilling K3
         case ProfileGearChange::THREE_FOUR:
-            dest->spc_pressure = 1300;
+            dest->spc_pressure = 1500;
             break;
         case ProfileGearChange::FOUR_THREE: // Prefilling B2
         default:
             dest->spc_pressure = 1400;
             break;
     }
-    dest->mpc_pressure = dest->spc_pressure*1.3;
+    dest->mpc_pressure = dest->spc_pressure*1.2;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->ramp_time = 10;
-    dest->hold_time = 0;
+    dest->ramp_time = 0;
+    dest->hold_time = 10;
     dest->spc_pressure = prev->spc_pressure;//scale_number(abs(sensor_data->static_torque), prev->spc_pressure, prev->spc_pressure+200, 0, 330);
     dest->mpc_pressure = prev->mpc_pressure;//dest->spc_pressure*1.1; // Just a tiny bump to account for MPC bleed
     //if (change == ProfileGearChange::THREE_FOUR) {
@@ -332,7 +330,7 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->hold_time = 0; // No hold time
-    dest->ramp_time = scale_number(sensor_data->static_torque, 250, 150, 100, 200);
+    dest->ramp_time = scale_number(sensor_data->static_torque, 300, 150, 100, 200);
     if (change == ProfileGearChange::ONE_TWO) {
         dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
     }
@@ -342,9 +340,14 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
         dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
     }
 
-    dest->spc_pressure = scale_number(abs(sensor_data->static_torque), prev->spc_pressure+200, prev->mpc_pressure*2, 0, 330);
+    dest->spc_pressure = scale_number(abs(sensor_data->static_torque), prev->spc_pressure*1.2, prev->mpc_pressure*2.5, 0, 330);
     dest->spc_pressure *= 1.0+((float)scale_number(chars.shift_speed*10, 0, 50, 10, 100)/100.0); // 0-20% Addition depending on Shift speed
-    dest->mpc_pressure = curr_mpc;
+    dest->mpc_pressure = 
+        scale_number(sensor_data->input_rpm, // More MPC at lower torque to avoid the shift jarring
+            (prev->spc_pressure+(curr_mpc))/2.0,
+            curr_mpc,
+            1000, 3000
+        );
 }
 
 #define TEMP_COEFFICIENT_COPPER 0.393

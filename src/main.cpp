@@ -8,6 +8,7 @@
 #include <esp32/ulp.h>
 #include "speaker.h"
 #include "sensors.h"
+#include "canbus/can_egs51.h"
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
 #include <gearbox_config.h>
@@ -18,19 +19,15 @@
 #include "adaptation/adapt_map.h"
 #include "solenoids/constant_current.h"
 
-#ifdef BOARD_V2
-#include "legacy_shifter.h"
-#endif
-
 #define NUM_PROFILES 5 // A, C, W, M, S
 
 // Sanity check
-#if !defined(EGS52_MODE) && !defined(EGS53_MODE)
-    #error "No CAN definition (EGS52/EGS53)"
+#if !defined(EGS51_MODE) && !defined(EGS52_MODE) && !defined(EGS53_MODE)
+    #error "No CAN definition (EGS51/EGS52/EGS53)"
 #endif
 
-#if defined(EGS52_MODE) && defined(EGS53_MODE)
-    #error "Both EGS52 and EGS53 modes CANNOT be enabled at the same time!"
+#if (defined(EGS52_MODE) && defined(EGS53_MODE)) || (defined(EGS51_MODE) && defined(EGS52_MODE)) || (defined(EGS51_MODE) && defined(EGS53_MODE))
+    #error "Multiple EGS CAN layers CANNOT be enabled at the same time!"
 #endif
 
 Kwp2000_server* diag_server;
@@ -40,6 +37,10 @@ AbstractProfile* profiles[NUM_PROFILES];
 
 SPEAKER_POST_CODE setup_tcm()
 {
+#ifdef EGS51_MODE
+    #pragma message("Building with EGS51 CAN support")
+    egs_can_hal = new Egs51Can("EGS51", 20); // EGS51 CAN Abstraction layer
+#endif
 #ifdef EGS52_MODE
     #pragma message("Building with EGS52 CAN support")
     egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
@@ -187,11 +188,6 @@ extern "C" void app_main(void)
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
-    //LegacyShifter lshifter = LegacyShifter();
-    //while(true) {
-    //    lshifter.get_shifter_position();
-    //    vTaskDelay(100);
-    //}
 }
 
 #endif // UNIT_TEST

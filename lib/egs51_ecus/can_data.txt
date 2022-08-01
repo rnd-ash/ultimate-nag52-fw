@@ -1,0 +1,32 @@
+# --RAND_ASH--
+#
+# Manually generated
+#
+# This file is used for cars with EGS or EGS51 TCU (Pre 2000 usually)
+#
+
+ECU GS
+	FRAME GS_218h (0x00000218)
+		SIGNAL GZC, OFFSET: 16, LEN: 4, DESC: Target Gang, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_R, RAW: 6, DESC: Destination "R"
+			ENUM G_R2, RAW: 7, DESC: Destination "R2"
+			ENUM G_P, RAW: 8, DESC: Destination "P"
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		SIGNAL GIC, OFFSET: 20, LEN: 4, DESC: actual gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_R, RAW: 6, DESC: Destination "R"
+			ENUM G_R2, RAW: 7, DESC: Destination "R2"
+			ENUM G_P, RAW: 8, DESC: Destination "P"
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)

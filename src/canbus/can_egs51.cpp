@@ -55,6 +55,9 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
         return;
     }
 
+    this->gs218.bytes[7] = 0xFE;
+    this->gs218.bytes[4] = 0x48;
+    this->gs218.bytes[3] = 0x64;
     // CAN is OK!
     this->can_init_ok = true;
 }

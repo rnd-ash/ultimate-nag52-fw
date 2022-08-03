@@ -8,9 +8,6 @@
 #include <esp32/ulp.h>
 #include "speaker.h"
 #include "sensors.h"
-#include "canbus/can_egs51.h"
-#include "canbus/can_egs52.h"
-#include "canbus/can_egs53.h"
 #include <gearbox_config.h>
 #include "gearbox.h"
 #include "dtcs.h"
@@ -18,6 +15,16 @@
 #include "diag/kwp2000.h"
 #include "adaptation/adapt_map.h"
 #include "solenoids/constant_current.h"
+
+#ifdef EGS51_MODE
+    #include "canbus/can_egs51.h"
+#endif
+#ifdef EGS52_MODE
+    #include "canbus/can_egs52.h"
+#endif
+#ifdef EGS53_MODE
+    #include "canbus/can_egs53.h"
+#endif
 
 #define NUM_PROFILES 5 // A, C, W, M, S
 

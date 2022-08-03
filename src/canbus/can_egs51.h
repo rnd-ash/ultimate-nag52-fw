@@ -4,7 +4,7 @@
 
 #ifdef EGS51_MODE
 #include "can_hal.h"
-#include "GS.h"
+#include "GS51.h"
 
 class Egs51Can: public AbstractCan {
     public:
@@ -104,6 +104,8 @@ class Egs51Can: public AbstractCan {
         uint8_t i2c_rx_bytes[2] = {0,0};
         uint8_t i2c_tx_bytes[2] = {0,0};
         uint64_t last_i2c_query_time = 0;
+        bool start_enable = false;
+        bool rp_lock_enage = false;
         bool can_init_ok = false;
 };
 

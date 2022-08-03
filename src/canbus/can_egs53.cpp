@@ -727,7 +727,7 @@ void Egs53Can::rx_task_loop() {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
                             // Send the frame
-                            if (xQueueSend(*this->diag_rx_queue, tx.data, 0) != pdTRUE) {
+                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
                                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS53_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }

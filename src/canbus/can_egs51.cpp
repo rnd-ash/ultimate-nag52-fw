@@ -235,12 +235,79 @@ void Egs51Can::set_clutch_status(ClutchStatus status) {
 }
 
 void Egs51Can::set_actual_gear(GearboxGear actual) {
+    switch(actual) {
+        case GearboxGear::First:
+            this->gs218.set_GIC(GS_218h_GIC::G_D1);
+            break;
+        case GearboxGear::Second:
+            this->gs218.set_GIC(GS_218h_GIC::G_D2);
+            break;
+        case GearboxGear::Third:
+            this->gs218.set_GIC(GS_218h_GIC::G_D3);
+            break;
+        case GearboxGear::Fourth:
+            this->gs218.set_GIC(GS_218h_GIC::G_D4);
+            break;
+        case GearboxGear::Fifth:
+            this->gs218.set_GIC(GS_218h_GIC::G_D5);
+            break;
+        case GearboxGear::Park:
+            this->gs218.set_GIC(GS_218h_GIC::G_P);
+            break;
+        case GearboxGear::Neutral:
+            this->gs218.set_GIC(GS_218h_GIC::G_N);
+            break;
+        case GearboxGear::Reverse_First:
+            this->gs218.set_GIC(GS_218h_GIC::G_R);
+            break;
+        case GearboxGear::Reverse_Second:
+            this->gs218.set_GIC(GS_218h_GIC::G_R2);
+            break;
+        case GearboxGear::SignalNotAvaliable:
+        default:
+            this->gs218.set_GIC(GS_218h_GIC::G_SNV);
+            break;
+    }
 }
 
 void Egs51Can::set_target_gear(GearboxGear target) {
+    switch(target) {
+        case GearboxGear::First:
+            this->gs218.set_GZC(GS_218h_GZC::G_D1);
+            break;
+        case GearboxGear::Second:
+            this->gs218.set_GZC(GS_218h_GZC::G_D2);
+            break;
+        case GearboxGear::Third:
+            this->gs218.set_GZC(GS_218h_GZC::G_D3);
+            break;
+        case GearboxGear::Fourth:
+            this->gs218.set_GZC(GS_218h_GZC::G_D4);
+            break;
+        case GearboxGear::Fifth:
+            this->gs218.set_GZC(GS_218h_GZC::G_D5);
+            break;
+        case GearboxGear::Park:
+            this->gs218.set_GZC(GS_218h_GZC::G_P);
+            break;
+        case GearboxGear::Neutral:
+            this->gs218.set_GZC(GS_218h_GZC::G_N);
+            break;
+        case GearboxGear::Reverse_First:
+            this->gs218.set_GZC(GS_218h_GZC::G_R);
+            break;
+        case GearboxGear::Reverse_Second:
+            this->gs218.set_GZC(GS_218h_GZC::G_R2);
+            break;
+        case GearboxGear::SignalNotAvaliable:
+        default:
+            this->gs218.set_GZC(GS_218h_GZC::G_SNV);
+            break;
+    }
 }
 
 void Egs51Can::set_safe_start(bool can_start) {
+    this->start_enable = can_start;
 }
 
 void Egs51Can::set_race_start(bool race_start) {
@@ -396,6 +463,30 @@ void Egs51Can::rx_task_loop() {
                 //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
                 this->last_i2c_query_time = now;
             }
+            
+            // Set RP and Start pins on IO expander to be outputs
+            // IO 0+1 - OUTPUT
+            // IO 2-7 - INPUT
+            uint8_t write_buffer[2] = {0x07,0xFF}; // Set IO (0x06 + port 1 (0x01))
+            if (start_enable) {
+                write_buffer[1] = write_buffer[1] & ~(BIT(1));
+            }
+            //write_buffer[1] = ~(BIT(0));// | BIT(1)); // Start_EN and 
+
+            i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+
+            /*
+            req[0] = 0x03;
+            req[1] = 0x00;
+            uint8_t resp_tmp[2] = {0,0};
+            e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, resp_tmp, 2, 5);
+            if (e != ESP_OK) {
+                // Error, SNV
+                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
+            } else {
+                ESP_LOGI("LS", "I: %02X %02X", resp_tmp[0], resp_tmp[1]);
+            }
+            */
         }
     }
 }

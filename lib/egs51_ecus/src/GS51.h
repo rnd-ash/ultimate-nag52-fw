@@ -5,19 +5,19 @@
 *
 * IF MODIFICATIONS NEED TO BE MADE, MODIFY can_data.txt!
 *
-* CAN Defintiion for ECU 'GS'
+* CAN Defintiion for ECU 'GS51'
 */
 
 #ifdef EGS51_MODE
 
-#ifndef __ECU_GS_H_
-#define __ECU_GS_H_
+#ifndef __ECU_GS51_H_
+#define __ECU_GS51_H_
 
 #include <stdint.h>
     
 #define GS_218_CAN_ID 0x0218
 
-/** Target Gang */
+/** Target gear */
 enum class GS_218h_GZC {
 	G_N = 0, // Destination "N"
 	G_D1 = 1, // Destination "1"
@@ -53,10 +53,10 @@ typedef union {
 
 	/** Gets CAN ID of GS_218 */
 	uint32_t get_canid(){ return GS_218_CAN_ID; }
-    /** Sets Target Gang */
+    /** Sets Target gear */
     void set_GZC(GS_218h_GZC value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
-    /** Gets Target Gang */
+    /** Gets Target gear */
     GS_218h_GZC get_GZC() const { return (GS_218h_GZC)(raw >> 44 & 0xf); }
         
     /** Sets actual gear */
@@ -64,6 +64,12 @@ typedef union {
 
     /** Gets actual gear */
     GS_218h_GIC get_GIC() const { return (GS_218h_GIC)(raw >> 40 & 0xf); }
+        
+    /** Sets Kickdown pressed */
+    void set_KICKDOWN(bool value){ raw = (raw & 0xffffffbfffffffff) | ((uint64_t)value & 0x1) << 38; }
+
+    /** Gets Kickdown pressed */
+    bool get_KICKDOWN() const { return (bool)(raw >> 38 & 0x1); }
         
     /** Sets error number or counter for calid / CVN transmission. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_FEHLER(uint8_t value){ raw = (raw & 0xfffffffffff0ffff) | ((uint64_t)value & 0xf) << 16; }
@@ -75,7 +81,7 @@ typedef union {
 
 
 
-class ECU_GS {
+class ECU_GS51 {
 	public:
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
@@ -117,6 +123,6 @@ class ECU_GS {
 		uint64_t FRAME_DATA[1];
 		uint64_t LAST_FRAME_TIMES[1];
 };
-#endif // __ECU_GS_H_
+#endif // __ECU_GS51_H_
 
 #endif // EGS51_MODE

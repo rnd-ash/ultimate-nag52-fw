@@ -111,17 +111,65 @@ WheelData Egs51Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
-    };
+    BS_200 bs200;
+    if (this->esp51.get_BS_200(now, expire_time_ms, &bs200)) {
+        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        switch(bs200.get_DRTGVR()) {
+            case BS_200h_DRTGVR::FWD:
+                d = WheelDirection::Forward;
+                break;
+            case BS_200h_DRTGVR::REV:
+                d = WheelDirection::Reverse;
+                break;
+            case BS_200h_DRTGVR::PASSIVE:
+                d = WheelDirection::Stationary;
+                break;
+            case BS_200h_DRTGVR::SNV:
+            default:
+                break;
+        }
+
+        return WheelData {
+            .double_rpm = bs200.get_DVR(),
+            .current_dir = d
+        };
+    } else {
+        return WheelData {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvaliable
+        };
+    }
 }
 
 WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
-    };
+    BS_200 bs200;
+    if (this->esp51.get_BS_200(now, expire_time_ms, &bs200)) {
+        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        switch(bs200.get_DRTGVL()) {
+            case BS_200h_DRTGVL::FWD:
+                d = WheelDirection::Forward;
+                break;
+            case BS_200h_DRTGVL::REV:
+                d = WheelDirection::Reverse;
+                break;
+            case BS_200h_DRTGVL::PASSIVE:
+                d = WheelDirection::Stationary;
+                break;
+            case BS_200h_DRTGVL::SNV:
+            default:
+                break;
+        }
+
+        return WheelData {
+            .double_rpm = bs200.get_DVL(),
+            .current_dir = d
+        };
+    } else {
+        return WheelData {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvaliable
+        };
+    }
 }
 
 ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
@@ -187,7 +235,12 @@ bool Egs51Can::get_kickdown(uint64_t now, uint64_t expire_time_ms) { // TODO
 }
 
 uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TODO
-    return 0xFF;
+    MS_210 ms210;
+    if (this->ms51.get_MS_210(now, expire_time_ms, &ms210)) {
+        return ms210.get_PW();
+    } else {
+        return 0xFF;
+    }
 }
 
 int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
@@ -215,7 +268,12 @@ int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { /
 }
 
 uint16_t Egs51Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
-    return UINT16_MAX;
+    MS_308 ms308;
+    if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
+        return ms308.get_NMOT();
+    } else {
+        return UINT16_MAX;
+    }
 }
 
 bool Egs51Can::get_is_starting(uint64_t now, uint64_t expire_time_ms) { // TODO
@@ -447,6 +505,10 @@ void Egs51Can::rx_task_loop() {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                    }
+
+                    if (this->ms51.import_frames(tmp, rx.identifier, now)) {
+                    } else if (this->esp51.import_frames(tmp, rx.identifier, now)) {
                     }
                 }
             }

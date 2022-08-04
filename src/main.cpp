@@ -26,7 +26,9 @@
     #include "canbus/can_egs53.h"
 #endif
 
-#define NUM_PROFILES 5 // A, C, W, M, S
+#if defined(EGS51_MODE) && !defined(BOARD_V2)
+    #error "EGS51 mode can ONLY be supported on V2 boards!"
+#endif
 
 // Sanity check
 #if !defined(EGS51_MODE) && !defined(EGS52_MODE) && !defined(EGS53_MODE)
@@ -40,6 +42,7 @@
 Kwp2000_server* diag_server;
 
 uint8_t profile_id = 0;
+#define NUM_PROFILES 5 // A, C, W, M, S
 AbstractProfile* profiles[NUM_PROFILES];
 
 SPEAKER_POST_CODE setup_tcm()

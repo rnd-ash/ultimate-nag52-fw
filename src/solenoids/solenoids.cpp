@@ -72,14 +72,14 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
 }
 
 uint16_t Solenoid::get_current() {
-    #ifdef BOARD_V2
-        uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_current, &adc1_cal);
-        if (v <= adc1_cal.coeff_b) {
-            v = this->adc_reading_current; // Less accurate
-        }
+    uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_current, &adc1_cal);
+    if (v <= adc1_cal.coeff_b) {
+        v = this->adc_reading_current; // Less accurate
+    }
+#ifdef BOARD_V2
         return v;
     #else
-        return 0;
+        return v*2;
     #endif
 }
 

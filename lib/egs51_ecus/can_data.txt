@@ -193,6 +193,17 @@ ECU MS51
 		SIGNAL V_DSPL_EIN, OFFSET: 47, LEN: 1, DESC: Geschw.begrenzer- / cruise control display a, DATA TYPE BOOL
 		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: factor for fill value. d. max. Mom with remo.. A.druck, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL V_MAX_TM, OFFSET: 56, LEN: 8, DESC: Set maximum or cruise control speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME MS_310h (0x00000310)
+	FRAME MS_608h (0x00000608)
+		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: engine coolant temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL T_LUFT, OFFSET: 8, LEN: 8, DESC: intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_KAR, OFFSET: 16, LEN: 3, DESC: Vehicle code body, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_BR, OFFSET: 19, LEN: 5, DESC: Vehicle code series, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_MOT6, OFFSET: 24, LEN: 1, DESC: Vehicle code engine with 7 bit, bit 6, DATA TYPE BOOL
+		SIGNAL GS_NVH, OFFSET: 25, LEN: 1, DESC: Transmission control not available, DATA TYPE BOOL
+		SIGNAL FCOD_MOT, OFFSET: 26, LEN: 6, DESC: FZGCOD.Motor 7Bit, bit0-5 (bit6 -> signal fcod_mot6), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL V_MAX_FIX, OFFSET: 32, LEN: 8, DESC: Fixed maximum speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL VB, OFFSET: 40, LEN: 16, DESC: consumption, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
 
 ECU GS51
 	FRAME GS_218h (0x00000218)
@@ -225,3 +236,74 @@ ECU GS51
 		# 4th byte 01001010 <- ON
 		SIGNAL KICKDOWN, OFFSET: 25, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
 		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
+ECU EZS51
+	FRAME EZS_240h (0x00000240)
+		SIGNAL WH_UP, OFFSET: 2, LEN: 1, DESC: cruise control lever implausible, DATA TYPE BOOL
+		SIGNAL VMAX_AKT, OFFSET: 3, LEN: 1, DESC: Operation variable speed limit, DATA TYPE BOOL
+		SIGNAL S_MINUS_B, OFFSET: 4, LEN: 1, DESC: cruise control lever: "Sit and delay Stufe0", DATA TYPE BOOL
+		SIGNAL S_PLUS_B, OFFSET: 5, LEN: 1, DESC: cruise control lever: "Sit and accelerating Stufe0", DATA TYPE BOOL
+		SIGNAL WA, OFFSET: 6, LEN: 1, DESC: cruise control lever: "resume", DATA TYPE BOOL
+		SIGNAL AUS, OFFSET: 7, LEN: 1, DESC: cruise control lever "off", DATA TYPE BOOL
+		SIGNAL KG_KL_AKT, OFFSET: 8, LEN: 1, DESC: Keyless Go terminal control active, DATA TYPE BOOL
+		SIGNAL KG_ALB_OK, OFFSET: 9, LEN: 1, DESC: meets Keyles Go annealing conditions, DATA TYPE BOOL
+		SIGNAL LL_RLC, OFFSET: 10, LEN: 2, DESC: LHD / RHD, DATA TYPE ENUM
+			ENUM UNKNOWN, RAW: 0, DESC: not defined
+			ENUM LL, RAW: 1, DESC: Left
+			ENUM RL, RAW: 2, DESC: RHD
+			ENUM SNV, RAW: 3, DESC: Code not available
+		SIGNAL RG_SCHALT, OFFSET: 12, LEN: 1, DESC: Reverse gear engaged (manual transmission only), DATA TYPE BOOL
+		SIGNAL BS_SL, OFFSET: 13, LEN: 1, DESC: brake switch for Shift Lock, DATA TYPE BOOL
+		SIGNAL KL_15, OFFSET: 14, LEN: 1, DESC: Terminal 15, DATA TYPE BOOL
+		SIGNAL KL_50, OFFSET: 15, LEN: 1, DESC: Terminal 50, DATA TYPE BOOL
+		SIGNAL WH_PA, OFFSET: 19, LEN: 1, DESC: cruise control lever parity (even parity), DATA TYPE BOOL
+		SIGNAL BZ240h, OFFSET: 20, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME KLA_410h (0x00000410)
+		SIGNAL ZH_EIN_OK, OFFSET: 0, LEN: 1, DESC: Turn on a heater, DATA TYPE BOOL
+		SIGNAL SENDE_NEU, OFFSET: 3, LEN: 1, DESC: signal version Compressor torque, DATA TYPE BOOL
+		SIGNAL M_KOMPPAR, OFFSET: 5, LEN: 1, DESC: Climate Compressor Torque Parity (straight parity), DATA TYPE BOOL
+		SIGNAL M_KOMPTGL, OFFSET: 6, LEN: 1, DESC: Climate Compressor Tour Toggle, DATA TYPE BOOL
+		SIGNAL M_KOMP_NEU, OFFSET: 16, LEN: 8, DESC: Climate Compressor Tour NEW, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL LL_DZA, OFFSET: 1, LEN: 1, DESC: idle speed lifting to the cooling power increase, DATA TYPE BOOL
+		SIGNAL KOMP_EIN, OFFSET: 7, LEN: 1, DESC: climate compressor turned on, DATA TYPE BOOL
+		SIGNAL P_KAELTE8, OFFSET: 8, LEN: 8, DESC: refrigerant printing, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL M_KOMP, OFFSET: 16, LEN: 8, DESC: Torque recording refrigeration compressor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NLFTS, OFFSET: 24, LEN: 8, DESC: Motor fan setpoint speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
+ECU KOMBI51
+	FRAME KOMBI_408h (0x00000408)
+		SIGNAL TANK_FS, OFFSET: 0, LEN: 8, DESC: Tank level, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TF_AUF, OFFSET: 8, LEN: 1, DESC: driver's door, DATA TYPE BOOL
+		SIGNAL V_DSPL_AUS, OFFSET: 9, LEN: 1, DESC: Speed Limit / Tempose Display Not possible, DATA TYPE BOOL
+		SIGNAL TACHO_SYM, OFFSET: 10, LEN: 1, DESC: Tacho oak, DATA TYPE BOOL
+		SIGNAL V_MPH, OFFSET: 11, LEN: 1, DESC: MPH instead of km / h (variable speed bends), DATA TYPE BOOL
+		SIGNAL KLA_VH, OFFSET: 12, LEN: 1, DESC: Air conditioning available, DATA TYPE BOOL
+		SIGNAL VGL_KL_DEF, OFFSET: 13, LEN: 1, DESC: pre-glow control lamp defective, DATA TYPE BOOL
+		SIGNAL TFSM, OFFSET: 14, LEN: 1, DESC: Tank level minimum, DATA TYPE BOOL
+		SIGNAL KL_61E, OFFSET: 15, LEN: 1, DESC: Clamp 61 decoupled, DATA TYPE BOOL
+		SIGNAL T_AUSSEN, OFFSET: 16, LEN: 8, DESC: Outdoor air temperature raw value, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL KL_58D, OFFSET: 24, LEN: 8, DESC: Terminal 58 dimmed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MAZ, OFFSET: 32, LEN: 8, DESC: Motor setting time (will be sent from Kl.15), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL KM16, OFFSET: 40, LEN: 16, DESC: mileage, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL WRC3, OFFSET: 56, LEN: 1, DESC: Winter Tire Top Speed Bit 3, DATA TYPE BOOL
+		SIGNAL V_DSPL_AKT, OFFSET: 57, LEN: 1, DESC: Speed Limit / Tempomat Display Active, DATA TYPE BOOL
+		SIGNAL SGT_VH, OFFSET: 58, LEN: 1, DESC: Segment tacho available, DATA TYPE BOOL
+		SIGNAL ZH_FREIG, OFFSET: 59, LEN: 1, DESC: Release Heaters, DATA TYPE BOOL
+		SIGNAL RT_EIN, OFFSET: 60, LEN: 1, DESC: Switch on Roll Test Mode ESP, DATA TYPE BOOL
+		SIGNAL WRC, OFFSET: 61, LEN: 3, DESC: Winter tire maximum speed with 4 bits, DATA TYPE ENUM
+			ENUM UBG, RAW: 0, DESC: Unlimited
+			ENUM BG210, RAW: 1, DESC: 210 km / h
+			ENUM BG190, RAW: 2, DESC: 190 km / h
+			ENUM BG160, RAW: 3, DESC: 160 km / h
+			ENUM BG240, RAW: 4, DESC: 240 km / h
+			ENUM BG230, RAW: 5, DESC: 230 km / h
+			ENUM BG220, RAW: 6, DESC: 220 km / h
+			ENUM BG200, RAW: 7, DESC: 200 km / h
+			ENUM BG180, RAW: 128, DESC: 180 km / h
+			ENUM BG170, RAW: 129, DESC: 170 km / h
+			ENUM BG150, RAW: 130, DESC: 150 km / h
+			ENUM BG140, RAW: 131, DESC: 140 km / h
+			ENUM BG130, RAW: 132, DESC: 130 km / h
+			ENUM BG120, RAW: 133, DESC: 120 km / h
+			ENUM BG110, RAW: 134, DESC: 110 km / h
+			ENUM BG100, RAW: 135, DESC: 100 km / h

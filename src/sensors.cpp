@@ -304,7 +304,7 @@ uint32_t avg = 0;
     for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
         esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
         if (res != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
+            //ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
             return false;
         }
         avg += raw;

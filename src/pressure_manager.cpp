@@ -215,12 +215,12 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     sd.hold1_data.ramp_time = 0;
     sd.hold1_data.hold_time = 100;
     sd.hold1_data.spc_pressure = 650;
-    sd.hold1_data.mpc_pressure = MAX(curr_mpc, sd.hold1_data.spc_pressure);
+    sd.hold1_data.mpc_pressure = curr_mpc + sd.hold1_data.spc_pressure;
 
     sd.hold2_data.ramp_time = 100;
     sd.hold2_data.hold_time = hold2_time_map->get_value(map_gear, sensors->atf_temp);
     sd.hold2_data.spc_pressure = 650;
-    sd.hold2_data.mpc_pressure = MAX(curr_mpc, sd.hold2_data.spc_pressure);
+    sd.hold2_data.mpc_pressure = curr_mpc + sd.hold2_data.spc_pressure;
 
     //sd.hold3_data.ramp_time = 60;
     //sd.hold3_data.hold_time = 100;
@@ -249,10 +249,10 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     //sd.overlap_data.mpc_pressure = (sd.overlap_data.spc_pressure / 4) * 3;
     this->make_overlap_data(&sd.overlap_data, &sd.torque_data, chars, shift_request, curr_mpc);
 
-    sd.max_pressure_data.ramp_time = 500;
+    sd.max_pressure_data.ramp_time = 250;
     sd.max_pressure_data.hold_time  = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
     sd.max_pressure_data.spc_pressure = curr_mpc+sd.overlap_data.spc_pressure;
-    sd.max_pressure_data.mpc_pressure = MAX(curr_mpc, sd.overlap_data.spc_pressure);
+    sd.max_pressure_data.mpc_pressure = sd.overlap_data.mpc_pressure;
 
     // All hold times should be changed based on engine RPM (Assumed 2K RPM when selecting the pressures)
     //float multi = (float)sensor_data->input_rpm / 3000.0;
@@ -310,7 +310,7 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftC
             dest->spc_pressure = 1400;
             break;
     }
-    dest->mpc_pressure = MAX(curr_mpc, dest->spc_pressure);
+    dest->mpc_pressure = dest->spc_pressure+curr_mpc;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -326,24 +326,27 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->hold_time = 0; // No hold time
-    dest->ramp_time = scale_number(sensor_data->static_torque, 300, 150, 100, 200);
+    dest->ramp_time = scale_number(sensor_data->static_torque, 300, 250, 150, 200);
     if (change == ProfileGearChange::ONE_TWO) {
         dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
     }
     if (sensor_data->static_torque <= 40) { // Inertial / coasting
-        dest->ramp_time *= 3;
+        dest->ramp_time *= 2;
     } else {
         dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
     }
 
-    dest->spc_pressure = scale_number(abs(sensor_data->static_torque), prev->spc_pressure*1.5, prev->spc_pressure*2.5, 0, 330);
+    dest->spc_pressure = prev->mpc_pressure + scale_number(abs(sensor_data->static_torque), 0, 500, 0, 330);
     dest->spc_pressure *= 1.0+((float)scale_number(chars.shift_speed*10, 0, 50, 10, 100)/100.0); // 0-20% Addition depending on Shift speed
-    dest->mpc_pressure = MAX(curr_mpc,
+    dest->mpc_pressure = prev->spc_pressure;
+    /*
+    = MAX(curr_mpc,
         scale_number(sensor_data->input_rpm, // More MPC at lower torque to avoid the shift jarring
             (prev->spc_pressure+(curr_mpc))/2.0,
             curr_mpc,
             1000, 3000
         ));
+    */
 }
 
 #define TEMP_COEFFICIENT_COPPER 0.393

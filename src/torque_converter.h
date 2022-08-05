@@ -30,6 +30,7 @@ class TorqueConverter {
     private:
         uint16_t strike_count = 0;
         float curr_tcc_pressure = 0;
+        float tcc_shift_adder = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;

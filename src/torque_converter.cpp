@@ -136,17 +136,11 @@ write_pressure:
         this->curr_tcc_pressure = 0;
     }
     this->state = (slip > 100 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
-    if (this->is_temp_pressure) {
-        pm->set_target_tcc_pressure((uint16_t)(this->tmp_pressure));
-    } else {
-        pm->set_target_tcc_pressure((uint16_t)(this->curr_tcc_pressure));
-    }
+    pm->set_target_tcc_pressure((uint16_t)(this->curr_tcc_pressure+this->tcc_shift_adder));
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
-    this->is_temp_pressure = false;
-    //this->curr_tcc_pressure *= (0.95);
-    //this->curr_tcc_pressure -= 250;
+    this->tcc_shift_adder = 0;
 }
 
 
@@ -154,12 +148,7 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 // 1000 - slip
 // 500 - prefill
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness) {
-    if (this->curr_tcc_pressure < 1200) {
-        this->curr_tcc_pressure = 1200;
-    } else if (this->curr_tcc_pressure >= 1400) {
-        uint32_t additional_reduction = scale_number(shift_firmness*10, 200, 0, 0, 100);
-        this->curr_tcc_pressure -= additional_reduction;
-    }
+    this->tcc_shift_adder = scale_number(abs(sensors->static_torque) , 0, 500, 0, 330);
 }
 
 ClutchStatus TorqueConverter::get_clutch_state() {

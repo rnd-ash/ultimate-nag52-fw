@@ -318,6 +318,9 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                     stage_elapsed = 0;
                     // Current phase, so what do we do before firing the next phase?
                     if (shift_stage == SHIFT_PHASE_HOLD_1) {
+                        if(this->est_gear_idx == sd.curr_g) {
+                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
+                        }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 2");
                         // Going to hold 2
                         // open partial the shift solenoid
@@ -325,8 +328,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         curr_phase = &sd.hold2_data;
                         curr_sd_pwm = 4096;
                         start_ratio = sensor_data.gear_ratio*100; // Shift valve opens here so now take note of start ratio
-                        egs_can_hal->set_torque_request(TorqueRequest::Exact);
-                        egs_can_hal->set_requested_torque(sensor_data.static_torque);
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
                         shift_stage = SHIFT_PHASE_HOLD_3;
@@ -342,9 +343,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                             dest_report.requested_torque = torque_amount;
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
-                        }
-                        if(this->est_gear_idx == sd.curr_g) {
-                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                         }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
@@ -413,7 +411,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             }
             egs_can_hal->set_torque_request(TorqueRequest::None);
             egs_can_hal->set_requested_torque(0);
-            this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
         }
 
         if (gen_report && total_elapsed % SR_REPORT_INTERVAL == 0 && index < MAX_POINTS_PER_SR_ARRAY) {
@@ -425,9 +422,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         }
 
         add_report = !add_report;
-        if (shift_stage >= SHIFT_PHASE_MAX_P && est_gear_idx == sd.targ_g) {
-            this->mpc_working = this->pressure_mgr->find_working_mpc_pressure(target_gear, &sensor_data, gearboxConfig.max_torque);
-        }
         pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
         sd.shift_solenoid->write_pwm_12_bit(curr_sd_pwm); // Write to shift solenoid
         if (ss_open > 100) {

@@ -298,6 +298,7 @@ for line in input_file:
             signal_name = l.split("SIGNAL ")[1].split(", ")[0].strip()
             signal_offset = int(l.split("OFFSET: ")[1].split(",")[0], 10)
             signal_length = int(l.split("LEN: ")[1].split(",")[0], 10)
+            print(l)
             signal_desc = l.split("DESC: ")[1].split(", DATA TYPE")[0].strip()
             try:
                 signal_dt = l.split(", DATA TYPE ")[1]

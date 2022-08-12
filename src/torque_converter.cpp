@@ -118,14 +118,14 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     if (sensors->current_timestamp_ms - last_inc_time > 500 * rpm_multi * temp_time_multiplier && strike_count >= 10) {
         if (slip > max_allowed_slip) {
             if (this->curr_tcc_pressure < 1100) {
-                this->curr_tcc_pressure += 75; // 50mbar
-            } else if (this->curr_tcc_pressure >= 1400) {
-                this->curr_tcc_pressure += 25; // 50mbar
-            } else {
                 this->curr_tcc_pressure += 50; // 50mbar
+            } else if (this->curr_tcc_pressure >= 1200) {
+                this->curr_tcc_pressure += 10; // 50mbar
+            } else {
+                this->curr_tcc_pressure += 25; // 50mbar
             }
             this->last_inc_time = sensors->current_timestamp_ms;
-        } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pressure >= 0 && sensors->static_torque > 40) {
+        } else if (sensors->tcc_slip_rpm < min_allowed_slip && this->curr_tcc_pressure >= 1100 && sensors->static_torque > 40) {
             // Decrease pressure, but only if we have pedal input
             this->curr_tcc_pressure -= 50; // 50mBar
             this->last_inc_time = sensors->current_timestamp_ms;
@@ -143,12 +143,16 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
     this->tcc_shift_adder = 0;
 }
 
-
 // 1600 - lock
 // 1000 - slip
 // 500 - prefill
 void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness) {
-    this->tcc_shift_adder = scale_number(abs(sensors->static_torque) , 0, 500, 0, 330);
+    if (this->curr_tcc_pressure < 1200) {
+        this->curr_tcc_pressure = 1200;
+    } else if (sensors->static_torque > 0 && abs(sensors->tcc_slip_rpm) < 20) {
+        uint32_t additional_reduction = scale_number(shift_firmness*10, 100, 0, 0, 100);
+        this->curr_tcc_pressure -= additional_reduction;
+    }
 }
 
 ClutchStatus TorqueConverter::get_clutch_state() {

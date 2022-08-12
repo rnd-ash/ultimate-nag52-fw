@@ -639,22 +639,22 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
 void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
     switch (s) {
         case SolenoidName::Y3:
-            gs558.set_y3_pwm(duty >> 4);
+            gs558.set_Y3_DUTY(duty >> 8);
             break;
         case SolenoidName::Y4:
-            gs558.set_y4_pwm(duty >> 4);
+            gs558.set_Y4_DUTY(duty >> 8);
             break;
         case SolenoidName::Y5:
-            gs558.set_y5_pwm(duty >> 4);
+            gs558.set_Y5_DUTY(duty >> 8);
             break;
         case SolenoidName::SPC:
-            gs558.set_spc_pwm(duty >> 4);
+            gs558.set_SPC_CURRENT(duty);
             break;
         case SolenoidName::MPC:
-            gs558.set_mpc_pwm(duty >> 4);
+            gs558.set_MPC_CURRENT(duty);
             break;
         case SolenoidName::TCC:
-            gs558.set_tcc_pwm(duty >> 4);
+            gs558.set_TCC_DUTY(duty >> 4);
             break;
         default:
             break;
@@ -682,7 +682,7 @@ void Egs52Can::set_gear_disagree(uint8_t count) {
 }
 
 void Egs52Can::set_gear_ratio(int16_t g100) {
-    this->gs558.set_gear_ratio(g100);
+    this->gs558.set_RATIO(g100);
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
@@ -913,7 +913,7 @@ void Egs52Can::tx_task_loop() {
     GS_338 gs_338tx;
     GS_218 gs_218tx;
     GS_418 gs_418tx;
-    GS_558_CUSTOM gs_558tx;
+    GS_CUSTOM_558 gs_558tx;
     GS_668_CUSTOM gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;

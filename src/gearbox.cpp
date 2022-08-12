@@ -325,8 +325,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         curr_phase = &sd.hold2_data;
                         curr_sd_pwm = 4096;
                         start_ratio = sensor_data.gear_ratio*100; // Shift valve opens here so now take note of start ratio
-                        egs_can_hal->set_torque_request(TorqueRequest::Exact);
-                        egs_can_hal->set_requested_torque(sensor_data.static_torque);
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
                         shift_stage = SHIFT_PHASE_HOLD_3;
@@ -336,15 +334,15 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
                         // Restrict vehicle torque now
+                        if(this->est_gear_idx == sd.curr_g) {
+                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
+                        }
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
                             float torque_amount = sd.torque_down_amount * (float)sensor_data.static_torque;
                             dest_report.requested_torque = torque_amount;
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
-                        }
-                        if(this->est_gear_idx == sd.curr_g) {
-                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                         }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
@@ -353,6 +351,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         egs_can_hal->set_torque_request(TorqueRequest::None);
                         egs_can_hal->set_requested_torque(0);
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase max pressure");
+                        sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque);
                         // No solenoids to touch, just inc counter
                         shift_stage = SHIFT_PHASE_MAX_P;
                         curr_phase = &sd.max_pressure_data;
@@ -413,7 +412,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
             }
             egs_can_hal->set_torque_request(TorqueRequest::None);
             egs_can_hal->set_requested_torque(0);
-            this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
         }
 
         if (gen_report && total_elapsed % SR_REPORT_INTERVAL == 0 && index < MAX_POINTS_PER_SR_ARRAY) {
@@ -425,9 +423,6 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         }
 
         add_report = !add_report;
-        if (shift_stage >= SHIFT_PHASE_MAX_P && est_gear_idx == sd.targ_g) {
-            this->mpc_working = this->pressure_mgr->find_working_mpc_pressure(target_gear, &sensor_data, gearboxConfig.max_torque);
-        }
         pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
         sd.shift_solenoid->write_pwm_12_bit(curr_sd_pwm); // Write to shift solenoid
         if (ss_open > 100) {
@@ -498,7 +493,7 @@ void Gearbox::shift_thread() {
             sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
             vTaskDelay(150);
             uint16_t del = 0;
-            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*3) {
+            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*4) {
                 spc_start += spc_ramp;
                 pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*1.1);
                 pressure_mgr->set_target_spc_pressure(spc_start);  
@@ -506,8 +501,8 @@ void Gearbox::shift_thread() {
                     y4_pwm_val = 1024; // 25% on to prevent burnout
                 }
                 sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on   
-                del += 10;   
-                vTaskDelay(10/portTICK_PERIOD_MS);
+                del += 25;   
+                vTaskDelay(6/portTICK_PERIOD_MS);
             }
             vTaskDelay(200);
             sol_y4->write_pwm_12_bit(0);
@@ -858,8 +853,8 @@ void Gearbox::controller_loop() {
         egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm_compensated(), SolenoidName::Y3);
         egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm_compensated(), SolenoidName::Y4);
         egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm_compensated(), SolenoidName::Y5);
-        egs_can_hal->set_solenoid_pwm(sol_spc->get_pwm_compensated(), SolenoidName::SPC);
-        egs_can_hal->set_solenoid_pwm(sol_mpc->get_pwm_compensated(), SolenoidName::MPC);
+        egs_can_hal->set_solenoid_pwm(sol_spc->get_current(), SolenoidName::SPC);
+        egs_can_hal->set_solenoid_pwm(sol_mpc->get_current(), SolenoidName::MPC);
         egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm_compensated(), SolenoidName::TCC);
         egs_can_hal->set_shift_stage(this->shift_stage, this->is_ramp);
         egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio*100);

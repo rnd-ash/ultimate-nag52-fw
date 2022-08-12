@@ -582,7 +582,7 @@ ECU GS
 		SIGNAL MKRIECH, OFFSET: 48, LEN: 8, DESC: Kriech torque (FFH at EGS, CVT) or Calid / CVN, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL FEHLPRF_ST, OFFSET: 56, LEN: 2, DESC: Status Error Check, DATA TYPE ENUM
 			ENUM WAIT, RAW: 0, DESC: error check not completely run through
-			ENUM OK, RAW: 1 DESC: Completely traject error test, result i. O.
+			ENUM OK, RAW: 1, DESC: Completely traject error test, result 0
 			ENUM ERROR, RAW: 2, DESC: Error detected, enter current environmental data
 			ENUM UNKNOWN, RAW: 3, DESC: not defined
 		SIGNAL CALID_CVN_AKT, OFFSET: 58, LEN: 1, DESC: CALID / CVN transmission active, DATA TYPE BOOL
@@ -710,12 +710,13 @@ ECU GS
 # This CAN Frame is 100% custom to ultimate-nag52 and is never transmitted on CANBUS by the OEM TCM!
 #
 	FRAME GS_CUSTOM_558h (0x00000558)
-		SIGNAL MPC_DUTY, OFFSET: 0, LEN: 8, DESC: Duty cycle of modulating pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL SPC_DUTY, OFFSET: 8, LEN: 8, DESC: Duty cycle of shift pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL TCC_DUTY, OFFSET: 16, LEN: 8, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL TCC_SLIP, OFFSET: 32, LEN: 16, DESC: Desired RPM slip of torque converter clutch, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: rpm
-		SIGNAL AI_UP, OFFSET: 48, LEN: 8, DESC: AI certainty of upshift, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: %
-		SIGNAL AI_DN, OFFSET: 48, LEN: 8, DESC: AI certainty of downshift, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0), UNIT: %
+		SIGNAL Y3_DUTY, OFFSET: 0, LEN: 4, DESC: Duty cycle of modulating pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Y4_DUTY, OFFSET: 4, LEN: 4, DESC: Duty cycle of shift pressure solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL Y5_DUTY, OFFSET: 8, LEN: 4, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL SPC_CURRENT, OFFSET: 12, LEN: 16, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MPC_CURRENT, OFFSET: 28, LEN: 16, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TCC_DUTY, OFFSET: 44, LEN: 8, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL RATIO, OFFSET: 52, LEN: 12, DESC: Duty cycle of torque convert solenoid, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME D_RS_GS (0x000007E9)
 		SIGNAL D_RS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnostic Response, DATA TYPE ISO_TP
 	FRAME SD_RS_GS (0x00000723)

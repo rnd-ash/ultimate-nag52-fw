@@ -2,7 +2,7 @@
 #define __GEARBOX_CONFIG_H_
 
 
-#define BOARD_V2 // Uncomment for the red beta boards!!!
+#define BOARD_V2 // Comment this line for the red beta boards!!!
 
 
 #define GB_EFFICIENCY 0.9 // 90% *TODO* - Does this changed based on GB physical vairent?

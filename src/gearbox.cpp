@@ -255,7 +255,7 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
  *
  * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
  */
-ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
+void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
     SensorData pre_shift = this->sensor_data;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
     ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
@@ -274,6 +274,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         dest_report.max_pressure_data = sd.max_pressure_data;
         dest_report.atf_temp_c = sensor_data.atf_temp;
         dest_report.initial_mpc_pressure = this->mpc_working;
+        dest_report.flare_timestamp = 0;
         dest_report.requested_torque = UINT16_MAX; // Max if no request
         if (profile == nullptr) {
             dest_report.profile = 0xFF;
@@ -333,16 +334,15 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         curr_phase = &sd.torque_data;
-                        // Restrict vehicle torque now
-                        if(this->est_gear_idx == sd.curr_g) {
-                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
-                        }
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
                             float torque_amount = sd.torque_down_amount * (float)sensor_data.static_torque;
                             dest_report.requested_torque = torque_amount;
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
+                        }
+                        if(this->est_gear_idx == sd.curr_g) {
+                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
                         }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
@@ -387,7 +387,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                         dest_report.flare_timestamp = total_elapsed; // Mark report where flare occurred
                     }
                     this->flaring = true;
-                } else if (ratio_now < start_ratio+10) {
+                } else if (ratio_now < start_ratio-10) {
                     if (!shift_in_progress) {
                         if (gen_report) {
                             dest_report.transition_start = total_elapsed;
@@ -402,6 +402,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
                     }
                     this->flaring = true;
                 } else if (ratio_now > start_ratio+10) {
+                    if (!shift_in_progress) {
+                        if (gen_report) {
+                            dest_report.transition_start = total_elapsed;
+                        }
+                    }
                     shift_in_progress = true;
                 }
             }
@@ -425,7 +430,7 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         add_report = !add_report;
         pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
         sd.shift_solenoid->write_pwm_12_bit(curr_sd_pwm); // Write to shift solenoid
-        if (ss_open > 100) {
+        if (ss_open > 250) {
             curr_sd_pwm = 1200; // ~25% PWM (When adjusted for voltage) requested after 100ms to prevent SS from burning up
         }
         if (sd.shift_solenoid->get_pwm_compensated() != 0) {
@@ -451,19 +456,11 @@ ShiftResponse Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfil
         dest_report.targ_curr = ((sd.targ_g & 0x0F) << 4) | (sd.curr_g & 0x0F);
         this->shift_reporter->add_report(dest_report);
     }
-    ShiftResponse response = {
-        .measure_ok = false,
-        .flared = false,
-        .d_output_rpm = 0,
-        .spc_change_start = 0,
-        .spc_map_start = 0
-    };
     if (this->pressure_mgr != nullptr) {
-        this->pressure_mgr->perform_adaptation(&pre_shift, req_lookup, response, is_upshift);
+        this->pressure_mgr->perform_adaptation(&pre_shift, req_lookup, &dest_report, gen_report);
     };
     this->sensor_data.last_shift_time = esp_timer_get_time()/1000;
     this->flaring = false;
-    return response;
 }
 
 void Gearbox::shift_thread() {
@@ -533,7 +530,6 @@ void Gearbox::shift_thread() {
                 ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Upshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 //this->show_upshift = true;
                 ProfileGearChange pgc;
-                ShiftResponse response;
                 if (curr_target == GearboxGear::Second) { // 1-2
                     pgc = ProfileGearChange::ONE_TWO;
                 } else if (curr_target == GearboxGear::Third) { // 2-3
@@ -549,7 +545,7 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                response = elapse_shift(pgc, prof, true);
+                elapse_shift(pgc, prof, true);
                 this->actual_gear = curr_target;
                 this->start_second = true;
                 goto cleanup;
@@ -557,7 +553,6 @@ void Gearbox::shift_thread() {
                 ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Downshift request to change between %s and %s!", gear_to_text(curr_actual), gear_to_text(curr_target));
                 //this->show_downshift = true;
                 ProfileGearChange pgc;
-                ShiftResponse resp;
                 if (curr_target == GearboxGear::First) { // 2-1
                     pgc = ProfileGearChange::TWO_ONE;
                     this->start_second = false;
@@ -575,7 +570,7 @@ void Gearbox::shift_thread() {
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                resp = elapse_shift(pgc, prof, false);
+                elapse_shift(pgc, prof, false);
                 this->actual_gear = curr_target;
                 goto cleanup;
             }

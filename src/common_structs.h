@@ -209,47 +209,6 @@ typedef struct {
 } PressureMgrData;
 
 typedef struct {
-    /**
-     * @brief Did the gearbox change gears OK?
-     * 
-     */
-    bool shifted;
-    /**
-     * @brief Ensures we were able to measure the output shaft speed.
-     * When stationary, we assume the car shifted after 1000ms
-     * 
-     */
-    bool measure_ok;
-
-    /**
-     * @brief Flared? In upshifting, this is when input RPM jumps before falling back
-     * in line. When downshifting, this is seen as input RPM falling before rising back
-     * in line.
-     */
-    bool flared;
-
-    /**
-     * @brief Delta in output RPM during the gearchange
-     * This defines if we were accelerating or decelerating
-     */
-    int d_output_rpm;
-
-    /**
-     * @brief SPC solenoid value where gear ratio began to change
-     * We can use this to tighten shifting (Less delay from request to shift)
-     */
-    int spc_change_start;
-
-    /**
-     * @brief SPC solenoid value from the map
-     */
-    int spc_map_start;
-
-    int target_d_rpm;
-
-} ShiftResponse;
-
-typedef struct {
     // Target delta RPM per step (Each step ~= 40ms)
     uint16_t target_d_rpm;
     // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift

@@ -62,12 +62,12 @@ const bool clutch_move_d5_d4[6] {1, 0, 0, 2, 0, 0}; // D5 -> D4
 
 // 0 -> 100% rated torque (In mbar)
 const pressure_map working_norm_pressure_p = { 500,  600, 700,   800,  900, 1000, 1100, 1200, 1300, 1400, 1500}; // Park or N
-const pressure_map working_norm_pressure_r = { 500,  900, 1200, 1600, 2000, 2500, 3000, 3600, 4500, 5100, 5600}; // R1 or R2
-const pressure_map working_norm_pressure_1 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 1
-const pressure_map working_norm_pressure_2 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 2
-const pressure_map working_norm_pressure_3 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 3
-const pressure_map working_norm_pressure_4 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 4
-const pressure_map working_norm_pressure_5 = { 400,  600, 800, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 3000}; // 5
+const pressure_map working_norm_pressure_r = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // R1 or R2
+const pressure_map working_norm_pressure_1 = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 1
+const pressure_map working_norm_pressure_2 = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 2
+const pressure_map working_norm_pressure_3 = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 3
+const pressure_map working_norm_pressure_4 = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 4
+const pressure_map working_norm_pressure_5 = { 500,  750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 5
 
 typedef void (*P_RAMP_FUNC)(float, float);
 
@@ -96,9 +96,9 @@ public:
      */
     ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
-    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift) {
+    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
         if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(sensors, change, response, upshift);
+            this->adapt_map->perform_adaptation(sensors, response, change, is_valid_rpt);
         }
     }
 

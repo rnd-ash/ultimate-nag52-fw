@@ -270,9 +270,9 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
     // >= 4500 RPM - 100% profile_td_amount
     //float rpm_td_amount = ((float)scale_number(sensor_data->input_rpm, 10, 0, 500, 4500) / 10.0);
     sd.torque_down_amount = profile_td_amount;
-    sd.hold1_data.mpc_pressure = sd.torque_data.mpc_pressure+1000;
-    sd.hold2_data.mpc_pressure = sd.torque_data.mpc_pressure+1000;
-    sd.hold3_data.mpc_pressure = sd.torque_data.mpc_pressure+1000;
+    sd.hold1_data.mpc_pressure = sd.torque_data.mpc_pressure;
+    sd.hold2_data.mpc_pressure = sd.torque_data.mpc_pressure;
+    sd.hold3_data.mpc_pressure = sd.torque_data.mpc_pressure;
     return sd;
 }
 
@@ -329,22 +329,23 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
             dest->spc_pressure = 1400;
             break;
     }
+    const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change);
+    dest->spc_pressure += cell->fill_pressure_mbar;
     dest->mpc_pressure = dest->spc_pressure+(curr_mpc/2);
 }
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     
-    dest->hold_time = scale_number(sensor_data->static_torque, 300, 100, 100, 330);
+    dest->ramp_time = scale_number(sensor_data->static_torque, 300, 100, 100, 330);
     //dest->hold_time = 0;
     if (change == ProfileGearChange::ONE_TWO) {
-        dest->hold_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
+        dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
     }
 
-    dest->spc_pressure = prev->mpc_pressure + scale_number(sensor_data->static_torque, 100, 2000, 0, 330);
-    dest->mpc_pressure = prev->mpc_pressure - scale_number(sensor_data->static_torque, 0, 100, 0, 330);
-    //dest->spc_pressure *= 1.0+((float)scale_number(chars.shift_speed*10, 0, 50, 10, 100)/100.0); // 0-50% Addition depending on Shift speed
-    dest->hold_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
-    dest->ramp_time = dest->hold_time;
+    dest->spc_pressure = prev->mpc_pressure + scale_number(sensor_data->static_torque, 50, 1000, 0, 330);
+    dest->mpc_pressure = prev->mpc_pressure;
+    dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
+    dest->hold_time = 250;
 }
 
 // Get PWM value (out of 4096) to write to the solenoid

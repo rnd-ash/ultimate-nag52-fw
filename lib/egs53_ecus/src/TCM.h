@@ -93,9 +93,9 @@ enum class ENG_RQ2_TCM_Gr_Target {
 	D7 = 7, // Target Gear "7"
 	D_CVT = 8, // Target Gear "Continuously Forward"
 	R_CVT = 9, // Target Gear "Continuously Backward"
-    R_3 = 10, // Target Gear "R3"
+	R3 = 10, // Target Gear "R3"
 	R = 11, // Target Gear "R"
-	R_2 = 12, // Target Gear "R2"
+	R2 = 12, // Target Gear "R2"
 	P = 13, // Target Gear "P"
 	ABORT = 14, // Gear Shift Abortion
 	SNA = 15, // Signal Not Available
@@ -113,9 +113,9 @@ enum class ENG_RQ2_TCM_Gr {
 	D7 = 7, // Actual Gear "7"
 	D_CVT = 8, // Actual Gear "Continuously Forward"
 	R_CVT = 9, // Actual Gear "Continuously Backward"
-	R_3 = 10, // Actual Gear "R3"
+	R3 = 10, // Actual Gear "R3"
 	R = 11, // Actual Gear "R"
-	R_2 = 12, // Actual Gear "R2"
+	R2 = 12, // Actual Gear "R2"
 	P = 13, // Actual Gear "P"
 	PWRFREE = 14, // Power Free
 	SNA = 15, // Signal Not Available
@@ -125,8 +125,8 @@ enum class ENG_RQ2_TCM_Gr {
 enum class ENG_RQ2_TCM_VehDrvStyle {
 	REAR = 0, // Rear Wheel Driven
 	FRONT = 1, // Front Wheel Driven
-	ALL_1 = 2, // All Wheel Driven
-	ALL_2 = 3, // All Wheel Driven
+	ALL = 2, // All Wheel Driven
+	ALL = 3, // All Wheel Driven
 };
 
 /** Transmission Variant / Gear Variant */

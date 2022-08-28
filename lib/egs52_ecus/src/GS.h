@@ -517,63 +517,90 @@ typedef union {
 
 	/** Gets CAN ID of GS_CUSTOM_558 */
 	uint32_t get_canid(){ return GS_CUSTOM_558_CAN_ID; }
-    /** Sets Duty cycle of modulating pressure solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets Y3 duty. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_Y3_DUTY(uint8_t value){ raw = (raw & 0x0fffffffffffffff) | ((uint64_t)value & 0xf) << 60; }
 
-    /** Gets Duty cycle of modulating pressure solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets Y3 duty. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_Y3_DUTY() const { return (uint8_t)(raw >> 60 & 0xf); }
         
-    /** Sets Duty cycle of shift pressure solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets Y4 duty. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_Y4_DUTY(uint8_t value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
-    /** Gets Duty cycle of shift pressure solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets Y4 duty. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_Y4_DUTY() const { return (uint8_t)(raw >> 56 & 0xf); }
         
-    /** Sets Duty cycle of torque convert solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets Y5 duty. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_Y5_DUTY(uint8_t value){ raw = (raw & 0xff0fffffffffffff) | ((uint64_t)value & 0xf) << 52; }
 
-    /** Gets Duty cycle of torque convert solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets Y5 duty. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_Y5_DUTY() const { return (uint8_t)(raw >> 52 & 0xf); }
         
-    /** Sets Duty cycle of torque convert solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets SPC current. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_SPC_CURRENT(uint16_t value){ raw = (raw & 0xfff0000fffffffff) | ((uint64_t)value & 0xffff) << 36; }
 
-    /** Gets Duty cycle of torque convert solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets SPC current. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_SPC_CURRENT() const { return (uint16_t)(raw >> 36 & 0xffff); }
         
-    /** Sets Duty cycle of torque convert solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets MPC current. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_MPC_CURRENT(uint16_t value){ raw = (raw & 0xfffffff0000fffff) | ((uint64_t)value & 0xffff) << 20; }
 
-    /** Gets Duty cycle of torque convert solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets MPC current. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_MPC_CURRENT() const { return (uint16_t)(raw >> 20 & 0xffff); }
         
-    /** Sets Duty cycle of torque convert solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets TCC current. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TCC_DUTY(uint8_t value){ raw = (raw & 0xfffffffffff00fff) | ((uint64_t)value & 0xff) << 12; }
 
-    /** Gets Duty cycle of torque convert solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets TCC current. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_TCC_DUTY() const { return (uint8_t)(raw >> 12 & 0xff); }
         
-    /** Sets Duty cycle of torque convert solenoid. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets Est ratio. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_RATIO(uint16_t value){ raw = (raw & 0xfffffffffffff000) | ((uint64_t)value & 0xfff) << 0; }
 
-    /** Gets Duty cycle of torque convert solenoid. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets Est ratio. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_RATIO() const { return (uint16_t)(raw >> 0 & 0xfff); }
         
 } GS_CUSTOM_558;
+
+
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of GS_668 */
+	/** Gets CAN ID of GS_CUSTOM_668 */
 	uint32_t get_canid(){ return GS_CUSTOM_668_CAN_ID; }
+    /** Sets SPC Pressure target. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_SPC_PRESSURE_EST(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
 
-    void set_spc_pressure_est(uint16_t mbar) { raw = (raw & 0x0000ffffffffffff) | ((uint64_t)mbar << 48); }
-    void set_mpc_pressure_est(uint16_t mbar) { raw = (raw & 0xffff0000ffffffff) | ((uint64_t)mbar << 32); }
-    void set_tcc_pressure_est(uint16_t mbar) { raw = (raw & 0xffffffff0000ffff) | ((uint64_t)mbar << 16); }
-    void set_shift_stage(uint8_t stage, bool is_ramp){ raw = (raw & 0xffffffffffff00ff) | (((uint64_t)stage & 0xf) | (is_ramp << 4)) << 8; }
-    void set_gear_disagree(uint8_t count) { raw = (raw & 0xffffffffffffff00) | ((uint64_t)count); }
-} GS_668_CUSTOM;
+    /** Gets SPC Pressure target. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint16_t get_SPC_PRESSURE_EST() const { return (uint16_t)(raw >> 48 & 0xffff); }
+        
+    /** Sets MPC Pressure target. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_MPC_PRESSURE_EST(uint16_t value){ raw = (raw & 0xffff0000ffffffff) | ((uint64_t)value & 0xffff) << 32; }
+
+    /** Gets MPC Pressure target. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint16_t get_MPC_PRESSURE_EST() const { return (uint16_t)(raw >> 32 & 0xffff); }
+        
+    /** Sets TCC Pressure target. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_TCC_PRESSURE_EST(uint16_t value){ raw = (raw & 0xffffffff0000ffff) | ((uint64_t)value & 0xffff) << 16; }
+
+    /** Gets TCC Pressure target. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint16_t get_TCC_PRESSURE_EST() const { return (uint16_t)(raw >> 16 & 0xffff); }
+        
+    /** Sets Shift stage. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_SHIFT_STAGE(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
+
+    /** Gets Shift stage. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint8_t get_SHIFT_STAGE() const { return (uint8_t)(raw >> 8 & 0xff); }
+        
+    /** Sets Shift stage. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_GEAR_DISAGREE(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
+
+    /** Gets Shift stage. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint8_t get_GEAR_DISAGREE() const { return (uint8_t)(raw >> 0 & 0xff); }
+        
+} GS_CUSTOM_668;
+
 
 
 class ECU_GS {
@@ -603,6 +630,10 @@ class ECU_GS {
                     LAST_FRAME_TIMES[3] = timestamp_now;
                     FRAME_DATA[3] = value;
                     return true;
+                case GS_CUSTOM_668_CAN_ID:
+                    LAST_FRAME_TIMES[4] = timestamp_now;
+                    FRAME_DATA[4] = value;
+                    return true;
                 default:
                     return false;
             }
@@ -618,7 +649,7 @@ class ECU_GS {
         bool get_GS_218(uint64_t now, uint64_t max_expire_time, GS_218* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];
@@ -636,7 +667,7 @@ class ECU_GS {
         bool get_GS_338(uint64_t now, uint64_t max_expire_time, GS_338* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[1];
@@ -654,7 +685,7 @@ class ECU_GS {
         bool get_GS_418(uint64_t now, uint64_t max_expire_time, GS_418* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[2];
@@ -672,7 +703,7 @@ class ECU_GS {
         bool get_GS_CUSTOM_558(uint64_t now, uint64_t max_expire_time, GS_CUSTOM_558* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[3];
@@ -680,9 +711,27 @@ class ECU_GS {
             }
         }
             
+        /** Sets data in pointer to GS_CUSTOM_668
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_GS_CUSTOM_668(uint64_t now, uint64_t max_expire_time, GS_CUSTOM_668* dest) const {
+            if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+                return false;
+            } else if (now > LAST_FRAME_TIMES[4] && now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+                return false;
+            } else { // CAN Frame is valid! return it
+                dest->raw = FRAME_DATA[4];
+                return true;
+            }
+        }
+            
 	private:
-		uint64_t FRAME_DATA[4];
-		uint64_t LAST_FRAME_TIMES[4];
+		uint64_t FRAME_DATA[5];
+		uint64_t LAST_FRAME_TIMES[5];
 };
 #endif // __ECU_GS_H_
 

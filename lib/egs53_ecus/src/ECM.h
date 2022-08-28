@@ -4140,7 +4140,7 @@ class ECU_ECM {
         bool get_CTRL_U_A2(uint64_t now, uint64_t max_expire_time, CTRL_U_A2* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];
@@ -4158,7 +4158,7 @@ class ECU_ECM {
         bool get_ECM_A1(uint64_t now, uint64_t max_expire_time, ECM_A1* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[1];
@@ -4176,7 +4176,7 @@ class ECU_ECM {
         bool get_ECM_A2(uint64_t now, uint64_t max_expire_time, ECM_A2* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[2];
@@ -4194,7 +4194,7 @@ class ECU_ECM {
         bool get_EIS_A1(uint64_t now, uint64_t max_expire_time, EIS_A1* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[3];
@@ -4212,7 +4212,7 @@ class ECU_ECM {
         bool get_IC_A1(uint64_t now, uint64_t max_expire_time, IC_A1* dest) const {
             if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[4] && now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[4];
@@ -4230,7 +4230,7 @@ class ECU_ECM {
         bool get_IC_A3(uint64_t now, uint64_t max_expire_time, IC_A3* dest) const {
             if (LAST_FRAME_TIMES[5] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[5] && now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[5];
@@ -4248,7 +4248,7 @@ class ECU_ECM {
         bool get_LM_A1(uint64_t now, uint64_t max_expire_time, LM_A1* dest) const {
             if (LAST_FRAME_TIMES[6] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[6] && now - LAST_FRAME_TIMES[6] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[6];
@@ -4266,7 +4266,7 @@ class ECU_ECM {
         bool get_SPC_A3(uint64_t now, uint64_t max_expire_time, SPC_A3* dest) const {
             if (LAST_FRAME_TIMES[7] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[7] && now - LAST_FRAME_TIMES[7] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[7];
@@ -4284,7 +4284,7 @@ class ECU_ECM {
         bool get_STW_ANGL_STAT(uint64_t now, uint64_t max_expire_time, STW_ANGL_STAT* dest) const {
             if (LAST_FRAME_TIMES[8] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[8] && now - LAST_FRAME_TIMES[8] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[8];
@@ -4302,7 +4302,7 @@ class ECU_ECM {
         bool get_BRK_STAT(uint64_t now, uint64_t max_expire_time, BRK_STAT* dest) const {
             if (LAST_FRAME_TIMES[9] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[9] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[9] && now - LAST_FRAME_TIMES[9] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[9];
@@ -4320,7 +4320,7 @@ class ECU_ECM {
         bool get_CGW_STAT(uint64_t now, uint64_t max_expire_time, CGW_STAT* dest) const {
             if (LAST_FRAME_TIMES[10] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[10] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[10] && now - LAST_FRAME_TIMES[10] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[10];
@@ -4338,7 +4338,7 @@ class ECU_ECM {
         bool get_BRK_STAT2(uint64_t now, uint64_t max_expire_time, BRK_STAT2* dest) const {
             if (LAST_FRAME_TIMES[11] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[11] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[11] && now - LAST_FRAME_TIMES[11] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[11];
@@ -4356,7 +4356,7 @@ class ECU_ECM {
         bool get_SBW_RQ_SCCM(uint64_t now, uint64_t max_expire_time, SBW_RQ_SCCM* dest) const {
             if (LAST_FRAME_TIMES[12] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[12] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[12] && now - LAST_FRAME_TIMES[12] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[12];
@@ -4374,7 +4374,7 @@ class ECU_ECM {
         bool get_EPKB_STAT(uint64_t now, uint64_t max_expire_time, EPKB_STAT* dest) const {
             if (LAST_FRAME_TIMES[13] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[13] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[13] && now - LAST_FRAME_TIMES[13] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[13];
@@ -4392,7 +4392,7 @@ class ECU_ECM {
         bool get_HVAC_RS1(uint64_t now, uint64_t max_expire_time, HVAC_RS1* dest) const {
             if (LAST_FRAME_TIMES[14] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[14] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[14] && now - LAST_FRAME_TIMES[14] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[14];
@@ -4410,7 +4410,7 @@ class ECU_ECM {
         bool get_TX_RQ_SBC(uint64_t now, uint64_t max_expire_time, TX_RQ_SBC* dest) const {
             if (LAST_FRAME_TIMES[15] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[15] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[15] && now - LAST_FRAME_TIMES[15] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[15];
@@ -4428,7 +4428,7 @@ class ECU_ECM {
         bool get_ENG_RS3_PT(uint64_t now, uint64_t max_expire_time, ENG_RS3_PT* dest) const {
             if (LAST_FRAME_TIMES[16] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[16] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[16] && now - LAST_FRAME_TIMES[16] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[16];
@@ -4446,7 +4446,7 @@ class ECU_ECM {
         bool get_ENG_RS2_PT(uint64_t now, uint64_t max_expire_time, ENG_RS2_PT* dest) const {
             if (LAST_FRAME_TIMES[17] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[17] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[17] && now - LAST_FRAME_TIMES[17] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[17];
@@ -4464,7 +4464,7 @@ class ECU_ECM {
         bool get_TX_RQ_ECM(uint64_t now, uint64_t max_expire_time, TX_RQ_ECM* dest) const {
             if (LAST_FRAME_TIMES[18] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[18] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[18] && now - LAST_FRAME_TIMES[18] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[18];
@@ -4482,7 +4482,7 @@ class ECU_ECM {
         bool get_ENG_RS1_PT(uint64_t now, uint64_t max_expire_time, ENG_RS1_PT* dest) const {
             if (LAST_FRAME_TIMES[19] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[19] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[19] && now - LAST_FRAME_TIMES[19] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[19];
@@ -4500,7 +4500,7 @@ class ECU_ECM {
         bool get_DPM_STAT(uint64_t now, uint64_t max_expire_time, DPM_STAT* dest) const {
             if (LAST_FRAME_TIMES[20] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[20] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[20] && now - LAST_FRAME_TIMES[20] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[20];
@@ -4518,7 +4518,7 @@ class ECU_ECM {
         bool get_WHL_STAT1(uint64_t now, uint64_t max_expire_time, WHL_STAT1* dest) const {
             if (LAST_FRAME_TIMES[21] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[21] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[21] && now - LAST_FRAME_TIMES[21] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[21];
@@ -4536,7 +4536,7 @@ class ECU_ECM {
         bool get_WHL_STAT2(uint64_t now, uint64_t max_expire_time, WHL_STAT2* dest) const {
             if (LAST_FRAME_TIMES[22] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[22] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[22] && now - LAST_FRAME_TIMES[22] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[22];
@@ -4554,7 +4554,7 @@ class ECU_ECM {
         bool get_PN14_STAT(uint64_t now, uint64_t max_expire_time, PN14_STAT* dest) const {
             if (LAST_FRAME_TIMES[23] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[23] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[23] && now - LAST_FRAME_TIMES[23] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[23];
@@ -4572,7 +4572,7 @@ class ECU_ECM {
         bool get_CVI(uint64_t now, uint64_t max_expire_time, CVI* dest) const {
             if (LAST_FRAME_TIMES[24] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[24] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[24] && now - LAST_FRAME_TIMES[24] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[24];
@@ -4590,7 +4590,7 @@ class ECU_ECM {
         bool get_VEH_DYN_STAT(uint64_t now, uint64_t max_expire_time, VEH_DYN_STAT* dest) const {
             if (LAST_FRAME_TIMES[25] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[25] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[25] && now - LAST_FRAME_TIMES[25] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[25];
@@ -4608,7 +4608,7 @@ class ECU_ECM {
         bool get_BODY_R1(uint64_t now, uint64_t max_expire_time, BODY_R1* dest) const {
             if (LAST_FRAME_TIMES[26] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[26] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[26] && now - LAST_FRAME_TIMES[26] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[26];
@@ -4626,7 +4626,7 @@ class ECU_ECM {
         bool get_BODY_R2(uint64_t now, uint64_t max_expire_time, BODY_R2* dest) const {
             if (LAST_FRAME_TIMES[27] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[27] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[27] && now - LAST_FRAME_TIMES[27] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[27];
@@ -4644,7 +4644,7 @@ class ECU_ECM {
         bool get_ECM_OBD(uint64_t now, uint64_t max_expire_time, ECM_OBD* dest) const {
             if (LAST_FRAME_TIMES[28] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[28] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[28] && now - LAST_FRAME_TIMES[28] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[28];
@@ -4662,7 +4662,7 @@ class ECU_ECM {
         bool get_NM_ECM(uint64_t now, uint64_t max_expire_time, NM_ECM* dest) const {
             if (LAST_FRAME_TIMES[29] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[29] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[29] && now - LAST_FRAME_TIMES[29] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[29];

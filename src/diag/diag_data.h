@@ -80,6 +80,7 @@ typedef struct {
     uint8_t shift_button_pressed;
     ShifterPosition shifter_position;
     PaddlePosition paddle_position;
+    uint16_t engine_rpm;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
 /// System usage stats 

@@ -662,23 +662,23 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
 }
 
 void Egs52Can::set_spc_pressure(uint16_t p) {
-    this->gs668.set_spc_pressure_est(p);
+    this->gs668.set_SPC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_mpc_pressure(uint16_t p) {
-    this->gs668.set_mpc_pressure_est(p);
+    this->gs668.set_MPC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_tcc_pressure(uint16_t p) {
-    this->gs668.set_tcc_pressure_est(p);
+    this->gs668.set_TCC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
-    this->gs668.set_shift_stage(stage, is_ramp);
+    this->gs668.set_SHIFT_STAGE(stage);
 }
 
 void Egs52Can::set_gear_disagree(uint8_t count) {
-    this->gs668.set_gear_disagree(count);
+    this->gs668.set_GEAR_DISAGREE(count);
 }
 
 void Egs52Can::set_gear_ratio(int16_t g100) {
@@ -914,7 +914,7 @@ void Egs52Can::tx_task_loop() {
     GS_218 gs_218tx;
     GS_418 gs_418tx;
     GS_CUSTOM_558 gs_558tx;
-    GS_668_CUSTOM gs_668tx;
+    GS_CUSTOM_668 gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;

@@ -85,7 +85,11 @@ public:
     void diag_regain_control() { this->diag_stop_control = false; }
     SensorData sensor_data;
         uint16_t get_gear_ratio() {
-        return this->sensor_data.gear_ratio * 100;
+            if (this->sensor_data.output_rpm == 0 || this->sensor_data.input_rpm == 0) {
+                return 0;
+            } else {
+                return ((float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm)*100;
+            }
     }
     static uint16_t redline_rpm;
     ShiftReporter* shift_reporter;

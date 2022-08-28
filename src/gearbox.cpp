@@ -967,13 +967,13 @@ bool Gearbox::calc_output_rpm(uint16_t* dest, uint64_t now) {
     //ESP_LOG_LEVEL(ESP_LOG_INFO, "WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
     float rpm = 0;
     if (left.current_dir == WheelDirection::SignalNotAvaliable && right.current_dir == WheelDirection::SignalNotAvaliable) {
-        //ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
         return false;
     } else if (left.current_dir == WheelDirection::SignalNotAvaliable) { // Right OK
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
+        //ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
         rpm = right.double_rpm;
     } else if (right.current_dir == WheelDirection::SignalNotAvaliable) { // Left OK
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
+        //ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
         rpm = left.double_rpm;
     } else { // Both sensors OK!
         rpm = (abs(left.double_rpm) + abs(right.double_rpm)) / 2;

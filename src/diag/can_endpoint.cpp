@@ -110,7 +110,7 @@ void CanEndpoint::iso_tp_server_loop() {
             }
         }
     
-        if (is_sending && clear_to_send && now-this->last_tx_time >= KWP_CAN_ST_MIN) {
+        if (is_sending && clear_to_send && (now-this->last_tx_time >= KWP_CAN_ST_MIN)) {
             uint8_t max_cpy = tx_msg.max_pos-tx_msg.curr_pos;
             if (max_cpy > 7) {
                 max_cpy = 7;
@@ -126,6 +126,7 @@ void CanEndpoint::iso_tp_server_loop() {
                 this->is_sending = false; // Abort send
                 continue;
             } else {
+                this->tx_count++;
                 this->last_tx_time = now;
             }
             tx_msg.curr_pos += 7;
@@ -139,7 +140,7 @@ void CanEndpoint::iso_tp_server_loop() {
                 this->clear_to_send = false;
                 continue;
             }
-            if (this->tx_bs != 0) {
+            if (this->tx_bs != 0 && this->tx_count >= this->tx_bs) {
                 this->clear_to_send = false; // Await new block
             }
         }
@@ -207,7 +208,7 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
             if (xQueueSend(this->read_msg_queue, &this->rx_msg, 0) != pdTRUE) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
             }
-        } else if (this->frames_received >= KWP_CAN_BS && KWP_CAN_BS != 0) { // Send flow control when we overflow
+        } else if ((this->frames_received >= KWP_CAN_BS) && KWP_CAN_BS != 0) { // Send flow control when we overflow
             if (!this->send_to_twai((uint8_t*)FLOW_CONTROL)) {
                 this->is_receiving = false; // Set if could not send Tx Frame
             }
@@ -218,7 +219,7 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
 }
 
 void CanEndpoint::process_flow_control(DiagCanMessage msg) {
-    ESP_LOGD("CAN_ENDPOINT", "FC Received!");
+    ESP_LOGI("CAN_ENDPOINT", "FC Received! BS %d STMIN %d", msg[1], msg[2]);
     if (msg[0] == 0x30 && this->is_sending) {
         this->clear_to_send = true;
         this->tx_bs = msg[1];
@@ -226,6 +227,7 @@ void CanEndpoint::process_flow_control(DiagCanMessage msg) {
         if (this->tx_stmin > 127) {
             this->tx_stmin = 0; // Microseconds so < 1ms
         }
+        this->tx_count = 0;
         this->last_tx_time = esp_timer_get_time()/1000; // To avoid timeouts
     }
 }

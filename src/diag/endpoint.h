@@ -207,6 +207,7 @@ private:
     uint8_t tx_stmin = 20;
     uint8_t frames_received = 0;
     twai_message_t tx_can;
+    uint8_t tx_count = 0;
 
     bool send_to_twai(DiagCanMessage msg);
 };

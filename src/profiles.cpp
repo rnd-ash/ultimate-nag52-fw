@@ -165,45 +165,6 @@ TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
     };
 }
 
-
-
-void StandardProfile::on_upshift_complete(ShiftResponse resp, uint8_t from_gear, SensorData* sensors) {
-    
-    /*
-    float* target;
-    switch(from_gear) {
-        case 1:
-            target = &adaptation_1_2;
-            break;
-        case 2:
-            target = &adaptation_2_3;
-            break;
-        case 3:
-            target = &adaptation_3_4;
-            break;
-        case 4:
-            target = &adaptation_4_5;
-            break;
-        default:
-            return;
-    }
-    int min_time = 500;
-    int max_time = 600;
-    if (from_gear == 1 || from_gear == 4) {
-        min_time = 400;
-        max_time = 500;
-    }
-    if (resp.shifted && resp.valid_measurement) {
-        if (resp.time_ms < min_time) {
-            *target += 0.01;
-        } else if (resp.time_ms > max_time) {
-            *target -= 0.01;
-        }
-    }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT", "Adaptation block is now %.2f %.2f %.2f %.2f", adaptation_1_2, adaptation_2_3, adaptation_3_4, adaptation_4_5);
-    */
-}
-
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 50,

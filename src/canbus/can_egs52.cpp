@@ -51,6 +51,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->gs418.set_FRONT(false); // Primary rear wheel drive
     this->gs418.set_CVT(false); // Not CVT gearbox
     this->gs418.set_MECH(GS_418h_MECH::GROSS); // Small 722.6 for now! (TODO Handle 580)
+    this->gs218.set_ALF(true); // Fix for KG systems where cranking would stop when TCU turns on
 
 
     // Covers setting NAB, a couple unknown but static values,
@@ -111,26 +112,26 @@ WheelData Egs52Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
+    BS_208 bs208;
+    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVR()) {
-            case BS_200h_DRTGVR::FWD:
+        switch(bs208.get_DRTGHR()) {
+            case BS_208h_DRTGHR::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVR::REV:
+            case BS_208h_DRTGHR::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVR::PASSIVE:
+            case BS_208h_DRTGHR::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVR::SNV:
+            case BS_208h_DRTGHR::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVR(),
+            .double_rpm = bs208.get_DHR(),
             .current_dir = d
         };
     } else {
@@ -142,26 +143,26 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
+    BS_208 bs208;
+    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVL()) {
-            case BS_200h_DRTGVL::FWD:
+        switch(bs208.get_DRTGHL()) {
+            case BS_208h_DRTGHL::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVL::REV:
+            case BS_208h_DRTGHL::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVL::PASSIVE:
+            case BS_208h_DRTGHL::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVL::SNV:
+            case BS_208h_DRTGHL::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVL(),
+            .double_rpm = bs208.get_DHL(),
             .current_dir = d
         };
     } else {
@@ -662,23 +663,23 @@ void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
 }
 
 void Egs52Can::set_spc_pressure(uint16_t p) {
-    this->gs668.set_spc_pressure_est(p);
+    this->gs668.set_SPC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_mpc_pressure(uint16_t p) {
-    this->gs668.set_mpc_pressure_est(p);
+    this->gs668.set_MPC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_tcc_pressure(uint16_t p) {
-    this->gs668.set_tcc_pressure_est(p);
+    this->gs668.set_TCC_PRESSURE_EST(p);
 }
 
 void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
-    this->gs668.set_shift_stage(stage, is_ramp);
+    this->gs668.set_SHIFT_STAGE(stage);
 }
 
 void Egs52Can::set_gear_disagree(uint8_t count) {
-    this->gs668.set_gear_disagree(count);
+    this->gs668.set_GEAR_DISAGREE(count);
 }
 
 void Egs52Can::set_gear_ratio(int16_t g100) {
@@ -914,7 +915,7 @@ void Egs52Can::tx_task_loop() {
     GS_218 gs_218tx;
     GS_418 gs_418tx;
     GS_CUSTOM_558 gs_558tx;
-    GS_668_CUSTOM gs_668tx;
+    GS_CUSTOM_668 gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;

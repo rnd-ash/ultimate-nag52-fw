@@ -92,7 +92,7 @@ public:
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 private:
-    ShiftResponse elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
+    void elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;

@@ -84,7 +84,6 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    void on_upshift_complete(ShiftResponse response, uint8_t from_gear, SensorData* sensors);
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     const uint8_t get_profile_id() override { return PROFILE_ID_STANDARD; }

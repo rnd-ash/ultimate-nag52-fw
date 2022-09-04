@@ -322,7 +322,7 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
         case ProfileGearChange::THREE_TWO: // Prefilling K3
         case ProfileGearChange::THREE_FOUR:
             dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1500;
+            dest->spc_pressure = 1600;
             break;
         case ProfileGearChange::FOUR_THREE: // Prefilling B2
         default:
@@ -332,7 +332,7 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
     }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change);
     dest->spc_pressure += cell->fill_pressure_mbar;
-    dest->mpc_pressure = dest->spc_pressure+(curr_mpc/2);
+    dest->mpc_pressure = dest->spc_pressure+(curr_mpc/1.2);
 }
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {

@@ -85,7 +85,7 @@ public:
     uint16_t get_targ_mpc_current();
     void disable_spc();
 
-    PressureManager(SensorData* sensor_ptr);
+    PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
 
     /**
      * @brief Get the shift data object for the requested shift
@@ -135,6 +135,7 @@ private:
     TcmMap* pressure_pwm_map;
     TcmMap* tcc_pwm_map;
     TcmMap* hold2_time_map;
+    uint16_t gb_max_torque;
 
     void make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);

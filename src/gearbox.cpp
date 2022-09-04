@@ -52,7 +52,6 @@ Gearbox::Gearbox() {
         .d_output_rpm = 0
     };
     this->tcc = new TorqueConverter();
-    this->pressure_mgr = new PressureManager(&this->sensor_data);
     this->shift_reporter = new ShiftReporter();
 
     if(VEHICLE_CONFIG.is_large_nag) {
@@ -68,6 +67,7 @@ Gearbox::Gearbox() {
             .ratios = RATIOS_SMALL,
         };
     }
+    this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---GEARBOX INFO---");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
     for (int i = 0; i < 7; i++) {

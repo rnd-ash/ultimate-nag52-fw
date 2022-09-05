@@ -71,16 +71,21 @@ SPEAKER_POST_CODE setup_tcm()
     if(!CurrentDriver::init_current_driver()) {
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
+    if (!EEPROM::init_eeprom()) {
+        return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
+
+    standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
+    comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
+    winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
+    agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
+    manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
 
     profiles[0] = standard;
     profiles[1] = comfort;
     profiles[2] = winter;
     profiles[3] = agility;
     profiles[4] = manual;
-
-    if (!EEPROM::init_eeprom()) {
-        return SPEAKER_POST_CODE::EEPROM_FAIL;
-    }
 
     // Read profile ID on startup based on TCM config
     profile_id = VEHICLE_CONFIG.default_profile;

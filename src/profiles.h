@@ -5,6 +5,7 @@
 
 #include "canbus/can_hal.h"
 #include "common_structs.h"
+#include "tcm_maths.h"
 
 #define MAX_PROFILES 4
 
@@ -14,11 +15,14 @@
 #define PROFILE_ID_AGILITY 3
 #define PROFILE_ID_MANUAL 4
 
+
+
 /**
  * A profile is designed to read the current conditions of the gearbox and request the gearbox to do something
  */
 class AbstractProfile {
 public:
+    AbstractProfile(){};
     virtual GearboxProfile get_profile() const;
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual);
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors);
@@ -37,10 +41,13 @@ public:
     virtual const uint8_t get_profile_id() = 0;
 protected:
     uint8_t profile_id = 0;
+    TcmMap* upshift_table = nullptr;
+    TcmMap* downshift_table = nullptr;
 };
 
 class AgilityProfile : public AbstractProfile {
 public:
+    AgilityProfile(bool is_diesel): AbstractProfile(){};
     GearboxProfile get_profile() const override { return GearboxProfile::Agility; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -52,6 +59,7 @@ public:
 
 class ComfortProfile : public AbstractProfile {
 public:
+    ComfortProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Comfort; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -66,6 +74,7 @@ public:
 
 class WinterProfile : public AbstractProfile {
 public:
+    WinterProfile(bool is_diesel): AbstractProfile(){};;
     GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -80,6 +89,7 @@ public:
 
 class StandardProfile : public AbstractProfile {
 public:
+    StandardProfile(bool is_diesel): AbstractProfile(){};;
     GearboxProfile get_profile() const override { return GearboxProfile::Standard; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -91,6 +101,7 @@ public:
 
 class ManualProfile : public AbstractProfile {
 public:
+    ManualProfile(bool is_diesel): AbstractProfile(){};
     GearboxProfile get_profile() const override { return GearboxProfile::Manual; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;

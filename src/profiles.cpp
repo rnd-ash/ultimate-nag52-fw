@@ -59,6 +59,70 @@ TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
     };
 }
 
+ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile() {
+    // X headers - Pedal position
+    int16_t x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    // Actual gear
+
+    int16_t y_upshift_headers[4] = {1,2,3,4};
+    int16_t y_downshift_headers[4] = {2,3,4,5};
+    //TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids);
+    this->upshift_table = new TcmMap(11, 4, x_headers, y_upshift_headers);
+    this->downshift_table = new TcmMap(11, 4, x_headers, y_downshift_headers);
+
+    if (!this->upshift_table->allocate_ok() || !this->downshift_table->allocate_ok()) {
+        ESP_LOGE("COMFORT", "Upshift/Downshift map allocation failed!");
+        delete this->upshift_table;
+        delete this->downshift_table;
+    } else {
+        if (is_diesel) { // DIESEL PROFILE
+            int16_t upshift_map[44] = { // Values are input RPM
+                /*                        Pedal position                                   */
+                /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%   100%          */
+                1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 4000, 4500,/* 1 -> 2 */
+                1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500,/* 2 -> 3 */
+                1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500,/* 3 -> 4 */
+                1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500 /* 4 -> 5 */
+            };
+            int16_t downshift_map[44] = { // Values are input RPM
+                /*                        Pedal position                                   */
+                /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
+                 900, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000,/* 2 -> 1 */
+                 900, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000,/* 3 -> 2 */
+                 900, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000,/* 4 -> 3 */
+                1000, 1100, 1300, 1500, 1700, 1900, 2100, 2400, 2600, 2800, 3000 /* 5 -> 4 */
+            };
+            if (this->upshift_table->add_data(upshift_map, 44) && this->downshift_table->add_data(downshift_map, 44)) {
+                ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
+            } else {
+                ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
+            }
+        } else { // PETROL PROFILE
+            int16_t upshift_map[44] = { // Values are input RPM
+                /*                        Pedal position                                   */
+                /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%   100%          */
+                1700, 1800, 1900, 2200, 2400, 2800, 3500, 4100, 5000, 5700, 6000,/* 1 -> 2 */
+                1300, 1350, 1400, 1600, 1800, 2000, 2500, 3100, 4500, 5200, 6000,/* 2 -> 3 */
+                1400, 1450, 1500, 1700, 1900, 2100, 2600, 3200, 4600, 5100, 6000,/* 3 -> 4 */
+                1500, 1550, 1600, 1800, 2000, 2200, 2700, 3300, 4700, 5000, 6000 /* 4 -> 5 */
+            };
+            int16_t downshift_map[44] = { // Values are input RPM
+                /*                        Pedal position                                  */
+                /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%          */
+                 900, 1000, 1300, 1500, 1600, 1800, 2000, 2200, 2500, 2700, 3000,/* 2 -> 1 */
+                 900, 1100, 1300, 1500, 1600, 1800, 2000, 2200, 2500, 2700, 3000,/* 3 -> 2 */
+                 900, 1100, 1300, 1500, 1600, 1800, 2000, 2200, 2500, 2700, 3000,/* 4 -> 3 */
+                1200, 1250, 1275, 1300, 3500, 1400, 1500, 1600, 2000, 2400, 2800 /* 5 -> 4 */
+            };
+            if (this->upshift_table->add_data(upshift_map, 44) && this->downshift_table->add_data(downshift_map, 44)) {
+                ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
+            } else {
+                ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
+            }
+        }
+    }
+}
+
 
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
@@ -93,6 +157,9 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
 }
 
 bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    if (this->upshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
     return standard->should_upshift(current_gear, sensors);
 }
 
@@ -100,7 +167,13 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
     if (current_gear == GearboxGear::Second || current_gear == GearboxGear::First) {
         return false;
     }
+    
+    if (this->downshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
+
     return standard->should_downshift(current_gear, sensors);
+    
 }
 
 TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
@@ -309,8 +382,17 @@ TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
     };
 }
 
+/*
 AgilityProfile* agility = new AgilityProfile();
 ComfortProfile* comfort = new ComfortProfile();
 WinterProfile* winter = new WinterProfile();
 ManualProfile* manual = new ManualProfile();
 StandardProfile* standard = new StandardProfile();
+*/
+
+/* Now initialized in main.cpp */
+AgilityProfile* agility = nullptr;
+ComfortProfile* comfort = nullptr;
+WinterProfile* winter = nullptr;
+ManualProfile* manual = nullptr;
+StandardProfile* standard = nullptr;

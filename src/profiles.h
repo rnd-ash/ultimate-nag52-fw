@@ -15,6 +15,9 @@
 #define PROFILE_ID_AGILITY 3
 #define PROFILE_ID_MANUAL 4
 
+const int16_t shift_table_x_header[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+const int16_t upshift_y_headers[4] = {1,2,3,4};
+const int16_t downshift_y_headers[4] = {2,3,4,5};
 
 
 /**

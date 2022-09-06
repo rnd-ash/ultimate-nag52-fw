@@ -21,7 +21,7 @@ float scale_number(int16_t raw, int16_t new_min, int16_t new_max, int16_t raw_mi
 
 
 
-TcmMap::TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids) {
+TcmMap::TcmMap(uint16_t X_Size, uint16_t Y_size, const int16_t* x_ids, const int16_t* y_ids) {
 
     this->x_size = X_Size;
     this->y_size = Y_size;

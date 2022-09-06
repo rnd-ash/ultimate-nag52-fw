@@ -18,7 +18,7 @@ float scale_number(int16_t raw, int16_t new_min, int16_t new_max, int16_t raw_mi
 class TcmMap {
 public:
     /// Creates a 0'ed map
-    TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids);
+    TcmMap(uint16_t X_Size, uint16_t Y_size, const int16_t* x_ids, const int16_t* y_ids);
     /// MUST call after constructor to ensure that memory was allocated
     /// OK for the map!
     bool allocate_ok();

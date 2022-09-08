@@ -53,6 +53,18 @@ typedef union {
 
 	/** Gets CAN ID of GS_218 */
 	uint32_t get_canid(){ return GS_218_CAN_ID; }
+    /** Sets Torque request value. 0xFE when inactive. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_TORQUE_REQ(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
+
+    /** Gets Torque request value. 0xFE when inactive. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint8_t get_TORQUE_REQ() const { return (uint8_t)(raw >> 56 & 0xff); }
+        
+    /** Sets Enable torque request */
+    void set_TORQUE_REQ_EN(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
+
+    /** Gets Enable torque request */
+    bool get_TORQUE_REQ_EN() const { return (bool)(raw >> 54 & 0x1); }
+        
     /** Sets Target gear */
     void set_GZC(GS_218h_GZC value){ raw = (raw & 0xffff0fffffffffff) | ((uint64_t)value & 0xf) << 44; }
 
@@ -111,7 +123,7 @@ class ECU_GS51 {
         bool get_GS_218(uint64_t now, uint64_t max_expire_time, GS_218* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];

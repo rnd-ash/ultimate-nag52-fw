@@ -247,15 +247,27 @@ uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
 }
 
 int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+    MS_310 ms310;
+    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+        return (int)ms310.get_STA_TORQUE()*4;
+    } else {
+        return 0xFF;
+    }
     return INT_MAX;
 }
 
 int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+    MS_310 ms310;
+    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+        return (int)ms310.get_MAX_TORQUE()*4;
+    } else {
+        return 0xFF;
+    }
     return INT_MAX;
 }
 
-int Egs51Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
-    return INT_MAX;
+int Egs51Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+    return 0; // Always 0 on W210 as ECUs do NOT calculate inertia
 }
 
 PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
@@ -393,9 +405,16 @@ void Egs51Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs51Can::set_torque_request(TorqueRequest request) {
+    if (request == TorqueRequest::None) {
+        this->gs218.set_TORQUE_REQ_EN(false);
+    } else {
+        // Just enable the request
+        this->gs218.set_TORQUE_REQ_EN(true);
+    }
 }
 
 void Egs51Can::set_requested_torque(uint16_t torque_nm) {
+    this->gs218.set_TORQUE_REQ(torque_nm/4);
 }
 
 void Egs51Can::set_error_check_status(SystemStatusCheck ssc) {

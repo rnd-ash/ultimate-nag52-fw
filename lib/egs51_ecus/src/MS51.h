@@ -17,6 +17,7 @@
     
 #define MS_308_CAN_ID 0x0308
 #define MS_210_CAN_ID 0x0210
+#define MS_310_CAN_ID 0x0310
 #define MS_608_CAN_ID 0x0608
 
 /** switching line shift MS */
@@ -456,6 +457,28 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
+	/** Gets CAN ID of MS_310 */
+	uint32_t get_canid(){ return MS_310_CAN_ID; }
+    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/4.00 */
+    void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
+
+    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(4.00x)+0.0 */
+    uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
+        
+    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    void set_MAX_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
+
+    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    uint8_t get_MAX_TORQUE() const { return (uint8_t)(raw >> 8 & 0xff); }
+        
+} MS_310;
+
+
+
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+
 	/** Gets CAN ID of MS_608 */
 	uint32_t get_canid(){ return MS_608_CAN_ID; }
     /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
@@ -535,9 +558,13 @@ class ECU_MS51 {
                     LAST_FRAME_TIMES[1] = timestamp_now;
                     FRAME_DATA[1] = value;
                     return true;
-                case MS_608_CAN_ID:
+                case MS_310_CAN_ID:
                     LAST_FRAME_TIMES[2] = timestamp_now;
                     FRAME_DATA[2] = value;
+                    return true;
+                case MS_608_CAN_ID:
+                    LAST_FRAME_TIMES[3] = timestamp_now;
+                    FRAME_DATA[3] = value;
                     return true;
                 default:
                     return false;
@@ -554,7 +581,7 @@ class ECU_MS51 {
         bool get_MS_308(uint64_t now, uint64_t max_expire_time, MS_308* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];
@@ -572,10 +599,28 @@ class ECU_MS51 {
         bool get_MS_210(uint64_t now, uint64_t max_expire_time, MS_210* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[1];
+                return true;
+            }
+        }
+            
+        /** Sets data in pointer to MS_310
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_MS_310(uint64_t now, uint64_t max_expire_time, MS_310* dest) const {
+            if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+                return false;
+            } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+                return false;
+            } else { // CAN Frame is valid! return it
+                dest->raw = FRAME_DATA[2];
                 return true;
             }
         }
@@ -588,19 +633,19 @@ class ECU_MS51 {
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
         bool get_MS_608(uint64_t now, uint64_t max_expire_time, MS_608* dest) const {
-            if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
+            if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
-                dest->raw = FRAME_DATA[2];
+                dest->raw = FRAME_DATA[3];
                 return true;
             }
         }
             
 	private:
-		uint64_t FRAME_DATA[3];
-		uint64_t LAST_FRAME_TIMES[3];
+		uint64_t FRAME_DATA[4];
+		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_MS51_H_
 

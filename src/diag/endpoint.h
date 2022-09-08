@@ -114,7 +114,15 @@ class UsbEndpoint: public AbstractEndpoint {
                 uart_read_bytes(0, &this->read_buffer[this->read_pos], to_read, 0);
                 if (this->read_buffer[0] != '#') {
                     // Discard
-                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Ignoring, rb[0] was '%02X', peak is '%02X'", this->read_buffer[0], this->read_buffer[1]);
+                    //ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Ignoring, rb[0] was '%02X', peak is '%02X'", this->read_buffer[0], this->read_buffer[1]);
+                    if (log) {
+                        printf("LOGGING STOPPED\n");
+                        egs_can_hal->stop_logging();
+                    } else {
+                        printf("LOGGING RESUMED\n");
+                        egs_can_hal->enable_logging();
+                    }
+                    log = !log;
                     this->read_pos = 0;
                     return false;
                 }
@@ -165,6 +173,7 @@ class UsbEndpoint: public AbstractEndpoint {
         int max_bytes_left;
         int to_read;
         size_t length;
+        bool log = true;
 };
 
 /**

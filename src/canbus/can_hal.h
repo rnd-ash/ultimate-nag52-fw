@@ -276,6 +276,13 @@ class AbstractCan {
             this->send_messages = false;
         }
 
+        void stop_logging() {
+            log_msgs = false;
+        }
+        void enable_logging() {
+            log_msgs = true;
+        }
+
         // For diagnostics
         void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id) {
             this->diag_rx_queue = rx_queue;
@@ -289,7 +296,7 @@ class AbstractCan {
 
         uint16_t diag_tx_id = 0;
         uint16_t diag_rx_id = 0;
-
+        bool log_msgs = true;
         [[noreturn]]
         virtual void tx_task_loop();
         [[noreturn]]

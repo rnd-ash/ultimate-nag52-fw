@@ -1004,13 +1004,15 @@ void Egs52Can::rx_task_loop() {
             }
             for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
-                    char* pos = buffer;
-                // Print msg
-                    pos += sprintf(pos, "0x%04X ", rx.identifier);
-                    for (int i = 0; i < rx.data_length_code; i++) {
-                        pos += sprintf(pos, "%02X ", rx.data[i]);
+                    if (this->log_msgs) {
+                        char* pos = buffer;
+                        // Print msg
+                        pos += sprintf(pos, "0x%04X ", rx.identifier);
+                        for (int i = 0; i < rx.data_length_code; i++) {
+                            pos += sprintf(pos, "%02X ", rx.data[i]);
+                        }
+                        printf("%s\n", buffer);
                     }
-                    printf("%s\n", buffer);
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));

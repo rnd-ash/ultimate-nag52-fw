@@ -55,6 +55,7 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
         return;
     }
 
+    this->gs218.set_TORQUE_REQ(0xFE);
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
@@ -414,7 +415,11 @@ void Egs51Can::set_torque_request(TorqueRequest request) {
 }
 
 void Egs51Can::set_requested_torque(uint16_t torque_nm) {
-    this->gs218.set_TORQUE_REQ(torque_nm/4);
+    if (torque_nm == 0 && gs218.get_TORQUE_REQ_EN() == false) {
+        this->gs218.set_TORQUE_REQ(0xFE);
+    } else {
+        this->gs218.set_TORQUE_REQ(torque_nm/4);
+    }
 }
 
 void Egs51Can::set_error_check_status(SystemStatusCheck ssc) {

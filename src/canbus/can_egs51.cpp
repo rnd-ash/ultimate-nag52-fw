@@ -115,26 +115,26 @@ WheelData Egs51Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp51.get_BS_200(now, expire_time_ms, &bs200)) {
+    BS_208 bs208;
+    if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVR()) {
-            case BS_200h_DRTGVR::FWD:
+        switch(bs208.get_DRTGHR()) {
+            case BS_208h_DRTGHR::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVR::REV:
+            case BS_208h_DRTGHR::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVR::PASSIVE:
+            case BS_208h_DRTGHR::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVR::SNV:
+            case BS_208h_DRTGHR::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVR(),
+            .double_rpm = bs208.get_DHR(),
             .current_dir = d
         };
     } else {
@@ -146,26 +146,26 @@ WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp51.get_BS_200(now, expire_time_ms, &bs200)) {
+    BS_208 bs208;
+    if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVL()) {
-            case BS_200h_DRTGVL::FWD:
+        switch(bs208.get_DRTGHL()) {
+            case BS_208h_DRTGHL::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVL::REV:
+            case BS_208h_DRTGHL::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVL::PASSIVE:
+            case BS_208h_DRTGHL::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVL::SNV:
+            case BS_208h_DRTGHL::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVL(),
+            .double_rpm = bs208.get_DHL(),
             .current_dir = d
         };
     } else {

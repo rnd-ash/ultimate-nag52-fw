@@ -250,7 +250,7 @@ uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
 int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_310 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_STA_TORQUE()*4;
+        return (int)ms310.get_STA_TORQUE()*2;
     } else {
         return 0xFF;
     }
@@ -260,7 +260,7 @@ int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
 int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_310 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_MAX_TORQUE()*4;
+        return (int)ms310.get_MAX_TORQUE()*2;
     } else {
         return 0xFF;
     }
@@ -418,7 +418,7 @@ void Egs51Can::set_requested_torque(uint16_t torque_nm) {
     if (torque_nm == 0 && gs218.get_TORQUE_REQ_EN() == false) {
         this->gs218.set_TORQUE_REQ(0xFE);
     } else {
-        this->gs218.set_TORQUE_REQ(torque_nm/4);
+        this->gs218.set_TORQUE_REQ(torque_nm/2);
     }
 }
 

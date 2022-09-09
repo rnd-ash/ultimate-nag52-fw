@@ -459,16 +459,16 @@ typedef union {
 
 	/** Gets CAN ID of MS_310 */
 	uint32_t get_canid(){ return MS_310_CAN_ID; }
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/4.00 */
+    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/2.00 */
     void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(4.00x)+0.0 */
+    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(2.00x)+0.0 */
     uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/2.00 */
     void set_MAX_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(2.00x)+0.0 */
     uint8_t get_MAX_TORQUE() const { return (uint8_t)(raw >> 8 & 0xff); }
         
 } MS_310;

@@ -53,10 +53,10 @@ typedef union {
 
 	/** Gets CAN ID of GS_218 */
 	uint32_t get_canid(){ return GS_218_CAN_ID; }
-    /** Sets Torque request value. 0xFE when inactive. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
+    /** Sets Torque request value. 0xFE when inactive. Conversion formula (To raw from real): y=(x-0.0)/2.00 */
     void set_TORQUE_REQ(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
-    /** Gets Torque request value. 0xFE when inactive. Conversion formula (To real from raw): y=(1.00x)+0.0 */
+    /** Gets Torque request value. 0xFE when inactive. Conversion formula (To real from raw): y=(2.00x)+0.0 */
     uint8_t get_TORQUE_REQ() const { return (uint8_t)(raw >> 56 & 0xff); }
         
     /** Sets Enable torque request */

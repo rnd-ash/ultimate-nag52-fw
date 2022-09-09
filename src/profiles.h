@@ -15,9 +15,11 @@
 #define PROFILE_ID_AGILITY 3
 #define PROFILE_ID_MANUAL 4
 
-const int16_t shift_table_x_header[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-const int16_t upshift_y_headers[4] = {1,2,3,4};
-const int16_t downshift_y_headers[4] = {2,3,4,5};
+#define SHIFT_MAP_X_SIZE 11
+#define SHIFT_MAP_Y_SIZE 4
+const int16_t shift_table_x_header[SHIFT_MAP_X_SIZE] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+const int16_t upshift_y_headers[SHIFT_MAP_Y_SIZE] = {1,2,3,4};
+const int16_t downshift_y_headers[SHIFT_MAP_Y_SIZE] = {2,3,4,5};
 
 
 /**
@@ -32,6 +34,12 @@ public:
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors);
     virtual ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
     virtual TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear);
+    TcmMap* get_upshift_map() {
+        return this->upshift_table;
+    }
+    TcmMap* get_downshift_map() {
+        return this->downshift_table;
+    }
     virtual GearboxGear get_start_gear() const {
         return GearboxGear::First;
     }

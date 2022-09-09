@@ -5,6 +5,7 @@
 #include "gearbox.h"
 #include "maps.h"
 
+static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
    switch (target) {
@@ -62,28 +63,28 @@ TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
 }
 
 ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile() {
-    // Actual gear
-    //TcmMap(uint16_t X_Size, uint16_t Y_size, int16_t* x_ids, int16_t* y_ids);
-    this->upshift_table = new TcmMap(11, 4, shift_table_x_header, upshift_y_headers);
-    this->downshift_table = new TcmMap(11, 4, shift_table_x_header, downshift_y_headers);
-
+    this->upshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, upshift_y_headers);
+    this->downshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, downshift_y_headers);
+    int16_t up_map[SHIFT_MAP_SIZE];
+    int16_t down_map[SHIFT_MAP_SIZE];
     if (!this->upshift_table->allocate_ok() || !this->downshift_table->allocate_ok()) {
         ESP_LOGE("COMFORT", "Upshift/Downshift map allocation failed!");
         delete this->upshift_table;
         delete this->downshift_table;
     } else {
-        if (is_diesel) { // DIESEL PROFILE
-            if (this->upshift_table->add_data(C_DIESEL_UPSHIFT_MAP, 44) && this->downshift_table->add_data(C_DIESEL_DOWNSHIFT_MAP, 44)) {
-                ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
-            } else {
-                ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
-            }
-        } else { // PETROL PROFILE
-            if (this->upshift_table->add_data(C_DIESEL_UPSHIFT_MAP, 44) && this->downshift_table->add_data(C_PETROL_DOWNSHIFT_MAP, 44)) {
-                ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
-            } else {
-                ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
-            }
+        if (is_diesel) {
+            EEPROM::read_nvs_map_data(MAP_NAME_C_DIESEL_UPSHIFT, up_map, (const int16_t*)C_DIESEL_UPSHIFT_MAP, SHIFT_MAP_SIZE);
+            EEPROM::read_nvs_map_data(MAP_NAME_C_DIESEL_DOWNSHIFT, down_map, (const int16_t*)C_DIESEL_DOWNSHIFT_MAP, SHIFT_MAP_SIZE);
+        } else {
+            EEPROM::read_nvs_map_data(MAP_NAME_C_PETROL_UPSHIFT, up_map, (const int16_t*)C_PETROL_UPSHIFT_MAP, SHIFT_MAP_SIZE);
+            EEPROM::read_nvs_map_data(MAP_NAME_C_PETROL_DOWNSHIFT, down_map, (const int16_t*)C_PETROL_DOWNSHIFT_MAP, SHIFT_MAP_SIZE);
+        }
+        if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
+            ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
+        } else {
+            ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
+            delete this->upshift_table;
+            delete this->downshift_table;
         }
     }
 }

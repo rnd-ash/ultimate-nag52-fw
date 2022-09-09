@@ -94,18 +94,18 @@ enum class EIS_A1_Prof_Stat {
 	P2 = 1, // Profile 2
 	P3 = 2, // Profile 3
 	P4 = 3, // Profile 4
-	DEFAULT = 4, // Default Profiles
-	DEFAULT = 5, // Default Profiles
-	DEFAULT = 6, // Default Profiles
-	DEFAULT = 7, // Default Profiles
-	DEFAULT = 8, // Default Profiles
-	DEFAULT = 9, // Default Profiles
-	DEFAULT = 10, // Default Profiles
-	DEFAULT = 11, // Default Profiles
-	DEFAULT = 12, // Default Profiles
-	DEFAULT = 13, // Default Profiles
-	DEFAULT = 14, // Default Profiles
-	DEFAULT = 15, // Default Profiles
+	DEFAULT4 = 4, // Default Profiles
+	DEFAULT5 = 5, // Default Profiles
+	DEFAULT6 = 6, // Default Profiles
+	DEFAULT7 = 7, // Default Profiles
+	DEFAULT8 = 8, // Default Profiles
+	DEFAULT9 = 9, // Default Profiles
+	DEFAULT10 = 10, // Default Profiles
+	DEFAULT11 = 11, // Default Profiles
+	DEFAULT12 = 12, // Default Profiles
+	DEFAULT13 = 13, // Default Profiles
+	DEFAULT14 = 14, // Default Profiles
+	DEFAULT15 = 15, // Default Profiles
 };
 
 /** Central Locking System Gas Door State / ZV Status Tank Flap */

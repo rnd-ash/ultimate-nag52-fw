@@ -24,6 +24,7 @@
 ---------------------------------------------------------------------------------
 */
 
+#define MAP_NAME_S_DIESEL_UPSHIFT "S_DIESEL_UP"
 int16_t S_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -33,6 +34,7 @@ int16_t S_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500 /* 4 -> 5 */
 };
 
+#define MAP_NAME_S_DIESEL_DOWNSHIFT "S_DIESEL_DOWN"
 int16_t S_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -42,6 +44,7 @@ int16_t S_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1000, 1100, 1300, 1500, 1700, 1900, 2100, 2400, 2600, 2800, 3000 /* 5 -> 4 */
 };
 
+#define MAP_NAME_S_PETROL_UPSHIFT "S_PETROL_UP"
 int16_t S_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -51,6 +54,7 @@ int16_t S_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1800, 2000, 2200, 2700, 3300, 4700, 5000, 6000 /* 4 -> 5 */
 };
 
+#define MAP_NAME_S_PETROL_DOWNSHIFT "S_PETROL_DOWN"
 int16_t S_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -66,6 +70,7 @@ int16_t S_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
 ---------------------------------------------------------------------------------
 */
 
+#define MAP_NAME_C_DIESEL_UPSHIFT "C_DIESEL_UP"
 int16_t C_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -75,6 +80,7 @@ int16_t C_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500 /* 4 -> 5 */
 };
 
+#define MAP_NAME_C_DIESEL_DOWNSHIFT "C_DIESEL_DOWN"
 int16_t C_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -84,6 +90,7 @@ int16_t C_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1000, 1100, 1300, 1500, 1700, 1900, 2100, 2400, 2600, 2800, 3000 /* 5 -> 4 */
 };
 
+#define MAP_NAME_C_PETROL_UPSHIFT "C_PETROL_UP"
 int16_t C_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -93,6 +100,7 @@ int16_t C_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1800, 2000, 2200, 2700, 3300, 4700, 5000, 6000 /* 4 -> 5 */
 };
 
+#define MAP_NAME_C_PETROL_DOWNSHIFT "C_PETROL_DOWN"
 int16_t C_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -108,6 +116,7 @@ int16_t C_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
 ---------------------------------------------------------------------------------
 */
 
+#define MAP_NAME_A_DIESEL_UPSHIFT "A_DIESEL_UP"
 int16_t A_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -117,6 +126,7 @@ int16_t A_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 4500 /* 4 -> 5 */
 };
 
+#define MAP_NAME_A_DIESEL_DOWNSHIFT "A_DIESEL_DOWN"
 int16_t A_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -126,6 +136,7 @@ int16_t A_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1000, 1100, 1300, 1500, 1700, 1900, 2100, 2400, 2600, 2800, 3000 /* 5 -> 4 */
 };
 
+#define MAP_NAME_A_PETROL_UPSHIFT "A_PETROL_UP"
 int16_t A_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */
@@ -135,6 +146,7 @@ int16_t A_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE] = {
     1500, 1550, 1600, 1800, 2000, 2200, 2700, 3300, 4700, 5000, 6000 /* 4 -> 5 */
 };
 
+#define MAP_NAME_A_PETROL_DOWNSHIFT "A_PETROL_DOWN"
 int16_t A_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
     /*                        Pedal position                                   */
     /*0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%           */

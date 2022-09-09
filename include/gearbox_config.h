@@ -26,8 +26,6 @@
     #define RAT_R2_SMALL -1.930
     #define MAX_TORQUE_RATING_NM_SMALL 330
 
-#define EGS51_MODE // EGS51 CAN layer
-//#define EGS52_MODE // EGS52 CAN layer
-//#define EGS53_MODE // EGS53 CAN layer
+// The old EGS52 and EGS53 MODE FLAGS ARE NOW MOVED TO PLATFORMIO.INI!
 
 #endif // __GEARBOX_CONFIG_H_

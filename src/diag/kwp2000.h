@@ -25,6 +25,11 @@
     #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
 #endif
 
+#ifdef EGS51_MODE
+    #define SUPPLIER_ID 0x08 // Simens
+    #define DIAG_VARIANT_CODE 0x000 // DiagVersion51_EGS52
+#endif
+
 #define PROCESSOR_TYPE
 #define COMM_MATRIX_VERSION 0x0101 // 01.01
 #define CAN_DRIVER_VERSION 0x0101 // 01.01

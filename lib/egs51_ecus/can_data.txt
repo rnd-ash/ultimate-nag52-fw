@@ -1,0 +1,313 @@
+# --RAND_ASH--
+#
+# Manually generated
+#
+# This file is used for cars with EGS or EGS51 TCU (Pre 2000 usually)
+#
+
+ECU ESP51
+	FRAME BS_200h (0x00000200)
+		SIGNAL BRE_KL, OFFSET: 0, LEN: 1, DESC: Brake defective control lamp (EBV_KL at 463/461 / NCV2), DATA TYPE BOOL
+		SIGNAL BAS_KL, OFFSET: 1, LEN: 1, DESC: Bas defective control lamp, DATA TYPE BOOL
+		SIGNAL ESP_INFO_BL, OFFSET: 2, LEN: 1, DESC: ESP Infolramp flashing light, DATA TYPE BOOL
+		SIGNAL ESP_INFO_DL, OFFSET: 3, LEN: 1, DESC: ESP Info lamp permanent light, DATA TYPE BOOL
+		SIGNAL ESP_KL, OFFSET: 4, LEN: 1, DESC: ESP defective control lamp, DATA TYPE BOOL
+		SIGNAL ABS_KL, OFFSET: 5, LEN: 1, DESC: ABS defective control lamp, DATA TYPE BOOL
+		SIGNAL BBV_KL, OFFSET: 7, LEN: 1, DESC: brake pad wear control lamp, DATA TYPE BOOL
+		SIGNAL BLS_UNT, OFFSET: 8, LEN: 1, DESC: Brake light suppression (EBV_KL at 163 / T0 / T1N), DATA TYPE BOOL
+		SIGNAL BLS_PA, OFFSET: 9, LEN: 1, DESC: BLS Parity (straight parity), DATA TYPE BOOL
+		SIGNAL BZ200h, OFFSET: 10, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL BLS, OFFSET: 14, LEN: 2, DESC: brake light switch, DATA TYPE ENUM
+			ENUM BREMSE_NBET, RAW: 0, DESC: Brake not actuated
+			ENUM BREMSE_BET, RAW: 1, DESC: brake actuated
+			ENUM UNKNOWN, RAW: 2, DESC: not defined
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL DRTGVL, OFFSET: 16, LEN: 2, DESC: rotary direction wheel front left, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: No rotation detection
+			ENUM FWD, RAW: 1, DESC: direction of rotation forward
+			ENUM REV, RAW: 2, DESC: direction of rotation backwards
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL DVL, OFFSET: 18, LEN: 14, DESC: wheel speed front left, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DRTGVR, OFFSET: 32, LEN: 2, DESC: direction of rotation wheel front right, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: No rotation detection
+			ENUM FWD, RAW: 1, DESC: direction of rotation forward
+			ENUM REV, RAW: 2, DESC: direction of rotation backwards
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL DVR, OFFSET: 34, LEN: 14, DESC: Right speed front right, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DRTGTM, OFFSET: 48, LEN: 2, DESC: Rad Left for Cruise, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: No rotation detection
+			ENUM FWD, RAW: 1, DESC: direction of rotation forward
+			ENUM REV, RAW: 2, DESC: direction of rotation backwards
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL TM_DL, OFFSET: 50, LEN: 14, DESC: wheel speed links for cruise control, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME BS_208h (0x00000208)
+		SIGNAL AKT_R_ESP, OFFSET: 0, LEN: 1, DESC: ESP / Art-Wish: "Active Retract", DATA TYPE BOOL
+		SIGNAL MINMAX_ART, OFFSET: 1, LEN: 1, DESC: Gear requirement of art, DATA TYPE BOOL
+		SIGNAL GMAX_ESP, OFFSET: 2, LEN: 3, DESC: Gear, upper limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: passive value
+			ENUM G1, RAW: 1, DESC: Gear, upper limit = 1
+			ENUM G2, RAW: 2, DESC: Gear, upper limit = 2
+			ENUM G3, RAW: 3, DESC: Gear, upper limit = 3
+			ENUM G4, RAW: 4, DESC: Gear, upper limit = 4
+			ENUM G5, RAW: 5, DESC: Gear, upper limit = 5
+			ENUM G6, RAW: 6, DESC: Gear, upper limit = 6
+			ENUM G7, RAW: 7, DESC: Gear, upper limit = 7
+		SIGNAL GMIN_ESP, OFFSET: 5, LEN: 3, DESC: Gear, lower limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: passive value
+			ENUM G1, RAW: 1, DESC: Gear, lower limit = 1
+			ENUM G2, RAW: 2, DESC: Gear, lower limit = 2
+			ENUM G3, RAW: 3, DESC: Gear, lower limit = 3
+			ENUM G4, RAW: 4, DESC: Gear, lower limit = 4
+			ENUM G5, RAW: 5, DESC: Gear, lower limit = 5
+			ENUM G6, RAW: 6, DESC: Gear, lower limit = 6
+			ENUM G7, RAW: 7, DESC: Gear, lower limit = 7
+		SIGNAL DDYN_UNT, OFFSET: 8, LEN: 1, DESC: Suppression Dynamic fully detection, DATA TYPE BOOL
+		SIGNAL SZS, OFFSET: 9, LEN: 2, DESC: system condition, DATA TYPE ENUM
+			ENUM ERR, RAW: 0, DESC: system error
+			ENUM NORM, RAW: 1, DESC: normal operation
+			ENUM DIAG, RAW: 2, DESC: Diagnosis
+			ENUM ABGAS, RAW: 3, DESC: exhaust gas test
+		SIGNAL TM_AUS, OFFSET: 11, LEN: 1, DESC: Tempomat operation, DATA TYPE BOOL
+		SIGNAL SLV_ESP, OFFSET: 12, LEN: 4, DESC: Switching Difference ESP, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Shift characteristic "0"
+			ENUM SKL1, RAW: 1, DESC: Shift characteristic "1"
+			ENUM SKL2, RAW: 2, DESC: Shift characteristic "2"
+			ENUM SKL3, RAW: 3, DESC: Shift characteristic "3"
+			ENUM SKL4, RAW: 4, DESC: Shift characteristic "4"
+			ENUM SKL5, RAW: 5, DESC: Shift characteristic "5"
+			ENUM SKL6, RAW: 6, DESC: Shift characteristic "6"
+			ENUM SKL7, RAW: 7, DESC: Shift characteristic "7"
+			ENUM SKL8, RAW: 8, DESC: Shift characteristic "8"
+			ENUM SKL9, RAW: 9, DESC: Shift characteristic "9"
+			ENUM SKL10, RAW: 10, DESC: Shift characteristic "10"
+		SIGNAL BRE_AKT_ESP, OFFSET: 16, LEN: 1, DESC: ESP brake engagement active, DATA TYPE BOOL
+		SIGNAL ANFN, OFFSET: 17, LEN: 2, DESC: ESP request: "N" Insert, DATA TYPE ENUM
+			ENUM UNKNOWN, RAW: 0, DESC: not defined
+			ENUM ANF_N, RAW: 1, DESC: requirement "neutral"
+			ENUM IDLE, RAW: 2, DESC: No requirement
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL BRE_AKT_ART, OFFSET: 19, LEN: 1, DESC: ART brake intervention active, DATA TYPE BOOL
+		SIGNAL MBRE_ESP, OFFSET: 20, LEN: 12, DESC: set braking torque (BR240 factor 1.8 larger), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DRTGHR, OFFSET: 32, LEN: 2, DESC: rotary direction wheel rear right, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: No rotation detection
+			ENUM FWD, RAW: 1, DESC: direction of rotation forward
+			ENUM REV, RAW: 2, DESC: direction of rotation backwards
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL DHR, OFFSET: 34, LEN: 14, DESC: Rear wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL DRTGHL, OFFSET: 48, LEN: 2, DESC: rotary direction wheel rear left, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: No rotation detection
+			ENUM FWD, RAW: 1, DESC: direction of rotation forward
+			ENUM REV, RAW: 2, DESC: direction of rotation backwards
+			ENUM SNV, RAW: 3, DESC: signal not available
+		SIGNAL DHL, OFFSET: 50, LEN: 14, DESC: Rear wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
+ECU MS51
+	FRAME MS_308h (0x00000308)
+		SIGNAL KPL, OFFSET: 0, LEN: 1, DESC: clutch kicked, DATA TYPE BOOL
+		SIGNAL KUEB_O_A, OFFSET: 1, LEN: 1, DESC: start.Convertible bridging clutch "Open", DATA TYPE BOOL
+		SIGNAL N_MAX_BG, OFFSET: 2, LEN: 1, DESC: Speed limiting function active, DATA TYPE BOOL
+		SIGNAL SAST, OFFSET: 3, LEN: 1, DESC: Partinal shutdown, DATA TYPE BOOL
+		SIGNAL SASV, OFFSET: 4, LEN: 1, DESC: push shutdown full, DATA TYPE BOOL
+		SIGNAL KSF_KL, OFFSET: 5, LEN: 1, DESC: Fuel filter clogs control lamp (CR2 US only), DATA TYPE BOOL
+		SIGNAL WKS_KL, OFFSET: 6, LEN: 1, DESC: Water in the fuel control lamp (CR2 US only), DATA TYPE BOOL
+		SIGNAL ZASBED, OFFSET: 7, LEN: 1, DESC: Cylinder shutdown conditions fulfilled, DATA TYPE BOOL
+		SIGNAL NMOT, OFFSET: 8, LEN: 16, DESC: engine speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL ELHP_WARN, OFFSET: 25, LEN: 1, DESC: Warning message ECO steering helping pump, DATA TYPE BOOL
+		SIGNAL EOH, OFFSET: 26, LEN: 1, DESC: Ethanol operation detected, DATA TYPE BOOL
+		SIGNAL LUFI_KL, OFFSET: 27, LEN: 1, DESC: Air filter dirty warning lamp (only diesel), DATA TYPE BOOL
+		SIGNAL VGL_KL, OFFSET: 28, LEN: 1, DESC: pre-glow control lamp, DATA TYPE BOOL
+		SIGNAL OEL_KL, OFFSET: 29, LEN: 1, DESC: oil level / oil pressure control lamp, DATA TYPE BOOL
+		SIGNAL DIAG_KL, OFFSET: 30, LEN: 1, DESC: Diagnosis Control Lamp (OBD II), DATA TYPE BOOL
+		SIGNAL TANK_KL, OFFSET: 31, LEN: 1, DESC: Tank lid open check lamp, DATA TYPE BOOL
+		SIGNAL UEHITZ, OFFSET: 32, LEN: 1, DESC: Engine oil temperature too high (overheating), DATA TYPE BOOL
+		SIGNAL ZAS, OFFSET: 33, LEN: 1, DESC: Cylinder shutdown, DATA TYPE BOOL
+		SIGNAL ADR_KL, OFFSET: 34, LEN: 1, DESC: ADR check lamp (NFZ only), DATA TYPE BOOL
+		SIGNAL ADR_DEF_KL, OFFSET: 35, LEN: 1, DESC: ADR defective control lamp (NFZ only), DATA TYPE BOOL
+		SIGNAL ANL_LFT, OFFSET: 36, LEN: 1, DESC: starter is running, DATA TYPE BOOL
+		SIGNAL LUEFT_MOT_KL, OFFSET: 37, LEN: 1, DESC: Motor Heater Defective Control Lamp, DATA TYPE BOOL
+		SIGNAL DBAA, OFFSET: 38, LEN: 1, DESC: Speed limitation for display active (0 at CR), DATA TYPE BOOL
+		SIGNAL TEMP_KL, OFFSET: 39, LEN: 1, DESC: cooling water temperature too high, DATA TYPE BOOL
+		SIGNAL T_OEL, OFFSET: 40, LEN: 8, DESC: Oil temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL OEL_FS, OFFSET: 48, LEN: 8, DESC: oil level, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL OEL_QUAL, OFFSET: 56, LEN: 8, DESC: oil quality, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME MS_210h (0x00000210)
+		SIGNAL KOMP_NOTAUS, OFFSET: 0, LEN: 1, DESC: Air compressor Emergency Shutdown, DATA TYPE BOOL
+		SIGNAL SLV_MS, OFFSET: 1, LEN: 4, DESC: switching line shift MS, DATA TYPE ENUM
+			ENUM SKL0, RAW: 0, DESC: Shift characteristic "0"
+			ENUM SKL1, RAW: 1, DESC: Shift characteristic "1"
+			ENUM SKL2, RAW: 2, DESC: Shift characteristic "2"
+			ENUM SKL3, RAW: 3, DESC: Shift characteristic "3"
+			ENUM SKL4, RAW: 4, DESC: Shift characteristic "4"
+			ENUM SKL5, RAW: 5, DESC: Shift characteristic "5"
+			ENUM SKL6, RAW: 6, DESC: Shift characteristic "6"
+			ENUM SKL7, RAW: 7, DESC: Shift characteristic "7"
+			ENUM SKL8, RAW: 8, DESC: Shift characteristic "8"
+			ENUM SKL9, RAW: 9, DESC: Shift characteristic "9"
+			ENUM SKL10, RAW: 10, DESC: Shift characteristic "10"
+		SIGNAL KRIECH_AUS, OFFSET: 6, LEN: 1, DESC: Switch KSG-creep, DATA TYPE BOOL
+		SIGNAL ANF1, OFFSET: 7, LEN: 1, DESC: MS-wish: "Approach 1.Gang", DATA TYPE BOOL
+		SIGNAL AKT_R_MS, OFFSET: 8, LEN: 1, DESC: MS-wish: "Active downshift", DATA TYPE BOOL
+		SIGNAL ZH_AUS_MS, OFFSET: 9, LEN: 1, DESC: Turn off heater, DATA TYPE BOOL
+		SIGNAL GMAX_MS, OFFSET: 10, LEN: 3, DESC: Gear, upper limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: passive value
+			ENUM G1, RAW: 1, DESC: Gear, upper limit = 1
+			ENUM G2, RAW: 2, DESC: Gear, upper limit = 2
+			ENUM G3, RAW: 3, DESC: Gear, upper limit = 3
+			ENUM G4, RAW: 4, DESC: Gear, upper limit = 4
+			ENUM G5, RAW: 5, DESC: Gear, upper limit = 5
+			ENUM G6, RAW: 6, DESC: Gear, upper limit = 6
+			ENUM G7, RAW: 7, DESC: Gear, upper limit = 7
+		SIGNAL GMIN_MS, OFFSET: 13, LEN: 3, DESC: Gear, lower limit, DATA TYPE ENUM
+			ENUM PASSIVE, RAW: 0, DESC: passive value
+			ENUM G1, RAW: 1, DESC: Gear, lower limit = 1
+			ENUM G2, RAW: 2, DESC: Gear, lower limit = 2
+			ENUM G3, RAW: 3, DESC: Gear, lower limit = 3
+			ENUM G4, RAW: 4, DESC: Gear, lower limit = 4
+			ENUM G5, RAW: 5, DESC: Gear, lower limit = 5
+			ENUM G6, RAW: 6, DESC: Gear, lower limit = 6
+			ENUM G7, RAW: 7, DESC: Gear, lower limit = 7
+		SIGNAL PW, OFFSET: 16, LEN: 8, DESC: pedal, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL V_DSPL_NEU, OFFSET: 24, LEN: 1, DESC: retrigger minimum display time in the display: S, DATA TYPE BOOL
+		SIGNAL LL_STBL, OFFSET: 25, LEN: 1, DESC: idle is stable, DATA TYPE BOOL
+		SIGNAL VGL_ST, OFFSET: 26, LEN: 1, DESC: Vorglühstatus, DATA TYPE BOOL
+		SIGNAL MSS_DEF, OFFSET: 27, LEN: 1, DESC: Engine Start / Stop system is defective, DATA TYPE BOOL
+		SIGNAL MSS_KL, OFFSET: 28, LEN: 1, DESC: engine start / stop system warning, DATA TYPE BOOL
+		SIGNAL MSS_AKT, OFFSET: 29, LEN: 1, DESC: engine start / stop system active, DATA TYPE BOOL
+		SIGNAL KOMP_BAUS, OFFSET: 30, LEN: 1, DESC: turn air compressor:: S acceleration, DATA TYPE BOOL
+		SIGNAL CRASH_MS, OFFSET: 31, LEN: 1, DESC: Crash signal from motor control, DATA TYPE BOOL
+		SIGNAL PWG_ERR, OFFSET: 32, LEN: 1, DESC: error pedal sensor, DATA TYPE BOOL
+		SIGNAL LL, OFFSET: 33, LEN: 1, DESC: idle, DATA TYPE BOOL
+		SIGNAL KUEB_S_A, OFFSET: 34, LEN: 1, DESC: beg. "Slip" lock-up clutch, DATA TYPE BOOL
+		SIGNAL TM_REG, OFFSET: 35, LEN: 1, DESC: cruise control regulates, DATA TYPE BOOL
+		SIGNAL V_MAX_EIN, OFFSET: 36, LEN: 1, DESC: activated speed limit, DATA TYPE BOOL
+		SIGNAL KD_MS, OFFSET: 37, LEN: 1, DESC: Kick Down (changeover scenario open!), DATA TYPE BOOL
+		SIGNAL NOTL, OFFSET: 38, LEN: 1, DESC: emergency operation, DATA TYPE BOOL
+		SIGNAL V_MAX_SUM, OFFSET: 39, LEN: 1, DESC: Warning buzzer, DATA TYPE BOOL
+		SIGNAL FBS_SE, OFFSET: 40, LEN: 1, DESC: FBStart Error, DATA TYPE BOOL
+		SIGNAL V_DSPL_PGB, OFFSET: 41, LEN: 1, DESC: "achieved winter tires limitation" Indicated on display, DATA TYPE BOOL
+		SIGNAL TM_EIN, OFFSET: 42, LEN: 1, DESC: activated cruise control, DATA TYPE BOOL
+		SIGNAL V_MAX_REG, OFFSET: 43, LEN: 1, DESC: Speed ​​controls, DATA TYPE BOOL
+		SIGNAL V_DSPL_LIM, OFFSET: 44, LEN: 1, DESC: Display "limit?" on display, DATA TYPE BOOL
+		SIGNAL V_DSPL_ERR, OFFSET: 45, LEN: 1, DESC: "Error" indicator on the display, DATA TYPE BOOL
+		SIGNAL V_DSPL_BL, OFFSET: 46, LEN: 1, DESC: display flashes, DATA TYPE BOOL
+		SIGNAL V_DSPL_EIN, OFFSET: 47, LEN: 1, DESC: Geschw.begrenzer- / cruise control display a, DATA TYPE BOOL
+		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: factor for fill value. d. max. Mom with remo.. A.druck, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL V_MAX_TM, OFFSET: 56, LEN: 8, DESC: Set maximum or cruise control speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME MS_310h (0x00000310)
+		SIGNAL STA_TORQUE, OFFSET: 32, LEN: 8, DESC: engine coolant temperature, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL MAX_TORQUE, OFFSET: 48, LEN: 8, DESC: engine coolant temperature, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+	FRAME MS_608h (0x00000608)
+		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: engine coolant temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL T_LUFT, OFFSET: 8, LEN: 8, DESC: intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_KAR, OFFSET: 16, LEN: 3, DESC: Vehicle code body, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_BR, OFFSET: 19, LEN: 5, DESC: Vehicle code series, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FCOD_MOT6, OFFSET: 24, LEN: 1, DESC: Vehicle code engine with 7 bit, bit 6, DATA TYPE BOOL
+		SIGNAL GS_NVH, OFFSET: 25, LEN: 1, DESC: Transmission control not available, DATA TYPE BOOL
+		SIGNAL FCOD_MOT, OFFSET: 26, LEN: 6, DESC: FZGCOD.Motor 7Bit, bit0-5 (bit6 -> signal fcod_mot6), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL V_MAX_FIX, OFFSET: 32, LEN: 8, DESC: Fixed maximum speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL VB, OFFSET: 40, LEN: 16, DESC: consumption, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+
+ECU GS51
+	FRAME GS_218h (0x00000218)
+		SIGNAL TORQUE_REQ, OFFSET: 0, LEN: 8, DESC: Torque request value. 0xFE when inactive, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		SIGNAL TORQUE_REQ_EN, OFFSET: 9, LEN: 1, DESC: Enable torque request, DATA TYPE BOOL
+		# 2nd byte 00100000 - TFT active 
+		# 2nd byte 00101010 - TFT inactive (In P/N)
+		
+		SIGNAL GZC, OFFSET: 16, LEN: 4, DESC: Target gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_R, RAW: 6, DESC: Destination "R"
+			ENUM G_R2, RAW: 7, DESC: Destination "R2"
+			ENUM G_P, RAW: 8, DESC: Destination "P"
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		SIGNAL GIC, OFFSET: 20, LEN: 4, DESC: actual gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_R, RAW: 6, DESC: Destination "R"
+			ENUM G_R2, RAW: 7, DESC: Destination "R2"
+			ENUM G_P, RAW: 8, DESC: Destination "P"
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		# 4th byte 01001000 <- OFF
+		# 4th byte 01001010 <- ON
+		SIGNAL KICKDOWN, OFFSET: 25, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
+		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
+ECU EZS51
+	FRAME EZS_240h (0x00000240)
+		SIGNAL WH_UP, OFFSET: 2, LEN: 1, DESC: cruise control lever implausible, DATA TYPE BOOL
+		SIGNAL VMAX_AKT, OFFSET: 3, LEN: 1, DESC: Operation variable speed limit, DATA TYPE BOOL
+		SIGNAL S_MINUS_B, OFFSET: 4, LEN: 1, DESC: cruise control lever: "Sit and delay Stufe0", DATA TYPE BOOL
+		SIGNAL S_PLUS_B, OFFSET: 5, LEN: 1, DESC: cruise control lever: "Sit and accelerating Stufe0", DATA TYPE BOOL
+		SIGNAL WA, OFFSET: 6, LEN: 1, DESC: cruise control lever: "resume", DATA TYPE BOOL
+		SIGNAL AUS, OFFSET: 7, LEN: 1, DESC: cruise control lever "off", DATA TYPE BOOL
+		SIGNAL KG_KL_AKT, OFFSET: 8, LEN: 1, DESC: Keyless Go terminal control active, DATA TYPE BOOL
+		SIGNAL KG_ALB_OK, OFFSET: 9, LEN: 1, DESC: meets Keyles Go annealing conditions, DATA TYPE BOOL
+		SIGNAL LL_RLC, OFFSET: 10, LEN: 2, DESC: LHD / RHD, DATA TYPE ENUM
+			ENUM UNKNOWN, RAW: 0, DESC: not defined
+			ENUM LL, RAW: 1, DESC: Left
+			ENUM RL, RAW: 2, DESC: RHD
+			ENUM SNV, RAW: 3, DESC: Code not available
+		SIGNAL RG_SCHALT, OFFSET: 12, LEN: 1, DESC: Reverse gear engaged (manual transmission only), DATA TYPE BOOL
+		SIGNAL BS_SL, OFFSET: 13, LEN: 1, DESC: brake switch for Shift Lock, DATA TYPE BOOL
+		SIGNAL KL_15, OFFSET: 14, LEN: 1, DESC: Terminal 15, DATA TYPE BOOL
+		SIGNAL KL_50, OFFSET: 15, LEN: 1, DESC: Terminal 50, DATA TYPE BOOL
+		SIGNAL WH_PA, OFFSET: 19, LEN: 1, DESC: cruise control lever parity (even parity), DATA TYPE BOOL
+		SIGNAL BZ240h, OFFSET: 20, LEN: 4, DESC: Message counter, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME KLA_410h (0x00000410)
+		SIGNAL ZH_EIN_OK, OFFSET: 0, LEN: 1, DESC: Turn on a heater, DATA TYPE BOOL
+		SIGNAL SENDE_NEU, OFFSET: 3, LEN: 1, DESC: signal version Compressor torque, DATA TYPE BOOL
+		SIGNAL M_KOMPPAR, OFFSET: 5, LEN: 1, DESC: Climate Compressor Torque Parity (straight parity), DATA TYPE BOOL
+		SIGNAL M_KOMPTGL, OFFSET: 6, LEN: 1, DESC: Climate Compressor Tour Toggle, DATA TYPE BOOL
+		SIGNAL M_KOMP_NEU, OFFSET: 16, LEN: 8, DESC: Climate Compressor Tour NEW, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL LL_DZA, OFFSET: 1, LEN: 1, DESC: idle speed lifting to the cooling power increase, DATA TYPE BOOL
+		SIGNAL KOMP_EIN, OFFSET: 7, LEN: 1, DESC: climate compressor turned on, DATA TYPE BOOL
+		SIGNAL P_KAELTE8, OFFSET: 8, LEN: 8, DESC: refrigerant printing, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL M_KOMP, OFFSET: 16, LEN: 8, DESC: Torque recording refrigeration compressor, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NLFTS, OFFSET: 24, LEN: 8, DESC: Motor fan setpoint speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
+ECU KOMBI51
+	FRAME KOMBI_408h (0x00000408)
+		SIGNAL TANK_FS, OFFSET: 0, LEN: 8, DESC: Tank level, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL TF_AUF, OFFSET: 8, LEN: 1, DESC: driver's door, DATA TYPE BOOL
+		SIGNAL V_DSPL_AUS, OFFSET: 9, LEN: 1, DESC: Speed Limit / Tempose Display Not possible, DATA TYPE BOOL
+		SIGNAL TACHO_SYM, OFFSET: 10, LEN: 1, DESC: Tacho oak, DATA TYPE BOOL
+		SIGNAL V_MPH, OFFSET: 11, LEN: 1, DESC: MPH instead of km / h (variable speed bends), DATA TYPE BOOL
+		SIGNAL KLA_VH, OFFSET: 12, LEN: 1, DESC: Air conditioning available, DATA TYPE BOOL
+		SIGNAL VGL_KL_DEF, OFFSET: 13, LEN: 1, DESC: pre-glow control lamp defective, DATA TYPE BOOL
+		SIGNAL TFSM, OFFSET: 14, LEN: 1, DESC: Tank level minimum, DATA TYPE BOOL
+		SIGNAL KL_61E, OFFSET: 15, LEN: 1, DESC: Clamp 61 decoupled, DATA TYPE BOOL
+		SIGNAL T_AUSSEN, OFFSET: 16, LEN: 8, DESC: Outdoor air temperature raw value, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL KL_58D, OFFSET: 24, LEN: 8, DESC: Terminal 58 dimmed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL MAZ, OFFSET: 32, LEN: 8, DESC: Motor setting time (will be sent from Kl.15), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL KM16, OFFSET: 40, LEN: 16, DESC: mileage, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL WRC3, OFFSET: 56, LEN: 1, DESC: Winter Tire Top Speed Bit 3, DATA TYPE BOOL
+		SIGNAL V_DSPL_AKT, OFFSET: 57, LEN: 1, DESC: Speed Limit / Tempomat Display Active, DATA TYPE BOOL
+		SIGNAL SGT_VH, OFFSET: 58, LEN: 1, DESC: Segment tacho available, DATA TYPE BOOL
+		SIGNAL ZH_FREIG, OFFSET: 59, LEN: 1, DESC: Release Heaters, DATA TYPE BOOL
+		SIGNAL RT_EIN, OFFSET: 60, LEN: 1, DESC: Switch on Roll Test Mode ESP, DATA TYPE BOOL
+		SIGNAL WRC, OFFSET: 61, LEN: 3, DESC: Winter tire maximum speed with 4 bits, DATA TYPE ENUM
+			ENUM UBG, RAW: 0, DESC: Unlimited
+			ENUM BG210, RAW: 1, DESC: 210 km / h
+			ENUM BG190, RAW: 2, DESC: 190 km / h
+			ENUM BG160, RAW: 3, DESC: 160 km / h
+			ENUM BG240, RAW: 4, DESC: 240 km / h
+			ENUM BG230, RAW: 5, DESC: 230 km / h
+			ENUM BG220, RAW: 6, DESC: 220 km / h
+			ENUM BG200, RAW: 7, DESC: 200 km / h
+			ENUM BG180, RAW: 128, DESC: 180 km / h
+			ENUM BG170, RAW: 129, DESC: 170 km / h
+			ENUM BG150, RAW: 130, DESC: 150 km / h
+			ENUM BG140, RAW: 131, DESC: 140 km / h
+			ENUM BG130, RAW: 132, DESC: 130 km / h
+			ENUM BG120, RAW: 133, DESC: 120 km / h
+			ENUM BG110, RAW: 134, DESC: 110 km / h
+			ENUM BG100, RAW: 135, DESC: 100 km / h

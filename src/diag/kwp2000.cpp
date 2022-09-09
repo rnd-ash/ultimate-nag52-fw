@@ -419,7 +419,9 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
     } else if (args[0] == 0x89) { // Diagnostic variant code
         int d = DIAG_VARIANT_CODE;
-        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, (const uint8_t*)d, 4);
+        uint8_t b[4];
+        memcpy(b, &d, 4);
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, b, 4);
     } else if (args[0] == 0x90) { // VIN current
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
     } else {

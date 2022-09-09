@@ -276,11 +276,21 @@ PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 }
 
 int16_t Egs51Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
-    return INT16_MAX;
+    MS_608 ms608;
+    if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
+        return ms608.get_T_MOT() - 40;
+    } else {
+        return UINT16_MAX;
+    }
 }
 
 int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
-    return INT16_MAX;
+    MS_308 ms308;
+    if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
+        return ms308.get_T_OEL() - 40;
+    } else {
+        return UINT16_MAX;
+    }
 }
 
 uint16_t Egs51Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {

@@ -6,6 +6,7 @@
 #include "egs_emulation.h"
 #include "kwp_utils.h"
 #include "solenoids/constant_current.h"
+#include "map_editor.h"
 
 typedef struct {
     uint8_t day;
@@ -430,7 +431,7 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (arg_len != 1) {
+    if (arg_len != 1 && args[0] != RLI_MAP_EDITOR) {
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
@@ -447,6 +448,28 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         char resp[13];
         sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
+    } else if (args[0] == RLI_MAP_EDITOR) {
+        // We need 2 args for this. 
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        int16_t* read_buf = nullptr;
+        uint16_t dest_size = 0;
+        uint8_t ret = MapEditor::read_map_data(args[1], &dest_size, &read_buf);
+        if (ret == 0) { // OK
+            uint8_t* buf = new uint8_t[2+dest_size];
+            buf[0] = dest_size >> 8;
+            buf[1] = dest_size & 0xFF;
+            memcpy(&buf[2], read_buf, dest_size);
+            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+dest_size);
+            delete read_buf; // DELETE MapEditor allocation
+            return;
+        } else {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
+            return;
+        }
+
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));

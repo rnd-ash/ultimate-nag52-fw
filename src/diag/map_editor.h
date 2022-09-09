@@ -19,7 +19,7 @@
 #define MAP_ID_A_PETROL_DOWNSHIFT 0x0C
 
 namespace MapEditor {
-    uint8_t read_map_data(uint8_t map_id, uint16_t *dest_size, int16_t* buffer);
+    uint8_t read_map_data(uint8_t map_id, uint16_t *dest_size, int16_t** buffer);
     uint8_t write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer);
 }
 

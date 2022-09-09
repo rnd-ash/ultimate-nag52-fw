@@ -1,11 +1,10 @@
 #include "eeprom_config.h"
-#include "nvs.h"
-#include "nvs_flash.h"
 #include "esp_log.h"
 #include "scn.h"
 #include "speaker.h"
 #include <string.h>
 #include "profiles.h"
+
 
 /// If default is UINT16_MAX, it is ignored
 bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
@@ -33,6 +32,44 @@ bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t 
         }
     }
     return (e == ESP_OK);
+}
+
+bool EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
+    size_t byte_count = map_element_count*sizeof(int16_t);
+    esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);
+    if (e == ESP_ERR_NVS_NOT_FOUND && default_map != nullptr) {
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
+        // Set default map data
+        if (write_nvs_map_data(map_name, default_map, map_element_count)) {
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s copied OK to NVS!", map_name);
+        } else {
+            ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not copied to NVS! Using flash default map", map_name);
+        }
+    }
+    if(e != ESP_OK) {
+        if (default_map != nullptr) {
+            memcpy(dest, default_map, byte_count);
+        } else {
+            return false;
+        }
+    } else {
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s loaded OK from NVS!", map_name);
+    }
+    return true;
+}
+
+bool EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count) {
+    esp_err_t e = nvs_set_blob(MAP_NVS_HANDLE, map_name, to_write, map_element_count*sizeof(int16_t));
+    if (e != ESP_OK) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting value for %s (%s)", map_name, esp_err_to_name(e));
+        return false;
+    }
+    e = nvs_commit(MAP_NVS_HANDLE);
+    if (e != ESP_OK) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        return false;
+    }
+    return true;
 }
 
 bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
@@ -72,6 +109,7 @@ bool EEPROM::init_eeprom() {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
         return false;
     }
+    MAP_NVS_HANDLE = config_handle;
     bool res = read_core_config(&VEHICLE_CONFIG);
     if (!res) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM SCN config read failed! %s", esp_err_to_name(err));
@@ -147,3 +185,4 @@ bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
 }
 
 TCM_CORE_CONFIG VEHICLE_CONFIG = {};
+nvs_handle_t MAP_NVS_HANDLE = {};

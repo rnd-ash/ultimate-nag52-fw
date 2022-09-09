@@ -19,6 +19,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 // The following IDs are already taken by the OEM EGS52/53 module
 // 0F,30-60,7A,A0,B0,B1,C0-C4,D1
 
+#define RLI_MAP_EDITOR      0x19 // See map_editor.cpp
 #define RLI_GEARBOX_SENSORS 0x20 // Sensor data status
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status

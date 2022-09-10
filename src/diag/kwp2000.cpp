@@ -692,7 +692,27 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
         this->session_mode == SESSION_STANDBY ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
-        if (args[0] == RLI_TCM_CONFIG) {
+        if (args[0] == RLI_MAP_EDITOR) {
+            // 1 - Map ID
+            // 2-3 - Map data size (Bytes)
+            // 4..n - Map data to write
+            if (arg_len < 7) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            uint8_t map_id = args[1];
+            uint16_t map_len_bytes = args[2] << 8 | args[3];
+            if (arg_len-4 != map_len_bytes) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            uint8_t ret = MapEditor::write_map_data(map_id, map_len_bytes, (int16_t*)&args[4]);
+            if (ret != 0x00) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret); // Error
+            } else {
+                make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_MAP_EDITOR, nullptr, 0); // Ok!
+            }
+        } else if (args[0] == RLI_TCM_CONFIG) {
             if (arg_len-1 != sizeof(TCM_CORE_CONFIG)) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
             } else {

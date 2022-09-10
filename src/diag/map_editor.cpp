@@ -38,12 +38,12 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, uint16_t *dest_size, int16_t** 
         // Shift map
         int16_t* b = (int16_t*)heap_caps_malloc(SHIFT_MAP_SIZE*sizeof(int16_t), MALLOC_CAP_SPIRAM);
         if (b == nullptr) {
-            ESP_LOGE("MAP_EDITOR", "Could not allocate read array!");
+            ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
             return NRC_GENERAL_REJECT;
         }
         const char* name = map_id_to_name(map_id);
         if (name == nullptr) {
-            ESP_LOGE("MAP_EDITOR", "map name is null!?");
+            ESP_LOGE("MAP_EDITOR_R", "map name is null!?");
             delete b;
             return NRC_GENERAL_REJECT;
         }
@@ -54,18 +54,35 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, uint16_t *dest_size, int16_t** 
             return 0;
         } else {
             // De-allocate
-            ESP_LOGE("MAP_EDITOR", "read_nvs_map_data failed!");
+            ESP_LOGE("MAP_EDITOR_R", "read_nvs_map_data failed!");
             delete b;
             return NRC_GENERAL_REJECT;
         }
     } else {
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
     }
-    return 0;
 }
     
 uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
-    return 0;
+    if (map_id >= 0x01 && map_id <= 0x0C) {
+        const char* name = map_id_to_name(map_id);
+        if (name == nullptr) {
+            ESP_LOGE("MAP_EDITOR_W", "map name is null!?");
+            return NRC_GENERAL_REJECT;
+        }
+        if (dest_size != SHIFT_MAP_SIZE*sizeof(int16_t)) {
+            ESP_LOGE("MAP_EDITOR_W", "Buffer has %d bytes. Shift map needs %d bytes", dest_size, sizeof(int16_t)*SHIFT_MAP_SIZE);
+            return NRC_GENERAL_REJECT;
+        }
+        if (EEPROM::write_nvs_map_data(name, buffer, SHIFT_MAP_SIZE)) {
+            return 0;
+        } else {
+            ESP_LOGE("MAP_EDITOR_W", "write_nvs_map_data failed!");
+            return NRC_GENERAL_REJECT;
+        }
+    }  else {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
 }
 
 

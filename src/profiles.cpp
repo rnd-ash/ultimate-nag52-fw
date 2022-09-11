@@ -7,6 +7,90 @@
 
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
+AbstractProfile::AbstractProfile(bool is_diesel, 
+        const char* tag_id, 
+        const char* upshift_map_name_diesel, 
+        const char* downshift_map_name_diesel, 
+        const char* upshift_map_name_petrol, 
+        const char* downshift_map_name_petrol,
+        const int16_t* def_upshift_data_diesel,
+        const int16_t* def_downshift_data_diesel,
+        const int16_t* def_upshift_data_petrol,
+        const int16_t* def_downshift_data_petrol
+    ) {
+
+    this->is_diesel = is_diesel;
+    this->tag_id = tag_id;
+    this->upshift_map_name_diesel = upshift_map_name_diesel; 
+    this->downshift_map_name_diesel = downshift_map_name_diesel;
+    this->upshift_map_name_petrol = upshift_map_name_petrol;
+    this->downshift_map_name_petrol = downshift_map_name_petrol;
+    this->def_upshift_data_diesel = def_upshift_data_diesel;
+    this->def_downshift_data_diesel = def_downshift_data_diesel;
+    this->def_upshift_data_petrol = def_upshift_data_petrol;
+    this->def_downshift_data_petrol = def_downshift_data_petrol;
+
+
+    this->upshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, upshift_y_headers);
+    this->downshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, downshift_y_headers);
+    int16_t up_map[SHIFT_MAP_SIZE];
+    int16_t down_map[SHIFT_MAP_SIZE];
+    if (!this->upshift_table->allocate_ok() || !this->downshift_table->allocate_ok()) {
+        ESP_LOGE(tag_id, "Upshift/Downshift map allocation failed!");
+        delete this->upshift_table;
+        delete this->downshift_table;
+    } else {
+        if (is_diesel) {
+            EEPROM::read_nvs_map_data(upshift_map_name_diesel, up_map, def_upshift_data_diesel, SHIFT_MAP_SIZE);
+            EEPROM::read_nvs_map_data(downshift_map_name_diesel, down_map, def_downshift_data_diesel, SHIFT_MAP_SIZE);
+        } else {
+            EEPROM::read_nvs_map_data(upshift_map_name_petrol, up_map, def_upshift_data_petrol, SHIFT_MAP_SIZE);
+            EEPROM::read_nvs_map_data(downshift_map_name_petrol, down_map, def_downshift_data_petrol, SHIFT_MAP_SIZE);
+        }
+        if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
+            ESP_LOGI(tag_id, "Upshift and downshift maps loaded OK!");
+        } else {
+            ESP_LOGE(tag_id, "Upshift/Downshift map data add failed!");
+            delete this->upshift_table;
+            delete this->downshift_table;
+        }
+    }
+}
+
+void AbstractProfile::reload_data() {
+    if (this->upshift_table == nullptr || this->downshift_table == nullptr) {
+        return;
+    }
+    int16_t up_map[SHIFT_MAP_SIZE];
+    int16_t down_map[SHIFT_MAP_SIZE];
+    if (is_diesel) {
+        EEPROM::read_nvs_map_data(upshift_map_name_diesel, up_map, def_upshift_data_diesel, SHIFT_MAP_SIZE);
+        EEPROM::read_nvs_map_data(downshift_map_name_diesel, down_map, def_downshift_data_diesel, SHIFT_MAP_SIZE);
+    } else {
+        EEPROM::read_nvs_map_data(upshift_map_name_petrol, up_map, def_upshift_data_petrol, SHIFT_MAP_SIZE);
+        EEPROM::read_nvs_map_data(downshift_map_name_petrol, down_map, def_downshift_data_petrol, SHIFT_MAP_SIZE);
+    }
+    if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
+        ESP_LOGI(tag_id, "Upshift and downshift maps re-loaded OK!");
+    }
+}
+
+
+AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
+        is_diesel,
+        "WINTER", 
+        MAP_NAME_A_DIESEL_UPSHIFT, 
+        MAP_NAME_A_DIESEL_DOWNSHIFT,
+        MAP_NAME_A_PETROL_UPSHIFT, 
+        MAP_NAME_A_PETROL_DOWNSHIFT,
+        A_DIESEL_UPSHIFT_MAP,
+        A_DIESEL_DOWNSHIFT_MAP,
+        A_PETROL_UPSHIFT_MAP,
+        A_PETROL_DOWNSHIFT_MAP
+    ) {
+}
+
+
 GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
    switch (target) {
         case GearboxGear::Park:
@@ -62,31 +146,18 @@ TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
     };
 }
 
-ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile() {
-    this->upshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, upshift_y_headers);
-    this->downshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, downshift_y_headers);
-    int16_t up_map[SHIFT_MAP_SIZE];
-    int16_t down_map[SHIFT_MAP_SIZE];
-    if (!this->upshift_table->allocate_ok() || !this->downshift_table->allocate_ok()) {
-        ESP_LOGE("COMFORT", "Upshift/Downshift map allocation failed!");
-        delete this->upshift_table;
-        delete this->downshift_table;
-    } else {
-        if (is_diesel) {
-            EEPROM::read_nvs_map_data(MAP_NAME_C_DIESEL_UPSHIFT, up_map, (const int16_t*)C_DIESEL_UPSHIFT_MAP, SHIFT_MAP_SIZE);
-            EEPROM::read_nvs_map_data(MAP_NAME_C_DIESEL_DOWNSHIFT, down_map, (const int16_t*)C_DIESEL_DOWNSHIFT_MAP, SHIFT_MAP_SIZE);
-        } else {
-            EEPROM::read_nvs_map_data(MAP_NAME_C_PETROL_UPSHIFT, up_map, (const int16_t*)C_PETROL_UPSHIFT_MAP, SHIFT_MAP_SIZE);
-            EEPROM::read_nvs_map_data(MAP_NAME_C_PETROL_DOWNSHIFT, down_map, (const int16_t*)C_PETROL_DOWNSHIFT_MAP, SHIFT_MAP_SIZE);
-        }
-        if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
-            ESP_LOGI("COMFORT", "Upshift and downshift maps loaded OK!");
-        } else {
-            ESP_LOGE("COMFORT", "Upshift/Downshift map data add failed!");
-            delete this->upshift_table;
-            delete this->downshift_table;
-        }
-    }
+ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
+        is_diesel,
+        "COMFORT", 
+        MAP_NAME_C_DIESEL_UPSHIFT, 
+        MAP_NAME_C_DIESEL_DOWNSHIFT,
+        MAP_NAME_C_PETROL_UPSHIFT, 
+        MAP_NAME_C_PETROL_DOWNSHIFT,
+        C_DIESEL_UPSHIFT_MAP,
+        C_DIESEL_DOWNSHIFT_MAP,
+        C_PETROL_UPSHIFT_MAP,
+        C_PETROL_DOWNSHIFT_MAP
+    ) {
 }
 
 
@@ -149,6 +220,20 @@ TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
     };
 }
 
+WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
+        is_diesel,
+        "WINTER", 
+        MAP_NAME_M_DIESEL_UPSHIFT, 
+        MAP_NAME_M_DIESEL_DOWNSHIFT,
+        MAP_NAME_M_PETROL_UPSHIFT, 
+        MAP_NAME_M_PETROL_DOWNSHIFT,
+        M_DIESEL_UPSHIFT_MAP,
+        M_DIESEL_DOWNSHIFT_MAP,
+        M_PETROL_UPSHIFT_MAP,
+        M_PETROL_DOWNSHIFT_MAP
+    ) {
+}
+
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     return ShiftCharacteristics {
         .target_d_rpm = 20,
@@ -202,6 +287,20 @@ TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
         .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
         .min_slip_rpm = (int)MAX(50, sensors->static_torque)
     };
+}
+
+StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
+        is_diesel,
+        "STANDARD", 
+        MAP_NAME_S_DIESEL_UPSHIFT, 
+        MAP_NAME_S_DIESEL_DOWNSHIFT,
+        MAP_NAME_S_PETROL_UPSHIFT, 
+        MAP_NAME_S_PETROL_DOWNSHIFT,
+        S_DIESEL_UPSHIFT_MAP,
+        S_DIESEL_DOWNSHIFT_MAP,
+        S_PETROL_UPSHIFT_MAP,
+        S_PETROL_DOWNSHIFT_MAP
+    ) {
 }
 
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
@@ -322,6 +421,20 @@ GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGe
         default:
             return GearboxDisplayGear::SNA;
     }
+}
+
+ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
+        is_diesel,
+        "MANUAL", 
+        MAP_NAME_M_DIESEL_UPSHIFT, 
+        MAP_NAME_M_DIESEL_DOWNSHIFT,
+        MAP_NAME_M_PETROL_UPSHIFT, 
+        MAP_NAME_M_PETROL_DOWNSHIFT,
+        M_DIESEL_UPSHIFT_MAP,
+        M_DIESEL_DOWNSHIFT_MAP,
+        M_PETROL_UPSHIFT_MAP,
+        M_PETROL_DOWNSHIFT_MAP
+    ) {
 }
 
 bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {

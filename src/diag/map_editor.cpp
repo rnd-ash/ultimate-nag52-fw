@@ -3,6 +3,8 @@
 #include "../nvs/eeprom_config.h"
 #include "../maps.h"
 #include "string.h"
+#include "../speaker.h"
+#include "../profiles.h"
 
 const char* map_id_to_name(uint8_t map_id) {
     switch(map_id) {
@@ -124,6 +126,8 @@ uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* b
             return NRC_GENERAL_REJECT;
         }
         if (EEPROM::write_nvs_map_data(name, buffer, SHIFT_MAP_SIZE)) {
+            spkr.send_note(1500, 300, 310);
+
             return 0;
         } else {
             ESP_LOGE("MAP_EDITOR_W", "write_nvs_map_data failed!");
@@ -134,4 +138,16 @@ uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* b
     }
 }
 
-
+uint8_t MapEditor::trigger_reload(uint8_t prof_id) {
+    uint8_t ret = 0;
+    if (prof_id == standard->get_profile_id()) {
+        standard->reload_data();
+    } else if (prof_id == comfort->get_profile_id()) {
+        comfort->reload_data();
+    } else if (prof_id == agility->get_profile_id()) {
+        agility->reload_data();
+    } else {
+        ret = NRC_REQUEST_OUT_OF_RANGE;
+    }
+    return ret;
+}

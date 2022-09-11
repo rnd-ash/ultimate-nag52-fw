@@ -86,12 +86,17 @@ extern int16_t A_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
                     MANUAL MAPS ARE NOT EDITABLE IN THE CONFIG APP!
 ---------------------------------------------------------------------------------
 */
+
+#define MAP_NAME_M_DIESEL_UPSHIFT "M_DIESEL_UP"
 extern int16_t M_DIESEL_UPSHIFT_MAP[SHIFT_MAP_SIZE];
 
+#define MAP_NAME_M_DIESEL_DOWNSHIFT "M_DIESEL_DOWN"
 extern int16_t M_DIESEL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 
+#define MAP_NAME_M_PETROL_UPSHIFT "M_PETROL_UP"
 extern int16_t M_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE];
 
+#define MAP_NAME_M_PETROL_DOWNSHIFT "M_PETROL_DOWN"
 extern int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 
 #endif

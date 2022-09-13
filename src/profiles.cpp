@@ -132,10 +132,22 @@ ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange
 }
 
 bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    if (current_gear == GearboxGear::Fifth) {
+        return false;
+    }
+    if (this->upshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
     return standard->should_upshift(current_gear, sensors);
 }
 
 bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+    if (current_gear == GearboxGear::First) {
+        return false;
+    }
+    if (this->downshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
     return standard->should_downshift(current_gear, sensors);
 }
 
@@ -337,6 +349,9 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::Fifth) { return false; }
+    if (this->upshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
     int curr_rpm = sensors->input_rpm;
     if (curr_rpm >= Gearbox::redline_rpm) {
         return true;
@@ -365,6 +380,9 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
+    if (this->downshift_table != nullptr) { // TEST TABLE
+        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    }
     float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
     float rpm_percent = (float)(sensors->input_rpm-MIN_WORKING_RPM)*100.0/(float)(Gearbox::redline_rpm-MIN_WORKING_RPM);
     if (current_gear == GearboxGear::Second && (sensors->input_rpm > 300 || sensors->engine_rpm > 800)) {

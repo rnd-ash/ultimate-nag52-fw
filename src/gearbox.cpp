@@ -4,6 +4,7 @@
 #include "adv_opts.h"
 #include <tcm_maths.h>
 #include "solenoids/constant_current.h"
+#include "speaker.h"
 
 uint16_t Gearbox::redline_rpm = 4000;
 
@@ -681,6 +682,9 @@ void Gearbox::controller_loop() {
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
             this->sensor_data.engine_rpm = 0;
+        } else if (asleep && egs_can_hal->get_terminal_15(now, 1000) == TerminalStatus::On) {
+            egs_can_hal->enable_normal_msg_transmission();
+            asleep = false; // Wake up!
         }
         // Update solenoids, only if engine RPM is OK
         if (this->sensor_data.engine_rpm > 500) {
@@ -809,13 +813,13 @@ void Gearbox::controller_loop() {
                 // Create shift task to change gears for us!
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
-        } else if (!shifting) {
-                mpc_cc->set_target_current(0);
-                spc_cc->set_target_current(0);
-                sol_tcc->write_pwm_12_bit(0);
-                sol_y3->write_pwm_12_bit(0);
-                sol_y4->write_pwm_12_bit(0);
-                sol_y5->write_pwm_12_bit(0);
+        } else if (!shifting || asleep) {
+            mpc_cc->set_target_current(0);
+            spc_cc->set_target_current(0);
+            sol_tcc->write_pwm_12_bit(0);
+            sol_y3->write_pwm_12_bit(0);
+            sol_y4->write_pwm_12_bit(0);
+            sol_y5->write_pwm_12_bit(0);
         }
         int16_t tmp_atf = 0;
         if (lock_state || !Sensors::read_atf_temp(&tmp_atf)) {
@@ -840,6 +844,17 @@ void Gearbox::controller_loop() {
                 this->sensor_data.atf_temp = tmp_atf;
             }
         }
+
+        // Check for vehicle in sleep mode
+        if (!asleep && this->sensor_data.input_rpm == 0 && egs_can_hal->get_terminal_15(now, 1000) != TerminalStatus::On) {
+            egs_can_hal->disable_normal_msg_transmission();
+            // Feedback (Debug) - Car going to sleep
+            spkr.send_note(3000, 100, 110);
+            spkr.send_note(3000, 100, 110);
+            spkr.send_note(3000, 100, 110);
+            this->asleep = true;
+        }
+
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
         egs_can_hal->set_shifter_position(this->shifter_pos);
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);

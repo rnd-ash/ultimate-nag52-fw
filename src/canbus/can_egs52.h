@@ -9,6 +9,7 @@
 #include "EWM.h"
 #include "GS.h"
 #include "MS.h"
+#include "EZS.h"
 
 class Egs52Can: public AbstractCan {
     public:
@@ -56,7 +57,8 @@ class Egs52Can: public AbstractCan {
          bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
-         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
@@ -118,6 +120,7 @@ class Egs52Can: public AbstractCan {
         GS_CUSTOM_558 gs558 = {0};
         GS_CUSTOM_668 gs668 = {0};
         // ECU Data to Rx to
+        ECU_EZS ezs_ecu = ECU_EZS();
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();

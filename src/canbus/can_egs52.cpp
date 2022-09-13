@@ -335,6 +335,15 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
+TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+    EZS_240 ezs240;
+    if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
+        return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
+    } else {
+        return TerminalStatus::SNA;
+    }
+}
+
 void Egs52Can::set_clutch_status(ClutchStatus status) {
     switch(status) {
         case ClutchStatus::Open:
@@ -920,6 +929,13 @@ void Egs52Can::tx_task_loop() {
     bool toggle = false;
     bool time_to_toggle = false;
     while(true) {
+        if (!this->send_messages) {
+            vTaskDelay(50);
+            cvn_counter = 0; // Reset CVN when disabling msg Tx
+            toggle = false;
+            time_to_toggle = false;
+            continue;
+        }
         // Copy current CAN frame values to here so we don't
         // accidentally modify parity calculations
         gs_338tx = {gs338.raw};
@@ -945,11 +961,6 @@ void Egs52Can::tx_task_loop() {
         // Now set CVN Counter (Increases every frame)
         gs_218tx.set_FEHLER(cvn_counter);
         cvn_counter++;
-
-        if (!this->send_messages) {
-            vTaskDelay(50);
-            continue;
-        }
 
         // Now send CAN Data!
 
@@ -1010,6 +1021,7 @@ void Egs52Can::rx_task_loop() {
                     } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->misc_ecu.import_frames(tmp, rx.identifier, now)) {
+                    } else if (this->ezs_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {

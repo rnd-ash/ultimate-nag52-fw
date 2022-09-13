@@ -136,6 +136,7 @@ private:
     float diff_ratio_f;
     bool is_ramp = false;
     uint8_t shift_stage = 0;
+    bool asleep = false;
 };
 
 extern Gearbox* gearbox;

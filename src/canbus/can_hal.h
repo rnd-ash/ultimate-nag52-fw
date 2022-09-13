@@ -160,6 +160,12 @@ enum class GearboxMessage: uint8_t {
     VisitWorkshop
 };
 
+enum class TerminalStatus {
+    On,
+    Off,
+    SNA
+};
+
 class AbstractCan {
     public:
         explicit AbstractCan(const char* name, uint8_t tx_time_ms) {
@@ -213,6 +219,10 @@ class AbstractCan {
         virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms);
+        // Gets status of terminal 15
+        virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+            return TerminalStatus::On; // Enabled by default unless implemented
+        }
 
         /**
          * Setters

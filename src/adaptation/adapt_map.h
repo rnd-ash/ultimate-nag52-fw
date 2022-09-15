@@ -18,19 +18,21 @@
 #define ADAPT_TEMP_LIMIT 120
 
 struct AdaptationCell {
-    int16_t fill_pressure_mbar;
+    int16_t spc_fill_adder;
+    int16_t mpc_fill_adder;
     int16_t fill_time_adder;
 };
 
 struct AdaptationData {
-    AdaptationCell accel_load; // Shift under load whilst accelerating
-    AdaptationCell accel_idle; // Shift under no load whilst accelerating
-    AdaptationCell decel_load; // Shift under load whilst decelerating
-    AdaptationCell decel_idle; // Shift under no load whilst decelerating
+    AdaptationCell trq_neg;
+    AdaptationCell trq_25;
+    AdaptationCell trq_50;
+    AdaptationCell trq_75;
 };
 
 const static AdaptationCell DEFAULT_CELL {
-    .fill_pressure_mbar = 0,
+    .spc_fill_adder = 0,
+    .mpc_fill_adder = 0,
     .fill_time_adder = 0
 };
 
@@ -42,7 +44,7 @@ public:
     void reset();
     bool save();
     void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque);
-    const AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change);
+    const AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change, uint16_t gb_max_torque);
 private:
     AdaptationData adapt_data[8];
     bool load_from_nvs();

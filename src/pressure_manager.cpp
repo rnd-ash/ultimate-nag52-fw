@@ -280,10 +280,8 @@ ShiftData PressureManager::get_shift_data(SensorData* sensors, ProfileGearChange
 void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->ramp_time = 100;
     dest->hold_time = 200;
-    const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change);
     dest->spc_pressure = 650;
-    dest->hold_time += cell->fill_time_adder;
-    dest->mpc_pressure = 650;
+    dest->mpc_pressure = (curr_mpc*1.2) + dest->spc_pressure;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -322,7 +320,7 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
         case ProfileGearChange::THREE_TWO: // Prefilling K3
         case ProfileGearChange::THREE_FOUR:
             dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1600;
+            dest->spc_pressure = 1500;
             break;
         case ProfileGearChange::FOUR_THREE: // Prefilling B2
         default:
@@ -330,9 +328,10 @@ void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, Shift
             dest->spc_pressure = 1400;
             break;
     }
-    const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change);
-    dest->spc_pressure += cell->fill_pressure_mbar;
-    dest->mpc_pressure = dest->spc_pressure+(curr_mpc/1.2);
+    const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
+    dest->spc_pressure += cell->spc_fill_adder;
+    dest->hold_time += cell->fill_time_adder;
+    dest->mpc_pressure = dest->spc_pressure + cell->mpc_fill_adder;
 }
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -340,11 +339,11 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
     dest->ramp_time = scale_number(sensor_data->static_torque, 300, 100, gb_max_torque/3, gb_max_torque);
     //dest->hold_time = 0;
     if (change == ProfileGearChange::ONE_TWO) {
-        dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, 100, 200);
+        dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, gb_max_torque/3, (gb_max_torque/3)*2);
     }
 
-    dest->spc_pressure = prev->mpc_pressure + scale_number(sensor_data->static_torque, 50, 1000, 0, this->gb_max_torque);
-    dest->mpc_pressure = prev->mpc_pressure;
+    dest->spc_pressure = prev->spc_pressure + scale_number(sensor_data->static_torque, 100, 1000, 0, this->gb_max_torque);
+    dest->mpc_pressure = prev->mpc_pressure - scale_number(sensor_data->static_torque, 10, 100, 0, this->gb_max_torque);
     dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
     dest->hold_time = 250;
 }

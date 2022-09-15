@@ -543,6 +543,7 @@ void Gearbox::shift_thread() {
                     this->target_gear = this->actual_gear;
                     goto cleanup;
                 }
+                this->shift_idx = pgc;
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
@@ -568,6 +569,7 @@ void Gearbox::shift_thread() {
                     this->target_gear = this->actual_gear;
                     goto cleanup;
                 }
+                this->shift_idx = pgc;
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
@@ -682,7 +684,7 @@ void Gearbox::controller_loop() {
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
             this->sensor_data.engine_rpm = 0;
-        } else if (asleep && egs_can_hal->get_terminal_15(now, 1000) == TerminalStatus::On) {
+        } else if (asleep && egs_can_hal->get_engine_rpm(now, 1000) != UINT16_MAX) {
             egs_can_hal->enable_normal_msg_transmission();
             asleep = false; // Wake up!
         }
@@ -846,7 +848,7 @@ void Gearbox::controller_loop() {
         }
 
         // Check for vehicle in sleep mode
-        if (!asleep && this->sensor_data.input_rpm == 0 && egs_can_hal->get_terminal_15(now, 1000) != TerminalStatus::On) {
+        if (!asleep && this->sensor_data.input_rpm == 0 && !is_controllable_gear(this->actual_gear) && egs_can_hal->get_engine_rpm(now, 1000) == UINT16_MAX) {
             egs_can_hal->disable_normal_msg_transmission();
             // Feedback (Debug) - Car going to sleep
             spkr.send_note(3000, 100, 110);

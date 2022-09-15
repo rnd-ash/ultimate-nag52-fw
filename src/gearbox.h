@@ -91,6 +91,9 @@ public:
     ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
+
+    bool isShifting() { return this->shifting; }
+    ProfileGearChange get_curr_gear_change() { return this->shift_idx; }
 private:
     void elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -137,6 +140,7 @@ private:
     bool is_ramp = false;
     uint8_t shift_stage = 0;
     bool asleep = false;
+    ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
 };
 
 extern Gearbox* gearbox;

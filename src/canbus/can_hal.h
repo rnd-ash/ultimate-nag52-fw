@@ -219,6 +219,9 @@ class AbstractCan {
         virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms);
+        virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Gets status of terminal 15
         virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
             return TerminalStatus::On; // Enabled by default unless implemented

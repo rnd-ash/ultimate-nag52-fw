@@ -344,6 +344,15 @@ TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) 
     }
 }
 
+uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
+    MS_608 ms608;
+    if (this->ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+        return (uint16_t)((float)ms608.get_VB()*0.85);
+    } else {
+        return 0;
+    }
+}
+
 void Egs52Can::set_clutch_status(ClutchStatus status) {
     switch(status) {
         case ClutchStatus::Open:

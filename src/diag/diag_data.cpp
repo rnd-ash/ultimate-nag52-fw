@@ -107,6 +107,7 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
     ret.shifter_position = can_layer->get_shifter_position_ewm(now, 250);
     ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
+    ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
     return ret;
 }
 
@@ -124,6 +125,57 @@ DATA_SYS_USAGE get_sys_usage() {
     ret.free_ram = info.total_free_bytes;
     ret.total_ram = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
     return ret;
+}
+
+SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
+    SHIFT_LIVE_INFO ret = {};
+
+    ret.spc_pressure = g->pressure_mgr->get_targ_spc_pressure();
+    ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_pressure();
+    ret.tcc_pressure = g->pressure_mgr->get_targ_tcc_pressure();
+    // Hack. As we can guarantee only one solenoid will be on, we can do a fast bitwise OR on all 3 to get the application state
+    ret.ss_pos = (sol_y3->get_pwm_raw() | sol_y4->get_pwm_raw() | sol_y5->get_pwm_raw()) >> 8;
+
+    ret.input_rpm = g->sensor_data.input_rpm;
+    ret.engine_rpm = g->sensor_data.engine_rpm;
+    ret.output_rpm = g->sensor_data.output_rpm;
+    ret.engine_torque = g->sensor_data.static_torque;
+    ret.atf_temp = g->sensor_data.atf_temp+40;
+
+    if (g->isShifting()) {
+        switch(g->get_curr_gear_change()) {
+            case ProfileGearChange::ONE_TWO:
+                ret.shift_idx = 1;
+                break;
+            case ProfileGearChange::TWO_THREE:
+                ret.shift_idx = 2;
+                break;
+            case ProfileGearChange::THREE_FOUR:
+                ret.shift_idx = 3;
+                break;
+            case ProfileGearChange::FOUR_FIVE:
+                ret.shift_idx = 4;
+                break;
+            case ProfileGearChange::FIVE_FOUR:
+                ret.shift_idx = 5;
+                break;
+            case ProfileGearChange::FOUR_THREE:
+                ret.shift_idx = 6;
+                break;
+            case ProfileGearChange::THREE_TWO:
+                ret.shift_idx = 7;
+                break;
+            case ProfileGearChange::TWO_ONE:
+                ret.shift_idx = 8;
+                break;
+            default:
+                ret.shift_idx = 0xFF;
+                break;
+        }
+    } else {
+        ret.shift_idx = 0;
+    }
+    return ret;   
 }
 
 

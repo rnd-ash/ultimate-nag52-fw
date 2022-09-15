@@ -184,7 +184,7 @@ const AdaptationCell* AdaptationMap::get_adapt_cell(SensorData* sensors, Profile
     }
 }
 
-void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt) {
+void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque) {
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Adapting called");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT MAP", 
     "Start at %d: \n"
@@ -196,10 +196,10 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
     }
 
     // Firstly, obey RPM and Torque limits
-    if (sensors->static_torque > ADAPT_TORQUE_LIMIT) {
+    if (sensors->static_torque > gb_max_torque/2) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Torque outside limits. Got %d Nm, must be below %d Nm",
             sensors->static_torque,
-            ADAPT_TORQUE_LIMIT
+            gb_max_torque/2
         );
         return;
     }
@@ -277,15 +277,15 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Shift took %d ms", shift_time);
     if (rpt->transition_start < start_hold3) {
         ESP_LOGW("ADAPT_MAP", "Shift started BEFORE hold3!");
-        dest->fill_pressure_mbar -= 5;
+        dest->fill_pressure_mbar -= 10;
     } else if (rpt->transition_start < start_overlap) {
         ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start-start_hold3);
     } else if (rpt->transition_start < start_max_p) {
         ESP_LOGW("ADAPT_MAP", "Shift started in overlap phase! (%d ms into overlap phase)", rpt->transition_start-start_overlap);
     } else if (rpt->transition_start > start_max_p) {
         ESP_LOGW("ADAPT_MAP", "Shift started after overlap phase! (%d ms into max pressure phase)", rpt->transition_start-start_max_p);
-        dest->fill_pressure_mbar += 5;
-        dest->fill_time_adder += 5;
+        dest->fill_pressure_mbar += 10;
+        dest->fill_time_adder += 20;
     }
 
     if (rpt->flare_timestamp != 0) {

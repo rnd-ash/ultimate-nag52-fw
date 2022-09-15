@@ -98,7 +98,7 @@ public:
 
     void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
         if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(sensors, response, change, is_valid_rpt);
+            this->adapt_map->perform_adaptation(sensors, response, change, is_valid_rpt, this->gb_max_torque);
         }
     }
 

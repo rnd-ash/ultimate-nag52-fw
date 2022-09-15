@@ -41,7 +41,7 @@ public:
     // Reset map to everything default
     void reset();
     bool save();
-    void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt);
+    void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque);
     const AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change);
 private:
     AdaptationData adapt_data[8];

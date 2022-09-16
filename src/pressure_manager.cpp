@@ -125,32 +125,32 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, int max_rated_torque) {
-    const int16_t* targ_map = working_norm_pressure_p;
+    const int16_t* targ_map = working_norm_pressure_p_small;
     switch(curr_g) {
         case GearboxGear::First:
-            targ_map = working_norm_pressure_1;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_1_large : working_norm_pressure_1_small;
             break;
         case GearboxGear::Second:
-            targ_map = working_norm_pressure_2;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_2_large : working_norm_pressure_2_small;
             break;
         case GearboxGear::Third:
-            targ_map = working_norm_pressure_3;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_3_large : working_norm_pressure_3_small;
             break;
         case GearboxGear::Fourth:
-            targ_map = working_norm_pressure_4;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_4_large : working_norm_pressure_4_small;
             break;
         case GearboxGear::Fifth:
-            targ_map = working_norm_pressure_5;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_5_large : working_norm_pressure_5_small;
             break;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            targ_map = working_norm_pressure_r;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_r_large : working_norm_pressure_r_small;
             break;
         case GearboxGear::Park:
         case GearboxGear::Neutral:
         case GearboxGear::SignalNotAvaliable:
         default: // Already set
-            targ_map = working_norm_pressure_p;
+            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_p_large : working_norm_pressure_p_small;
             break;
     }
 
@@ -213,12 +213,12 @@ ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, Shift
 
 
     sd.hold1_data.ramp_time = 0;
-    sd.hold1_data.hold_time = 50;
-    sd.hold1_data.spc_pressure = 50;
+    sd.hold1_data.hold_time = 100;
+    sd.hold1_data.spc_pressure = 0;
     sd.hold1_data.mpc_pressure = curr_mpc;
 
-    sd.hold2_data.ramp_time = 100;
-    sd.hold2_data.hold_time = 250;
+    sd.hold2_data.ramp_time = 0;
+    sd.hold2_data.hold_time = 100;
     sd.hold2_data.spc_pressure = 650;
     sd.hold2_data.mpc_pressure = curr_mpc;
 
@@ -259,7 +259,7 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics cha
         case ProfileGearChange::TWO_ONE:
         case ProfileGearChange::FOUR_FIVE: // Prefilling B1
             dest->hold_time = hold2_time_map->get_value(4, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1300;
+            dest->spc_pressure = 1200;
             break;
         case ProfileGearChange::TWO_THREE: // Prefilling K2
             dest->hold_time = hold2_time_map->get_value(2, this->sensor_data->atf_temp);
@@ -279,13 +279,13 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics cha
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
     dest->spc_pressure += cell->spc_fill_adder;
     dest->hold_time += cell->fill_time_adder;
-    dest->mpc_pressure = dest->spc_pressure + cell->mpc_fill_adder;
+    dest->mpc_pressure = curr_mpc + cell->mpc_fill_adder;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->hold_time = 50;
-    dest->ramp_time = 50;
-    dest->spc_pressure = prev->spc_pressure;
+    dest->hold_time = 100;
+    dest->ramp_time = 0;
+    dest->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure);
     dest->mpc_pressure = prev->mpc_pressure;
 }
 
@@ -297,11 +297,11 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
         dest->ramp_time += scale_number(sensor_data->static_torque, 20, 0, gb_max_torque/3, (gb_max_torque/3)*2);
     }
 
-    uint16_t spc_adder = scale_number(sensor_data->static_torque, 50, 1000, 0, this->gb_max_torque);
+    uint16_t spc_adder = scale_number(sensor_data->static_torque, 200, 1500, 0, this->gb_max_torque);
     spc_adder += ((float)spc_adder*chars.shift_speed/10.0);
-    dest->mpc_pressure = prev->mpc_pressure - scale_number(sensor_data->static_torque, 10, 100, 0, this->gb_max_torque);
+    dest->mpc_pressure = prev->mpc_pressure;
     dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
-    dest->hold_time = dest->ramp_time/2; //100;
+    dest->hold_time = dest->ramp_time; //100;
     dest->spc_pressure = prev->spc_pressure + spc_adder;
 }
 

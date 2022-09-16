@@ -143,6 +143,7 @@ private:
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
+    bool inhibit_auto_mpc = false;
 };
 
 extern Gearbox* gearbox;

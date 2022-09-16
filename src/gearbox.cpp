@@ -284,13 +284,16 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 1");
     uint16_t start_ratio = sensor_data.gear_ratio*100;
     bool shift_in_progress = false;
+    this->inhibit_auto_mpc = false;
     while(true) {
         this->shift_stage = shift_stage;
         // Execute the current phase
         if (curr_phase != nullptr) {
             if (stage_elapsed < curr_phase->ramp_time && curr_spc_pressure < curr_phase->spc_pressure) {
                 curr_spc_pressure += ramp;
-                this->mpc_working += ramp_mpc;
+                if (!this->inhibit_auto_mpc) {
+                    this->mpc_working += ramp_mpc;
+                }
                 this->is_ramp = true;
             } else {
                 this->mpc_working = curr_phase->mpc_pressure;
@@ -314,13 +317,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                         shift_stage = SHIFT_PHASE_HOLD_3;
                         // regen hold3 data for fill phase
                         prefill_sensors = this->sensor_data;
-                        this->pressure_mgr->recalculate_fill_data(&sd.hold3_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
+                        this->inhibit_auto_mpc = true; // Now prevent MPC adjusting (Shifter takes control away)
+                        //this->pressure_mgr->recalculate_fill_data(&sd.hold3_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.hold3_data;
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         abortable = false; // No longer can be aborted! (Past point of no return)
-                        this->pressure_mgr->recalculate_torque_overlap_max_p_data(&sd, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
+                        //this->pressure_mgr->recalculate_torque_overlap_max_p_data(&sd, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.torque_data;
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
@@ -347,7 +351,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                     }
                     if (curr_phase != nullptr) {
                         ramp = ((float)(curr_phase->spc_pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
-                        ramp_mpc = ((float)(curr_phase->mpc_pressure)-this->mpc_working) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
+                        if (!this->inhibit_auto_mpc) {
+                            ramp_mpc = ((float)(curr_phase->mpc_pressure)-this->mpc_working) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
+                        }
                     }
                 }
             }
@@ -486,11 +492,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
     
     this->sensor_data.last_shift_time = esp_timer_get_time()/1000;
     this->flaring = false;
+    this->inhibit_auto_mpc = false;
     return true;
 }
 
 void Gearbox::shift_thread() {
     this->shifting = true;
+    this->inhibit_auto_mpc = true; // Stop MPC control
     GearboxGear curr_target = this->target_gear;
     GearboxGear curr_actual = this->actual_gear;
     if (curr_actual == curr_target) {
@@ -715,7 +723,7 @@ void Gearbox::controller_loop() {
         //}
         // Update solenoids, only if engine RPM is OK
         if (this->sensor_data.engine_rpm > 500) {
-            if (!shifting) { // If shifting then shift manager has control over MPC working
+            if (!inhibit_auto_mpc) { // If shifting then shift manager has control over MPC working
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, this->gearboxConfig.max_torque);
             }
             this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);

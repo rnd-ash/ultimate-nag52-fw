@@ -270,6 +270,8 @@ class AbstractCan {
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message
         virtual void set_display_msg(GearboxMessage msg);
+        // Set bit to signify the gearbox is aborting the shift
+        virtual void set_abort_shift(bool is_aborting){};
         
         /// Custom setters
         virtual void set_spc_pressure(uint16_t p){}

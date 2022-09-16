@@ -126,34 +126,40 @@ typedef struct {
      * Shift solenoid opens, PWM instantly jumps rather than ramps
      * This bleeds air out of the lines
      */
-
     ShiftPhase hold2_data;
 
     /** 
-     * Phase 3 hold 
-     * Removing any play in the new clutches to engage
+     * Phase 3 hold (Fill phase)
+     * Clutches are moved into 0 tolerance position
+     * This phase uses adaptation data
+     * 
+     * AFTER THIS PHASE, SHIFT CANNOT BE ABORTED!
      */
-
     ShiftPhase hold3_data;
 
     /** 
      * Shift torque phase 
-     * New clutches start to spin to take the torque of the old ones
+     * Just before overlap, engine torque is reduced to aid shifting
      */
     ShiftPhase torque_data;
 
     /** 
      * Shift overlap phase
      * New clutches are moved into place and old once released
+     * SPC now controls new clutches, MPC is relaxed.
+     * 
+     * Duration and pressure during the overlap phase
+     * affects shift feeling
+     * 
+     * Duration: Longer = slower gear change
+     * SPC Ramp: Bigger = firmer shift
      */
-
     ShiftPhase overlap_data;
 
     /** 
      * Shift complete max pressure phase 
      * New clutches are locked into place
      */
-
     ShiftPhase max_pressure_data;
 } ShiftData;
 

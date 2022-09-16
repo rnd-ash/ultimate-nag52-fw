@@ -95,7 +95,7 @@ public:
     bool isShifting() { return this->shifting; }
     ProfileGearChange get_curr_gear_change() { return this->shift_idx; }
 private:
-    void elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
+    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -141,6 +141,8 @@ private:
     uint8_t shift_stage = 0;
     bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
+    bool abort_shift = false;
+    bool aborting = false;
 };
 
 extern Gearbox* gearbox;

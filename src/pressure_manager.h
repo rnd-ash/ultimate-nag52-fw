@@ -94,11 +94,14 @@ public:
      * @param shift_speed Speed of the shift (higher = faster shift)
      * @return ShiftData 
      */
-    ShiftData get_shift_data(SensorData* sensors, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
+    ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
-    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
+    void recalculate_fill_data(ShiftPhase* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
+    void recalculate_torque_overlap_max_p_data(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
+
+    void perform_adaptation(SensorData* prefill_sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
         if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(sensors, response, change, is_valid_rpt, this->gb_max_torque);
+            this->adapt_map->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
         }
     }
 
@@ -108,7 +111,7 @@ public:
         }
     }
 
-    uint16_t find_working_mpc_pressure(GearboxGear curr_g, SensorData* sensors, int max_rated_torque);
+    uint16_t find_working_mpc_pressure(GearboxGear curr_g, int max_rated_torque);
 
     float get_tcc_temp_multiplier(int atf_temp);
 private:
@@ -137,7 +140,7 @@ private:
     TcmMap* hold2_time_map;
     uint16_t gb_max_torque;
 
-    void make_hold3_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    void make_hold3_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
 

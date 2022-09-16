@@ -704,6 +704,10 @@ void Egs52Can::set_gear_ratio(int16_t g100) {
     this->gs558.set_RATIO(g100);
 }
 
+void Egs52Can::set_abort_shift(bool is_aborting){
+    this->gs218.set_GZC(GS_218h_GZC::G_ABBRUCH);
+}
+
 void Egs52Can::set_display_msg(GearboxMessage msg) {
     this->curr_message = msg;
     if (this->curr_profile_bit == GearboxProfile::Agility) {

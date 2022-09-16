@@ -256,35 +256,16 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
  *
  * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
  */
-void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
-    SensorData pre_shift = this->sensor_data;
+bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
+    SensorData start_sensors = this->sensor_data;
+    SensorData prefill_sensors = this->sensor_data;
+    SensorData overlap_sensors = this->sensor_data;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
-    ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
-    ShiftData sd = pressure_mgr->get_shift_data(&this->sensor_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
+    ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &start_sensors);
+    ShiftData sd = pressure_mgr->get_shift_data(req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
     bool gen_report = sensor_data.output_rpm > 100;
     ShiftReport dest_report;
     memset(&dest_report, 0x00, sizeof(ShiftReport));
-    
-    if (gen_report) {
-        // Copy data
-        dest_report.hold1_data = sd.hold1_data;
-        dest_report.hold2_data = sd.hold2_data;
-        dest_report.hold3_data = sd.hold3_data;
-        dest_report.torque_data = sd.torque_data;
-        dest_report.overlap_data = sd.overlap_data;
-        dest_report.max_pressure_data = sd.max_pressure_data;
-        dest_report.atf_temp_c = sensor_data.atf_temp;
-        dest_report.initial_mpc_pressure = this->mpc_working;
-        dest_report.flare_timestamp = 0;
-        dest_report.requested_torque = UINT16_MAX; // Max if no request
-        if (profile == nullptr) {
-            dest_report.profile = 0xFF;
-        } else {
-            dest_report.profile = profile->get_profile_id();
-        }
-    }
-    
-    
     uint16_t index = 0;
     bool add_report = true;
     uint16_t stage_elapsed = 0;
@@ -294,6 +275,7 @@ void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
     // Open SPC for bleeding (Start of phase 1)
     float curr_spc_pressure = 0;
     uint16_t curr_sd_pwm = 0;
+    bool abortable = true;
     pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
     ShiftPhase* curr_phase = &sd.hold1_data;
     float ramp = ((float)(curr_phase->spc_pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
@@ -330,10 +312,15 @@ void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                     } else if (shift_stage == SHIFT_PHASE_HOLD_2) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase hold 3");
                         shift_stage = SHIFT_PHASE_HOLD_3;
+                        // regen hold3 data for fill phase
+                        prefill_sensors = this->sensor_data;
+                        this->pressure_mgr->recalculate_fill_data(&sd.hold3_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.hold3_data;
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
+                        abortable = false; // No longer can be aborted! (Past point of no return)
+                        this->pressure_mgr->recalculate_torque_overlap_max_p_data(&sd, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.torque_data;
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
@@ -342,9 +329,6 @@ void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                             egs_can_hal->set_torque_request(TorqueRequest::Exact);
                             egs_can_hal->set_requested_torque(torque_amount);
                         }
-                        if(this->est_gear_idx == sd.curr_g) {
-                            this->tcc->on_shift_start(sensor_data.current_timestamp_ms, !is_upshift, &sensor_data, chars.shift_speed);
-                        }
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap");
                         shift_stage = SHIFT_PHASE_OVERLAP;
                         curr_phase = &sd.overlap_data;
@@ -352,7 +336,7 @@ void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                         egs_can_hal->set_torque_request(TorqueRequest::None);
                         egs_can_hal->set_requested_torque(0);
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase max pressure");
-                        sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque);
+                        sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque);
                         // No solenoids to touch, just inc counter
                         shift_stage = SHIFT_PHASE_MAX_P;
                         curr_phase = &sd.max_pressure_data;
@@ -437,31 +421,72 @@ void Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
         if (sd.shift_solenoid->get_pwm_compensated() != 0) {
             ss_open += SHIFT_DELAY_MS;
         }
+        if (this->est_gear_idx != sd.curr_g) {
+            abortable = false;
+        }
+        if (this->abort_shift && abortable) {
+            this->aborting = true;
+            break;
+        }
         vTaskDelay(SHIFT_DELAY_MS);
         total_elapsed += SHIFT_DELAY_MS;
         stage_elapsed += SHIFT_DELAY_MS;
     }
+    if (this->aborting) {
+        // ABORTING
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "ABORTING SHIFT");
+        sd.shift_solenoid->write_pwm_12_bit(0);
+        pressure_mgr->disable_spc();
+        this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
+        vTaskDelay(250);
+        egs_can_hal->set_torque_request(TorqueRequest::None);
+        egs_can_hal->set_requested_torque(0);
+        this->sensor_data.last_shift_time = esp_timer_get_time()/1000;
+        this->flaring = false;
+        return false;
+    } else {
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift done");
+        // Normal shift completed
+        if (gen_report) {
+            // Copy used pressure data
+            dest_report.hold1_data = sd.hold1_data;
+            dest_report.hold2_data = sd.hold2_data;
+            dest_report.hold3_data = sd.hold3_data;
+            dest_report.torque_data = sd.torque_data;
+            dest_report.overlap_data = sd.overlap_data;
+            dest_report.max_pressure_data = sd.max_pressure_data;
+            dest_report.atf_temp_c = sensor_data.atf_temp;
+            dest_report.initial_mpc_pressure = this->mpc_working;
+            dest_report.flare_timestamp = 0;
+            dest_report.requested_torque = UINT16_MAX; // Max if no request
+            if (profile == nullptr) {
+                dest_report.profile = 0xFF;
+            } else {
+                dest_report.profile = profile->get_profile_id();
+            }
+            // Copy the response len
+            dest_report.report_array_len = index;
+            dest_report.interval_points = SR_REPORT_INTERVAL;
+            dest_report.total_ms = total_elapsed;
+            dest_report.targ_curr = ((sd.targ_g & 0x0F) << 4) | (sd.curr_g & 0x0F);
+            this->shift_reporter->add_report(dest_report);
+        }
+        if (this->pressure_mgr != nullptr) {
+            this->pressure_mgr->perform_adaptation(&prefill_sensors, req_lookup, &dest_report, gen_report);
+        }
+    }
     this->shift_stage = 0;
     this->is_ramp = false;
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift done");
     pressure_mgr->disable_spc(); // Max pressure!
     sd.shift_solenoid->write_pwm_12_bit(0); // Close SPC and Shift solenoid
     egs_can_hal->set_torque_request(TorqueRequest::None);
     egs_can_hal->set_requested_torque(0);
     this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
-    if (gen_report) {
-        // Copy the response len
-        dest_report.report_array_len = index;
-        dest_report.interval_points = SR_REPORT_INTERVAL;
-        dest_report.total_ms = total_elapsed;
-        dest_report.targ_curr = ((sd.targ_g & 0x0F) << 4) | (sd.curr_g & 0x0F);
-        this->shift_reporter->add_report(dest_report);
-    }
-    if (this->pressure_mgr != nullptr) {
-        this->pressure_mgr->perform_adaptation(&pre_shift, req_lookup, &dest_report, gen_report);
-    };
+    this->abort_shift = false;
+    
     this->sensor_data.last_shift_time = esp_timer_get_time()/1000;
     this->flaring = false;
+    return true;
 }
 
 void Gearbox::shift_thread() {
@@ -483,17 +508,17 @@ void Gearbox::shift_thread() {
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque);
+            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque);
             int spc_ramp = 10;
             uint16_t y4_pwm_val = 4096;
-            pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque));
+            pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque));
             pressure_mgr->set_target_spc_pressure(spc_start);
             sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
             vTaskDelay(150);
             uint16_t del = 0;
-            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*4) {
+            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque)*4) {
                 spc_start += spc_ramp;
-                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, gearboxConfig.max_torque)*1.1);
+                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque)*1.1);
                 pressure_mgr->set_target_spc_pressure(spc_start);  
                 if (del > 100) {
                     y4_pwm_val = 1024; // 25% on to prevent burnout
@@ -684,14 +709,14 @@ void Gearbox::controller_loop() {
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX) {
             this->sensor_data.engine_rpm = 0;
-        } else if (asleep && egs_can_hal->get_engine_rpm(now, 1000) != UINT16_MAX) {
-            egs_can_hal->enable_normal_msg_transmission();
-            asleep = false; // Wake up!
-        }
+        } //else if (asleep && egs_can_hal->get_engine_rpm(now, 1000) != UINT16_MAX) {
+          //  egs_can_hal->enable_normal_msg_transmission();
+          //  asleep = false; // Wake up!
+        //}
         // Update solenoids, only if engine RPM is OK
         if (this->sensor_data.engine_rpm > 500) {
             if (!shifting) { // If shifting then shift manager has control over MPC working
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, &sensor_data, this->gearboxConfig.max_torque);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, this->gearboxConfig.max_torque);
             }
             this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
         }
@@ -848,19 +873,23 @@ void Gearbox::controller_loop() {
         }
 
         // Check for vehicle in sleep mode
-        if (!asleep && this->sensor_data.input_rpm == 0 && !is_controllable_gear(this->actual_gear) && egs_can_hal->get_engine_rpm(now, 1000) == UINT16_MAX) {
-            egs_can_hal->disable_normal_msg_transmission();
-            // Feedback (Debug) - Car going to sleep
-            spkr.send_note(3000, 100, 110);
-            spkr.send_note(3000, 100, 110);
-            spkr.send_note(3000, 100, 110);
-            this->asleep = true;
-        }
+        //if (!asleep && this->sensor_data.input_rpm == 0 && !is_controllable_gear(this->actual_gear) && egs_can_hal->get_engine_rpm(now, 1000) == UINT16_MAX) {
+        //    egs_can_hal->disable_normal_msg_transmission();
+        //    // Feedback (Debug) - Car going to sleep
+        //    spkr.send_note(3000, 100, 110);
+        //    spkr.send_note(3000, 100, 110);
+        //    spkr.send_note(3000, 100, 110);
+        //    this->asleep = true;
+        //}
 
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
         egs_can_hal->set_shifter_position(this->shifter_pos);
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);
-        egs_can_hal->set_target_gear(this->target_gear);
+        if (this->aborting) {
+            egs_can_hal->set_abort_shift(true);
+        } else {
+            egs_can_hal->set_target_gear(this->target_gear);
+        }
         egs_can_hal->set_actual_gear(this->actual_gear);
         egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm_compensated(), SolenoidName::Y3);
         egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm_compensated(), SolenoidName::Y4);

@@ -106,6 +106,7 @@ class Egs52Can: public AbstractCan {
         void set_shift_stage(uint8_t stage, bool is_ramp) override;
         void set_gear_disagree(uint8_t count) override;
         void set_gear_ratio(int16_t g100) override;
+        void set_abort_shift(bool is_aborting) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;

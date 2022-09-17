@@ -250,7 +250,7 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics cha
     switch (change) {
         case ProfileGearChange::ONE_TWO: // Prefilling K1
             dest->hold_time = hold2_time_map->get_value(1, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1200;
+            dest->spc_pressure = 1100;
             break;
         case ProfileGearChange::FIVE_FOUR:
             dest->hold_time = hold2_time_map->get_value(1, this->sensor_data->atf_temp);
@@ -268,12 +268,12 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics cha
         case ProfileGearChange::THREE_TWO: // Prefilling K3
         case ProfileGearChange::THREE_FOUR:
             dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1600;
+            dest->spc_pressure = 1300;
             break;
         case ProfileGearChange::FOUR_THREE: // Prefilling B2
         default:
             dest->hold_time = hold2_time_map->get_value(5, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1400;
+            dest->spc_pressure = 1500;
             break;
     }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);

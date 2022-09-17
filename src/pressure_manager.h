@@ -72,8 +72,8 @@ const pressure_map working_norm_pressure_5_small = { 750,  800, 1000, 1250, 1500
 // 0 -> 100% rated torque (In mbar)
 const pressure_map working_norm_pressure_p_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // R1 or R2
 const pressure_map working_norm_pressure_r_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // R1 or R2
-const pressure_map working_norm_pressure_1_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // 1
-const pressure_map working_norm_pressure_2_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // 2
+const pressure_map working_norm_pressure_1_large = { 800, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // 1
+const pressure_map working_norm_pressure_2_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 2
 const pressure_map working_norm_pressure_3_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 3 <- High torque gear begins (More pressures)
 const pressure_map working_norm_pressure_4_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 4
 const pressure_map working_norm_pressure_5_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 5

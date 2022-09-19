@@ -133,6 +133,7 @@ void AdaptationMap::reset() {
         this->adapt_data[i].trq_50 = DEFAULT_CELL;
         this->adapt_data[i].trq_75 = DEFAULT_CELL;
     }
+    ESP_LOGI("ADAPT_MAP", "Adaptation reset!");
     this->save();
 }
 

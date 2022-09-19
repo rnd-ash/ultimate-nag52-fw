@@ -105,8 +105,15 @@ public:
      */
     ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
-    void recalculate_fill_data(ShiftPhase* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
-    void recalculate_torque_overlap_max_p_data(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
+
+    bool diag_reset_adaptation() {
+        if (this->adapt_map != nullptr) { 
+            this->adapt_map->reset();
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     void perform_adaptation(SensorData* prefill_sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
         if (this->adapt_map != nullptr) { 

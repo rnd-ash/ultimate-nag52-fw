@@ -588,6 +588,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             } else {
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
+        } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
+            if (this->gearbox_ptr->pressure_mgr->diag_reset_adaptation()) {
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            } else {
+                // Can only fail if adapt manager is nullptr (Not ready)
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }

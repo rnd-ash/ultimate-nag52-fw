@@ -273,7 +273,7 @@ void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics cha
         case ProfileGearChange::FOUR_THREE: // Prefilling B2
         default:
             dest->hold_time = hold2_time_map->get_value(5, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1500;
+            dest->spc_pressure = 1400;
             break;
     }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
@@ -354,11 +354,8 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
 
-void PressureManager::recalculate_fill_data(ShiftPhase* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
-    this->make_hold3_data(fill_dest, chars, shift_request, curr_mpc);
-}
-
-void PressureManager::recalculate_torque_overlap_max_p_data(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
+void PressureManager::recalculate_all(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
+    this->make_hold3_data(&fill_dest->hold3_data, chars, shift_request, curr_mpc);
     this->make_torque_data(&fill_dest->torque_data, &fill_dest->hold3_data, chars, shift_request, curr_mpc);
     this->make_overlap_data(&fill_dest->overlap_data, &fill_dest->torque_data, chars, shift_request, curr_mpc);
     fill_dest->max_pressure_data.ramp_time = 250;

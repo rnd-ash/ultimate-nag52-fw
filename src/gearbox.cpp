@@ -318,13 +318,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                         // regen hold3 data for fill phase
                         prefill_sensors = this->sensor_data;
                         this->inhibit_auto_mpc = true; // Now prevent MPC adjusting (Shifter takes control away)
-                        //this->pressure_mgr->recalculate_fill_data(&sd.hold3_data, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
+                        this->pressure_mgr->recalculate_all(&sd, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.hold3_data;
                     } else if (shift_stage == SHIFT_PHASE_HOLD_3) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase torque");
                         shift_stage = SHIFT_PHASE_TORQUE;
                         abortable = false; // No longer can be aborted! (Past point of no return)
-                        //this->pressure_mgr->recalculate_torque_overlap_max_p_data(&sd, req_lookup, chars, gearboxConfig.max_torque, this->mpc_working);
                         curr_phase = &sd.torque_data;
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {

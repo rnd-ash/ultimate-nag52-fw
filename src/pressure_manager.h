@@ -105,6 +105,7 @@ public:
      */
     ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
+    void recalculate_all(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc);
 
     bool diag_reset_adaptation() {
         if (this->adapt_map != nullptr) { 

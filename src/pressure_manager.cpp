@@ -154,8 +154,9 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, int max_
             break;
     }
 
-    int pedal_pos = ((int)sensor_data->pedal_pos*100/250);
-    return locate_pressure_map_value(targ_map, pedal_pos);
+    //int pedal_pos = ((int)sensor_data->pedal_pos*100/250);
+    int trq_percent = (sensor_data->static_torque*100)/max_rated_torque;
+    return locate_pressure_map_value(targ_map, trq_percent);
 }
 
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {

@@ -17,23 +17,23 @@
 #define SHIFT_PHASE_OVERLAP 5
 #define SHIFT_PHASE_MAX_P 6
 
-// 0 -> 100% rated torque (In mbar)
+// 0 -> 100% rated torque (In mbar) (0Nm - 330Nm)
 const pressure_map working_norm_pressure_p_small = { 500,  600,  700,  800,  900, 1000, 1100, 1200, 1300, 1400, 1500}; // Park or N
 const pressure_map working_norm_pressure_r_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // R1 or R2
-const pressure_map working_norm_pressure_1_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 1
-const pressure_map working_norm_pressure_2_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 2
-const pressure_map working_norm_pressure_3_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 3
-const pressure_map working_norm_pressure_4_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 4
-const pressure_map working_norm_pressure_5_small = { 750,  800, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000}; // 5
+const pressure_map working_norm_pressure_1_small = { 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250}; // 1
+const pressure_map working_norm_pressure_2_small = { 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250}; // 2
+const pressure_map working_norm_pressure_3_small = { 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250}; // 3
+const pressure_map working_norm_pressure_4_small = { 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250}; // 4
+const pressure_map working_norm_pressure_5_small = { 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250}; // 5
 
-// 0 -> 100% rated torque (In mbar)
+// 0 -> 100% rated torque (In mbar) (0Nm - 580Nm)
 const pressure_map working_norm_pressure_p_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // R1 or R2
 const pressure_map working_norm_pressure_r_large = { 750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // R1 or R2
-const pressure_map working_norm_pressure_1_large = { 800, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // 1
-const pressure_map working_norm_pressure_2_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 2
-const pressure_map working_norm_pressure_3_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 3 <- High torque gear begins (More pressures)
-const pressure_map working_norm_pressure_4_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 4
-const pressure_map working_norm_pressure_5_large = { 800, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // 5
+const pressure_map working_norm_pressure_1_large = { 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800}; // 1
+const pressure_map working_norm_pressure_2_large = { 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800}; // 2
+const pressure_map working_norm_pressure_3_large = { 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800}; // 3 <- High torque gear begins (More pressures)
+const pressure_map working_norm_pressure_4_large = { 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800}; // 4
+const pressure_map working_norm_pressure_5_large = { 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800}; // 5
 
 typedef void (*P_RAMP_FUNC)(float, float);
 

@@ -8,49 +8,6 @@
 #include <gearbox_config.h>
 #include "nvs/eeprom_config.h"
 
-#define CLUTCH_NO_MOVE 0
-#define CLUTCH_APPLY 1
-#define CLUTCH_RELEASE 2
-
-// For each of the tables:
-//                                           K1,   K2,   K3,   B1,   B2,   B3
-const uint16_t clutch_torque_factor_pn[6] {7003,    0,    0, 4765,    0,    0}; // N/P 11769
-
-const uint16_t clutch_torque_factor_d1[6] {   0,    0, 4331, 3004, 3194,    0}; // D1  10529
-const uint16_t clutch_torque_factor_d2[6] {2708,    0, 2656,    0, 1959,    0}; // D2  7323
-const uint16_t clutch_torque_factor_d3[6] {   0, 1652,    0,    0, 1329,    0}; // D3  2981
-const uint16_t clutch_torque_factor_d4[6] {1403, 2507, 1376,    0,    0,    0}; // D4  5286
-const uint16_t clutch_torque_factor_d5[6] {   0, 2089, 1146,  795,    0,    0}; // D5  4030
-
-const uint16_t clutch_torque_factor_r1[6] {   0,    0, 4331, 3004,    0, 4204}; // R1
-const uint16_t clutch_torque_factor_r2[6] {   0,    0, 2656,    0,    0, 2579}; // R2
-
-/**
- *                               K  K  K  B  B  B
- *                               1  2  3  1  2  3
- */
-// Garage shifting
-const bool clutch_move_pn_d1[6] {2, 0, 1, 0, 1, 0}; // N  -> D1
-const bool clutch_move_pn_d2[6] {0, 0, 1, 2, 1, 0}; // N  -> D2
-const bool clutch_move_d1_pn[6] {1, 0, 2, 0, 2, 0}; // D1 -> N
-const bool clutch_move_d2_pn[6] {0, 0, 2, 1, 2, 0}; // D2 -> N
-const bool clutch_move_pn_r1[6] {2, 0, 1, 0, 0, 1}; // N  -> R1
-const bool clutch_move_pn_r2[6] {2, 0, 1, 2, 0, 1}; // N  -> R2
-const bool clutch_move_r1_pn[6] {1, 0, 2, 0, 0, 2}; // R1 -> N
-const bool clutch_move_r2_pn[6] {1, 0, 2, 1, 0, 2}; // R2 -> N
-
-// Fwd shifting (Up)
-const bool clutch_move_d1_d2[6] {1, 0, 0, 2, 0, 0}; // D1 -> D2
-const bool clutch_move_d2_d3[6] {2, 1, 2, 0, 0, 0}; // D2 -> D3
-const bool clutch_move_d3_d4[6] {1, 0, 1, 0, 2, 0}; // D3 -> D4
-const bool clutch_move_d4_d5[6] {2, 0, 0, 1, 0, 0}; // D4 -> D5
-
-// Fwd shifting (Down)
-const bool clutch_move_d2_d1[6] {2, 0, 0, 1, 0, 0}; // D2 -> D1
-const bool clutch_move_d3_d2[6] {1, 2, 1, 0, 0, 0}; // D3 -> D2
-const bool clutch_move_d4_d3[6] {2, 0, 2, 0, 1, 0}; // D4 -> D3
-const bool clutch_move_d5_d4[6] {1, 0, 0, 2, 0, 0}; // D5 -> D4
-
 // Shift phase IDs
 
 #define SHIFT_PHASE_HOLD_1 1

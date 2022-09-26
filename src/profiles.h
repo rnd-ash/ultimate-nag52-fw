@@ -110,7 +110,7 @@ public:
 class WinterProfile : public AbstractProfile {
 public:
     WinterProfile(bool is_diesel);
-    GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Individual; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;

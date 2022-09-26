@@ -81,8 +81,6 @@ DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Engine is on");
         return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
-
-    uint32_t now = esp_timer_get_time()/1000;
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
     // data format

@@ -303,9 +303,9 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
     if (rpt->transition_start < start_hold3) {
         ESP_LOGW("ADAPT_MAP", "Shift started BEFORE hold3!");
         if (rpt->flare_timestamp != 0) {
-            dest->mpc_fill_adder += 5;
+            dest->mpc_fill_adder += 20;
         } else {
-            dest->spc_fill_adder -= 10;
+            dest->fill_time_adder += 10;
         }
     } else if (rpt->transition_start < start_overlap) {
         ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start-start_hold3);
@@ -313,7 +313,7 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
         ESP_LOGW("ADAPT_MAP", "Shift started in overlap phase! (%d ms into overlap phase)", rpt->transition_start-start_overlap);
     } else if (rpt->transition_start > start_max_p) {
         ESP_LOGW("ADAPT_MAP", "Shift started after overlap phase! (%d ms into max pressure phase)", rpt->transition_start-start_max_p);
-        dest->mpc_fill_adder -= 10;
+        dest->spc_fill_adder += 20;
     }
 
     if (rpt->flare_timestamp != 0) {
@@ -326,7 +326,6 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
         } else if (rpt->flare_timestamp > start_max_p) {
             ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into max pressure phase", rpt->flare_timestamp-start_max_p);
         }
-        dest->spc_fill_adder+=10;
     }
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for target cell are (S %d mBar, M %d mBar) and %d ms", 
             dest->spc_fill_adder,

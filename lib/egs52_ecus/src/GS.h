@@ -412,7 +412,7 @@ typedef union {
     char get_FSC() const { return (char)(raw >> 56 & 0xff); }
         
     /** Sets Driving program */
-    void set_FPC(GS_418h_FPC value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
+    void set_FPC(char value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
 
     /** Gets Driving program */
     GS_418h_FPC get_FPC() const { return (GS_418h_FPC)(raw >> 48 & 0xff); }

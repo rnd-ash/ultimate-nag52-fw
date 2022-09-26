@@ -540,7 +540,7 @@ void Egs52Can::set_torque_request(TorqueRequest request) {
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(true);
+            gs218.set_DYN1_EGS(false);
             break;
         case TorqueRequest::None:
         default:
@@ -628,25 +628,28 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->curr_profile_bit = p;
     switch (p) {
         case GearboxProfile::Agility:
-            gs418.set_FPC(GS_418h_FPC::A);
+            gs418.set_FPC('A');
             break;
         case GearboxProfile::Comfort:
-            gs418.set_FPC(GS_418h_FPC::C);
+            gs418.set_FPC('C');
             break;
         case GearboxProfile::Winter:
-            gs418.set_FPC(GS_418h_FPC::W);
+            gs418.set_FPC('W');
             break;
         case GearboxProfile::Failure:
-            gs418.set_FPC(GS_418h_FPC::F);
+            gs418.set_FPC('F');
             break;
         case GearboxProfile::Standard:
-            gs418.set_FPC(GS_418h_FPC::S);
+            gs418.set_FPC('S');
             break;
         case GearboxProfile::Manual:
-            gs418.set_FPC(GS_418h_FPC::M);
+            gs418.set_FPC('M');
+            break;
+        case GearboxProfile::Individual:
+            gs418.set_FPC('R');
             break;
         case GearboxProfile::Underscore:
-            gs418.set_FPC(GS_418h_FPC::_);
+            gs418.set_FPC('_');
             break;
         default:
             break;
@@ -709,6 +712,7 @@ void Egs52Can::set_abort_shift(bool is_aborting){
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
+    /*
     this->curr_message = msg;
     if (this->curr_profile_bit == GearboxProfile::Agility) {
         switch (msg) {
@@ -898,6 +902,7 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
                 break;
         }
     }
+    */
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {

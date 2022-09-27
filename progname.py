@@ -26,6 +26,7 @@ PROG_VERSION_OPTION = "custom_prog_version"
 PROG_VERSION_FPATH = "${PROJECT_PATH}/version.txt"
 #: The shell-command to collect the output of `git describe`.
 GIT_DESCRIBE_CMD = "git describe --always --long --dirty".split()
+# Shell command to get current branch
 
 
 def fallback_get(*getters: Tuple[callable, str]):

@@ -141,9 +141,18 @@ def get_project_name(env) -> Tuple[str, str]:
     Note, didn't reuse :func:`get_program_name()` bc app-infos can accomodate
     relative git-path of project-root as `appname`.
     """
+    branch = ""
+
+    try:
+        branch = subprocess.check_output(
+            "git branch --show-current".split(), universal_newlines=True
+        ).strip()
+    except Exception as ex:
+        branch = "UNKNOWN"
+
     return progname.fallback_get(
         (
-            lambda: env.GetProjectOption(progname.PROG_NAME_OPTION, None),
+            lambda: "{}_{}".format(env.GetProjectOption("egs_ver"), branch), #env.GetProjectOption(progname.PROG_NAME_OPTION, None),
             "custom_option",
         ),
         (lambda: git_relative_dir(), "git_relative_dir"),
@@ -164,13 +173,6 @@ def _collect_app_infos(env) -> Tuple[AppInfos, AppInfos]:
 
     if bool_option("custom_appinfos_patch_appname", True):
         appname, appname_src = get_project_name(env)
-        if bool_option("custom_appinfos_patch_builder", True):
-            import getpass
-            import socket
-
-            user = getpass.getuser()
-            host = socket.gethostname()
-            appname = f"{appname}({user}@{host})"
 
     ## TODO: parse var-value as False if off/false/no/0.
     if bool_option("custom_appinfos_patch_appver", True):

@@ -223,3 +223,7 @@ COREDUMP_INFO get_coredump_info() {
         .size = size
     };
 }
+
+const esp_app_desc_t* get_image_header() {
+    return esp_ota_get_app_description();
+}

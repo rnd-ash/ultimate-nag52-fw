@@ -497,6 +497,8 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SHIFT_LIVE) {
         SHIFT_LIVE_INFO r = get_shift_live_Data(egs_can_hal, gearbox);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
+    } else if (args[0] == RLI_FW_HEADER) {
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, (uint8_t*)get_image_header(), sizeof(esp_app_desc_t));
     }
     else {
         // EGS52 emulation

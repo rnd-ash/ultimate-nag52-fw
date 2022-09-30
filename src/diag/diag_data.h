@@ -7,6 +7,7 @@
 #include "nvs/eeprom_config.h"
 #include "common_structs.h"
 #include "endpoint.h"
+#include <esp_app_format.h>
 
 // Needed extra bytes for response, SID, RLI, Shift ID
 static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too big to fit in Diag message!");
@@ -28,6 +29,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_PRESSURES       0x25
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
+#define RLI_FW_HEADER       0x28
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct
@@ -135,5 +137,6 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
 COREDUMP_INFO get_coredump_info();
 
+const esp_app_desc_t* get_image_header();
 
 #endif // __DIAG_DATA_H__

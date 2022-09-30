@@ -294,21 +294,21 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
     }
 
     // Calc when the transitions started
-    int start_hold3 = rpt->hold1_data.hold_time+rpt->hold1_data.ramp_time + rpt->hold2_data.hold_time+rpt->hold2_data.ramp_time;
-    int start_overlap = start_hold3 + rpt->hold3_data.hold_time+rpt->hold3_data.ramp_time;
+    int start_fill = rpt->bleed_data.hold_time+rpt->bleed_data.ramp_time;
+    int start_overlap = start_fill + rpt->fill_data.hold_time+rpt->fill_data.ramp_time;
     int start_max_p   = start_overlap + rpt->overlap_data.hold_time+rpt->overlap_data.ramp_time;
 
     int shift_time = rpt->transition_end - rpt->transition_start;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Shift took %d ms", shift_time);
-    if (rpt->transition_start < start_hold3) {
-        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE hold3!");
+    if (rpt->transition_start < start_fill) {
+        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE FILL!");
         if (rpt->flare_timestamp != 0) {
             dest->mpc_fill_adder += 20;
         } else {
             dest->fill_time_adder += 10;
         }
     } else if (rpt->transition_start < start_overlap) {
-        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start-start_hold3);
+        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start-start_fill);
     } else if (rpt->transition_start < start_max_p) {
         ESP_LOGW("ADAPT_MAP", "Shift started in overlap phase! (%d ms into overlap phase)", rpt->transition_start-start_overlap);
     } else if (rpt->transition_start > start_max_p) {
@@ -317,10 +317,10 @@ void AdaptationMap::perform_adaptation(SensorData* sensors, ShiftReport* rpt, Pr
     }
 
     if (rpt->flare_timestamp != 0) {
-        if (rpt->flare_timestamp < start_hold3) {
-            ESP_LOGW("ADAPT_MAP", "Flare detected BEFORE hold3!");
+        if (rpt->flare_timestamp < start_fill) {
+            ESP_LOGW("ADAPT_MAP", "Flare detected BEFORE FILL!");
         } else if (rpt->flare_timestamp < start_overlap) {
-            ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into fill phase", rpt->flare_timestamp-start_hold3);
+            ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into fill phase", rpt->flare_timestamp-start_fill);
         } else if (rpt->flare_timestamp < start_max_p) {
             ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into overlap phase", rpt->flare_timestamp-start_overlap);
         } else if (rpt->flare_timestamp > start_max_p) {

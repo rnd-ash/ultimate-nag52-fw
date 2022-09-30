@@ -114,28 +114,21 @@ typedef struct {
     uint8_t curr_g;
  
     /** 
-     * Phase 1 hold
+     * Bleed phase
      * Shift solenoid has not opened yet
      * This reduces the line pressure of the SPC line so that
      * there is not a spike in pressure when Shift solenoid opens
      */
-    ShiftPhase hold1_data;
+    ShiftPhase bleed_data;
 
     /** 
-     * Phase 2 hold 
-     * Shift solenoid opens, PWM instantly jumps rather than ramps
-     * This bleeds air out of the lines
-     */
-    ShiftPhase hold2_data;
-
-    /** 
-     * Phase 3 hold (Fill phase)
+     * Fill phase
      * Clutches are moved into 0 tolerance position
      * This phase uses adaptation data
      * 
      * AFTER THIS PHASE, SHIFT CANNOT BE ABORTED!
      */
-    ShiftPhase hold3_data;
+    ShiftPhase fill_data;
 
     /** 
      * Shift torque phase 
@@ -242,9 +235,8 @@ typedef struct {
     int16_t engine_torque[MAX_POINTS_PER_SR_ARRAY];
     uint16_t total_ms;
     uint16_t initial_mpc_pressure; // used to calculate with the ramps what MPC is doing
-    ShiftPhase hold1_data;
-    ShiftPhase hold2_data;
-    ShiftPhase hold3_data;
+    ShiftPhase bleed_data;
+    ShiftPhase fill_data;
     ShiftPhase torque_data;
     ShiftPhase overlap_data;
     ShiftPhase max_pressure_data;

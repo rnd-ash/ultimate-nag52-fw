@@ -124,6 +124,44 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->gb_max_torque = max_torque;
 }
 
+Clutch PressureManager::get_clutch_to_apply(ProfileGearChange change) {
+    switch(change) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::FIVE_FOUR:
+            return Clutch::K1;
+        case ProfileGearChange::TWO_THREE:
+            return Clutch::K2;
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::THREE_TWO:
+            return Clutch::K3;
+        case ProfileGearChange::FOUR_THREE:
+            return Clutch::B2;
+        case ProfileGearChange::FOUR_FIVE:
+        case ProfileGearChange::TWO_ONE:
+        default:
+            return Clutch::B1;
+    }
+}
+
+Clutch PressureManager::get_clutch_to_release(ProfileGearChange change) {
+    switch(change) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::FIVE_FOUR:
+            return Clutch::B1;
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::FOUR_THREE:
+            return Clutch::K3;
+        case ProfileGearChange::THREE_FOUR:
+            return Clutch::B2;
+        case ProfileGearChange::THREE_TWO:
+            return Clutch::K2;
+        case ProfileGearChange::FOUR_FIVE:
+        case ProfileGearChange::TWO_ONE:
+        default:
+            return Clutch::K1;
+    }
+}
+
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, int max_rated_torque) {
     const int16_t* targ_map = working_norm_pressure_p_small;
     switch(curr_g) {
@@ -173,7 +211,7 @@ float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
     }
 }
 
-ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
+ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc) {
     ShiftData sd; 
     uint8_t map_gear = 1;
     CLAMP(chars.shift_speed, 1, 10);
@@ -213,117 +251,101 @@ ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, Shift
     }
 
 
-    sd.hold1_data.ramp_time = 0;
-    sd.hold1_data.hold_time = 100;
-    sd.hold1_data.spc_pressure = 0;
-    sd.hold1_data.mpc_pressure = curr_mpc;
-
-    sd.hold2_data.ramp_time = 0;
-    sd.hold2_data.hold_time = 50;
-    sd.hold2_data.spc_pressure = 500;
-    sd.hold2_data.mpc_pressure = curr_mpc;
+    sd.bleed_data.ramp_time = 100;
+    sd.bleed_data.hold_time = 100;
+    sd.bleed_data.spc_pressure = 650;
+    sd.bleed_data.mpc_pressure = curr_mpc;
 
     // Make fill phase data (AKA Hold 3)
-    this->make_hold3_data(&sd.hold3_data, chars, shift_request, curr_mpc);
+    this->make_fill_data(&sd.fill_data, chars, shift_request, curr_mpc);
 
     // Recalculated at the time of the gear change
-    this->make_torque_data(&sd.torque_data, &sd.hold3_data, chars, shift_request, curr_mpc);
+    this->make_torque_data(&sd.torque_data, &sd.fill_data, chars, shift_request, curr_mpc);
     this->make_overlap_data(&sd.overlap_data, &sd.torque_data, chars, shift_request, curr_mpc);
-
-    sd.max_pressure_data.ramp_time = 250;
-    sd.max_pressure_data.hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
-    sd.max_pressure_data.spc_pressure = MIN(6000, sd.overlap_data.spc_pressure*2);
-    sd.max_pressure_data.mpc_pressure = curr_mpc;
+    this->make_max_p_data(&sd.max_pressure_data, &sd.overlap_data, chars, shift_request, curr_mpc);
 
     float profile_td_amount = ((float)scale_number(chars.shift_speed, 10, 1, 1, 10) / 10.0);
     // <= 500 RPM - 0% profile_td_amount
     // >= 4500 RPM - 100% profile_td_amount
     //float rpm_td_amount = ((float)scale_number(sensor_data->input_rpm, 10, 0, 500, 4500) / 10.0);
     sd.torque_down_amount = profile_td_amount;
+    sd.bleed_data.mpc_pressure = sd.fill_data.mpc_pressure;
     return sd;
 }
 
-void PressureManager::make_hold3_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->ramp_time = 100;
-    switch (change) {
-        case ProfileGearChange::ONE_TWO: // Prefilling K1
-        case ProfileGearChange::FIVE_FOUR:
-            dest->hold_time = hold2_time_map->get_value(1, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1500;
-            break;
-        case ProfileGearChange::TWO_ONE:
-        case ProfileGearChange::FOUR_FIVE: // Prefilling B1
-            dest->hold_time = hold2_time_map->get_value(4, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1300;
-            break;
-        case ProfileGearChange::TWO_THREE: // Prefilling K2
-            dest->hold_time = hold2_time_map->get_value(2, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1400;
-            break;
-        case ProfileGearChange::THREE_TWO: // Prefilling K3
-        case ProfileGearChange::THREE_FOUR:
-            dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1300;
-            break;
-        case ProfileGearChange::FOUR_THREE: // Prefilling B2
+uint16_t get_clutch_fill_pressure(Clutch c) {
+    switch(c) {
+        case Clutch::K1:
+            return 1400;
+        case Clutch::K2:
+            return 1400;
+        case Clutch::K3:
+            return 1300;
+        case Clutch::B1:
+            return 1200;
+        case Clutch::B2:
         default:
-            dest->hold_time = hold2_time_map->get_value(5, this->sensor_data->atf_temp);
-            dest->spc_pressure = 1500;
-            break;
+            return 1400;           
     }
-    dest->hold_time -= dest->ramp_time;
+}
+
+void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
+    dest->ramp_time = 100;
+    switch (get_clutch_to_apply(change)) {
+            case Clutch::K1:
+                dest->hold_time = hold2_time_map->get_value(1, this->sensor_data->atf_temp);
+                dest->spc_pressure = 1400;
+                break;
+            case Clutch::K2:
+                dest->hold_time = hold2_time_map->get_value(2, this->sensor_data->atf_temp);
+                dest->spc_pressure = 1400;
+                break;
+            case Clutch::K3:
+                dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
+                dest->spc_pressure = 1300;
+                break;
+            case Clutch::B1:
+                dest->hold_time = hold2_time_map->get_value(4, this->sensor_data->atf_temp);
+                dest->spc_pressure = 1200;
+                break;
+            case Clutch::B2:
+            default:
+                dest->hold_time = hold2_time_map->get_value(5, this->sensor_data->atf_temp);
+                dest->spc_pressure = 1400;
+                break;            
+    }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
     dest->hold_time += cell->fill_time_adder;
-    dest->spc_pressure += cell->spc_fill_adder;
-    dest->mpc_pressure = MAX(dest->spc_pressure+100, curr_mpc);
+    dest->mpc_pressure = curr_mpc + scale_number(abs(sensor_data->static_torque), 50, get_clutch_fill_pressure(get_clutch_to_release(change))*1.5, 0, gb_max_torque);
+    if (dest->mpc_pressure < dest->spc_pressure+200) {
+        dest->mpc_pressure = dest->spc_pressure+200;
+    }
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->hold_time = dest->ramp_time = scale_number(abs(sensor_data->static_torque), 80, 25, gb_max_torque/3, gb_max_torque);
-    dest->ramp_time = 50;
-    dest->spc_pressure = prev->spc_pressure;
+    dest->hold_time = dest->ramp_time = scale_number(abs(sensor_data->static_torque), 150, 50, gb_max_torque/3, gb_max_torque);
+    dest->spc_pressure = prev->mpc_pressure;
     dest->mpc_pressure = prev->mpc_pressure;
 }
 
 void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     
-    dest->ramp_time = scale_number(abs(sensor_data->static_torque), 300, 100, gb_max_torque/3, gb_max_torque);
+    dest->ramp_time = dest->hold_time = scale_number(abs(sensor_data->static_torque), 300, 150, gb_max_torque/3, gb_max_torque);
     //dest->hold_time = 0;
     if (change == ProfileGearChange::ONE_TWO) {
         dest->ramp_time += scale_number(abs(sensor_data->static_torque), 20, 0, gb_max_torque/3, (gb_max_torque/3)*2);
     }
-    uint16_t spc_adder = 0;
-    switch (change) {
-        case ProfileGearChange::ONE_TWO: // Prefilling K1
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 400, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::TWO_THREE:
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::THREE_FOUR:
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::FOUR_FIVE: // Prefilling B1
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::FIVE_FOUR: // Prefilling K2
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::FOUR_THREE:
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::THREE_TWO:
-            spc_adder = scale_number(abs(sensor_data->static_torque), 50, 250, 0, this->gb_max_torque);
-            break;
-        case ProfileGearChange::TWO_ONE:
-        default:
-            spc_adder = scale_number(abs(sensor_data->static_torque), 20, 250, 0, this->gb_max_torque);
-            break;
-    }
     dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
-    dest->hold_time = 0;
-    dest->spc_pressure = prev->spc_pressure+spc_adder;
-    dest->mpc_pressure = 650;
+    dest->hold_time = dest->ramp_time;
+    dest->spc_pressure = prev->mpc_pressure+200;
+    dest->mpc_pressure = scale_number(abs(sensor_data->static_torque), get_clutch_fill_pressure(get_clutch_to_release(change)), 650, 0, gb_max_torque);
+}
+
+void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
+    dest->ramp_time = 250;
+    dest->hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
+    dest->spc_pressure = MIN(6000, prev->spc_pressure*1.5);
+    dest->mpc_pressure = prev->mpc_pressure;
 }
 
 // Get PWM value (out of 4096) to write to the solenoid
@@ -373,16 +395,6 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
-}
-
-void PressureManager::recalculate_all(ShiftData* fill_dest, ProfileGearChange shift_request, ShiftCharacteristics chars, int max_rated_torque, uint16_t curr_mpc) {
-    this->make_hold3_data(&fill_dest->hold3_data, chars, shift_request, curr_mpc);
-    this->make_torque_data(&fill_dest->torque_data, &fill_dest->hold3_data, chars, shift_request, curr_mpc);
-    this->make_overlap_data(&fill_dest->overlap_data, &fill_dest->torque_data, chars, shift_request, curr_mpc);
-    fill_dest->max_pressure_data.ramp_time = 250;
-    fill_dest->max_pressure_data.hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
-    fill_dest->max_pressure_data.spc_pressure = MIN(6000, fill_dest->overlap_data.spc_pressure*2);
-    fill_dest->max_pressure_data.mpc_pressure = fill_dest->overlap_data.mpc_pressure;
 }
 
 uint16_t PressureManager::get_targ_mpc_pressure(){ return this->req_mpc_pressure; }

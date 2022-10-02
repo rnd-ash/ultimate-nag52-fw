@@ -48,9 +48,8 @@ enum class EngineType: uint8_t {
 };
 
 enum class TorqueRequest: uint8_t {
-    Maximum,
-    Minimum,
-    Exact,
+    Decrease,
+    Increase,
     None
 };
 

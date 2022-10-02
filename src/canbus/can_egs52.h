@@ -10,6 +10,7 @@
 #include "GS.h"
 #include "MS.h"
 #include "EZS.h"
+#include "KOMBI.h"
 
 class Egs52Can: public AbstractCan {
     public:
@@ -128,6 +129,7 @@ class Egs52Can: public AbstractCan {
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
         bool can_init_ok = false;
+        bool esp_toggle = false;
 };
 
 #endif // EGS53_MODE

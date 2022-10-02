@@ -287,6 +287,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
     // For ramp down of torque
     uint16_t torque_req_amt = 0;
     uint16_t curr_torque_req = 0;
+    uint16_t orig_torque = 0;
     bool req_trq = false;
 
     bool shift_in_progress = false;
@@ -326,6 +327,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                             // request the torque!
                             torque_req_amt = sd.torque_down_amount;
                             curr_torque_req = sensor_data.static_torque;
+                            orig_torque = sensor_data.static_torque;
                             req_trq = true;
                         }
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
@@ -362,17 +364,24 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                 break;
             }
         }
-        if (req_trq) {
-            egs_can_hal->set_torque_request(TorqueRequest::Minimum);
-            egs_can_hal->set_requested_torque(curr_torque_req);
-            if (curr_torque_req > torque_req_amt) {
-                curr_torque_req -= 5;
-            } else if (curr_torque_req < torque_req_amt) {
-                curr_torque_req += 5;
+        if (total_elapsed % 40 == 0) {
+            if (req_trq) {
+                egs_can_hal->set_torque_request(TorqueRequest::Decrease);
+                egs_can_hal->set_requested_torque(curr_torque_req);
+                if (curr_torque_req > torque_req_amt) {
+                    curr_torque_req -= 10;
+                } else if (curr_torque_req < torque_req_amt) {
+                    curr_torque_req += 10;
+                }
+            } else {
+                if (curr_torque_req < orig_torque) {
+                    egs_can_hal->set_torque_request(TorqueRequest::Increase);
+                    egs_can_hal->set_requested_torque(curr_torque_req);
+                    curr_torque_req += 10;
+                }
+                egs_can_hal->set_torque_request(TorqueRequest::None);
+                egs_can_hal->set_requested_torque(0);
             }
-        } else {
-            egs_can_hal->set_torque_request(TorqueRequest::None);
-            egs_can_hal->set_requested_torque(0);
         }
         uint16_t ratio_now = sensor_data.gear_ratio*100;
         if (gen_report) {
@@ -535,9 +544,8 @@ void Gearbox::shift_thread() {
                 }
                 sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on   
                 del += 25;   
-                vTaskDelay(6/portTICK_PERIOD_MS);
+                vTaskDelay(1/portTICK_PERIOD_MS);
             }
-            vTaskDelay(200);
             sol_y4->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();      
         } else {

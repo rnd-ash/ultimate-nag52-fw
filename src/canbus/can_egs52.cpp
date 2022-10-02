@@ -326,9 +326,18 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
+bool state = false;
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     EWM_230 ewm230;
     if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
+        if (ewm230.get_FPT()) {
+            if (!state) {
+                this->esp_toggle = !this->esp_toggle;
+            }
+            state = true;
+        } else {
+            state = false;
+        }
         return ewm230.get_FPT();
     } else {
         return false;
@@ -524,24 +533,18 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
     switch(request) {
-        case TorqueRequest::Maximum:
-            gs218.set_MMIN_EGS(false);
-            gs218.set_MMAX_EGS(true);
-            gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(false);
-            break;
-        case TorqueRequest::Minimum:
+        case TorqueRequest::Decrease:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(false);
-            break;
-        case TorqueRequest::Exact:
+            return;
+        case TorqueRequest::Increase:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(false);
-            break;
+            gs218.set_DYN1_EGS(true);
+            return;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
@@ -1048,7 +1051,33 @@ void Egs52Can::rx_task_loop() {
                                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
+                    } else if (rx.identifier > 0x780) {
+                        ESP_LOGI("CAN", "Diag msg 0x%04X [%02X %02X %02X %02X %02X %02X %02X %02X]",
+                            rx.identifier,
+                            rx.data[0],
+                            rx.data[1],
+                            rx.data[2],
+                            rx.data[3],
+                            rx.data[4],
+                            rx.data[5],
+                            rx.data[6],
+                            rx.data[7]
+                        );
                     }
+                    /*
+                     else if (rx.identifier == KOMBI_408_CAN_ID) {
+                        KOMBI_408 k408;
+                        k408.raw = tmp;
+                        if (esp_toggle) {
+                            ESP_LOGI("CAN", "Turning off ESP");
+                            k408.set_RT_EIN(true);
+                            to_bytes(k408.raw, rx.data);
+                            twai_transmit(&rx, 5);
+                        } else {
+                            ESP_LOGI("CAN", "Status of ESP disable bit %d", k408.get_RT_EIN());
+                        }
+                    }
+                    */
                 }
             }
             vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here

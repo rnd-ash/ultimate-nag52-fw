@@ -82,20 +82,17 @@ class UsbEndpoint: public AbstractEndpoint {
         }
 
         void send_data(DiagMessage* msg) override {
-            //esp_log_level_set("*", ESP_LOG_NONE);
             this->write_buffer[0] = '#';
             this->write_buffer[1] = HEX_DEF[(msg->id >> 12) & 0x0F];
             this->write_buffer[2] = HEX_DEF[(msg->id >> 8) & 0x0F];
             this->write_buffer[3] = HEX_DEF[(msg->id >> 4) & 0x0F];
             this->write_buffer[4] = HEX_DEF[msg->id & 0x0F];
-            sprintf(&this->write_buffer[0], "#%04X", msg->id);
             for (uint16_t i = 0; i < msg->data_size; i++) {
                 this->write_buffer[5+(i*2)] = HEX_DEF[(msg->data[i] >> 4) & 0x0F];
                 this->write_buffer[6+(i*2)] = HEX_DEF[msg->data[i] & 0x0F];
             }
             this->write_buffer[(msg->data_size*2)+5] = '\n';
             uart_write_bytes(0, &this->write_buffer[0], (msg->data_size*2)+6);
-            //esp_log_level_set("*", ESP_LOG_INFO);
         }
 
         int find_char(char targ, size_t from, size_t to) {

@@ -37,11 +37,11 @@ const pressure_map working_norm_pressure_5_small = { 750, 1000, 1250, 1500, 1750
 // 0 -> 100% rated torque (In mbar) (0Nm - 580Nm)
 const pressure_map working_norm_pressure_p_large = {  750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table R1 or R2
 const pressure_map working_norm_pressure_r_large = {  750, 1000, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table R1 or R2
-const pressure_map working_norm_pressure_1_large = {  900, 1100, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table 1
-const pressure_map working_norm_pressure_2_large = {  900, 1100, 1300, 1600, 1900, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table 2
-const pressure_map working_norm_pressure_3_large = {  900, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 3
-const pressure_map working_norm_pressure_4_large = {  900, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 4
-const pressure_map working_norm_pressure_5_large = {  900, 1100, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 5
+const pressure_map working_norm_pressure_1_large = {  900, 1100, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table 1
+const pressure_map working_norm_pressure_2_large = {  900, 1100, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600}; // Working pressure table 2
+const pressure_map working_norm_pressure_3_large = {  900, 1100, 1200, 1500, 1800, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 3
+const pressure_map working_norm_pressure_4_large = {  900, 1100, 1200, 1500, 1800, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 4
+const pressure_map working_norm_pressure_5_large = {  900, 1100, 1200, 1500, 1800, 2300, 2600, 2900, 3200, 3500, 3800}; // Working pressure table 5
 
 typedef void (*P_RAMP_FUNC)(float, float);
 

@@ -14,14 +14,6 @@
 
 const char HEX_DEF[17] = "0123456789ABCDEF";
 
-static const uint_fast8_t LOOKUP[256] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f 
-};
-
 typedef struct {
     uint16_t id;
     uint16_t data_size;
@@ -33,10 +25,6 @@ typedef struct {
     uint16_t curr_pos;
     uint16_t max_pos;
 } CanEndpointMsg;
-
-inline uint8_t hexToByte(char* x) {
-    return LOOKUP[(uint8_t)x[0]] << 4 | LOOKUP[(uint8_t)x[1]];
-}
 
 /**
  * @brief Abstract endpoint
@@ -95,13 +83,6 @@ class UsbEndpoint: public AbstractEndpoint {
             uart_write_bytes(0, &this->write_buffer[0], (msg->data_size*2)+6);
         }
 
-        int find_char(char targ, size_t from, size_t to) {
-            for(size_t i = from; i < to; i++) {
-                if(this->read_buffer[i] == targ) { return i; }
-            }
-            return -1;
-        }
-
         bool read_data(DiagMessage* dest) override {
             this->length = 0;
             uart_get_buffered_data_len(0, &length);
@@ -109,41 +90,28 @@ class UsbEndpoint: public AbstractEndpoint {
                 max_bytes_left = UART_MSG_SIZE - this->read_pos;
                 to_read = MIN(length, max_bytes_left);
                 uart_read_bytes(0, &this->read_buffer[this->read_pos], to_read, 0);
-                if (this->read_buffer[0] != '#') {
-                    // Discard
-                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Ignoring, rb[0] was '%02X', peak is '%02X'", this->read_buffer[0], this->read_buffer[1]);
+                this->read_pos += length;
+                return false;
+            } else if (this->read_pos != 0) {
+                if (this->read_pos < 5) {
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Less than 5 bytes");
                     this->read_pos = 0;
                     return false;
+                } else {
+                    uint16_t read_size = (this->read_buffer[0] << 8) | this->read_buffer[1];
+                    if (read_size != this->read_pos - 2) {
+                        ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg. Msg size is %d bytes, buffer has %d bytes", read_size, this->read_pos-2);
+                        this->read_pos = 0;
+                        return false;
+                    } else {
+                        // Valid msg!
+                        dest->id = (this->read_buffer[2] << 8) | this->read_buffer[3];
+                        dest->data_size = read_size-2;
+                        memcpy(dest->data, &this->read_buffer[4], dest->data_size);
+                        this->read_pos = 0;
+                        return true;
+                    }
                 }
-                line_idx = find_char('\n', this->read_pos, this->read_pos+to_read);
-                if (line_idx == -1) {
-                    // No new line, full msg has not come in yet
-                    this->read_pos += to_read;
-                    return false;
-                }
-                if(line_idx % 2 == 0) {
-                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Corrupt incoming msg line IDX was %d. Ignoring", line_idx);
-                    this->read_pos = 0;
-                    return false;
-                }
-                this->read_pos += to_read;
-                this->data_size = MIN(DIAG_CAN_MAX_SIZE, (line_idx-5) / 2);
-                // INDEX DATA
-                // 0 - #
-                // 1-5 - ID
-                // 6..n - CAN DATA
-                // n - \n
-                // Copy ID
-                dest->id = (hexToByte(&this->read_buffer[1]) & 0xFF << 8) | hexToByte(&this->read_buffer[3]);
-                // Now copy data
-                for (uint16_t i = 0; i < data_size*2; i+=2) {
-                    dest->data[i/2] = hexToByte(&this->read_buffer[5+i]);
-                }
-                dest->data_size = data_size;
-                // Circular move buffer (memove is faster!)
-                memmove(&this->read_buffer[0], &this->read_buffer[line_idx], this->read_pos+to_read-line_idx);
-                this->read_pos -= (line_idx+1);
-                return true;
             }
             return false;
         }

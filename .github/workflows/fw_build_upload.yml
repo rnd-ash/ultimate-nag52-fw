@@ -102,7 +102,7 @@ jobs:
           pio run -e egs52-red-pcb
       - uses: actions/upload-artifact@v3
         with:
-          name: EGS52_FW
+          name: EGS52_FW-RED-PCB
           path: |
             .pio/build/egs52-red-pcb/firmware.elf
             .pio/build/egs52-red-pcb/firmware.bin

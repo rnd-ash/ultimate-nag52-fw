@@ -338,7 +338,11 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
     dest->ramp_time *= (float)scale_number(chars.shift_speed*10, 1200, 800, 0, 100)/1000.0;
     dest->hold_time = 0;
     dest->ramp_time -= prev->hold_time; // Offset by torque data
-    dest->spc_pressure = prev->spc_pressure+scale_number(abs(sensor_data->static_torque), 10, 500, 0, gb_max_torque);
+
+    uint16_t spc_addr = scale_number(abs(sensor_data->static_torque), 10, 500, 0, gb_max_torque);
+    spc_addr *= (float)scale_number(chars.shift_speed*10, 1000, 1500, 0, 100)/1000.0;
+
+    dest->spc_pressure = prev->spc_pressure+spc_addr;
     dest->mpc_pressure = get_clutch_fill_pressure(get_clutch_to_release(change));
 }
 

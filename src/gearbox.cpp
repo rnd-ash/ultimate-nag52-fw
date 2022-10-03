@@ -364,6 +364,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                 break;
             }
         }
+        /*
         if (total_elapsed % 40 == 0) {
             if (req_trq) {
                 egs_can_hal->set_torque_request(TorqueRequest::Decrease);
@@ -383,6 +384,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                 egs_can_hal->set_requested_torque(0);
             }
         }
+        */
         uint16_t ratio_now = sensor_data.gear_ratio*100;
         if (gen_report) {
             // Shift monitoring

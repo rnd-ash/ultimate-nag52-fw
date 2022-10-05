@@ -240,7 +240,7 @@ class ECU:
         bool get_{0}(uint64_t now, uint64_t max_expire_time, {0}* dest) const {{
             if (LAST_FRAME_TIMES[{1}] == 0 || dest == nullptr) {{ // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            }} else if (now - LAST_FRAME_TIMES[{1}] > max_expire_time) {{ // CAN Frame has not refreshed in valid interval
+            }} else if (now > LAST_FRAME_TIMES[{1}] && now - LAST_FRAME_TIMES[{1}] > max_expire_time) {{ // CAN Frame has not refreshed in valid interval
                 return false;
             }} else {{ // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[{1}];
@@ -266,6 +266,7 @@ current_signal: Signal = None
 
 
 for line in input_file:
+    print(line)
     l = remove_useless_from_line(line)
     if not l.startswith("#"): # Ignore comments
         if l.startswith("ECU "):

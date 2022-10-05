@@ -9,22 +9,22 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {
     // Firstly try to init CAN
-    ESP_LOGI("EGS52_CAN", "CAN constructor called");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
-    gen_config.rx_queue_len = 10;
-    gen_config.tx_queue_len = 6;
+    gen_config.rx_queue_len = 32;
+    gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
     twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     esp_err_t res;
     res = twai_driver_install(&gen_config, &timing_config, &filter_config);
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
     }
     res = twai_start();
     if (res != ESP_OK) {
-        ESP_LOGE("EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
     }
     // CAN is OK!
 
@@ -51,6 +51,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->gs418.set_FRONT(false); // Primary rear wheel drive
     this->gs418.set_CVT(false); // Not CVT gearbox
     this->gs418.set_MECH(GS_418h_MECH::GROSS); // Small 722.6 for now! (TODO Handle 580)
+    this->gs218.set_ALF(true); // Fix for KG systems where cranking would stop when TCU turns on
 
 
     // Covers setting NAB, a couple unknown but static values,
@@ -65,16 +66,16 @@ bool Egs52Can::begin_tasks() {
     }
     // Prevent starting again
     if (this->rx_task == nullptr) {
-        ESP_LOGI("EGS52_CAN", "Starting CAN Rx task");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "Starting CAN Rx task");
         if (xTaskCreate(this->start_rx_task_loop, "EGS52_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
-            ESP_LOGE("EGS52_CAN", "CAN Rx task creation failed!");
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "CAN Rx task creation failed!");
             return false;
         }
     }
     if (this->tx_task == nullptr) {
-        ESP_LOGI("EGS52_CAN", "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 8192, this, 5, this->tx_task) != pdPASS) {
-            ESP_LOGE("EGS52_CAN", "CAN Tx task creation failed!");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "Starting CAN Tx task");
+        if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "CAN Tx task creation failed!");
             return false;
         }
     }
@@ -111,26 +112,26 @@ WheelData Egs52Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    BS_208 bs208;
+    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVR()) {
-            case BS_200h_DRTGVR::FWD:
+        switch(bs208.get_DRTGHR()) {
+            case BS_208h_DRTGHR::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVR::REV:
+            case BS_208h_DRTGHR::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVR::PASSIVE:
+            case BS_208h_DRTGHR::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVR::SNV:
+            case BS_208h_DRTGHR::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVR(),
+            .double_rpm = bs208.get_DHR(),
             .current_dir = d
         };
     } else {
@@ -142,26 +143,26 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_200 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms*1000, &bs200)) {
+    BS_208 bs208;
+    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvaliable;
-        switch(bs200.get_DRTGVL()) {
-            case BS_200h_DRTGVL::FWD:
+        switch(bs208.get_DRTGHL()) {
+            case BS_208h_DRTGHL::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_200h_DRTGVL::REV:
+            case BS_208h_DRTGHL::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_200h_DRTGVL::PASSIVE:
+            case BS_208h_DRTGHL::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_200h_DRTGVL::SNV:
+            case BS_208h_DRTGHL::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs200.get_DVL(),
+            .double_rpm = bs208.get_DHL(),
             .current_dir = d
         };
     } else {
@@ -325,12 +326,39 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
+bool state = false;
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     EWM_230 ewm230;
     if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
+        if (ewm230.get_FPT()) {
+            if (!state) {
+                this->esp_toggle = !this->esp_toggle;
+            }
+            state = true;
+        } else {
+            state = false;
+        }
         return ewm230.get_FPT();
     } else {
         return false;
+    }
+}
+
+TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+    EZS_240 ezs240;
+    if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
+        return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
+    } else {
+        return TerminalStatus::SNA;
+    }
+}
+
+uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
+    MS_608 ms608;
+    if (this->ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+        return (uint16_t)((float)ms608.get_VB()*0.85);
+    } else {
+        return 0;
     }
 }
 
@@ -505,25 +533,25 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
     switch(request) {
-        case TorqueRequest::Maximum:
-            gs218.set_MMIN_EGS(false);
-            gs218.set_MMAX_EGS(true);
-            gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(true);
-            break;
-        case TorqueRequest::Minimum:
+        case TorqueRequest::Decrease:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(false);
+            return;
+        case TorqueRequest::Increase:
+            gs218.set_MMIN_EGS(true);
+            gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(true);
-            break;
+            return;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(false);
             gs218.set_DYN1_EGS(false);
-            break;
+            return;
     }
 }
 
@@ -603,25 +631,28 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->curr_profile_bit = p;
     switch (p) {
         case GearboxProfile::Agility:
-            gs418.set_FPC(GS_418h_FPC::A);
+            gs418.set_FPC('A');
             break;
         case GearboxProfile::Comfort:
-            gs418.set_FPC(GS_418h_FPC::C);
+            gs418.set_FPC('C');
             break;
         case GearboxProfile::Winter:
-            gs418.set_FPC(GS_418h_FPC::W);
+            gs418.set_FPC('W');
             break;
         case GearboxProfile::Failure:
-            gs418.set_FPC(GS_418h_FPC::F);
+            gs418.set_FPC('F');
             break;
         case GearboxProfile::Standard:
-            gs418.set_FPC(GS_418h_FPC::S);
+            gs418.set_FPC('S');
             break;
         case GearboxProfile::Manual:
-            gs418.set_FPC(GS_418h_FPC::M);
+            gs418.set_FPC('M');
+            break;
+        case GearboxProfile::Individual:
+            gs418.set_FPC('R');
             break;
         case GearboxProfile::Underscore:
-            gs418.set_FPC(GS_418h_FPC::_);
+            gs418.set_FPC('_');
             break;
         default:
             break;
@@ -633,29 +664,58 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
 void Egs52Can::set_solenoid_pwm(uint16_t duty, SolenoidName s) {
     switch (s) {
         case SolenoidName::Y3:
-            gs558.set_y3_pwm(duty >> 4);
+            gs558.set_Y3_DUTY(duty >> 8);
             break;
         case SolenoidName::Y4:
-            gs558.set_y4_pwm(duty >> 4);
+            gs558.set_Y4_DUTY(duty >> 8);
             break;
         case SolenoidName::Y5:
-            gs558.set_y5_pwm(duty >> 4);
+            gs558.set_Y5_DUTY(duty >> 8);
             break;
         case SolenoidName::SPC:
-            gs558.set_spc_pwm(duty >> 4);
+            gs558.set_SPC_CURRENT(duty);
             break;
         case SolenoidName::MPC:
-            gs558.set_mpc_pwm(duty >> 4);
+            gs558.set_MPC_CURRENT(duty);
             break;
         case SolenoidName::TCC:
-            gs558.set_tcc_pwm(duty);
+            gs558.set_TCC_DUTY(duty >> 4);
             break;
         default:
             break;
     }
 }
 
+void Egs52Can::set_spc_pressure(uint16_t p) {
+    this->gs668.set_SPC_PRESSURE_EST(p);
+}
+
+void Egs52Can::set_mpc_pressure(uint16_t p) {
+    this->gs668.set_MPC_PRESSURE_EST(p);
+}
+
+void Egs52Can::set_tcc_pressure(uint16_t p) {
+    this->gs668.set_TCC_PRESSURE_EST(p);
+}
+
+void Egs52Can::set_shift_stage(uint8_t stage, bool is_ramp) {
+    this->gs668.set_SHIFT_STAGE(stage);
+}
+
+void Egs52Can::set_gear_disagree(uint8_t count) {
+    this->gs668.set_GEAR_DISAGREE(count);
+}
+
+void Egs52Can::set_gear_ratio(int16_t g100) {
+    this->gs558.set_RATIO(g100);
+}
+
+void Egs52Can::set_abort_shift(bool is_aborting){
+    this->gs218.set_GZC(GS_218h_GZC::G_ABBRUCH);
+}
+
 void Egs52Can::set_display_msg(GearboxMessage msg) {
+    /*
     this->curr_message = msg;
     if (this->curr_profile_bit == GearboxProfile::Agility) {
         switch (msg) {
@@ -845,6 +905,7 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
                 break;
         }
     }
+    */
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
@@ -878,24 +939,31 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 
 [[noreturn]]
 void Egs52Can::tx_task_loop() {
-    uint64_t start_time;
-    uint32_t taken;
     twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_338 gs_338tx;
     GS_218 gs_218tx;
     GS_418 gs_418tx;
-    GS_558_CUSTOM gs_558tx;
+    GS_CUSTOM_558 gs_558tx;
+    GS_CUSTOM_668 gs_668tx;
     uint8_t cvn_counter = 0;
     bool toggle = false;
     bool time_to_toggle = false;
     while(true) {
+        if (!this->send_messages) {
+            vTaskDelay(50);
+            cvn_counter = 0; // Reset CVN when disabling msg Tx
+            toggle = false;
+            time_to_toggle = false;
+            continue;
+        }
         // Copy current CAN frame values to here so we don't
         // accidentally modify parity calculations
         gs_338tx = {gs338.raw};
         gs_218tx = {gs218.raw};
         gs_418tx = {gs418.raw};
         gs_558tx = {gs558.raw};
+        gs_668tx = {gs668.raw};
 
         // Firstly we have to deal with toggled bits!
         // As toggle bits need to be toggled every 40ms,
@@ -924,36 +992,27 @@ void Egs52Can::tx_task_loop() {
          * GS_418
          * GS_CUSTOM_558 ;)
          */
-        start_time = esp_timer_get_time() / 1000;
         tx.identifier = GS_338_CAN_ID;
         to_bytes(gs_338tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_218_CAN_ID;
         to_bytes(gs_218tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_418_CAN_ID;
         to_bytes(gs_418tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         tx.identifier = GS_CUSTOM_558_CAN_ID;
         to_bytes(gs_558tx.raw, tx.data);
-        if (this->send_messages) { twai_transmit(&tx, 5); }
-        // Todo handle additional ISOTP communication
-        if (this->diag_tx_queue != nullptr) {
-            DiagCanMessage buffer;
-            if (xQueueReceive(*this->diag_tx_queue, (void*)(buffer), 0) == pdTRUE) {
-                // Popped message!
-                tx.data_length_code = 8;
-                tx.identifier = this->diag_tx_id;
-                memcpy(tx.data, buffer, 8);
-                ESP_LOG_BUFFER_HEX_LEVEL("CAN_TX_DIAG", tx.data, 8, esp_log_level_t::ESP_LOG_INFO);
-                twai_transmit(&tx, 5);
-            }
-        }
-
-        taken = (esp_timer_get_time() / 1000) - start_time;
-        if (taken < this->tx_time_ms) {
-            vTaskDelay(this->tx_time_ms-taken / portTICK_PERIOD_MS);
-        }
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+        tx.identifier = GS_CUSTOM_668_CAN_ID;
+        to_bytes(gs_668tx.raw, tx.data);
+        twai_transmit(&tx, 5);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
 
@@ -966,13 +1025,15 @@ void Egs52Can::rx_task_loop() {
     uint8_t i;
     while(true) {
         twai_get_status_info(&can_status);
-        uint8_t f_count  = can_status.msgs_to_rx;
-        if (f_count == 0) {
+        if (can_status.msgs_to_rx == 0) {
             vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
         } else { // We have frames, read them
-            now = esp_timer_get_time()/1000;
-            for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(2)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+            now = (esp_timer_get_time()/1000);
+            if (now > 2) {
+                now -= 2;
+            }
+            for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
                         tmp |= (uint64_t)rx.data[i] << (8*(7-i));
@@ -981,22 +1042,45 @@ void Egs52Can::rx_task_loop() {
                     } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->misc_ecu.import_frames(tmp, rx.identifier, now)) {
+                    } else if (this->ezs_ecu.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
                             // Send the frame
-                            DiagCanMessage msg;
-                            memcpy(msg, rx.data, 8);
-                            if (xQueueSend(*this->diag_rx_queue, msg, 0) != pdTRUE) {
-                                ESP_LOGE("EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
+                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
-                    } 
-                } else {
-                    vTaskDelay(2 / portTICK_PERIOD_MS);
+                    } else if (rx.identifier > 0x780) {
+                        ESP_LOGI("CAN", "Diag msg 0x%04X [%02X %02X %02X %02X %02X %02X %02X %02X]",
+                            rx.identifier,
+                            rx.data[0],
+                            rx.data[1],
+                            rx.data[2],
+                            rx.data[3],
+                            rx.data[4],
+                            rx.data[5],
+                            rx.data[6],
+                            rx.data[7]
+                        );
+                    }
+                    /*
+                     else if (rx.identifier == KOMBI_408_CAN_ID) {
+                        KOMBI_408 k408;
+                        k408.raw = tmp;
+                        if (esp_toggle) {
+                            ESP_LOGI("CAN", "Turning off ESP");
+                            k408.set_RT_EIN(true);
+                            to_bytes(k408.raw, rx.data);
+                            twai_transmit(&rx, 5);
+                        } else {
+                            ESP_LOGI("CAN", "Status of ESP disable bit %d", k408.get_RT_EIN());
+                        }
+                    }
+                    */
                 }
             }
-            vTaskDelay(1 / portTICK_PERIOD_MS); // Reset watchdog here
+            vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here
         }
     }
 }

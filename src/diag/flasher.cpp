@@ -14,7 +14,15 @@ Flasher::~Flasher() {
 }
 
 DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
-    uint32_t now = esp_timer_get_time()/1000;
+    // Shifter must be Offline (SNV) or P or N
+    if (!is_shifter_passive(this->can_ref)) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
+    if (!is_engine_off(this->can_ref)) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Engine is on");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
     // data format
@@ -26,35 +34,26 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
     uint32_t dest_mem_address = args[0] << 16 | args[1] << 8 | args[2];
     uint8_t fmt = args[3];
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
-    ESP_LOGI("FLASHER", "DEST %08X, Format is %02X and size is %08X", dest_mem_address, fmt, dest_mem_size);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "DEST %08X, Format is %02X and size is %08X", dest_mem_address, fmt, dest_mem_size);
     // Valid memory regions
     if (dest_mem_address == MEM_REGION_OTA) {
         // Init OTA system
         this->update_partition = esp_ota_get_next_update_partition(NULL);
         this->update_type = UPDATE_TYPE_OTA;
         if (this->update_partition == nullptr) {
-            ESP_LOGE("FLASHER", "Target update partition was NULL!");
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Target update partition was NULL!");
             return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         }
         this->update_handle = 0;
         esp_err_t err = esp_ota_begin(this->update_partition, dest_mem_size, &update_handle);
         if (err != ESP_OK) {
             // HUH!?
-            ESP_LOGE("FLASHER", "esp_ota_begin failed! %s", esp_err_to_name(err));
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "esp_ota_begin failed! %s", esp_err_to_name(err));
             esp_ota_abort(this->update_handle);
             return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         }
     } else { // Invalid memory region
         return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-    }
-    // Shifter must be Offline (SNV) or P or N
-    if (!is_shifter_passive(this->can_ref)) {
-        ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    }
-    if (!is_engine_off(this->can_ref)) {
-        ESP_LOGE("FLASHER", "Rejecting download request. Engine is on");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
     // Ok, conditions are correct, now we need to prepare
     this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
@@ -73,41 +72,34 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
 }
 
 DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
-    uint32_t now = esp_timer_get_time()/1000;
+    // Shifter must be Offline (SNV) or P or N
+    if (!is_shifter_passive(this->can_ref)) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
+    if (!is_engine_off(this->can_ref)) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Engine is on");
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    }
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
     // data format
     // Uncompressed memory size
     // For now we only support 0x00 format (Uncompressed and unencrypted)
-    ESP_LOGI("FLASHER", "Upload requested. Arg size %d", arg_len);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Upload requested. Arg size %d", arg_len);
     if (arg_len != 7) { // Request was the wrong size
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
     uint8_t fmt = args[3];
     uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6];
-    ESP_LOGI("FLASHER", "DEST %08X, Format is %02X and size is %08X", src_mem_address, fmt, src_mem_size);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "DEST %08X, Format is %02X and size is %08X", src_mem_address, fmt, src_mem_size);
     // Valid memory regions
     if (src_mem_address == MEM_REGION_COREDUMP) {
         this->update_type = UPDATE_TYPE_COREDUMP;
-        ESP_LOGI("FLASHER", "Upload coredump requested");
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Upload coredump requested");
     } else { // Invalid memory region
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-    }
-    // Shifter must be Offline (SNV) or P or N
-    ShifterPosition pos = this->can_ref->get_shifter_position_ewm(now, 250);
-    if (
-        pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
-        pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
-        ) {
-            ESP_LOGE("FLASHER", "Rejecting download request. Shifter not in valid position");
-            return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    }
-    // Engine MUST be off (Ignition state)
-    int rpm = egs_can_hal->get_engine_rpm(now, 250);
-    if (rpm != 0 && rpm != UINT16_MAX) { // 0 = 0RPM, MAX = SNV (Engine ECU is offline)
-        ESP_LOGE("FLASHER", "Rejecting download request. Engine RPM is %d", rpm);
-        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
     // Ok, conditions are correct, now we need to prepare
     this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
@@ -138,26 +130,26 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
             // Next block
             this->block_counter++;
             if (this->update_type == UPDATE_TYPE_OTA) {
-                // Write to OTA partiton
+                // Write to OTA partition
                 if (esp_ota_write(this->update_handle, (const void*)&args[1], arg_len-1) == ESP_OK) {
                     this->written_data += arg_len-1;
                     return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
                 } else {
-                    ESP_LOGE("FLASHER", "esp_ota_write failed!");
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "esp_ota_write failed!");
                     esp_ota_abort(this->update_handle);
                     return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
                 }
             } else {
-                ESP_LOGI("FLASHER", "OTA invalid type!");
+                ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "OTA invalid type!");
                 return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
             }
         } else if (args[0] == this->block_counter) {
             // Repeated request, KWP spec says to do nothing and just return OK!
-            ESP_LOGI("FLASHER", "Skip write!");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Skip write!");
             return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
         } else {
             // Huh
-            ESP_LOGI("FLASHER", "Wtf");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Wtf");
             return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
         }
     } else if (this->data_dir == DATA_DIR_UPLOAD) {
@@ -201,18 +193,18 @@ DiagMessage Flasher::on_request_verification(uint8_t* args, uint16_t arg_len) {
             esp_err_t e = esp_ota_end(this->update_handle);
             if (e != ESP_OK) {
                 res[1] = FLASH_CHECK_STATUS_INVALID;
-                ESP_LOGE("FLASHER", "Flash check failed! %s", esp_err_to_name(e));
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Flash check failed! %s", esp_err_to_name(e));
                 return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
             }
             e = esp_ota_set_boot_partition(this->update_partition);
             if (e != ESP_OK) {
                 res[1] = FLASH_CHECK_STATUS_INVALID;
-                ESP_LOGE("FLASHER", "Set boot partition failed! %s", esp_err_to_name(e));
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Set boot partition failed! %s", esp_err_to_name(e));
                 return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
             }
             // OK!
             res[1] = FLASH_CHECK_STATUS_OK;
-            ESP_LOGI("FLASHER", "All done!");
+            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "All done!");
             return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
         }
     } else {

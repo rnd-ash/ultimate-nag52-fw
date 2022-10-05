@@ -4,12 +4,14 @@
 #include <stdint.h>
 
 typedef struct {
-    uint16_t load_core_1;
-    uint16_t load_core_2;
+    volatile uint16_t load_core_1;
+    volatile uint16_t load_core_2;
 } CpuStats;
 
-void init_perfmon();
 
-CpuStats get_cpu_usage();
+bool init_perfmon();
+void remove_perfmon();
+
+CpuStats get_cpu_stats();
 
 #endif // __PERF_MON_H_

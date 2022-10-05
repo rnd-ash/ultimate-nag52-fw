@@ -5,9 +5,9 @@
 
 // For EGS52/53 compatibility reasons, we adopt their timing standards
 // and CAN IDs
-#define KWP_TP_TIMEOUT_MS 2500
-#define KWP_CAN_ST_MIN 20 // ISO-TP CAN Sep time min ms
-#define KWP_CAN_BS 8 // ISO-TP CAN block size
+#define KWP_TP_TIMEOUT_MS 4500
+#define KWP_CAN_ST_MIN 0 // ISO-TP CAN Sep time min ms
+#define KWP_CAN_BS 0 // ISO-TP CAN block size
 #define KWP_ECU_TX_ID 0x07E9 // ECU Sends on this ID
 #define KWP_ECU_RX_ID 0x07E1 // Tester requests on this ID
 
@@ -41,6 +41,9 @@ KWP2000 SERVICE IDENTIFIERS
 #define SID_TESTER_PRESENT 0x3E
 #define SID_CONTROL_DTC_SETTING 0x85
 #define SID_RESPONSE_ON_EVENT 0x86
+
+/* Custom SIDs for UN52 */
+#define SID_SHIFT_MGR_OP 0x88
 
 /*
 KWP2000 Negative response codes

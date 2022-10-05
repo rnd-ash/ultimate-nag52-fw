@@ -43,3 +43,4 @@ cmake-build-debug/
 .settings/**
 .idea/**
 html/**
+latex/**

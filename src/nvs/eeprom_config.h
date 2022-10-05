@@ -5,6 +5,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "common_structs.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 
 #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
 
@@ -34,9 +36,14 @@ namespace EEPROM {
     uint8_t get_last_profile();
     bool read_core_config(TCM_CORE_CONFIG* dest);
     bool save_core_config(TCM_CORE_CONFIG* write);
+
+    bool read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
+    bool write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
 };
 
 #define NUM_GEARS 5
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;
+
+extern nvs_handle_t MAP_NVS_HANDLE;
 
 #endif

@@ -48,8 +48,8 @@ enum class EngineType: uint8_t {
 };
 
 enum class TorqueRequest: uint8_t {
-    Maximum,
-    Minimum,
+    Decrease,
+    Increase,
     None
 };
 
@@ -93,6 +93,7 @@ enum class GearboxProfile: uint8_t {
     Winter,
     // Failure (F)
     Failure,
+    Individual,
     // Reserved for 'no profile' (_)
     Underscore
 };
@@ -105,8 +106,12 @@ enum class ShifterPosition: uint8_t {
     N,
     N_D,
     D,
-    PLUS,
-    MINUS,
+    PLUS, // For EWM only
+    MINUS, // For EWM only
+    FOUR, // For TRRS only
+    THREE, // For TRRS only
+    TWO, // For TRRS only
+    ONE, // For TRRS only
     SignalNotAvaliable = 0xFF // SNV
 };
 
@@ -155,6 +160,12 @@ enum class GearboxMessage: uint8_t {
     VisitWorkshop
 };
 
+enum class TerminalStatus {
+    On,
+    Off,
+    SNA
+};
+
 class AbstractCan {
     public:
         explicit AbstractCan(const char* name, uint8_t tx_time_ms) {
@@ -162,7 +173,6 @@ class AbstractCan {
             this->tx_time_ms = tx_time_ms;
             this->tx_task = nullptr;
             this->rx_task = nullptr;
-            this->diag_tx_queue = nullptr;
             this->diag_rx_queue = nullptr;
         };
         virtual bool begin_tasks();
@@ -209,6 +219,13 @@ class AbstractCan {
         virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms);
+        virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
+        // Gets status of terminal 15
+        virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+            return TerminalStatus::On; // Enabled by default unless implemented
+        }
 
         /**
          * Setters
@@ -216,7 +233,7 @@ class AbstractCan {
 
         virtual void set_race_start(bool race_start);
         // Set solenoid PMW
-        virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s);
+        virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s){};
         // Set the gearbox clutch position on CAN
         virtual void set_clutch_status(ClutchStatus status);
         // Set the actual gear of the gearbox
@@ -253,6 +270,16 @@ class AbstractCan {
         virtual void set_drive_profile(GearboxProfile p);
         // Sets display message
         virtual void set_display_msg(GearboxMessage msg);
+        // Set bit to signify the gearbox is aborting the shift
+        virtual void set_abort_shift(bool is_aborting){};
+        
+        /// Custom setters
+        virtual void set_spc_pressure(uint16_t p){}
+        virtual void set_mpc_pressure(uint16_t p){}
+        virtual void set_tcc_pressure(uint16_t p){}
+        virtual void set_shift_stage(uint8_t stage, bool is_ramp){}
+        virtual void set_gear_disagree(uint8_t count){}
+        virtual void set_gear_ratio(int16_t g100){};
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {
@@ -265,11 +292,9 @@ class AbstractCan {
         }
 
         // For diagnostics
-        void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id, QueueHandle_t* tx_queue, uint16_t tx_id) {
+        void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id) {
             this->diag_rx_queue = rx_queue;
-            this->diag_tx_queue = tx_queue;
             this->diag_rx_id = rx_id;
-            this->diag_tx_id = tx_id;
         }
 
     protected:
@@ -294,7 +319,6 @@ class AbstractCan {
         bool send_messages = true;
 
         QueueHandle_t* diag_rx_queue;
-        QueueHandle_t* diag_tx_queue;
     private:
         const char* name;
 };

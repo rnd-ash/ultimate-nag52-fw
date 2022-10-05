@@ -9,6 +9,8 @@
 #include "EWM.h"
 #include "GS.h"
 #include "MS.h"
+#include "EZS.h"
+#include "KOMBI.h"
 
 class Egs52Can: public AbstractCan {
     public:
@@ -56,7 +58,9 @@ class Egs52Can: public AbstractCan {
          bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
-         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
+        uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
@@ -97,6 +101,13 @@ class Egs52Can: public AbstractCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
+        void set_spc_pressure(uint16_t p) override;
+        void set_mpc_pressure(uint16_t p) override;
+        void set_tcc_pressure(uint16_t p) override;
+        void set_shift_stage(uint8_t stage, bool is_ramp) override;
+        void set_gear_disagree(uint8_t count) override;
+        void set_gear_ratio(int16_t g100) override;
+        void set_abort_shift(bool is_aborting) override;
     protected:
         [[noreturn]]
         void tx_task_loop() override;
@@ -109,13 +120,16 @@ class Egs52Can: public AbstractCan {
         GS_218 gs218 = {0};
         GS_418 gs418 = {0};
         GS_338 gs338 = {0};
-        GS_558_CUSTOM gs558 = {0};
+        GS_CUSTOM_558 gs558 = {0};
+        GS_CUSTOM_668 gs668 = {0};
         // ECU Data to Rx to
+        ECU_EZS ezs_ecu = ECU_EZS();
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
         bool can_init_ok = false;
+        bool esp_toggle = false;
 };
 
 #endif // EGS53_MODE

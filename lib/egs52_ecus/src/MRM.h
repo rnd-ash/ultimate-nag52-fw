@@ -222,7 +222,7 @@ class ECU_MRM {
         bool get_LRW_236(uint64_t now, uint64_t max_expire_time, LRW_236* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[0];
@@ -240,7 +240,7 @@ class ECU_MRM {
         bool get_MRM_238(uint64_t now, uint64_t max_expire_time, MRM_238* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
-            } else if (now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
+            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
                 return false;
             } else { // CAN Frame is valid! return it
                 dest->raw = FRAME_DATA[1];

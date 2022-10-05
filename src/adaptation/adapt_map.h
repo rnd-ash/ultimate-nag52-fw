@@ -15,18 +15,25 @@
 
 #define ADAPT_RPM_LIMIT 2500
 #define ADAPT_TEMP_THRESH 60
-#define ADAPT_TEMP_LIMIT 110
+#define ADAPT_TEMP_LIMIT 120
+
+struct AdaptationCell {
+    int16_t spc_fill_adder;
+    int16_t mpc_fill_adder;
+    int16_t fill_time_adder;
+};
 
 struct AdaptationData {
-    int16_t offset_accel_load; // Shift under load whilst accelerating
-    int16_t offset_accel_idle; // Shift under no load whilst accelerating
-    int16_t offset_decel_load; // Shift under load whilst decelerating
-    int16_t offset_decel_idle; // Shift under no load whilst decelerating
+    AdaptationCell trq_neg;
+    AdaptationCell trq_25;
+    AdaptationCell trq_50;
+    AdaptationCell trq_75;
+};
 
-    float bite_speed_accel_load; // Shift under load whilst accelerating
-    float bite_speed_accel_idle; // Shift under no load whilst accelerating
-    float bite_speed_decel_load; // Shift under load whilst decelerating
-    float bite_speed_decel_idle; // Shift under no load whilst decelerating
+const static AdaptationCell DEFAULT_CELL {
+    .spc_fill_adder = 0,
+    .mpc_fill_adder = 0,
+    .fill_time_adder = 0
 };
 
 // For now, we just do what EGS52 does
@@ -36,9 +43,8 @@ public:
     // Reset map to everything default
     void reset();
     bool save();
-    void perform_adaptation(SensorData* sensors, ProfileGearChange change, ShiftResponse response, bool upshift);
-    int get_adaptation_offset(SensorData* sensors, ProfileGearChange change);
-    float get_adaptation_speed(SensorData* sensors, ProfileGearChange change);
+    void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque);
+    const AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change, uint16_t gb_max_torque);
 private:
     AdaptationData adapt_data[8];
     bool load_from_nvs();

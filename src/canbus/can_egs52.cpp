@@ -247,6 +247,14 @@ int Egs52Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
     return INT_MAX;
 }
 
+int Egs52Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+    MS_212 ms212;
+    if (this->ecu_ms.get_MS_212(now, expire_time_ms, &ms212)) {
+        return ((int)ms212.get_M_FV() / 4) - 500;
+    }
+    return INT_MAX;
+}
+
 int Egs52Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_312 ms312;
     if (this->ecu_ms.get_MS_312(now, expire_time_ms, &ms312)) {

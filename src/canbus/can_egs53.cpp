@@ -274,6 +274,10 @@ int Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
     return 0;
 }
 
+int Egs53Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+    return this->get_static_engine_torque(now, expire_time_ms);
+}
+
 int Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     ENG_RS2_PT rs2_pt;
     if (this->ecm_ecu.get_ENG_RS2_PT(now, expire_time_ms*1000, &rs2_pt)) {

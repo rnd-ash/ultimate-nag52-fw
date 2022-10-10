@@ -203,6 +203,8 @@ class AbstractCan {
         virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms);
         // Gets the current 'static' torque produced by the engine
         virtual int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        // Gets driver torque demand (Default torque)
+        virtual int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the maximum engine torque allowed at this moment by the engine map
         virtual int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms);
         // Gets the minimum engine torque allowed at this moment by the engine map

@@ -55,6 +55,8 @@ typedef struct {
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
     int16_t min_torque;
+    /// Driver default torque
+    int16_t driver_default_torque;
     /// Torque converter slip RPM (Calculated)
     int16_t tcc_slip_rpm;
     /// Last time the gearbox changed gear (in milliseconds)

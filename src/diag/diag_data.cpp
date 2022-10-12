@@ -102,6 +102,8 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     ret.max_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     torque = can_layer->get_minimum_engine_torque(now, 250);
     ret.min_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    torque = can_layer->get_driver_engine_torque(now, 250);
+    ret.driver_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     torque = can_layer->get_static_engine_torque(now, 250);
     ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);

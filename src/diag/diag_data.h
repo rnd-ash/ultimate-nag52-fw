@@ -79,6 +79,7 @@ typedef struct {
     uint16_t min_torque;
     uint16_t max_torque;
     uint16_t static_torque;
+    uint16_t driver_torque;
     uint16_t left_rear_rpm;
     uint16_t right_rear_rpm;
     uint8_t shift_button_pressed;

@@ -279,15 +279,16 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
     uint16_t original_mpc = this->mpc_working;
     pressure_mgr->set_target_spc_pressure(curr_spc_pressure);
     ShiftPhase* curr_phase = &sd.bleed_data;
-    float ramp = ((float)(curr_phase->spc_pressure)-curr_spc_pressure) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
-    float ramp_mpc = ((float)(curr_phase->mpc_pressure)-this->mpc_working) / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
+    float ramp = ((float)(curr_phase->spc_pressure)-curr_spc_pressure) 
+        / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
+    float ramp_mpc = ((float)(curr_phase->mpc_pressure)-this->mpc_working) 
+        / ((float)MAX(curr_phase->ramp_time,SHIFT_DELAY_MS)/(float)SHIFT_DELAY_MS);
     
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase BLEED");
     uint16_t start_ratio = sensor_data.gear_ratio*100;
     // For ramp down of torque
-    uint16_t torque_req_amt = 0;
-    uint16_t curr_torque_req = 0;
-    uint16_t orig_torque = 0;
+    int16_t torque_req_amt = 0;
+    int16_t curr_torque_req = 0;
     bool req_trq = false;
 
     bool shift_in_progress = false;
@@ -326,9 +327,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                         if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g) {
                             // request the torque!
                             torque_req_amt = sd.torque_down_amount;
-                            curr_torque_req = sensor_data.static_torque;
-                            orig_torque = sensor_data.static_torque;
+                            curr_torque_req = sensor_data.driver_default_torque-1;
                             req_trq = true;
+                            egs_can_hal->set_torque_request(TorqueRequest::Decrease);
+                            egs_can_hal->set_requested_torque(curr_torque_req);
                         }
                     } else if (shift_stage == SHIFT_PHASE_TORQUE) {
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase overlap Targets: (%d, %d mBar)", sd.overlap_data.mpc_pressure, sd.overlap_data.spc_pressure);
@@ -364,27 +366,21 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                 break;
             }
         }
-        /*
         if (total_elapsed % 40 == 0) {
             if (req_trq) {
-                egs_can_hal->set_torque_request(TorqueRequest::Decrease);
-                egs_can_hal->set_requested_torque(curr_torque_req);
-                if (curr_torque_req > torque_req_amt) {
-                    curr_torque_req -= 10;
-                } else if (curr_torque_req < torque_req_amt) {
-                    curr_torque_req += 10;
-                }
-            } else {
-                if (curr_torque_req < orig_torque) {
-                    egs_can_hal->set_torque_request(TorqueRequest::Increase);
+                if (shift_stage != SHIFT_PHASE_MAX_P) {
+                    curr_torque_req -= 4;
+                    egs_can_hal->set_torque_request(TorqueRequest::Decrease);
                     egs_can_hal->set_requested_torque(curr_torque_req);
-                    curr_torque_req += 10;
+                } else { // Max P. Increase torque
+                    if (curr_torque_req < sensor_data.driver_default_torque) {
+                        curr_torque_req += 2;
+                        egs_can_hal->set_torque_request(TorqueRequest::Increase);
+                        egs_can_hal->set_requested_torque(curr_torque_req);
+                    }
                 }
-                egs_can_hal->set_torque_request(TorqueRequest::None);
-                egs_can_hal->set_requested_torque(0);
             }
         }
-        */
         uint16_t ratio_now = sensor_data.gear_ratio*100;
         if (gen_report) {
             // Shift monitoring
@@ -529,24 +525,20 @@ void Gearbox::shift_thread() {
         if (is_controllable_gear(curr_target)) {
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            int spc_start = pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque);
-            int spc_ramp = 10;
             uint16_t y4_pwm_val = 4096;
-            pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque));
-            pressure_mgr->set_target_spc_pressure(spc_start);
+            pressure_mgr->set_target_spc_pressure(1200);  
+            vTaskDelay(10);
             sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
             vTaskDelay(150);
-            uint16_t del = 0;
-            while (spc_start <= pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque)*4) {
-                spc_start += spc_ramp;
-                pressure_mgr->set_target_mpc_pressure(pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque)*1.1);
-                pressure_mgr->set_target_spc_pressure(spc_start);  
-                if (del > 100) {
+            uint16_t elapsed = 0;
+            while (elapsed <= 500) {
+                pressure_mgr->set_target_spc_pressure(1200);  
+                if (elapsed > 100) {
                     y4_pwm_val = 1024; // 25% on to prevent burnout
                 }
                 sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on   
-                del += 25;   
-                vTaskDelay(1/portTICK_PERIOD_MS);
+                elapsed += 20;   
+                vTaskDelay(20/portTICK_PERIOD_MS);
             }
             sol_y4->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();      
@@ -924,6 +916,10 @@ void Gearbox::controller_loop() {
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX) {
             this->sensor_data.static_torque = static_torque;
+        }
+        int driver_torque = egs_can_hal->get_driver_engine_torque(now, 500);
+        if (driver_torque != INT_MAX) {
+            this->sensor_data.driver_default_torque = driver_torque;
         }
         int max_torque = egs_can_hal->get_maximum_engine_torque(now, 500);
         if (max_torque != INT_MAX) {

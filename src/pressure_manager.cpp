@@ -213,39 +213,38 @@ float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
 
 ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc) {
     ShiftData sd; 
-    uint8_t map_gear = 1;
     CLAMP(chars.shift_speed, 1, 10);
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:
-            sd.targ_g = 2; sd.curr_g = 1; map_gear = 1;
+            sd.targ_g = 2; sd.curr_g = 1;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::TWO_THREE:
-            sd.targ_g = 3; sd.curr_g = 2; map_gear = 2;
+            sd.targ_g = 3; sd.curr_g = 2;
             sd.shift_solenoid = sol_y5;
             break;
         case ProfileGearChange::THREE_FOUR:
-            sd.targ_g = 4; sd.curr_g = 3; map_gear = 3;
+            sd.targ_g = 4; sd.curr_g = 3;
             sd.shift_solenoid = sol_y4;
             break;
         case ProfileGearChange::FOUR_FIVE:
-            sd.targ_g = 5; sd.curr_g = 4; map_gear = 4;
+            sd.targ_g = 5; sd.curr_g = 4;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::FIVE_FOUR:
-            sd.targ_g = 4; sd.curr_g = 5; map_gear = 5;
+            sd.targ_g = 4; sd.curr_g = 5;
             sd.shift_solenoid = sol_y3;
             break;
         case ProfileGearChange::FOUR_THREE:
-            sd.targ_g = 3; sd.curr_g = 4; map_gear = 6;
+            sd.targ_g = 3; sd.curr_g = 4;
             sd.shift_solenoid = sol_y4;
             break;
         case ProfileGearChange::THREE_TWO:
-            sd.targ_g = 2; sd.curr_g = 3; map_gear = 7;
+            sd.targ_g = 2; sd.curr_g = 3;
             sd.shift_solenoid = sol_y5;
             break;
         case ProfileGearChange::TWO_ONE:
-            sd.targ_g = 1; sd.curr_g = 2; map_gear = 8;
+            sd.targ_g = 1; sd.curr_g = 2;
             sd.shift_solenoid = sol_y3;
             break;
     }

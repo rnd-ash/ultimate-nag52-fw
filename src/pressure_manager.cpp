@@ -77,52 +77,26 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
 
     /** Pressure Hold 2 time map **/
-    int16_t hold2_x_headers[5] = {1, 2, 3, 4, 5};
-    int16_t hold2_y_headers[4] = {-20, 5, 25, 60}; 
-
+    int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
+    int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
     hold2_time_map = new TcmMap(5, 4, hold2_x_headers, hold2_y_headers);
-
     if (!this->hold2_time_map->allocate_ok()) {
         this->hold2_time_map = nullptr;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of pressure pwm map failed!");
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of fill time map failed!");
     } else {
-        // Allocation OK, add the data to the map
-
-        // Values are in millsecond for SPC to hold at Hold2 phase
-        // Derived from this table
-        /*              K1    K2    K3    B1    B2 */
-        /* -20C        600, 1620,  860,  600,  820, */
-        /*   5C        300,  600,  440,  380,  400, */
-        /*  25C        180,  240,  160,  220,  180, */
-        /*  60C        160,  140,  140,  180,  120  */
-        /**
-         * 1 -         K3, B1, B2
-         * 2 - K1,     K3,     B2 
-         * 3 - K1, K2,         B2
-         * 4 - K1. K2, K3 
-         * 5 -     K2, K3, B1
-         * 
-         * 
-         * 1-2 prefill K1 release B1
-         * 2-1 prefill B1 release K1
-         * 
-         * 2-3 prefill K2 release K3
-         * 3-2 prefill K3 release K2
-         * 
-         * 3-4 prefill K3 release B2
-         * 4-3 prefill B2 release K3
-         * 
-         * 4-5 prefill B1 release K1
-         * 5-4 prefill K1 release B1
-         */
-        int16_t hold2_map[5*4] = {
-        /* Clutch grp  K1    K2    K3    B1   B2 */
-        /* -20C */     600, 1620,  860,  600, 820,
-        /*   5C */     300,  600,  440,  380, 400,
-        /*  25C */     180,  240,  180,  220, 180,
-        /*  60C */     160,  140,  160,  180, 120
-        };
-        hold2_time_map->add_data(hold2_map, 5*4);
+        int16_t hold2_map[5*4];
+        bool res;
+        if (VEHICLE_CONFIG.is_large_nag) { // Large
+            res = EEPROM::read_nvs_map_data(MAP_NAME_FILL_TIME_LARGE, hold2_map,  LARGE_NAG_FILL_TIME_MAP, FILL_TIME_MAP_SIZE);
+        } else { // Small
+            res = EEPROM::read_nvs_map_data(MAP_NAME_FILL_TIME_SMALL, hold2_map,  SMALL_NAG_FILL_TIME_MAP, FILL_TIME_MAP_SIZE);
+        }
+        if (!res) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of fill time map failed!");
+        } else if (!this->hold2_time_map->add_data(hold2_map, FILL_TIME_MAP_SIZE)) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of fill time map failed!");
+            delete this->hold2_time_map;
+        }
     }
 
     // Allocate working pressure map
@@ -322,24 +296,24 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
     dest->ramp_time = 100;
     switch (get_clutch_to_apply(change)) {
             case Clutch::K1:
-                dest->hold_time = hold2_time_map->get_value(1, this->sensor_data->atf_temp);
+                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 1);
                 dest->spc_pressure = 1200;
                 break;
             case Clutch::K2:
-                dest->hold_time = hold2_time_map->get_value(2, this->sensor_data->atf_temp);
+                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 2);
                 dest->spc_pressure = 1400;
                 break;
             case Clutch::K3:
-                dest->hold_time = hold2_time_map->get_value(3, this->sensor_data->atf_temp);
+                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 3);
                 dest->spc_pressure = 1300;
                 break;
             case Clutch::B1:
-                dest->hold_time = hold2_time_map->get_value(4, this->sensor_data->atf_temp);
+                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 4);
                 dest->spc_pressure = 1200;
                 break;
             case Clutch::B2:
             default:
-                dest->hold_time = hold2_time_map->get_value(5, this->sensor_data->atf_temp);
+                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 5);
                 dest->spc_pressure = 1400;
                 break;            
     }

@@ -109,6 +109,8 @@ extern int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 
  */
 
+// -- MPC working pressure --
+
 #define WORKING_PRESSURE_MAP_SIZE 11*7 // 11 positions, 7 gears (P/N, R1/R2, 1, 2, 3, 4, 5)
 
 #define MAP_NAME_WORKING_SMALL "WORK_SMALL"
@@ -116,5 +118,15 @@ extern int16_t SMALL_NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE];
 
 #define MAP_NAME_WORKING_LARGE "WORK_LARGE"
 extern int16_t LARGE_NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE];
+
+// -- FILL TIME --
+
+#define FILL_TIME_MAP_SIZE 5*4 // 4 temp positions, 5 clutch groups
+
+#define MAP_NAME_FILL_TIME_SMALL "FILL_T_SMALL"
+extern int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
+
+#define MAP_NAME_FILL_TIME_LARGE "FILL_T_LARGE"
+extern int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 
 #endif

@@ -197,3 +197,23 @@ int16_t LARGE_NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE] = {
     900, 1100, 1200, 1500, 1800, 2300, 2600, 2900, 3200, 3500, 3800, // 4
     900, 1100, 1200, 1500, 1800, 2300, 2600, 2900, 3200, 3500, 3800, // 5
 };
+
+int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
+    /* ATF TEMP             */
+    /*  -20C,  5C, 25C, 60C */
+         600, 300, 180, 160, // K1 clutch
+        1620, 600, 240, 140, // K2 clutch
+         860, 440, 180, 160, // K3 clutch
+         600, 380, 220, 180, // B1 brake
+         820, 400, 180, 120  // B2 brake
+};
+
+int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
+    /* ATF TEMP             */
+    /*  -20C,  5C, 25C, 60C */
+         600, 300, 180, 160, // K1 clutch
+        1620, 600, 240, 140, // K2 clutch
+         860, 440, 180, 160, // K3 clutch
+         600, 380, 220, 180, // B1 brake
+         820, 400, 180, 120  // B2 brake
+};

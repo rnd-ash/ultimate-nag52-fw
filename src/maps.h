@@ -129,4 +129,10 @@ extern int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 #define MAP_NAME_FILL_TIME_LARGE "FILL_T_LARGE"
 extern int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 
+// -- TCC maps --
+
+#define TCC_PWM_MAP_SIZE 7*5 // 5 temp positions, 7 pressure readings
+#define MAP_NAME_TCC_PWM "TCC_PWM"
+extern int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE];
+
 #endif

@@ -26,7 +26,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->req_current_mpc = 0;
     this->req_current_spc = 0;
     this->gb_max_torque = max_torque;
-
+    bool res;
     /** Pressure PWM map **/
 
     int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
@@ -63,17 +63,15 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of TCC pressure pwm map failed!");
         return;
     }
-    // Allocation OK, add the data to the map
-    // Values are PWM 12bit (0-1000) for TCC solenoid
-    int16_t tc_pwm_map[7*5] = {
-    /*               0   2000  4000  5000  7500  10000  15000   <- mBar */
-    /*   0C */       0,   480,  960, 1280, 1920,  2560,  4096,
-    /*  30C */       0,   560, 1040, 1280, 1920,  2560,  4096,
-    /*  60C */       0,   640, 1120, 1280, 1920,  2560,  4096,
-    /*  90C */       0,   640, 1120, 1280, 1920,  2560,  4096,
-    /* 120C */       0,   640, 1120, 1280, 1920,  2560,  4096,
-    };
-    tcc_pwm_map->add_data(tc_pwm_map, 7*5);
+    
+    int16_t tc_pwm_map[7*5];
+    res = EEPROM::read_nvs_map_data(MAP_NAME_TCC_PWM, tc_pwm_map,  TCC_PWM_MAP, TCC_PWM_MAP_SIZE);
+    if (!res) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of TCC PWM map failed!");
+    } else if (!this->tcc_pwm_map->add_data(tc_pwm_map, FILL_TIME_MAP_SIZE)) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of fill time map failed!");
+        delete this->tcc_pwm_map;
+    }
 
 
     /** Pressure Hold 2 time map **/
@@ -85,7 +83,6 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of fill time map failed!");
     } else {
         int16_t hold2_map[5*4];
-        bool res;
         if (VEHICLE_CONFIG.is_large_nag) { // Large
             res = EEPROM::read_nvs_map_data(MAP_NAME_FILL_TIME_LARGE, hold2_map,  LARGE_NAG_FILL_TIME_MAP, FILL_TIME_MAP_SIZE);
         } else { // Small
@@ -109,7 +106,6 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         return;
     } else {
         int16_t dest[WORKING_PRESSURE_MAP_SIZE];
-        bool res;
         if (VEHICLE_CONFIG.is_large_nag) { // Large
             res = EEPROM::read_nvs_map_data(MAP_NAME_WORKING_LARGE, dest,  LARGE_NAG_WORKING_MAP, WORKING_PRESSURE_MAP_SIZE);
         } else { // Small
@@ -294,28 +290,33 @@ uint16_t get_clutch_fill_pressure(Clutch c) {
 
 void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->ramp_time = 100;
-    switch (get_clutch_to_apply(change)) {
-            case Clutch::K1:
-                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 1);
-                dest->spc_pressure = 1200;
-                break;
-            case Clutch::K2:
-                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 2);
-                dest->spc_pressure = 1400;
-                break;
-            case Clutch::K3:
-                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 3);
-                dest->spc_pressure = 1300;
-                break;
-            case Clutch::B1:
-                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 4);
-                dest->spc_pressure = 1200;
-                break;
-            case Clutch::B2:
-            default:
-                dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 5);
-                dest->spc_pressure = 1400;
-                break;            
+    if (this->hold2_time_map == nullptr) {
+        dest->hold_time = 500;
+        dest->spc_pressure = 1500;
+    } else {
+        switch (get_clutch_to_apply(change)) {
+                case Clutch::K1:
+                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 1);
+                    dest->spc_pressure = 1200;
+                    break;
+                case Clutch::K2:
+                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 2);
+                    dest->spc_pressure = 1400;
+                    break;
+                case Clutch::K3:
+                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 3);
+                    dest->spc_pressure = 1300;
+                    break;
+                case Clutch::B1:
+                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 4);
+                    dest->spc_pressure = 1200;
+                    break;
+                case Clutch::B2:
+                default:
+                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 5);
+                    dest->spc_pressure = 1400;
+                    break;            
+        }
     }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
     //dest->hold_time += cell->fill_time_adder;

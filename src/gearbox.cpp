@@ -339,7 +339,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                     } else if (shift_stage == SHIFT_PHASE_OVERLAP) {
                         req_trq = false;
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase max pressure Targets: (%d, %d mBar)", sd.max_pressure_data.mpc_pressure, sd.max_pressure_data.spc_pressure);
-                        sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear, gearboxConfig.max_torque);
+                        sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
                         // No solenoids to touch, just inc counter
                         shift_stage = SHIFT_PHASE_MAX_P;
                         curr_phase = &sd.max_pressure_data;
@@ -728,7 +728,7 @@ void Gearbox::controller_loop() {
         // Update solenoids, only if engine RPM is OK
         if (this->sensor_data.engine_rpm > 500) {
             if (!shifting) { // If shifting then shift manager has control over MPC working
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, this->gearboxConfig.max_torque);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
             }
             this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
         }

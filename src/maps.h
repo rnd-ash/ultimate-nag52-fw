@@ -99,4 +99,22 @@ extern int16_t M_PETROL_UPSHIFT_MAP[SHIFT_MAP_SIZE];
 #define MAP_NAME_M_PETROL_DOWNSHIFT "M_PETROL_DOWN"
 extern int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 
+
+/*
+================================================================================
+
+   PRESSURE MAPS
+
+================================================================================
+
+ */
+
+#define WORKING_PRESSURE_MAP_SIZE 11*7 // 11 positions, 7 gears (P/N, R1/R2, 1, 2, 3, 4, 5)
+
+#define MAP_NAME_WORKING_SMALL "WORK_SMALL"
+extern int16_t SMALL_NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE];
+
+#define MAP_NAME_WORKING_LARGE "WORK_LARGE"
+extern int16_t LARGE_NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE];
+
 #endif

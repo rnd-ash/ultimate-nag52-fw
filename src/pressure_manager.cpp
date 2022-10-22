@@ -3,6 +3,8 @@
 #include "macros.h"
 #include "solenoids/constant_current.h"
 #include "macros.h"
+#include "maps.h"
+
 inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
     if (percent <= 0) { return map[0]; }
     else if (percent >= 100) { return map[10]; }
@@ -23,6 +25,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->req_mpc_pressure = 0;
     this->req_current_mpc = 0;
     this->req_current_spc = 0;
+    this->gb_max_torque = max_torque;
 
     /** Pressure PWM map **/
 
@@ -82,46 +85,69 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     if (!this->hold2_time_map->allocate_ok()) {
         this->hold2_time_map = nullptr;
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of pressure pwm map failed!");
-        return;
-    }
-    // Allocation OK, add the data to the map
+    } else {
+        // Allocation OK, add the data to the map
 
-    // Values are in millsecond for SPC to hold at Hold2 phase
-    // Derived from this table
-    /*              K1    K2    K3    B1    B2 */
-    /* -20C        600, 1620,  860,  600,  820, */
-    /*   5C        300,  600,  440,  380,  400, */
-    /*  25C        180,  240,  160,  220,  180, */
-    /*  60C        160,  140,  140,  180,  120  */
-    /**
-     * 1 -         K3, B1, B2
-     * 2 - K1,     K3,     B2 
-     * 3 - K1, K2,         B2
-     * 4 - K1. K2, K3 
-     * 5 -     K2, K3, B1
-     * 
-     * 
-     * 1-2 prefill K1 release B1
-     * 2-1 prefill B1 release K1
-     * 
-     * 2-3 prefill K2 release K3
-     * 3-2 prefill K3 release K2
-     * 
-     * 3-4 prefill K3 release B2
-     * 4-3 prefill B2 release K3
-     * 
-     * 4-5 prefill B1 release K1
-     * 5-4 prefill K1 release B1
-     */
-    int16_t hold2_map[5*4] = {
-    /* Clutch grp  K1    K2    K3    B1   B2 */
-    /* -20C */     600, 1620,  860,  600, 820,
-    /*   5C */     300,  600,  440,  380, 400,
-    /*  25C */     180,  240,  180,  220, 180,
-    /*  60C */     160,  140,  160,  180, 120
-    };
-    hold2_time_map->add_data(hold2_map, 5*4);
-    this->gb_max_torque = max_torque;
+        // Values are in millsecond for SPC to hold at Hold2 phase
+        // Derived from this table
+        /*              K1    K2    K3    B1    B2 */
+        /* -20C        600, 1620,  860,  600,  820, */
+        /*   5C        300,  600,  440,  380,  400, */
+        /*  25C        180,  240,  160,  220,  180, */
+        /*  60C        160,  140,  140,  180,  120  */
+        /**
+         * 1 -         K3, B1, B2
+         * 2 - K1,     K3,     B2 
+         * 3 - K1, K2,         B2
+         * 4 - K1. K2, K3 
+         * 5 -     K2, K3, B1
+         * 
+         * 
+         * 1-2 prefill K1 release B1
+         * 2-1 prefill B1 release K1
+         * 
+         * 2-3 prefill K2 release K3
+         * 3-2 prefill K3 release K2
+         * 
+         * 3-4 prefill K3 release B2
+         * 4-3 prefill B2 release K3
+         * 
+         * 4-5 prefill B1 release K1
+         * 5-4 prefill K1 release B1
+         */
+        int16_t hold2_map[5*4] = {
+        /* Clutch grp  K1    K2    K3    B1   B2 */
+        /* -20C */     600, 1620,  860,  600, 820,
+        /*   5C */     300,  600,  440,  380, 400,
+        /*  25C */     180,  240,  180,  220, 180,
+        /*  60C */     160,  140,  160,  180, 120
+        };
+        hold2_time_map->add_data(hold2_map, 5*4);
+    }
+
+    // Allocate working pressure map
+    int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
+    this->mpc_working_pressure = new TcmMap(11, 7, wp_x_headers, wp_y_headers);
+    if (!this->mpc_working_pressure->allocate_ok()) {
+        this->mpc_working_pressure = nullptr;
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of MPC working map failed!");
+        return;
+    } else {
+        int16_t dest[WORKING_PRESSURE_MAP_SIZE];
+        bool res;
+        if (VEHICLE_CONFIG.is_large_nag) { // Large
+            res = EEPROM::read_nvs_map_data(MAP_NAME_WORKING_LARGE, dest,  LARGE_NAG_WORKING_MAP, WORKING_PRESSURE_MAP_SIZE);
+        } else { // Small
+            res = EEPROM::read_nvs_map_data(MAP_NAME_WORKING_SMALL, dest,  SMALL_NAG_WORKING_MAP, WORKING_PRESSURE_MAP_SIZE);
+        }
+        if (!res) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of pressure pwm map failed!");
+        } else if (!this->mpc_working_pressure->add_data(dest, WORKING_PRESSURE_MAP_SIZE)) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of pressure pwm map failed!");
+            delete this->mpc_working_pressure;
+        }
+    }
 }
 
 Clutch PressureManager::get_clutch_to_apply(ProfileGearChange change) {
@@ -162,39 +188,43 @@ Clutch PressureManager::get_clutch_to_release(ProfileGearChange change) {
     }
 }
 
-uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, int max_rated_torque) {
-    const int16_t* targ_map = working_norm_pressure_p_small;
+
+uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
+    if (this->mpc_working_pressure == nullptr) {
+        return 7000; // Failsafe!
+    }
+
+    uint8_t gear_idx = 0;
     switch(curr_g) {
         case GearboxGear::First:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_1_large : working_norm_pressure_1_small;
+            gear_idx = 2;
             break;
         case GearboxGear::Second:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_2_large : working_norm_pressure_2_small;
+            gear_idx = 3;
             break;
         case GearboxGear::Third:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_3_large : working_norm_pressure_3_small;
+            gear_idx = 4;
             break;
         case GearboxGear::Fourth:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_4_large : working_norm_pressure_4_small;
+            gear_idx = 5;
             break;
         case GearboxGear::Fifth:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_5_large : working_norm_pressure_5_small;
+            gear_idx = 6;
             break;
         case GearboxGear::Reverse_First:
         case GearboxGear::Reverse_Second:
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_r_large : working_norm_pressure_r_small;
+            gear_idx = 1;
             break;
         case GearboxGear::Park:
         case GearboxGear::Neutral:
         case GearboxGear::SignalNotAvaliable:
         default: // Already set
-            targ_map = VEHICLE_CONFIG.is_large_nag ? working_norm_pressure_p_large : working_norm_pressure_p_small;
+            gear_idx = 0;
             break;
     }
 
-    //int pedal_pos = ((int)sensor_data->pedal_pos*100/250);
-    int trq_percent = (sensor_data->static_torque*100)/max_rated_torque;
-    return locate_pressure_map_value(targ_map, trq_percent);
+    float trq_percent = (float)(sensor_data->static_torque*100)/(float)this->gb_max_torque;
+    return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {

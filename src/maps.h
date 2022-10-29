@@ -1,6 +1,5 @@
 #ifndef __MAP_H_
 #define __MAP_H_
-
 /*
 
     This file contains default map data for all profiles
@@ -13,7 +12,6 @@
 */
 
 #include <stdint.h>
-
 #define SHIFT_MAP_SIZE 44
 
 /** All values for the following maps are in input shaft RPM **/
@@ -129,10 +127,24 @@ extern int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 #define MAP_NAME_FILL_TIME_LARGE "FILL_T_LARGE"
 extern int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 
-// -- TCC maps --
+// -- PWM maps --
 
 #define TCC_PWM_MAP_SIZE 7*5 // 5 temp positions, 7 pressure readings
 #define MAP_NAME_TCC_PWM "TCC_PWM"
 extern int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE];
+
+#define PCS_CURRENT_MAP_SIZE 8*4
+#define MAP_NAME_PCS_BROWN "PCS_BROWN"
+extern int16_t BROWN_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE];
+#define MAP_NAME_PCS_BLUE "PCS_BLUE"
+extern int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE];
+
+
+// -- Hold phase pressures --
+#define FILL_PRESSURE_MAP_SIZE 5 // 5 clutches
+#define MAP_NAME_FILL_PRESSURE_LARGE "FILL_PRESS_L"
+extern int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
+#define MAP_NAME_FILL_PRESSURE_SMALL "FILL_PRESS_S"
+extern int16_t SMALL_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
 
 #endif

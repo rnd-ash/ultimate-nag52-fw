@@ -218,7 +218,7 @@ int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
          820, 400, 180, 120  // B2 brake
 };
 
-extern int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = {
+int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
  /*         TCC PRESSURE (mBar)              */   
  /* 0   2000  4000  5000  7500  10000  15000 */
     0,   480,  960, 1280, 1920,  2560,  4096, // 0C
@@ -226,4 +226,33 @@ extern int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = {
     0,   640, 1120, 1280, 1920,  2560,  4096, // 60C
     0,   640, 1120, 1280, 1920,  2560,  4096, // 90C
     0,   640, 1120, 1280, 1920,  2560,  4096, // 120C
+};
+
+int16_t BROWN_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = { // values are in mA
+    /*      mBar                                    */
+    /* 0    50    600  1000  2350  5600  6600  7700 */
+    1300, 1100, 1085,  954,  700,  450,  350, 200, // -25C
+    1277, 1077,  925,  830,  675,  415,  320,   0, //  20C
+    1200, 1000,  835,  780,  650,  400,  288,   0, //  60C
+    1175,  975,  795,  745,  625,  370,  260,   0  // 150C
+};
+
+int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
+    /*               0    50    600  1000  2350  5600  6600  7700 <- mBar */
+    /* -25C */     1300, 1100, 1085,  954,  700,  450,  350, 200,
+    /*  20C */     1277, 1077,  925,  830,  675,  415,  320,   0,
+    /*  60C */     1200, 1000,  835,  780,  650,  400,  288,   0,
+    /* 150C */     1175,  975,  795,  745,  625,  370,  260,   0
+};
+
+int16_t SMALL_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
+    /* Clutch                    */
+   /* K1    K2    K3    B1    B2 */
+    1200, 1400, 1300, 1200, 1400
+};
+
+int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
+    /* Clutch                    */
+   /* K1    K2    K3    B1    B2 */
+    1200, 1400, 1300, 1200, 1400
 };

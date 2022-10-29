@@ -77,7 +77,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure Hold 2 time map **/
     int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
     int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
-    hold2_time_map = new TcmMap(5, 4, hold2_x_headers, hold2_y_headers);
+    hold2_time_map = new TcmMap(4, 5, hold2_x_headers, hold2_y_headers);
     if (!this->hold2_time_map->allocate_ok()) {
         this->hold2_time_map = nullptr;
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of fill time map failed!");

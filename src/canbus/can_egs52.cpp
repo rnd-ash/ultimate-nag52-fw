@@ -370,6 +370,27 @@ uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
+TransferCaseState Egs52Can::get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
+    VG_428 vg428;
+    if (this->misc_ecu.get_VG_428(now, expire_time_ms, &vg428)) {
+        switch (vg428.get_VG_GANG()) {
+            case VG_428h_VG_GANG::HI:
+                return TransferCaseState::Hi;
+            case VG_428h_VG_GANG::LO:
+                return TransferCaseState::Low;
+            case VG_428h_VG_GANG::N:
+                return TransferCaseState::Neither;
+            case VG_428h_VG_GANG::SH_IPG:
+                return TransferCaseState::Switching;
+            case VG_428h_VG_GANG::SNV:
+            default:
+                return TransferCaseState::SNA;
+        }
+    } else {
+        return TransferCaseState::SNA;
+    }
+}
+
 void Egs52Can::set_clutch_status(ClutchStatus status) {
     switch(status) {
         case ClutchStatus::Open:
@@ -1059,6 +1080,8 @@ void Egs52Can::rx_task_loop() {
                                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
+                    } else if (rx.identifier == 0x428) {
+                        ESP_LOGI("CAN", "Found CAN from Transfer case! [%02X %02X]", rx.data[0], rx.data[1]);
                     } else if (rx.identifier > 0x780) {
                         ESP_LOGI("CAN", "Diag msg 0x%04X [%02X %02X %02X %02X %02X %02X %02X %02X]",
                             rx.identifier,

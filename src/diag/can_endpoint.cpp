@@ -219,7 +219,7 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
 }
 
 void CanEndpoint::process_flow_control(DiagCanMessage msg) {
-    ESP_LOGI("CAN_ENDPOINT", "FC Received! BS %d STMIN %d", msg[1], msg[2]);
+    //ESP_LOGI("CAN_ENDPOINT", "FC Received! BS %d STMIN %d", msg[1], msg[2]);
     if (msg[0] == 0x30 && this->is_sending) {
         this->clear_to_send = true;
         this->tx_bs = msg[1];

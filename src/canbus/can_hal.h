@@ -80,6 +80,14 @@ enum class ClutchStatus: uint8_t {
     Closed
 };
 
+enum class TransferCaseState: uint8_t {
+    Hi, // High range
+    Low, // Low range
+    Neither, // Neutral
+    Switching, // Switching in progress
+    SNA = 0xFF, // Error
+};
+ 
 enum class GearboxProfile: uint8_t {
     // Comfort (C)
     Comfort,
@@ -227,6 +235,10 @@ class AbstractCan {
         // Gets status of terminal 15
         virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
             return TerminalStatus::On; // Enabled by default unless implemented
+        }
+
+        virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
+            return TransferCaseState::SNA;
         }
 
         /**

@@ -1042,6 +1042,30 @@ bool Gearbox::calc_output_rpm(uint16_t* dest, uint64_t now) {
     }
     rpm *= this->diff_ratio_f;
     rpm /= 2;
+
+    // Car is 4Matic, but only calcualte extra if it is not a 1:1 4Matic.
+    // Cars tend to be always 1:1 (Simple 4WD), but vehicles like G-Wagon / Sprinter will have a variable transfer case
+    if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000)) {
+        switch (egs_can_hal->get_transfer_case_state(now, 500)) {
+            case TransferCaseState::Hi:
+                rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio)/1000.0);
+                break;
+            case TransferCaseState::Low:
+                rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio)/1000.0);
+                break;
+            case TransferCaseState::Neither:
+                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is in Neutral!");
+                return false;
+            case TransferCaseState::Switching:
+                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is switching!");
+                return false;
+            case TransferCaseState::SNA:
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "No signal from VG! Cannot read output rpm");
+                return false;
+        }
+        return false;
+    }
+
     *dest = rpm;
     return true;
 }

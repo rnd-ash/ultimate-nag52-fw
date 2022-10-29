@@ -3,8 +3,9 @@
 #include <gearbox_config.h>
 
 #ifdef EGS52_MODE
+
 #include "can_hal.h"
-#include "ANY_ECU.h"
+#include "ANY_ECU52.h"
 #include "ESP_SBC.h"
 #include "EWM.h"
 #include "GS.h"
@@ -62,6 +63,7 @@ class Egs52Can: public AbstractCan {
         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
         TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
+        TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters

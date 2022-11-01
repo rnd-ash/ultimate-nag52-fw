@@ -29,6 +29,13 @@ public:
 
 
     float get_value(float x_value, float y_value);
+
+    /**
+     * @brief Returns pointer to the current stored map data
+     * 
+     * @return int16_t* 
+     */
+    int16_t* get_current_data();
 private:
     int16_t* data;
     int16_t* x_headers;

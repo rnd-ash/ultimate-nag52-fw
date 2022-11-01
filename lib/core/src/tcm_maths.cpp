@@ -163,3 +163,7 @@ float TcmMap::get_value(float x_value, float y_value) {
     return 0;
 
 }
+
+int16_t* TcmMap::get_current_data() {
+    return this->data;
+}

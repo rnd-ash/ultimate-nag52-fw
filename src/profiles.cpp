@@ -30,48 +30,41 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     this->def_upshift_data_petrol = def_upshift_data_petrol;
     this->def_downshift_data_petrol = def_downshift_data_petrol;
 
-
-    this->upshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, upshift_y_headers);
-    this->downshift_table = new TcmMap(SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, shift_table_x_header, downshift_y_headers);
-    int16_t up_map[SHIFT_MAP_SIZE];
-    int16_t down_map[SHIFT_MAP_SIZE];
-    if (!this->upshift_table->allocate_ok() || !this->downshift_table->allocate_ok()) {
-        ESP_LOGE(tag_id, "Upshift/Downshift map allocation failed!");
-        delete this->upshift_table;
-        delete this->downshift_table;
+    const char* key_name;
+    const int16_t* default_map;
+    /** Upshift map **/
+    if (is_diesel) {
+        key_name = upshift_map_name_diesel;
+        default_map = def_upshift_data_diesel;
     } else {
-        if (is_diesel) {
-            EEPROM::read_nvs_map_data(upshift_map_name_diesel, up_map, def_upshift_data_diesel, SHIFT_MAP_SIZE);
-            EEPROM::read_nvs_map_data(downshift_map_name_diesel, down_map, def_downshift_data_diesel, SHIFT_MAP_SIZE);
-        } else {
-            EEPROM::read_nvs_map_data(upshift_map_name_petrol, up_map, def_upshift_data_petrol, SHIFT_MAP_SIZE);
-            EEPROM::read_nvs_map_data(downshift_map_name_petrol, down_map, def_downshift_data_petrol, SHIFT_MAP_SIZE);
-        }
-        if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
-            ESP_LOGI(tag_id, "Upshift and downshift maps loaded OK!");
-        } else {
-            ESP_LOGE(tag_id, "Upshift/Downshift map data add failed!");
-            delete this->upshift_table;
-            delete this->downshift_table;
-        }
+        key_name = upshift_map_name_petrol;
+        default_map = def_upshift_data_petrol;
+    }
+    this->upshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
+    if (!this->upshift_table->init_ok()) {
+        delete[] this->upshift_table;
+    }
+
+    /** Downshift map **/
+    if (is_diesel) {
+        key_name = downshift_map_name_diesel;
+        default_map = def_downshift_data_diesel;
+    } else {
+        key_name = downshift_map_name_petrol;
+        default_map = def_downshift_data_petrol;
+    }
+    this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
+    if (!this->downshift_table->init_ok()) {
+        delete[] this->downshift_table;
     }
 }
 
 void AbstractProfile::reload_data() {
-    if (this->upshift_table == nullptr || this->downshift_table == nullptr) {
-        return;
+    if (this->upshift_table) {
+        this->upshift_table->reload_from_eeprom();
     }
-    int16_t up_map[SHIFT_MAP_SIZE];
-    int16_t down_map[SHIFT_MAP_SIZE];
-    if (is_diesel) {
-        EEPROM::read_nvs_map_data(upshift_map_name_diesel, up_map, def_upshift_data_diesel, SHIFT_MAP_SIZE);
-        EEPROM::read_nvs_map_data(downshift_map_name_diesel, down_map, def_downshift_data_diesel, SHIFT_MAP_SIZE);
-    } else {
-        EEPROM::read_nvs_map_data(upshift_map_name_petrol, up_map, def_upshift_data_petrol, SHIFT_MAP_SIZE);
-        EEPROM::read_nvs_map_data(downshift_map_name_petrol, down_map, def_downshift_data_petrol, SHIFT_MAP_SIZE);
-    }
-    if (this->upshift_table->add_data(up_map, SHIFT_MAP_SIZE) && this->downshift_table->add_data(down_map, SHIFT_MAP_SIZE)) {
-        ESP_LOGI(tag_id, "Upshift and downshift maps re-loaded OK!");
+    if (this->downshift_table) {
+        this->downshift_table->reload_from_eeprom();
     }
 }
 

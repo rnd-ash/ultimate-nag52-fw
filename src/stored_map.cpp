@@ -4,11 +4,46 @@
 StoredTcuMap::StoredTcuMap(
     const char* eeprom_key_name,
     const uint16_t map_size,
-    int16_t* x_headers,
-    int16_t* y_headers,
+    const int16_t* x_headers,
+    const int16_t* y_headers,
+    int16_t x_size,
+    int16_t y_size,
     const int16_t* default_map
 ) {
+    this->internal = nullptr;
+    if (x_size*y_size != map_size) {
+        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Map size is, but X and Y headers (%d,%d) make %d elements!", eeprom_key_name, x_size, y_size, x_size*y_size);
+        return;
+    }
+    this->internal = new TcmMap(x_size, y_size, static_cast<const int16_t*>(x_headers), static_cast<const int16_t*>(y_headers));
+    if (!this->internal->allocate_ok()) {
+        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
+        delete this->internal;
+        return;
+    }
+    int16_t* dest = (int16_t*)malloc(map_size*sizeof(int16_t));
+    if (dest == nullptr) {
+        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! malloc allocation failed!", eeprom_key_name);
+        delete this->internal;
+        return;
+    }
 
+    if (!EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, map_size)) {
+        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! EEPROM Read NVS map failed!", eeprom_key_name);
+        delete this->internal;
+        delete[] dest;
+        return;
+    }
+
+    if (!this->internal->add_data(dest, map_size)) {
+        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Map add data failed!", eeprom_key_name);
+        delete this->internal;
+        delete[] dest;
+        return;
+    }
+    // Everything OK!
+    this->map_name = eeprom_key_name;
+    this->map_size = map_size;
 }
 
 bool StoredTcuMap::init_ok() {
@@ -67,7 +102,10 @@ bool StoredTcuMap::read_from_eeprom(const char* key_name, uint16_t expected_size
     }
     if (!EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size)) {
         ESP_LOGE("STO_MAP", "Read from eeprom failed (read_nvs_map_data failed)");
+        delete[] dest;
         return false;
     }
-    return this->internal->add_data(dest, expected_size);
+    bool ret = this->internal->add_data(dest, expected_size);
+    delete[] dest;
+    return ret;
 }

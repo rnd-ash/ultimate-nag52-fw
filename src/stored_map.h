@@ -10,8 +10,10 @@ class StoredTcuMap {
         StoredTcuMap(
             const char* eeprom_key_name,
             const uint16_t map_size,
-            int16_t* x_headers,
-            int16_t* y_headers,
+            const int16_t* x_headers,
+            const int16_t* y_headers,
+            int16_t x_size,
+            int16_t y_size,
             const int16_t* default_map
         );
 

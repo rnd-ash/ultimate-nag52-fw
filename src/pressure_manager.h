@@ -7,6 +7,7 @@
 #include "adaptation/adapt_map.h"
 #include <gearbox_config.h>
 #include "nvs/eeprom_config.h"
+#include "stored_map.h"
 
 // Shift phase IDs
 
@@ -136,10 +137,14 @@ private:
     uint16_t req_mpc_pressure;
     uint16_t req_current_spc;
     uint16_t req_current_mpc;
-    TcmMap* pressure_pwm_map;
-    TcmMap* tcc_pwm_map;
-    TcmMap* mpc_working_pressure;
-    TcmMap* hold2_time_map;
+    StoredTcuMap* pressure_pwm_map;
+    StoredTcuMap* tcc_pwm_map;
+    StoredTcuMap* mpc_working_pressure;
+    StoredTcuMap* hold2_time_map;
+    //TcmMap* pressure_pwm_map;
+    //TcmMap* tcc_pwm_map;
+    //TcmMap* mpc_working_pressure;
+    //TcmMap* hold2_time_map;
     uint16_t gb_max_torque;
 
 

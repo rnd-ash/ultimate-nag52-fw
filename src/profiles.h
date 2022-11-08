@@ -5,7 +5,7 @@
 
 #include "canbus/can_hal.h"
 #include "common_structs.h"
-#include "tcm_maths.h"
+#include "stored_map.h"
 
 #define MAX_PROFILES 4
 
@@ -46,10 +46,10 @@ public:
     virtual ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) = 0;
     virtual TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) = 0;
 
-    TcmMap* get_upshift_map() {
+    StoredTcuMap* get_upshift_map() {
         return this->upshift_table;
     }
-    TcmMap* get_downshift_map() {
+    StoredTcuMap* get_downshift_map() {
         return this->downshift_table;
     }
     virtual GearboxGear get_start_gear() const {
@@ -65,8 +65,8 @@ public:
     void reload_data();
 protected:
     uint8_t profile_id = 0;
-    TcmMap* upshift_table = nullptr;
-    TcmMap* downshift_table = nullptr;
+    StoredTcuMap* upshift_table = nullptr;
+    StoredTcuMap* downshift_table = nullptr;
 private:
     bool is_diesel; 
     const char* tag_id; 

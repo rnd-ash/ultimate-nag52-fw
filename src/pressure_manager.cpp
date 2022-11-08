@@ -27,96 +27,59 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->req_current_spc = 0;
     this->gb_max_torque = max_torque;
     bool res;
+
+    // For loading maps
+    const char* key_name;
+    const int16_t* default_data;
+
     /** Pressure PWM map **/
-
-    int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
-    int16_t pwm_y_headers[4] = {-25, 20, 60, 150}; 
-
-    pressure_pwm_map = new TcmMap(8, 4, pwm_x_headers, pwm_y_headers);
-
-    if (!this->pressure_pwm_map->allocate_ok()) {
-        this->pressure_pwm_map = nullptr;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of pressure pwm map failed!");
-        return;
+    const int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
+    const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
+    key_name = MAP_NAME_PCS_BROWN;
+    default_data = BROWN_PCS_CURRENT_MAP;
+    this->pressure_pwm_map = new StoredTcuMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
+    if (!this->pressure_pwm_map->init_ok()) {
+        delete[] this->pressure_pwm_map;
     }
-    // Allocation OK, add the data to the map
-    // Values are current (mA) for SPC and MPC solenoid
-    int16_t pcs_current_map[8*4] = {
-    /*               0    50    600  1000  2350  5600  6600  7700 <- mBar */
-    /* -25C */     1300, 1100, 1085,  954,  700,  450,  350, 200,
-    /*  20C */     1277, 1077,  925,  830,  675,  415,  320,   0,
-    /*  60C */     1200, 1000,  835,  780,  650,  400,  288,   0,
-    /* 150C */     1175,  975,  795,  745,  625,  370,  260,   0
-    };
-    
-    pressure_pwm_map->add_data(pcs_current_map, 8*4);
 
     /** Pressure PWM map (TCC) **/
-
-    int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
-    int16_t pwm_tcc_y_headers[5] = {-25, 20, 60, 150}; 
-
-    tcc_pwm_map = new TcmMap(7, 5, pwm_tcc_x_headers, pwm_tcc_y_headers);
-
-    if (!this->tcc_pwm_map->allocate_ok()) {
-        this->tcc_pwm_map = nullptr;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of TCC pressure pwm map failed!");
-        return;
+    const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
+    const int16_t pwm_tcc_y_headers[5] = {-25, 20, 60, 150}; 
+    key_name = MAP_NAME_TCC_PWM;
+    default_data = TCC_PWM_MAP;
+    tcc_pwm_map = new StoredTcuMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
+    if (!this->tcc_pwm_map->init_ok()) {
+        delete[] this->tcc_pwm_map;
     }
-    
-    int16_t tc_pwm_map[7*5];
-    res = EEPROM::read_nvs_map_data(MAP_NAME_TCC_PWM, tc_pwm_map,  TCC_PWM_MAP, TCC_PWM_MAP_SIZE);
-    if (!res) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of TCC PWM map failed!");
-    } else if (!this->tcc_pwm_map->add_data(tc_pwm_map, FILL_TIME_MAP_SIZE)) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of fill time map failed!");
-        delete this->tcc_pwm_map;
-    }
-
 
     /** Pressure Hold 2 time map **/
-    int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
-    int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
-    hold2_time_map = new TcmMap(4, 5, hold2_x_headers, hold2_y_headers);
-    if (!this->hold2_time_map->allocate_ok()) {
-        this->hold2_time_map = nullptr;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of fill time map failed!");
-    } else {
-        int16_t hold2_map[5*4];
-        if (VEHICLE_CONFIG.is_large_nag) { // Large
-            res = EEPROM::read_nvs_map_data(MAP_NAME_FILL_TIME_LARGE, hold2_map,  LARGE_NAG_FILL_TIME_MAP, FILL_TIME_MAP_SIZE);
-        } else { // Small
-            res = EEPROM::read_nvs_map_data(MAP_NAME_FILL_TIME_SMALL, hold2_map,  SMALL_NAG_FILL_TIME_MAP, FILL_TIME_MAP_SIZE);
-        }
-        if (!res) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of fill time map failed!");
-        } else if (!this->hold2_time_map->add_data(hold2_map, FILL_TIME_MAP_SIZE)) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of fill time map failed!");
-            delete this->hold2_time_map;
-        }
+    const int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
+    const int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
+    if (VEHICLE_CONFIG.is_large_nag) { // Large
+        key_name = MAP_NAME_FILL_TIME_LARGE;
+        default_data = LARGE_NAG_FILL_TIME_MAP;
+    } else { // Small
+        key_name = MAP_NAME_FILL_TIME_SMALL;
+        default_data = SMALL_NAG_FILL_TIME_MAP;
+    }
+    hold2_time_map = new StoredTcuMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
+    if (!this->hold2_time_map->init_ok()) {
+        delete[] this->hold2_time_map;
     }
 
-    // Allocate working pressure map
-    int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-    int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    this->mpc_working_pressure = new TcmMap(11, 7, wp_x_headers, wp_y_headers);
-    if (!this->mpc_working_pressure->allocate_ok()) {
-        this->mpc_working_pressure = nullptr;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Allocation of MPC working map failed!");
-        return;
-    } else {
-        int16_t dest[WORKING_PRESSURE_MAP_SIZE];
-        if (VEHICLE_CONFIG.is_large_nag) { // Large
-            res = EEPROM::read_nvs_map_data(MAP_NAME_WORKING_LARGE, dest,  LARGE_NAG_WORKING_MAP, WORKING_PRESSURE_MAP_SIZE);
-        } else { // Small
-            res = EEPROM::read_nvs_map_data(MAP_NAME_WORKING_SMALL, dest,  SMALL_NAG_WORKING_MAP, WORKING_PRESSURE_MAP_SIZE);
-        }
-        if (!res) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Read of pressure pwm map failed!");
-        } else if (!this->mpc_working_pressure->add_data(dest, WORKING_PRESSURE_MAP_SIZE)) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "PM", "Insert of pressure pwm map failed!");
-            delete this->mpc_working_pressure;
-        }
+    /** Working pressure map **/
+    const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
+    if (VEHICLE_CONFIG.is_large_nag) { // Large
+        key_name = MAP_NAME_WORKING_LARGE;
+        default_data = LARGE_NAG_WORKING_MAP;
+    } else { // Small
+        key_name = MAP_NAME_WORKING_SMALL;
+        default_data = SMALL_NAG_WORKING_MAP;
+    }
+    this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
+    if (!this->mpc_working_pressure->init_ok()) {
+        delete[] this->mpc_working_pressure;
     }
 }
 
@@ -345,7 +308,7 @@ void PressureManager::make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, Shif
 
     dest->spc_pressure = prev->spc_pressure+spc_addr;
     //dest->mpc_pressure = scale_number(sensor_data->static_torque, dest->spc_pressure*0.9, 900, 0, gb_max_torque);
-    dest->mpc_pressure = scale_number(sensor_data->static_torque, get_clutch_fill_pressure(get_clutch_to_release(change)), 900, 0, gb_max_torque);
+    dest->mpc_pressure = dest->spc_pressure*0.9;
 }
 
 void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {

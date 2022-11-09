@@ -21,24 +21,9 @@ StoredTcuMap::StoredTcuMap(
         delete this->internal;
         return;
     }
-    int16_t* dest = (int16_t*)malloc(map_size*sizeof(int16_t));
-    if (dest == nullptr) {
-        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! malloc allocation failed!", eeprom_key_name);
-        delete this->internal;
-        return;
-    }
 
-    if (!EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, map_size)) {
-        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! EEPROM Read NVS map failed!", eeprom_key_name);
+    if (!this->read_from_eeprom(eeprom_key_name, map_size)) {
         delete this->internal;
-        delete[] dest;
-        return;
-    }
-
-    if (!this->internal->add_data(dest, map_size)) {
-        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Map add data failed!", eeprom_key_name);
-        delete this->internal;
-        delete[] dest;
         return;
     }
     // Everything OK!
@@ -65,10 +50,10 @@ bool StoredTcuMap::save_to_eeprom() {
 bool StoredTcuMap::replace_map_content(int16_t* new_data, uint16_t content_len) {
     if (content_len != this->map_size) {
         ESP_LOGE("STO_MAP", "replace_map_content failed! New data has invalid size of %d. Map should have %d entries", content_len, this->map_size);
+        return false;
     } else {
         return this->internal->add_data(new_data, this->map_size);
     }
-    return false;
 }
 
 /**
@@ -108,4 +93,16 @@ bool StoredTcuMap::read_from_eeprom(const char* key_name, uint16_t expected_size
     bool ret = this->internal->add_data(dest, expected_size);
     delete[] dest;
     return ret;
+}
+
+uint16_t StoredTcuMap::get_map_element_count() {
+    return this->map_size;
+}
+
+const int16_t* StoredTcuMap::get_default_map_data() {
+    return this->default_map;
+}
+
+int16_t* StoredTcuMap::get_current_map_data() {
+    return this->internal->get_current_data();
 }

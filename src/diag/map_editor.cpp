@@ -5,149 +5,96 @@
 #include "string.h"
 #include "../speaker.h"
 #include "../profiles.h"
+#include "../pressure_manager.h"
 
-const char* map_id_to_name(uint8_t map_id) {
+StoredTcuMap* get_map(uint8_t map_id) {
     switch(map_id) {
-        case MAP_ID_S_DIESEL_UPSHIFT:
-            return MAP_NAME_S_DIESEL_UPSHIFT;
-        case MAP_ID_S_DIESEL_DOWNSHIFT:
-            return MAP_NAME_S_DIESEL_DOWNSHIFT;
-        case MAP_ID_S_PETROL_UPSHIFT:
-            return MAP_NAME_S_PETROL_UPSHIFT;
-        case MAP_ID_S_PETROL_DOWNSHIFT:
-            return MAP_NAME_S_PETROL_DOWNSHIFT;
-        case MAP_ID_C_DIESEL_UPSHIFT:
-            return MAP_NAME_C_DIESEL_UPSHIFT;
-        case MAP_ID_C_DIESEL_DOWNSHIFT:
-            return MAP_NAME_C_DIESEL_DOWNSHIFT;
-        case MAP_ID_C_PETROL_UPSHIFT:
-            return MAP_NAME_C_PETROL_UPSHIFT;
-        case MAP_ID_C_PETROL_DOWNSHIFT:
-            return MAP_NAME_C_PETROL_DOWNSHIFT;
-        case MAP_ID_A_DIESEL_UPSHIFT:
-            return MAP_NAME_A_DIESEL_UPSHIFT;
-        case MAP_ID_A_DIESEL_DOWNSHIFT:
-            return MAP_NAME_A_DIESEL_DOWNSHIFT;
-        case MAP_ID_A_PETROL_UPSHIFT:
-            return MAP_NAME_A_PETROL_UPSHIFT;
-        case MAP_ID_A_PETROL_DOWNSHIFT:
-            return MAP_NAME_A_PETROL_DOWNSHIFT; 
+        case A_UPSHIFT_MAP_ID:
+            return agility->get_upshift_map();
+        case C_UPSHIFT_MAP_ID:
+            return comfort->get_upshift_map();
+        case S_UPSHIFT_MAP_ID:
+            return standard->get_upshift_map();
+        case A_DOWNSHIFT_MAP_ID:
+            return agility->get_downshift_map();
+        case C_DOWNSHIFT_MAP_ID:
+            return comfort->get_downshift_map();
+        case S_DOWNSHIFT_MAP_ID:
+            return standard->get_downshift_map();
+        case WORKING_PRESSURE_MAP_ID:
+            return pressure_manager->get_working_map();
+        case PCS_CURRENT_MAP_ID:
+            return pressure_manager->get_pcs_map();
+        case TCC_PWM_MAP_ID:
+            return pressure_manager->get_tcc_pwm_map();
+        case FILL_TIME_MAP_ID:
+            return pressure_manager->get_fill_time_map();
+        case FILL_PRESSURE_MAP_ID:
+            return pressure_manager->get_fill_time_map();
         default:
             return nullptr;
     }
 }
 
-const int16_t* get_default_map(uint8_t map_id) {
-    switch(map_id) {
-        case MAP_ID_S_DIESEL_UPSHIFT:
-            return S_DIESEL_UPSHIFT_MAP;
-        case MAP_ID_S_DIESEL_DOWNSHIFT:
-            return S_DIESEL_DOWNSHIFT_MAP;
-        case MAP_ID_S_PETROL_UPSHIFT:
-            return S_PETROL_UPSHIFT_MAP;
-        case MAP_ID_S_PETROL_DOWNSHIFT:
-            return S_PETROL_DOWNSHIFT_MAP;
-        case MAP_ID_C_DIESEL_UPSHIFT:
-            return C_DIESEL_UPSHIFT_MAP;
-        case MAP_ID_C_DIESEL_DOWNSHIFT:
-            return C_DIESEL_DOWNSHIFT_MAP;
-        case MAP_ID_C_PETROL_UPSHIFT:
-            return C_PETROL_UPSHIFT_MAP;
-        case MAP_ID_C_PETROL_DOWNSHIFT:
-            return C_PETROL_DOWNSHIFT_MAP;
-        case MAP_ID_A_DIESEL_UPSHIFT:
-            return A_DIESEL_UPSHIFT_MAP;
-        case MAP_ID_A_DIESEL_DOWNSHIFT:
-            return A_DIESEL_DOWNSHIFT_MAP;
-        case MAP_ID_A_PETROL_UPSHIFT:
-            return A_PETROL_UPSHIFT_MAP;
-        case MAP_ID_A_PETROL_DOWNSHIFT:
-            return A_PETROL_DOWNSHIFT_MAP;
-        default:
-            return nullptr;
+#define CHECK_MAP(map_id) \
+    StoredTcuMap* ptr = get_map(map_id); \
+    if (ptr == nullptr) { \
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
-}
 
-uint8_t MapEditor::read_map_data(uint8_t map_id, uint16_t *dest_size, int16_t** buffer) {
-    uint8_t map_idx = map_id & 0b1111111;
-    bool is_default_map = (map_id & 0b10000000) != 0;
-    if (map_idx >= 0x01 && map_idx <= 0x0C) {
-        // Shift map
-        int16_t* b = (int16_t*)heap_caps_malloc(SHIFT_MAP_SIZE*sizeof(int16_t), MALLOC_CAP_SPIRAM);
-        if (b == nullptr) {
-            ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
-            return NRC_GENERAL_REJECT;
-        }
-        if (is_default_map) {
-            // Read default map from flash
-            const int16_t* default_map = get_default_map(map_idx);
-            if (default_map == nullptr) {
-                ESP_LOGE("MAP_EDITOR_R", "default map is invalid!?");
-                delete b;
-                return NRC_GENERAL_REJECT;
-            }
-            memcpy(b, default_map, SHIFT_MAP_SIZE*sizeof(int16_t));
-            *buffer = b;
-            *dest_size = SHIFT_MAP_SIZE*sizeof(int16_t);
-            return 0;
-        } else {
-            const char* name = map_id_to_name(map_idx);
-            if (name == nullptr) {
-                ESP_LOGE("MAP_EDITOR_R", "map name is null!?");
-                delete b;
-                return NRC_GENERAL_REJECT;
-            }
-            if (EEPROM::read_nvs_map_data(name, b, nullptr, SHIFT_MAP_SIZE)) {
-                // OK, copy the pointer
-                *buffer = b;
-                *dest_size = SHIFT_MAP_SIZE*sizeof(int16_t);
-                return 0;
-            } else {
-                // De-allocate
-                ESP_LOGE("MAP_EDITOR_R", "read_nvs_map_data failed!");
-                delete b;
-                return NRC_GENERAL_REJECT;
-            }
-        }
+uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest_size, int16_t** buffer) {
+    CHECK_MAP(map_id)
+    // Map valid
+    int size = ptr->get_map_element_count();
+    int16_t* b = (int16_t*)heap_caps_malloc(size*sizeof(int16_t), MALLOC_CAP_SPIRAM);
+    if (b == nullptr) {
+        ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
+        return NRC_GENERAL_REJECT;
+    }
+    const int16_t* data;
+    if (is_default) {
+        data = ptr->get_default_map_data();
     } else {
-        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+        data = (const int16_t*)ptr->get_current_map_data();
     }
+    memcpy(b, data, size*sizeof(int16_t));
+    *buffer = b;
+    *dest_size = size*sizeof(int16_t);
+    return 0;
 }
     
 uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
-    if (map_id >= 0x01 && map_id <= 0x0C) {
-        const char* name = map_id_to_name(map_id);
-        if (name == nullptr) {
-            ESP_LOGE("MAP_EDITOR_W", "map name is null!?");
-            return NRC_GENERAL_REJECT;
-        }
-        if (dest_size != SHIFT_MAP_SIZE*sizeof(int16_t)) {
-            ESP_LOGE("MAP_EDITOR_W", "Buffer has %d bytes. Shift map needs %d bytes", dest_size, sizeof(int16_t)*SHIFT_MAP_SIZE);
-            return NRC_GENERAL_REJECT;
-        }
-        if (EEPROM::write_nvs_map_data(name, buffer, SHIFT_MAP_SIZE)) {
-            spkr.send_note(1500, 300, 310);
-
-            return 0;
-        } else {
-            ESP_LOGE("MAP_EDITOR_W", "write_nvs_map_data failed!");
-            return NRC_GENERAL_REJECT;
-        }
-    }  else {
-        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    CHECK_MAP(map_id)
+    if (ptr->replace_map_content(buffer, dest_size)) {
+        return 0;
+    } else {
+        return NRC_GENERAL_REJECT;
     }
 }
 
-uint8_t MapEditor::trigger_reload(uint8_t prof_id) {
-    uint8_t ret = 0;
-    if (prof_id == standard->get_profile_id()) {
-        standard->reload_data();
-    } else if (prof_id == comfort->get_profile_id()) {
-        comfort->reload_data();
-    } else if (prof_id == agility->get_profile_id()) {
-        agility->reload_data();
+uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
+    CHECK_MAP(map_id)
+    if (ptr->save_to_eeprom()) {
+        return 0;
     } else {
-        ret = NRC_REQUEST_OUT_OF_RANGE;
+        return NRC_GENERAL_REJECT;
     }
-    return ret;
+}
+
+uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
+    CHECK_MAP(map_id)
+    if (ptr->reload_from_eeprom() && ptr->save_to_eeprom()) {
+        return 0;
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
+}
+
+uint8_t MapEditor::undo_changes(uint8_t map_id) {
+    CHECK_MAP(map_id)
+    if (ptr->reload_from_eeprom()) {
+        return 0;
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
 }

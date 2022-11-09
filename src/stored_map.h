@@ -44,6 +44,12 @@ class StoredTcuMap {
 
         // See TcmMap.cpp
         float get_value(float x_value, float y_value);
+
+        uint16_t get_map_element_count();
+
+        const int16_t* get_default_map_data();
+        int16_t* get_current_map_data();
+
     private:
         TcmMap* internal;
         const char* map_name;

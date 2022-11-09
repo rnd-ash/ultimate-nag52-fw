@@ -372,3 +372,10 @@ uint16_t PressureManager::get_targ_spc_pressure(){ return this->req_spc_pressure
 uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure; }
 uint16_t PressureManager::get_targ_spc_current(){ return this->req_current_spc; }
 uint16_t PressureManager::get_targ_mpc_current(){ return this->req_current_mpc; }
+
+StoredTcuMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
+StoredTcuMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
+StoredTcuMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
+StoredTcuMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
+
+PressureManager* pressure_manager = nullptr;

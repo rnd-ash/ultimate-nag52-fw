@@ -449,26 +449,42 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
     } else if (args[0] == RLI_MAP_EDITOR) {
-        // We need 2 args for this. 
-        if (arg_len != 2) {
-            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-            return;
-        }
-        int16_t* read_buf = nullptr;
-        uint16_t dest_size = 0;
-        uint8_t ret = MapEditor::read_map_data(args[1], &dest_size, &read_buf);
-        if (ret == 0) { // OK
-            uint8_t* buf = new uint8_t[2+dest_size];
-            buf[0] = dest_size >> 8;
-            buf[1] = dest_size & 0xFF;
-            memcpy(&buf[2], read_buf, dest_size);
-            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+dest_size);
-            delete read_buf; // DELETE MapEditor allocation
-            return;
-        } else {
-            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
-            return;
-        }
+            // 0 - RLI
+            // 1 - Map ID
+            // 2 - CMD
+            // 3-4 - Arg len
+            // 5..n - Data
+            if (arg_len < 5) {
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            uint8_t map_id = args[1];
+            uint8_t cmd = args[2];
+            uint16_t map_len_bytes = args[3] << 8 | args[4];
+            if (arg_len-5 != map_len_bytes) {
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            uint8_t ret;
+            int16_t* buffer = nullptr;
+            uint16_t size = 0;
+            if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT) {
+                ret = MapEditor::read_map_data(map_id, cmd == MAP_CMD_READ_DEFAULT, &size, &buffer);
+            } else {
+                ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+            }
+            if (ret == 0) { // OK
+                uint8_t* buf = new uint8_t[2+size];
+                buf[0] = size >> 8;
+                buf[1] = size & 0xFF;
+                memcpy(&buf[2], buffer, size);
+                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+size);
+                delete buffer; // DELETE MapEditor allocation
+                return;
+            } else {
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
+                return;
+            }
 
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
@@ -707,38 +723,39 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
         if (args[0] == RLI_MAP_EDITOR) {
             // 0 - RLI
             // 1 - Map ID
-            // 2-3 - Map data size (Bytes)
-            // 4..n - Map data to write
-            //
-            // OR
-            //
-            // 0 - RLI
-            // 1 - 0xFF - RELOAD
-            // 2- Profile IDx
-            if (arg_len == 3 && args[1] == 0xFF) {
-                uint8_t ret = MapEditor::trigger_reload(args[2]);
-                if (ret != 0x00) {
-                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret); // Error
-                } else {
-                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_MAP_EDITOR, nullptr, 0); // Ok!
-                }
-                return;
-            }
-            if (arg_len < 7) {
+            // 2 - CMD
+            // 3-4 - Arg len
+            // 5..n - Data
+            if (arg_len < 5) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
                 return;
             }
             uint8_t map_id = args[1];
-            uint16_t map_len_bytes = args[2] << 8 | args[3];
-            if (arg_len-4 != map_len_bytes) {
+            uint8_t cmd = args[2];
+            uint16_t map_len_bytes = args[3] << 8 | args[4];
+            if (arg_len-5 != map_len_bytes) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
                 return;
             }
-            uint8_t ret = MapEditor::write_map_data(map_id, map_len_bytes, (int16_t*)&args[4]);
-            if (ret != 0x00) {
-                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret); // Error
+            uint8_t ret;
+            switch (cmd) {
+                case MAP_CMD_WRITE:
+                    ret = MapEditor::write_map_data(map_id, map_len_bytes, (int16_t*)&args[5]);
+                    break;
+                case MAP_CMD_UNDO:
+                    ret = MapEditor::undo_changes(map_id);
+                    break;
+                case MAP_CMD_BURN:
+                    ret = MapEditor::burn_to_eeprom(map_id);
+                    break;
+                default:
+                    ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+                    break;
+            }
+            if (ret == 0) {
+                make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, nullptr, 0);
             } else {
-                make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_MAP_EDITOR, nullptr, 0); // Ok!
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret);
             }
         } else if (args[0] == RLI_TCM_CONFIG) {
             if (arg_len-1 != sizeof(TCM_CORE_CONFIG)) {

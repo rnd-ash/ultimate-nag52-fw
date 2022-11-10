@@ -51,8 +51,8 @@ inline void TcuMap::set_indices(const int16_t value, uint16_t *idx_min, uint16_t
     // Set maximum index to the last element of the field.
     *idx_max = size - 1u;
     // Check, if search value is smaller than smallest element of the field.
-    if (value <= headers[0]){
-        if (value >= headers[*idx_max]){
+    if (value > headers[0]){
+        if (value < headers[*idx_max]){
             // Search value is in between the limits of the smallest and the biggest element of the field.
             do{
                 // Calculate the middle of the remaining list. If the size is odd, it is rounded down.

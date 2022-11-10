@@ -2,7 +2,7 @@
 #define __PRESSURE_MANAGER_H_
 
 #include <common_structs.h>
-#include "tcm_maths.h"
+#include "tcu_maths.h"
 #include "profiles.h"
 #include "adaptation/adapt_map.h"
 #include <gearbox_config.h>

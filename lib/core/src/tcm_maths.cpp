@@ -49,6 +49,16 @@ bool TcmMap::allocate_ok(void) const {
     return this->alloc_ok;
 }
 
+void TcmMap::get_x_headers(uint16_t* dest_size, int16_t** dest) {
+    *dest = this->x_headers;
+    *dest_size = this->x_size;
+}
+
+void TcmMap::get_y_headers(uint16_t* dest_size, int16_t** dest) {
+    *dest = this->y_headers;
+    *dest_size = this->y_size;
+}
+
 /* unused code, thus commented to be compliant with MISRA C 2012*/
 // int16_t* TcmMap::get_row(uint16_t id) {
 //     // return null-pointer, if row is out of range

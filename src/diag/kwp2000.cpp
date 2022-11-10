@@ -466,20 +466,23 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
                 return;
             }
             uint8_t ret;
-            int16_t* buffer = nullptr;
-            uint16_t size = 0;
+            uint8_t* buffer = nullptr;
+            uint16_t read_bytes_size = 0;
             if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT) {
-                ret = MapEditor::read_map_data(map_id, cmd == MAP_CMD_READ_DEFAULT, &size, &buffer);
+                ret = MapEditor::read_map_data(map_id, cmd == MAP_CMD_READ_DEFAULT, &read_bytes_size, &buffer);
+            } else if (cmd == MAP_CMD_READ_META) { 
+                ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
             } else {
                 ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
             }
             if (ret == 0) { // OK
-                uint8_t* buf = new uint8_t[2+size];
-                buf[0] = size >> 8;
-                buf[1] = size & 0xFF;
-                memcpy(&buf[2], buffer, size);
-                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+size);
-                delete buffer; // DELETE MapEditor allocation
+                uint8_t* buf = new uint8_t[2+read_bytes_size];
+                buf[0] = read_bytes_size & 0xFF;
+                buf[1] = read_bytes_size >> 8;
+                memcpy(&buf[2], buffer, read_bytes_size);
+                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
+                delete[] buf;
+                free(buffer); // DELETE MapEditor allocation
                 return;
             } else {
                 make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);

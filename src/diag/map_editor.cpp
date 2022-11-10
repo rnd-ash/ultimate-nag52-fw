@@ -30,7 +30,7 @@ StoredTcuMap* get_map(uint8_t map_id) {
         case FILL_TIME_MAP_ID:
             return pressure_manager->get_fill_time_map();
         case FILL_PRESSURE_MAP_ID:
-            return pressure_manager->get_fill_time_map();
+            return pressure_manager->get_fill_pressure_map();
         default:
             return nullptr;
     }
@@ -42,24 +42,60 @@ StoredTcuMap* get_map(uint8_t map_id) {
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
 
-uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest_size, int16_t** buffer) {
+uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
     // Map valid
     int size = ptr->get_map_element_count();
-    int16_t* b = (int16_t*)heap_caps_malloc(size*sizeof(int16_t), MALLOC_CAP_SPIRAM);
+    uint8_t* b = (uint8_t*)heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM);
     if (b == nullptr) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_GENERAL_REJECT;
     }
-    const int16_t* data;
+    const uint8_t* data;
     if (is_default) {
-        data = ptr->get_default_map_data();
+        data = (const uint8_t*)ptr->get_default_map_data();
     } else {
-        data = (const int16_t*)ptr->get_current_map_data();
+        data = (const uint8_t*)ptr->get_current_map_data();
     }
     memcpy(b, data, size*sizeof(int16_t));
     *buffer = b;
-    *dest_size = size*sizeof(int16_t);
+    ESP_LOGI("R", "Map has %d elements %d bytes", size, size*sizeof(int16_t));
+    *dest_size_bytes = size*sizeof(int16_t);
+    return 0;
+}
+
+uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
+    CHECK_MAP(map_id);
+    // X meta, Y meta, KEY_NAME
+    int16_t* x_ptr;
+    int16_t* y_ptr;
+    const char* k_ptr;
+    uint16_t x_size;
+    uint16_t y_size;
+    uint16_t k_size;
+
+    ptr->get_x_headers(&x_size, &x_ptr);
+    ptr->get_y_headers(&y_size, &y_ptr);
+    k_ptr = ptr->get_map_key_name();
+    k_size = strlen(k_ptr);
+    // 6 bytes for size data
+    uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));
+    uint8_t* b = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+    if (b == nullptr) {
+        ESP_LOGE("MAP_EDITOR_M", "Could not allocate read array!");
+        return NRC_GENERAL_REJECT;
+    }
+    b[1] = x_size >> 8;
+    b[0] = x_size & 0xFF;
+    b[3] = y_size >> 8;
+    b[2] = y_size & 0xFF;
+    b[5] = k_size >> 8;
+    b[4] = k_size & 0xFF;
+    memcpy(&b[6], x_ptr, x_size*sizeof(int16_t));
+    memcpy(&b[6+(x_size*sizeof(int16_t))], y_ptr, y_size*sizeof(int16_t));
+    memcpy(&b[6+((x_size+y_size)*sizeof(int16_t))], k_ptr, k_size);
+    *buffer = b;
+    *dest_size_bytes = size;
     return 0;
 }
     

@@ -9,7 +9,7 @@ class StoredTcuMap {
     public:
         StoredTcuMap(
             const char* eeprom_key_name,
-            const uint16_t map_size,
+            const uint16_t map_element_count,
             const int16_t* x_headers,
             const int16_t* y_headers,
             int16_t x_size,
@@ -50,10 +50,24 @@ class StoredTcuMap {
         const int16_t* get_default_map_data();
         int16_t* get_current_map_data();
 
+        /**
+         * @brief Gets the X headers from the internal map
+         * 
+         */
+        void get_x_headers(uint16_t* dest_size, int16_t** dest);
+
+        /**
+         * @brief Gets the Y headers from the internal map
+         * 
+         */
+        void get_y_headers(uint16_t* dest_size, int16_t** dest);
+
+        const char* get_map_key_name();
+
     private:
         TcmMap* internal;
         const char* map_name;
-        uint16_t map_size;
+        uint16_t map_element_count;
         const int16_t* default_map;
         bool read_from_eeprom(const char* key_name, uint16_t expected_size);
 };

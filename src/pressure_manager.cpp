@@ -67,6 +67,21 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         delete[] this->hold2_time_map;
     }
 
+    /** Pressure Hold 2 pressure map **/
+    const int16_t hold2p_x_headers[1] = {1};
+    const int16_t hold2p_y_headers[5] = {1,2,3,4,5};
+    if (VEHICLE_CONFIG.is_large_nag) { // Large
+        key_name = MAP_NAME_FILL_PRESSURE_LARGE;
+        default_data = LARGE_NAG_FILL_PRESSURE_MAP;
+    } else { // Small
+        key_name = MAP_NAME_FILL_PRESSURE_SMALL;
+        default_data = SMALL_NAG_FILL_PRESSURE_MAP;
+    }
+    hold2_pressure_map = new StoredTcuMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
+    if (!this->hold2_pressure_map->init_ok()) {
+        delete[] this->hold2_pressure_map;
+    }
+
     /** Working pressure map **/
     const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
@@ -377,5 +392,6 @@ StoredTcuMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
 StoredTcuMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
 StoredTcuMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
 StoredTcuMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
+StoredTcuMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
 
 PressureManager* pressure_manager = nullptr;

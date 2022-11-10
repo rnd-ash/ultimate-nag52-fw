@@ -121,6 +121,7 @@ public:
     StoredTcuMap* get_tcc_pwm_map();
     StoredTcuMap* get_working_map();
     StoredTcuMap* get_fill_time_map();
+    StoredTcuMap* get_fill_pressure_map();
 
 private:
      /**
@@ -147,6 +148,7 @@ private:
     StoredTcuMap* tcc_pwm_map;
     StoredTcuMap* mpc_working_pressure;
     StoredTcuMap* hold2_time_map;
+    StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);

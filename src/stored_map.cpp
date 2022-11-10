@@ -18,7 +18,8 @@ StoredTcuMap::StoredTcuMap( const char* eeprom_key_name,
     if ((x_size*y_size) == map_size) {
         int16_t* dest = static_cast<int16_t*>(heap_caps_malloc(map_size*sizeof(int16_t), MALLOC_CAP_SPIRAM));
         if (nullptr != dest) {
-            if (EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, map_size)) {
+            bool read_data_successful = EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, map_size);
+            if (read_data_successful) {
                 bool data_added = this->add_data(dest, map_size);
                 if (data_added) {
                     // Everything OK!
@@ -91,7 +92,8 @@ bool StoredTcuMap::read_from_eeprom(const char* key_name, uint16_t expected_size
     if(mem_is_allocated) {
         int16_t* dest = static_cast<int16_t*>(heap_caps_malloc(expected_size* sizeof(int16_t), MALLOC_CAP_SPIRAM));
         if (dest != nullptr) {
-            if (EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size)) {
+            bool read_map_data_successful =  EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size);
+            if (read_map_data_successful) {
                 ret = this->add_data(dest, expected_size);
             }
             else {

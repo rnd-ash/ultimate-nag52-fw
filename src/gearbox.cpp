@@ -2,7 +2,7 @@
 #include "scn.h"
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
-#include <tcm_maths.h>
+#include <tcu_maths.h>
 #include "solenoids/constant_current.h"
 #include "speaker.h"
 

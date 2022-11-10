@@ -1,4 +1,4 @@
-#include "tcm_maths.h"
+#include "tcu_maths.h"
 #include <unity.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,22 +15,22 @@ void test_map(void) {
         400, 800, 1600, 3200, 6400, 6400, 6400
     };
 
-    TcmMap test_map = TcmMap(7, 4, x_headers, y_headers);
-    UNITY_TEST_ASSERT(test_map.allocate_ok(), TEST_LINE_NUM, "Map allocation failed!");
-    UNITY_TEST_ASSERT(test_map.add_data(data, 7*4), TEST_LINE_NUM, "Map add data failed!");
+    TcmMap map = TcmMap(7, 4, x_headers, y_headers);
+    UNITY_TEST_ASSERT(map.allocate_ok(), TEST_LINE_NUM, "Map allocation failed!");
+    UNITY_TEST_ASSERT(map.add_data(data, 7*4), TEST_LINE_NUM, "Map add data failed!");
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(200, test_map.get_value(2, 0), TEST_LINE_NUM, "Data mismatch point lookup");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(200, map.get_value(2, 0), TEST_LINE_NUM, "Data mismatch point lookup");
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(300, test_map.get_value(3, 0), TEST_LINE_NUM, "Data mismatch X 50/50 interpolate!");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(300, map.get_value(3, 0), TEST_LINE_NUM, "Data mismatch X 50/50 interpolate!");
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(150, test_map.get_value(2, -2.5), TEST_LINE_NUM, "Data mismatch Y 50/50 interpolate!");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(150, map.get_value(2, -2.5), TEST_LINE_NUM, "Data mismatch Y 50/50 interpolate!");
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(500, test_map.get_value(5, 0), TEST_LINE_NUM, "Data mismatch X 25/75 interpolate!");
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(500, test_map.get_value(2, 6.25), TEST_LINE_NUM, "Data mismatch Y 25/75 interpolate!");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(500, map.get_value(5, 0), TEST_LINE_NUM, "Data mismatch X 25/75 interpolate!");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(500, map.get_value(2, 6.25), TEST_LINE_NUM, "Data mismatch Y 25/75 interpolate!");
 
     // Reverse table lookup
-    UNITY_TEST_ASSERT_EQUAL_INT16(150, test_map.lookup_value(800, 4, INT16_MAX), TEST_LINE_NUM, "Reverse lookup Y failed!");
-    UNITY_TEST_ASSERT_EQUAL_INT16(150, test_map.lookup_value(400, INT16_MAX, 10), TEST_LINE_NUM, "Reverse lookup X failed!");
+    UNITY_TEST_ASSERT_EQUAL_INT16(150, map.lookup_value(800, 4, INT16_MAX), TEST_LINE_NUM, "Reverse lookup Y failed!");
+    UNITY_TEST_ASSERT_EQUAL_INT16(150, map.lookup_value(400, INT16_MAX, 10), TEST_LINE_NUM, "Reverse lookup X failed!");
 }
 
 void test_scale(void) {

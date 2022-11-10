@@ -7,7 +7,7 @@
 #include "string.h"
 #include "canbus/can_hal.h"
 #include "esp_core_dump.h"
-#include "tcm_maths.h"
+#include "tcu_maths.h"
 #include "driver/twai.h"
 
 #define DIAG_CAN_MAX_SIZE 4095 // ISO-TP Maximum

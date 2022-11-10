@@ -29,6 +29,7 @@ StoredTcuMap::StoredTcuMap(
     // Everything OK!
     this->map_name = eeprom_key_name;
     this->map_element_count = map_element_count;
+    this->default_map = default_map;
 }
 
 bool StoredTcuMap::init_ok() {

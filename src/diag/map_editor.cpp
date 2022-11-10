@@ -51,15 +51,13 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_GENERAL_REJECT;
     }
-    const uint8_t* data;
     if (is_default) {
-        data = (const uint8_t*)ptr->get_default_map_data();
+        memcpy(b, ptr->get_default_map_data(), size*sizeof(int16_t));
     } else {
-        data = (const uint8_t*)ptr->get_current_map_data();
+        memcpy(b, ptr->get_current_map_data(), size*sizeof(int16_t));
     }
-    memcpy(b, data, size*sizeof(int16_t));
+    
     *buffer = b;
-    ESP_LOGI("R", "Map has %d elements %d bytes", size, size*sizeof(int16_t));
     *dest_size_bytes = size*sizeof(int16_t);
     return 0;
 }

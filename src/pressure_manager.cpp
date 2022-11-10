@@ -26,7 +26,6 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->req_current_mpc = 0;
     this->req_current_spc = 0;
     this->gb_max_torque = max_torque;
-    bool res;
 
     // For loading maps
     const char* key_name;

@@ -31,6 +31,9 @@ public:
 
     float get_value(float x_value, float y_value);
 
+    void get_x_headers(uint16_t* dest_size, int16_t** dest);
+    void get_y_headers(uint16_t* dest_size, int16_t** dest);
+
     /**
      * @brief Returns pointer to the current stored map data
      * 

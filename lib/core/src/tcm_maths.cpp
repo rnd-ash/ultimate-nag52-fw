@@ -59,66 +59,99 @@ void TcmMap::get_y_headers(uint16_t* dest_size, int16_t** dest) {
     *dest_size = this->y_size;
 }
 
-/* unused code, thus commented to be compliant with MISRA C 2012*/
-// int16_t* TcmMap::get_row(uint16_t id) {
-//     // return null-pointer, if row is out of range
-//     return (id >= (this->y_size)) ? nullptr : (&this->data[id*this->x_size]);
-// }
-
-inline void TcmMap::set_indices(const int16_t value, uint16_t *idx_min, uint16_t *idx_max, const int16_t *headers, uint16_t size){
-    *idx_min = 0u;
-    *idx_max = size - 1u;
-    if (value <= headers[0]){
-        if (value >= headers[*idx_max]){
-            do{
-                uint16_t idx_mid = (*idx_min + *idx_max) >> 1;
-                if (value < headers[idx_mid]) {
-                    *idx_max = idx_mid;
-                }
-                else if (value > headers[idx_mid]){
-                    *idx_min = idx_mid;
-                }
-                else {
-                    *idx_min = idx_mid;
-                    *idx_max = idx_mid;
-                }
-            } while (1u < ((*idx_max) - (*idx_min)));
-        }
-        else {
-            *idx_min = *idx_max;
-        }
-    }
-    else {
-        *idx_max = *idx_min;
-    }
-}
-
 float TcmMap::get_value(float x_value, float y_value) {
-    uint16_t    x_idx_min;
-    uint16_t    x_idx_max;
-    uint16_t    y_idx_min;
-    uint16_t    y_idx_max;
+    uint16_t x_idx_min = 0;
+    uint16_t x_idx_max = 0;
 
-    // part 1: identify the indices
-    // lookup of indices for X-value
-    set_indices(x_value, &x_idx_min, &x_idx_max, this->x_headers, this->x_size);
+    uint16_t y_idx_min = 0;
+    uint16_t y_idx_max = 0;
+    
+    if (this->x_headers[0] >= x_value) {
+        x_idx_min = 0;
+        x_idx_max = 0;
+    } else if (this->x_headers[this->x_size-1] <= x_value) {
+        x_idx_min = this->x_size-1;
+        x_idx_max = this->x_size-1;
+    } else {
+        // Lookup X value
+        for (uint16_t i = 0; i < this->x_size-1; i++) {
+            if (x_value == this->x_headers[i]) {
+                x_idx_min = i;
+                x_idx_max = i;
+                break;
+            }
 
-    // lookup of indices for Y-value
-    set_indices(y_value, &y_idx_min, &y_idx_max, this->y_headers, this->y_size);
+            if (this->x_headers[i] <= x_value && this->x_headers[i+1] > x_value) {
+                x_idx_min = i;
+                x_idx_max = i+1;
+                break;
+            }
+        }
+    }
 
-    // part 2: do the bilinear interpolation
-    // see https://en.wikipedia.org/wiki/Bilinear_interpolation, https://helloacm.com/cc-function-to-compute-the-bilinear-interpolation/
-    float x1 = (float)this->x_headers[x_idx_min];
-    float x2 = (float)this->x_headers[x_idx_max];
-    float y1 = (float)this->y_headers[y_idx_min];
-    float y2 = (float)this->y_headers[y_idx_max];
-    float x2x1 = x2 - x1;
-    float y2y1 = y2 - y1;
-    float x2x = x2 - x_value;
-    float y2y = y2 - y_value;
-    float yy1 = y_value - y1;
-    float xx1 = x_value - x1;
-    return ((((float)data[(y_idx_min * this->x_size) + x_idx_min]) * x2x * y2y) + (((float)data[(y_idx_max * this->x_size) + x_idx_min]) * xx1 * y2y) + (((float)data[(y_idx_min * this->x_size) + x_idx_max]) * x2x * yy1) + (((float)data[(y_idx_max * this->x_size) + x_idx_max]) * xx1 * yy1)) / (x2x1 * y2y1);
+
+    // Lookup Y value
+    if (this->y_headers[0] >= y_value) { // Check 0th value and below
+        y_idx_min = 0;
+        y_idx_max = 0;
+    } else if (this->y_headers[this->y_size-1] <= y_value) { // Check nth value and above
+        y_idx_min = this->y_size-1;
+        y_idx_max = this->y_size-1;
+    } else {
+        // Lookup X value
+        for (uint16_t i = 0; i < this->y_size-1; i++) {
+            if (y_value == this->y_headers[i]) {
+                y_idx_min = i;
+                y_idx_max = i;
+                break;
+            }
+
+            if (this->y_headers[i] <= y_value && this->y_headers[i+1] > y_value) {
+                y_idx_min = i;
+                y_idx_max = i+1;
+                break;
+            }
+        }
+    }
+
+    if (x_idx_max == x_idx_min && y_idx_max == y_idx_min) {
+        return data[(y_idx_min*this->x_size)+x_idx_min];
+    } else {
+        float dx;
+        float dy;
+        float rx_min;
+        float rx_max;
+        float ry_min;
+        float ry_max;
+        if (x_idx_max == x_idx_min) {
+            dx = 1.0;
+            rx_min = 0.5;
+            rx_max = 0.5;
+        } else {
+            dx = this->x_headers[x_idx_max] - this->x_headers[x_idx_min];
+            rx_min = 1.0 - ((x_value-this->x_headers[x_idx_min])/dx);
+            rx_max = 1.0-rx_min;
+        }
+        if (y_idx_max == y_idx_min) {
+            dy = 1.0;
+            ry_min = 0.5;
+            ry_max = 0.5;
+        } else {
+            dy = this->y_headers[y_idx_max] - this->y_headers[y_idx_min];
+            ry_min = 1.0 - ((y_value-this->y_headers[y_idx_min])/dy);
+            ry_max = 1.0-ry_min;
+        }
+
+        // Now to combine the data
+        // First do linear interpolation on X axis for both Y elements
+
+        // For min y
+        float x_ymin = (rx_min*data[(y_idx_min*this->x_size)+x_idx_min]) + (rx_max*data[(y_idx_min*this->x_size)+x_idx_max]);
+        // For max y
+        float x_ymax = (rx_min*data[(y_idx_max*this->x_size)+x_idx_min]) + (rx_max*data[(y_idx_max*this->x_size)+x_idx_max]);
+
+        return (x_ymin*ry_min) + (x_ymax*ry_max);
+    }
 }
 int16_t* TcmMap::get_current_data() {
     return this->data;

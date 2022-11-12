@@ -1,5 +1,6 @@
 #include "stored_map.h"
 #include "nvs/eeprom_config.h"
+#include "esp_heap_caps.h"
 
 StoredTcuMap::StoredTcuMap(
     const char* eeprom_key_name,
@@ -32,8 +33,8 @@ StoredTcuMap::StoredTcuMap(
     this->default_map = default_map;
 }
 
-bool StoredTcuMap::init_ok() {
-    return this->internal != nullptr;
+bool StoredTcuMap::init_ok(void) const {
+    return this->initialized;
 }
 
 /**
@@ -78,21 +79,26 @@ float StoredTcuMap::get_value(float x_value, float y_value) {
 }
 
 bool StoredTcuMap::read_from_eeprom(const char* key_name, uint16_t expected_size) {
-    if (this->internal == nullptr) {
-        return false;
+    bool ret = false;
+    bool mem_is_allocated = this->allocate_ok();
+    if(mem_is_allocated) {
+        int16_t* dest = static_cast<int16_t*>(heap_caps_malloc(expected_size* sizeof(int16_t), MALLOC_CAP_SPIRAM));
+        if (dest != nullptr) {
+            if (EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size)) {
+                ret = this->add_data(dest, expected_size);
+            }
+            else {
+                ESP_LOGE("STO_MAP", "Read from eeprom failed (read_nvs_map_data failed)");
+            }
+        }
+        else {
+            ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");            
+        }
+        heap_caps_free(dest);
     }
-    int16_t* dest = (int16_t*)malloc(expected_size* sizeof(int16_t));
-    if (dest == nullptr) {
-        ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
-        return false;
+    else {
+        ESP_LOGE("STO_MAP","Stored map has not been loaded! Internal map allocation failed!");
     }
-    if (!EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size)) {
-        ESP_LOGE("STO_MAP", "Read from eeprom failed (read_nvs_map_data failed)");
-        delete[] dest;
-        return false;
-    }
-    bool ret = this->internal->add_data(dest, expected_size);
-    delete[] dest;
     return ret;
 }
 

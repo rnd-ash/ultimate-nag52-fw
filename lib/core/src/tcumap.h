@@ -1,25 +1,12 @@
-#ifndef TCM_MATHS_H
-#define TCM_MATHS_H
+#ifndef TCUMAP_H
+#define TCUMAP_H
 
 #include <stdint.h>
 
-// Core maths and calculation stuff this the TCM uses
-
-#ifndef MAX
-    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-
-#ifndef MIN
-    #define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
-// float scale_number(int16_t raw, int16_t new_min, int16_t new_max, int16_t raw_min, int16_t raw_max);
-float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
-
-class TcmMap {
+class TcuMap {
 public:
     /// Creates a 0'ed map
-    TcmMap(uint16_t X_Size, uint16_t Y_size, const int16_t* x_ids, const int16_t* y_ids);
+    TcuMap(uint16_t X_Size, uint16_t Y_size, const int16_t* x_ids, const int16_t* y_ids);
     /// MUST call after constructor to ensure that memory was allocated
     /// OK for the map!
     bool allocate_ok(void) const;
@@ -28,7 +15,11 @@ public:
 
     int16_t* get_row(uint16_t id);
 
-
+    /**
+     * @brief Search for the value at a given x- and y- value of the underlying 3D-map
+     * 
+     * @return The interpolated value of the 3D-map.
+    */
     float get_value(float x_value, float y_value);
 
     void get_x_headers(uint16_t* dest_size, int16_t** dest);
@@ -39,7 +30,8 @@ public:
      * 
      * @return int16_t* 
      */
-    int16_t* get_current_data();
+    int16_t* get_current_data(void);
+    
 private:
     int16_t* data;
     int16_t* x_headers;
@@ -47,7 +39,16 @@ private:
     uint16_t x_size;
     uint16_t y_size;
     bool alloc_ok;
+    
+    /**
+     * @brief Sets the indices idx_min and idx_max in between the value is found in headers.
+    */
     inline static void set_indices(const int16_t value, uint16_t *idx_min, uint16_t *idx_max, const int16_t *headers, uint16_t size);
+
+    /**
+     * @brief Calulates interpolated value between given values of function f_1 and f_2 for given value x.
+    */
+    inline static float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x);    
 };
 
-#endif // TCM_MATHS_H
+#endif // TCUMAP_H

@@ -171,9 +171,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     }
 
     float trq_percent = (float)(sensor_data->static_torque*100)/(float)this->gb_max_torque;
-    int16_t x = this->mpc_working_pressure->get_value(trq_percent, gear_idx);
-    ESP_LOGI("GMP", "%.1f%% Gear %d - %d mBar", trq_percent, gear_idx, x);
-    return x;
+    return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {

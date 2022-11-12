@@ -43,7 +43,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure PWM map (TCC) **/
     const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
-    const int16_t pwm_tcc_y_headers[5] = {-25, 20, 60, 150}; 
+    const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
     key_name = MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredTcuMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
@@ -171,7 +171,9 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     }
 
     float trq_percent = (float)(sensor_data->static_torque*100)/(float)this->gb_max_torque;
-    return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
+    int16_t x = this->mpc_working_pressure->get_value(trq_percent, gear_idx);
+    ESP_LOGI("GMP", "%.1f%% Gear %d - %d mBar", trq_percent, gear_idx, x);
+    return x;
 }
 
 float PressureManager::get_tcc_temp_multiplier(int atf_temp) {

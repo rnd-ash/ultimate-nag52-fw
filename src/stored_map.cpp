@@ -7,24 +7,16 @@ StoredTcuMap::StoredTcuMap(
     const uint16_t map_element_count,
     const int16_t* x_headers,
     const int16_t* y_headers,
-    int16_t x_size,
-    int16_t y_size,
+    uint16_t x_size,
+    uint16_t y_size,
     const int16_t* default_map
-) {
-    this->internal = nullptr;
+) : TcuMap(x_size, y_size, x_headers, y_headers) {
     if (x_size*y_size != map_element_count) {
         ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Map size is, but X and Y headers (%d,%d) make %d elements!", eeprom_key_name, x_size, y_size, x_size*y_size);
         return;
     }
-    this->internal = new TcmMap(x_size, y_size, static_cast<const int16_t*>(x_headers), static_cast<const int16_t*>(y_headers));
-    if (!this->internal->allocate_ok()) {
-        ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
-        delete this->internal;
-        return;
-    }
 
     if (!this->read_from_eeprom(eeprom_key_name, map_element_count)) {
-        delete this->internal;
         return;
     }
     // Everything OK!
@@ -41,7 +33,7 @@ bool StoredTcuMap::init_ok(void) const {
  * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
  */
 bool StoredTcuMap::save_to_eeprom() {
-    return EEPROM::write_nvs_map_data(this->map_name, internal->get_current_data(), this->map_element_count); 
+    return EEPROM::write_nvs_map_data(this->map_name, this->get_current_data(), this->map_element_count); 
 }
 
 /**
@@ -54,7 +46,7 @@ bool StoredTcuMap::replace_map_content(int16_t* new_data, uint16_t content_len) 
         ESP_LOGE("STO_MAP", "replace_map_content failed! New data has invalid size of %d. Map should have %d entries", content_len, this->map_element_count);
         return false;
     } else {
-        return this->internal->add_data(new_data, this->map_element_count);
+        return this->add_data(new_data, this->map_element_count);
     }
 }
 
@@ -70,12 +62,7 @@ bool StoredTcuMap::reload_from_eeprom() {
  * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
  */
 bool StoredTcuMap::reset_from_default_eeprom() {
-    return this->internal->add_data((int16_t*)this->default_map, this->map_element_count);
-}
-
-// See TcmMap.cpp
-float StoredTcuMap::get_value(float x_value, float y_value) {
-    return this->internal->get_value(x_value, y_value);
+    return this->add_data((int16_t*)this->default_map, this->map_element_count);
 }
 
 bool StoredTcuMap::read_from_eeprom(const char* key_name, uint16_t expected_size) {
@@ -110,19 +97,6 @@ const int16_t* StoredTcuMap::get_default_map_data() {
     return this->default_map;
 }
 
-int16_t* StoredTcuMap::get_current_map_data() {
-    return this->internal->get_current_data();
-}
-
-
-void StoredTcuMap::get_x_headers(uint16_t* dest_size, int16_t** dest) {
-    return this->internal->get_x_headers(dest_size, dest);
-}
-
-void StoredTcuMap::get_y_headers(uint16_t* dest_size, int16_t** dest) {
-    return this->internal->get_y_headers(dest_size, dest);
-}
-
-const char* StoredTcuMap::get_map_key_name() {
+const char* StoredTcuMap::get_map_name() {
     return this->map_name;
 }

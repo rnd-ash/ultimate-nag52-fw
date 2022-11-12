@@ -54,7 +54,7 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest
     if (is_default) {
         memcpy(b, ptr->get_default_map_data(), size*sizeof(int16_t));
     } else {
-        memcpy(b, ptr->get_current_map_data(), size*sizeof(int16_t));
+        memcpy(b, ptr->get_current_data(), size*sizeof(int16_t));
     }
     
     *buffer = b;
@@ -74,7 +74,7 @@ uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, 
 
     ptr->get_x_headers(&x_size, &x_ptr);
     ptr->get_y_headers(&y_size, &y_ptr);
-    k_ptr = ptr->get_map_key_name();
+    k_ptr = ptr->get_map_name();
     k_size = strlen(k_ptr);
     // 6 bytes for size data
     uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));

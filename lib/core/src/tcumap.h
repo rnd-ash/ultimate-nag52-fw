@@ -38,17 +38,7 @@ private:
     int16_t* y_headers;
     uint16_t x_size;
     uint16_t y_size;
-    bool alloc_ok;
-    
-    /**
-     * @brief Sets the indices idx_min and idx_max in between the value is found in headers.
-    */
-    inline static void set_indices(const int16_t value, uint16_t *idx_min, uint16_t *idx_max, const int16_t *headers, uint16_t size);
-
-    /**
-     * @brief Calulates interpolated value between given values of function f_1 and f_2 for given value x.
-    */
-    inline static float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x);    
+    bool alloc_ok; 
 };
 
 #endif // TCUMAP_H

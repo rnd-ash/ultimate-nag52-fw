@@ -40,27 +40,11 @@ class StoredTcuMap : public TcuMap {
          */
         bool reset_from_default_eeprom(void);
 
-        // See TcmMap.cpp
-        float get_value(float x_value, float y_value);
-
         uint16_t get_map_element_count();
 
         const int16_t* get_default_map_data();
-        int16_t* get_current_map_data();
 
-        /**
-         * @brief Gets the X headers from the internal map
-         * 
-         */
-        void get_x_headers(uint16_t* dest_size, int16_t** dest);
-
-        /**
-         * @brief Gets the Y headers from the internal map
-         * 
-         */
-        void get_y_headers(uint16_t* dest_size, int16_t** dest);
-
-        const char* get_map_key_name();
+        const char* get_map_name();
 
     private:
         const char* map_name;

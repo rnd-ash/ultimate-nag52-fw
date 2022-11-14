@@ -735,7 +735,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
             }
             uint8_t map_id = args[1];
             uint8_t cmd = args[2];
-            uint16_t map_len_bytes = args[3] << 8 | args[4];
+            uint16_t map_len_bytes = args[4] << 8 | args[3];
             if (arg_len-5 != map_len_bytes) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
                 return;
@@ -743,7 +743,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
             uint8_t ret;
             switch (cmd) {
                 case MAP_CMD_WRITE:
-                    ret = MapEditor::write_map_data(map_id, map_len_bytes, (int16_t*)&args[5]);
+                    ret = MapEditor::write_map_data(map_id, map_len_bytes/2, (int16_t*)&args[5]); // len_bytes /2 = sizeof(int16)
                     break;
                 case MAP_CMD_UNDO:
                     ret = MapEditor::undo_changes(map_id);

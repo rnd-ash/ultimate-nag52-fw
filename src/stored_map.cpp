@@ -100,3 +100,16 @@ const int16_t* StoredTcuMap::get_default_map_data() {
 const char* StoredTcuMap::get_map_name() {
     return this->map_name;
 }
+
+int16_t* StoredTcuMap::get_current_eeprom_map_data() {
+    int16_t* dest = static_cast<int16_t*>(heap_caps_malloc(this->map_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    if (dest == nullptr) {
+        return nullptr;
+    }
+    if (EEPROM::read_nvs_map_data(this->map_name, dest, this->default_map, this->map_element_count)) {
+        return dest;
+    } else {
+        free(dest);
+        return nullptr;
+    }
+}

@@ -42,7 +42,7 @@ StoredTcuMap* get_map(uint8_t map_id) {
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
 
-uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest_size_bytes, uint8_t** buffer) {
+uint8_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
     // Map valid
     int size = ptr->get_map_element_count();
@@ -51,12 +51,18 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, bool is_default, uint16_t *dest
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_GENERAL_REJECT;
     }
-    if (is_default) {
+    if (read_type ==  MAP_READ_TYPE_PRG) {
         memcpy(b, ptr->get_default_map_data(), size*sizeof(int16_t));
-    } else {
+    } else if (read_type == MAP_READ_TYPE_MEM) {
         memcpy(b, ptr->get_current_data(), size*sizeof(int16_t));
+    } else if (read_type == MAP_READ_TYPE_STO) {
+        int16_t* eeprom_data = ptr->get_current_eeprom_map_data();
+        memcpy(b, eeprom_data, size*sizeof(int16_t));
+        free(eeprom_data);
+    } else {
+        free(buffer);
+        return NRC_GENERAL_REJECT;
     }
-    
     *buffer = b;
     *dest_size_bytes = size*sizeof(int16_t);
     return 0;

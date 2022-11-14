@@ -468,8 +468,16 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             uint8_t ret;
             uint8_t* buffer = nullptr;
             uint16_t read_bytes_size = 0;
-            if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT) {
-                ret = MapEditor::read_map_data(map_id, cmd == MAP_CMD_READ_DEFAULT, &read_bytes_size, &buffer);
+            if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT || cmd == MAP_CMD_READ_EEPROM) {
+                uint8_t c;
+                if (cmd == MAP_CMD_READ) {
+                    c = MAP_READ_TYPE_MEM;
+                } else if (cmd == MAP_CMD_READ_DEFAULT) {
+                    c = MAP_READ_TYPE_PRG;
+                } else { // MAP_CMD_READ_EEPROM
+                    c = MAP_READ_TYPE_STO;
+                }
+                ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
             } else if (cmd == MAP_CMD_READ_META) { 
                 ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
             } else {

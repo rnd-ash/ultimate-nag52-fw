@@ -43,6 +43,7 @@ class StoredTcuMap : public TcuMap {
         uint16_t get_map_element_count();
 
         const int16_t* get_default_map_data();
+        int16_t* get_current_eeprom_map_data();
 
         const char* get_map_name();
 

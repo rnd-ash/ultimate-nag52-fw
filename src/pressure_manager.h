@@ -116,6 +116,13 @@ public:
     void make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+
+    StoredTcuMap* get_pcs_map();
+    StoredTcuMap* get_tcc_pwm_map();
+    StoredTcuMap* get_working_map();
+    StoredTcuMap* get_fill_time_map();
+    StoredTcuMap* get_fill_pressure_map();
+
 private:
      /**
      * Returns the estimated PWM to send to either SPC or MPC solenoid
@@ -141,16 +148,12 @@ private:
     StoredTcuMap* tcc_pwm_map;
     StoredTcuMap* mpc_working_pressure;
     StoredTcuMap* hold2_time_map;
-    //TcmMap* pressure_pwm_map;
-    //TcmMap* tcc_pwm_map;
-    //TcmMap* mpc_working_pressure;
-    //TcmMap* hold2_time_map;
+    StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
-
-
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
-
 };
+
+extern PressureManager* pressure_manager;
 
 #endif

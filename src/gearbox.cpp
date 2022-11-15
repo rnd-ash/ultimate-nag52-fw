@@ -69,6 +69,7 @@ Gearbox::Gearbox() {
         };
     }
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
+    pressure_manager = this->pressure_mgr;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---GEARBOX INFO---");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
     for (int i = 0; i < 7; i++) {

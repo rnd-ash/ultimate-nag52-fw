@@ -8,7 +8,7 @@ class StoredTcuMap : public TcuMap {
     public:
         StoredTcuMap(
             const char* eeprom_key_name,
-            const uint16_t map_size,
+            const uint16_t map_element_count,
             const int16_t* x_headers,
             const int16_t* y_headers,
             uint16_t x_size,
@@ -40,9 +40,16 @@ class StoredTcuMap : public TcuMap {
          */
         bool reset_from_default_eeprom(void);
 
+        uint16_t get_map_element_count();
+
+        const int16_t* get_default_map_data();
+        int16_t* get_current_eeprom_map_data();
+
+        const char* get_map_name();
+
     private:
         const char* map_name;
-        uint16_t map_size;
+        uint16_t map_element_count;
         const int16_t* default_map;
         bool initialized;
         bool read_from_eeprom(const char* key_name, uint16_t expected_size);

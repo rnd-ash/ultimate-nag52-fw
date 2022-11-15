@@ -45,84 +45,109 @@ bool TcuMap::allocate_ok(void) const {
 //     return (id >= (this->y_size)) ? nullptr : (&this->data[id*this->x_size]);
 // }
 
-inline void TcuMap::set_indices(const int16_t value, uint16_t *idx_min, uint16_t *idx_max, const int16_t *headers, uint16_t size){
-    // Set minimum index to the first element of the field.
-    *idx_min = 0u;
-    // Set maximum index to the last element of the field.
-    *idx_max = size - 1u;
-    // Check, if search value is smaller than smallest element of the field.
-    if (value > headers[0]){
-        if (value < headers[*idx_max]){
-            // Search value is in between the limits of the smallest and the biggest element of the field.
-            do{
-                // Calculate the middle of the remaining list. If the size is odd, it is rounded down.
-                uint16_t idx_mid = (*idx_min + *idx_max) >> 1;
-                if (value < headers[idx_mid]) {
-                    // Search value is smaller than the element in the middle of the remaining list.
-                    *idx_max = idx_mid;
-                }
-                else if (value > headers[idx_mid]){
-                    // Search value is bigger than the element in the middle of the remaining list.
-                    *idx_min = idx_mid;
-                }
-                else {
-                    // Search value is also an element of the field.
-                    *idx_min = idx_mid;
-                    *idx_max = idx_mid;
-                }
-                // Reduce the remaining search area until it is narrowed down to two consecutive elements.
-            } while (1u < ((*idx_max) - (*idx_min)));
-        }
-        else {
-            // Search value is as big as or bigger then the biggest element in the field.
-            *idx_min = *idx_max;
-        }
-    }
-    else {
-        // Search value is as small as or smaller than smallest element of the field.
-        *idx_max = *idx_min;
-    }
+void TcuMap::get_x_headers(uint16_t* dest_size, int16_t** dest) {
+    *dest = this->x_headers;
+    *dest_size = this->x_size;
 }
 
-inline float TcuMap::interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x) {
-    // cast values from signed integer values to floating values in order to avoid casting the same value twice
-    const float x_1_f = (float)x_1;
-    const float x_2_f = (float)x_2;
-    // See https://en.wikipedia.org/wiki/Linear_interpolation for details. Return f_1, if x_1 and x_2 are identical.
-    return (x_1 != x_2) ? f_1 + ((f_2 - f_1) / (x_2_f - x_1_f)) * (x - x_1_f) : f_1;
+void TcuMap::get_y_headers(uint16_t* dest_size, int16_t** dest) {
+    *dest = this->y_headers;
+    *dest_size = this->y_size;
 }
 
 float TcuMap::get_value(float x_value, float y_value) {
-    uint16_t    x_idx_min;
-    uint16_t    x_idx_max;
-    uint16_t    y_idx_min;
-    uint16_t    y_idx_max;
+    uint16_t x_idx_min = 0;
+    uint16_t x_idx_max = 0;
+
+    uint16_t y_idx_min = 0;
+    uint16_t y_idx_max = 0;
     
-    // part 1a - identification of the indices for x-value
-    set_indices(x_value, &x_idx_min, &x_idx_max, this->x_headers, this->x_size);
+    if (this->x_headers[0] >= x_value) {
+        x_idx_min = 0;
+        x_idx_max = 0;
+    } else if (this->x_headers[this->x_size-1] <= x_value) {
+        x_idx_min = this->x_size-1;
+        x_idx_max = this->x_size-1;
+    } else {
+        // Lookup X value
+        for (uint16_t i = 0; i < this->x_size-1; i++) {
+            if (x_value == this->x_headers[i]) {
+                x_idx_min = i;
+                x_idx_max = i;
+                break;
+            }
 
-    // part 1b - identification of the indices for y-value
-    set_indices(y_value, &y_idx_min, &y_idx_max, this->y_headers, this->y_size);
+            if (this->x_headers[i] <= x_value && this->x_headers[i+1] > x_value) {
+                x_idx_min = i;
+                x_idx_max = i+1;
+                break;
+            }
+        }
+    }
 
-    // part 2: do the interpolation
-    int16_t x1 = this->x_headers[x_idx_min];
-    int16_t x2 = this->x_headers[x_idx_max];
-    int16_t y1 = this->y_headers[y_idx_min];
-    int16_t y2 = this->y_headers[y_idx_max];
 
-    // some precalculations for making the code more readable, although somewhat inefficient
-    float f_11 = (float)data[(y_idx_min * this->x_size) + x_idx_min];
-    float f_12 = (float)data[(y_idx_min * this->x_size) + x_idx_max];
-    float f_21 = (float)data[(y_idx_max * this->x_size) + x_idx_min];
-    float f_22 = (float)data[(y_idx_max * this->x_size) + x_idx_max];
+    // Lookup Y value
+    if (this->y_headers[0] >= y_value) { // Check 0th value and below
+        y_idx_min = 0;
+        y_idx_max = 0;
+    } else if (this->y_headers[this->y_size-1] <= y_value) { // Check nth value and above
+        y_idx_min = this->y_size-1;
+        y_idx_max = this->y_size-1;
+    } else {
+        // Lookup X value
+        for (uint16_t i = 0; i < this->y_size-1; i++) {
+            if (y_value == this->y_headers[i]) {
+                y_idx_min = i;
+                y_idx_max = i;
+                break;
+            }
 
-    // interpolation on x-axis for smaller y-index
-    float f_11f_12_interpolated = interpolate(f_11, f_12, x1, x2, x_value);
-    // interpolation on x-axis for greater y-index
-    float f_21f_22_interpolated = interpolate(f_21, f_22, x1, x2, x_value);
-    // bilinear interpolation, not always efficient, but with more or less constant runtime
-    // also see https://en.wikipedia.org/wiki/Bilinear_interpolation, https://helloacm.com/cc-function-to-compute-the-bilinear-interpolation/ for mathematical background
-    return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, y1, y2, y_value);
+            if (this->y_headers[i] <= y_value && this->y_headers[i+1] > y_value) {
+                y_idx_min = i;
+                y_idx_max = i+1;
+                break;
+            }
+        }
+    }
+
+    if (x_idx_max == x_idx_min && y_idx_max == y_idx_min) {
+        return data[(y_idx_min*this->x_size)+x_idx_min];
+    } else {
+        float dx;
+        float dy;
+        float rx_min;
+        float rx_max;
+        float ry_min;
+        float ry_max;
+        if (x_idx_max == x_idx_min) {
+            dx = 1.0;
+            rx_min = 0.5;
+            rx_max = 0.5;
+        } else {
+            dx = this->x_headers[x_idx_max] - this->x_headers[x_idx_min];
+            rx_min = 1.0 - ((x_value-this->x_headers[x_idx_min])/dx);
+            rx_max = 1.0-rx_min;
+        }
+        if (y_idx_max == y_idx_min) {
+            dy = 1.0;
+            ry_min = 0.5;
+            ry_max = 0.5;
+        } else {
+            dy = this->y_headers[y_idx_max] - this->y_headers[y_idx_min];
+            ry_min = 1.0 - ((y_value-this->y_headers[y_idx_min])/dy);
+            ry_max = 1.0-ry_min;
+        }
+
+        // Now to combine the data
+        // First do linear interpolation on X axis for both Y elements
+
+        // For min y
+        float x_ymin = (rx_min*data[(y_idx_min*this->x_size)+x_idx_min]) + (rx_max*data[(y_idx_min*this->x_size)+x_idx_max]);
+        // For max y
+        float x_ymax = (rx_min*data[(y_idx_max*this->x_size)+x_idx_min]) + (rx_max*data[(y_idx_max*this->x_size)+x_idx_max]);
+
+        return (x_ymin*ry_min) + (x_ymax*ry_max);
+    }
 }
 
 int16_t* TcuMap::get_current_data(void) {

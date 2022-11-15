@@ -45,7 +45,7 @@ StoredTcuMap* get_map(uint8_t map_id) {
 uint8_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
     // Map valid
-    int size = ptr->get_map_element_count();
+    uint16_t size = ptr->get_map_element_count();
     uint8_t* b = (uint8_t*)heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM);
     if (b == nullptr) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");

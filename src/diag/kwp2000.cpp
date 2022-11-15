@@ -484,7 +484,12 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
                 ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
             }
             if (ret == 0) { // OK
-                uint8_t* buf = new uint8_t[2+read_bytes_size];
+                uint8_t* buf = static_cast<uint8_t*>(heap_caps_malloc(2+read_bytes_size, MALLOC_CAP_SPIRAM));
+                if (buf == nullptr) {
+                    free(buffer); // DELETE MapEditor allocation
+                    make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
+                    return;
+                }
                 buf[0] = read_bytes_size & 0xFF;
                 buf[1] = read_bytes_size >> 8;
                 memcpy(&buf[2], buffer, read_bytes_size);

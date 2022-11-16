@@ -15,14 +15,12 @@ StoredTcuMap::StoredTcuMap(
         ESP_LOGE("STO_MAP","Cannot Load Stored map %s! Map size is, but X and Y headers (%d,%d) make %d elements!", eeprom_key_name, x_size, y_size, x_size*y_size);
         return;
     }
-
+    this->default_map = default_map;
+    this->map_name = eeprom_key_name;
+    this->map_element_count = map_element_count;
     if (!this->read_from_eeprom(eeprom_key_name, map_element_count)) {
         return;
     }
-    // Everything OK!
-    this->map_name = eeprom_key_name;
-    this->map_element_count = map_element_count;
-    this->default_map = default_map;
 }
 
 bool StoredTcuMap::init_ok(void) const {

@@ -20,13 +20,13 @@ StoredTcuMap::StoredTcuMap(const char *eeprom_key_name,
         int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(map_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
         if (nullptr != dest)
         {
-            this->map_element_count = map_element_count;
             if (EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, map_element_count))
             {
-                this->map_name = eeprom_key_name;    
                 if (this->add_data(dest, map_element_count))
                 {
                     // Everything OK!
+		            this->map_element_count = map_element_count;
+                    this->map_name = eeprom_key_name;
                     this->initialized = true;
                 }
                 else

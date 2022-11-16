@@ -35,12 +35,8 @@ typedef struct {
 
     // Based on current deceleration of the car, how many seconds until we stop?
     // If INT32_MAX is returned, that is because we are accelerating (Not possible to stop)
-    int num_seconds_to_stop() {
-        if (vehicle_acceleration >= 0) {
-            return __INT32_MAX__;
-        } else {
-            return (current_vehicle_speed_kmh/vehicle_acceleration) * -1;
-        }
+    int num_seconds_to_stop(void) {
+        return (vehicle_acceleration >= 0) ? __INT32_MAX__ : (current_vehicle_speed_kmh/vehicle_acceleration) * -1;
     }
 } DrivingData;
 

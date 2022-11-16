@@ -1,5 +1,5 @@
-#ifndef __PRESSURE_MANAGER_H_
-#define __PRESSURE_MANAGER_H_
+#ifndef PRESSURE_MANAGER_H
+#define PRESSURE_MANAGER_H
 
 #include <common_structs.h>
 #include "tcu_maths.h"
@@ -11,11 +11,19 @@
 
 // Shift phase IDs
 
-#define SHIFT_PHASE_BLEED 1
-#define SHIFT_PHASE_FILL 2
-#define SHIFT_PHASE_TORQUE 3
-#define SHIFT_PHASE_OVERLAP 4
-#define SHIFT_PHASE_MAX_P 5
+// #define SHIFT_PHASE_BLEED 1
+// #define SHIFT_PHASE_FILL 2
+// #define SHIFT_PHASE_TORQUE 3
+// #define SHIFT_PHASE_OVERLAP 4
+// #define SHIFT_PHASE_MAX_P 5
+
+enum ShiftPhases : uint8_t{
+    BLEED = 1u,
+    FILL,
+    TORQUE,
+    OVERLAP,
+    MAX_P
+};
 
 enum class Clutch {
     K1,
@@ -116,6 +124,13 @@ public:
     void make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+
+    StoredTcuMap* get_pcs_map();
+    StoredTcuMap* get_tcc_pwm_map();
+    StoredTcuMap* get_working_map();
+    StoredTcuMap* get_fill_time_map();
+    StoredTcuMap* get_fill_pressure_map();
+
 private:
      /**
      * Returns the estimated PWM to send to either SPC or MPC solenoid
@@ -141,16 +156,12 @@ private:
     StoredTcuMap* tcc_pwm_map;
     StoredTcuMap* mpc_working_pressure;
     StoredTcuMap* hold2_time_map;
-    //TcmMap* pressure_pwm_map;
-    //TcmMap* tcc_pwm_map;
-    //TcmMap* mpc_working_pressure;
-    //TcmMap* hold2_time_map;
+    StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
-
-
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
-
 };
+
+extern PressureManager* pressure_manager;
 
 #endif

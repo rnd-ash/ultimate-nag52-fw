@@ -240,7 +240,23 @@ ECU GS51
 		# 4th byte 01001010 <- ON
 		SIGNAL KICKDOWN, OFFSET: 25, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
 		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-
+ECU EWM51
+	FRAME EWM_230h (0x00000230)
+		SIGNAL W_S, OFFSET: 0, LEN: 1, DESC: Driving program, DATA TYPE BOOL
+		SIGNAL FPT, OFFSET: 1, LEN: 1, DESC: Driving program button actuated, DATA TYPE BOOL
+		SIGNAL KD, OFFSET: 2, LEN: 1, DESC: Kickdown, DATA TYPE BOOL
+		SIGNAL SPERR, OFFSET: 3, LEN: 1, DESC: barrier magnet energized, DATA TYPE BOOL
+		SIGNAL WHC, OFFSET: 4, LEN: 4, DESC: gear selector lever position (NAG only), DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: selector lever in position "D"
+			ENUM N, RAW: 6, DESC: selector lever in position "N"
+			ENUM R, RAW: 7, DESC: selector lever in position "R"
+			ENUM P, RAW: 8, DESC: selector lever in position "P"
+			ENUM PLUS, RAW: 9, DESC: selector lever in position "+"
+			ENUM MINUS, RAW: 10, DESC: selector lever in position "-"
+			ENUM N_ZW_D, RAW: 11, DESC: selector lever in intermediate position "N-D"
+			ENUM R_ZW_N, RAW: 12, DESC: selector lever in intermediate position "R-N"
+			ENUM P_ZW_R, RAW: 13, DESC: selector lever in intermediate position "P-R"
+			ENUM SNV, RAW: 15, DESC: selector lever position unplausible
 ECU EZS51
 	FRAME EZS_240h (0x00000240)
 		SIGNAL WH_UP, OFFSET: 2, LEN: 1, DESC: cruise control lever implausible, DATA TYPE BOOL

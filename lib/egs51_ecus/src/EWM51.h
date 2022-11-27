@@ -73,7 +73,7 @@ typedef union {
 
 
 
-class ECU_EWM {
+class ECU_EWM51 {
 	public:
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp

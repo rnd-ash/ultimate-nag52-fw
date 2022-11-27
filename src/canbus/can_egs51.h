@@ -7,6 +7,7 @@
 #include "GS51.h"
 #include "MS51.h"
 #include "ESP51.h"
+#include "EWM51.h"
 
 class Egs51Can: public AbstractCan {
     public:
@@ -104,6 +105,7 @@ class Egs51Can: public AbstractCan {
         // CAN Frames to Tx
         GS_218 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
+        ECU_EWM51 ewm51 = ECU_EWM51();
         ECU_ESP51 esp51 = ECU_ESP51();
         ShifterPosition last_valid_position = ShifterPosition::SignalNotAvaliable;
         uint8_t i2c_rx_bytes[2] = {0,0};

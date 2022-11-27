@@ -177,6 +177,36 @@ WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
 }
 
 ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+    /* For W163
+    EWM_230 dest;
+    if (this->ewm51.get_EWM_230(now, expire_time_ms, &dest)) {
+        switch (dest.get_WHC()) {
+            case EWM_230h_WHC::D:
+                return ShifterPosition::D;
+            case EWM_230h_WHC::N:
+                return ShifterPosition::N;
+            case EWM_230h_WHC::R:
+                return ShifterPosition::R;
+            case EWM_230h_WHC::P:
+                return ShifterPosition::P;
+            case EWM_230h_WHC::PLUS:
+                return ShifterPosition::PLUS;
+            case EWM_230h_WHC::MINUS:
+                return ShifterPosition::MINUS;
+            case EWM_230h_WHC::N_ZW_D:
+                return ShifterPosition::N_D;
+            case EWM_230h_WHC::R_ZW_N:
+                return ShifterPosition::R_N;
+            case EWM_230h_WHC::P_ZW_R:
+                return ShifterPosition::P_R;
+            case EWM_230h_WHC::SNV:
+            default:
+                return ShifterPosition::SignalNotAvaliable;
+        }
+    } else {
+        return ShifterPosition::SignalNotAvaliable;
+    }
+    */
     if (now - this->last_i2c_query_time > expire_time_ms) {
         return ShifterPosition::SignalNotAvaliable;
     }
@@ -550,6 +580,7 @@ void Egs51Can::rx_task_loop() {
 
                     if (this->ms51.import_frames(tmp, rx.identifier, now)) {
                     } else if (this->esp51.import_frames(tmp, rx.identifier, now)) {
+                    } else if (this->ewm51.import_frames(tmp, rx.identifier, now)) {
                     }
                 }
             }

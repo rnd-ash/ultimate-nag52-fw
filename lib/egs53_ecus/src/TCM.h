@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'TCM'
 */
 
-#ifdef EGS53_MODE
-
 #ifndef __ECU_TCM_H_
 #define __ECU_TCM_H_
 
@@ -1106,5 +1104,3 @@ class ECU_TCM {
 		uint64_t LAST_FRAME_TIMES[8];
 };
 #endif // __ECU_TCM_H_
-
-#endif // EGS53_MODE

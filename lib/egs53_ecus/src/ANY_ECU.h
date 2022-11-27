@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'ANY_ECU'
 */
 
-#ifdef EGS53_MODE
-
 #ifndef __ECU_ANY_ECU_H_
 #define __ECU_ANY_ECU_H_
 
@@ -765,5 +763,3 @@ class ECU_ANY_ECU {
 		uint64_t LAST_FRAME_TIMES[6];
 };
 #endif // __ECU_ANY_ECU_H_
-
-#endif // EGS53_MODE

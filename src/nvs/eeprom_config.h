@@ -31,11 +31,17 @@ typedef struct {
     uint8_t engine_type; // 0 for diesel, 1 for petrol
 } __attribute__ ((packed)) TCM_CORE_CONFIG;
 
+typedef struct {
+    
+} __attribute__ ((packed)) TCM_EXTRA_CONFIG;
+
 namespace EEPROM {
     bool init_eeprom();
     uint8_t get_last_profile();
     bool read_core_config(TCM_CORE_CONFIG* dest);
     bool save_core_config(TCM_CORE_CONFIG* write);
+
+
 
     bool read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     bool write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);

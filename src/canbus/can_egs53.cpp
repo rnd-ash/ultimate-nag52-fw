@@ -3,7 +3,6 @@
 #include "pins.h"
 #include "gearbox_config.h"
 
-#ifdef EGS53_MODE
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -742,5 +741,3 @@ void Egs53Can::rx_task_loop() {
         }
     }
 }
-
-#endif

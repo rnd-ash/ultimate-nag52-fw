@@ -3,14 +3,12 @@
 
 
 #include <gearbox_config.h>
-//#define EGS53_MODE
-#ifdef EGS53_MODE
 #include "can_hal.h"
-#include "TCM.h"
-#include "TSLM.h"
-#include "FSCM.h"
-#include "ECM.h"
-#include "ANY_ECU.h"
+#include "../../egs53_ecus/src/TCM.h"
+#include "../../egs53_ecus/src/TSLM.h"
+#include "../../egs53_ecus/src/FSCM.h"
+#include "../../egs53_ecus/src/ECM.h"
+#include "../../egs53_ecus/src/ANY_ECU.h"
 
 class Egs53Can: public AbstractCan {
     public:
@@ -125,5 +123,3 @@ class Egs53Can: public AbstractCan {
         bool can_init_ok = false;
 };
 #endif
-
-#endif // EGS53_CAN_H_

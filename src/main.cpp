@@ -16,28 +16,13 @@
 #include "adaptation/adapt_map.h"
 #include "solenoids/constant_current.h"
 
-#ifdef EGS51_MODE
-    #include "canbus/can_egs51.h"
+// CAN LAYERS
+#include "canbus/can_egs_basic.h"
+#ifdef BOARD_V2
+#include "canbus/can_egs51.h"
 #endif
-#ifdef EGS52_MODE
-    #include "canbus/can_egs52.h"
-#endif
-#ifdef EGS53_MODE
-    #include "canbus/can_egs53.h"
-#endif
-
-#if defined(EGS51_MODE) && !defined(BOARD_V2)
-    #error "EGS51 mode can ONLY be supported on V2 boards!"
-#endif
-
-// Sanity check
-#if !defined(EGS51_MODE) && !defined(EGS52_MODE) && !defined(EGS53_MODE)
-    #error "No CAN definition (EGS51/EGS52/EGS53)"
-#endif
-
-#if (defined(EGS52_MODE) && defined(EGS53_MODE)) || (defined(EGS51_MODE) && defined(EGS52_MODE)) || (defined(EGS51_MODE) && defined(EGS53_MODE))
-    #error "Multiple EGS CAN layers CANNOT be enabled at the same time!"
-#endif
+#include "canbus/can_egs52.h"
+#include "canbus/can_egs53.h"
 
 Kwp2000_server* diag_server;
 
@@ -47,18 +32,27 @@ AbstractProfile* profiles[NUM_PROFILES];
 
 SPEAKER_POST_CODE setup_tcm()
 {
-#ifdef EGS51_MODE
-    #pragma message("Building with EGS51 CAN support")
-    egs_can_hal = new Egs51Can("EGS51", 20); // EGS51 CAN Abstraction layer
+    int egs_mode = 0;
+    if (!EEPROM::init_eeprom()) {
+        return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
+    switch (egs_mode) {
+#if defined(BOARD_V2)
+        case 1:
+            egs_can_hal = new Egs51Can("EGS51", 20); // EGS51 CAN Abstraction layer
+            break;
 #endif
-#ifdef EGS52_MODE
-    #pragma message("Building with EGS52 CAN support")
-    egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
-#endif
-#ifdef EGS53_MODE
-    #pragma message("Building with EGS53 CAN support")
-    egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
-#endif
+        case 2:
+            egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
+            break;
+        case 3:
+            egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
+            break;
+        default:
+            // Unknown (Fallback to basic CAN)
+            egs_can_hal = new EgsBasicCan("EGSBASIC", 20);
+            break;
+    }
     if (!egs_can_hal->begin_tasks()) {
         return SPEAKER_POST_CODE::CAN_FAIL;
     }
@@ -70,9 +64,6 @@ SPEAKER_POST_CODE setup_tcm()
     }
     if(!CurrentDriver::init_current_driver()) {
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
-    }
-    if (!EEPROM::init_eeprom()) {
-        return SPEAKER_POST_CODE::EEPROM_FAIL;
     }
 
     standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);

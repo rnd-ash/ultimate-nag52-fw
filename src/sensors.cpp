@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "pins.h"
 #include "macros.h"
+#include "pins.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define PCNT_H_LIM 1
@@ -17,33 +18,6 @@
 
 const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
-
-// PCNT configurations
-const pcnt_config_t pcnt_cfg_n2 {
-    .pulse_gpio_num = PIN_N2,
-    .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-    .lctrl_mode = PCNT_MODE_KEEP,
-    .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
-    .counter_h_lim = PCNT_H_LIM,
-    .counter_l_lim = 0,
-    .unit = PCNT_N2_RPM,
-    .channel = PCNT_CHANNEL_0
-};
-
-const pcnt_config_t pcnt_cfg_n3 {
-    .pulse_gpio_num = PIN_N3,
-    .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-    .lctrl_mode = PCNT_MODE_KEEP,
-    .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
-    .counter_h_lim = PCNT_H_LIM,
-    .counter_l_lim = 0,
-    .unit = PCNT_N3_RPM,
-    .channel = PCNT_CHANNEL_0
-};
 
 typedef struct {
     // Voltage in mV
@@ -161,14 +135,42 @@ static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
 
 bool Sensors::init_sensors(){
     esp_err_t res;
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_VBATT, GPIO_MODE_INPUT), "Failed to set PIN_VBATT to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_ATF, GPIO_MODE_INPUT), "Failed to set PIN_ATF to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_N2, GPIO_MODE_INPUT), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_N3, GPIO_MODE_INPUT), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
+
+    pcnt_config_t pcnt_cfg_n2 {
+        .pulse_gpio_num = pcb_gpio_matrix->n2_pin,
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = PCNT_COUNT_INC,
+        .neg_mode = PCNT_COUNT_DIS,
+        .counter_h_lim = PCNT_H_LIM,
+        .counter_l_lim = 0,
+        .unit = PCNT_N2_RPM,
+        .channel = PCNT_CHANNEL_0
+    };
+
+    pcnt_config_t pcnt_cfg_n3 {
+        .pulse_gpio_num = pcb_gpio_matrix->n3_pin,
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = PCNT_COUNT_INC,
+        .neg_mode = PCNT_COUNT_DIS,
+        .counter_h_lim = PCNT_H_LIM,
+        .counter_l_lim = 0,
+        .unit = PCNT_N3_RPM,
+        .channel = PCNT_CHANNEL_0
+    };
+
+
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "Failed to set PIN_VBATT to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "Failed to set PIN_ATF to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->n2_pin, GPIO_MODE_INPUT), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->n3_pin, GPIO_MODE_INPUT), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
 
     // Set RPM pins to pullup
-    CHECK_ESP_FUNC(gpio_set_pull_mode(PIN_N2, GPIO_PULLUP_ONLY), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_pull_mode(PIN_N3, GPIO_PULLUP_ONLY), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_pull_mode(pcb_gpio_matrix->n2_pin, GPIO_PULLUP_ONLY), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_pull_mode(pcb_gpio_matrix->n3_pin, GPIO_PULLUP_ONLY), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
 
     // Configure ADC2 for analog readings
     CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_VBATT, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))

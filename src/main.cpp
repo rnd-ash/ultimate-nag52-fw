@@ -23,6 +23,7 @@
 #endif
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
+#include "pins.h"
 
 Kwp2000_server* diag_server;
 
@@ -32,6 +33,27 @@ AbstractProfile* profiles[NUM_PROFILES];
 
 SPEAKER_POST_CODE setup_tcm()
 {
+    if (!EEPROM::read_efuse_config(&BOARD_CONFIG)) {
+        return SPEAKER_POST_CODE::EEPROM_FAIL;
+    }
+    // First thing to do, Configure the GPIO Pin matrix!
+    switch (BOARD_CONFIG.board_ver) {
+        case 1:
+            pcb_gpio_matrix = new BoardV11GpioMatrix();
+            break;
+        case 2:
+            pcb_gpio_matrix = new BoardV12GpioMatrix();
+            break;
+        case 3:
+            pcb_gpio_matrix = new BoardV13GpioMatrix();
+            break;
+        default:
+            spkr = new Speaker(gpio_num_t::GPIO_NUM_4); // Assume legacy when this fails!
+            return SPEAKER_POST_CODE::EFUSE_NOT_SET;
+    }
+    spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
+
+
     int egs_mode = 0;
     if (!EEPROM::init_eeprom()) {
         return SPEAKER_POST_CODE::EEPROM_FAIL;
@@ -95,16 +117,18 @@ SPEAKER_POST_CODE setup_tcm()
 void err_beep_loop(void* a) {
     SPEAKER_POST_CODE p = (SPEAKER_POST_CODE)(int)a;
     if (p == SPEAKER_POST_CODE::INIT_OK) {
-        spkr.post(p); // All good, return
+        spkr->post(p); // All good, return
         vTaskDelete(NULL);
     } else {
-        // An error has occurred
-        // Set gearbox to F mode
-        egs_can_hal->set_drive_profile(GearboxProfile::Failure);
-        egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
-        egs_can_hal->set_gearbox_ok(false);
+        if (egs_can_hal != nullptr) {
+            // An error has occurred
+            // Set gearbox to F mode
+            egs_can_hal->set_drive_profile(GearboxProfile::Failure);
+            egs_can_hal->set_display_msg(GearboxMessage::VisitWorkshop);
+            egs_can_hal->set_gearbox_ok(false);
+        }
         while(1) {
-            spkr.post(p);
+            spkr->post(p);
             vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);
@@ -174,6 +198,8 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
             return "SENSOR_INIT_FAIL";
         case SPEAKER_POST_CODE::SOLENOID_FAIL:
             return "SOLENOID_INIT_FAIL";
+        case SPEAKER_POST_CODE::EFUSE_NOT_SET:
+            return "EFUSE_CONFIG_NOT_SET";
         default:
             return nullptr;
     }

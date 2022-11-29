@@ -1,22 +1,18 @@
 #include "can_egs51.h"
 
-#ifndef BOARD_V2
-    #error "EGS51 CAN Support is only supported on V2 PCBs!"
-#endif
-
 #define IO_ADDR 0x20
 
 #include "driver/twai.h"
-#include "pins.h"
 #include "gearbox_config.h"
 #include "driver/i2c.h"
+#include "pins.h"
 
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS51_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
+    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
@@ -33,11 +29,16 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
     }
 
+    if (pcb_gpio_matrix->i2c_sda == gpio_num_t::GPIO_NUM_NC || pcb_gpio_matrix->i2c_scl == gpio_num_t::GPIO_NUM_NC) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "Cannot launch TRRS on board without I2C!");
+        return;
+    }
+
     // Init TRRS sensors
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = PIN_I2C_SDA,
-        .scl_io_num = PIN_I2C_SCL,
+        .sda_io_num = pcb_gpio_matrix->i2c_sda,
+        .scl_io_num = pcb_gpio_matrix->i2c_scl,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
     };

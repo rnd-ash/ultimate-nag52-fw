@@ -87,11 +87,15 @@ void Speaker::post(SPEAKER_POST_CODE code) {
             this->send_note(500, 150, 200);
             this->send_note(500, 300, 500);
             break;
+        case SPEAKER_POST_CODE::EFUSE_NOT_SET:
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            break;
         default:
             break;
     }
 }
 
-
-
-Speaker spkr = Speaker(PIN_SPKR);
+Speaker* spkr = nullptr;

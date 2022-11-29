@@ -4,7 +4,8 @@
 #include "speaker.h"
 #include <string.h>
 #include "profiles.h"
-
+#include "efuse/efuse.h"
+#include "esp_efuse.h"
 
 /// If default is UINT16_MAX, it is ignored
 bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
@@ -184,5 +185,19 @@ bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     return true;
 }
 
+bool EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
+    if (dest == nullptr) {
+        return false;
+    }
+    esp_efuse_read_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "READ EFUSE", "CONFIG:Board Ver: %d, Week %d (%02d/%02d/%02d)", dest->board_ver, dest->manufacture_day, dest->manufacture_week, dest->manufacture_month, dest->manufacture_year);
+    return true;
+}
+
 TCM_CORE_CONFIG VEHICLE_CONFIG = {};
+TCM_EFUSE_CONFIG BOARD_CONFIG = {};
 nvs_handle_t MAP_NVS_HANDLE = {};

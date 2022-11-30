@@ -7,8 +7,9 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
-#include "pins.h"
+#include "board_config.h"
 #include "macros.h"
+#include "nvs/eeprom_config.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define PCNT_H_LIM 1
@@ -18,109 +19,13 @@
 const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
 
-// PCNT configurations
-const pcnt_config_t pcnt_cfg_n2 {
-    .pulse_gpio_num = PIN_N2,
-    .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-    .lctrl_mode = PCNT_MODE_KEEP,
-    .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
-    .counter_h_lim = PCNT_H_LIM,
-    .counter_l_lim = 0,
-    .unit = PCNT_N2_RPM,
-    .channel = PCNT_CHANNEL_0
-};
 
-const pcnt_config_t pcnt_cfg_n3 {
-    .pulse_gpio_num = PIN_N3,
-    .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-    .lctrl_mode = PCNT_MODE_KEEP,
-    .hctrl_mode = PCNT_MODE_KEEP,
-    .pos_mode = PCNT_COUNT_INC,
-    .neg_mode = PCNT_COUNT_DIS,
-    .counter_h_lim = PCNT_H_LIM,
-    .counter_l_lim = 0,
-    .unit = PCNT_N3_RPM,
-    .channel = PCNT_CHANNEL_0
-};
 
-typedef struct {
-    // Voltage in mV
-    uint16_t v; 
-    // ATF Temp in degrees C * 10
-    int temp; 
-} temp_reading_t;
+#define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
+#define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
 
-#define NUM_TEMP_POINTS 22
-
-#ifdef BOARD_V2
-
-const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
-//    mV, Temp(x10)
-// mV Values are calibrated on 3.45V rail
-// as that is how much the ATF sensor power gets
-    {725, -400},
-    {784, -300},
-    {842, -200},
-    {900, -100},
-    {957, 0},
-    {1013, 100},
-    {1068, 200},
-    {1123, 300},
-    {1177, 400},
-    {1230, 500},
-    {1281, 600},
-    {1332, 700},
-    {1384, 800},
-    {1438, 900},
-    {1488, 1000},
-    {1538, 1100},
-    {1587, 1200},
-    {1636, 1300},
-    {1685, 1400},
-    {1732, 1500},
-    {1779, 1600},
-    {1826, 1700}
-};
-
-#define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
-#define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_7
-
-#else 
-
-const static temp_reading_t atf_temp_lookup[NUM_TEMP_POINTS] = {
-//    mV, Temp(x10)
-// mV Values are calibrated on 3.45V rail
-// as that is how much the ATF sensor power gets
-    {446, -400},
-    {461, -300},
-    {476, -200},
-    {491, -100},
-    {507, 0},
-    {523, 100},
-    {540, 200},
-    {557, 300},
-    {574, 400},
-    {592, 500},
-    {610, 600},
-    {629, 700},
-    {648, 800},
-    {669, 900},
-    {690, 1000},
-    {711, 1100},
-    {732, 1200},
-    {755, 1300},
-    {778, 1400},
-    {802, 1500},
-    {814, 1600},
-    {851, 1700}
-};
-
-#define ADC_CHANNEL_VBATT adc2_channel_t::ADC2_CHANNEL_8
-#define ADC_CHANNEL_ATF adc2_channel_t::ADC2_CHANNEL_9
-
-#endif
+#define ADC_CHANNEL_VBATT_V11 adc2_channel_t::ADC2_CHANNEL_8
+#define ADC_CHANNEL_ATF_V11 adc2_channel_t::ADC2_CHANNEL_9
 
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
@@ -161,18 +66,46 @@ static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
 
 bool Sensors::init_sensors(){
     esp_err_t res;
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_VBATT, GPIO_MODE_INPUT), "Failed to set PIN_VBATT to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_ATF, GPIO_MODE_INPUT), "Failed to set PIN_ATF to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_N2, GPIO_MODE_INPUT), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_direction(PIN_N3, GPIO_MODE_INPUT), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
+
+    pcnt_config_t pcnt_cfg_n2 {
+        .pulse_gpio_num = pcb_gpio_matrix->n2_pin,
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = PCNT_COUNT_INC,
+        .neg_mode = PCNT_COUNT_DIS,
+        .counter_h_lim = PCNT_H_LIM,
+        .counter_l_lim = 0,
+        .unit = PCNT_N2_RPM,
+        .channel = PCNT_CHANNEL_0
+    };
+
+    pcnt_config_t pcnt_cfg_n3 {
+        .pulse_gpio_num = pcb_gpio_matrix->n3_pin,
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = PCNT_COUNT_INC,
+        .neg_mode = PCNT_COUNT_DIS,
+        .counter_h_lim = PCNT_H_LIM,
+        .counter_l_lim = 0,
+        .unit = PCNT_N3_RPM,
+        .channel = PCNT_CHANNEL_0
+    };
+
+
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "Failed to set PIN_VBATT to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "Failed to set PIN_ATF to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->n2_pin, GPIO_MODE_INPUT), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->n3_pin, GPIO_MODE_INPUT), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
 
     // Set RPM pins to pullup
-    CHECK_ESP_FUNC(gpio_set_pull_mode(PIN_N2, GPIO_PULLUP_ONLY), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(gpio_set_pull_mode(PIN_N3, GPIO_PULLUP_ONLY), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_pull_mode(pcb_gpio_matrix->n2_pin, GPIO_PULLUP_ONLY), "Failed to set PIN_N2 to Input! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(gpio_set_pull_mode(pcb_gpio_matrix->n3_pin, GPIO_PULLUP_ONLY), "Failed to set PIN_N3 to Input! %s", esp_err_to_name(res))
 
     // Configure ADC2 for analog readings
-    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_VBATT, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))
-    CHECK_ESP_FUNC(adc2_config_channel_atten(ADC_CHANNEL_ATF, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.atf_channel, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_ATF! %s", esp_err_to_name(res))
+    CHECK_ESP_FUNC(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
 
     // Characterise ADC2
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal_atf);
@@ -274,7 +207,7 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
 
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
-    if (esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_8, &adc2_cal_vbatt, &v) != ESP_OK) {
+    if (esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_batt, &adc2_cal_vbatt, &v) != ESP_OK) {
         return false;
     } else {
         // Vin = Vout(R1+R2)/R2
@@ -285,35 +218,30 @@ bool Sensors::read_vbatt(uint16_t *dest){
 
 // Returns ATF temp in *C
 bool Sensors::read_atf_temp(int16_t* dest) {
-uint32_t avg = 0;
-
-#ifdef BOARD_V2
-    static const float ATF_TEMP_CORR = 1.0;
-#else
-    uint32_t raw = 0;
-    static const float ATF_TEMP_CORR = 0.8;
-#endif
-
-#ifdef BOARD_V2
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
-    if (res != ESP_OK) {
-        return false;
-    }
-#else
-    #define NUM_ATF_SAMPLES 5
-    for (uint8_t i = 0; i < NUM_ATF_SAMPLES; i++) {
-        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
+    uint32_t avg = 0;
+    float ATF_TEMP_CORR = BOARD_CONFIG.board_ver >= 2 ? 1.0 : 0.8;
+    if (BOARD_CONFIG.board_ver >= 2) {
+        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
         if (res != ESP_OK) {
-            //ESP_LOG_LEVEL(ESP_LOG_WARN, "READ_ATF", "Failed to query ATF temp. %s", esp_err_to_name(res));
             return false;
         }
-        avg += raw;
+    } else {
+        uint32_t raw = 0;
+        for (uint8_t i = 0; i < 5; i++) {
+            esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
+            if (res != ESP_OK) {
+                return false;
+            }
+            avg += raw;
+        }
+        avg /= 5;
     }
-    avg /= NUM_ATF_SAMPLES;
-#endif
+
+
     if (avg >= 3000) {
         return false; // Parking lock engaged, cannot read.
     }
+    const temp_reading_t* atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
     if (avg <= atf_temp_lookup[0].v) {
         *dest = (int16_t)((float)atf_temp_lookup[0].temp * ATF_TEMP_CORR);
         return true;
@@ -336,11 +264,7 @@ uint32_t avg = 0;
 
 bool Sensors::parking_lock_engaged(bool* dest){
     uint32_t raw;
-#ifdef BOARD_V2
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &raw);
-#else
-    esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
-#endif
+    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_atf, &adc2_cal_atf, &raw);
     if (res != ESP_OK) {
         return false;
     } else {

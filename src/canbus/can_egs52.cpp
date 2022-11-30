@@ -1,16 +1,13 @@
 #include "can_egs52.h"
 #include "driver/twai.h"
-#include "pins.h"
 #include "gearbox_config.h"
-
-#ifdef EGS52_MODE
-
+#include "board_config.h"
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
+    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
@@ -1115,5 +1112,3 @@ void Egs52Can::rx_task_loop() {
         }
     }
 }
-
-#endif

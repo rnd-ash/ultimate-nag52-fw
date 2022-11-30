@@ -5,20 +5,18 @@
 *
 * IF MODIFICATIONS NEED TO BE MADE, MODIFY can_data.txt!
 *
-* CAN Defintiion for ECU 'EWM'
+* CAN Defintiion for ECU 'EWM51'
 */
-
-#ifdef EGS51_MODE
 
 #ifndef __ECU_EWM51_H_
 #define __ECU_EWM51_H_
 
 #include <stdint.h>
     
-#define EWM_230_CAN_ID 0x0230
+#define EWM_230EGS51_CAN_ID 0x0230
 
 /** gear selector lever position (NAG only) */
-enum class EWM_230h_WHC {
+enum class EWM_230h_WHCEGS51 {
 	D = 5, // selector lever in position "D"
 	N = 6, // selector lever in position "N"
 	R = 7, // selector lever in position "R"
@@ -37,8 +35,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of EWM_230 */
-	uint32_t get_canid(){ return EWM_230_CAN_ID; }
+	/** Gets CAN ID of EWM_230EGS51 */
+	uint32_t get_canid(){ return EWM_230EGS51_CAN_ID; }
     /** Sets Driving program */
     void set_W_S(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -64,12 +62,12 @@ typedef union {
     bool get_SPERR() const { return (bool)(raw >> 60 & 0x1); }
         
     /** Sets gear selector lever position (NAG only) */
-    void set_WHC(EWM_230h_WHC value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
+    void set_WHC(EWM_230h_WHCEGS51 value){ raw = (raw & 0xf0ffffffffffffff) | ((uint64_t)value & 0xf) << 56; }
 
     /** Gets gear selector lever position (NAG only) */
-    EWM_230h_WHC get_WHC() const { return (EWM_230h_WHC)(raw >> 56 & 0xf); }
+    EWM_230h_WHCEGS51 get_WHC() const { return (EWM_230h_WHCEGS51)(raw >> 56 & 0xf); }
         
-} EWM_230;
+} EWM_230EGS51;
 
 
 
@@ -84,7 +82,7 @@ class ECU_EWM51 {
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
             switch(can_id) {
-                case EWM_230_CAN_ID:
+                case EWM_230EGS51_CAN_ID:
                     LAST_FRAME_TIMES[0] = timestamp_now;
                     FRAME_DATA[0] = value;
                     return true;
@@ -100,7 +98,7 @@ class ECU_EWM51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_EWM_230(uint64_t now, uint64_t max_expire_time, EWM_230* dest) const {
+        bool get_EWM_230(uint64_t now, uint64_t max_expire_time, EWM_230EGS51* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -115,6 +113,4 @@ class ECU_EWM51 {
 		uint64_t FRAME_DATA[1];
 		uint64_t LAST_FRAME_TIMES[1];
 };
-#endif // __ECU_EWM_H_
-
-#endif // EGS52_MODE
+#endif // __ECU_EWM51_H_

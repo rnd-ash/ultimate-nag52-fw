@@ -127,9 +127,33 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
-    this->can_endpoint = new CanEndpoint(can_layer);
-    // Start ISO-TP endpoint
-    xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
+    if (can_layer != nullptr) {
+        this->can_endpoint = new CanEndpoint(can_layer);
+        // Start ISO-TP endpoint
+        xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
+    } else {
+        this->can_endpoint = nullptr;
+        this->can_layer = nullptr;
+    }
+
+            this->supplier_id = 0x08;
+    if (can_layer == nullptr || gearbox == nullptr) {
+        this->diag_var_code = 0x0000;
+    } else {
+        switch (VEHICLE_CONFIG.egs_can_type) {
+            case 1:
+                this->diag_var_code = 0x0251;
+            case 2:
+                this->diag_var_code = 0x0251;
+            case 3:
+                this->diag_var_code = 0x0353;
+            default:
+                this->diag_var_code = 0x0000;
+                break;
+
+        }
+    }
+
     init_perfmon();
 }
 
@@ -199,7 +223,7 @@ void Kwp2000_server::server_loop() {
         if (this->usb_diag_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = true;
             read_msg = true;
-        } else if (this->can_endpoint->read_data(&this->rx_msg)) {
+        } else if (this->can_endpoint != nullptr && this->can_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = false;
             read_msg = true;
         }
@@ -265,7 +289,7 @@ void Kwp2000_server::server_loop() {
         if (this->send_resp) {
             if (endpoint_was_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
-            } else {
+            } else if (this->can_endpoint != nullptr) {
                 this->can_endpoint->send_data(&tx_msg);
             }
             this->send_resp = false;
@@ -336,7 +360,7 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
-                if (!is_shifter_passive(this->can_layer)) {
+                if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
                     // P or R, we CANNOT reset the ECU!
                     make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                     return;
@@ -385,9 +409,9 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         // ECU Software date
         daimler_ident_data[7] = date.week;
         daimler_ident_data[8] = date.year;
-        daimler_ident_data[9] = SUPPLIER_ID;
-        daimler_ident_data[10] = DIAG_VARIANT_CODE >> 8;
-        daimler_ident_data[11] = DIAG_VARIANT_CODE & 0xFF;
+        daimler_ident_data[9] = this->supplier_id;
+        daimler_ident_data[10] = this->diag_var_code >> 8;
+        daimler_ident_data[11] = this->diag_var_code & 0xFF;
         daimler_ident_data[13] = date.year;
         daimler_ident_data[14] = date.month;
         daimler_ident_data[15] = date.day;
@@ -397,9 +421,9 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         uint8_t ident_data[19];
         memset(ident_data, 0x00, 19);
         ident_data[0] = 0x00; // TODO ECU origin
-        ident_data[1] = SUPPLIER_ID;
-        ident_data[2] = DIAG_VARIANT_CODE >> 8;
-        ident_data[3] = DIAG_VARIANT_CODE & 0xFF;
+        ident_data[1] = this->supplier_id;
+        ident_data[2] = this->diag_var_code >> 8;
+        ident_data[3] = this->diag_var_code & 0xFF;
         ident_data[5] = 0x00;// HW version
         ident_data[6] = 0x00;// HW version
         ident_data[7] = date.day;// SW version
@@ -419,7 +443,7 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
     } else if (args[0] == 0x88) { // VIN original
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
     } else if (args[0] == 0x89) { // Diagnostic variant code
-        int d = DIAG_VARIANT_CODE;
+        int d = this->diag_var_code;
         uint8_t b[4];
         memcpy(b, &d, 4);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, b, 4);
@@ -526,6 +550,10 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
+    } else if (args[0] == RLI_EFUSE_CONFIG) {
+        TCM_EFUSE_CONFIG ecfg;
+        EEPROM::read_efuse_config(&ecfg);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EFUSE_CONFIG, (uint8_t*)&ecfg, sizeof(TCM_EFUSE_CONFIG));
     } else if (args[0] == RLI_SHIFT_LIVE) {
         SHIFT_LIVE_INFO r = get_shift_live_Data(egs_can_hal, gearbox);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
@@ -785,6 +813,20 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                     make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
                 } else {
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
+                }
+            }
+        } else if (args[0] == RLI_EFUSE_CONFIG) {
+            if (arg_len-1 != sizeof(TCM_EFUSE_CONFIG)) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            } else {
+                // TCM Core config size ok
+                TCM_EFUSE_CONFIG cfg;
+                memcpy(&cfg, &args[1], sizeof(TCM_EFUSE_CONFIG));
+                bool res = EEPROM::write_efuse_config(&cfg);
+                if (res == true) {
+                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
+                } else {
+                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 }
             }
         } else {

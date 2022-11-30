@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'EWM'
 */
 
-#ifdef EGS52_MODE
-
 #ifndef __ECU_EWM_H_
 #define __ECU_EWM_H_
 
@@ -116,5 +114,3 @@ class ECU_EWM {
 		uint64_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_EWM_H_
-
-#endif // EGS52_MODE

@@ -2,12 +2,11 @@
 #define __EGS51_CAN_H_
 #include <gearbox_config.h>
 
-#ifdef EGS51_MODE
 #include "can_hal.h"
-#include "GS51.h"
-#include "MS51.h"
-#include "ESP51.h"
-#include "EWM51.h"
+#include "../../egs51_ecus/src/GS51.h"
+#include "../../egs51_ecus/src/MS51.h"
+#include "../../egs51_ecus/src/ESP51.h"
+#include "../../egs51_ecus/src/EWM51.h"
 
 class Egs51Can: public AbstractCan {
     public:
@@ -103,7 +102,7 @@ class Egs51Can: public AbstractCan {
         void rx_task_loop() override;
     private:
         // CAN Frames to Tx
-        GS_218 gs218 = {0};
+        GS_218EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM51 ewm51 = ECU_EWM51();
         ECU_ESP51 esp51 = ECU_ESP51();
@@ -115,7 +114,5 @@ class Egs51Can: public AbstractCan {
         bool rp_lock_enage = false;
         bool can_init_ok = false;
 };
-
-#endif // EGS53_MODE
 
 #endif // EGS52_CAN_H_

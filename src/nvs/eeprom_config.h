@@ -29,13 +29,40 @@ typedef struct {
     uint16_t red_line_rpm_diesel;
     uint16_t red_line_rpm_petrol;
     uint8_t engine_type; // 0 for diesel, 1 for petrol
+    uint8_t egs_can_type;
+    uint8_t shifter_style;
+    uint8_t io_0_usage;
+    uint8_t input_sensor_pulses_per_rev;
+    uint8_t output_pulse_width_per_kmh;
+    uint8_t gen_mosfet_purpose;
 } __attribute__ ((packed)) TCM_CORE_CONFIG;
+
+
+// -- EFuse layout --
+//   Key                Block     start bit    length bit
+// PRODUCT.BOARD_VER, EFUSE_BLK3, 0,           8
+// PRODUCT.M_DAY,     EFUSE_BLK3, 8,           8
+// PRODUCT.M_WEEK,    EFUSE_BLK3, 16,          8
+// PRODUCT.M_MONTH,   EFUSE_BLK3, 24,          8
+// PRODUCT.M_YEAR,    EFUSE_BLK3, 32,          8
+
+typedef struct {
+    uint8_t board_ver; // 1 - Red PCB, 2 - Black PCB, 3 - Black PCB with GPIO (WIP)
+    uint8_t manufacture_day;
+    uint8_t manufacture_week;
+    uint8_t manufacture_month;
+    uint8_t manufacture_year;
+} __attribute__ ((packed)) TCM_EFUSE_CONFIG;
+
 
 namespace EEPROM {
     bool init_eeprom();
     uint8_t get_last_profile();
     bool read_core_config(TCM_CORE_CONFIG* dest);
     bool save_core_config(TCM_CORE_CONFIG* write);
+    bool read_efuse_config(TCM_EFUSE_CONFIG* dest);
+    bool write_efuse_config(TCM_EFUSE_CONFIG* dest);
+
 
     bool read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     bool write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
@@ -43,7 +70,7 @@ namespace EEPROM {
 
 #define NUM_GEARS 5
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;
-
+extern TCM_EFUSE_CONFIG BOARD_CONFIG;
 extern nvs_handle_t MAP_NVS_HANDLE;
 
 #endif

@@ -8,18 +8,16 @@
 * CAN Defintiion for ECU 'EZS51'
 */
 
-#ifdef EGS51_MODE
-
 #ifndef __ECU_EZS51_H_
 #define __ECU_EZS51_H_
 
 #include <stdint.h>
     
-#define EZS_240_CAN_ID 0x0240
-#define KLA_410_CAN_ID 0x0410
+#define EZS_240EGS51_CAN_ID 0x0240
+#define KLA_410EGS51_CAN_ID 0x0410
 
 /** LHD / RHD */
-enum class EZS_240h_LL_RLC {
+enum class EZS_240h_LL_RLCEGS51 {
 	UNKNOWN = 0, // not defined
 	LL = 1, // Left
 	RL = 2, // RHD
@@ -32,8 +30,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of EZS_240 */
-	uint32_t get_canid(){ return EZS_240_CAN_ID; }
+	/** Gets CAN ID of EZS_240EGS51 */
+	uint32_t get_canid(){ return EZS_240EGS51_CAN_ID; }
     /** Sets cruise control lever implausible */
     void set_WH_UP(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
 
@@ -83,10 +81,10 @@ typedef union {
     bool get_KG_ALB_OK() const { return (bool)(raw >> 54 & 0x1); }
         
     /** Sets LHD / RHD */
-    void set_LL_RLC(EZS_240h_LL_RLC value){ raw = (raw & 0xffcfffffffffffff) | ((uint64_t)value & 0x3) << 52; }
+    void set_LL_RLC(EZS_240h_LL_RLCEGS51 value){ raw = (raw & 0xffcfffffffffffff) | ((uint64_t)value & 0x3) << 52; }
 
     /** Gets LHD / RHD */
-    EZS_240h_LL_RLC get_LL_RLC() const { return (EZS_240h_LL_RLC)(raw >> 52 & 0x3); }
+    EZS_240h_LL_RLCEGS51 get_LL_RLC() const { return (EZS_240h_LL_RLCEGS51)(raw >> 52 & 0x3); }
         
     /** Sets Reverse gear engaged (manual transmission only) */
     void set_RG_SCHALT(bool value){ raw = (raw & 0xfff7ffffffffffff) | ((uint64_t)value & 0x1) << 51; }
@@ -124,7 +122,7 @@ typedef union {
     /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_BZ240h() const { return (uint8_t)(raw >> 40 & 0xf); }
         
-} EZS_240;
+} EZS_240EGS51;
 
 
 
@@ -132,8 +130,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of KLA_410 */
-	uint32_t get_canid(){ return KLA_410_CAN_ID; }
+	/** Gets CAN ID of KLA_410EGS51 */
+	uint32_t get_canid(){ return KLA_410EGS51_CAN_ID; }
     /** Sets Turn on a heater */
     void set_ZH_EIN_OK(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -194,7 +192,7 @@ typedef union {
     /** Gets Motor fan setpoint speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_NLFTS() const { return (uint8_t)(raw >> 32 & 0xff); }
         
-} KLA_410;
+} KLA_410EGS51;
 
 
 
@@ -209,11 +207,11 @@ class ECU_EZS51 {
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
             switch(can_id) {
-                case EZS_240_CAN_ID:
+                case EZS_240EGS51_CAN_ID:
                     LAST_FRAME_TIMES[0] = timestamp_now;
                     FRAME_DATA[0] = value;
                     return true;
-                case KLA_410_CAN_ID:
+                case KLA_410EGS51_CAN_ID:
                     LAST_FRAME_TIMES[1] = timestamp_now;
                     FRAME_DATA[1] = value;
                     return true;
@@ -229,7 +227,7 @@ class ECU_EZS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_EZS_240(uint64_t now, uint64_t max_expire_time, EZS_240* dest) const {
+        bool get_EZS_240(uint64_t now, uint64_t max_expire_time, EZS_240EGS51* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -247,7 +245,7 @@ class ECU_EZS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_KLA_410(uint64_t now, uint64_t max_expire_time, KLA_410* dest) const {
+        bool get_KLA_410(uint64_t now, uint64_t max_expire_time, KLA_410EGS51* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -263,5 +261,3 @@ class ECU_EZS51 {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_EZS51_H_
-
-#endif // EGS51_MODE

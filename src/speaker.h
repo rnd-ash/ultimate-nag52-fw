@@ -13,7 +13,8 @@ enum class SPEAKER_POST_CODE {
     CAN_FAIL, // long long short long
     SOLENOID_FAIL, // long short long long
     SENSOR_FAIL, // long short short short
-    CONTROLLER_FAIL // long short short long
+    CONTROLLER_FAIL, // long short short long
+    EFUSE_NOT_SET, // Long long long short
 };
 
 class Speaker {
@@ -25,6 +26,6 @@ class Speaker {
         void set_freq(uint32_t freq);
 };
 
-extern Speaker spkr;
+extern Speaker* spkr;
 
 #endif // __SPEAKER_H_

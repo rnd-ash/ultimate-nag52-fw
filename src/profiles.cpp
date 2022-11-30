@@ -276,14 +276,10 @@ bool WinterProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-#ifdef MANUAL_AUTO_DOWNSHIFT
     if (current_gear == GearboxGear::Second) {
         return false;
     }
     return manual->should_downshift(current_gear, sensors);
-#else
-    return false;
-#endif
 }
 
 // Minimum lockup
@@ -453,16 +449,12 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-#ifdef MANUAL_AUTO_DOWNSHIFT
     if (current_gear == GearboxGear::First) {
         return false;
     } else if (sensors->input_rpm < 300 && sensors->engine_rpm < MIN_WORKING_RPM && sensors->pedal_pos == 0) {
         return true;
     }
     return false;
-#else
-    return false;
-#endif
 }
 
 TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {

@@ -2,6 +2,7 @@
 #include "driver/twai.h"
 #include "gearbox_config.h"
 #include "board_config.h"
+#include "nvs/eeprom_config.h"
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -43,11 +44,11 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     this->sbw_rs_tcm.set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq::IDLE); // Idle request (No SBW on EGS53)
     this->sbw_rs_tcm.set_TxSelSensPosn(0); // No dialing sensor on EGS53
 // Tell engine which Mech style we are
-#ifdef LARGE_NAG
-    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::LARGE);
-#else
-    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
-#endif
+    if (VEHICLE_CONFIG.is_large_nag != 0) {
+        this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::LARGE);
+    } else {
+        this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
+    }
     this->eng_rq2_tcm.set_TxStyle(ENG_RQ2_TCM_TxStyle::SAT); // Stepped automatic gearbox
     this->eng_rq2_tcm.set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle::MS); // Mechanical shifting (With EWM module)
     this->can_init_ok = true;

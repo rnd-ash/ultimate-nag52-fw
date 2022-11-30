@@ -562,12 +562,12 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     }
     else {
         // EGS52 emulation
-#ifdef EGS52_MODE
-        if (args[0] == RLI_31) {
-            RLI_31_DATA r = get_rli_31(egs_can_hal);
-            return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+        if (VEHICLE_CONFIG.egs_can_type == 2) {
+            if (args[0] == RLI_31) {
+                RLI_31_DATA r = get_rli_31(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+            }
         }
-#endif
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
     

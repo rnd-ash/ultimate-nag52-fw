@@ -1,7 +1,7 @@
 #include "can_egs52.h"
 #include "driver/twai.h"
 #include "gearbox_config.h"
-#include "pins.h"
+#include "board_config.h"
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {

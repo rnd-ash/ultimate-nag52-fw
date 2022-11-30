@@ -13,23 +13,6 @@
 #include "esp32/spiram.h"
 #include "flasher.h"
 
-// Ident data
-
-#ifdef EGS53_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x0353 // DiagVersion53_EGS53
-#endif
-
-#ifdef EGS52_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
-#endif
-
-#ifdef EGS51_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x000 // DiagVersion51_EGS52
-#endif
-
 #define PROCESSOR_TYPE
 #define COMM_MATRIX_VERSION 0x0101 // 01.01
 #define CAN_DRIVER_VERSION 0x0101 // 01.01
@@ -115,6 +98,8 @@ class Kwp2000_server {
         void run_solenoid_test();
         xTaskHandle* running_routine;
         Flasher* flash_handler = nullptr;
+        uint8_t supplier_id;
+        uint16_t diag_var_code;
 };
 
 #endif //_KWP_H__

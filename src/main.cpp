@@ -18,12 +18,10 @@
 
 // CAN LAYERS
 #include "canbus/can_egs_basic.h"
-#ifdef BOARD_V2
 #include "canbus/can_egs51.h"
-#endif
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
-#include "pins.h"
+#include "board_config.h"
 
 Kwp2000_server* diag_server;
 
@@ -53,17 +51,13 @@ SPEAKER_POST_CODE setup_tcm()
     }
     spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
 
-
-    int egs_mode = 0;
     if (!EEPROM::init_eeprom()) {
         return SPEAKER_POST_CODE::EEPROM_FAIL;
     }
-    switch (egs_mode) {
-#if defined(BOARD_V2)
+    switch (VEHICLE_CONFIG.egs_can_type) {
         case 1:
             egs_can_hal = new Egs51Can("EGS51", 20); // EGS51 CAN Abstraction layer
             break;
-#endif
         case 2:
             egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
             break;
@@ -72,6 +66,7 @@ SPEAKER_POST_CODE setup_tcm()
             break;
         default:
             // Unknown (Fallback to basic CAN)
+            ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
             egs_can_hal = new EgsBasicCan("EGSBASIC", 20);
             break;
     }
@@ -207,8 +202,15 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    // Set all pointers
+    gearbox = nullptr;
+    egs_can_hal = nullptr;
+    pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
+    // Now spin up the KWP2000 server (last thing)
+    diag_server = new Kwp2000_server(egs_can_hal, gearbox);
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
@@ -217,9 +219,6 @@ extern "C" void app_main(void)
     } else { // INIT OK!
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
     }
-    // Now spin up the KWP2000 server (last thing)
-    diag_server = new Kwp2000_server(egs_can_hal, gearbox);
-    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
 }
 
 #endif // UNIT_TEST

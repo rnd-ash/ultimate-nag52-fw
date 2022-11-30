@@ -1,4 +1,4 @@
-#include "pins.h"
+#include "board_config.h"
 #include "esp_log.h"
 
 BoardGpioMatrix::BoardGpioMatrix(){}
@@ -28,6 +28,19 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() : BoardGpioMatrix() {
     this->spc_pwm = gpio_num_t::GPIO_NUM_12; // Shift pressure solenoid (PWM output)
     this->tcc_sense = gpio_num_t::GPIO_NUM_33; // Torque converter solenoid(Current feedback)
     this->tcc_pwm = gpio_num_t::GPIO_NUM_13; // Torque converter solenoid (PWM output)
+
+    #define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
+    #define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
+    this->sensor_data = SensorFuncData {
+        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
+        .atf_channel = adc2_channel_t::ADC2_CHANNEL_9,
+        .adc_batt = adc_channel_t::ADC_CHANNEL_8,
+        .adc_atf = adc_channel_t::ADC_CHANNEL_9,
+        .atf_calibration_curve = atf_temp_lookup_V11,
+        .current_sense_multi = 2.0,
+        
+
+    };
 }
 
 BoardV12GpioMatrix::BoardV12GpioMatrix() : BoardGpioMatrix() {
@@ -55,6 +68,14 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() : BoardGpioMatrix() {
     this->tcc_pwm = gpio_num_t::GPIO_NUM_13; // Torque converter solenoid (PWM output)
     this->i2c_sda = gpio_num_t::GPIO_NUM_15; // I2C clock
     this->i2c_scl = gpio_num_t::GPIO_NUM_2; // I2C data 
+    this->sensor_data = SensorFuncData {
+        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
+        .atf_channel = adc2_channel_t::ADC2_CHANNEL_7,
+        .adc_batt = adc_channel_t::ADC_CHANNEL_8,
+        .adc_atf = adc_channel_t::ADC_CHANNEL_7,
+        .atf_calibration_curve = atf_temp_lookup_V12,
+        .current_sense_multi = 1.0,
+    };
 }
 
 BoardV13GpioMatrix::BoardV13GpioMatrix() : BoardGpioMatrix() {
@@ -81,6 +102,14 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() : BoardGpioMatrix() {
     this->tcc_pwm = gpio_num_t::GPIO_NUM_13; // Torque converter solenoid (PWM output)
     this->i2c_sda = gpio_num_t::GPIO_NUM_15; // I2C clock
     this->i2c_scl = gpio_num_t::GPIO_NUM_2; // I2C data 
+    this->sensor_data = SensorFuncData {
+        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
+        .atf_channel = adc2_channel_t::ADC2_CHANNEL_7,
+        .adc_batt = adc_channel_t::ADC_CHANNEL_8,
+        .adc_atf = adc_channel_t::ADC_CHANNEL_7,
+        .atf_calibration_curve = atf_temp_lookup_V12,
+        .current_sense_multi = 1.0,
+    };
 }
 
 BoardGpioMatrix* pcb_gpio_matrix = nullptr;

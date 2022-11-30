@@ -29,6 +29,12 @@ typedef struct {
     uint16_t red_line_rpm_diesel;
     uint16_t red_line_rpm_petrol;
     uint8_t engine_type; // 0 for diesel, 1 for petrol
+    uint8_t egs_can_type;
+    uint8_t shifter_style;
+    uint8_t io_0_usage;
+    uint8_t input_sensor_pulses_per_rev;
+    uint8_t output_pulse_width_per_kmh;
+    uint8_t gen_mosfet_purpose;
 } __attribute__ ((packed)) TCM_CORE_CONFIG;
 
 
@@ -55,6 +61,7 @@ namespace EEPROM {
     bool read_core_config(TCM_CORE_CONFIG* dest);
     bool save_core_config(TCM_CORE_CONFIG* write);
     bool read_efuse_config(TCM_EFUSE_CONFIG* dest);
+    bool write_efuse_config(TCM_EFUSE_CONFIG* dest);
 
 
     bool read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);

@@ -1,7 +1,7 @@
 #include "solenoids.h"
 #include "esp_log.h"
 #include "esp_adc_cal.h"
-#include "pins.h"
+#include "board_config.h"
 #include "../sensors.h"
 #include "soc/syscon_periph.h"
 #include "soc/i2s_periph.h"
@@ -76,11 +76,7 @@ uint16_t Solenoid::get_current() {
     if (v <= adc1_cal.coeff_b) {
         v = 0; // Too small
     }
-#ifdef BOARD_V2
-        return v;
-    #else
-        return v*2;
-    #endif
+    return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
 uint16_t Solenoid::get_pwm_raw()
@@ -104,11 +100,7 @@ uint16_t Solenoid::get_current_avg()
     if (v <= adc1_cal.coeff_b) {
         v = 0; // Too small
     }
-#ifdef BOARD_V2
-        return v;
-#else
-        return v*2;
-#endif
+    return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
 void Solenoid::__write_pwm() {

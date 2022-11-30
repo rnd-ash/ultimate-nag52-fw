@@ -5,7 +5,7 @@
 #include "driver/twai.h"
 #include "gearbox_config.h"
 #include "driver/i2c.h"
-#include "pins.h"
+#include "board_config.h"
 
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)

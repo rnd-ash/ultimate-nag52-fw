@@ -1,7 +1,7 @@
 #include "can_egs53.h"
 #include "driver/twai.h"
 #include "gearbox_config.h"
-#include "pins.h"
+#include "board_config.h"
 
 uint8_t crcTable[256]; // For CRC only
 

@@ -30,6 +30,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
+#define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct

@@ -1,6 +1,6 @@
 #include "can_egs_basic.h"
 #include "driver/twai.h"
-#include "pins.h"
+#include "board_config.h"
 
 EgsBasicCan::EgsBasicCan(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)

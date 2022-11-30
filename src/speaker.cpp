@@ -1,5 +1,5 @@
 #include "speaker.h"
-#include "pins.h"
+#include "board_config.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/ledc.h"

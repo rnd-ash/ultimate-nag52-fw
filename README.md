@@ -10,6 +10,11 @@ I am in no way responsible if your gearbox or car dies as a result of using this
 Although this firmware is being tested actively, there are loads of unknowns which may occur rarely during operation that
 are not tested yet.
 
+## IMPORTANT
+
+If you have just built your board, or are updating to firmware after 30/11/22, please look at [this guide](https://youtu.be/ov3pYcKIA70)!
+Your TCU will be bricked until you follow it!
+
 ## Generating the code documentation
 
 1. Install [doxygen](https://www.doxygen.nl/manual/install.html)

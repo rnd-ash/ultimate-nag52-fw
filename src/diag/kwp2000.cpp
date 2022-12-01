@@ -15,6 +15,11 @@ typedef struct {
     uint8_t week;
 } ECU_Date;
 
+uint8_t decToBcd(uint8_t val)
+{
+  return ( (val/10*16) + (val%10) );
+}
+
 uint8_t bcd_to_hex(char c) {
     switch (c) {
         case '0':
@@ -54,63 +59,46 @@ uint8_t bcd_to_hex(char c) {
 
 ECU_Date fw_date_to_bcd(char* date) {
     uint8_t month = 0x01;
-    uint8_t month_base_10 = 0;
-    if (strncmp("Jan", date, 3) == 0) {
-        month = 0x01;
-        month_base_10 = 1;
-    } else if (strncmp("Feb", date, 3) == 0) {
-        month = 0x02;
-        month_base_10 = 2;
-    } else if (strncmp("Mar", date, 3) == 0) {
-        month = 0x03;
-        month_base_10 = 3;
-    } else if (strncmp("Apr", date, 3) == 0) {
-        month = 0x04;
-        month_base_10 = 4;
-    } else if (strncmp("May", date, 3) == 0) {
-        month = 0x05;
-        month_base_10 = 5;
-    } else if (strncmp("Jun", date, 3) == 0) {
-        month = 0x06;
-        month_base_10 = 6;
-    } else if (strncmp("Jul", date, 3) == 0) {
-        month = 0x07;
-        month_base_10 = 7;
-    } else if (strncmp("Aug", date, 3) == 0) {
-        month = 0x08;
-        month_base_10 = 8;
-    } else if (strncmp("Sep", date, 3) == 0) {
-        month = 0x09;
-        month_base_10 = 9;
-    } else if (strncmp("Oct", date, 3) == 0) {
-        month = 0x10;
-        month_base_10 = 10;
-    } else if (strncmp("Nov", date, 3) == 0) {
-        month = 0x11;
-        month_base_10 = 11;
-    } else if (strncmp("Dec", date, 3) == 0) {
-        month = 0x12;
-        month_base_10 = 12;
+    char* month_str = &date[3];
+    if (strncmp("Jan", month_str, 3) == 0) {
+        month = 1;
+    } else if (strncmp("Feb", month_str, 3) == 0) {
+        month = 2;
+    } else if (strncmp("Mar", month_str, 3) == 0) {
+        month = 3;
+    } else if (strncmp("Apr", month_str, 3) == 0) {
+        month = 4;
+    } else if (strncmp("May", month_str, 3) == 0) {
+        month = 5;
+    } else if (strncmp("Jun", month_str, 3) == 0) {
+        month = 6;
+    } else if (strncmp("Jul", month_str, 3) == 0) {
+        month = 7;
+    } else if (strncmp("Aug", month_str, 3) == 0) {
+        month = 8;
+    } else if (strncmp("Sep", month_str, 3) == 0) {
+        month = 9;
+    } else if (strncmp("Oct", month_str, 3) == 0) {
+        month = 10;
+    } else if (strncmp("Nov", month_str, 3) == 0) {
+        month = 11;
+    } else if (strncmp("Dec", month_str, 3) == 0) {
+        month = 12;
     } else {
-        month_base_10 = 99;
-        month = 0x99; //??
+        month = 0x00;
     }
 
-    uint8_t day_base_10 =((date[4] - '0') * 10) + (date[5]-'0'); // Hacky way
-    uint8_t day = ((bcd_to_hex(date[4]) & 0x0f) << 4) | bcd_to_hex(date[5]);
-    uint8_t year = ((bcd_to_hex(date[9]) & 0x0f) << 4) | bcd_to_hex(date[10]);
-    uint8_t year_base_10 =((date[9] - '0') * 10) + (date[10]-'0'); // Hacky way
-    
+    uint8_t day  =((date[0] - '0') * 10) + (date[1]-'0');
+    uint8_t year =((date[9] - '0') * 10) + (date[10]-'0');
     struct tm time;
     memset(&time, 0, sizeof(time));
     char timebuf[4];
-    time.tm_mday = day_base_10;
-    time.tm_year = 100 + year_base_10;
-    time.tm_mon = month_base_10-1;
+    time.tm_mday = day;
+    time.tm_year = 100 + year;
+    time.tm_mon = month-1;
     mktime(&time);
-    strftime(timebuf, 4, "%W", &time);
-    uint8_t week = ((bcd_to_hex(timebuf[0]) & 0x0f) << 4) | bcd_to_hex(timebuf[1]);
-
+    strftime(timebuf, 4, "%02W", &time);
+    uint8_t week =((timebuf[0] - '0') * 10) + (timebuf[1]-'0'); // Hacky way
     return ECU_Date {
         .day = day,
         .month = month,
@@ -281,7 +269,8 @@ void Kwp2000_server::server_loop() {
                     this->process_shift_mgr_op(args_ptr, args_size);
                     break;
                 default:
-                    ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported, full msg was:", rx_msg.data[0]);
+                    ESP_LOG_BUFFER_HEX_LEVEL("KWP_HANDLE_REQ", rx_msg.data, rx_msg.data_size, ESP_LOG_WARN);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
                     break;
             }
@@ -404,17 +393,17 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         daimler_ident_data[3] = 0x67;
         daimler_ident_data[4] = 0x89;
         // ECU Hardware date
-        daimler_ident_data[5] = date.week;
-        daimler_ident_data[6] = date.year;
+        daimler_ident_data[5] = decToBcd(BOARD_CONFIG.manufacture_week); //date.week;
+        daimler_ident_data[6] = decToBcd(BOARD_CONFIG.manufacture_year); //date.year;
         // ECU Software date
-        daimler_ident_data[7] = date.week;
-        daimler_ident_data[8] = date.year;
+        daimler_ident_data[7] = decToBcd(date.week);
+        daimler_ident_data[8] = decToBcd(date.year);
         daimler_ident_data[9] = this->supplier_id;
         daimler_ident_data[10] = this->diag_var_code >> 8;
         daimler_ident_data[11] = this->diag_var_code & 0xFF;
-        daimler_ident_data[13] = date.year;
-        daimler_ident_data[14] = date.month;
-        daimler_ident_data[15] = date.day;
+        daimler_ident_data[13] = decToBcd(BOARD_CONFIG.manufacture_year);
+        daimler_ident_data[14] = decToBcd(BOARD_CONFIG.manufacture_month);
+        daimler_ident_data[15] = decToBcd(BOARD_CONFIG.manufacture_day);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x86, daimler_ident_data, 16);
     } else if (args[0] == 0x87) { // Daimler and Mitsubishi compatible identification
         ECU_Date date = fw_date_to_bcd(running_info.date);
@@ -424,8 +413,8 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         ident_data[1] = this->supplier_id;
         ident_data[2] = this->diag_var_code >> 8;
         ident_data[3] = this->diag_var_code & 0xFF;
-        ident_data[5] = 0x00;// HW version
-        ident_data[6] = 0x00;// HW version
+        ident_data[5] = 0x01;// HW version
+        ident_data[6] = BOARD_CONFIG.board_ver;// HW version
         ident_data[7] = date.day;// SW version
         ident_data[8] = date.month;// SW version
         ident_data[9] = date.year;// SW version

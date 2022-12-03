@@ -19,19 +19,10 @@
 const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
 
-
-
-#define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
-#define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
-
-#define ADC_CHANNEL_VBATT_V11 adc2_channel_t::ADC2_CHANNEL_8
-#define ADC_CHANNEL_ATF_V11 adc2_channel_t::ADC2_CHANNEL_9
-
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
 
-esp_adc_cal_characteristics_t adc2_cal_vbatt = {};
-esp_adc_cal_characteristics_t adc2_cal_atf = {};
+esp_adc_cal_characteristics_t adc2_cal = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -108,8 +99,7 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_11db), "Failed to set ADC attenuation for PIN_VBATT! %s", esp_err_to_name(res))
 
     // Characterise ADC2
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal_atf);
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal_vbatt);
+    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal);
 
     // Now configure PCNT to begin counting!
     CHECK_ESP_FUNC(pcnt_unit_config(&pcnt_cfg_n2), "Failed to configure PCNT for N2 RPM reading! %s", esp_err_to_name(res))
@@ -205,9 +195,11 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
     }
 }
 
+
+
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;
-    if (esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_batt, &adc2_cal_vbatt, &v) != ESP_OK) {
+    if (esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_batt, &adc2_cal, &v) != ESP_OK) {
         return false;
     } else {
         // Vin = Vout(R1+R2)/R2
@@ -221,14 +213,14 @@ bool Sensors::read_atf_temp(int16_t* dest) {
     uint32_t avg = 0;
     float ATF_TEMP_CORR = BOARD_CONFIG.board_ver >= 2 ? 1.0 : 0.8;
     if (BOARD_CONFIG.board_ver >= 2) {
-        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal_atf, &avg);
+        esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal, &avg);
         if (res != ESP_OK) {
             return false;
         }
     } else {
         uint32_t raw = 0;
         for (uint8_t i = 0; i < 5; i++) {
-            esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal_atf, &raw);
+            esp_err_t res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &raw);
             if (res != ESP_OK) {
                 return false;
             }
@@ -264,7 +256,7 @@ bool Sensors::read_atf_temp(int16_t* dest) {
 
 bool Sensors::parking_lock_engaged(bool* dest){
     uint32_t raw;
-    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_atf, &adc2_cal_atf, &raw);
+    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_atf, &adc2_cal, &raw);
     if (res != ESP_OK) {
         return false;
     } else {

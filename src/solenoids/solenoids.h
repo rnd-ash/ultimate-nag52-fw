@@ -130,6 +130,11 @@ namespace Solenoids {
     uint16_t get_solenoid_voltage();
     void toggle_all_solenoid_current_monitoring(bool enable);
     bool is_monitoring_all_solenoids();
+
+    void boot_solenoid_test(void*);
+
+    bool init_routine_completed();
+    bool startup_test_ok();
 }
 
 extern Solenoid *sol_y3;

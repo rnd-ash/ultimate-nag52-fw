@@ -82,6 +82,9 @@ void ConstantCurrentDriver::update() {
 }
 
 void constant_current_driver_thread(void*) {
+    if (!Solenoids::init_routine_completed()) {
+        vTaskDelay(1);
+    }
     while(true) {
         mpc_cc->update();
         spc_cc->update();

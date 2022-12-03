@@ -54,7 +54,6 @@ Gearbox::Gearbox() {
     };
     this->tcc = new TorqueConverter();
     this->shift_reporter = new ShiftReporter();
-
     if(VEHICLE_CONFIG.is_large_nag) {
         this->gearboxConfig = GearboxConfiguration {
             .max_torque = MAX_TORQUE_RATING_NM_LARGE,
@@ -70,6 +69,10 @@ Gearbox::Gearbox() {
     }
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     pressure_manager = this->pressure_mgr;
+    // Wait for solenoid routine to complete
+    if (!Solenoids::init_routine_completed()) {
+        vTaskDelay(1);
+    }
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---GEARBOX INFO---");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
     for (int i = 0; i < 7; i++) {

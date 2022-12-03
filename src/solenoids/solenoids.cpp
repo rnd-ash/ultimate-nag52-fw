@@ -246,6 +246,96 @@ float resistance_spc = 5.0;
 bool temp_cal = false;
 int16_t temp_at_test = 25;
 
+bool routine = false;
+bool startup_ok = false;
+
+bool Solenoids::init_routine_completed() {
+    return routine;
+}
+
+bool Solenoids::startup_test_ok() {
+    return startup_ok;
+}
+
+void Solenoids::boot_solenoid_test(void*) {
+    vTaskDelay(50);
+    if(sol_spc->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+
+    if(sol_mpc->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+
+    if(sol_tcc->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+
+    if(sol_y3->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+
+    if(sol_y4->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+
+    if(sol_y5->get_current_avg() > 500) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
+        routine = true;
+        startup_ok = false;
+        return;
+    }
+    toggle_all_solenoid_current_monitoring(false);
+    // Get resistance values from SPC and MPC
+    if (get_solenoid_voltage() > 11000) {
+        uint32_t c_total = 0;
+        uint32_t b_total = 0;
+        while(!first_read_complete){vTaskDelay(1);}
+        sol_mpc->write_pwm_12_bit(4096, false);
+        vTaskDelay(50);
+        for (int i = 0; i < 10; i++) {
+            b_total += get_solenoid_voltage();
+            c_total += sol_mpc->get_current_avg();
+            vTaskDelay(10);
+        }
+        ESP_LOGI("SOLENOID", "MPC Current: %d mA at %d mV", c_total/10, b_total/10);
+        resistance_mpc = (float)b_total / (float)c_total;
+        sol_mpc->write_pwm_12_bit(0);
+        sol_spc->write_pwm_12_bit(4096, false);
+        vTaskDelay(50);
+        c_total = 0;
+        b_total = 0;
+        for (int i = 0; i < 10; i++) {
+            b_total += get_solenoid_voltage();
+            c_total += sol_spc->get_current_avg();
+            vTaskDelay(10);
+        }
+        ESP_LOGI("SOLENOID", "SPC Current: %d mA at %d mV", c_total/10, b_total/10);
+        resistance_spc = (float)b_total / (float)c_total;
+        sol_mpc->write_pwm_12_bit(0);
+        sol_spc->write_pwm_12_bit(0);
+        ESP_LOGI("SOLENOID", "Resistance values. SPC: %.2f Ohms, MPC: %.2f Ohms", resistance_spc, resistance_mpc);
+    }
+    startup_ok = true;
+    routine = true;
+    vTaskDelete(NULL);
+}
+
 bool Solenoids::init_all_solenoids()
 {
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
@@ -272,68 +362,9 @@ bool Solenoids::init_all_solenoids()
         return false;
     }
     toggle_all_solenoid_current_monitoring(true);
-    vTaskDelay(50);
+    Sensors::read_vbatt(&voltage);
     xTaskCreate(update_solenoids, "LEDC-Update", 4096, nullptr, 10, nullptr);
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 16000, nullptr, 3, nullptr);
-    if(sol_spc->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
-        return false;
-    }
-
-    if(sol_mpc->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
-        return false;
-    }
-
-    if(sol_tcc->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
-        return false;
-    }
-
-    if(sol_y3->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
-        return false;
-    }
-
-    if(sol_y4->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
-        return false;
-    }
-
-    if(sol_y5->get_current_avg() > 500) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
-        return false;
-    }
-    toggle_all_solenoid_current_monitoring(false);
-    // Get resistance values from SPC and MPC
-    if (get_solenoid_voltage() > 11000) {
-        uint32_t c_total = 0;
-        uint32_t b_total = 0;
-        while(!first_read_complete){vTaskDelay(1);}
-        sol_mpc->write_pwm_12_bit(4096, false);
-        vTaskDelay(50);
-        for (int i = 0; i < 10; i++) {
-            b_total += get_solenoid_voltage();
-            c_total += sol_mpc->get_current_avg();
-            vTaskDelay(10);
-        }
-        ESP_LOGI("SOLENOID", "MPC Current: %d mA at %d mV", b_total/10, c_total/10);
-        resistance_mpc = (float)b_total / (float)c_total;
-        sol_mpc->write_pwm_12_bit(0);
-        sol_spc->write_pwm_12_bit(4096, false);
-        vTaskDelay(50);
-        c_total = 0;
-        b_total = 0;
-        for (int i = 0; i < 10; i++) {
-            b_total += get_solenoid_voltage();
-            c_total += sol_spc->get_current_avg();
-            vTaskDelay(10);
-        }
-        ESP_LOGI("SOLENOID", "SPC Current: %d mA at %d mV", b_total/10, c_total/10);
-        resistance_spc = (float)b_total / (float)c_total;
-        sol_mpc->write_pwm_12_bit(0);
-        sol_spc->write_pwm_12_bit(0);
-        ESP_LOGI("SOLENOID", "Resistance values. SPC: %.2f Ohms, MPC: %.2f Ohms", resistance_spc, resistance_mpc);
-    }
+    xTaskCreate(Solenoids::boot_solenoid_test, "Solenoid-Test", 8192, nullptr, 3, nullptr);
     return true;
 }

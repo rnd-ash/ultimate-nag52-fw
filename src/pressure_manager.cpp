@@ -271,33 +271,11 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
     } else {
-        switch (get_clutch_to_apply(change)) {
-                case Clutch::K1:
-                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 1);
-                    dest->spc_pressure = 1200;
-                    break;
-                case Clutch::K2:
-                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 2);
-                    dest->spc_pressure = 1400;
-                    break;
-                case Clutch::K3:
-                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 3);
-                    dest->spc_pressure = 1300;
-                    break;
-                case Clutch::B1:
-                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 4);
-                    dest->spc_pressure = 1200;
-                    break;
-                case Clutch::B2:
-                default:
-                    dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, 5);
-                    dest->spc_pressure = 1400;
-                    break;            
-        }
+        Clutch to_change = get_clutch_to_apply(change);
+        dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
+        dest->spc_pressure = hold2_pressure_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
     }
     const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
-    //dest->hold_time += cell->fill_time_adder;
-    dest->hold_time -= dest->ramp_time;
     dest->mpc_pressure = curr_mpc + dest->spc_pressure;
 }
 

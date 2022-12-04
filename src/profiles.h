@@ -21,6 +21,7 @@ const int16_t shift_table_x_header[SHIFT_MAP_X_SIZE] = {0, 10, 20, 30, 40, 50, 6
 const int16_t upshift_y_headers[SHIFT_MAP_Y_SIZE] = {1,2,3,4};
 const int16_t downshift_y_headers[SHIFT_MAP_Y_SIZE] = {2,3,4,5};
 
+const int16_t shift_time_table_x_header[6] = {0, 20, 40, 60, 80, 100};
 
 /**
  * A profile is designed to read the current conditions of the gearbox and request the gearbox to do something
@@ -34,10 +35,14 @@ public:
         const char* downshift_map_name_diesel, 
         const char* upshift_map_name_petrol, 
         const char* downshift_map_name_petrol,
+        const char* upshift_time_map_name,
+        const char* downshift_time_map_name,
         const int16_t* def_upshift_data_diesel,
         const int16_t* def_downshift_data_diesel,
         const int16_t* def_upshift_data_petrol,
-        const int16_t* def_downshift_data_petrol
+        const int16_t* def_downshift_data_petrol,
+        const int16_t* def_upshift_time_data,
+        const int16_t* def_downshift_time_data
     );
     virtual GearboxProfile get_profile() const = 0;
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
@@ -52,6 +57,29 @@ public:
     StoredTcuMap* get_downshift_map() {
         return this->downshift_table;
     }
+    StoredTcuMap* get_upshift_time_map() {
+        return this->upshift_time_map;
+    }
+    StoredTcuMap* get_downshift_time_map() {
+        return this->downshift_time_map;
+    }
+
+    uint16_t get_upshift_time(uint16_t input_rpm, float pedal_percent) {
+        if (this->upshift_time_map == nullptr) {
+            return 750;
+        } else {
+            return this->upshift_time_map->get_value(pedal_percent, (float)input_rpm);
+        }
+    }
+
+    uint16_t get_downshift_time(uint16_t input_rpm, float pedal_percent) {
+        if (this->downshift_time_map == nullptr) {
+            return 750;
+        } else {
+            return this->downshift_time_map->get_value(pedal_percent, (float)input_rpm);
+        }
+    }
+
     virtual GearboxGear get_start_gear() const {
         return GearboxGear::First;
     }
@@ -67,17 +95,11 @@ protected:
     uint8_t profile_id = 0;
     StoredTcuMap* upshift_table = nullptr;
     StoredTcuMap* downshift_table = nullptr;
+    StoredTcuMap* upshift_time_map = nullptr;
+    StoredTcuMap* downshift_time_map = nullptr;
 private:
     bool is_diesel; 
-    const char* tag_id; 
-    const char* upshift_map_name_diesel; 
-    const char* downshift_map_name_diesel; 
-    const char* upshift_map_name_petrol;
-    const char* downshift_map_name_petrol;
-    const int16_t* def_upshift_data_diesel;
-    const int16_t* def_downshift_data_diesel;
-    const int16_t* def_upshift_data_petrol;
-    const int16_t* def_downshift_data_petrol;
+    const char* tag_id;
 };
 
 class AgilityProfile : public AbstractProfile {

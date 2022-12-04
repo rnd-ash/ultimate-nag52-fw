@@ -31,6 +31,26 @@ StoredTcuMap* get_map(uint8_t map_id) {
             return pressure_manager->get_fill_time_map();
         case FILL_PRESSURE_MAP_ID:
             return pressure_manager->get_fill_pressure_map();
+        case A_UPTIME_MAP_ID:
+            return agility->get_upshift_time_map();
+        case A_DNTIME_MAP_ID:
+            return agility->get_downshift_time_map();
+        case S_UPTIME_MAP_ID:
+            return standard->get_upshift_time_map();
+        case S_DNTIME_MAP_ID:
+            return standard->get_downshift_time_map();
+        case C_UPTIME_MAP_ID:
+            return comfort->get_upshift_time_map();
+        case C_DNTIME_MAP_ID:
+            return comfort->get_downshift_time_map();
+        case W_UPTIME_MAP_ID:
+            return winter->get_upshift_time_map();
+        case W_DNTIME_MAP_ID:
+            return winter->get_downshift_time_map();
+        case M_UPTIME_MAP_ID:
+            return manual->get_upshift_time_map();
+        case M_DNTIME_MAP_ID:
+            return manual->get_downshift_time_map();
         default:
             return nullptr;
     }

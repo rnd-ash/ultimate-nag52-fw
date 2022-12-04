@@ -13,22 +13,18 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         const char* downshift_map_name_diesel, 
         const char* upshift_map_name_petrol, 
         const char* downshift_map_name_petrol,
+        const char* upshift_time_map_name,
+        const char* downshift_time_map_name,
         const int16_t* def_upshift_data_diesel,
         const int16_t* def_downshift_data_diesel,
         const int16_t* def_upshift_data_petrol,
-        const int16_t* def_downshift_data_petrol
+        const int16_t* def_downshift_data_petrol,
+        const int16_t* def_upshift_time_data,
+        const int16_t* def_downshift_time_data
     ) {
 
     this->is_diesel = is_diesel;
     this->tag_id = tag_id;
-    this->upshift_map_name_diesel = upshift_map_name_diesel; 
-    this->downshift_map_name_diesel = downshift_map_name_diesel;
-    this->upshift_map_name_petrol = upshift_map_name_petrol;
-    this->downshift_map_name_petrol = downshift_map_name_petrol;
-    this->def_upshift_data_diesel = def_upshift_data_diesel;
-    this->def_downshift_data_diesel = def_downshift_data_diesel;
-    this->def_upshift_data_petrol = def_upshift_data_petrol;
-    this->def_downshift_data_petrol = def_downshift_data_petrol;
 
     const char* key_name;
     const int16_t* default_map;
@@ -57,6 +53,19 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     if (!this->downshift_table->init_ok()) {
         delete[] this->downshift_table;
     }
+
+    // Up/downshift time tables
+    int16_t redline = is_diesel ? VEHICLE_CONFIG.red_line_rpm_diesel : VEHICLE_CONFIG.red_line_rpm_petrol;
+    int16_t step_size = (redline-1000) / 4;
+    int16_t shift_rpm_points[5] = {(int16_t)1000,  (int16_t)(1000+(step_size)), (int16_t)(1000+(step_size*2)), (int16_t)(1000+(step_size*3)), redline};
+    this->upshift_time_map = new StoredTcuMap(upshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, (const int16_t*)shift_rpm_points, 6, 5, def_upshift_time_data);
+    if (!this->upshift_time_map->init_ok()) {
+        delete[] this->upshift_time_map;
+    }
+    this->downshift_time_map = new StoredTcuMap(downshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, (const int16_t*)shift_rpm_points, 6, 5, def_downshift_time_data);
+    if (!this->downshift_time_map->init_ok()) {
+        delete[] this->downshift_time_map;
+    }
 }
 
 void AbstractProfile::reload_data() {
@@ -76,10 +85,14 @@ AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_A_DIESEL_DOWNSHIFT,
         MAP_NAME_A_PETROL_UPSHIFT, 
         MAP_NAME_A_PETROL_DOWNSHIFT,
+        MAP_NAME_A_UPSHIFT_TIME,
+        MAP_NAME_A_DOWNSHIFT_TIME,
         A_DIESEL_UPSHIFT_MAP,
         A_DIESEL_DOWNSHIFT_MAP,
         A_PETROL_UPSHIFT_MAP,
-        A_PETROL_DOWNSHIFT_MAP
+        A_PETROL_DOWNSHIFT_MAP,
+        A_UPSHIFT_TIME_MAP,
+        A_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -158,10 +171,14 @@ ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_C_DIESEL_DOWNSHIFT,
         MAP_NAME_C_PETROL_UPSHIFT, 
         MAP_NAME_C_PETROL_DOWNSHIFT,
+        MAP_NAME_C_UPSHIFT_TIME,
+        MAP_NAME_C_DOWNSHIFT_TIME,
         C_DIESEL_UPSHIFT_MAP,
         C_DIESEL_DOWNSHIFT_MAP,
         C_PETROL_UPSHIFT_MAP,
-        C_PETROL_DOWNSHIFT_MAP
+        C_PETROL_DOWNSHIFT_MAP,
+        C_UPSHIFT_TIME_MAP,
+        C_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -232,10 +249,14 @@ WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_M_DIESEL_DOWNSHIFT,
         MAP_NAME_M_PETROL_UPSHIFT, 
         MAP_NAME_M_PETROL_DOWNSHIFT,
+        MAP_NAME_M_UPSHIFT_TIME,
+        MAP_NAME_M_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
-        M_PETROL_DOWNSHIFT_MAP
+        M_PETROL_DOWNSHIFT_MAP,
+        M_UPSHIFT_TIME_MAP,
+        M_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -297,10 +318,14 @@ StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_S_DIESEL_DOWNSHIFT,
         MAP_NAME_S_PETROL_UPSHIFT, 
         MAP_NAME_S_PETROL_DOWNSHIFT,
+        MAP_NAME_S_UPSHIFT_TIME,
+        MAP_NAME_S_DOWNSHIFT_TIME,
         S_DIESEL_UPSHIFT_MAP,
         S_DIESEL_DOWNSHIFT_MAP,
         S_PETROL_UPSHIFT_MAP,
-        S_PETROL_DOWNSHIFT_MAP
+        S_PETROL_DOWNSHIFT_MAP,
+        S_UPSHIFT_TIME_MAP,
+        S_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -437,10 +462,14 @@ ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_M_DIESEL_DOWNSHIFT,
         MAP_NAME_M_PETROL_UPSHIFT, 
         MAP_NAME_M_PETROL_DOWNSHIFT,
+        MAP_NAME_W_UPSHIFT_TIME,
+        MAP_NAME_W_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
-        M_PETROL_DOWNSHIFT_MAP
+        M_PETROL_DOWNSHIFT_MAP,
+        W_UPSHIFT_TIME_MAP,
+        W_DOWNSHIFT_TIME_MAP
     ) {
 }
 

@@ -269,9 +269,9 @@ int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap 
 
 int16_t M_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 5000, 2000, 1500, 1000,  750,  500, 
-    /* 25% Redline     */ 5000, 1500, 1200,  800,  650,  450,
-    /* 50% Redline     */ 2000, 1250,  900,  600,  600,  400,
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
+    /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
     /* Redline (100%)  */  800,  750,  500,  500,  400,  300
 };
@@ -287,9 +287,9 @@ int16_t S_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap 
 
 int16_t S_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 5000, 2000, 1500, 1000,  750,  500, 
-    /* 25% Redline     */ 5000, 1500, 1200,  800,  650,  450,
-    /* 50% Redline     */ 2000, 1250,  900,  600,  600,  400,
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
+    /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
     /* Redline (100%)  */  800,  750,  500,  500,  400,  300
 };
@@ -305,9 +305,9 @@ int16_t A_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap 
 
 int16_t A_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 5000, 2000, 1500, 1000,  750,  500, 
-    /* 25% Redline     */ 5000, 1500, 1200,  800,  650,  450,
-    /* 50% Redline     */ 2000, 1250,  900,  600,  600,  400,
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
+    /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
     /* Redline (100%)  */  800,  750,  500,  500,  400,  300
 };
@@ -324,11 +324,11 @@ int16_t C_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap 
 
 int16_t C_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 5000, 4000, 3000, 2000, 1000,  800, 
-    /* 25% Redline     */ 4000, 3000, 2500, 1500,  950,  750,
-    /* 50% Redline     */ 3000, 2000, 2000, 1200,  900,  700,
-    /* 75% Redline     */ 2500, 1500, 1500, 1100,  800,  650,
-    /* Redline (100%)  */ 2000, 1000,  900,  800,  700,  600
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800, 
+    /* 25% Redline     */ 1800, 1600, 1400, 1250,  950,  750,
+    /* 50% Redline     */ 1600, 1500, 1400, 1200,  900,  700,
+    /* 75% Redline     */ 1400, 1300, 1200, 1100,  800,  650,
+    /* Redline (100%)  */ 1200, 1000,  900,  800,  700,  600
 };
 
 int16_t W_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
@@ -342,9 +342,9 @@ int16_t W_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap 
 
 int16_t W_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 5000, 4000, 3000, 2000, 1000,  800, 
-    /* 25% Redline     */ 4000, 3000, 2500, 1500,  950,  750,
-    /* 50% Redline     */ 3000, 2000, 2000, 1200,  900,  700,
-    /* 75% Redline     */ 2500, 1500, 1500, 1100,  800,  650,
-    /* Redline (100%)  */ 2000, 1000,  900,  800,  700,  600
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800, 
+    /* 25% Redline     */ 1800, 1600, 1400, 1250,  950,  750,
+    /* 50% Redline     */ 1600, 1500, 1400, 1200,  900,  700,
+    /* 75% Redline     */ 1400, 1300, 1200, 1100,  800,  650,
+    /* Redline (100%)  */ 1200, 1000,  900,  800,  700,  600
 };

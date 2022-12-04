@@ -124,16 +124,26 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
 
 
 ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    float dp = ((float)(sensors->pedal_pos*10)/250.0f);
-    if (dp > 10) {
-        dp = 10;
-    }
-    if (dp == 0) {
-        dp = 1;
+    uint16_t time = 100;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            time = 500;
+            break;
     }
     return ShiftCharacteristics {
-        .target_d_rpm = 60,
-        .shift_speed = dp,
+        .target_shift_time = time
     };
 }
 
@@ -184,9 +194,26 @@ ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
 
 
 ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+        uint16_t time = 100;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            time = 500;
+            break;
+    }
     return ShiftCharacteristics {
-        .target_d_rpm = 30,
-        .shift_speed = 2.0,
+        .target_shift_time = time
     };
 }
 
@@ -261,9 +288,26 @@ WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
 }
 
 ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+        uint16_t time = 100;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            time = 500;
+            break;
+    }
     return ShiftCharacteristics {
-        .target_d_rpm = 20,
-        .shift_speed = 3.0,
+        .target_shift_time = time
     };
 }
 
@@ -330,9 +374,26 @@ StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
 }
 
 ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+        uint16_t time = 100;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            time = 500;
+            break;
+    }
     return ShiftCharacteristics {
-        .target_d_rpm = 50,
-        .shift_speed = 5.0,
+        .target_shift_time = time
     };
 }
 
@@ -424,9 +485,26 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
 }
 
 ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+        uint16_t time = 100;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            time = 500;
+            break;
+    }
     return ShiftCharacteristics {
-        .target_d_rpm = 70,
-        .shift_speed = 9.0,
+        .target_shift_time = time
     };
 }
 

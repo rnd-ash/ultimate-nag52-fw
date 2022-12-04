@@ -210,10 +210,7 @@ typedef struct {
 } PressureMgrData;
 
 typedef struct {
-    // Target delta RPM per step (Each step ~= 40ms)
-    uint16_t target_d_rpm;
-    // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
-    float shift_speed;
+    uint16_t target_shift_time;
 } ShiftCharacteristics;
 
 typedef struct {

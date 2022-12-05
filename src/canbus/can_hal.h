@@ -63,7 +63,7 @@ enum class GearboxGear: uint8_t {
     Neutral = 9,
     Reverse_First = 10,
     Reverse_Second = 11,
-    SignalNotAvaliable = 0xFF,
+    SignalNotAvaliable = 0xFF
 };
 
 enum class PaddlePosition: uint8_t {

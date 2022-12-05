@@ -1,6 +1,6 @@
 /** @file */
-#ifndef __EEPROM_CONFIG_H_
-#define __EEPROM_CONFIG_H_
+#ifndef EEPROM_CONFIG_H
+#define EEPROM_CONFIG_H
 
 #include "esp_err.h"
 #include "esp_log.h"

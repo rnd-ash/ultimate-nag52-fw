@@ -1,6 +1,6 @@
 /** @file */
-#ifndef __SENSORS_H_
-#define __SENSORS_H_
+#ifndef SENSORS_H
+#define SENSORS_H
 
 #include <stdint.h>
 
@@ -24,7 +24,7 @@ namespace Sensors {
      * @return true If initialization OK
      * @return false if initialization failed
      */
-    bool init_sensors();
+    bool init_sensors(void);
 
     /**
      * @brief Reads the input RPM of the gearbox
@@ -50,4 +50,4 @@ namespace Sensors {
     bool parking_lock_engaged(bool* dest);
 }
 
-#endif // __SENSORS_H_
+#endif // SENSORS_H

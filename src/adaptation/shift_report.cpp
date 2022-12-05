@@ -9,7 +9,7 @@
 uint16_t calc_shift_report_group_crc(ShiftReportNvsGroup* rpt) {
     size_t byte_count = sizeof(ShiftReportNvsGroup) - 2; // CRC MUST be at the end
     uint16_t total = 0;
-    uint8_t* ptr = (uint8_t*)(rpt);
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(rpt);
     for (int i = 0; i < byte_count; i++) {
         total += ptr[i] + i;
     }
@@ -41,7 +41,7 @@ bool save_shift_report_to_partition(ShiftReportNvsGroup* src, uint32_t addr) {
 
 
 ShiftReporter::ShiftReporter() {
-    this->report_group = (ShiftReportNvsGroup*)heap_caps_malloc(sizeof(ShiftReportNvsGroup), MALLOC_CAP_SPIRAM);
+    this->report_group = static_cast<ShiftReportNvsGroup*>(heap_caps_malloc(sizeof(ShiftReportNvsGroup), MALLOC_CAP_SPIRAM));
     if (this->report_group == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SHIFT_REPORT", "Cannot allocate memory!");
         return;

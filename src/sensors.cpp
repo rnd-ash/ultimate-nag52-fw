@@ -8,10 +8,10 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "pins.h"
-#include "macros.h"
+#include "../include/macros.h"
 
-#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define PCNT_H_LIM 1
+// #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
+const int16_t PCNT_H_LIM = 1;
 
 #define LOG_TAG "SENSORS"
 

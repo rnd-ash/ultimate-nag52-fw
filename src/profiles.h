@@ -82,7 +82,7 @@ private:
 
 class AgilityProfile : public AbstractProfile {
 public:
-    AgilityProfile(bool is_diesel);
+    explicit AgilityProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Agility; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -94,7 +94,7 @@ public:
 
 class ComfortProfile : public AbstractProfile {
 public:
-    ComfortProfile(bool is_diesel);
+    explicit ComfortProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Comfort; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -109,7 +109,7 @@ public:
 
 class WinterProfile : public AbstractProfile {
 public:
-    WinterProfile(bool is_diesel);
+    explicit WinterProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Individual; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -124,7 +124,7 @@ public:
 
 class StandardProfile : public AbstractProfile {
 public:
-    StandardProfile(bool is_diesel);
+    explicit StandardProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Standard; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -136,7 +136,7 @@ public:
 
 class ManualProfile : public AbstractProfile {
 public:
-    ManualProfile(bool is_diesel);
+    explicit ManualProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Manual; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;

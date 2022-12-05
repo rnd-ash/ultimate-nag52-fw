@@ -191,7 +191,7 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 extern "C" void app_main(void)
 {
     SPEAKER_POST_CODE s = setup_tcm();
-    xTaskCreate(err_beep_loop, "PCSPKR", 2048, (void*)s, 2, nullptr);
+    xTaskCreate(err_beep_loop, "PCSPKR", 2048, reinterpret_cast<void*>(s), 2, nullptr);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));

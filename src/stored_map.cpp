@@ -95,10 +95,10 @@ bool StoredTcuMap::reload_from_eeprom(void)
  * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
  * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
  */
-bool StoredTcuMap::reset_from_default_eeprom(void)
-{
-    return this->add_data(const_cast<int16_t *>(this->default_map), this->map_element_count);
-}
+// bool StoredTcuMap::reset_from_default_eeprom(void)
+// {
+//     return this->add_data(const_cast<int16_t *>(this->default_map), this->map_element_count);
+// }
 
 bool StoredTcuMap::read_from_eeprom(const char *key_name, uint16_t expected_size)
 {

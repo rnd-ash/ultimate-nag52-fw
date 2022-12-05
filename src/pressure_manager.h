@@ -19,10 +19,10 @@
 
 enum ShiftPhases : uint8_t{
     BLEED = 1u,
-    FILL,
-    TORQUE,
-    OVERLAP,
-    MAX_P
+    FILL = 2u,
+    TORQUE = 3u,
+    OVERLAP = 4u,
+    MAX_P = 5u
 };
 
 enum class Clutch {
@@ -58,12 +58,12 @@ public:
      * @param targ Target TCC pressure to achieve in mBar
      */
     void set_target_tcc_pressure(uint16_t targ);
-    uint16_t get_targ_mpc_pressure();
-    uint16_t get_targ_spc_pressure();
-    uint16_t get_targ_tcc_pressure();
-    uint16_t get_targ_spc_current();
-    uint16_t get_targ_mpc_current();
-    void disable_spc();
+    uint16_t get_targ_mpc_pressure(void);
+    uint16_t get_targ_spc_pressure(void);
+    uint16_t get_targ_tcc_pressure(void);
+    uint16_t get_targ_spc_current(void);
+    uint16_t get_targ_mpc_current(void);
+    void disable_spc(void);
 
     PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
 
@@ -83,13 +83,13 @@ public:
      * @return true if adaptation reset was OK
      * @return false if adaptation reset failed
      */
-    bool diag_reset_adaptation() {
+    bool diag_reset_adaptation(void) {
+        bool result = false;
         if (this->adapt_map != nullptr) { 
             this->adapt_map->reset();
-            return true;
-        } else {
-            return false;
+            result = true;
         }
+        return result;
     }
 
     /**
@@ -110,7 +110,7 @@ public:
      * @brief Save adaptation data to NVS EEPROM
      * 
      */
-    void save() {
+    void save(void) {
         if (this->adapt_map != nullptr) { 
             this->adapt_map->save(); 
         }
@@ -125,11 +125,11 @@ public:
     void make_overlap_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
 
-    StoredTcuMap* get_pcs_map();
-    StoredTcuMap* get_tcc_pwm_map();
-    StoredTcuMap* get_working_map();
-    StoredTcuMap* get_fill_time_map();
-    StoredTcuMap* get_fill_pressure_map();
+    StoredTcuMap* get_pcs_map(void);
+    StoredTcuMap* get_tcc_pwm_map(void);
+    StoredTcuMap* get_working_map(void);
+    StoredTcuMap* get_fill_time_map(void);
+    StoredTcuMap* get_fill_pressure_map(void);
 
 private:
      /**
@@ -158,7 +158,7 @@ private:
     StoredTcuMap* hold2_time_map;
     StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
-    Clutch get_clutch_to_release(ProfileGearChange change);
+    // Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
 };
 

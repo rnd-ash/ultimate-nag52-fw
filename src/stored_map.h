@@ -38,7 +38,7 @@ class StoredTcuMap : public TcuMap {
          * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
          * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
          */
-        bool reset_from_default_eeprom(void);
+        // bool reset_from_default_eeprom(void);
 
         uint16_t get_map_element_count(void);
 

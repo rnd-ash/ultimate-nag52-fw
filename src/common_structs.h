@@ -1,6 +1,6 @@
 /** @file */
-#ifndef COMMON_STRUCTS_H__
-#define COMMON_STRUCTS_H__
+#ifndef COMMON_STRUCTS_H
+#define COMMON_STRUCTS_H
 
 #include <stdint.h>
 #include "solenoids/solenoids.h"

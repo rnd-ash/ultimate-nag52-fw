@@ -1,7 +1,7 @@
 // Here we go, gearbox controller code! Lets go!
 
-#ifndef __GEARBOX_H_
-#define __GEARBOX_H_
+#ifndef GEARBOX_H
+#define GEARBOX_H
 
 #include <stdint.h>
 #include "canbus/can_hal.h"
@@ -38,7 +38,7 @@ const static GearRatioLimit GEAR_RATIO_LIMITS_SMALL[7] {
     GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT), .min = RAT_2_SMALL*(1.0-MAX_LIMIT) }, // 2
     GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT), .min = RAT_3_SMALL*(1.0-MAX_LIMIT) }, // 3
     GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT), .min = RAT_4_SMALL*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT/2), .min = RAT_5_SMALL*(1.0-MAX_LIMIT) }, // 5
+    GearRatioLimit { .max = RAT_5_SMALL*(1.0+(MAX_LIMIT/2)), .min = RAT_5_SMALL*(1.0-MAX_LIMIT) }, // 5
     GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT) }, // R1
     GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT) }, // R2
 };
@@ -48,7 +48,7 @@ const static GearRatioLimit GEAR_RATIO_LIMITS_LARGE[7] {
     GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT), .min = RAT_2_LARGE*(1.0-MAX_LIMIT) }, // 2
     GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT), .min = RAT_3_LARGE*(1.0-MAX_LIMIT) }, // 3
     GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT), .min = RAT_4_LARGE*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT/2), .min = RAT_5_LARGE*(1.0-MAX_LIMIT) }, // 5
+    GearRatioLimit { .max = RAT_5_LARGE*(1.0+(MAX_LIMIT/2)), .min = RAT_5_LARGE*(1.0-MAX_LIMIT) }, // 5
     GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT) }, // R1
     GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT) }, // R2
 };
@@ -61,7 +61,7 @@ const static FwdRatios RATIOS_LARGE {
     RAT_5_LARGE,
     RAT_R1_LARGE,
     RAT_R2_LARGE
-};
+};  
 
 const static FwdRatios RATIOS_SMALL {
     RAT_1_SMALL,
@@ -75,25 +75,25 @@ const static FwdRatios RATIOS_SMALL {
 
 class Gearbox {
 public:
-    Gearbox();
+    Gearbox(void);
     void set_profile(AbstractProfile* prof);
-    void inc_subprofile();
-    bool start_controller();
-    void inc_gear_request();
-    void dec_gear_request();
-    void diag_inhibit_control() { this->diag_stop_control = true; }
-    void diag_regain_control() { this->diag_stop_control = false; }
+    void inc_subprofile(void);
+    bool start_controller(void);
+    void inc_gear_request(void);
+    void dec_gear_request(void);
+    void diag_inhibit_control(void) { this->diag_stop_control = true; }
+    void diag_regain_control(void) { this->diag_stop_control = false; }
     SensorData sensor_data;
-        uint16_t get_gear_ratio() {
-        return this->sensor_data.gear_ratio * 100;
+        uint16_t get_gear_ratio(void) {
+        return this->sensor_data.gear_ratio * 100.0F;
     }
     static uint16_t redline_rpm;
     ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool isShifting() { return this->shifting; }
-    ProfileGearChange get_curr_gear_change() { return this->shift_idx; }
+    bool isShifting(void) { return this->shifting; }
+    ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
 private:
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -106,9 +106,9 @@ private:
     bool calc_input_rpm(uint16_t* dest);
     bool calc_output_rpm(uint16_t* dest, uint64_t now);
     [[noreturn]]
-    void controller_loop();
+    void controller_loop(void);
 
-    void shift_thread();
+    void shift_thread(void);
     bool start_second = true; // By default
     static void start_shift_thread(void *_this) {
         static_cast<Gearbox*>(_this)->shift_thread();
@@ -122,7 +122,7 @@ private:
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
-    float tcc_percent = 0;
+    float tcc_percent = 0.F;
     uint8_t est_gear_idx = 0;
     uint16_t curr_hold_pressure = 0;
     bool show_upshift = false;

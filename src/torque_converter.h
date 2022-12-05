@@ -12,7 +12,7 @@
 
 class TorqueConverter {
     public:
-        TorqueConverter() {}
+        TorqueConverter(void) {}
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters
          * clutch
@@ -24,13 +24,13 @@ class TorqueConverter {
          */
         void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
         void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
-        void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness);
+        // void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness);
         void on_shift_complete(uint64_t now);
-        ClutchStatus get_clutch_state();
+        ClutchStatus get_clutch_state(void);
     private:
         uint16_t strike_count = 0;
-        float curr_tcc_pressure = 0;
-        float tcc_shift_adder = 0;
+        float curr_tcc_pressure = 0.0F;
+        float tcc_shift_adder = 0.0F;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;

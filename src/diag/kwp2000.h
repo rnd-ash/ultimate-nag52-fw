@@ -13,23 +13,6 @@
 #include "esp32/spiram.h"
 #include "flasher.h"
 
-// Ident data
-
-#ifdef EGS53_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x0353 // DiagVersion53_EGS53
-#endif
-
-#ifdef EGS52_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x0251 // DiagVersion51_EGS52
-#endif
-
-#ifdef EGS51_MODE
-    #define SUPPLIER_ID 0x08 // Simens
-    #define DIAG_VARIANT_CODE 0x000 // DiagVersion51_EGS52
-#endif
-
 #define PROCESSOR_TYPE
 #define COMM_MATRIX_VERSION 0x0101 // 01.01
 #define CAN_DRIVER_VERSION 0x0101 // 01.01
@@ -76,11 +59,11 @@ class Kwp2000_server {
         bool reboot_pending;
 
         int allocate_routine_args(uint8_t* src, uint8_t arg_len);
-        void process_start_diag_session(uint8_t* args, uint16_t arg_len);
-        void process_ecu_reset(uint8_t* args, uint16_t arg_len);
+        void process_start_diag_session(const uint8_t* args, uint16_t arg_len);
+        void process_ecu_reset(const uint8_t* args, uint16_t arg_len);
         void process_clear_diag_info(uint8_t* args, uint16_t arg_len);
         void process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len);
-        void process_read_ecu_ident(uint8_t* args, uint16_t arg_len);
+        void process_read_ecu_ident(const uint8_t* args, uint16_t arg_len);
         void process_read_data_local_ident(uint8_t* args, uint16_t arg_len);
         void process_read_data_ident(uint8_t* args, uint16_t arg_len);
         void process_read_mem_address(uint8_t* args, uint16_t arg_len);
@@ -92,14 +75,14 @@ class Kwp2000_server {
         void process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len);
-        void process_request_routine_resutls_by_local_ident(uint8_t* args, uint16_t arg_len);
+        void process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len);
         void process_request_download(uint8_t* args, uint16_t arg_len);
         void process_request_upload(uint8_t* args, uint16_t arg_len);
         void process_transfer_data(uint8_t* args, uint16_t arg_len);
         void process_transfer_exit(uint8_t* args, uint16_t arg_len);
         void process_write_data_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_write_mem_by_address(uint8_t* args, uint16_t arg_len);
-        void process_tester_present(uint8_t* args, uint16_t arg_len);
+        void process_tester_present(const uint8_t* args, uint16_t arg_len);
         void process_control_dtc_settings(uint8_t* args, uint16_t arg_len);
         void process_response_on_event(uint8_t* args, uint16_t arg_len);
         void process_shift_mgr_op(uint8_t* args, uint16_t arg_len);
@@ -115,6 +98,8 @@ class Kwp2000_server {
         void run_solenoid_test();
         xTaskHandle* running_routine;
         Flasher* flash_handler = nullptr;
+        uint8_t supplier_id;
+        uint16_t diag_var_code;
 };
 
 #endif //_KWP_H__

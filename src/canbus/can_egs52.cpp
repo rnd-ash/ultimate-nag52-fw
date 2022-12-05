@@ -1,16 +1,14 @@
 #include "can_egs52.h"
 #include "driver/twai.h"
-#include "pins.h"
 #include "gearbox_config.h"
-
-#ifdef EGS52_MODE
-
+#include "board_config.h"
+#include "nvs/eeprom_config.h"
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     : AbstractCan(name, tx_time_ms)
 {
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
+    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
@@ -42,21 +40,24 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     this->gs218.set_SCHALT(true);
     this->gs218.set_MKRIECH(0xFF);
 
-// Set permanent configuration frame
-#ifdef FOUR_MATIC
-    this->gs418.set_ALLRAD(true);
-#else
-    this->gs418.set_ALLRAD(false);
-#endif
+    if (VEHICLE_CONFIG.is_four_matic != 0) {
+        this->gs418.set_ALLRAD(true);
+    } else {
+        this->gs418.set_ALLRAD(false);
+    }
     this->gs418.set_FRONT(false); // Primary rear wheel drive
-    this->gs418.set_CVT(false); // Not CVT gearbox
-    this->gs418.set_MECH(GS_418h_MECH::GROSS); // Small 722.6 for now! (TODO Handle 580)
+    this->gs418.set_CVT(false); // Not CVT gearbox]
+    if (VEHICLE_CONFIG.is_large_nag != 0) {
+        this->gs418.set_MECH(GS_418h_MECH::GROSS);
+    } else {
+        this->gs418.set_MECH(GS_418h_MECH::KLEIN);
+    }
     this->gs218.set_ALF(true); // Fix for KG systems where cranking would stop when TCU turns on
 
 
     // Covers setting NAB, a couple unknown but static values,
     // and Input RPM to 0 
-    gs338.raw = 0xFFFF1FFF00FF0000;
+    gs338.raw = 0xFFFF1FFF00FF0000u;
     this->can_init_ok = true;
 }
 
@@ -352,14 +353,14 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
-    EZS_240 ezs240;
-    if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
-        return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
-    } else {
-        return TerminalStatus::SNA;
-    }
-}
+// TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+//     EZS_240 ezs240;
+//     if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
+//         return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
+//     } else {
+//         return TerminalStatus::SNA;
+//     }
+// }
 
 uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
     MS_608 ms608;
@@ -1115,5 +1116,3 @@ void Egs52Can::rx_task_loop() {
         }
     }
 }
-
-#endif

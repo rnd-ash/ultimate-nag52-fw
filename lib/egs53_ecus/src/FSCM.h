@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'FSCM'
 */
 
-#ifdef EGS53_MODE
-
 #ifndef __ECU_FSCM_H_
 #define __ECU_FSCM_H_
 
@@ -300,5 +298,3 @@ class ECU_FSCM {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_FSCM_H_
-
-#endif // EGS53_MODE

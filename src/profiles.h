@@ -7,8 +7,6 @@
 #include "common_structs.h"
 #include "stored_map.h"
 
-#define MAX_PROFILES 4
-
 #define PROFILE_ID_STANDARD 0
 #define PROFILE_ID_COMFORT 1
 #define PROFILE_ID_WINTER 2
@@ -21,12 +19,15 @@ const int16_t shift_table_x_header[SHIFT_MAP_X_SIZE] = {0, 10, 20, 30, 40, 50, 6
 const int16_t upshift_y_headers[SHIFT_MAP_Y_SIZE] = {1,2,3,4};
 const int16_t downshift_y_headers[SHIFT_MAP_Y_SIZE] = {2,3,4,5};
 
+const int16_t shift_time_table_x_header[6] = {0, 20, 40, 60, 80, 100};
 
 /**
  * A profile is designed to read the current conditions of the gearbox and request the gearbox to do something
  */
 class AbstractProfile {
 public:
+    static const uint8_t MAX_PROFILES = 4u;
+
     AbstractProfile(
         bool is_diesel, 
         const char* tag_id, 
@@ -34,50 +35,71 @@ public:
         const char* downshift_map_name_diesel, 
         const char* upshift_map_name_petrol, 
         const char* downshift_map_name_petrol,
+        const char* upshift_time_map_name,
+        const char* downshift_time_map_name,
         const int16_t* def_upshift_data_diesel,
         const int16_t* def_downshift_data_diesel,
         const int16_t* def_upshift_data_petrol,
-        const int16_t* def_downshift_data_petrol
+        const int16_t* def_downshift_data_petrol,
+        const int16_t* def_upshift_time_data,
+        const int16_t* def_downshift_time_data
     );
-    virtual GearboxProfile get_profile() const = 0;
+    virtual GearboxProfile get_profile(void) const = 0;
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors) = 0;
-    virtual ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) = 0;
+    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
     virtual TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) = 0;
 
-    StoredTcuMap* get_upshift_map() {
+    StoredTcuMap* get_upshift_map(void) {
         return this->upshift_table;
     }
-    StoredTcuMap* get_downshift_map() {
+    StoredTcuMap* get_downshift_map(void) {
         return this->downshift_table;
     }
-    virtual GearboxGear get_start_gear() const {
+    StoredTcuMap* get_upshift_time_map(void) {
+        return this->upshift_time_map;
+    }
+    StoredTcuMap* get_downshift_time_map(void) {
+        return this->downshift_time_map;
+    }
+
+    uint16_t get_upshift_time(uint16_t input_rpm, float pedal_percent) {
+        uint16_t result = 750u;
+        if (nullptr != this->upshift_time_map) {
+            result = (uint16_t)(this->upshift_time_map->get_value(pedal_percent, (float)input_rpm));
+        }
+        return result;
+    }
+
+    uint16_t get_downshift_time(uint16_t input_rpm, float pedal_percent) {
+        uint16_t result = 750u;
+        if (nullptr != this->downshift_time_map) {
+            result = (uint16_t)(this->downshift_time_map->get_value(pedal_percent, (float)input_rpm));
+        }
+        return result;
+    }
+
+    virtual GearboxGear get_start_gear(void) const {
         return GearboxGear::First;
     }
-    void increment_subprofile() {
-        profile_id += 1;
+    void increment_subprofile(void) {
+        profile_id += 1u;
         if (profile_id >= MAX_PROFILES) {
             profile_id = 0;
         }
     }
-    virtual uint8_t get_profile_id() = 0;
-    void reload_data();
+    virtual uint8_t get_profile_id(void) = 0;
+    // void reload_data();
 protected:
     uint8_t profile_id = 0;
     StoredTcuMap* upshift_table = nullptr;
     StoredTcuMap* downshift_table = nullptr;
+    StoredTcuMap* upshift_time_map = nullptr;
+    StoredTcuMap* downshift_time_map = nullptr;
 private:
     bool is_diesel; 
-    const char* tag_id; 
-    const char* upshift_map_name_diesel; 
-    const char* downshift_map_name_diesel; 
-    const char* upshift_map_name_petrol;
-    const char* downshift_map_name_petrol;
-    const int16_t* def_upshift_data_diesel;
-    const int16_t* def_downshift_data_diesel;
-    const int16_t* def_upshift_data_petrol;
-    const int16_t* def_downshift_data_petrol;
+    const char* tag_id;
 };
 
 class AgilityProfile : public AbstractProfile {
@@ -87,7 +109,6 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     uint8_t get_profile_id() override { return PROFILE_ID_AGILITY; }
 };
@@ -99,7 +120,6 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     uint8_t get_profile_id() override { return PROFILE_ID_COMFORT; }
     GearboxGear get_start_gear() const override {
@@ -114,7 +134,6 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
     uint8_t get_profile_id() override { return PROFILE_ID_WINTER; }
     GearboxGear get_start_gear() const override {
@@ -130,7 +149,6 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     uint8_t get_profile_id() override { return PROFILE_ID_STANDARD; }
 };
 
@@ -142,7 +160,6 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) override;
     uint8_t get_profile_id() override { return PROFILE_ID_MANUAL; }
 };
 

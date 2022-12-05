@@ -4,35 +4,36 @@
 #include "speaker.h"
 #include <string.h>
 #include "profiles.h"
-
+#include "efuse/efuse.h"
+#include "esp_efuse.h"
 
 /// If default is UINT16_MAX, it is ignored
-bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
-    esp_err_t e = nvs_get_u16(handle, key, ptr);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        if (default_value == UINT16_MAX) {
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, no defaults specified. CANNOT CONTINUE!", key);
-            return false;
-        } else {
-            // Try to init the default value
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, initializing to default of %u", key, default_value);
-            e = nvs_set_u16(handle, key, default_value);
-            if (e != ESP_OK) {
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting default value for %s (%s)", key, esp_err_to_name(e));
-                return false;
-            }
-            e = nvs_commit(handle);
-            if (e != ESP_OK) {
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-                return false;
-            }
-            // OK
-            *ptr = default_value;
-            return true;
-        }
-    }
-    return (e == ESP_OK);
-}
+// bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
+//     esp_err_t e = nvs_get_u16(handle, key, ptr);
+//     if (e == ESP_ERR_NVS_NOT_FOUND) {
+//         if (default_value == UINT16_MAX) {
+//             ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, no defaults specified. CANNOT CONTINUE!", key);
+//             return false;
+//         } else {
+//             // Try to init the default value
+//             ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, initializing to default of %u", key, default_value);
+//             e = nvs_set_u16(handle, key, default_value);
+//             if (e != ESP_OK) {
+//                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting default value for %s (%s)", key, esp_err_to_name(e));
+//                 return false;
+//             }
+//             e = nvs_commit(handle);
+//             if (e != ESP_OK) {
+//                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+//                 return false;
+//             }
+//             // OK
+//             *ptr = default_value;
+//             return true;
+//         }
+//     }
+//     return (e == ESP_OK);
+// }
 
 bool EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
     size_t byte_count = map_element_count*sizeof(int16_t);
@@ -72,27 +73,27 @@ bool EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, s
     return true;
 }
 
-bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
-    esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Adaptation %s map not found. Creating a new one", key);
-        pressure_map new_map = {0,0,0,0,0,0,0,0,0,0,0};
-        e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default adaptation map map data (%s)", esp_err_to_name(e));
-            return false;
-        }
-        e = nvs_commit(handle);
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-            return false;
-        }
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New TCC map creation OK!");
-        memcpy(map, new_map, sizeof(new_map));
-        return true;
-    }
-    return (e == ESP_OK);
-}
+// bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
+//     esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
+//     if (e == ESP_ERR_NVS_NOT_FOUND) {
+//         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Adaptation %s map not found. Creating a new one", key);
+//         pressure_map new_map = {0,0,0,0,0,0,0,0,0,0,0};
+//         e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
+//         if (e != ESP_OK) {
+//             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default adaptation map map data (%s)", esp_err_to_name(e));
+//             return false;
+//         }
+//         e = nvs_commit(handle);
+//         if (e != ESP_OK) {
+//             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+//             return false;
+//         }
+//         ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New TCC map creation OK!");
+//         memcpy(map, new_map, sizeof(new_map));
+//         return true;
+//     }
+//     return (e == ESP_OK);
+// }
 
 bool EEPROM::init_eeprom() {
     // Called on startup
@@ -125,29 +126,25 @@ bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     esp_err_t e = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
     if (e == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "SCN Config not found. Creating a new one");
-        TCM_CORE_CONFIG s = {
-#ifdef LARGE_NAG
-            .is_large_nag = 1,
-#else
+        TCM_CORE_CONFIG c = {
             .is_large_nag = 0,
-#endif
-            .diff_ratio = DIFF_RATIO,
-            .wheel_circumference = TYRE_SIZE_MM,
-#ifdef FOUR_MATIC
-            .is_four_matic = 1,
-            .transfer_case_high_ratio = TC_RATIO_HIGH,
-            .transfer_case_low_ratio = TC_RATIO_LOW,
-#else
+            .diff_ratio = 1000,
+            .wheel_circumference = 2850,
             .is_four_matic = 0,
             .transfer_case_high_ratio = 1000,
             .transfer_case_low_ratio = 1000,
-#endif
             .default_profile = 0, // Standard
             .red_line_rpm_diesel = 4500, // Safe for diesels, petrol-heads can change this!
             .red_line_rpm_petrol = 6000,
-            .engine_type = 0 // Diesel by default - TODO We should read this via CAN
+            .engine_type = 0,
+            .egs_can_type = 0,
+            .shifter_style = 0,
+            .io_0_usage = 0,
+            .input_sensor_pulses_per_rev = 1,
+            .output_pulse_width_per_kmh = 1,
+            .gen_mosfet_purpose = 0,
         };
-        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &s, sizeof(s));
+        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
         if (e != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
             return false;
@@ -184,5 +181,57 @@ bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     return true;
 }
 
+bool EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
+    if (dest == nullptr) {
+        return false;
+    }
+    esp_efuse_read_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8);
+    esp_efuse_read_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8);
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "READ EFUSE", "CONFIG:Board Ver: V1.%d, Week %d (%02d/%02d/%02d)", dest->board_ver, dest->manufacture_week, dest->manufacture_day, dest->manufacture_month, dest->manufacture_year);
+    return true;
+}
+
+bool EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
+    if (dest == nullptr) {
+        return false;
+    }
+    if (dest->manufacture_month > 12 || dest->manufacture_month == 0) {
+        return false;
+    }
+    if (dest->manufacture_day > 31 || dest->manufacture_day == 0) {
+        return false;
+    }
+    if (dest->manufacture_week > 52 || dest->manufacture_week == 0) {
+        return false;
+    }
+    if (dest->manufacture_year < 22) {
+        return false;
+    }
+    if (dest->board_ver == 0 || dest->board_ver > 3) {
+        return false;
+    }
+    if (esp_efuse_write_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8) != ESP_OK) {
+        return false;
+    }
+    if (esp_efuse_write_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8) != ESP_OK) {
+        return false;
+    }
+    if (esp_efuse_write_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8) != ESP_OK) {
+        return false;
+    }
+    if (esp_efuse_write_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8) != ESP_OK) {
+        return false;
+    }
+    if (esp_efuse_write_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8) != ESP_OK) {
+        return false;
+    }
+    return true;
+    
+}
+
 TCM_CORE_CONFIG VEHICLE_CONFIG = {};
+TCM_EFUSE_CONFIG BOARD_CONFIG = {};
 nvs_handle_t MAP_NVS_HANDLE = {};

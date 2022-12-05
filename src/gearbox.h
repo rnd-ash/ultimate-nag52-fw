@@ -19,12 +19,9 @@
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
-#define STALL_RPM 700
-#define MIN_WORKING_RPM 1000
+static const int MIN_WORKING_RPM = 1000;
 
-#define OVERSPEED_RPM 15000
-
-#define ATF_TEMP_SAMPLES 20
+static const uint16_t ATF_TEMP_SAMPLES = 20;
 struct TempSampleData {
     int samples[ATF_TEMP_SAMPLES];
     uint64_t total;

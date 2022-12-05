@@ -1,9 +1,8 @@
 #include "can_egs53.h"
 #include "driver/twai.h"
-#include "pins.h"
 #include "gearbox_config.h"
-
-#ifdef EGS53_MODE
+#include "board_config.h"
+#include "nvs/eeprom_config.h"
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -12,7 +11,7 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
 {
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(PIN_CAN_TX, PIN_CAN_RX, TWAI_MODE_NORMAL);
+    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
     gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
@@ -30,9 +29,8 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     }
 
     // Create CRC table
-    uint8_t _crc;
     for (int i = 0; i < 0x100; i++) {
-            _crc = i;
+            uint8_t _crc = i;
             for (uint8_t bit = 0; bit < 8; bit++) {
                 _crc = (_crc & 0x80) ? ((_crc << 1) ^ 0x1D) : (_crc << 1);
             }
@@ -45,11 +43,11 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     this->sbw_rs_tcm.set_TSL_Posn_Rq(SBW_RS_TCM_TSL_Posn_Rq::IDLE); // Idle request (No SBW on EGS53)
     this->sbw_rs_tcm.set_TxSelSensPosn(0); // No dialing sensor on EGS53
 // Tell engine which Mech style we are
-#ifdef LARGE_NAG
-    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::LARGE);
-#else
-    this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
-#endif
+    if (VEHICLE_CONFIG.is_large_nag != 0) {
+        this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::LARGE);
+    } else {
+        this->eng_rq2_tcm.set_TxMechStyle(ENG_RQ2_TCM_TxMechStyle::SMALL);
+    }
     this->eng_rq2_tcm.set_TxStyle(ENG_RQ2_TCM_TxStyle::SAT); // Stepped automatic gearbox
     this->eng_rq2_tcm.set_TxShiftStyle(ENG_RQ2_TCM_TxShiftStyle::MS); // Mechanical shifting (With EWM module)
     this->can_init_ok = true;
@@ -497,7 +495,7 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-uint8_t x = 0;
+// uint8_t x = 0;
 unsigned long last_time = 0;
 void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
     switch (g) {
@@ -593,8 +591,9 @@ void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
 void calc_crc_in_place(uint8_t* buffer) {
     // assume len = 7
     unsigned long crc;
-    int i,bit;
-
+    int i;
+    int bit;
+    
     crc = 0xFF;
     for ( i=0 ; i<7 ; i++ ) {
         crc ^= buffer[i];
@@ -622,8 +621,8 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 uint8_t msg_counter = 0;
 [[noreturn]]
 void Egs53Can::tx_task_loop() {
-    uint64_t start_time;
-    uint32_t taken;
+    // uint64_t start_time;
+    // uint32_t taken;
     twai_message_t tx;
     tx.data_length_code = 8; // Always
 
@@ -718,7 +717,7 @@ void Egs53Can::rx_task_loop() {
             vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
-            for(uint8_t x = 0; x < f_count; x++) { // Read all frames
+            for(uint8_t j = 0; j < f_count; j++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {
@@ -742,5 +741,3 @@ void Egs53Can::rx_task_loop() {
         }
     }
 }
-
-#endif

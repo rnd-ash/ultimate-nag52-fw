@@ -1,5 +1,5 @@
 
-#include "adaptation/adapt_map.h"
+#include "adapt_map.h"
 #include <string.h>
 #include <esp_log.h>
 #include "nvs.h"
@@ -183,12 +183,12 @@ bool AdaptationMap::save(void)
     return result;
 }
 
-inline AdaptationCell *AdaptationMap::get_adapt_cell_from_torque(SensorData *sensors, uint16_t gb_max_torque, uint16_t adaptation_idx, AdaptationMap* adaptationmap_var)
+inline AdaptationCell *AdaptationMap::get_adapt_cell_from_torque(SensorData *sensors, uint16_t gb_max_torque, uint16_t adaptation_idx, AdaptationMap *adaptationmap_var)
 {
     AdaptationCell *result;
-    // divide by 4 is equivalent to left shift by 2 on unsigned integer variables
+    // divide by 4 is equivalent to right shift by 2 on unsigned integer variables
     uint16_t quarter = gb_max_torque >> 2;
-    if (sensors->static_torque <= 0)
+    if (0 >= sensors->static_torque)
     {
         result = &adaptationmap_var->adapt_data[adaptation_idx].trq_neg;
     }
@@ -200,9 +200,12 @@ inline AdaptationCell *AdaptationMap::get_adapt_cell_from_torque(SensorData *sen
     {
         result = &adaptationmap_var->adapt_data[adaptation_idx].trq_50;
     }
-    else
+    else if (((uint16_t)sensors->static_torque) <= (quarter * 3u))
     {
         result = &adaptationmap_var->adapt_data[adaptation_idx].trq_75;
+    }
+    else  {
+        result = nullptr;
     }
     return result;
 }
@@ -243,7 +246,7 @@ inline uint16_t AdaptationMap::get_idx_from_change(ProfileGearChange change)
     return result;
 }
 
-const AdaptationCell *AdaptationMap::get_adapt_cell(SensorData *sensors, ProfileGearChange change, uint16_t gb_max_torque)
+AdaptationCell *AdaptationMap::get_adapt_cell(SensorData *sensors, ProfileGearChange change, uint16_t gb_max_torque)
 {
     uint16_t adaptation_idx = AdaptationMap::get_idx_from_change(change);
     return (7u >= adaptation_idx) ? this->get_adapt_cell_from_torque(sensors, gb_max_torque, adaptation_idx, this) : const_cast<AdaptationCell *>(&DEFAULT_CELL);
@@ -256,116 +259,82 @@ void AdaptationMap::perform_adaptation(SensorData *sensors, ShiftReport *rpt, Pr
                   "Start at %d: \n"
                   "End at %d\n",
                   rpt->transition_start, rpt->transition_end);
-    if (true == is_valid_rpt)
+    if (is_valid_rpt)
     {
         if (sensors->engine_rpm <= ADAPT_RPM_LIMIT)
         {
             if ((sensors->atf_temp >= ADAPT_TEMP_THRESH) && (sensors->atf_temp <= ADAPT_TEMP_LIMIT))
             {
-                uint16_t adaptation_idx = AdaptationMap::get_idx_from_change(change);
-                if (7u >= adaptation_idx)
+                AdaptationCell *dest = this->get_adapt_cell(sensors, change, gb_max_torque);
+                if (&DEFAULT_CELL != dest)
                 {
-                    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Adapting...");
-                    /* commented, since not used */
-                    // bool accel_shift = sensors->d_output_rpm > 0;
-                    // bool idle_shift = sensors->static_torque > 0;
-                    AdaptationCell *dest;
+                    // Calc when the transitions started
+                    int start_fill = rpt->bleed_data.hold_time + rpt->bleed_data.ramp_time;
+                    int start_overlap = start_fill + rpt->fill_data.hold_time + rpt->fill_data.ramp_time;
+                    int start_max_p = start_overlap + rpt->overlap_data.hold_time + rpt->overlap_data.ramp_time;
 
-                    /* Is it really desired to always apply trq_25? */
-                    // float q_trq =  (float)gb_max_torque/4.0;
-                    // if (sensors->static_torque <= 0) {
-                    //     dest = &this->adapt_data[adaptation_idx].trq_neg;
-                    // } else if (sensors->static_torque <= q_trq) {
-                    //     dest = &this->adapt_data[adaptation_idx].trq_25;
-                    // } else if (((float)sensors->static_torque) <= (q_trq*2.F)) {
-                    //     dest = &this->adapt_data[adaptation_idx].trq_25;
-                    // } else if (((float)sensors->static_torque) <= (q_trq*3.F)) {
-                    //     dest = &this->adapt_data[adaptation_idx].trq_25;
-                    // }
-                    /* shortened version, since result is the same for three cases */
-                    uint16_t q_trq = gb_max_torque >> 2;
-                    if (0 >= sensors->static_torque)
+                    int shift_time = rpt->transition_end - rpt->transition_start;
+                    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Shift took %d ms", shift_time);
+                    if (rpt->transition_start < start_fill)
                     {
-                        dest = &this->adapt_data[adaptation_idx].trq_neg;
+                        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE FILL!");
+                        if (rpt->flare_timestamp != 0)
+                        {
+                            dest->mpc_fill_adder += 20;
+                        }
+                        else
+                        {
+                            dest->fill_time_adder += 10;
+                        }
                     }
-                    else if ((q_trq * 3u) >= sensors->static_torque)
+                    else if (rpt->transition_start < start_overlap)
                     {
-                        dest = &this->adapt_data[adaptation_idx].trq_25;
+                        ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start - start_fill);
+                    }
+                    else if (rpt->transition_start < start_max_p)
+                    {
+                        ESP_LOGW("ADAPT_MAP", "Shift started in overlap phase! (%d ms into overlap phase)", rpt->transition_start - start_overlap);
+                    }
+                    else if (rpt->transition_start > start_max_p)
+                    {
+                        ESP_LOGW("ADAPT_MAP", "Shift started after overlap phase! (%d ms into max pressure phase)", rpt->transition_start - start_max_p);
+                        dest->spc_fill_adder += 20;
                     }
                     else
                     {
-                        dest = const_cast<AdaptationCell *>(&DEFAULT_CELL);
                     }
-                    if (&DEFAULT_CELL != dest)
+                    if (0 != rpt->flare_timestamp)
                     {
-                        // Calc when the transitions started
-                        int start_fill = rpt->bleed_data.hold_time + rpt->bleed_data.ramp_time;
-                        int start_overlap = start_fill + rpt->fill_data.hold_time + rpt->fill_data.ramp_time;
-                        int start_max_p = start_overlap + rpt->overlap_data.hold_time + rpt->overlap_data.ramp_time;
-
-                        int shift_time = rpt->transition_end - rpt->transition_start;
-                        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Shift took %d ms", shift_time);
-                        if (rpt->transition_start < start_fill)
+                        if (rpt->flare_timestamp < start_fill)
                         {
-                            ESP_LOGW("ADAPT_MAP", "Shift started BEFORE FILL!");
-                            if (rpt->flare_timestamp != 0)
-                            {
-                                dest->mpc_fill_adder += 20;
-                            }
-                            else
-                            {
-                                dest->fill_time_adder += 10;
-                            }
+                            ESP_LOGW("ADAPT_MAP", "Flare detected BEFORE FILL!");
                         }
-                        else if (rpt->transition_start < start_overlap)
+                        else if (rpt->flare_timestamp < start_overlap)
                         {
-                            ESP_LOGW("ADAPT_MAP", "Shift started BEFORE overlap phase! (%d ms into fill phase)", rpt->transition_start - start_fill);
+                            ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into fill phase", rpt->flare_timestamp - start_fill);
                         }
-                        else if (rpt->transition_start < start_max_p)
+                        else if (rpt->flare_timestamp < start_max_p)
                         {
-                            ESP_LOGW("ADAPT_MAP", "Shift started in overlap phase! (%d ms into overlap phase)", rpt->transition_start - start_overlap);
+                            ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into overlap phase", rpt->flare_timestamp - start_overlap);
                         }
-                        else if (rpt->transition_start > start_max_p)
+                        else if (rpt->flare_timestamp > start_max_p)
                         {
-                            ESP_LOGW("ADAPT_MAP", "Shift started after overlap phase! (%d ms into max pressure phase)", rpt->transition_start - start_max_p);
-                            dest->spc_fill_adder += 20;
+                            ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into max pressure phase", rpt->flare_timestamp - start_max_p);
                         }
                         else
                         {
                         }
-                        if (0 != rpt->flare_timestamp)
-                        {
-                            if (rpt->flare_timestamp < start_fill)
-                            {
-                                ESP_LOGW("ADAPT_MAP", "Flare detected BEFORE FILL!");
-                            }
-                            else if (rpt->flare_timestamp < start_overlap)
-                            {
-                                ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into fill phase", rpt->flare_timestamp - start_fill);
-                            }
-                            else if (rpt->flare_timestamp < start_max_p)
-                            {
-                                ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into overlap phase", rpt->flare_timestamp - start_overlap);
-                            }
-                            else if (rpt->flare_timestamp > start_max_p)
-                            {
-                                ESP_LOGW("ADAPT_MAP", "Flare detected %d ms into max pressure phase", rpt->flare_timestamp - start_max_p);
-                            }
-                            else
-                            {
-                            }
-                        }
-                        ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for target cell are (S %d mBar, M %d mBar) and %d ms",
-                                      dest->spc_fill_adder,
-                                      dest->mpc_fill_adder,
-                                      dest->fill_time_adder);
                     }
-                    else
-                    {
-                        ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Torque outside limit. Got %d Nm, Max allowed: %d Nm",
-                                      sensors->static_torque,
-                                      ((uint16_t)q_trq) * 3u);
-                    }
+                    ESP_LOG_LEVEL(ESP_LOG_INFO, "ADAPT_MAP", "Values for target cell are (S %d mBar, M %d mBar) and %d ms",
+                                  dest->spc_fill_adder,
+                                  dest->mpc_fill_adder,
+                                  dest->fill_time_adder);
+                }
+                else
+                {
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "ADAPT_MAP", "Cannot adapt. Torque outside limit. Got %d Nm, Max allowed: %d Nm",
+                                  sensors->static_torque,
+                                  ((gb_max_torque >> 2) * 3u));
                 }
             }
             else

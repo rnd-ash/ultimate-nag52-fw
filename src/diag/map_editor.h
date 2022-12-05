@@ -16,6 +16,17 @@
 #define FILL_TIME_MAP_ID 0x0A
 #define FILL_PRESSURE_MAP_ID 0x0B
 
+#define A_UPTIME_MAP_ID 0x10
+#define A_DNTIME_MAP_ID 0x11
+#define S_UPTIME_MAP_ID 0x12
+#define S_DNTIME_MAP_ID 0x13
+#define C_UPTIME_MAP_ID 0x14
+#define C_DNTIME_MAP_ID 0x15
+#define W_UPTIME_MAP_ID 0x16
+#define W_DNTIME_MAP_ID 0x17
+#define M_UPTIME_MAP_ID 0x18
+#define M_DNTIME_MAP_ID 0x19
+
 
 // MAP COMMAND IDs
 #define MAP_CMD_READ 0x01

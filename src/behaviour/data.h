@@ -15,7 +15,7 @@ enum class DriveStyle {
     Grandma,
 };
 
-typedef struct {
+struct DrivingData{
     // Current speed in KMH
     int current_vehicle_speed_kmh;
     // Pedal acceleration (%/sec)
@@ -38,6 +38,6 @@ typedef struct {
     int num_seconds_to_stop(void) {
         return (vehicle_acceleration >= 0) ? __INT32_MAX__ : (current_vehicle_speed_kmh/vehicle_acceleration) * -1;
     }
-} DrivingData;
+};
 
 #endif

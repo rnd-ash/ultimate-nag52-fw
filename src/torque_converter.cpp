@@ -1,37 +1,10 @@
 #include "torque_converter.h"
 #include "solenoids/solenoids.h"
 #include "tcu_maths.h"
-#include "macros.h"
 
-int get_gear_idx(GearboxGear g) {
-    switch (g) {
-        case GearboxGear::First:
-            return 0;
-        case GearboxGear::Second:
-            return 1;
-        case GearboxGear::Third:
-            return 2;
-        case GearboxGear::Fourth:
-            return 3;
-        case GearboxGear::Fifth:
-            return 4;
-        default:
-            return 0xFF; // Invalid
-    }
-}
+// 1400 mBar ~= locking
 
-int get_temp_idx(int temp_raw) {
-    if (temp_raw < 0) {
-        return 0;
-    } else if (temp_raw > 160) {
-        return 16;
-    }
-    return temp_raw/10;
-}
-
-// 1400 Mbar ~= locking
-
-#define TCC_PREFILL 500 // mBar
+static const uint16_t TCC_PREFILL = 500u; // mBar
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     if (sensors->input_rpm < 1000) { // RPM too low!
@@ -146,15 +119,15 @@ void TorqueConverter::on_shift_complete(uint64_t now) {
 // 1600 - lock
 // 1000 - slip
 // 500 - prefill
-void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness) {
-    if (this->curr_tcc_pressure < 1200) {
-        this->curr_tcc_pressure = 1200;
-    } else if (sensors->static_torque > 0 && abs(sensors->tcc_slip_rpm) < 20) {
-        uint32_t additional_reduction = scale_number(shift_firmness*10, 100, 0, 0, 100);
-        this->curr_tcc_pressure -= additional_reduction;
-    }
-}
+// void TorqueConverter::on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness) {
+//     if (this->curr_tcc_pressure < 1200) {
+//         this->curr_tcc_pressure = 1200;
+//     } else if (sensors->static_torque > 0 && abs(sensors->tcc_slip_rpm) < 20) {
+//         uint32_t additional_reduction = scale_number(shift_firmness*10, 100, 0, 0, 100);
+//         this->curr_tcc_pressure -= additional_reduction;
+//     }
+// }
 
-ClutchStatus TorqueConverter::get_clutch_state() {
+ClutchStatus TorqueConverter::get_clutch_state(void) {
     return this->state;
 }

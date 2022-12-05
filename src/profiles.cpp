@@ -13,22 +13,18 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         const char* downshift_map_name_diesel, 
         const char* upshift_map_name_petrol, 
         const char* downshift_map_name_petrol,
+        const char* upshift_time_map_name,
+        const char* downshift_time_map_name,
         const int16_t* def_upshift_data_diesel,
         const int16_t* def_downshift_data_diesel,
         const int16_t* def_upshift_data_petrol,
-        const int16_t* def_downshift_data_petrol
+        const int16_t* def_downshift_data_petrol,
+        const int16_t* def_upshift_time_data,
+        const int16_t* def_downshift_time_data
     ) {
 
     this->is_diesel = is_diesel;
     this->tag_id = tag_id;
-    this->upshift_map_name_diesel = upshift_map_name_diesel; 
-    this->downshift_map_name_diesel = downshift_map_name_diesel;
-    this->upshift_map_name_petrol = upshift_map_name_petrol;
-    this->downshift_map_name_petrol = downshift_map_name_petrol;
-    this->def_upshift_data_diesel = def_upshift_data_diesel;
-    this->def_downshift_data_diesel = def_downshift_data_diesel;
-    this->def_upshift_data_petrol = def_upshift_data_petrol;
-    this->def_downshift_data_petrol = def_downshift_data_petrol;
 
     const char* key_name;
     const int16_t* default_map;
@@ -57,16 +53,51 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     if (!this->downshift_table->init_ok()) {
         delete[] this->downshift_table;
     }
+
+    // Up/downshift time tables
+    int16_t redline = is_diesel ? VEHICLE_CONFIG.red_line_rpm_diesel : VEHICLE_CONFIG.red_line_rpm_petrol;
+    int16_t step_size = (redline-1000) / 4;
+    int16_t shift_rpm_points[5] = {(int16_t)1000,  (int16_t)(1000+(step_size)), (int16_t)(1000+(step_size*2)), (int16_t)(1000+(step_size*3)), redline};
+    this->upshift_time_map = new StoredTcuMap(upshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_upshift_time_data);
+    if (!this->upshift_time_map->init_ok()) {
+        delete[] this->upshift_time_map;
+    }
+    this->downshift_time_map = new StoredTcuMap(downshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_downshift_time_data);
+    if (!this->downshift_time_map->init_ok()) {
+        delete[] this->downshift_time_map;
+    }
 }
 
-void AbstractProfile::reload_data() {
-    if (this->upshift_table) {
-        this->upshift_table->reload_from_eeprom();
+ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+    ShiftCharacteristics result;
+    switch (requested) {
+        case ProfileGearChange::ONE_TWO:
+        case ProfileGearChange::TWO_THREE:
+        case ProfileGearChange::THREE_FOUR:
+        case ProfileGearChange::FOUR_FIVE:
+            result.target_shift_time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+        case ProfileGearChange::FOUR_THREE:
+        case ProfileGearChange::THREE_TWO:
+        case ProfileGearChange::TWO_ONE:
+            result.target_shift_time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            break;
+        default:
+            result.target_shift_time = 500;
+            break;
     }
-    if (this->downshift_table) {
-        this->downshift_table->reload_from_eeprom();
-    }
+    return result;
 }
+
+// void AbstractProfile::reload_data() {
+//     if (this->upshift_table) {
+//         this->upshift_table->reload_from_eeprom();
+//     }
+//     if (this->downshift_table) {
+//         this->downshift_table->reload_from_eeprom();
+//     }
+// }
 
 
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
@@ -76,10 +107,14 @@ AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_A_DIESEL_DOWNSHIFT,
         MAP_NAME_A_PETROL_UPSHIFT, 
         MAP_NAME_A_PETROL_DOWNSHIFT,
+        MAP_NAME_A_UPSHIFT_TIME,
+        MAP_NAME_A_DOWNSHIFT_TIME,
         A_DIESEL_UPSHIFT_MAP,
         A_DIESEL_DOWNSHIFT_MAP,
         A_PETROL_UPSHIFT_MAP,
-        A_PETROL_DOWNSHIFT_MAP
+        A_PETROL_DOWNSHIFT_MAP,
+        A_UPSHIFT_TIME_MAP,
+        A_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -107,21 +142,6 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
         default:
             return GearboxDisplayGear::SNA;
     }
-}
-
-
-ShiftCharacteristics AgilityProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    float dp = ((float)(sensors->pedal_pos*10)/250.0f);
-    if (dp > 10) {
-        dp = 10;
-    }
-    if (dp == 0) {
-        dp = 1;
-    }
-    return ShiftCharacteristics {
-        .target_d_rpm = 60,
-        .shift_speed = dp,
-    };
 }
 
 bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
@@ -158,19 +178,15 @@ ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_C_DIESEL_DOWNSHIFT,
         MAP_NAME_C_PETROL_UPSHIFT, 
         MAP_NAME_C_PETROL_DOWNSHIFT,
+        MAP_NAME_C_UPSHIFT_TIME,
+        MAP_NAME_C_DOWNSHIFT_TIME,
         C_DIESEL_UPSHIFT_MAP,
         C_DIESEL_DOWNSHIFT_MAP,
         C_PETROL_UPSHIFT_MAP,
-        C_PETROL_DOWNSHIFT_MAP
+        C_PETROL_DOWNSHIFT_MAP,
+        C_UPSHIFT_TIME_MAP,
+        C_DOWNSHIFT_TIME_MAP
     ) {
-}
-
-
-ShiftCharacteristics ComfortProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    return ShiftCharacteristics {
-        .target_d_rpm = 30,
-        .shift_speed = 2.0,
-    };
 }
 
 GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -232,18 +248,15 @@ WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_M_DIESEL_DOWNSHIFT,
         MAP_NAME_M_PETROL_UPSHIFT, 
         MAP_NAME_M_PETROL_DOWNSHIFT,
+        MAP_NAME_M_UPSHIFT_TIME,
+        MAP_NAME_M_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
-        M_PETROL_DOWNSHIFT_MAP
+        M_PETROL_DOWNSHIFT_MAP,
+        M_UPSHIFT_TIME_MAP,
+        M_DOWNSHIFT_TIME_MAP
     ) {
-}
-
-ShiftCharacteristics WinterProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    return ShiftCharacteristics {
-        .target_d_rpm = 20,
-        .shift_speed = 3.0,
-    };
 }
 
 GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -276,14 +289,10 @@ bool WinterProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-#ifdef MANUAL_AUTO_DOWNSHIFT
     if (current_gear == GearboxGear::Second) {
         return false;
     }
     return manual->should_downshift(current_gear, sensors);
-#else
-    return false;
-#endif
 }
 
 // Minimum lockup
@@ -301,18 +310,15 @@ StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_S_DIESEL_DOWNSHIFT,
         MAP_NAME_S_PETROL_UPSHIFT, 
         MAP_NAME_S_PETROL_DOWNSHIFT,
+        MAP_NAME_S_UPSHIFT_TIME,
+        MAP_NAME_S_DOWNSHIFT_TIME,
         S_DIESEL_UPSHIFT_MAP,
         S_DIESEL_DOWNSHIFT_MAP,
         S_PETROL_UPSHIFT_MAP,
-        S_PETROL_DOWNSHIFT_MAP
+        S_PETROL_DOWNSHIFT_MAP,
+        S_UPSHIFT_TIME_MAP,
+        S_DOWNSHIFT_TIME_MAP
     ) {
-}
-
-ShiftCharacteristics StandardProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    return ShiftCharacteristics {
-        .target_d_rpm = 50,
-        .shift_speed = 5.0,
-    };
 }
 
 GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
@@ -402,13 +408,6 @@ TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, Gear
     };
 }
 
-ShiftCharacteristics ManualProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
-    return ShiftCharacteristics {
-        .target_d_rpm = 70,
-        .shift_speed = 9.0,
-    };
-}
-
 GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
@@ -441,10 +440,14 @@ ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_M_DIESEL_DOWNSHIFT,
         MAP_NAME_M_PETROL_UPSHIFT, 
         MAP_NAME_M_PETROL_DOWNSHIFT,
+        MAP_NAME_W_UPSHIFT_TIME,
+        MAP_NAME_W_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
-        M_PETROL_DOWNSHIFT_MAP
+        M_PETROL_DOWNSHIFT_MAP,
+        W_UPSHIFT_TIME_MAP,
+        W_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -453,16 +456,12 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 }
 
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-#ifdef MANUAL_AUTO_DOWNSHIFT
     if (current_gear == GearboxGear::First) {
         return false;
     } else if (sensors->input_rpm < 300 && sensors->engine_rpm < MIN_WORKING_RPM && sensors->pedal_pos == 0) {
         return true;
     }
     return false;
-#else
-    return false;
-#endif
 }
 
 TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {

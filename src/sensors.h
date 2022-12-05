@@ -8,14 +8,14 @@
  * @brief RPM Reading structure
  * 
  */
-typedef struct {
+struct RpmReading{
     /// N2 Raw Pulse count
     uint32_t n2_raw;
     /// N3 Raw pulse count
     uint32_t n3_raw;
     /// Calculated input RPM
     uint32_t calc_rpm;
-} RpmReading;
+};
 
 namespace Sensors {
     /**

@@ -13,7 +13,7 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
     uint8_t sample_id;
     uint64_t sum;
 
-    MovingAverage() {
+    MovingAverage(void) {
         this->sample_id = 0;
         this->sum = 0;
         memset(this->readings, 0x00, sizeof(this->readings));
@@ -26,7 +26,7 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
         this->sample_id = (this->sample_id+1) % MAX_SIZE;
     }
 
-    T get_average() {
+    T get_average(void) {
         return (float)sum / (float)MAX_SIZE;
     }
 };
@@ -38,7 +38,7 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
  * change behaviour
  * 
  */
-typedef struct {
+struct SensorData{
     /// Gearbox input RPM
     uint16_t input_rpm;
     /// Engine RPM
@@ -69,7 +69,7 @@ typedef struct {
     int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
-} SensorData;
+};
 
 /**
  * @brief A gearchange that a AbstractProfile can request
@@ -94,7 +94,7 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
-typedef struct {
+struct ShiftPhase{
     /// Ramp down from current pressure to new pressure
     uint16_t ramp_time;
     /// Hold time at requested pressure
@@ -103,13 +103,13 @@ typedef struct {
     uint16_t spc_pressure;
     /// How much to modify MPC pressure by in mBar
     int16_t mpc_pressure;
-} ShiftPhase;
+};
 
 /**
  * @brief Shift data request structure
  * 
  */
-typedef struct {
+struct ShiftData{
     Solenoid* shift_solenoid;
     float torque_down_amount;
     uint8_t targ_g;
@@ -156,24 +156,24 @@ typedef struct {
      * New clutches are locked into place
      */
     ShiftPhase max_pressure_data;
-} ShiftData;
+};
 
-typedef struct {
+struct GearRatioLimit{
     float max;
     float min;
-} GearRatioLimit;
+};
 
-typedef const GearRatioLimit GearboxRatioBounds[7];
+// typedef const GearRatioLimit GearboxRatioBounds[7];
 typedef const float FwdRatios[7];
 
-typedef struct {
+struct GearboxConfiguration{
     uint16_t max_torque;
     const GearRatioLimit* bounds;
     const float* ratios; // 1-5 and R1+R2
-} GearboxConfiguration;
+} ;
 
 
-typedef struct {
+struct PressureMgrData{
     pressure_map spc_1_2;
     pressure_map mpc_1_2;
 
@@ -207,23 +207,20 @@ typedef struct {
     pressure_map working_mpc_5;
 
     rpm_modifier_map ramp_speed_multiplier;
-} PressureMgrData;
+} ;
 
-typedef struct {
-    // Target delta RPM per step (Each step ~= 40ms)
-    uint16_t target_d_rpm;
-    // Valid range =  1 - 10 (Auto clamped if value is outside this range) - Higher = faster shift
-    float shift_speed;
-} ShiftCharacteristics;
+struct ShiftCharacteristics{
+    uint16_t target_shift_time;
+} ;
 
-typedef struct {
+struct TccLockupBounds{
     int max_slip_rpm;
     int min_slip_rpm;
-} TccLockupBounds;
+};
 
 #define SR_REPORT_INTERVAL 50
 #define MAX_POINTS_PER_SR_ARRAY 6000/SR_REPORT_INTERVAL // Every 50ms
-typedef struct {
+struct  __attribute__ ((packed)) ShiftReport{
     int16_t atf_temp_c;
     // Target << 4 | current
     uint8_t targ_curr;
@@ -248,8 +245,8 @@ typedef struct {
     // Flags for reporting shift errors
     uint16_t flare_timestamp;
     uint8_t shift_timeout;
-}  __attribute__ ((packed)) ShiftReport;
+} ;
 
-const int SD_Size = sizeof(ShiftReport);
+static const int SD_Size = sizeof(ShiftReport);
 
 #endif

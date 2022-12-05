@@ -40,7 +40,7 @@ bool save_shift_report_to_partition(ShiftReportNvsGroup* src, uint32_t addr) {
 }
 
 
-ShiftReporter::ShiftReporter() {
+ShiftReporter::ShiftReporter(void) {
     this->report_group = static_cast<ShiftReportNvsGroup*>(heap_caps_malloc(sizeof(ShiftReportNvsGroup), MALLOC_CAP_SPIRAM));
     if (this->report_group == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SHIFT_REPORT", "Cannot allocate memory!");
@@ -61,7 +61,7 @@ ShiftReporter::ShiftReporter() {
     }
 }
 
-ShiftReporter::~ShiftReporter() {
+ShiftReporter::~ShiftReporter(void) {
 }
 
 void ShiftReporter::add_report(ShiftReport src) {
@@ -80,7 +80,7 @@ void ShiftReporter::add_report(ShiftReport src) {
 }
 
 
-void ShiftReporter::save() {
+void ShiftReporter::save(void) {
     if (!has_change || this->report_group == nullptr || this->spiffs_addr == 0) {
         return;
     }

@@ -17,6 +17,12 @@
 // #define SHIFT_PHASE_OVERLAP 4
 // #define SHIFT_PHASE_MAX_P 5
 
+static const uint16_t SHIFT_PHASE_BLEED = 1u;
+static const uint16_t SHIFT_PHASE_FILL = 2u;
+static const uint16_t SHIFT_PHASE_TORQUE = 3u;
+static const uint16_t SHIFT_PHASE_OVERLAP = 4u;
+static const uint16_t SHIFT_PHASE_MAX_P  = 5u;
+
 enum ShiftPhases : uint8_t{
     BLEED = 1u,
     FILL = 2u,
@@ -26,12 +32,12 @@ enum ShiftPhases : uint8_t{
 };
 
 enum class Clutch {
-    K1,
-    K2,
-    K3,
-    B1,
-    B2,
-    B3 // Reverse ONLY
+    K1 = 1,
+    K2 = 2,
+    K3 = 3,
+    B1 = 4,
+    B2 = 5,
+    B3 = 6 // Reverse ONLY
 };
 
 class PressureManager {
@@ -158,7 +164,7 @@ private:
     StoredTcuMap* hold2_time_map;
     StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
-    // Clutch get_clutch_to_release(ProfileGearChange change);
+    Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
 };
 

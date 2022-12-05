@@ -9,6 +9,10 @@
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
+    if (g == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     RpmReading d;
     bool b = false;
 
@@ -35,6 +39,10 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
 
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     DATA_SOLENOIDS ret = {};
+    if (gb_ptr == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
 
     ret.mpc_current = sol_mpc->get_current_avg(); //sol_mpc->get_current_estimate();
     ret.spc_current = sol_spc->get_current_avg();//sol_spc->get_current_estimate();
@@ -63,6 +71,10 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
 
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     DATA_PRESSURES ret = {};
+    if (gb_ptr == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
@@ -78,7 +90,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     return ret;
 }
 
-DATA_DMA_BUFFER dump_i2s_dma() {
+DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;
     dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
@@ -87,6 +99,10 @@ DATA_DMA_BUFFER dump_i2s_dma() {
 
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     DATA_CANBUS_RX ret = {};
+    if (can_layer == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     uint64_t now = esp_timer_get_time() / 1000;
 
     WheelData t = can_layer->get_rear_left_wheel(now, 250);
@@ -113,7 +129,7 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     return ret;
 }
 
-DATA_SYS_USAGE get_sys_usage() {
+DATA_SYS_USAGE get_sys_usage(void) {
     DATA_SYS_USAGE ret = {};
     CpuStats s = get_cpu_stats();
     ret.core1_usage = s.load_core_1;
@@ -129,8 +145,12 @@ DATA_SYS_USAGE get_sys_usage() {
     return ret;
 }
 
-SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
+SHIFT_LIVE_INFO get_shift_live_Data(const AbstractCan* can_layer, Gearbox* g) {
     SHIFT_LIVE_INFO ret = {};
+    if (can_layer == nullptr || g == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
 
     ret.spc_pressure = g->pressure_mgr->get_targ_spc_pressure();
     ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_pressure();
@@ -181,14 +201,14 @@ SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
 }
 
 
-TCM_CORE_CONFIG get_tcm_config() {
+TCM_CORE_CONFIG get_tcm_config(void) {
     TCM_CORE_CONFIG cfg;
     memcpy(&cfg, &VEHICLE_CONFIG, sizeof(TCM_CORE_CONFIG));
     return cfg;
 }
 
 uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvaliable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
@@ -216,7 +236,7 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     }
 }
 
-COREDUMP_INFO get_coredump_info() {
+COREDUMP_INFO get_coredump_info(void) {
     size_t addr = 0;
     size_t size = 0;
     esp_core_dump_image_get(&addr, &size);
@@ -226,6 +246,6 @@ COREDUMP_INFO get_coredump_info() {
     };
 }
 
-const esp_app_desc_t* get_image_header() {
+const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
 }

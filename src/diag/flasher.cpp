@@ -7,13 +7,17 @@
 Flasher::Flasher(AbstractCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
+    update_partition = nullptr;
+    read_base_addr = 0u;
+    read_bytes = 0u;
+    read_bytes_total = 0u;
 }
 
 Flasher::~Flasher() {
     this->gearbox_ref->diag_regain_control(); // Re-enable engine starting
 }
 
-DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
+DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
@@ -65,13 +69,13 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
     uint8_t resp[2] =  { 0x00, 0x00 };
     resp[0] = CHUNK_SIZE >> 8 & 0xFF;
     resp[1] = CHUNK_SIZE & 0xFF;
-    spkr.send_note(1000, 100, 100);
+    spkr->send_note(1000, 100, 100);
     this->written_data = 0;
     this->data_dir = DATA_DIR_DOWNLOAD;
     return this->make_diag_pos_msg(SID_REQ_DOWNLOAD, resp, 2);
 }
 
-DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
+DiagMessage Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
@@ -111,7 +115,7 @@ DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
     uint8_t resp[2] =  { 0x00, 0x00 };
     resp[0] = CHUNK_SIZE >> 8 & 0xFF;
     resp[1] = CHUNK_SIZE & 0xFF;
-    spkr.send_note(1000, 100, 100);
+    spkr->send_note(1000, 100, 100);
     this->data_dir = DATA_DIR_UPLOAD;
     this->read_base_addr = src_mem_address;
     this->read_bytes = 0;

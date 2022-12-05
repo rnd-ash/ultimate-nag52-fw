@@ -17,8 +17,7 @@ RLI_31_DATA get_rli_31(AbstractCan* can_layer) {
     ret.vehicle_speed_rear_wheels = 0; // TODO
     ret.vehicle_speed_front_wheels = 0; // TODO
 
-    WheelData wd = {};
-    wd = can_layer->get_front_left_wheel(now, 300);
+    WheelData wd = can_layer->get_front_left_wheel(now, 300);
     if (wd.current_dir == WheelDirection::SignalNotAvaliable) {
         ret.front_left_wheel_speed = 0xFFFF;
     } else {

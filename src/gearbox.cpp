@@ -362,8 +362,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         else if (shift_stage_loc == SHIFT_PHASE_FILL)
                         {
                             shift_stage_loc = SHIFT_PHASE_TORQUE;
-                            this->pressure_mgr->make_torque_data(&sd.torque_data, &sd.fill_data, chars, req_lookup, original_mpc);
-                            this->pressure_mgr->make_overlap_data(&sd.overlap_data, &sd.torque_data, chars, req_lookup, original_mpc);
+                            this->pressure_mgr->make_torque_and_overlap_data(&sd.torque_data, &sd.overlap_data, &sd.fill_data, chars, req_lookup, original_mpc);
                             this->pressure_mgr->make_max_p_data(&sd.max_pressure_data, &sd.overlap_data, chars, req_lookup, original_mpc);
                             ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase TORQUE Targets: (%d, %d mBar)", sd.torque_data.mpc_pressure, sd.torque_data.spc_pressure);
                             abortable = false; // No longer can be aborted! (Past point of no return)

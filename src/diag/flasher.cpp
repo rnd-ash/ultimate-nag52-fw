@@ -13,6 +13,16 @@ Flasher::~Flasher() {
     this->gearbox_ref->diag_regain_control(); // Re-enable engine starting
 }
 
+/**
+ * "This is a function that handles a Request Download diagnostic message in a vehicle's 
+ *  onboard diagnostic system. The function checks the current state of the vehicle's shifter 
+ *  and engine, and then parses the request data to determine the destination memory address, 
+ *  data format, and uncompressed memory size. If the request is valid, it prepares the vehicle 
+ *  for data transfer by disabling the gearbox controller and setting the appropriate drive 
+ *  profile and display gear. It also sets up a block counter to track the progress of the data 
+ *  transfer. The function then returns a positive response message containing the maximum 
+ *  number of data bytes that can be transferred in a single block." - ChatGPT
+*/
 DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {

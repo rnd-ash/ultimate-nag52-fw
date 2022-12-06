@@ -262,8 +262,6 @@ int find_target_ratio(int targ_gear, FwdRatios ratios) {
  */
 bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift) {
     SensorData start_sensors = this->sensor_data;
-    SensorData prefill_sensors = this->sensor_data;
-    SensorData overlap_sensors = this->sensor_data;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
     ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &start_sensors);
     ShiftData sd = pressure_mgr->get_shift_data(req_lookup, chars, this->mpc_working);
@@ -314,7 +312,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                         // Going to hold 2
                         // open partial the shift solenoid
                         shift_stage = SHIFT_PHASE_FILL;
-                        prefill_sensors = this->sensor_data;
                         this->pressure_mgr->make_fill_data(&sd.fill_data, chars, req_lookup, original_mpc);
                         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase FILL. Targets: (%d, %d mBar)", sd.fill_data.mpc_pressure, sd.fill_data.spc_pressure);
                         curr_phase = &sd.fill_data;
@@ -493,7 +490,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
             this->shift_reporter->add_report(dest_report);
         }
         if (this->pressure_mgr != nullptr) {
-            this->pressure_mgr->perform_adaptation(&prefill_sensors, req_lookup, &dest_report, gen_report);
+            this->pressure_mgr->perform_adaptation(&sensor_data, req_lookup, &dest_report, gen_report);
         }
     }
     this->shift_stage = 0;

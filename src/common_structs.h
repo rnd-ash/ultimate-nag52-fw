@@ -172,43 +172,6 @@ typedef struct {
     const float* ratios; // 1-5 and R1+R2
 } GearboxConfiguration;
 
-
-typedef struct {
-    pressure_map spc_1_2;
-    pressure_map mpc_1_2;
-
-    pressure_map spc_2_3;
-    pressure_map mpc_2_3;
-
-    pressure_map spc_3_4;
-    pressure_map mpc_3_4;
-
-    pressure_map spc_4_5;
-    pressure_map mpc_4_5;
-
-    pressure_map spc_5_4;
-    pressure_map mpc_5_4;
-
-    pressure_map spc_4_3;
-    pressure_map mpc_4_3;
-
-    pressure_map spc_3_2;
-    pressure_map mpc_3_2;
-
-    pressure_map spc_2_1;
-    pressure_map mpc_2_1;
-
-    pressure_map working_mpc_p;
-    pressure_map working_mpc_r;
-    pressure_map working_mpc_1;
-    pressure_map working_mpc_2;
-    pressure_map working_mpc_3;
-    pressure_map working_mpc_4;
-    pressure_map working_mpc_5;
-
-    rpm_modifier_map ramp_speed_multiplier;
-} PressureMgrData;
-
 typedef struct {
     uint16_t target_shift_time;
 } ShiftCharacteristics;

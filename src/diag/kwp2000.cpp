@@ -124,7 +124,7 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
         this->can_layer = nullptr;
     }
 
-            this->supplier_id = 0x08;
+    this->supplier_id = 0x08;
     if (can_layer == nullptr || gearbox == nullptr) {
         this->diag_var_code = 0x0000;
     } else {
@@ -154,44 +154,16 @@ Kwp2000_server::~Kwp2000_server() {
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
-    /*
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = 3;
-    this->tx_msg.data[0] = 0x7F;
-    this->tx_msg.data[1] = sid;
-    this->tx_msg.data[2] = nrc;
-    */
     global_make_diag_neg_msg(&this->tx_msg, sid, nrc);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len) {
-    /*
-    if (len + 2 > DIAG_CAN_MAX_SIZE) {
-        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
-        return;
-    }
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = len+1;
-    this->tx_msg.data[0] = sid+0x40;
-    memcpy(&this->tx_msg.data[1], resp, len);
-    */
     global_make_diag_pos_msg(&this->tx_msg, sid, resp, len);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
-    /*
-    if (len + 3 > DIAG_CAN_MAX_SIZE) {
-        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
-        return;
-    }
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = len+2;
-    this->tx_msg.data[0] = sid+0x40;
-    this->tx_msg.data[1] = pid;
-    memcpy(&this->tx_msg.data[2], resp, len);
-    */
     global_make_diag_pos_msg(&this->tx_msg, sid, pid, resp, len);
     this->send_resp = true;
 }
@@ -462,59 +434,58 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
     } else if (args[0] == RLI_MAP_EDITOR) {
-            // 0 - RLI
-            // 1 - Map ID
-            // 2 - CMD
-            // 3-4 - Arg len
-            // 5..n - Data
-            if (arg_len < 5) {
-                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-                return;
+        // 0 - RLI
+        // 1 - Map ID
+        // 2 - CMD
+        // 3-4 - Arg len
+        // 5..n - Data
+        if (arg_len < 5) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        uint8_t map_id = args[1];
+        uint8_t cmd = args[2];
+        uint16_t map_len_bytes = args[3] << 8 | args[4];
+        if (arg_len-5 != map_len_bytes) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        uint8_t ret;
+        uint8_t* buffer = nullptr;
+        uint16_t read_bytes_size = 0;
+        if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT || cmd == MAP_CMD_READ_EEPROM) {
+            uint8_t c;
+            if (cmd == MAP_CMD_READ) {
+                c = MAP_READ_TYPE_MEM;
+            } else if (cmd == MAP_CMD_READ_DEFAULT) {
+                c = MAP_READ_TYPE_PRG;
+            } else { // MAP_CMD_READ_EEPROM
+                c = MAP_READ_TYPE_STO;
             }
-            uint8_t map_id = args[1];
-            uint8_t cmd = args[2];
-            uint16_t map_len_bytes = args[3] << 8 | args[4];
-            if (arg_len-5 != map_len_bytes) {
-                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-                return;
-            }
-            uint8_t ret;
-            uint8_t* buffer = nullptr;
-            uint16_t read_bytes_size = 0;
-            if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT || cmd == MAP_CMD_READ_EEPROM) {
-                uint8_t c;
-                if (cmd == MAP_CMD_READ) {
-                    c = MAP_READ_TYPE_MEM;
-                } else if (cmd == MAP_CMD_READ_DEFAULT) {
-                    c = MAP_READ_TYPE_PRG;
-                } else { // MAP_CMD_READ_EEPROM
-                    c = MAP_READ_TYPE_STO;
-                }
-                ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
-            } else if (cmd == MAP_CMD_READ_META) { 
-                ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
-            } else {
-                ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
-            }
-            if (ret == 0) { // OK
-                uint8_t* buf = static_cast<uint8_t*>(heap_caps_malloc(2+read_bytes_size, MALLOC_CAP_SPIRAM));
-                if (buf == nullptr) {
-                    free(buffer); // DELETE MapEditor allocation
-                    make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
-                    return;
-                }
-                buf[0] = read_bytes_size & 0xFF;
-                buf[1] = read_bytes_size >> 8;
-                memcpy(&buf[2], buffer, read_bytes_size);
-                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
-                delete[] buf;
+            ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
+        } else if (cmd == MAP_CMD_READ_META) { 
+            ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
+        } else {
+            ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+        }
+        if (ret == 0) { // OK
+            uint8_t* buf = static_cast<uint8_t*>(heap_caps_malloc(2+read_bytes_size, MALLOC_CAP_SPIRAM));
+            if (buf == nullptr) {
                 free(buffer); // DELETE MapEditor allocation
-                return;
-            } else {
-                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 return;
             }
-
+            buf[0] = read_bytes_size & 0xFF;
+            buf[1] = read_bytes_size >> 8;
+            memcpy(&buf[2], buffer, read_bytes_size);
+            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
+            delete[] buf;
+            free(buffer); // DELETE MapEditor allocation
+            return;
+        } else {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
+            return;
+        }
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
@@ -561,9 +532,11 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     }
     
 }
+
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
 
 }
+
 void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);

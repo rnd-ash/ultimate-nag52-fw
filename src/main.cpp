@@ -29,6 +29,8 @@ uint8_t profile_id = 0;
 #define NUM_PROFILES 5 // A, C, W, M, S
 AbstractProfile* profiles[NUM_PROFILES];
 
+Speaker* spkr2 = nullptr;
+
 SPEAKER_POST_CODE setup_tcm()
 {
     if (!EEPROM::read_efuse_config(&BOARD_CONFIG)) {
@@ -47,6 +49,7 @@ SPEAKER_POST_CODE setup_tcm()
             break;
         default:
             spkr = new Speaker(gpio_num_t::GPIO_NUM_4); // Assume legacy when this fails!
+            spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
             return SPEAKER_POST_CODE::EFUSE_NOT_SET;
     }
     spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
@@ -124,6 +127,9 @@ void err_beep_loop(void* a) {
         }
         while(1) {
             spkr->post(p);
+            if (spkr2 != nullptr) {
+                spkr2->post(p);
+            }
             vTaskDelay(2000/portTICK_PERIOD_MS);
         }
         vTaskDelete(NULL);

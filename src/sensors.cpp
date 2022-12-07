@@ -18,6 +18,7 @@
 
 const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
+const pcnt_unit_t PCNT_OUT_RPM = PCNT_UNIT_2;
 
 #define ADC2_ATTEN ADC_ATTEN_11db
 #define ADC2_WIDTH ADC_WIDTH_12Bit
@@ -26,12 +27,16 @@ esp_adc_cal_characteristics_t adc2_cal = {};
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE output_mux = portMUX_INITIALIZER_UNLOCKED;
 
 volatile uint64_t n3_intr_times[2] = {0,0};
 volatile uint64_t n2_intr_times[2] = {0,0};
+volatile uint64_t output_intr_times[2] = {0,0};
 
 uint64_t t_n2 = 0;
 uint64_t t_n3 = 0;
+uint64_t t_output = 0;
+bool output_rpm_ok = false;
 
 static void IRAM_ATTR on_pcnt_overflow_n2(void* args) {
     t_n2 = esp_timer_get_time();
@@ -53,6 +58,17 @@ static void IRAM_ATTR on_pcnt_overflow_n3(void* args) {
     n3_intr_times[0] = n3_intr_times[1];
     n3_intr_times[1] = t_n3;
     portEXIT_CRITICAL_ISR(&n3_mux);
+}
+
+static void IRAM_ATTR on_pcnt_overflow_output(void* args) {
+    t_output = esp_timer_get_time();
+    if (t_output - output_intr_times[1] < 10) {
+        return;
+    }
+    portENTER_CRITICAL_ISR(&output_mux);
+    output_intr_times[0] = output_intr_times[1];
+    output_intr_times[1] = t_output;
+    portEXIT_CRITICAL_ISR(&output_mux);
 }
 
 bool Sensors::init_sensors(){
@@ -134,6 +150,38 @@ bool Sensors::init_sensors(){
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N2_RPM), "Failed to resume PCNT N2 RPM! %s", esp_err_to_name(res))
     CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_N3_RPM), "Failed to resume PCNT N3 RPM! %s", esp_err_to_name(res))
 
+
+    if (BOARD_CONFIG.board_ver >= 3 && VEHICLE_CONFIG.io_0_usage == 1) { // Input
+        output_rpm_ok = false;
+        if (VEHICLE_CONFIG.input_sensor_pulses_per_rev == 0) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, LOG_TAG, "Cannot initialize Output RPM sensing. Pulse/rev is 0!");
+            goto init_ok;
+        }
+        ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Initializing OUTPUT RPM PCNT as extra IO!");
+        pcnt_config_t pcnt_cfg_output {
+            .pulse_gpio_num = pcb_gpio_matrix->io_pin,
+            .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+            .lctrl_mode = PCNT_MODE_KEEP,
+            .hctrl_mode = PCNT_MODE_KEEP,
+            .pos_mode = PCNT_COUNT_INC,
+            .neg_mode = PCNT_COUNT_DIS,
+            .counter_h_lim = PCNT_H_LIM,
+            .counter_l_lim = 0,
+            .unit = PCNT_OUT_RPM,
+            .channel = PCNT_CHANNEL_0
+        };
+        CHECK_ESP_FUNC(gpio_set_direction(pcb_gpio_matrix->io_pin, GPIO_MODE_INPUT), "Failed to set OUTPUT RPM (GPIO) PIN to Input! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_unit_config(&pcnt_cfg_output), "Failed to configure PCNT for OUTPUT RPM reading! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_counter_pause(PCNT_OUT_RPM), "Failed to pause PCNT OUTPUT RPM! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_counter_clear(PCNT_OUT_RPM), "Failed to clear PCNT OUTPUT RPM! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_set_filter_value(PCNT_OUT_RPM, 1000), "Failed to set filter for PCNT OUTPUT! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_filter_enable(PCNT_OUT_RPM), "Failed to enable filter for PCNT OUTPUT! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_isr_handler_add(PCNT_OUT_RPM, &on_pcnt_overflow_output, nullptr), "Failed to add PCNT OUTPUT to ISR handler! %s", esp_err_to_name(res))
+        CHECK_ESP_FUNC(pcnt_counter_resume(PCNT_OUT_RPM), "Failed to resume PCNT OUTPUT RPM! %s", esp_err_to_name(res))
+        output_rpm_ok = true;
+
+    }
+init_ok:
     ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
     return true;
 }
@@ -195,7 +243,24 @@ bool Sensors::read_input_rpm(RpmReading* dest, bool check_sanity) {
     }
 }
 
-
+bool Sensors::read_output_rpm(uint16_t* dest) {
+    if (output_rpm_ok == false) {
+        return false;
+    }
+    uint64_t output[2];
+    portENTER_CRITICAL(&output_mux);
+    output[0] = output_intr_times[0];
+    output[1] = output_intr_times[1];
+    portEXIT_CRITICAL(&output_mux);
+    uint64_t delta = output[1]-output[0];
+    uint64_t now = esp_timer_get_time();
+    if (delta == 0 || now - output[1] > 20000) {
+        *dest = 0; // Too slow for accurate measurement
+        return true;
+    }
+    *dest = ((1000000 / delta) / VEHICLE_CONFIG.input_sensor_pulses_per_rev);
+    return true;
+}
 
 bool Sensors::read_vbatt(uint16_t *dest){
     uint32_t v;

@@ -7,34 +7,6 @@
 #include "efuse/efuse.h"
 #include "esp_efuse.h"
 
-/// If default is UINT16_MAX, it is ignored
-// bool read_nvs_u16(nvs_handle_t handle, const char* key, uint16_t* ptr, uint16_t default_value) {
-//     esp_err_t e = nvs_get_u16(handle, key, ptr);
-//     if (e == ESP_ERR_NVS_NOT_FOUND) {
-//         if (default_value == UINT16_MAX) {
-//             ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, no defaults specified. CANNOT CONTINUE!", key);
-//             return false;
-//         } else {
-//             // Try to init the default value
-//             ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Value for %s not found, initializing to default of %u", key, default_value);
-//             e = nvs_set_u16(handle, key, default_value);
-//             if (e != ESP_OK) {
-//                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting default value for %s (%s)", key, esp_err_to_name(e));
-//                 return false;
-//             }
-//             e = nvs_commit(handle);
-//             if (e != ESP_OK) {
-//                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-//                 return false;
-//             }
-//             // OK
-//             *ptr = default_value;
-//             return true;
-//         }
-//     }
-//     return (e == ESP_OK);
-// }
-
 bool EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
     size_t byte_count = map_element_count*sizeof(int16_t);
     esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);

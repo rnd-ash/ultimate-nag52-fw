@@ -187,7 +187,7 @@ float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
 }
 
 ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc) {
-    ShiftData sd; 
+        ShiftData sd; 
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:
             sd.targ_g = 2; sd.curr_g = 1;
@@ -255,9 +255,9 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
     }
-    dest->ramp_time = dest->hold_time/2;
+    dest->ramp_time = 100;
     // const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
-    dest->mpc_pressure = curr_mpc + dest->spc_pressure;
+    dest->mpc_pressure = curr_mpc + dest->spc_pressure/2;
 }
 
 void PressureManager::make_torque_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -327,7 +327,7 @@ void PressureManager::set_target_spc_pressure(uint16_t targ) {
 }
 
 void PressureManager::disable_spc() {
-    this->req_spc_pressure = 7000;
+    this->req_spc_pressure = 0;
     this->req_current_spc = 0;
     egs_can_hal->set_spc_pressure(7000);
     spc_cc->set_target_current(0);

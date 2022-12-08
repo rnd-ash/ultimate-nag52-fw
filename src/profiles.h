@@ -1,7 +1,7 @@
 // Profile code
 
-#ifndef __PROFILES_H_
-#define __PROFILES_H_
+#ifndef PROFILES_H
+#define PROFILES_H
 
 #include "canbus/can_hal.h"
 #include "common_structs.h"

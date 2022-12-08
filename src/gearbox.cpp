@@ -561,8 +561,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 dest_report.initial_mpc_pressure = this->mpc_working;
                 dest_report.flare_timestamp = 0;
                 dest_report.requested_torque = UINT16_MAX; // Max if no request
-                dest_report.profile = profile->get_profile_id();
-                
+                if (profile == nullptr)
+                {
+                    dest_report.profile = 0xFF;
+                }
+                else
+                {
+                    dest_report.profile = profile->get_profile_id();
+                }
                 // Copy the response len
                 dest_report.report_array_len = index;
                 dest_report.interval_points = SR_REPORT_INTERVAL;

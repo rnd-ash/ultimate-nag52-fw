@@ -39,6 +39,15 @@ namespace Sensors {
     bool read_input_rpm(RpmReading* dest, bool check_sanity);
 
     /**
+     * @brief ONLY FOR BOARD V1.3+! Reads output RPM of the gearbox when the GPIO pin is configured for RPM reading
+     * 
+     * @param dest Destination to store the output RPM
+     * @return true RPM Reading OK
+     * @return false Error reading RPM
+     */
+    bool read_output_rpm(uint16_t* dest);
+
+    /**
      * @brief Reads the PCB supply voltage pin in mV
      * 
      * @param dest Destination pointer to store the voltage in mV
@@ -48,6 +57,7 @@ namespace Sensors {
     bool read_vbatt(uint16_t* dest);
     bool read_atf_temp(int16_t* dest);
     bool parking_lock_engaged(bool* dest);
+
 }
 
 #endif // SENSORS_H

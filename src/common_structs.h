@@ -172,7 +172,6 @@ struct GearboxConfiguration{
     const float* ratios; // 1-5 and R1+R2
 } ;
 
-
 struct PressureMgrData{
     pressure_map spc_1_2;
     pressure_map mpc_1_2;

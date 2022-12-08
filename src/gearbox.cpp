@@ -366,6 +366,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profil
                 break;
             }
         }
+        if (this->est_gear_idx == sd.targ_g && shift_stage != SHIFT_PHASE_MAX_P) {
+            stage_elapsed = curr_phase->ramp_time+curr_phase->hold_time;
+        }
         if (total_elapsed % 40 == 0) {
             if (req_trq) {
                 if (shift_stage != SHIFT_PHASE_MAX_P) {

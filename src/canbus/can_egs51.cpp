@@ -54,6 +54,7 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
         return;
     }
 
+    this->start_enable = true;
     this->gs218.set_TORQUE_REQ(0xFE);
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;

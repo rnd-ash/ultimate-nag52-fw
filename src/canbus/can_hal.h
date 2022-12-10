@@ -63,7 +63,7 @@ enum class GearboxGear: uint8_t {
     Neutral = 9,
     Reverse_First = 10,
     Reverse_Second = 11,
-    SignalNotAvaliable = 0xFF,
+    SignalNotAvaliable = 0xFF
 };
 
 enum class PaddlePosition: uint8_t {
@@ -320,9 +320,9 @@ class AbstractCan {
         uint16_t diag_rx_id = 0;
 
         [[noreturn]]
-        virtual void tx_task_loop();
+        virtual void tx_task_loop(void);
         [[noreturn]]
-        virtual void rx_task_loop();
+        virtual void rx_task_loop(void);
 
         static void start_rx_task_loop(void *_this) {
             static_cast<AbstractCan*>(_this)->rx_task_loop();

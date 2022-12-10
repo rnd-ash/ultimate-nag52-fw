@@ -45,27 +45,27 @@ bool EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, s
     return true;
 }
 
-bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
-    esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Adaptation %s map not found. Creating a new one", key);
-        pressure_map new_map = {0,0,0,0,0,0,0,0,0,0,0};
-        e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default adaptation map map data (%s)", esp_err_to_name(e));
-            return false;
-        }
-        e = nvs_commit(handle);
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-            return false;
-        }
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New TCC map creation OK!");
-        memcpy(map, new_map, sizeof(new_map));
-        return true;
-    }
-    return (e == ESP_OK);
-}
+// bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
+//     esp_err_t e = nvs_get_blob(handle, key, map, &store_size);
+//     if (e == ESP_ERR_NVS_NOT_FOUND) {
+//         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Adaptation %s map not found. Creating a new one", key);
+//         pressure_map new_map = {0,0,0,0,0,0,0,0,0,0,0};
+//         e = nvs_set_blob(handle, key, &new_map, sizeof(new_map));
+//         if (e != ESP_OK) {
+//             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default adaptation map map data (%s)", esp_err_to_name(e));
+//             return false;
+//         }
+//         e = nvs_commit(handle);
+//         if (e != ESP_OK) {
+//             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+//             return false;
+//         }
+//         ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New TCC map creation OK!");
+//         memcpy(map, new_map, sizeof(new_map));
+//         return true;
+//     }
+//     return (e == ESP_OK);
+// }
 
 bool EEPROM::init_eeprom() {
     // Called on startup
@@ -98,7 +98,7 @@ bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     esp_err_t e = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
     if (e == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "SCN Config not found. Creating a new one");
-        TCM_CORE_CONFIG s = {
+        TCM_CORE_CONFIG c = {
             .is_large_nag = 0,
             .diff_ratio = 1000,
             .wheel_circumference = 2850,
@@ -116,7 +116,7 @@ bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .output_pulse_width_per_kmh = 1,
             .gen_mosfet_purpose = 0,
         };
-        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &s, sizeof(s));
+        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
         if (e != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
             return false;

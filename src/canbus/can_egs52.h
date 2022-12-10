@@ -59,7 +59,7 @@ class Egs52Can: public AbstractCan {
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
-        TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
+        // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
 

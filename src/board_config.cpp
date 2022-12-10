@@ -1,9 +1,7 @@
 #include "board_config.h"
 #include "esp_log.h"
 
-BoardGpioMatrix::BoardGpioMatrix(){}
-
-BoardV11GpioMatrix::BoardV11GpioMatrix() : BoardGpioMatrix() {
+BoardV11GpioMatrix::BoardV11GpioMatrix() {
     ESP_LOGI("GPIO_MATRIX", "GPIO Matrix version 1.1 (12/12/21)");
     this->io_pin     = gpio_num_t::GPIO_NUM_NC; // Not available on this board version
     this->i2c_sda    = gpio_num_t::GPIO_NUM_NC; // Not available on this board version
@@ -42,7 +40,7 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() : BoardGpioMatrix() {
     };
 }
 
-BoardV12GpioMatrix::BoardV12GpioMatrix() : BoardGpioMatrix() {
+BoardV12GpioMatrix::BoardV12GpioMatrix() {
     ESP_LOGI("GPIO_MATRIX", "GPIO Matrix version 1.2 (07/07/22)");
     this->io_pin = gpio_num_t::GPIO_NUM_NC; // Not available on this board version
 
@@ -77,7 +75,7 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() : BoardGpioMatrix() {
     };
 }
 
-BoardV13GpioMatrix::BoardV13GpioMatrix() : BoardGpioMatrix() {
+BoardV13GpioMatrix::BoardV13GpioMatrix() {
     ESP_LOGI("GPIO_MATRIX", "GPIO Matrix version 1.3 (29/11/22)");
     this->io_pin     = gpio_num_t::GPIO_NUM_4; 
     this->can_tx_pin = gpio_num_t::GPIO_NUM_5; // CAN TWAI Tx

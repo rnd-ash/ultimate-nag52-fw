@@ -131,10 +131,13 @@ Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
         switch (VEHICLE_CONFIG.egs_can_type) {
             case 1:
                 this->diag_var_code = 0x0251;
+                break;
             case 2:
                 this->diag_var_code = 0x0251;
+                break;
             case 3:
                 this->diag_var_code = 0x0353;
+                break;
             default:
                 this->diag_var_code = 0x0000;
                 break;
@@ -175,9 +178,8 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
-    uint64_t timestamp;
     while(1) {
-        timestamp = esp_timer_get_time()/1000;
+        uint64_t timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
         bool endpoint_was_usb = false;
         if (this->usb_diag_endpoint->read_data(&this->rx_msg)) {
@@ -223,7 +225,7 @@ void Kwp2000_server::server_loop() {
                     this->process_start_routine_by_local_ident(args_ptr, args_size);
                     break;
                 case SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT:
-                    this->process_request_routine_resutls_by_local_ident(args_ptr, args_size);
+                    this->process_request_routine_results_by_local_ident(args_ptr, args_size);
                     break;
                 case SID_REQ_UPLOAD:
                     this->process_request_upload(args_ptr, args_size);
@@ -285,7 +287,7 @@ void Kwp2000_server::server_loop() {
 }
 
 
-void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_START_DIAGNOSTIC_SESSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -309,7 +311,7 @@ void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len)
     make_diag_pos_msg(SID_START_DIAGNOSTIC_SESSION, &args[0], 1);
 }
 
-void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
     if (
         this->session_mode == SESSION_EXTENDED || 
         this->session_mode == SESSION_REPROGRAMMING ||
@@ -345,7 +347,7 @@ void Kwp2000_server::process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len
 
 }
 
-void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_len) {
     // Any diagnostic session
     if (arg_len != 1) {
         make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -402,14 +404,14 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         //ident_data[19] = '9'; // Part number to end
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x87, ident_data, 19);
     } else if (args[0] == 0x88) { // VIN original
-        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, reinterpret_cast<const uint8_t*>("ULTIMATENAG52ESP0"), 17);
     } else if (args[0] == 0x89) { // Diagnostic variant code
         int d = this->diag_var_code;
         uint8_t b[4];
         memcpy(b, &d, 4);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, b, 4);
     } else if (args[0] == 0x90) { // VIN current
-        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, reinterpret_cast<const uint8_t*>("ULTIMATENAG52ESP0"), 17);
     } else {
         make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
@@ -432,7 +434,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         esp_efuse_mac_get_default(mac);
         char resp[13];
         sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, reinterpret_cast<const uint8_t*>(resp), 12);
     } else if (args[0] == RLI_MAP_EDITOR) {
         // 0 - RLI
         // 1 - Map ID
@@ -518,7 +520,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         SHIFT_LIVE_INFO r = get_shift_live_Data(egs_can_hal, gearbox);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
     } else if (args[0] == RLI_FW_HEADER) {
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, (uint8_t*)get_image_header(), sizeof(esp_app_desc_t));
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, reinterpret_cast<const uint8_t*>(get_image_header()), sizeof(esp_app_desc_t));
     }
     else {
         // EGS52 emulation
@@ -548,11 +550,11 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
     }
     uint8_t* address;
     if (arg_len == 4) {
-       address = (uint8_t*)(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
+       address = reinterpret_cast<uint8_t*>(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
     } else {
-        address = (uint8_t*)(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
+        address = reinterpret_cast<uint8_t*>(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
     }
-    if (address + args[arg_len-1] >= (uint8_t*)0x400BFFFF) { // Address too big (Not in SRAM 0 or SRAM1)!
+    if (address + args[arg_len-1] >= reinterpret_cast<uint8_t*>(0x400BFFFF)) { // Address too big (Not in SRAM 0 or SRAM1)!
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
@@ -636,7 +638,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
 void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     
 }
-void Kwp2000_server::process_request_routine_resutls_by_local_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52  && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -801,7 +803,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
 
 }
-void Kwp2000_server::process_tester_present(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -886,7 +888,8 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[0] = this->routine_id;
     // Routine results format
     int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
-    uint16_t batt = Solenoids::get_solenoid_voltage();
+    // uint16_t batt = Solenoids::get_solenoid_voltage();
+    uint16_t batt;
     this->routine_result[1] = atf & 0xFF;
     this->routine_result[2] = (atf >> 8) & 0xFF;
 
@@ -926,7 +929,7 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[13] = curr & 0xFF;
     this->routine_result[14] = (curr >> 8) & 0xFF;
 
-#define NUM_CURRENT_SAMPLES 10
+    const int NUM_CURRENT_SAMPLES = 10;
     float total_batt = 0;
     float total_curr = 0;
     sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
@@ -938,8 +941,8 @@ void Kwp2000_server::run_solenoid_test() {
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
+    curr = (uint16_t)(total_curr / (float)NUM_CURRENT_SAMPLES);
+    batt = (uint16_t)(total_batt / (float)NUM_CURRENT_SAMPLES);
     this->routine_result[15] = batt & 0xFF;
     this->routine_result[16] = (batt >> 8) & 0xFF;
     this->routine_result[17] = curr & 0xFF;

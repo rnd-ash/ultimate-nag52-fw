@@ -29,9 +29,8 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms)
     }
 
     // Create CRC table
-    uint8_t _crc;
     for (int i = 0; i < 0x100; i++) {
-            _crc = i;
+            uint8_t _crc = i;
             for (uint8_t bit = 0; bit < 8; bit++) {
                 _crc = (_crc & 0x80) ? ((_crc << 1) ^ 0x1D) : (_crc << 1);
             }
@@ -496,7 +495,7 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-uint8_t x = 0;
+// uint8_t x = 0;
 unsigned long last_time = 0;
 void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
     switch (g) {
@@ -592,8 +591,9 @@ void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
 void calc_crc_in_place(uint8_t* buffer) {
     // assume len = 7
     unsigned long crc;
-    int i,bit;
-
+    int i;
+    int bit;
+    
     crc = 0xFF;
     for ( i=0 ; i<7 ; i++ ) {
         crc ^= buffer[i];
@@ -621,8 +621,8 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 uint8_t msg_counter = 0;
 [[noreturn]]
 void Egs53Can::tx_task_loop() {
-    uint64_t start_time;
-    uint32_t taken;
+    // uint64_t start_time;
+    // uint32_t taken;
     twai_message_t tx;
     tx.data_length_code = 8; // Always
 
@@ -717,7 +717,7 @@ void Egs53Can::rx_task_loop() {
             vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
         } else { // We have frames, read them
             now = esp_timer_get_time()/1000;
-            for(uint8_t x = 0; x < f_count; x++) { // Read all frames
+            for(uint8_t j = 0; j < f_count; j++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
                     tmp = 0;
                     for(i = 0; i < rx.data_length_code; i++) {

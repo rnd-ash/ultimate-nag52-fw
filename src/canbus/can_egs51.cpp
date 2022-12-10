@@ -557,12 +557,11 @@ void Egs51Can::tx_task_loop() {
 void Egs51Can::rx_task_loop() {
     twai_message_t rx;
     twai_status_info_t can_status;
-    uint64_t now = 0;
     uint64_t tmp;
     uint8_t i;
     this->last_i2c_query_time = 0;
     while(true) {
-        now = (esp_timer_get_time()/1000);
+        uint64_t now = (esp_timer_get_time()/1000);
         twai_get_status_info(&can_status);
         if (can_status.msgs_to_rx == 0) {
             vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame

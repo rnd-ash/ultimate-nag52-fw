@@ -1,17 +1,17 @@
-#ifndef __PINS_H_
-#define __PINS_H_
+#ifndef PINS_H
+#define PINS_H
 
 #include <driver/gpio.h>
 #include <driver/adc.h>
 
-#define NUM_TEMP_POINTS 22
+static const uint16_t NUM_TEMP_POINTS = 22u;
 
-typedef struct {
+struct temp_reading_t{
     // Voltage in mV
     uint16_t v; 
     // ATF Temp in degrees C * 10
     int temp; 
-} temp_reading_t;
+};
 
 const static temp_reading_t atf_temp_lookup_V12[NUM_TEMP_POINTS] = {
 //    mV, Temp(x10)
@@ -80,7 +80,6 @@ typedef struct {
 
 class BoardGpioMatrix {
 public:
-    BoardGpioMatrix();
     gpio_num_t can_tx_pin;
     gpio_num_t can_rx_pin;
 
@@ -125,7 +124,7 @@ public:
  */
 class BoardV11GpioMatrix: public BoardGpioMatrix {
 public:
-    BoardV11GpioMatrix();
+    BoardV11GpioMatrix(void);
 };
 
 /**
@@ -134,7 +133,7 @@ public:
  */
 class BoardV12GpioMatrix: public BoardGpioMatrix {
 public:
-    BoardV12GpioMatrix();
+    BoardV12GpioMatrix(void);
 };
 
 /**
@@ -143,7 +142,7 @@ public:
  */
 class BoardV13GpioMatrix: public BoardGpioMatrix {
 public:
-    BoardV13GpioMatrix();
+    BoardV13GpioMatrix(void);
 };
 
 

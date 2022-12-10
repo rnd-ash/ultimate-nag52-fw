@@ -1,13 +1,9 @@
-#ifndef __ADAPT_MAP_H__
-#define __ADAPT_MAP_H__
+#ifndef ADAPT_MAP_H
+#define ADAPT_MAP_H
 
 #include <stdint.h>
 #include <gearbox_config.h>
 #include "common_structs.h"
-
-#define ADAPT_RPM_LIMIT 2500
-#define ADAPT_TEMP_THRESH 60
-#define ADAPT_TEMP_LIMIT 120
 
 struct AdaptationCell {
     int16_t spc_fill_adder;
@@ -31,16 +27,21 @@ const static AdaptationCell DEFAULT_CELL {
 // For now, we just do what EGS52 does
 class AdaptationMap  {
 public:
-    AdaptationMap();
+    AdaptationMap(void);
     // Reset map to everything default
-    void reset();
-    bool save();
+    void reset(void);
+    bool save(void);
     void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque);
-    const AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change, uint16_t gb_max_torque);
+    AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change, uint16_t gb_max_torque);
 private:
+    const uint16_t ADAPT_RPM_LIMIT = 2500u;
+    const int16_t ADAPT_TEMP_THRESH = 60;
+    const int16_t ADAPT_TEMP_LIMIT = 120;
+    inline static AdaptationCell* get_adapt_cell_from_torque(SensorData *sensors, uint16_t gb_max_torque, uint16_t adaptation_idx, AdaptationMap* adaptationmap_var);
+    inline static uint16_t get_idx_from_change(ProfileGearChange change);
     AdaptationData adapt_data[8];
-    bool load_from_nvs();
+    bool load_from_nvs(void);
 };
 
 
-#endif // __ADAPT_MAP_H__
+#endif // ADAPT_MAP_H

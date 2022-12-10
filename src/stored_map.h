@@ -1,7 +1,7 @@
 #ifndef STORED_MAP_H
 #define STORED_MAP_H
 
-#include "tcumap.h"
+#include "../lib/core/tcumap.h"
 
 class StoredTcuMap : public TcuMap {
 
@@ -38,14 +38,14 @@ class StoredTcuMap : public TcuMap {
          * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
          * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
          */
-        bool reset_from_default_eeprom(void);
+        // bool reset_from_default_eeprom(void);
 
-        uint16_t get_map_element_count();
+        uint16_t get_map_element_count(void);
 
-        const int16_t* get_default_map_data();
-        int16_t* get_current_eeprom_map_data();
+        const int16_t* get_default_map_data(void);
+        int16_t* get_current_eeprom_map_data(void);
 
-        const char* get_map_name();
+        const char* get_map_name(void);
 
     private:
         const char* map_name;

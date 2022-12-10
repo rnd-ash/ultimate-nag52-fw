@@ -1,5 +1,5 @@
-#ifndef __GEARBOX_CONFIG_H_
-#define __GEARBOX_CONFIG_H_
+#ifndef GEARBOX_CONFIG_H
+#define GEARBOX_CONFIG_H
 
 #ifndef RED_BCB
 #define BOARD_V2 // Comment this line for the red beta boards!!!
@@ -28,4 +28,4 @@
 
 // The old EGS51, EGS52 and EGS53 MODE FLAGS ARE NOW MOVED TO PLATFORMIO.INI!
 
-#endif // __GEARBOX_CONFIG_H_
+#endif // GEARBOX_CONFIG_H

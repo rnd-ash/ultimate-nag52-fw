@@ -1,6 +1,6 @@
 /** @file */
-#ifndef __SENSORS_H_
-#define __SENSORS_H_
+#ifndef SENSORS_H
+#define SENSORS_H
 
 #include <stdint.h>
 
@@ -8,14 +8,14 @@
  * @brief RPM Reading structure
  * 
  */
-typedef struct {
+struct RpmReading{
     /// N2 Raw Pulse count
     uint32_t n2_raw;
     /// N3 Raw pulse count
     uint32_t n3_raw;
     /// Calculated input RPM
     uint32_t calc_rpm;
-} RpmReading;
+};
 
 namespace Sensors {
     /**
@@ -24,7 +24,7 @@ namespace Sensors {
      * @return true If initialization OK
      * @return false if initialization failed
      */
-    bool init_sensors();
+    bool init_sensors(void);
 
     /**
      * @brief Reads the input RPM of the gearbox
@@ -60,4 +60,4 @@ namespace Sensors {
 
 }
 
-#endif // __SENSORS_H_
+#endif // SENSORS_H

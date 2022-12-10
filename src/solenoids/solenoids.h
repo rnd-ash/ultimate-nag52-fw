@@ -1,6 +1,5 @@
-
-#ifndef __SOLENOID_H_
-#define __SOLENOID_H_
+#ifndef SOLENOID_H
+#define SOLENOID_H
 
 #include <stdint.h>
 #include "driver/gpio.h"
@@ -133,8 +132,8 @@ namespace Solenoids {
 
     void boot_solenoid_test(void*);
 
-    bool init_routine_completed();
-    bool startup_test_ok();
+    bool init_routine_completed(void);
+    // bool startup_test_ok();
 }
 
 extern Solenoid *sol_y3;
@@ -154,4 +153,4 @@ extern int16_t temp_at_test;
 #define I2S_DMA_BUF_LEN 1024
 extern uint16_t* buf;
 
-#endif // __SOLENOID_H_
+#endif // SOLENOID_H

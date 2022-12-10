@@ -1,17 +1,17 @@
-#ifndef __PERF_MON_H_
-#define __PERF_MON_H_
+#ifndef PERF_MON_H
+#define PERF_MON_H
 
 #include <stdint.h>
 
-typedef struct {
+struct CpuStats{
     volatile uint16_t load_core_1;
     volatile uint16_t load_core_2;
-} CpuStats;
+} ;
 
 
-bool init_perfmon();
-void remove_perfmon();
+bool init_perfmon(void);
+void remove_perfmon(void);
 
-CpuStats get_cpu_stats();
+CpuStats get_cpu_stats(void);
 
-#endif // __PERF_MON_H_
+#endif // PERF_MON_H

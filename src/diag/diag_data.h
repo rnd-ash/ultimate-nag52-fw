@@ -129,16 +129,16 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
-DATA_SYS_USAGE get_sys_usage();
-DATA_DMA_BUFFER dump_i2s_dma();
-SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g);
+DATA_SYS_USAGE get_sys_usage(void);
+DATA_DMA_BUFFER dump_i2s_dma(void);
+SHIFT_LIVE_INFO get_shift_live_Data(const AbstractCan* can_layer, Gearbox* g);
 
 // Read and write SCN config
-TCM_CORE_CONFIG get_tcm_config();
+TCM_CORE_CONFIG get_tcm_config(void);
 uint8_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
-COREDUMP_INFO get_coredump_info();
+COREDUMP_INFO get_coredump_info(void);
 
-const esp_app_desc_t* get_image_header();
+const esp_app_desc_t* get_image_header(void);
 
 #endif // __DIAG_DATA_H__

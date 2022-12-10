@@ -7,6 +7,10 @@
 Flasher::Flasher(AbstractCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
+    update_partition = nullptr;
+    read_base_addr = 0u;
+    read_bytes = 0u;
+    read_bytes_total = 0u;
 }
 
 Flasher::~Flasher() {
@@ -23,7 +27,7 @@ Flasher::~Flasher() {
  *  transfer. The function then returns a positive response message containing the maximum 
  *  number of data bytes that can be transferred in a single block." - ChatGPT
 */
-DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
+DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
@@ -81,7 +85,7 @@ DiagMessage Flasher::on_request_download(uint8_t* args, uint16_t arg_len) {
     return this->make_diag_pos_msg(SID_REQ_DOWNLOAD, resp, 2);
 }
 
-DiagMessage Flasher::on_request_upload(uint8_t* args, uint16_t arg_len) {
+DiagMessage Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");

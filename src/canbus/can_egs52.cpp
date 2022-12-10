@@ -57,7 +57,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
 
     // Covers setting NAB, a couple unknown but static values,
     // and Input RPM to 0 
-    gs338.raw = 0xFFFF1FFF00FF0000;
+    gs338.raw = 0xFFFF1FFF00FF0000u;
     this->can_init_ok = true;
 }
 
@@ -353,14 +353,14 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
-    EZS_240 ezs240;
-    if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
-        return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
-    } else {
-        return TerminalStatus::SNA;
-    }
-}
+// TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
+//     EZS_240 ezs240;
+//     if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {
+//         return ezs240.get_KL_15() ? TerminalStatus::On : TerminalStatus::Off;
+//     } else {
+//         return TerminalStatus::SNA;
+//     }
+// }
 
 uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
     MS_608 ms608;

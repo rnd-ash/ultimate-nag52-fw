@@ -1,5 +1,5 @@
-#ifndef __MAP_H_
-#define __MAP_H_
+#ifndef MAP_H_
+#define MAP_H_
 /*
 
     This file contains default map data for all profiles

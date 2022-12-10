@@ -1,11 +1,11 @@
 #include "map_editor.h"
 #include "kwp2000_defines.h"
-#include "../nvs/eeprom_config.h"
+#include "nvs/eeprom_config.h"
 #include "../maps.h"
 #include "string.h"
-#include "../speaker.h"
-#include "../profiles.h"
-#include "../pressure_manager.h"
+#include "speaker.h"
+#include "profiles.h"
+#include "pressure_manager.h"
 
 StoredTcuMap* get_map(uint8_t map_id) {
     switch(map_id) {
@@ -66,7 +66,7 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *de
     CHECK_MAP(map_id)
     // Map valid
     uint16_t size = ptr->get_map_element_count();
-    uint8_t* b = (uint8_t*)heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM);
+    uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM));
     if (b == nullptr) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_GENERAL_REJECT;
@@ -104,7 +104,7 @@ uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, 
     k_size = strlen(k_ptr);
     // 6 bytes for size data
     uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));
-    uint8_t* b = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+    uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM));
     if (b == nullptr) {
         ESP_LOGE("MAP_EDITOR_M", "Could not allocate read array!");
         return NRC_GENERAL_REJECT;
@@ -141,14 +141,14 @@ uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     }
 }
 
-uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
-    CHECK_MAP(map_id)
-    if (ptr->reload_from_eeprom() && ptr->save_to_eeprom()) {
-        return 0;
-    } else {
-        return NRC_GENERAL_REJECT;
-    }
-}
+// uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
+//     CHECK_MAP(map_id)
+//     if (ptr->reload_from_eeprom() && ptr->save_to_eeprom()) {
+//         return 0;
+//     } else {
+//         return NRC_GENERAL_REJECT;
+//     }
+// }
 
 uint8_t MapEditor::undo_changes(uint8_t map_id) {
     CHECK_MAP(map_id)

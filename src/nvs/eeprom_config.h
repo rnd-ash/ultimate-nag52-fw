@@ -1,6 +1,6 @@
 /** @file */
-#ifndef __EEPROM_CONFIG_H_
-#define __EEPROM_CONFIG_H_
+#ifndef EEPROM_CONFIG_H
+#define EEPROM_CONFIG_H
 
 #include "esp_err.h"
 #include "esp_log.h"
@@ -8,17 +8,16 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-#define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
+// #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
 
 // Core SCN config (Needed for a ton of important calculations!)
-#define NVS_KEY_SCN_CONFIG "CORE_SCN"
+static const char NVS_KEY_SCN_CONFIG[9] = "CORE_SCN";
 
+static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
+static const char NVS_UCFG_KEY_PROFILE[13] = "LAST_PROFILE";
+static const char NVS_KEY_GEAR_ADAPTATION[16] = "GEAR_ADAPTATION";
 
-#define NVS_PARTITION_USER_CFG "tcm_user_config"
-#define NVS_UCFG_KEY_PROFILE "LAST_PROFILE"
-#define NVS_KEY_GEAR_ADAPTATION "GEAR_ADAPTATION"
-
-typedef struct {
+struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t is_large_nag;
     uint16_t diff_ratio;
     uint16_t wheel_circumference;
@@ -35,7 +34,7 @@ typedef struct {
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
     uint8_t gen_mosfet_purpose;
-} __attribute__ ((packed)) TCM_CORE_CONFIG;
+};
 
 
 // -- EFuse layout --
@@ -46,18 +45,18 @@ typedef struct {
 // PRODUCT.M_MONTH,   EFUSE_BLK3, 24,          8
 // PRODUCT.M_YEAR,    EFUSE_BLK3, 32,          8
 
-typedef struct {
+struct __attribute__ ((packed)) TCM_EFUSE_CONFIG {
     uint8_t board_ver; // 1 - Red PCB, 2 - Black PCB, 3 - Black PCB with GPIO (WIP)
     uint8_t manufacture_day;
     uint8_t manufacture_week;
     uint8_t manufacture_month;
     uint8_t manufacture_year;
-} __attribute__ ((packed)) TCM_EFUSE_CONFIG;
+};
 
 
 namespace EEPROM {
-    bool init_eeprom();
-    uint8_t get_last_profile();
+    bool init_eeprom(void);
+    uint8_t get_last_profile(void);
     bool read_core_config(TCM_CORE_CONFIG* dest);
     bool save_core_config(TCM_CORE_CONFIG* write);
     bool read_efuse_config(TCM_EFUSE_CONFIG* dest);

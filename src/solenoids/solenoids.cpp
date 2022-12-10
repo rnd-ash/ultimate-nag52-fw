@@ -159,7 +159,6 @@ bool monitor_all = false;
 void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
-    esp_err_t e;
     i2s_config_t i2s_conf = {
         .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
         .sample_rate = 600000,
@@ -249,13 +248,13 @@ int16_t temp_at_test = 25;
 bool routine = false;
 bool startup_ok = false;
 
-bool Solenoids::init_routine_completed() {
+bool Solenoids::init_routine_completed(void) {
     return routine;
 }
 
-bool Solenoids::startup_test_ok() {
-    return startup_ok;
-}
+// bool Solenoids::startup_test_ok() {
+//     return startup_ok;
+// }
 
 void Solenoids::boot_solenoid_test(void*) {
     vTaskDelay(50);

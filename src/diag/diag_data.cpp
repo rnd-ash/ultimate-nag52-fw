@@ -90,7 +90,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     return ret;
 }
 
-DATA_DMA_BUFFER dump_i2s_dma() {
+DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;
     dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
@@ -129,7 +129,7 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     return ret;
 }
 
-DATA_SYS_USAGE get_sys_usage() {
+DATA_SYS_USAGE get_sys_usage(void) {
     DATA_SYS_USAGE ret = {};
     CpuStats s = get_cpu_stats();
     ret.core1_usage = s.load_core_1;
@@ -145,7 +145,7 @@ DATA_SYS_USAGE get_sys_usage() {
     return ret;
 }
 
-SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
+SHIFT_LIVE_INFO get_shift_live_Data(const AbstractCan* can_layer, Gearbox* g) {
     SHIFT_LIVE_INFO ret = {};
     if (can_layer == nullptr || g == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));
@@ -201,7 +201,7 @@ SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
 }
 
 
-TCM_CORE_CONFIG get_tcm_config() {
+TCM_CORE_CONFIG get_tcm_config(void) {
     TCM_CORE_CONFIG cfg;
     memcpy(&cfg, &VEHICLE_CONFIG, sizeof(TCM_CORE_CONFIG));
     return cfg;
@@ -236,7 +236,7 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     }
 }
 
-COREDUMP_INFO get_coredump_info() {
+COREDUMP_INFO get_coredump_info(void) {
     size_t addr = 0;
     size_t size = 0;
     esp_core_dump_image_get(&addr, &size);
@@ -246,6 +246,6 @@ COREDUMP_INFO get_coredump_info() {
     };
 }
 
-const esp_app_desc_t* get_image_header() {
+const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
 }

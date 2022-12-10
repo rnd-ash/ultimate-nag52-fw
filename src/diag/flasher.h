@@ -27,8 +27,8 @@ class Flasher {
     public:
         Flasher(AbstractCan *can_ref, Gearbox* gearbox);
         ~Flasher();
-        DiagMessage on_request_download(uint8_t* args, uint16_t arg_len);
-        DiagMessage on_request_upload(uint8_t* args, uint16_t arg_len);
+        DiagMessage on_request_download(const uint8_t* args, uint16_t arg_len);
+        DiagMessage on_request_upload(const uint8_t* args, uint16_t arg_len);
         DiagMessage on_transfer_data(uint8_t* args, uint16_t arg_len);
         DiagMessage on_transfer_exit(uint8_t* args, uint16_t arg_len);
         DiagMessage on_request_verification(uint8_t* args, uint16_t arg_len);

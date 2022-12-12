@@ -268,6 +268,9 @@ void Kwp2000_server::server_loop() {
                 case SID_REQ_DOWNLOAD:
                     this->process_request_download(args_ptr, args_size);
                     break;
+                case SID_IOCTL_BY_LOCAL_IDENT:
+                    this->process_ioctl_by_local_ident(args_ptr, args_size);
+                    break;
                 case SID_TRANSFER_DATA:
                     this->process_transfer_data(args_ptr, args_size);
                     break;
@@ -613,6 +616,26 @@ void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len
 
 }
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len == 2) {
+        // 0x10 (EGS mode), 0x01 (Report current state)
+        if (args[0] == 0x10 && args[1] == 0x01) { // Query EGS mode (DAS EGS51 and EGS52)
+            // We need to return this for DAS to be happy EGS is in 'production' mode
+            // resp[0] - 0x10 (EGS mode)
+            // resp[1..2] - 0x0001 - Normal, 0x0002 - Assembly mode, 0x0004 - Role mode, 0x0008 - Slave mode
+            uint8_t resp[3] = {0x10, 0x00, 0x02};
+            if (BOARD_CONFIG.board_ver == 0) {
+                resp[2] = 0x04; // Assembly mode if mode is unknown
+            }
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 3);
+            return;
+        }
+    }
+    make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    return;
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {

@@ -57,6 +57,41 @@ uint8_t bcd_to_hex(char c) {
     }
 }
 
+ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
+    switch (cfg->board_ver) {
+        case 1:
+            return ECU_Date {
+                .day = 12,
+                .month = 12,
+                .year = 21,
+                .week = 49
+            };
+        case 2:
+            return ECU_Date {
+                .day = 07,
+                .month = 07,
+                .year = 22,
+                .week = 27
+            };
+        
+        case 3:
+            return ECU_Date {
+                .day = 12,
+                .month = 12,
+                .year = 22,
+                .week = 50
+            };
+        
+        default:
+            return ECU_Date {
+                .day = 0,
+                .month = 0,
+                .year = 0,
+                .week = 0
+            };
+    }
+}
+
 ECU_Date fw_date_to_bcd(char* date) {
     uint8_t month = 0x01;
     char* month_str = &date[3];
@@ -358,6 +393,7 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
     esp_ota_get_partition_description(running, &running_info);
     if (args[0] == 0x86) {
         ECU_Date date = fw_date_to_bcd(running_info.date);
+        ECU_Date v_date = pcb_ver_to_date(&BOARD_CONFIG);
         uint8_t daimler_ident_data[16];
         memset(daimler_ident_data, 0x00, 16);
         // Part number
@@ -367,8 +403,8 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
         daimler_ident_data[3] = 0x67;
         daimler_ident_data[4] = 0x89;
         // ECU Hardware date
-        daimler_ident_data[5] = decToBcd(BOARD_CONFIG.manufacture_week); //date.week;
-        daimler_ident_data[6] = decToBcd(BOARD_CONFIG.manufacture_year); //date.year;
+        daimler_ident_data[5] = decToBcd(v_date.week); //date.week;
+        daimler_ident_data[6] = decToBcd(v_date.year); //date.year;
         // ECU Software date
         daimler_ident_data[7] = decToBcd(date.week);
         daimler_ident_data[8] = decToBcd(date.year);

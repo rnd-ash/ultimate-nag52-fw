@@ -45,9 +45,9 @@ jobs:
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
       - uses: pyTooling/Actions/releaser@r0
         with:
-          tag: ${{ github.head_ref }}
+          tag: ${{ github.head_ref }}-${{ steps.date.outputs.date }}
           rm: true
-          token: ${{ secrets.GITHUB_TOKEN }}-${{ steps.date.outputs.date }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin

@@ -40,3 +40,14 @@ jobs:
           path: |
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      - uses: pyTooling/Actions/releaser@r0
+        with:
+          tag: ${{ github.head_ref }}
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}-${{ steps.date.outputs.date }}
+          files: |
+            .pio/build/unified/firmware.elf
+            .pio/build/unified/firmware.bin

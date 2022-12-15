@@ -370,10 +370,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             {
                                 // request the torque!
                                 // torque_req_amt = sd.torque_down_amount;
-                                curr_torque_req = sensor_data.driver_default_torque - 1;
-                                req_trq = true;
-                                egs_can_hal->set_torque_request(TorqueRequest::Decrease);
-                                egs_can_hal->set_requested_torque(curr_torque_req);
+                                //curr_torque_req = sensor_data.driver_default_torque - 1;
+                                //req_trq = true;
+                                //egs_can_hal->set_torque_request(TorqueRequest::Decrease);
+                                //egs_can_hal->set_requested_torque(curr_torque_req);
                             }
                         }
                         else if (shift_stage_loc == SHIFT_PHASE_TORQUE)
@@ -422,6 +422,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     break;
                 }
             }
+            /*
             if (total_elapsed % 40 == 0)
             {
                 if (req_trq)
@@ -443,6 +444,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
                 }
             }
+            */
             uint16_t ratio_now = sensor_data.gear_ratio * 100;
             if (gen_report)
             {

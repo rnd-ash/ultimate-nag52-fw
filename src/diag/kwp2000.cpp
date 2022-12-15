@@ -79,7 +79,7 @@ ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
                 .day = 12,
                 .month = 12,
                 .year = 22,
-                .week = 50
+                .week = 49
             };
         
         default:
@@ -400,12 +400,13 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
         uint8_t daimler_ident_data[16];
         memset(daimler_ident_data, 0x00, 16);
         // Part number
-        daimler_ident_data[0] = 0x01;
+        daimler_ident_data[0] = 0x12;
         daimler_ident_data[1] = 0x23;
         daimler_ident_data[2] = 0x45;
         daimler_ident_data[3] = 0x67;
         daimler_ident_data[4] = 0x89;
         // ECU Hardware date
+
         daimler_ident_data[5] = decToBcd(v_date.week); //date.week;
         daimler_ident_data[6] = decToBcd(v_date.year); //date.year;
         // ECU Software date
@@ -449,6 +450,13 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
         uint8_t b[4];
         memcpy(b, &d, 4);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, b, 4);
+    } else if (args[0] == 0x8A) {
+        char x[4];
+        x[0] = 'H';
+        x[1] = 'E';
+        x[2] = 'L';
+        x[3] = 'P';
+        return make_diag_pos_msg(SID_READ_ECU_IDENT, 0x8A, (uint8_t*)&x, 4);
     } else if (args[0] == 0x90) { // VIN current
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, reinterpret_cast<const uint8_t*>("ULTIMATENAG52ESP0"), 17);
     } else {
@@ -564,9 +572,23 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     else {
         // EGS52 emulation
         if (VEHICLE_CONFIG.egs_can_type == 2) {
-            if (args[0] == RLI_31) {
+            if (args[0] == 0x31) {
                 RLI_31_DATA r = get_rli_31(egs_can_hal);
-                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+            } else if (args[0] == 0x33) {
+                RLI_33_DATA r = get_rli_33(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x33, (uint8_t*)&r, sizeof(RLI_33_DATA));
+            } else if (args[0] == 0x32) {
+                RLI_32_DATA r = get_rli_32(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x32, (uint8_t*)&r, sizeof(RLI_32_DATA));
+            } else if (args[0] == 0x30) {
+                RLI_30_DATA r = get_rli_30(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x30, (uint8_t*)&r, sizeof(RLI_30_DATA));
+            } else if (args[0] == 0xD1) {
+                char x[48];
+                memset(&x, 0, 48);
+                memcpy(&x,&BOARD_CONFIG, sizeof(BOARD_CONFIG));
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xD1, (uint8_t*)&x, 48);
             }
         }
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);

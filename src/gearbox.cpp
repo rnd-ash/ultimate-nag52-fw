@@ -1,5 +1,4 @@
 #include "gearbox.h"
-#include "scn.h"
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
 #include <tcu_maths.h>
@@ -1203,27 +1202,6 @@ void Gearbox::controller_loop()
         else
         {
             egs_can_hal->set_display_msg(GearboxMessage::None);
-        }
-        if (is_fwd_gear(this->actual_gear))
-        {
-            if (sensor_data.input_rpm > 1000)
-            {
-                float percent = (float)sensor_data.engine_rpm / (float)sensor_data.input_rpm;
-                uint16_t innertia = TCC_INTERTIA_NM * percent;
-                if (innertia > 0x3C)
-                {
-                    innertia = 0x3C;
-                }
-                egs_can_hal->set_turbine_torque_loss(innertia);
-            }
-            else
-            {
-                egs_can_hal->set_turbine_torque_loss(0);
-            }
-        }
-        else
-        {
-            egs_can_hal->set_turbine_torque_loss(0);
         }
 
         // Lastly, set display gear

@@ -1,6 +1,5 @@
 #include "eeprom_config.h"
 #include "esp_log.h"
-#include "scn.h"
 #include "speaker.h"
 #include <string.h>
 #include "profiles.h"

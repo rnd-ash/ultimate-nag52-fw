@@ -40,3 +40,11 @@ jobs:
           path: |
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin
+      - uses: pyTooling/Actions/releaser@r0
+        with:
+          tag: "$GITHUB_REF_NAME"
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            .pio/build/unified/firmware.elf
+            .pio/build/unified/firmware.bin

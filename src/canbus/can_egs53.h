@@ -10,11 +10,9 @@
 #include "../../egs53_ecus/src/ECM.h"
 #include "../../egs53_ecus/src/ANY_ECU.h"
 
-class Egs53Can: public AbstractCan {
+class Egs53Can: public EgsBaseCan {
     public:
-        explicit Egs53Can(const char* name, uint8_t tx_time_ms);
-        bool begin_tasks() override;
-        ~Egs53Can();
+        explicit Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -100,10 +98,8 @@ class Egs53Can: public AbstractCan {
         void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
     protected:
-        [[noreturn]]
-        void tx_task_loop() override;
-        [[noreturn]]
-        void rx_task_loop() override;
+        void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
     private:
         // CAN Frames to Tx
         TCM_A1 tcm_a1 = {0};
@@ -119,7 +115,8 @@ class Egs53Can: public AbstractCan {
         ECU_FSCM fscm_ecu = ECU_FSCM();
         ECU_TSLM tslm_ecu = ECU_TSLM();
 
-        // ECU Data to Rx to
-        bool can_init_ok = false;
+        uint8_t counter = 0;
+        uint8_t cvn_counter = 0;
+
 };
 #endif

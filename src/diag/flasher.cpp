@@ -4,7 +4,7 @@
 #include "esp_partition.h"
 #include "tcu_maths.h"
 
-Flasher::Flasher(AbstractCan *can_ref, Gearbox* gearbox) {
+Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
     update_partition = nullptr;

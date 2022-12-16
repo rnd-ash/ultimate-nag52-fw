@@ -169,7 +169,7 @@ private:
 class CanEndpoint : public AbstractEndpoint
 {
 public:
-    explicit CanEndpoint(AbstractCan *can_layer);
+    explicit CanEndpoint(EgsBaseCan *can_layer);
     void send_data(DiagMessage *msg) override;
     bool read_data(DiagMessage *dest) override;
     static void start_iso_tp(void *_this)
@@ -184,7 +184,7 @@ private:
     void process_flow_control(DiagCanMessage msg);
 
     [[noreturn]] void iso_tp_server_loop();
-    AbstractCan *can;
+    EgsBaseCan *can;
     QueueHandle_t rx_queue;
     // QueueHandle_t tx_queue;
     CanEndpointMsg tx_msg;

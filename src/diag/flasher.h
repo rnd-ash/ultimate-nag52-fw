@@ -25,7 +25,7 @@ static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 
 class Flasher {
     public:
-        Flasher(AbstractCan *can_ref, Gearbox* gearbox);
+        Flasher(EgsBaseCan *can_ref, Gearbox* gearbox);
         ~Flasher();
         DiagMessage on_request_download(const uint8_t* args, uint16_t arg_len);
         DiagMessage on_request_upload(const uint8_t* args, uint16_t arg_len);
@@ -34,7 +34,7 @@ class Flasher {
         DiagMessage on_request_verification(uint8_t* args, uint16_t arg_len);
     private:
         Gearbox* gearbox_ref;
-        AbstractCan* can_ref;
+        EgsBaseCan* can_ref;
         uint8_t block_counter = 0;
         uint8_t update_type = 0;
         uint32_t data_read = 0;

@@ -135,10 +135,10 @@ typedef struct {
     uint8_t tcc_pwm_255; // 128..135
 } __attribute__ ((packed)) RLI_33_DATA;
 
-RLI_33_DATA get_rli_33(AbstractCan* can_layer);
-RLI_32_DATA get_rli_32(AbstractCan* can_layer);
-RLI_31_DATA get_rli_31(AbstractCan* can_layer);
-RLI_30_DATA get_rli_30(AbstractCan* can_layer);
+RLI_33_DATA get_rli_33(EgsBaseCan* can_layer);
+RLI_32_DATA get_rli_32(EgsBaseCan* can_layer);
+RLI_31_DATA get_rli_31(EgsBaseCan* can_layer);
+RLI_30_DATA get_rli_30(EgsBaseCan* can_layer);
 
 #endif
 

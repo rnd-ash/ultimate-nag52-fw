@@ -1,18 +1,15 @@
 #ifndef __EGS51_CAN_H_
 #define __EGS51_CAN_H_
 #include <gearbox_config.h>
-
 #include "can_hal.h"
 #include "../../egs51_ecus/src/GS51.h"
 #include "../../egs51_ecus/src/MS51.h"
 #include "../../egs51_ecus/src/ESP51.h"
-#include "../../egs51_ecus/src/EWM51.h"
+#include "../../egs52_ecus/src/EWM.h"
 
-class Egs51Can: public AbstractCan {
+class Egs51Can: public EgsBaseCan {
     public:
-        explicit Egs51Can(const char* name, uint8_t tx_time_ms);
-        bool begin_tasks() override;
-        ~Egs51Can();
+        explicit Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -96,15 +93,14 @@ class Egs51Can: public AbstractCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
     protected:
-        [[noreturn]]
-        void tx_task_loop() override;
-        [[noreturn]]
-        void rx_task_loop() override;
+        void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
+        void on_rx_done(uint64_t now_ts) override;
     private:
         // CAN Frames to Tx
         GS_218EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
-        ECU_EWM51 ewm51 = ECU_EWM51();
+        ECU_EWM ewm = ECU_EWM();
         ECU_ESP51 esp51 = ECU_ESP51();
         ShifterPosition last_valid_position = ShifterPosition::SignalNotAvaliable;
         uint8_t i2c_rx_bytes[2] = {0,0};
@@ -112,7 +108,9 @@ class Egs51Can: public AbstractCan {
         uint64_t last_i2c_query_time = 0;
         bool start_enable = false;
         bool rp_lock_enage = false;
-        bool can_init_ok = false;
+        bool toggle = false;
+        bool time_to_toggle = false;
+        uint8_t cvn_counter = 0;
 };
 
 #endif // EGS52_CAN_H_

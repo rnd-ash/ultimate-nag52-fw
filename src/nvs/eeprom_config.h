@@ -18,6 +18,10 @@ static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 static const char NVS_UCFG_KEY_PROFILE[13] = "LAST_PROFILE";
 static const char NVS_KEY_GEAR_ADAPTATION[16] = "GEAR_ADAPTATION";
 
+#define SHIFTER_STYLE_EWM 0
+#define SHIFTER_STYLE_TRRS 1
+#define SHIFTER_STYLE_SLR 2
+
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t is_large_nag;
     uint16_t diff_ratio;
@@ -29,6 +33,9 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t red_line_rpm_diesel;
     uint16_t red_line_rpm_petrol;
     uint8_t engine_type; // 0 for diesel, 1 for petrol
+    // 0 - EWM
+    // 1 - TRRS
+    // 2 - SLR
     uint8_t egs_can_type;
     uint8_t shifter_style;
     uint8_t io_0_usage;

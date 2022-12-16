@@ -16,7 +16,6 @@
 #include "solenoids/constant_current.h"
 
 // CAN LAYERS
-#include "canbus/can_egs_basic.h"
 #include "canbus/can_egs51.h"
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
@@ -58,18 +57,18 @@ SPEAKER_POST_CODE setup_tcm()
     }
     switch (VEHICLE_CONFIG.egs_can_type) {
         case 1:
-            egs_can_hal = new Egs51Can("EGS51", 20); // EGS51 CAN Abstraction layer
+            egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer
             break;
         case 2:
-            egs_can_hal = new Egs52Can("EGS52", 20); // EGS52 CAN Abstraction layer
+            egs_can_hal = new Egs52Can("EGS52", 20, 500000); // EGS52 CAN Abstraction layer
             break;
         case 3:
-            egs_can_hal = new Egs53Can("EGS53", 20); // EGS53 CAN Abstraction layer
+            egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
             break;
         default:
             // Unknown (Fallback to basic CAN)
             ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
-            egs_can_hal = new EgsBasicCan("EGSBASIC", 20);
+            egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000);
             break;
     }
     if (!egs_can_hal->begin_tasks()) {

@@ -142,7 +142,7 @@ ECU_Date fw_date_to_bcd(char* date) {
     };
 }
 
-Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
+Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;

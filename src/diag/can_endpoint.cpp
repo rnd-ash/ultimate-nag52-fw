@@ -8,7 +8,7 @@ const DiagCanMessage FLOW_CONTROL_OVERFLOW = {0x32, 0, 0, 0, 0, 0, 0, 0};
 
 #define ISO_TP_TIMEOUT 2000
 
-CanEndpoint::CanEndpoint(AbstractCan* can_layer) {
+CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
     this->can = can_layer;
     memset(&tx_can, 0x00, sizeof(twai_message_t));
     this->tx_can.data_length_code = 8;

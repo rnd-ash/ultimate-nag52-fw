@@ -6,13 +6,13 @@ inline uint16_t flip_uint16_t(uint16_t x) {
    return ((x & 0xff) << 8) | ((x & 0xff00) >> 8); 
 }
 
-RLI_30_DATA get_rli_30(AbstractCan* can_layer) {
+RLI_30_DATA get_rli_30(EgsBaseCan* can_layer) {
     RLI_30_DATA ret = {};
     memset(&ret, 0x00, sizeof(RLI_30_DATA));
     return ret;
 }
 
-RLI_31_DATA get_rli_31(AbstractCan* can_layer) {
+RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     RLI_31_DATA ret = {};
     uint64_t now = esp_timer_get_time() / 1000;
     RpmReading d;
@@ -61,13 +61,13 @@ RLI_31_DATA get_rli_31(AbstractCan* can_layer) {
     return ret;
 }
 
-RLI_32_DATA get_rli_32(AbstractCan* can_layer) {
+RLI_32_DATA get_rli_32(EgsBaseCan* can_layer) {
     RLI_32_DATA ret = {};
     memset(&ret, 0x00, sizeof(RLI_32_DATA));
     return ret;
 }
 
-RLI_33_DATA get_rli_33(AbstractCan* can_layer) {
+RLI_33_DATA get_rli_33(EgsBaseCan* can_layer) {
     RLI_33_DATA ret = {};
     memset(&ret, 0x00, sizeof(RLI_33_DATA));
 

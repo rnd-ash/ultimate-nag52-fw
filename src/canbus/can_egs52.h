@@ -11,11 +11,9 @@
 #include "../../egs52_ecus/src/EZS.h"
 #include "../../egs52_ecus/src/KOMBI.h"
 
-class Egs52Can: public AbstractCan {
+class Egs52Can: public EgsBaseCan {
     public:
-        explicit Egs52Can(const char* name, uint8_t tx_time_ms);
-        bool begin_tasks() override;
-        ~Egs52Can();
+        explicit Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -110,10 +108,8 @@ class Egs52Can: public AbstractCan {
         void set_gear_ratio(int16_t g100) override;
         void set_abort_shift(bool is_aborting) override;
     protected:
-        [[noreturn]]
-        void tx_task_loop() override;
-        [[noreturn]]
-        void rx_task_loop() override;
+        void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
     private:
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
@@ -129,8 +125,10 @@ class Egs52Can: public AbstractCan {
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        bool can_init_ok = false;
         bool esp_toggle = false;
+        bool time_to_toggle = false;
+        bool toggle = false;
+        uint8_t cvn_counter = 0;
 };
 
 #endif // EGS53_MODE

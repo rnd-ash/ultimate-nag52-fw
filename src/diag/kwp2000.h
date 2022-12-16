@@ -28,7 +28,7 @@
 
 class Kwp2000_server {
     public:
-        Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox);
+        Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox);
         ~Kwp2000_server();
 
         static void start_kwp_server(void *_this) {
@@ -39,7 +39,7 @@ class Kwp2000_server {
         void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
         void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
         Gearbox* gearbox_ptr;
-        AbstractCan* can_layer;
+        EgsBaseCan* can_layer;
     private:
         [[noreturn]]
         void server_loop();

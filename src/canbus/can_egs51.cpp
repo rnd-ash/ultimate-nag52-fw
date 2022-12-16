@@ -6,52 +6,33 @@
 #include "gearbox_config.h"
 #include "driver/i2c.h"
 #include "board_config.h"
+#include "nvs/eeprom_config.h"
 
-Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
-    : AbstractCan(name, tx_time_ms)
-{
-    // Firstly try to init CAN
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS51_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
-    gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
-    gen_config.rx_queue_len = 32;
-    gen_config.tx_queue_len = 32;
-    twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
-    twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-
-    esp_err_t res;
-    res = twai_driver_install(&gen_config, &timing_config, &filter_config);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
-    }
-    res = twai_start();
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
-    }
-
+Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
+    ESP_LOGI("EGS51", "SETUP CALLED");
     if (pcb_gpio_matrix->i2c_sda == gpio_num_t::GPIO_NUM_NC || pcb_gpio_matrix->i2c_scl == gpio_num_t::GPIO_NUM_NC) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "Cannot launch TRRS on board without I2C!");
-        return;
+        this->can_init_status = ESP_ERR_INVALID_VERSION;
     }
-
-    // Init TRRS sensors
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = pcb_gpio_matrix->i2c_sda,
-        .scl_io_num = pcb_gpio_matrix->i2c_scl,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-    };
-    conf.master.clk_speed = 400000;
-    res = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "I2C", "Failed to install driver %s", esp_err_to_name(res));
-        return;
-    }
-    res = i2c_param_config(I2C_NUM_0, &conf);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "I2C", "Failed to set param config %s", esp_err_to_name(res));
-        return;
+    if (this->can_init_status == ESP_OK) {
+        // Init TRRS sensors
+        i2c_config_t conf = {
+            .mode = I2C_MODE_MASTER,
+            .sda_io_num = pcb_gpio_matrix->i2c_sda,
+            .scl_io_num = pcb_gpio_matrix->i2c_scl,
+            .sda_pullup_en = GPIO_PULLUP_ENABLE,
+            .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        };
+        conf.master.clk_speed = 400000;
+        this->can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
+        if (this->can_init_status == ESP_OK) {
+            this->can_init_status = i2c_param_config(I2C_NUM_0, &conf);
+            if (this->can_init_status != ESP_OK) {
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to set param config");
+            }
+        } else {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to install driver");
+        }
     }
 
     this->start_enable = true;
@@ -59,45 +40,6 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms)
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
-    // CAN is OK!
-    this->can_init_ok = true;
-}
-
-bool Egs51Can::begin_tasks() {
-    if (!this->can_init_ok) { // Cannot init tasks if CAN is dead!
-        return false;
-    }
-    // Prevent starting again
-    if (this->rx_task == nullptr) {
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS51_CAN", "Starting CAN Rx task");
-        if (xTaskCreate(this->start_rx_task_loop, "EGS51_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "CAN Rx task creation failed!");
-            return false;
-        }
-    }
-    if (this->tx_task == nullptr) {
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS51_CAN", "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS51_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "CAN Tx task creation failed!");
-            return false;
-        }
-    }
-    return true; // Ready!
-}
-
-Egs51Can::~Egs51Can()
-{
-    if (this->rx_task != nullptr) {
-        vTaskDelete(this->rx_task);
-    }
-    if (this->tx_task != nullptr) {
-        vTaskDelete(this->tx_task);
-    }
-    // Delete CAN
-    if (this->can_init_ok) {
-        twai_stop();
-        twai_driver_uninstall();
-    }
 }
 
 WheelData Egs51Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
@@ -177,82 +119,93 @@ WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
 }
 
 ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
-    /* For W163
-    EWM_230 dest;
-    if (this->ewm51.get_EWM_230(now, expire_time_ms, &dest)) {
-        switch (dest.get_WHC()) {
-            case EWM_230h_WHC::D:
-                return ShifterPosition::D;
-            case EWM_230h_WHC::N:
-                return ShifterPosition::N;
-            case EWM_230h_WHC::R:
-                return ShifterPosition::R;
-            case EWM_230h_WHC::P:
-                return ShifterPosition::P;
-            case EWM_230h_WHC::PLUS:
-                return ShifterPosition::PLUS;
-            case EWM_230h_WHC::MINUS:
-                return ShifterPosition::MINUS;
-            case EWM_230h_WHC::N_ZW_D:
-                return ShifterPosition::N_D;
-            case EWM_230h_WHC::R_ZW_N:
-                return ShifterPosition::R_N;
-            case EWM_230h_WHC::P_ZW_R:
-                return ShifterPosition::P_R;
-            case EWM_230h_WHC::SNV:
-            default:
-                return ShifterPosition::SignalNotAvaliable;
-        }
-    } else {
-        return ShifterPosition::SignalNotAvaliable;
-    }
-    */
-    if (now - this->last_i2c_query_time > expire_time_ms) {
-        return ShifterPosition::SignalNotAvaliable;
-    }
-    // Data is valid time range!
-    uint8_t tmp = this->i2c_rx_bytes[0];
-    bool TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
-    bool TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
-    bool TRRS_C = (tmp & (uint8_t)BIT(3)) != 0;
-    bool TRRS_D = (tmp & (uint8_t)BIT(4)) != 0;
-
-    if (TRRS_A && TRRS_B && TRRS_C && !TRRS_D) {
-        this->last_valid_position = ShifterPosition::P;
-        return ShifterPosition::P;
-    } else if (!TRRS_A && TRRS_B && TRRS_C && TRRS_D) {
-        this->last_valid_position = ShifterPosition::R;
-        return ShifterPosition::R;
-    } else if (TRRS_A && !TRRS_B && TRRS_C && TRRS_D) {
-        this->last_valid_position = ShifterPosition::N;
-        return ShifterPosition::N;
-    } else if (!TRRS_A && !TRRS_B && TRRS_C && !TRRS_D) {
-        this->last_valid_position = ShifterPosition::D;
-        return ShifterPosition::D;
-    } else if (!TRRS_A && !TRRS_B && !TRRS_C && TRRS_D) {
-        this->last_valid_position = ShifterPosition::FOUR;
-        return ShifterPosition::FOUR;
-    } else if (!TRRS_A && TRRS_B && !TRRS_C && !TRRS_D) {
-        this->last_valid_position = ShifterPosition::THREE;
-        return ShifterPosition::THREE;
-    } else if (TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) {
-        this->last_valid_position = ShifterPosition::TWO;
-        return ShifterPosition::TWO;
-    } else if (TRRS_A && TRRS_B && !TRRS_C && TRRS_D) {
-        this->last_valid_position = ShifterPosition::ONE;
-        return ShifterPosition::ONE;
-    } else if (!TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) { // Intermediate position, now work out which one
-        if (this->last_valid_position == ShifterPosition::P) {
-            return ShifterPosition::P_R;
-        } else if (this->last_valid_position == ShifterPosition::R) {
-            return ShifterPosition::R_N;
-        } else if (this->last_valid_position == ShifterPosition::D || this->last_valid_position == ShifterPosition::N) {
-            return ShifterPosition::N_D;
+    if (VEHICLE_CONFIG.shifter_style == SHIFTER_STYLE_EWM) {
+        EWM_230 dest;
+        if (this->ewm.get_EWM_230(now, expire_time_ms, &dest)) {
+            switch (dest.get_WHC()) {
+                case EWM_230h_WHC::D:
+                    return ShifterPosition::D;
+                case EWM_230h_WHC::N:
+                    return ShifterPosition::N;
+                case EWM_230h_WHC::R:
+                    return ShifterPosition::R;
+                case EWM_230h_WHC::P:
+                    return ShifterPosition::P;
+                case EWM_230h_WHC::PLUS:
+                    return ShifterPosition::PLUS;
+                case EWM_230h_WHC::MINUS:
+                    return ShifterPosition::MINUS;
+                case EWM_230h_WHC::N_ZW_D:
+                    return ShifterPosition::N_D;
+                case EWM_230h_WHC::R_ZW_N:
+                    return ShifterPosition::R_N;
+                case EWM_230h_WHC::P_ZW_R:
+                    return ShifterPosition::P_R;
+                case EWM_230h_WHC::SNV:
+                default:
+                    return ShifterPosition::SignalNotAvaliable;
+            }
         } else {
-            return ShifterPosition::SignalNotAvaliable; // invalid combination
+            return ShifterPosition::SignalNotAvaliable;
         }
     } else {
-        return ShifterPosition::SignalNotAvaliable;
+        if (now - this->last_i2c_query_time > expire_time_ms) {
+            return ShifterPosition::SignalNotAvaliable;
+        }
+        // Data is valid time range!
+        uint8_t tmp = this->i2c_rx_bytes[0];
+        bool TRRS_A;
+        bool TRRS_B;
+        bool TRRS_C;
+        bool TRRS_D;
+        if (BOARD_CONFIG.board_ver == 2) { // V1.2 layout
+            TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
+            TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
+            TRRS_C = (tmp & (uint8_t)BIT(3)) != 0;
+            TRRS_D = (tmp & (uint8_t)BIT(4)) != 0;
+        } else { // V1.3+ layout
+            TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
+            TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
+            TRRS_C = (tmp & (uint8_t)BIT(4)) != 0;
+            TRRS_D = (tmp & (uint8_t)BIT(3)) != 0;
+        }
+        if (TRRS_A && TRRS_B && TRRS_C && !TRRS_D) {
+            this->last_valid_position = ShifterPosition::P;
+            return ShifterPosition::P;
+        } else if (!TRRS_A && TRRS_B && TRRS_C && TRRS_D) {
+            this->last_valid_position = ShifterPosition::R;
+            return ShifterPosition::R;
+        } else if (TRRS_A && !TRRS_B && TRRS_C && TRRS_D) {
+            this->last_valid_position = ShifterPosition::N;
+            return ShifterPosition::N;
+        } else if (!TRRS_A && !TRRS_B && TRRS_C && !TRRS_D) {
+            this->last_valid_position = ShifterPosition::D;
+            return ShifterPosition::D;
+        } else if (!TRRS_A && !TRRS_B && !TRRS_C && TRRS_D) {
+            this->last_valid_position = ShifterPosition::FOUR;
+            return ShifterPosition::FOUR;
+        } else if (!TRRS_A && TRRS_B && !TRRS_C && !TRRS_D) {
+            this->last_valid_position = ShifterPosition::THREE;
+            return ShifterPosition::THREE;
+        } else if (TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) {
+            this->last_valid_position = ShifterPosition::TWO;
+            return ShifterPosition::TWO;
+        } else if (TRRS_A && TRRS_B && !TRRS_C && TRRS_D) {
+            this->last_valid_position = ShifterPosition::ONE;
+            return ShifterPosition::ONE;
+        } else if (!TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) { // Intermediate position, now work out which one
+            if (this->last_valid_position == ShifterPosition::P) {
+                return ShifterPosition::P_R;
+            } else if (this->last_valid_position == ShifterPosition::R) {
+                return ShifterPosition::R_N;
+            } else if (this->last_valid_position == ShifterPosition::D || this->last_valid_position == ShifterPosition::N) {
+                return ShifterPosition::N_D;
+            } else {
+                return ShifterPosition::SignalNotAvaliable; // invalid combination
+            }
+        } else {
+            return ShifterPosition::SignalNotAvaliable;
+        }
     }
 }
 
@@ -503,89 +456,51 @@ inline bool calc_torque_parity(uint16_t s) {
     return (p & 1) == 1;
 }
 
-inline void to_bytes(uint64_t src, uint8_t* dst) {
-    for(uint8_t i = 0; i < 8; i++) {
-        dst[7-i] = src & 0xFF;
-        src >>= 8;
-    }
-}
+/**
+ * @brief void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
+        void on_rx_done(uint64_t now_ts) override;
+ * 
+ */
 
-[[noreturn]]
-void Egs51Can::tx_task_loop() {
+void Egs51Can::tx_frames() {
     twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_218EGS51 gs_218tx;
-    uint8_t cvn_counter = 0;
-    bool toggle = false;
-    bool time_to_toggle = false;
-    while(true) {
-        // Copy current CAN frame values to here so we don't
-        // accidentally modify parity calculations
-        gs_218tx = {gs218.raw};
+    // Copy current CAN frame values to here so we don't
+    // accidentally modify parity calculations
+    gs_218tx = {gs218.raw};
 
-        // Firstly we have to deal with toggled bits!
-        // As toggle bits need to be toggled every 40ms,
-        // and egs52 Tx interval is 20ms,
-        // we can achieve this with 2 booleans
-        //gs_218tx.set_MTGL_EGS(toggle);
-        // Now do parity calculations
-        //gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-        if (time_to_toggle) {
-            toggle = !toggle;
-        }
-        time_to_toggle = !time_to_toggle;
-        
-        // Now set CVN Counter (Increases every frame)
-        gs_218tx.set_FEHLER(cvn_counter);
-        cvn_counter++;
+    // Firstly we have to deal with toggled bits!
+    // As toggle bits need to be toggled every 40ms,
+    // and egs52 Tx interval is 20ms,
+    // we can achieve this with 2 booleans
+    //gs_218tx.set_MTGL_EGS(toggle);
+    // Now do parity calculations
+    //gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
+    if (time_to_toggle) {
+        toggle = !toggle;
+    }
+    time_to_toggle = !time_to_toggle;
+    
+    // Now set CVN Counter (Increases every frame)
+    gs_218tx.set_FEHLER(cvn_counter);
+    cvn_counter++;
+    tx.identifier = GS_218EGS51_CAN_ID;
+    tx.data_length_code = 6;
+    to_bytes(gs_218tx.raw, tx.data);
+    twai_transmit(&tx, 5);
+}
 
-        if (!this->send_messages) {
-            vTaskDelay(50);
-            continue;
-        }
-
-        // Now send CAN Data!
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        tx.identifier = GS_218EGS51_CAN_ID;
-        tx.data_length_code = 6;
-        to_bytes(gs_218tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
+void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) {
+    if (this->ms51.import_frames(data, id, timestamp)) {
+    } else if (this->esp51.import_frames(data, id, timestamp)) {
+    } else if (this->ewm.import_frames(data, id, timestamp)) {
     }
 }
 
-[[noreturn]]
-void Egs51Can::rx_task_loop() {
-    twai_message_t rx;
-    twai_status_info_t can_status;
-    uint64_t tmp;
-    uint8_t i;
-    this->last_i2c_query_time = 0;
-    while(true) {
-        uint64_t now = (esp_timer_get_time()/1000);
-        twai_get_status_info(&can_status);
-        if (can_status.msgs_to_rx == 0) {
-            vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
-        } else { // We have frames, read them
-            if (now > 2) {
-                now -= 2;
-            }
-            for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
-                    tmp = 0;
-                    for(i = 0; i < rx.data_length_code; i++) {
-                        tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                    }
-
-                    if (this->ms51.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->esp51.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->ewm51.import_frames(tmp, rx.identifier, now)) {
-                    }
-                }
-            }
-            vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here
-        }
-        if (now - this->last_i2c_query_time > 50) {
+void Egs51Can::on_rx_done(uint64_t now_ts) {
+    if (now_ts - this->last_i2c_query_time > 50) {
             // Query I2C IO Expander
             uint8_t req[2] = {0,0};
             esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
@@ -594,7 +509,7 @@ void Egs51Can::rx_task_loop() {
                 ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
             } else {
                 //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
-                this->last_i2c_query_time = now;
+                this->last_i2c_query_time = now_ts;
             }
             
             // Set RP and Start pins on IO expander to be outputs
@@ -621,5 +536,4 @@ void Egs51Can::rx_task_loop() {
             }
             */
         }
-    }
 }

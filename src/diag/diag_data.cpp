@@ -97,7 +97,7 @@ DATA_DMA_BUFFER dump_i2s_dma(void) {
     return dma;
 }
 
-DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
+DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     DATA_CANBUS_RX ret = {};
     if (can_layer == nullptr || gearbox == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));
@@ -145,7 +145,7 @@ DATA_SYS_USAGE get_sys_usage(void) {
     return ret;
 }
 
-SHIFT_LIVE_INFO get_shift_live_Data(const AbstractCan* can_layer, Gearbox* g) {
+SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     SHIFT_LIVE_INFO ret = {};
     if (can_layer == nullptr || g == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));

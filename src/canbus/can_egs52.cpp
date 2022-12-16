@@ -3,29 +3,8 @@
 #include "gearbox_config.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
-Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
-    : AbstractCan(name, tx_time_ms)
-{
-    // Firstly try to init CAN
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "CAN constructor called");
-    twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
-    gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
-    gen_config.rx_queue_len = 32;
-    gen_config.tx_queue_len = 32;
-    twai_timing_config_t timing_config = TWAI_TIMING_CONFIG_500KBITS();
-    twai_filter_config_t filter_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
-    esp_err_t res;
-    res = twai_driver_install(&gen_config, &timing_config, &filter_config);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_DRIVER_INSTALL FAILED!: %s", esp_err_to_name(res));
-    }
-    res = twai_start();
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "TWAI_START FAILED!: %s", esp_err_to_name(res));
-    }
-    // CAN is OK!
-
+Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     // Set default values
     this->set_target_gear(GearboxGear::SignalNotAvaliable);
     this->set_actual_gear(GearboxGear::SignalNotAvaliable);
@@ -58,44 +37,6 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms)
     // Covers setting NAB, a couple unknown but static values,
     // and Input RPM to 0 
     gs338.raw = 0xFFFF1FFF00FF0000u;
-    this->can_init_ok = true;
-}
-
-bool Egs52Can::begin_tasks() {
-    if (!this->can_init_ok) { // Cannot init tasks if CAN is dead!
-        return false;
-    }
-    // Prevent starting again
-    if (this->rx_task == nullptr) {
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "Starting CAN Rx task");
-        if (xTaskCreate(this->start_rx_task_loop, "EGS52_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "CAN Rx task creation failed!");
-            return false;
-        }
-    }
-    if (this->tx_task == nullptr) {
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EGS52_CAN", "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS52_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN", "CAN Tx task creation failed!");
-            return false;
-        }
-    }
-    return true; // Ready!
-}
-
-Egs52Can::~Egs52Can()
-{
-    if (this->rx_task != nullptr) {
-        vTaskDelete(this->rx_task);
-    }
-    if (this->tx_task != nullptr) {
-        vTaskDelete(this->tx_task);
-    }
-    // Delete CAN
-    if (this->can_init_ok) {
-        twai_stop();
-        twai_driver_uninstall();
-    }
 }
 
 WheelData Egs52Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
@@ -960,15 +901,7 @@ inline bool calc_torque_parity(uint16_t s) {
     return (p & 1) == 1;
 }
 
-inline void to_bytes(uint64_t src, uint8_t* dst) {
-    for(uint8_t i = 0; i < 8; i++) {
-        dst[7-i] = src & 0xFF;
-        src >>= 8;
-    }
-}
-
-[[noreturn]]
-void Egs52Can::tx_task_loop() {
+void Egs52Can::tx_frames() {
     twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_338 gs_338tx;
@@ -976,143 +909,64 @@ void Egs52Can::tx_task_loop() {
     GS_418 gs_418tx;
     GS_CUSTOM_558 gs_558tx;
     GS_CUSTOM_668 gs_668tx;
-    uint8_t cvn_counter = 0;
-    bool toggle = false;
-    bool time_to_toggle = false;
-    while(true) {
-        if (!this->send_messages) {
-            vTaskDelay(50);
-            cvn_counter = 0; // Reset CVN when disabling msg Tx
-            toggle = false;
-            time_to_toggle = false;
-            continue;
-        }
-        // Copy current CAN frame values to here so we don't
-        // accidentally modify parity calculations
-        gs_338tx = {gs338.raw};
-        gs_218tx = {gs218.raw};
-        gs_418tx = {gs418.raw};
-        gs_558tx = {gs558.raw};
-        gs_668tx = {gs668.raw};
 
-        // Firstly we have to deal with toggled bits!
-        // As toggle bits need to be toggled every 40ms,
-        // and egs52 Tx interval is 20ms,
-        // we can achieve this with 2 booleans
-        gs_218tx.set_MTGL_EGS(toggle);
-        gs_418tx.set_FMRADTGL(toggle);
-        // Now do parity calculations
-        gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-        gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
-        if (time_to_toggle) {
-            toggle = !toggle;
-        }
-        time_to_toggle = !time_to_toggle;
-        
-        // Now set CVN Counter (Increases every frame)
-        gs_218tx.set_FEHLER(cvn_counter);
-        cvn_counter++;
+    // Copy current CAN frame values to here so we don't
+    // accidentally modify parity calculations
+    gs_338tx = {gs338.raw};
+    gs_218tx = {gs218.raw};
+    gs_418tx = {gs418.raw};
+    gs_558tx = {gs558.raw};
+    gs_668tx = {gs668.raw};
 
-        // Now send CAN Data!
-
-        /**
-         * TX order of EGS52:
-         * GS_338
-         * GS_218
-         * GS_418
-         * GS_CUSTOM_558 ;)
-         */
-        tx.identifier = GS_338_CAN_ID;
-        to_bytes(gs_338tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        tx.identifier = GS_218_CAN_ID;
-        to_bytes(gs_218tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        tx.identifier = GS_418_CAN_ID;
-        to_bytes(gs_418tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        tx.identifier = GS_CUSTOM_558_CAN_ID;
-        to_bytes(gs_558tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        tx.identifier = GS_CUSTOM_668_CAN_ID;
-        to_bytes(gs_668tx.raw, tx.data);
-        twai_transmit(&tx, 5);
-        vTaskDelay(1 / portTICK_PERIOD_MS);
-        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
+    // Firstly we have to deal with toggled bits!
+    // As toggle bits need to be toggled every 40ms,
+    // and egs52 Tx interval is 20ms,
+    // we can achieve this with 2 booleans
+    gs_218tx.set_MTGL_EGS(toggle);
+    gs_418tx.set_FMRADTGL(toggle);
+    // Now do parity calculations
+    gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
+    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
+    if (time_to_toggle) {
+        toggle = !toggle;
     }
+    time_to_toggle = !time_to_toggle;
+    
+    // Now set CVN Counter (Increases every frame)
+    gs_218tx.set_FEHLER(cvn_counter);
+    cvn_counter++;
+
+    // Now send CAN Data!
+
+    /**
+     * TX order of EGS52:
+     * GS_338
+     * GS_218
+     * GS_418
+     * GS_CUSTOM_558 ;)
+     */
+    tx.identifier = GS_338_CAN_ID;
+    to_bytes(gs_338tx.raw, tx.data);
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_218_CAN_ID;
+    to_bytes(gs_218tx.raw, tx.data);
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_418_CAN_ID;
+    to_bytes(gs_418tx.raw, tx.data);
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_CUSTOM_558_CAN_ID;
+    to_bytes(gs_558tx.raw, tx.data);
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_CUSTOM_668_CAN_ID;
+    to_bytes(gs_668tx.raw, tx.data);
+    twai_transmit(&tx, 5);
 }
 
-[[noreturn]]
-void Egs52Can::rx_task_loop() {
-    twai_message_t rx;
-    twai_status_info_t can_status;
-    uint64_t now;
-    uint64_t tmp;
-    uint8_t i;
-    while(true) {
-        twai_get_status_info(&can_status);
-        if (can_status.msgs_to_rx == 0) {
-            vTaskDelay(4 / portTICK_PERIOD_MS); // Wait for buffer to have at least 1 frame
-        } else { // We have frames, read them
-            now = (esp_timer_get_time()/1000);
-            if (now > 2) {
-                now -= 2;
-            }
-            for(uint8_t x = 0; x < can_status.msgs_to_rx; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0) {
-                    tmp = 0;
-                    for(i = 0; i < rx.data_length_code; i++) {
-                        tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                    }
-                    if(this->ecu_ms.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->esp_ecu.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->ewm_ecu.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->misc_ecu.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->ezs_ecu.import_frames(tmp, rx.identifier, now)) {
-                    } else if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
-                        // ISO-TP Diag endpoint
-                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
-                            // Send the frame
-                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
-                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS52_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
-                            }
-                        }
-                    } else if (rx.identifier == 0x428) {
-                        ESP_LOGI("CAN", "Found CAN from Transfer case! [%02X %02X]", rx.data[0], rx.data[1]);
-                    } else if (rx.identifier > 0x780) {
-                        ESP_LOGI("CAN", "Diag msg 0x%04X [%02X %02X %02X %02X %02X %02X %02X %02X]",
-                            rx.identifier,
-                            rx.data[0],
-                            rx.data[1],
-                            rx.data[2],
-                            rx.data[3],
-                            rx.data[4],
-                            rx.data[5],
-                            rx.data[6],
-                            rx.data[7]
-                        );
-                    }
-                    /*
-                     else if (rx.identifier == KOMBI_408_CAN_ID) {
-                        KOMBI_408 k408;
-                        k408.raw = tmp;
-                        if (esp_toggle) {
-                            ESP_LOGI("CAN", "Turning off ESP");
-                            k408.set_RT_EIN(true);
-                            to_bytes(k408.raw, rx.data);
-                            twai_transmit(&rx, 5);
-                        } else {
-                            ESP_LOGI("CAN", "Status of ESP disable bit %d", k408.get_RT_EIN());
-                        }
-                    }
-                    */
-                }
-            }
-            vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here
-        }
+void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) {
+    if(this->ecu_ms.import_frames(data, id, timestamp)) {
+    } else if (this->esp_ecu.import_frames(data, id, timestamp)) {
+    } else if (this->ewm_ecu.import_frames(data, id, timestamp)) {
+    } else if (this->misc_ecu.import_frames(data, id, timestamp)) {
+    } else if (this->ezs_ecu.import_frames(data, id, timestamp)) {
     }
 }

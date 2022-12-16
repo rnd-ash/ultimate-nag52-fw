@@ -54,7 +54,12 @@ Gearbox::Gearbox()
         .current_timestamp_ms = (uint64_t)(esp_timer_get_time() / 1000),
         .is_braking = false,
         .d_output_rpm = 0,
-        .gear_ratio = 0.0F};
+        .gear_ratio = 0.0F,
+        .rr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .rl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .fr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .fl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+    };
     this->tcc = new TorqueConverter();
     this->shift_reporter = new ShiftReporter();
     if (VEHICLE_CONFIG.is_large_nag)
@@ -810,12 +815,8 @@ void Gearbox::controller_loop()
             continue;
         }
 
-        bool can_read = true;
-        if (!this->calc_input_rpm(&sensor_data.input_rpm))
-        {
-            can_read = false;
-        }
-        if (can_read && this->calc_output_rpm(&this->sensor_data.output_rpm, now))
+        bool can_read = this->calc_input_rpm(&sensor_data.input_rpm) && this->calc_output_rpm(&this->sensor_data.output_rpm, now);
+        if (can_read)
         {
             if (now - last_output_measure_time > 250)
             {
@@ -1248,26 +1249,26 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
 bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
 {
     bool result = false;
-    WheelData left = egs_can_hal->get_rear_left_wheel(now, 500);
-    WheelData right = egs_can_hal->get_rear_right_wheel(now, 500);
-    if ((WheelDirection::SignalNotAvaliable != left.current_dir) || (WheelDirection::SignalNotAvaliable != right.current_dir))
+    this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
+    this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
+    if ((WheelDirection::SignalNotAvaliable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvaliable != sensor_data.rr_wheel.current_dir))
     {
         float rpm = 0.0F;
-        if (WheelDirection::SignalNotAvaliable == left.current_dir)
+        if (WheelDirection::SignalNotAvaliable == sensor_data.rl_wheel.current_dir)
         {
             // Right OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
-            rpm = right.double_rpm;
+            rpm = sensor_data.rr_wheel.double_rpm;
         }
-        else if (WheelDirection::SignalNotAvaliable == right.current_dir)
+        else if (WheelDirection::SignalNotAvaliable == sensor_data.rr_wheel.current_dir)
         {
             // Left OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
-            rpm = left.double_rpm;
+            rpm = sensor_data.rl_wheel.double_rpm;
         }
         else
         { // Both sensors OK!
-            rpm = (abs(left.double_rpm) + abs(right.double_rpm)) / 2;
+            rpm = (abs(sensor_data.rl_wheel.double_rpm) + abs(sensor_data.rr_wheel.double_rpm)) / 2;
         }
         rpm *= this->diff_ratio_f;
         rpm /= 2;

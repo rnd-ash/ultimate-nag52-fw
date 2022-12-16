@@ -8,6 +8,25 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 
+typedef struct {
+    bool a;
+    bool b;
+    bool c;
+    bool d;
+    ShifterPosition pos;
+} TRRSPos;
+
+const static TRRSPos TRRS_SHIFTER_TABLE[8] = {
+    TRRSPos { .a = 1, .b = 1, .c = 1, .d = 0, .pos = ShifterPosition::P },
+    TRRSPos { .a = 0, .b = 1, .c = 1, .d = 1, .pos = ShifterPosition::R },
+    TRRSPos { .a = 1, .b = 0, .c = 1, .d = 1, .pos = ShifterPosition::N },
+    TRRSPos { .a = 0, .b = 0, .c = 1, .d = 0, .pos = ShifterPosition::D },
+    TRRSPos { .a = 0, .b = 0, .c = 0, .d = 1, .pos = ShifterPosition::FOUR },
+    TRRSPos { .a = 0, .b = 1, .c = 0, .d = 0, .pos = ShifterPosition::THREE },
+    TRRSPos { .a = 1, .b = 0, .c = 0, .d = 0, .pos = ShifterPosition::TWO },
+    TRRSPos { .a = 1, .b = 1, .c = 0, .d = 1, .pos = ShifterPosition::ONE },
+};
+
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("EGS51", "SETUP CALLED");
     if (pcb_gpio_matrix->i2c_sda == gpio_num_t::GPIO_NUM_NC || pcb_gpio_matrix->i2c_scl == gpio_num_t::GPIO_NUM_NC) {
@@ -119,94 +138,84 @@ WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
 }
 
 ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+    ShifterPosition ret = ShifterPosition::SignalNotAvaliable;
     if (VEHICLE_CONFIG.shifter_style == SHIFTER_STYLE_EWM) {
         EWM_230 dest;
         if (this->ewm.get_EWM_230(now, expire_time_ms, &dest)) {
             switch (dest.get_WHC()) {
                 case EWM_230h_WHC::D:
-                    return ShifterPosition::D;
+                    ret = ShifterPosition::D;
+                    break;
                 case EWM_230h_WHC::N:
-                    return ShifterPosition::N;
+                    ret = ShifterPosition::N;
+                    break;
                 case EWM_230h_WHC::R:
-                    return ShifterPosition::R;
+                    ret = ShifterPosition::R;
+                    break;
                 case EWM_230h_WHC::P:
-                    return ShifterPosition::P;
+                    ret = ShifterPosition::P;
+                    break;
                 case EWM_230h_WHC::PLUS:
-                    return ShifterPosition::PLUS;
+                    ret =  ShifterPosition::PLUS;
+                    break;
                 case EWM_230h_WHC::MINUS:
-                    return ShifterPosition::MINUS;
+                    ret = ShifterPosition::MINUS;
+                    break;
                 case EWM_230h_WHC::N_ZW_D:
-                    return ShifterPosition::N_D;
+                    ret = ShifterPosition::N_D;
+                    break;
                 case EWM_230h_WHC::R_ZW_N:
-                    return ShifterPosition::R_N;
+                    ret = ShifterPosition::R_N;
+                    break;
                 case EWM_230h_WHC::P_ZW_R:
-                    return ShifterPosition::P_R;
+                    ret = ShifterPosition::P_R;
+                    break;
                 case EWM_230h_WHC::SNV:
                 default:
-                    return ShifterPosition::SignalNotAvaliable;
+                    break;
             }
-        } else {
-            return ShifterPosition::SignalNotAvaliable;
         }
     } else {
-        if (now - this->last_i2c_query_time > expire_time_ms) {
-            return ShifterPosition::SignalNotAvaliable;
-        }
-        // Data is valid time range!
-        uint8_t tmp = this->i2c_rx_bytes[0];
-        bool TRRS_A;
-        bool TRRS_B;
-        bool TRRS_C;
-        bool TRRS_D;
-        if (BOARD_CONFIG.board_ver == 2) { // V1.2 layout
-            TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
-            TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
-            TRRS_C = (tmp & (uint8_t)BIT(3)) != 0;
-            TRRS_D = (tmp & (uint8_t)BIT(4)) != 0;
-        } else { // V1.3+ layout
-            TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
-            TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
-            TRRS_C = (tmp & (uint8_t)BIT(4)) != 0;
-            TRRS_D = (tmp & (uint8_t)BIT(3)) != 0;
-        }
-        if (TRRS_A && TRRS_B && TRRS_C && !TRRS_D) {
-            this->last_valid_position = ShifterPosition::P;
-            return ShifterPosition::P;
-        } else if (!TRRS_A && TRRS_B && TRRS_C && TRRS_D) {
-            this->last_valid_position = ShifterPosition::R;
-            return ShifterPosition::R;
-        } else if (TRRS_A && !TRRS_B && TRRS_C && TRRS_D) {
-            this->last_valid_position = ShifterPosition::N;
-            return ShifterPosition::N;
-        } else if (!TRRS_A && !TRRS_B && TRRS_C && !TRRS_D) {
-            this->last_valid_position = ShifterPosition::D;
-            return ShifterPosition::D;
-        } else if (!TRRS_A && !TRRS_B && !TRRS_C && TRRS_D) {
-            this->last_valid_position = ShifterPosition::FOUR;
-            return ShifterPosition::FOUR;
-        } else if (!TRRS_A && TRRS_B && !TRRS_C && !TRRS_D) {
-            this->last_valid_position = ShifterPosition::THREE;
-            return ShifterPosition::THREE;
-        } else if (TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) {
-            this->last_valid_position = ShifterPosition::TWO;
-            return ShifterPosition::TWO;
-        } else if (TRRS_A && TRRS_B && !TRRS_C && TRRS_D) {
-            this->last_valid_position = ShifterPosition::ONE;
-            return ShifterPosition::ONE;
-        } else if (!TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) { // Intermediate position, now work out which one
-            if (this->last_valid_position == ShifterPosition::P) {
-                return ShifterPosition::P_R;
-            } else if (this->last_valid_position == ShifterPosition::R) {
-                return ShifterPosition::R_N;
-            } else if (this->last_valid_position == ShifterPosition::D || this->last_valid_position == ShifterPosition::N) {
-                return ShifterPosition::N_D;
-            } else {
-                return ShifterPosition::SignalNotAvaliable; // invalid combination
+        if (now - this->last_i2c_query_time < expire_time_ms) {
+            // Data is valid time range!
+            uint8_t tmp = this->i2c_rx_bytes[0];
+            bool TRRS_A;
+            bool TRRS_B;
+            bool TRRS_C;
+            bool TRRS_D;
+            if (BOARD_CONFIG.board_ver == 2) { // V1.2 layout
+                TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
+                TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
+                TRRS_C = (tmp & (uint8_t)BIT(3)) != 0;
+                TRRS_D = (tmp & (uint8_t)BIT(4)) != 0;
+            } else { // V1.3+ layout
+                TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
+                TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
+                TRRS_C = (tmp & (uint8_t)BIT(4)) != 0;
+                TRRS_D = (tmp & (uint8_t)BIT(3)) != 0;
             }
-        } else {
-            return ShifterPosition::SignalNotAvaliable;
+
+            if (!TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) { // Intermediate position, now work out which one
+                if (this->last_valid_position == ShifterPosition::P) {
+                    ret = ShifterPosition::P_R;
+                } else if (this->last_valid_position == ShifterPosition::R) {
+                    ret = ShifterPosition::R_N;
+                } else if (this->last_valid_position == ShifterPosition::D || this->last_valid_position == ShifterPosition::N) {
+                    ret = ShifterPosition::N_D;
+                }
+            } else {
+                // Check truth table
+                for (uint8_t i = 0; i < 8; i++) {
+                    TRRSPos pos = TRRS_SHIFTER_TABLE[i];
+                    if (pos.a == TRRS_A && pos.b == TRRS_B && pos.c == TRRS_C && pos.d == TRRS_D) {
+                        ret = pos.pos;
+                        break;
+                    }
+                }
+            }
         }
     }
+    return ret;
 }
 
 EngineType Egs51Can::get_engine_type(uint64_t now, uint64_t expire_time_ms) {
@@ -235,7 +244,7 @@ int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
         return (int)ms310.get_STA_TORQUE()*2;
     } else {
-        return 0xFF;
+        return INT_MAX;
     }
     return INT_MAX;
 }
@@ -249,7 +258,7 @@ int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
         return (int)ms310.get_MAX_TORQUE()*2;
     } else {
-        return 0xFF;
+        return INT_MAX;
     }
     return INT_MAX;
 }

@@ -102,7 +102,7 @@ class Egs51Can: public EgsBaseCan {
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();
         ECU_ESP51 esp51 = ECU_ESP51();
-        ShifterPosition last_valid_position = ShifterPosition::SignalNotAvaliable;
+        ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
         uint8_t i2c_rx_bytes[2] = {0,0};
         uint8_t i2c_tx_bytes[2] = {0,0};
         uint64_t last_i2c_query_time = 0;

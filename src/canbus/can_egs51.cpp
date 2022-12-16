@@ -64,21 +64,21 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
 WheelData Egs51Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
     return WheelData {
         .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
+        .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
 WheelData Egs51Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) { // TODO
     return WheelData {
         .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
+        .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
 WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_208EGS51 bs208;
     if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.get_DRTGHR()) {
             case BS_208h_DRTGHREGS51::FWD:
                 d = WheelDirection::Forward;
@@ -101,7 +101,7 @@ WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -109,7 +109,7 @@ WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_208EGS51 bs208;
     if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.get_DRTGHL()) {
             case BS_208h_DRTGHLEGS51::FWD:
                 d = WheelDirection::Forward;
@@ -132,13 +132,13 @@ WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
 
 ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
-    ShifterPosition ret = ShifterPosition::SignalNotAvaliable;
+    ShifterPosition ret = ShifterPosition::SignalNotAvailable;
     if (VEHICLE_CONFIG.shifter_style == SHIFTER_STYLE_EWM) {
         EWM_230 dest;
         if (this->ewm.get_EWM_230(now, expire_time_ms, &dest)) {
@@ -343,7 +343,7 @@ void Egs51Can::set_actual_gear(GearboxGear actual) {
         case GearboxGear::Reverse_Second:
             this->gs218.set_GIC(GS_218h_GICEGS51::G_R2);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->gs218.set_GIC(GS_218h_GICEGS51::G_SNV);
             break;
@@ -379,7 +379,7 @@ void Egs51Can::set_target_gear(GearboxGear target) {
         case GearboxGear::Reverse_Second:
             this->gs218.set_GZC(GS_218h_GZCEGS51::G_R2);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->gs218.set_GZC(GS_218h_GZCEGS51::G_SNV);
             break;

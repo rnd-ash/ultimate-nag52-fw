@@ -6,9 +6,9 @@
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     // Set default values
-    this->set_target_gear(GearboxGear::SignalNotAvaliable);
-    this->set_actual_gear(GearboxGear::SignalNotAvaliable);
-    this->set_shifter_position(ShifterPosition::SignalNotAvaliable);
+    this->set_target_gear(GearboxGear::SignalNotAvailable);
+    this->set_actual_gear(GearboxGear::SignalNotAvailable);
+    this->set_shifter_position(ShifterPosition::SignalNotAvailable);
     this->gs218.set_GIC(GS_218h_GIC::G_SNV);
     gs218.set_CALID_CVN_AKT(true);
     gs218.set_G_G(true);
@@ -42,21 +42,21 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
 WheelData Egs52Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
     return WheelData {
         .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
+        .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
 WheelData Egs52Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) { // TODO
     return WheelData {
         .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvaliable
+        .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
 WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_208 bs208;
     if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.get_DRTGHR()) {
             case BS_208h_DRTGHR::FWD:
                 d = WheelDirection::Forward;
@@ -79,7 +79,7 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -87,7 +87,7 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     BS_208 bs208;
     if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvaliable;
+        WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.get_DRTGHL()) {
             case BS_208h_DRTGHL::FWD:
                 d = WheelDirection::Forward;
@@ -110,7 +110,7 @@ WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -139,10 +139,10 @@ ShifterPosition Egs52Can::get_shifter_position_ewm(uint64_t now, uint64_t expire
                 return ShifterPosition::P_R;
             case EWM_230h_WHC::SNV:
             default:
-                return ShifterPosition::SignalNotAvaliable;
+                return ShifterPosition::SignalNotAvailable;
         }
     } else {
-        return ShifterPosition::SignalNotAvaliable;
+        return ShifterPosition::SignalNotAvailable;
     }
 }
 
@@ -393,7 +393,7 @@ void Egs52Can::set_actual_gear(GearboxGear actual) {
             this->gs418.set_GIC(GS_418h_GIC::G_D5);
             this->gs218.set_GIC(GS_218h_GIC::G_D5);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->gs418.set_GIC(GS_418h_GIC::G_SNV);
             this->gs218.set_GIC(GS_218h_GIC::G_SNV);
@@ -439,7 +439,7 @@ void Egs52Can::set_target_gear(GearboxGear target) {
             this->gs418.set_GZC(GS_418h_GZC::G_D5);
             this->gs218.set_GZC(GS_218h_GZC::G_D5);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->gs418.set_GZC(GS_418h_GZC::G_SNV);
             this->gs218.set_GZC(GS_218h_GZC::G_SNV);
@@ -488,7 +488,7 @@ void Egs52Can::set_shifter_position(ShifterPosition pos) {
         case ShifterPosition::N_D:
             gs418.set_WHST(GS_418h_WHST::D);
             break;
-        case ShifterPosition::SignalNotAvaliable:
+        case ShifterPosition::SignalNotAvailable:
             gs418.set_WHST(GS_418h_WHST::SNV);
             break;
         default: 

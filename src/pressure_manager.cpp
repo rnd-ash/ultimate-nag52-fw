@@ -162,7 +162,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
         case GearboxGear::Park:
         case GearboxGear::Neutral:
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default: // Already set
             gear_idx = 0;
             break;

@@ -44,7 +44,7 @@ WheelData Egs53Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms)
                 dir = WheelDirection::Reverse;
                 break;
             default:
-                dir = WheelDirection::SignalNotAvaliable;
+                dir = WheelDirection::SignalNotAvailable;
                 break;
         }
         return WheelData {
@@ -54,7 +54,7 @@ WheelData Egs53Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms)
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -74,7 +74,7 @@ WheelData Egs53Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
                 dir = WheelDirection::Reverse;
                 break;
             default:
-                dir = WheelDirection::SignalNotAvaliable;
+                dir = WheelDirection::SignalNotAvailable;
                 break;
         }
         return WheelData {
@@ -84,7 +84,7 @@ WheelData Egs53Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -104,7 +104,7 @@ WheelData Egs53Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
                 dir = WheelDirection::Reverse;
                 break;
             default:
-                dir = WheelDirection::SignalNotAvaliable;
+                dir = WheelDirection::SignalNotAvailable;
                 break;
         }
         return WheelData {
@@ -114,7 +114,7 @@ WheelData Egs53Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -134,7 +134,7 @@ WheelData Egs53Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
                 dir = WheelDirection::Reverse;
                 break;
             default:
-                dir = WheelDirection::SignalNotAvaliable;
+                dir = WheelDirection::SignalNotAvailable;
                 break;
         }
         return WheelData {
@@ -144,7 +144,7 @@ WheelData Egs53Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     } else {
         return WheelData {
             .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvaliable
+            .current_dir = WheelDirection::SignalNotAvailable
         };
     }
 }
@@ -173,10 +173,10 @@ ShifterPosition Egs53Can::get_shifter_position_ewm(uint64_t now, uint64_t expire
                 return ShifterPosition::P_R;
             case SBW_RS_ISM_TSL_Posn_ISM::SNA:
             default:
-                return ShifterPosition::SignalNotAvaliable;
+                return ShifterPosition::SignalNotAvailable;
         }
     }
-    return ShifterPosition::SignalNotAvaliable;
+    return ShifterPosition::SignalNotAvailable;
 }
 
 EngineType Egs53Can::get_engine_type(uint64_t now, uint64_t expire_time_ms) {
@@ -308,7 +308,7 @@ void Egs53Can::set_actual_gear(GearboxGear actual) {
         case GearboxGear::Fifth:
             this->eng_rq2_tcm.set_Gr(ENG_RQ2_TCM_Gr::D5);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->eng_rq2_tcm.set_Gr(ENG_RQ2_TCM_Gr::SNA);
             break;
@@ -344,7 +344,7 @@ void Egs53Can::set_target_gear(GearboxGear target) {
         case GearboxGear::Fifth:
             this->eng_rq2_tcm.set_Gr_Target(ENG_RQ2_TCM_Gr_Target::D5);
             break;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             this->eng_rq2_tcm.set_Gr_Target(ENG_RQ2_TCM_Gr_Target::SNA);
             break;
@@ -404,7 +404,7 @@ void Egs53Can::set_shifter_position(ShifterPosition pos) {
             this->sbw_rs_tcm.set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn::D);
             this->tcm_a1.set_TSL_Posn_TCM(TCM_A1_TSL_Posn_TCM::D);
             break;
-        case ShifterPosition::SignalNotAvaliable:
+        case ShifterPosition::SignalNotAvailable:
         default:
             this->sbw_rs_tcm.set_TxSelVlvPosn(SBW_RS_TCM_TxSelVlvPosn::SNA);
             this->tcm_a1.set_TSL_Posn_TCM(TCM_A1_TSL_Posn_TCM::SNA);

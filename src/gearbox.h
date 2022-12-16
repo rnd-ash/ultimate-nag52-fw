@@ -81,7 +81,7 @@ public:
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
     SensorData sensor_data;
-        uint16_t get_gear_ratio(void) {
+    uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
     static uint16_t redline_rpm;
@@ -131,7 +131,7 @@ private:
     TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
     bool diag_stop_control = false;
-    ShifterPosition shifter_pos = ShifterPosition::SignalNotAvaliable;
+    ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;
     bool is_ramp = false;

@@ -106,9 +106,9 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     uint64_t now = esp_timer_get_time() / 1000;
 
     WheelData t = gearbox->sensor_data.rl_wheel;
-    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
+    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
     t = gearbox->sensor_data.rr_wheel;
-    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
+    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
 
     ret.paddle_position = can_layer->get_paddle_position(now, 250);
     ret.pedal_pos = can_layer->get_pedal_value(now, 250);
@@ -208,7 +208,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvaliable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

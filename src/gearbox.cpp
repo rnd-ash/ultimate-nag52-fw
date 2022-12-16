@@ -245,7 +245,7 @@ GearboxGear next_gear(GearboxGear g)
     case GearboxGear::Fourth:
         return GearboxGear::Fifth;
     case GearboxGear::Park:
-    case GearboxGear::SignalNotAvaliable:
+    case GearboxGear::SignalNotAvailable:
     case GearboxGear::Neutral:
     case GearboxGear::Reverse_First:
     case GearboxGear::Reverse_Second:
@@ -268,7 +268,7 @@ GearboxGear prev_gear(GearboxGear g)
         return GearboxGear::Fourth;
     case GearboxGear::First:
     case GearboxGear::Park:
-    case GearboxGear::SignalNotAvaliable:
+    case GearboxGear::SignalNotAvailable:
     case GearboxGear::Neutral:
     case GearboxGear::Reverse_First:
     case GearboxGear::Reverse_Second:
@@ -777,7 +777,7 @@ void Gearbox::inc_subprofile()
 void Gearbox::controller_loop()
 {
     bool lock_state = false;
-    ShifterPosition last_position = ShifterPosition::SignalNotAvaliable;
+    ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
     uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
     while (esp_timer_get_time() < expire_check)
@@ -1175,7 +1175,7 @@ void Gearbox::controller_loop()
                 f = gearboxConfig.ratios[4] * -1;
                 break;
             case GearboxGear::Park:
-            case GearboxGear::SignalNotAvaliable:
+            case GearboxGear::SignalNotAvailable:
             case GearboxGear::Neutral:
             default:
                 f = 0.0;
@@ -1251,16 +1251,16 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
     bool result = true;
     this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
     this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
-    if ((WheelDirection::SignalNotAvaliable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvaliable != sensor_data.rr_wheel.current_dir))
+    if ((WheelDirection::SignalNotAvailable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvailable != sensor_data.rr_wheel.current_dir))
     {
         float rpm = 0.0F;
-        if (WheelDirection::SignalNotAvaliable == sensor_data.rl_wheel.current_dir)
+        if (WheelDirection::SignalNotAvailable == sensor_data.rl_wheel.current_dir)
         {
             // Right OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
             rpm = sensor_data.rr_wheel.double_rpm;
         }
-        else if (WheelDirection::SignalNotAvaliable == sensor_data.rr_wheel.current_dir)
+        else if (WheelDirection::SignalNotAvailable == sensor_data.rr_wheel.current_dir)
         {
             // Left OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");

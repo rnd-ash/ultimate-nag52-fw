@@ -129,7 +129,7 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
             return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
             return GearboxDisplayGear::Five;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
     }
@@ -199,7 +199,7 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
             return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
             return GearboxDisplayGear::Five;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
     }
@@ -269,7 +269,7 @@ GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGe
             return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
             return GearboxDisplayGear::Five;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
     }
@@ -331,7 +331,7 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
             return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
             return GearboxDisplayGear::Five;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
     }
@@ -418,7 +418,7 @@ GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGe
             return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
             return GearboxDisplayGear::Five;
-        case GearboxGear::SignalNotAvaliable:
+        case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
     }

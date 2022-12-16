@@ -18,7 +18,7 @@ enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
     Reverse, // Wheel going backwards
     Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvaliable = 0xFF // SNV
+    SignalNotAvailable = 0xFF // SNV
 };
 
 struct WheelData {
@@ -64,7 +64,7 @@ enum class GearboxGear: uint8_t {
     Neutral = 9,
     Reverse_First = 10,
     Reverse_Second = 11,
-    SignalNotAvaliable = 0xFF
+    SignalNotAvailable = 0xFF
 };
 
 enum class PaddlePosition: uint8_t {
@@ -121,7 +121,7 @@ enum class ShifterPosition: uint8_t {
     THREE, // For TRRS only
     TWO, // For TRRS only
     ONE, // For TRRS only
-    SignalNotAvaliable = 0xFF // SNV
+    SignalNotAvailable = 0xFF // SNV
 };
 
 enum class SolenoidName: uint8_t {
@@ -177,7 +177,7 @@ enum class TerminalStatus {
 
 const WheelData DEFAULT_SNV_WD {
     .double_rpm = 0,
-    .current_dir = WheelDirection::SignalNotAvaliable
+    .current_dir = WheelDirection::SignalNotAvailable
 };
 
 class EgsBaseCan {
@@ -208,7 +208,7 @@ class EgsBaseCan {
         }
         // Gets shifter position from EWM module
         virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
-            return ShifterPosition::SignalNotAvaliable;
+            return ShifterPosition::SignalNotAvailable;
         }
         // Gets engine type
         virtual EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) {

@@ -29,83 +29,91 @@ AbstractProfile* profiles[NUM_PROFILES];
 
 Speaker* spkr2 = nullptr;
 
-SPEAKER_POST_CODE setup_tcm()
-{
+SPEAKER_POST_CODE setup_tcm() {
+    SPEAKER_POST_CODE ret = SPEAKER_POST_CODE::INIT_OK; // OK by default
     if (EEPROM::read_efuse_config(&BOARD_CONFIG) != ESP_OK) {
-        return SPEAKER_POST_CODE::EEPROM_FAIL;
+        ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
+    } else {
+        // First thing to do, Configure the GPIO Pin matrix!
+        switch (BOARD_CONFIG.board_ver) {
+            case 1:
+                pcb_gpio_matrix = new BoardV11GpioMatrix();
+                break;
+            case 2:
+                pcb_gpio_matrix = new BoardV12GpioMatrix();
+                break;
+            case 3:
+                pcb_gpio_matrix = new BoardV13GpioMatrix();
+                break;
+            default:
+                spkr = new Speaker(gpio_num_t::GPIO_NUM_4); // Assume legacy when this fails!
+                spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
+                ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
+        }
+        if (ret == SPEAKER_POST_CODE::INIT_OK) {
+            spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
+            if (EEPROM::init_eeprom() != ESP_OK) {
+                ret = SPEAKER_POST_CODE::EEPROM_FAIL;
+            } else {
+                switch (VEHICLE_CONFIG.egs_can_type) {
+                    case 1:
+                        egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer
+                        break;
+                    case 2:
+                        egs_can_hal = new Egs52Can("EGS52", 20, 500000); // EGS52 CAN Abstraction layer
+                        break;
+                    case 3:
+                        egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
+                        break;
+                    default:
+                        // Unknown (Fallback to basic CAN)
+                        ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
+                        egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000);
+                        break;
+                }
+            }
+            if (!egs_can_hal->begin_tasks()) {
+                ret = SPEAKER_POST_CODE::CAN_FAIL;
+            } else {
+                if (Sensors::init_sensors() != ESP_OK) {
+                    ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                } else {
+                    if(Solenoids::init_all_solenoids() != ESP_OK) {
+                        ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
+                    }
+                }
+            }
+        }
     }
-    // First thing to do, Configure the GPIO Pin matrix!
-    switch (BOARD_CONFIG.board_ver) {
-        case 1:
-            pcb_gpio_matrix = new BoardV11GpioMatrix();
-            break;
-        case 2:
-            pcb_gpio_matrix = new BoardV12GpioMatrix();
-            break;
-        case 3:
-            pcb_gpio_matrix = new BoardV13GpioMatrix();
-            break;
-        default:
-            spkr = new Speaker(gpio_num_t::GPIO_NUM_4); // Assume legacy when this fails!
-            spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
-            return SPEAKER_POST_CODE::EFUSE_NOT_SET;
-    }
-    spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
+    if (ret == SPEAKER_POST_CODE::INIT_OK) {
+        CurrentDriver::init_current_driver();
 
-    if (EEPROM::init_eeprom() != ESP_OK) {
-        return SPEAKER_POST_CODE::EEPROM_FAIL;
-    }
-    switch (VEHICLE_CONFIG.egs_can_type) {
-        case 1:
-            egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer
-            break;
-        case 2:
-            egs_can_hal = new Egs52Can("EGS52", 20, 500000); // EGS52 CAN Abstraction layer
-            break;
-        case 3:
-            egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
-            break;
-        default:
-            // Unknown (Fallback to basic CAN)
-            ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
-            egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000);
-            break;
-    }
-    if (!egs_can_hal->begin_tasks()) {
-        return SPEAKER_POST_CODE::CAN_FAIL;
-    }
-    if (Sensors::init_sensors() != ESP_OK) {
-        return SPEAKER_POST_CODE::SENSOR_FAIL;
-    }
-    if(Solenoids::init_all_solenoids() != ESP_OK) {
-        return SPEAKER_POST_CODE::SOLENOID_FAIL;
-    }
-    CurrentDriver::init_current_driver();
+        standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
+        comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
+        winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
+        agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
+        manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
 
-    standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
-    comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
-    winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
-    agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
-    manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
+        profiles[0] = standard;
+        profiles[1] = comfort;
+        profiles[2] = winter;
+        profiles[3] = agility;
+        profiles[4] = manual;
 
-    profiles[0] = standard;
-    profiles[1] = comfort;
-    profiles[2] = winter;
-    profiles[3] = agility;
-    profiles[4] = manual;
+        // Read profile ID on startup based on TCM config
+        profile_id = VEHICLE_CONFIG.default_profile;
+        if (profile_id > 4) {
+            profile_id = 0;
+        }
 
-    // Read profile ID on startup based on TCM config
-    profile_id = VEHICLE_CONFIG.default_profile;
-    if (profile_id > 4) {
-        profile_id = 0;
+        gearbox = new Gearbox();
+        if (gearbox->start_controller() != ESP_OK) {
+            ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+        } else {
+            gearbox->set_profile(profiles[profile_id]);
+        }
     }
-
-    gearbox = new Gearbox();
-    if (gearbox->start_controller() != ESP_OK) {
-        return SPEAKER_POST_CODE::CONTROLLER_FAIL;
-    }
-    gearbox->set_profile(profiles[profile_id]);
-    return SPEAKER_POST_CODE::INIT_OK;
+    return ret;
 }
 
 void err_beep_loop(void* a) {
@@ -135,7 +143,7 @@ void err_beep_loop(void* a) {
 void input_manager(void*) {
     bool pressed = false;
     PaddlePosition last_pos = PaddlePosition::None;
-    ShifterPosition slast_pos = ShifterPosition::SignalNotAvaliable;
+    ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
         bool down = egs_can_hal->get_profile_btn_press(now, 100);

@@ -8,7 +8,7 @@
 
 AdaptationMap::AdaptationMap(void)
 {
-    if (!this->load_from_nvs())
+    if (this->load_from_nvs() != ESP_OK)
     { // Init our map
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Load from NVS failed, starting a new map");
         this->reset();

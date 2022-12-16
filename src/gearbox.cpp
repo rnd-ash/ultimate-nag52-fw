@@ -17,21 +17,28 @@ uint16_t Gearbox::redline_rpm = 4000;
 // ONLY FOR FORWARD GEARS!
 int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, FwdRatios ratios)
 {
+    int calculated = output_rpm;
     switch (req_gear)
     {
     case GearboxGear::First:
-        return output_rpm * ratios[0];
+        calculated *= ratios[1];
+        break;
     case GearboxGear::Second:
-        return output_rpm * ratios[1];
+        calculated *= ratios[2];
+        break;
     case GearboxGear::Third:
-        return output_rpm * ratios[2];
+        calculated *= ratios[3];
+        break;
     case GearboxGear::Fourth:
-        return output_rpm * ratios[3];
+        calculated *= ratios[4];
+        break;
     case GearboxGear::Fifth:
-        return output_rpm * ratios[4];
+        calculated *= ratios[5];
+        break;
     default:
-        return output_rpm;
+        break;
     }
+    return calculated;
 }
 
 Gearbox::Gearbox()
@@ -129,76 +136,58 @@ esp_err_t Gearbox::start_controller()
 
 GearboxGear gear_from_idx(uint8_t idx)
 {
+    GearboxGear ret = GearboxGear::SignalNotAvailable;
     switch (idx)
     {
     case 1:
-        return GearboxGear::First;
+        ret = GearboxGear::First;
+        break;
     case 2:
-        return GearboxGear::Second;
+        ret = GearboxGear::Second;
+        break;
     case 3:
-        return GearboxGear::Third;
+        ret = GearboxGear::Third;
+        break;
     case 4:
-        return GearboxGear::Fourth;
+        ret = GearboxGear::Fourth;
+        break;
     case 5:
-        return GearboxGear::Fifth;
+        ret = GearboxGear::Fifth;
+        break;
     case 6:
-        return GearboxGear::Reverse_First;
+        ret = GearboxGear::Reverse_First;
+        break;
     case 7:
-        return GearboxGear::Reverse_Second;
+        ret = GearboxGear::Reverse_Second;
+        break;
     default:
-        return GearboxGear::SignalNotAvaliable;
+        break;
     }
+    return ret;
 }
 
 bool is_controllable_gear(GearboxGear g)
 {
-    switch (g)
-    {
-    case GearboxGear::Reverse_First:
-    case GearboxGear::Reverse_Second:
-    case GearboxGear::First:
-    case GearboxGear::Second:
-    case GearboxGear::Third:
-    case GearboxGear::Fourth:
-    case GearboxGear::Fifth:
-        return true;
-    case GearboxGear::Park:
-    case GearboxGear::SignalNotAvaliable:
-    case GearboxGear::Neutral:
-    default:
-        return false;
+    bool controllable = true;
+    if (unlikely(g == GearboxGear::Park || g == GearboxGear::Neutral || g == GearboxGear::SignalNotAvailable)) {
+        controllable = false;
     }
+    return controllable;
 }
 
 bool is_fwd_gear(GearboxGear g)
 {
-    switch (g)
-    {
-    case GearboxGear::Reverse_First:
-    case GearboxGear::Reverse_Second:
-        return false;
-    case GearboxGear::First:
-    case GearboxGear::Second:
-    case GearboxGear::Third:
-    case GearboxGear::Fourth:
-    case GearboxGear::Fifth:
-        return true;
-    case GearboxGear::Park:
-    case GearboxGear::SignalNotAvaliable:
-    case GearboxGear::Neutral:
-    default:
-        return false;
+    bool is_fwd = false;
+    if (likely((uint8_t)g >= 1 && (uint8_t)g <= 5)) {
+        is_fwd = true;
     }
+    return is_fwd;
 }
 
 const char *gear_to_text(GearboxGear g)
 {
     switch (g)
     {
-    case GearboxGear::Reverse_First:
-        return "R1";
-    case GearboxGear::Reverse_Second:
-        return "R2";
     case GearboxGear::First:
         return "D1";
     case GearboxGear::Second:
@@ -209,9 +198,13 @@ const char *gear_to_text(GearboxGear g)
         return "D4";
     case GearboxGear::Fifth:
         return "D5";
+    case GearboxGear::Reverse_First:
+        return "R1";
+    case GearboxGear::Reverse_Second:
+        return "R2";
     case GearboxGear::Park:
         return "P";
-    case GearboxGear::SignalNotAvaliable:
+    case GearboxGear::SignalNotAvailable:
         return "SNA";
     case GearboxGear::Neutral:
         return "N";

@@ -79,7 +79,6 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
     uint8_t resp[2] =  { 0x00, 0x00 };
     resp[0] = CHUNK_SIZE >> 8 & 0xFF;
     resp[1] = CHUNK_SIZE & 0xFF;
-    spkr->send_note(1000, 100, 100);
     this->written_data = 0;
     this->data_dir = DATA_DIR_DOWNLOAD;
     return this->make_diag_pos_msg(SID_REQ_DOWNLOAD, resp, 2);

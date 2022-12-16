@@ -90,7 +90,6 @@ public:
         }
     }
     virtual uint8_t get_profile_id(void) = 0;
-    // void reload_data();
 protected:
     uint8_t profile_id = 0;
     StoredTcuMap* upshift_table = nullptr;

@@ -37,7 +37,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         default_map = def_upshift_data_petrol;
     }
     this->upshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
-    if (!this->upshift_table->init_ok()) {
+    if (this->upshift_table->init_status() != ESP_OK) {
         delete[] this->upshift_table;
     }
 
@@ -50,7 +50,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         default_map = def_downshift_data_petrol;
     }
     this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
-    if (!this->downshift_table->init_ok()) {
+    if (this->downshift_table->init_status() != ESP_OK) {
         delete[] this->downshift_table;
     }
 
@@ -59,11 +59,11 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     int16_t step_size = (redline-1000) / 4;
     int16_t shift_rpm_points[5] = {(int16_t)1000,  (int16_t)(1000+(step_size)), (int16_t)(1000+(step_size*2)), (int16_t)(1000+(step_size*3)), redline};
     this->upshift_time_map = new StoredTcuMap(upshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_upshift_time_data);
-    if (!this->upshift_time_map->init_ok()) {
+    if (this->upshift_time_map->init_status() != ESP_OK) {
         delete[] this->upshift_time_map;
     }
     this->downshift_time_map = new StoredTcuMap(downshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_downshift_time_data);
-    if (!this->downshift_time_map->init_ok()) {
+    if (this->downshift_time_map->init_status() != ESP_OK) {
         delete[] this->downshift_time_map;
     }
 }
@@ -89,15 +89,6 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChang
     }
     return result;
 }
-
-// void AbstractProfile::reload_data() {
-//     if (this->upshift_table) {
-//         this->upshift_table->reload_from_eeprom();
-//     }
-//     if (this->downshift_table) {
-//         this->downshift_table->reload_from_eeprom();
-//     }
-// }
 
 
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(

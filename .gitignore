@@ -45,3 +45,4 @@ cmake-build-debug/
 html/**
 latex/**
 __pycache__
+__pycache__/*

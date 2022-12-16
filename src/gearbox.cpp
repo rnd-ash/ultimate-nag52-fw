@@ -1248,7 +1248,7 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
 
 bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
 {
-    bool result = false;
+    bool result = true;
     this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
     this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
     if ((WheelDirection::SignalNotAvaliable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvaliable != sensor_data.rr_wheel.current_dir))
@@ -1289,12 +1289,15 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
                 break;
             case TransferCaseState::Neither:
                 ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is in Neutral!");
+                result = false;
                 break;
             case TransferCaseState::Switching:
                 ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is switching!");
+                result = false;
                 break;
             case TransferCaseState::SNA:
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "No signal from VG! Cannot read output rpm");
+                result = false;
                 break;
             }
         }
@@ -1305,7 +1308,7 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
     }
     else
     {
-        // ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
+        result = false;
     }
     return result;
 }

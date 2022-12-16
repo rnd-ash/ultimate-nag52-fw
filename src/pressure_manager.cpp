@@ -35,7 +35,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     key_name = MAP_NAME_PCS_BROWN;
     default_data = BROWN_PCS_CURRENT_MAP;
     this->pressure_pwm_map = new StoredTcuMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
-    if (!this->pressure_pwm_map->init_ok()) {
+    if (this->pressure_pwm_map->init_status() != ESP_OK) {
         delete[] this->pressure_pwm_map;
     }
 
@@ -45,7 +45,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     key_name = MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredTcuMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
-    if (!this->tcc_pwm_map->init_ok()) {
+    if (this->tcc_pwm_map->init_status() != ESP_OK) {
         delete[] this->tcc_pwm_map;
     }
 
@@ -60,7 +60,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         default_data = SMALL_NAG_FILL_TIME_MAP;
     }
     hold2_time_map = new StoredTcuMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
-    if (!this->hold2_time_map->init_ok()) {
+    if (this->hold2_time_map->init_status() != ESP_OK) {
         delete[] this->hold2_time_map;
     }
 
@@ -75,7 +75,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         default_data = SMALL_NAG_FILL_PRESSURE_MAP;
     }
     hold2_pressure_map = new StoredTcuMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
-    if (!this->hold2_pressure_map->init_ok()) {
+    if (this->hold2_pressure_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_map;
     }
 
@@ -90,7 +90,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         default_data = SMALL_NAG_WORKING_MAP;
     }
     this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
-    if (!this->mpc_working_pressure->init_ok()) {
+    if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }
 }
@@ -270,12 +270,12 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
     dest_overlap->ramp_time = (float)chars.target_shift_time*overlap_ratio;
     
-    dest_torque->mpc_pressure = (curr_mpc+prev->mpc_pressure)/2; // Torque phase mpc pressure drop to 500 to initiate the release
-    dest_overlap->mpc_pressure = curr_mpc; //hold2_pressure_map->get_value(1, (uint8_t)get_clutch_to_release(change)); // Ramp up MPC in overlap to control the release
+    dest_torque->mpc_pressure = prev->mpc_pressure; // Torque phase mpc pressure drop to 500 to initiate the release
+    dest_overlap->mpc_pressure = prev->mpc_pressure; //hold2_pressure_map->get_value(1, (uint8_t)get_clutch_to_release(change)); // Ramp up MPC in overlap to control the release
 
     uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2.5mBar per Nm
 
-    dest_torque->spc_pressure = prev->spc_pressure+spc_addr;
+    dest_torque->spc_pressure = prev->mpc_pressure+spc_addr;
     dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr*2;
 }
 

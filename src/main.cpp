@@ -32,7 +32,7 @@ Speaker* spkr2 = nullptr;
 
 SPEAKER_POST_CODE setup_tcm()
 {
-    if (!EEPROM::read_efuse_config(&BOARD_CONFIG)) {
+    if (EEPROM::read_efuse_config(&BOARD_CONFIG) != ESP_OK) {
         return SPEAKER_POST_CODE::EEPROM_FAIL;
     }
     // First thing to do, Configure the GPIO Pin matrix!
@@ -53,7 +53,7 @@ SPEAKER_POST_CODE setup_tcm()
     }
     spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
 
-    if (!EEPROM::init_eeprom()) {
+    if (EEPROM::init_eeprom() != ESP_OK) {
         return SPEAKER_POST_CODE::EEPROM_FAIL;
     }
     switch (VEHICLE_CONFIG.egs_can_type) {
@@ -75,15 +75,13 @@ SPEAKER_POST_CODE setup_tcm()
     if (!egs_can_hal->begin_tasks()) {
         return SPEAKER_POST_CODE::CAN_FAIL;
     }
-    if (!Sensors::init_sensors()) {
+    if (Sensors::init_sensors() != ESP_OK) {
         return SPEAKER_POST_CODE::SENSOR_FAIL;
     }
-    if(!Solenoids::init_all_solenoids()) {
+    if(Solenoids::init_all_solenoids() != ESP_OK) {
         return SPEAKER_POST_CODE::SOLENOID_FAIL;
     }
-    if(!CurrentDriver::init_current_driver()) {
-        return SPEAKER_POST_CODE::SOLENOID_FAIL;
-    }
+    CurrentDriver::init_current_driver();
 
     standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
     comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
@@ -104,7 +102,7 @@ SPEAKER_POST_CODE setup_tcm()
     }
 
     gearbox = new Gearbox();
-    if (!gearbox->start_controller()) {
+    if (gearbox->start_controller() != ESP_OK) {
         return SPEAKER_POST_CODE::CONTROLLER_FAIL;
     }
     gearbox->set_profile(profiles[profile_id]);

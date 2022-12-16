@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <gearbox_config.h>
 #include "common_structs.h"
+#include "esp_err.h"
 
 struct AdaptationCell {
     int16_t spc_fill_adder;
@@ -29,8 +30,8 @@ class AdaptationMap  {
 public:
     AdaptationMap(void);
     // Reset map to everything default
-    void reset(void);
-    bool save(void);
+    esp_err_t reset(void);
+    esp_err_t save(void);
     void perform_adaptation(SensorData* sensors, ShiftReport* rpt, ProfileGearChange change, bool is_valid_rpt, uint16_t gb_max_torque);
     AdaptationCell* get_adapt_cell(SensorData* sensors, ProfileGearChange change, uint16_t gb_max_torque);
 private:
@@ -40,7 +41,7 @@ private:
     inline static AdaptationCell* get_adapt_cell_from_torque(SensorData *sensors, uint16_t gb_max_torque, uint16_t adaptation_idx, AdaptationMap* adaptationmap_var);
     inline static uint16_t get_idx_from_change(ProfileGearChange change);
     AdaptationData adapt_data[8];
-    bool load_from_nvs(void);
+    esp_err_t load_from_nvs(void);
 };
 
 

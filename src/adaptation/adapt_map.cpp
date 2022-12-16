@@ -4,6 +4,7 @@
 #include <esp_log.h>
 #include "nvs.h"
 #include "nvs/eeprom_config.h"
+#include "esp_check.h"
 
 AdaptationMap::AdaptationMap(void)
 {
@@ -122,7 +123,7 @@ AdaptationMap::AdaptationMap(void)
     }
 }
 
-void AdaptationMap::reset(void)
+esp_err_t AdaptationMap::reset(void)
 {
     for (int i = 0; i < 8; i++)
     {
@@ -132,55 +133,31 @@ void AdaptationMap::reset(void)
         this->adapt_data[i].trq_75 = DEFAULT_CELL;
     }
     ESP_LOGI("ADAPT_MAP", "Adaptation reset!");
-    this->save();
+    return this->save();
 }
 
-bool AdaptationMap::load_from_nvs(void)
+esp_err_t AdaptationMap::load_from_nvs(void)
 {
-    bool result = false;
+    esp_err_t result = ESP_OK;
     nvs_handle_t config_handle;
-    esp_err_t err = nvs_open("Configuration", NVS_READWRITE, &config_handle);
-    if (err == ESP_OK)
+    ESP_RETURN_ON_ERROR(nvs_open("Configuration", NVS_READWRITE, &config_handle), "ADAPT_MAP", "Failed to open NVS");
+    size_t map_size = sizeof(this->adapt_data);
+    result = nvs_get_blob(config_handle, NVS_KEY_GEAR_ADAPTATION, &this->adapt_data, &map_size);
+    if (result == ESP_ERR_NVS_NOT_FOUND)
     {
-        size_t map_size = sizeof(this->adapt_data);
-        err = nvs_get_blob(config_handle, NVS_KEY_GEAR_ADAPTATION, &this->adapt_data, &map_size);
-        if (err == ESP_ERR_NVS_NOT_FOUND)
-        {
-            // Not found, need to create a new fresh map
-            this->reset(); // Init default
-            result = this->save();
-        }
-    }
-    else
-    {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
+        // Not found, need to create a new fresh map
+        this->reset(); // Init default
+        result = this->save();
     }
     return result;
 }
 
-bool AdaptationMap::save(void)
+esp_err_t AdaptationMap::save(void)
 {
-    bool result = false;
     nvs_handle_t handle;
-    nvs_open("Configuration", NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    esp_err_t err = nvs_set_blob(handle, NVS_KEY_GEAR_ADAPTATION, &this->adapt_data, sizeof(this->adapt_data));
-    if (ESP_OK == err)
-    {
-        err = nvs_commit(handle);
-        if (ESP_OK == err)
-        {
-            result = true;
-        }
-        else
-        {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Error calling nvs_commit: %s", esp_err_to_name(err));
-        }
-    }
-    else
-    {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "ADAPT_MAP", "Error setting AdaptMap blob (%s)", esp_err_to_name(err));
-    }
-    return result;
+    ESP_RETURN_ON_ERROR(nvs_open("Configuration", NVS_READWRITE, &handle), "ADAPT_MAP", "Cannot open config handle");
+    ESP_RETURN_ON_ERROR(nvs_set_blob(handle, NVS_KEY_GEAR_ADAPTATION, &this->adapt_data, sizeof(this->adapt_data)), "ADAPT_MAP", "Error setting adapt map blob");
+    return nvs_commit(handle);
 }
 
 inline AdaptationCell *AdaptationMap::get_adapt_cell_from_torque(SensorData *sensors, uint16_t gb_max_torque, uint16_t adaptation_idx, AdaptationMap *adaptationmap_var)

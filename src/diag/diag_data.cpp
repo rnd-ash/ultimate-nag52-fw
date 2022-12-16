@@ -16,16 +16,16 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     RpmReading d;
     bool b = false;
 
-    if (!Sensors::read_input_rpm(&d, false)) {
-        ret.n2_rpm = 0xFFFF;
-        ret.n3_rpm = 0xFFFF;
-        ret.calculated_rpm = 0xFFFF;
-    } else {
+    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_rpm = d.n2_raw;
         ret.n3_rpm = d.n3_raw;
         ret.calculated_rpm = d.calc_rpm;
+    } else {
+        ret.n2_rpm = 0xFFFF;
+        ret.n3_rpm = 0xFFFF;
+        ret.calculated_rpm = 0xFFFF;
     }
-    if (Sensors::parking_lock_engaged(&b)) {
+    if (Sensors::parking_lock_engaged(&b) == ESP_OK) {
          ret.parking_lock = b;
          ret.atf_temp_c = g->sensor_data.atf_temp;
     } else {
@@ -99,15 +99,15 @@ DATA_DMA_BUFFER dump_i2s_dma(void) {
 
 DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     DATA_CANBUS_RX ret = {};
-    if (can_layer == nullptr) {
+    if (can_layer == nullptr || gearbox == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
     uint64_t now = esp_timer_get_time() / 1000;
 
-    WheelData t = can_layer->get_rear_left_wheel(now, 250);
+    WheelData t = gearbox->sensor_data.rl_wheel;
     ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
-    t = can_layer->get_rear_right_wheel(now, 250);
+    t = gearbox->sensor_data.rr_wheel;
     ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
 
     ret.paddle_position = can_layer->get_paddle_position(now, 250);

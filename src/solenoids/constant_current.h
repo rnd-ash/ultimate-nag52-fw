@@ -25,7 +25,7 @@ extern ConstantCurrentDriver* mpc_cc;
 extern ConstantCurrentDriver* spc_cc;
 
 namespace CurrentDriver {
-    bool init_current_driver();
+    void init_current_driver();
 }
 
 #endif

@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "solenoids/solenoids.h"
+#include "canbus/can_hal.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
@@ -69,6 +70,10 @@ struct SensorData{
     int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
+    WheelData rr_wheel;
+    WheelData rl_wheel;
+    WheelData fr_wheel;
+    WheelData fl_wheel;
 };
 
 /**

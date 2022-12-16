@@ -7,6 +7,7 @@
 #include "soc/i2s_periph.h"
 #include "string.h"
 #include "driver/adc_deprecated.h"
+#include "esp_check.h"
 
 esp_adc_cal_characteristics_t adc1_cal;
 uint16_t voltage = 12000;
@@ -15,7 +16,6 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
 {
     this->channel = channel;
     this->timer = timer;
-    this->ready = true; // Assume ready unless error!
     this->name = name;
     this->adc_reading_current = 0;
     this->default_freq = frequency;
@@ -23,27 +23,16 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     this->adc_sample_idx = 0;
     this->adc_total = 0;
     memset(this->adc_avgs, 0, sizeof(this->adc_avgs));
-
-    adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11);
-
-    ledc_timer_config_t timer_cfg = {
+    esp_err_t ret = ESP_OK;
+    const ledc_timer_config_t timer_cfg = {
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = timer,
         .freq_hz = frequency,
         .clk_cfg = LEDC_AUTO_CLK
     };
-    // Set the timer configuration
-    esp_err_t res = ledc_timer_config(&timer_cfg);
-    if (res != ESP_OK)
-    {
-        this->ready = false;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Solenoid %s timer init failed. Status code %d!", name, res);
-        return;
-    }
 
-    // Set PWM channel configuration
-    ledc_channel_config_t channel_cfg = {
+    const ledc_channel_config_t channel_cfg = {
         .gpio_num = pwm_pin,
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE,
         .channel = channel,
@@ -53,14 +42,15 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
         .hpoint = 0
     };
 
-    res = ledc_channel_config(&channel_cfg);
-    if (res != ESP_OK)
-    {
-        this->ready = false;
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Solenoid %s channel init failed. Status code %d!", name, res);
-        return;
-    }
+
+    ESP_GOTO_ON_ERROR(adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11), set_err, "SOLENOID", "Solenoid %s ADC1 init failed", name);
+    // Set the timer configuration
+    ESP_GOTO_ON_ERROR(ledc_timer_config(&timer_cfg), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
+    // Set PWM channel configuration
+    ESP_GOTO_ON_ERROR(ledc_channel_config(&channel_cfg), set_err, "SOLENOID", "Failed to set LEDC channel for solenoid %s", name);
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", "Solenoid %s init OK!", name);
+set_err:
+    this->ready = ret;
 }
 
 void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
@@ -71,7 +61,7 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
     this->voltage_compensate = voltage_compensate;
 }
 
-uint16_t Solenoid::get_current() {
+uint16_t Solenoid::get_current() const {
     uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_current, &adc1_cal);
     if (v <= adc1_cal.coeff_b) {
         v = 0; // Too small
@@ -84,7 +74,7 @@ uint16_t Solenoid::get_pwm_raw()
     return this->pwm_raw;
 }
 
-uint16_t Solenoid::get_pwm_compensated()
+uint16_t Solenoid::get_pwm_compensated() const
 {   
     return this->pwm;
 }
@@ -94,7 +84,7 @@ uint16_t Solenoid::diag_get_adc_peak_raw() {
 }
 
 
-uint16_t Solenoid::get_current_avg()
+uint16_t Solenoid::get_current_avg() const
 {   
     uint32_t v = esp_adc_cal_raw_to_voltage((float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
     if (v <= adc1_cal.coeff_b) {
@@ -133,11 +123,11 @@ void Solenoid::__set_adc_reading(uint16_t c)
     this->adc_sample_idx = (this->adc_sample_idx+1)%SOLENOID_CURRENT_AVG_SAMPLES;
 }
 
-adc1_channel_t Solenoid::get_adc_channel() {
+adc1_channel_t Solenoid::get_adc_channel() const {
     return this->adc_channel;
 }
 
-bool Solenoid::init_ok() const
+esp_err_t Solenoid::init_ok() const
 {
     return this->ready;
 }
@@ -335,7 +325,7 @@ void Solenoids::boot_solenoid_test(void*) {
     vTaskDelete(NULL);
 }
 
-bool Solenoids::init_all_solenoids()
+esp_err_t Solenoids::init_all_solenoids()
 {
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
     // Read calibration for ADC1
@@ -345,25 +335,17 @@ bool Solenoids::init_all_solenoids()
     sol_mpc = new Solenoid("MPC", pcb_gpio_matrix->mpc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_6);
     sol_spc = new Solenoid("SPC", pcb_gpio_matrix->spc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_4);
     sol_tcc = new Solenoid("TCC", pcb_gpio_matrix->tcc_pwm, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1, ADC1_CHANNEL_5);
-    esp_err_t res = ledc_fade_func_install(0);
-    if (res != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Could not insert LEDC_FADE: %s", esp_err_to_name(res));
-        return false;
-    }
-    if (!(
-        sol_tcc->init_ok() && 
-        sol_mpc->init_ok() && 
-        sol_spc->init_ok() && 
-        sol_y3->init_ok() && 
-        sol_y4->init_ok() && 
-        sol_y5->init_ok())
-    ) { // Init error, don't do anything else
-        return false;
-    }
+    ESP_RETURN_ON_ERROR(ledc_fade_func_install(0), "SOLENOID", "Could not insert LEDC_FADE");
+    ESP_RETURN_ON_ERROR(sol_tcc->init_ok(), "SOLENOID", "TCC init not OK");
+    ESP_RETURN_ON_ERROR(sol_mpc->init_ok(), "SOLENOID", "MPC init not OK");
+    ESP_RETURN_ON_ERROR(sol_spc->init_ok(), "SOLENOID", "SPC init not OK");
+    ESP_RETURN_ON_ERROR(sol_y3->init_ok(), "SOLENOID", "Y3 init not OK");
+    ESP_RETURN_ON_ERROR(sol_y4->init_ok(), "SOLENOID", "Y4 init not OK");
+    ESP_RETURN_ON_ERROR(sol_y5->init_ok(), "SOLENOID", "Y5 init not OK");
     toggle_all_solenoid_current_monitoring(true);
     Sensors::read_vbatt(&voltage);
     xTaskCreate(update_solenoids, "LEDC-Update", 4096, nullptr, 10, nullptr);
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 16000, nullptr, 3, nullptr);
     xTaskCreate(Solenoids::boot_solenoid_test, "Solenoid-Test", 8192, nullptr, 3, nullptr);
-    return true;
+    return ESP_OK;
 }

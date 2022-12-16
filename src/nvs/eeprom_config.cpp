@@ -5,43 +5,40 @@
 #include "profiles.h"
 #include "efuse/efuse.h"
 #include "esp_efuse.h"
+#include "esp_check.h"
 
-bool EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
+esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
     size_t byte_count = map_element_count*sizeof(int16_t);
     esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);
     if (e == ESP_ERR_NVS_NOT_FOUND && default_map != nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
         // Set default map data
-        if (write_nvs_map_data(map_name, default_map, map_element_count)) {
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s copied OK to NVS!", map_name);
-        } else {
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not copied to NVS! Using flash default map", map_name);
-        }
+        e = write_nvs_map_data(map_name, default_map, map_element_count);
     }
     if(e != ESP_OK) {
         if (default_map != nullptr) {
             memcpy(dest, default_map, byte_count);
+            e = ESP_OK;
         } else {
-            return false;
+            e = ESP_ERR_INVALID_ARG;
         }
     } else {
         ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s loaded OK from NVS!", map_name);
     }
-    return true;
+    return e;
 }
 
-bool EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count) {
+esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count) {
     esp_err_t e = nvs_set_blob(MAP_NVS_HANDLE, map_name, to_write, map_element_count*sizeof(int16_t));
     if (e != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting value for %s (%s)", map_name, esp_err_to_name(e));
-        return false;
+    } else {
+        e = nvs_commit(MAP_NVS_HANDLE);
+        if (e != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        }
     }
-    e = nvs_commit(MAP_NVS_HANDLE);
-    if (e != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-        return false;
-    }
-    return true;
+    return e;
 }
 
 // bool read_nvs_gear_adaptation(nvs_handle_t handle, const char* key, pressure_map* map, size_t store_size) {
@@ -66,36 +63,30 @@ bool EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, s
 //     return (e == ESP_OK);
 // }
 
-bool EEPROM::init_eeprom() {
+esp_err_t EEPROM::init_eeprom() {
     // Called on startup
-
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM init failed! %s", esp_err_to_name(err));
-        // Don't erase flash. User has to do this manually. Just POST beep!
-        return false;
+    esp_err_t result = nvs_flash_init();
+    if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM init failed! %s", esp_err_to_name(result));
+    } else {
+        // Flash init OK
+        nvs_handle_t config_handle;    
+        result = nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &config_handle);
+        if (result != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(result));
+        }
+        MAP_NVS_HANDLE = config_handle;
+        result = read_core_config(&VEHICLE_CONFIG);
     }
-    nvs_handle_t config_handle;    
-    err = nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &config_handle);
-    if (err != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(err));
-        return false;
-    }
-    MAP_NVS_HANDLE = config_handle;
-    bool res = read_core_config(&VEHICLE_CONFIG);
-    if (!res) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM SCN config read failed! %s", esp_err_to_name(err));
-        return false;
-    }
-    return true;
+    return result;
 }
 
-bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
+esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     size_t s = sizeof(TCM_CORE_CONFIG);
-    esp_err_t e = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
-    if (e == ESP_ERR_NVS_NOT_FOUND) {
+    esp_err_t result = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
+    if (result == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "SCN Config not found. Creating a new one");
         TCM_CORE_CONFIG c = {
             .is_large_nag = 0,
@@ -115,26 +106,26 @@ bool EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .output_pulse_width_per_kmh = 1,
             .gen_mosfet_purpose = 0,
         };
-        e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(e));
-            return false;
+        result = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
+        if (result != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(result));
+        } else {
+            // set blob OK
+            result = nvs_commit(handle);
+            if (result != ESP_OK) {
+                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(result));
+            } else {
+                ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New SCN  creation OK!");
+                memcpy(dest, &s, sizeof(s));
+                result = ESP_OK;
+            }
         }
-        e = nvs_commit(handle);
-        if (e != ESP_OK) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-            return false;
-        }
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New SCN  creation OK!");
-        memcpy(dest, &s, sizeof(s));
         return true;
-    } else if (e != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Could not read SCN config: %s", esp_err_to_name(e));
     }
-    return (e == ESP_OK);
+    return result;
 }
 
-bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
+esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     nvs_handle_t handle;
     esp_err_t e;
     size_t s = sizeof(TCM_CORE_CONFIG);
@@ -142,64 +133,63 @@ bool EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, write, s);
     if (e != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error Saving SCN config (%s)", esp_err_to_name(e));
-        return false;
+    } else {
+        e = nvs_commit(handle);
+        if (e != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        }
     }
-    e = nvs_commit(handle);
-    if (e != ESP_OK) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
-        return false;
-    }
-    return true;
+    return e;
 }
 
-bool EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
+esp_err_t EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
     if (dest == nullptr) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
-    esp_efuse_read_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8);
-    esp_efuse_read_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8);
-    esp_efuse_read_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8);
-    esp_efuse_read_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8);
-    esp_efuse_read_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8);
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "READ EFUSE", "CONFIG:Board Ver: V1.%d, Week %d (%02d/%02d/%02d)", dest->board_ver, dest->manufacture_week, dest->manufacture_day, dest->manufacture_month, dest->manufacture_year);
-    return true;
+    ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8), "EFUSE_CFG", "Could not read board ver");
+    ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8), "EFUSE_CFG", "Could not read manf. day");
+    ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8), "EFUSE_CFG", "Could not read manf. week");
+    ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8), "EFUSE_CFG", "Could not read manf. month");
+    ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8), "EFUSE_CFG", "Could not read manf. year");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "EFUSE_CFG", "CONFIG:Board Ver: V1.%d, Week %d (%02d/%02d/%02d)", dest->board_ver, dest->manufacture_week, dest->manufacture_day, dest->manufacture_month, dest->manufacture_year);
+    return ESP_OK;
 }
 
-bool EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
+esp_err_t EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
     if (dest == nullptr) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (dest->manufacture_month > 12 || dest->manufacture_month == 0) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (dest->manufacture_day > 31 || dest->manufacture_day == 0) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (dest->manufacture_week > 52 || dest->manufacture_week == 0) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (dest->manufacture_year < 22) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (dest->board_ver == 0 || dest->board_ver > 3) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8) != ESP_OK) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_M_DAY, &dest->manufacture_day, 8) != ESP_OK) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8) != ESP_OK) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8) != ESP_OK) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8) != ESP_OK) {
-        return false;
+        return ESP_ERR_INVALID_ARG;
     }
-    return true;
+    return ESP_OK;
     
 }
 

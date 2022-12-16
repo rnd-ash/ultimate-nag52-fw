@@ -2,6 +2,7 @@
 #define STORED_MAP_H
 
 #include "../lib/core/tcumap.h"
+#include "esp_err.h"
 
 class StoredTcuMap : public TcuMap {
 
@@ -16,23 +17,23 @@ class StoredTcuMap : public TcuMap {
             const int16_t* default_map
         );
 
-        bool init_ok(void) const;
+        esp_err_t init_status(void) const;
         /**
          * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
          */
-        bool save_to_eeprom(void);
+        esp_err_t save_to_eeprom(void);
 
         /**
          * @brief Replace map contents with new data (Keeping it in memory, call `save_to_eeprom` to write it to the TCU's EEPROM)
          * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
          * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
          */
-        bool replace_map_content(int16_t* new_data, uint16_t content_len);
+        esp_err_t replace_map_content(int16_t* new_data, uint16_t content_len);
 
         /**
          * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
          */
-        bool reload_from_eeprom(void);
+        esp_err_t reload_from_eeprom(void);
 
         /**
          * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
@@ -51,8 +52,8 @@ class StoredTcuMap : public TcuMap {
         const char* map_name;
         uint16_t map_element_count;
         const int16_t* default_map;
-        bool initialized;
-        bool read_from_eeprom(const char* key_name, uint16_t expected_size);
+        esp_err_t init_state;
+        esp_err_t read_from_eeprom(const char* key_name, uint16_t expected_size);
 };
 
 #endif // STORED_MAP_H

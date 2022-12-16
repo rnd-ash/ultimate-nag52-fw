@@ -5,12 +5,7 @@
 #include <esp_timer.h>
 #include <driver/timer.h>
 #include "esp_log.h"
-#include "helper_functions.h"
-
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "PERFMON"
+#include "esp_check.h"
 
 // 346834 per second
 
@@ -60,7 +55,7 @@ static void IRAM_ATTR cpu_load_interrupt(void *arg)
     }
 }
 
-bool init_perfmon(void)
+esp_err_t init_perfmon(void)
 {
     if (!perfmon_running)
     {
@@ -76,18 +71,16 @@ bool init_perfmon(void)
         dest.load_core_1 = 0;
         dest.load_core_2 = 0;
 
-        if (check_esp_func(timer_init(TIMER_GROUP_0, TIMER_1, &config), "Timer init failed:") &&
-            check_esp_func(timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0), "Set counter value failed:") &&
-            check_esp_func(timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, LOAD_FETCH_INTERVAL_MS * 1000), "Set alarm value failed:") &&
-            check_esp_func(timer_enable_intr(TIMER_GROUP_0, TIMER_1), "Enable intr failed:") &&
-            check_esp_func(timer_isr_register(TIMER_GROUP_0, TIMER_1, &cpu_load_interrupt, NULL, 0, &load_timer_handle), "ISR Register failed:") &&
-            check_esp_func(timer_start(TIMER_GROUP_0, TIMER_1), "Timer start failed:") &&
-            check_esp_func(esp_register_freertos_idle_hook_for_cpu(idle_hook_c1, 0), "Failed to set idle hook for Core 0:") &&
-            check_esp_func(esp_register_freertos_idle_hook_for_cpu(idle_hook_c2, 1), "Failed to set idle hook for Core 1:"))
-        {
-            perfmon_running = true;
-            ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Init OK!");
-        }
+        ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_1, &config), "PERFMON", "Timer init failed");
+        ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0), "PERFMON", "Set counter value failed");
+        ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, LOAD_FETCH_INTERVAL_MS * 1000), "PERFMON", "Set alarm value failed");
+        ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_1), "PERFMON", "Enable intr failed");
+        ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_1, &cpu_load_interrupt, NULL, 0, &load_timer_handle), "PERFMON", "ISR Register failed");
+        ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_1), "PERFMON", "Timer start failed");
+        ESP_RETURN_ON_ERROR(esp_register_freertos_idle_hook_for_cpu(idle_hook_c1, 0), "PERFMON", "Failed to set idle hook for Core 0");
+        ESP_RETURN_ON_ERROR(esp_register_freertos_idle_hook_for_cpu(idle_hook_c2, 1), "PERFMON", "Failed to set idle hook for Core 1");
+        perfmon_running = true;
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "PERFMON", "Init OK!");
     }
     return perfmon_running;
 }

@@ -93,13 +93,12 @@ void constant_current_driver_thread(void*) {
 }
 
 namespace CurrentDriver {
-    bool init_current_driver() {
+    void init_current_driver() {
         mpc_cc = new ConstantCurrentDriver(sol_mpc, "MPC");
         spc_cc = new ConstantCurrentDriver(sol_spc, "SPC");
         mpc_cc->set_target_current(0);
         spc_cc->set_target_current(0);
         xTaskCreate(constant_current_driver_thread, "CCDriver", 4096, nullptr, 3, nullptr);
-        return true;
     }
 }
 

@@ -54,7 +54,12 @@ Gearbox::Gearbox()
         .current_timestamp_ms = (uint64_t)(esp_timer_get_time() / 1000),
         .is_braking = false,
         .d_output_rpm = 0,
-        .gear_ratio = 0.0F};
+        .gear_ratio = 0.0F,
+        .rr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .rl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .fr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+        .fl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
+    };
     this->tcc = new TorqueConverter();
     this->shift_reporter = new ShiftReporter();
     if (VEHICLE_CONFIG.is_large_nag)
@@ -100,7 +105,7 @@ Gearbox::Gearbox()
     {
         this->redline_rpm = 4000; // just in case
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEAROX", "---OTHER CONFIG---");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---OTHER CONFIG---");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Redline RPM: %d", this->redline_rpm);
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
@@ -116,10 +121,10 @@ void Gearbox::set_profile(AbstractProfile *prof)
     }
 }
 
-bool Gearbox::start_controller()
+esp_err_t Gearbox::start_controller()
 {
     xTaskCreatePinnedToCore(Gearbox::start_controller_internal, "GEARBOX", 32768, static_cast<void *>(this), 10, nullptr, 1);
-    return true;
+    return ESP_OK;
 }
 
 GearboxGear gear_from_idx(uint8_t idx)
@@ -810,12 +815,8 @@ void Gearbox::controller_loop()
             continue;
         }
 
-        bool can_read = true;
-        if (!this->calc_input_rpm(&sensor_data.input_rpm))
-        {
-            can_read = false;
-        }
-        if (can_read && this->calc_output_rpm(&this->sensor_data.output_rpm, now))
+        bool can_read = this->calc_input_rpm(&sensor_data.input_rpm) && this->calc_output_rpm(&this->sensor_data.output_rpm, now);
+        if (can_read)
         {
             if (now - last_output_measure_time > 250)
             {
@@ -898,7 +899,7 @@ void Gearbox::controller_loop()
             }
             this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
         }
-        if (Sensors::parking_lock_engaged(&lock_state))
+        if (Sensors::parking_lock_engaged(&lock_state) == ESP_OK)
         {
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
@@ -1066,7 +1067,7 @@ void Gearbox::controller_loop()
             sol_y5->write_pwm_12_bit(0);
         }
         int16_t tmp_atf = 0;
-        if (lock_state || !Sensors::read_atf_temp(&tmp_atf))
+        if (lock_state || !Sensors::read_atf_temp(&tmp_atf) == ESP_OK)
         {
             // Default to engine coolant
             tmp_atf = (egs_can_hal->get_engine_coolant_temp(now, 1000));
@@ -1237,7 +1238,7 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
                                                                                 (this->actual_gear == GearboxGear::Third) ||  // .. or 3 ..
                                                                                 (this->actual_gear == GearboxGear::Fourth)    // .. or 4
                                                                             );
-    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check))
+    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check) == ESP_OK)
     {
         ok = true;
         this->sensor_data.input_rpm = rpm.calc_rpm;
@@ -1247,28 +1248,27 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
 
 bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
 {
-    bool result = false;
-    WheelData left = egs_can_hal->get_rear_left_wheel(now, 500);
-    WheelData right = egs_can_hal->get_rear_right_wheel(now, 500);
-    // ESP_LOG_LEVEL(ESP_LOG_INFO, "WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
-    if ((WheelDirection::SignalNotAvaliable != left.current_dir) || (WheelDirection::SignalNotAvaliable != right.current_dir))
+    bool result = true;
+    this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
+    this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
+    if ((WheelDirection::SignalNotAvaliable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvaliable != sensor_data.rr_wheel.current_dir))
     {
         float rpm = 0.0F;
-        if (WheelDirection::SignalNotAvaliable == left.current_dir)
+        if (WheelDirection::SignalNotAvaliable == sensor_data.rl_wheel.current_dir)
         {
             // Right OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
-            rpm = right.double_rpm;
+            rpm = sensor_data.rr_wheel.double_rpm;
         }
-        else if (WheelDirection::SignalNotAvaliable == right.current_dir)
+        else if (WheelDirection::SignalNotAvaliable == sensor_data.rr_wheel.current_dir)
         {
             // Left OK
             ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
-            rpm = left.double_rpm;
+            rpm = sensor_data.rl_wheel.double_rpm;
         }
         else
         { // Both sensors OK!
-            rpm = (abs(left.double_rpm) + abs(right.double_rpm)) / 2;
+            rpm = (abs(sensor_data.rl_wheel.double_rpm) + abs(sensor_data.rr_wheel.double_rpm)) / 2;
         }
         rpm *= this->diff_ratio_f;
         rpm /= 2;
@@ -1289,12 +1289,15 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
                 break;
             case TransferCaseState::Neither:
                 ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is in Neutral!");
+                result = false;
                 break;
             case TransferCaseState::Switching:
                 ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is switching!");
+                result = false;
                 break;
             case TransferCaseState::SNA:
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "No signal from VG! Cannot read output rpm");
+                result = false;
                 break;
             }
         }
@@ -1305,7 +1308,7 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
     }
     else
     {
-        // ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "Could not obtain right and left wheel RPM!");
+        result = false;
     }
     return result;
 }

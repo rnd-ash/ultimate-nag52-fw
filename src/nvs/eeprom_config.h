@@ -7,6 +7,7 @@
 #include "common_structs.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "esp_err.h"
 
 // #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
 
@@ -55,16 +56,16 @@ struct __attribute__ ((packed)) TCM_EFUSE_CONFIG {
 
 
 namespace EEPROM {
-    bool init_eeprom(void);
+    esp_err_t init_eeprom(void);
     uint8_t get_last_profile(void);
-    bool read_core_config(TCM_CORE_CONFIG* dest);
-    bool save_core_config(TCM_CORE_CONFIG* write);
-    bool read_efuse_config(TCM_EFUSE_CONFIG* dest);
-    bool write_efuse_config(TCM_EFUSE_CONFIG* dest);
+    esp_err_t read_core_config(TCM_CORE_CONFIG* dest);
+    esp_err_t save_core_config(TCM_CORE_CONFIG* write);
+    esp_err_t read_efuse_config(TCM_EFUSE_CONFIG* dest);
+    esp_err_t write_efuse_config(TCM_EFUSE_CONFIG* dest);
 
 
-    bool read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
-    bool write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
+    esp_err_t read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
+    esp_err_t write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
 };
 
 #define NUM_GEARS 5

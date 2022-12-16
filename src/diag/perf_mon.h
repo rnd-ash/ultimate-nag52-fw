@@ -2,6 +2,7 @@
 #define PERF_MON_H
 
 #include <stdint.h>
+#include <esp_err.h>
 
 struct CpuStats{
     volatile uint16_t load_core_1;
@@ -9,7 +10,7 @@ struct CpuStats{
 } ;
 
 
-bool init_perfmon(void);
+esp_err_t init_perfmon(void);
 void remove_perfmon(void);
 
 CpuStats get_cpu_stats(void);

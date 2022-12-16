@@ -16,16 +16,16 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     RpmReading d;
     bool b = false;
 
-    if (!Sensors::read_input_rpm(&d, false)) {
-        ret.n2_rpm = 0xFFFF;
-        ret.n3_rpm = 0xFFFF;
-        ret.calculated_rpm = 0xFFFF;
-    } else {
+    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_rpm = d.n2_raw;
         ret.n3_rpm = d.n3_raw;
         ret.calculated_rpm = d.calc_rpm;
+    } else {
+        ret.n2_rpm = 0xFFFF;
+        ret.n3_rpm = 0xFFFF;
+        ret.calculated_rpm = 0xFFFF;
     }
-    if (Sensors::parking_lock_engaged(&b)) {
+    if (Sensors::parking_lock_engaged(&b) == ESP_OK) {
          ret.parking_lock = b;
          ret.atf_temp_c = g->sensor_data.atf_temp;
     } else {

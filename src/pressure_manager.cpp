@@ -270,12 +270,12 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
     dest_overlap->ramp_time = (float)chars.target_shift_time*overlap_ratio;
     
-    dest_torque->mpc_pressure = (curr_mpc+prev->mpc_pressure)/2; // Torque phase mpc pressure drop to 500 to initiate the release
-    dest_overlap->mpc_pressure = curr_mpc; //hold2_pressure_map->get_value(1, (uint8_t)get_clutch_to_release(change)); // Ramp up MPC in overlap to control the release
+    dest_torque->mpc_pressure = prev->mpc_pressure; // Torque phase mpc pressure drop to 500 to initiate the release
+    dest_overlap->mpc_pressure = prev->mpc_pressure; //hold2_pressure_map->get_value(1, (uint8_t)get_clutch_to_release(change)); // Ramp up MPC in overlap to control the release
 
     uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2.5mBar per Nm
 
-    dest_torque->spc_pressure = prev->spc_pressure+spc_addr;
+    dest_torque->spc_pressure = prev->mpc_pressure+spc_addr;
     dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr*2;
 }
 

@@ -75,7 +75,7 @@ public:
     Gearbox(void);
     void set_profile(AbstractProfile* prof);
     void inc_subprofile(void);
-    bool start_controller(void);
+    esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }

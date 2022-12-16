@@ -100,7 +100,7 @@ Gearbox::Gearbox()
     {
         this->redline_rpm = 4000; // just in case
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEAROX", "---OTHER CONFIG---");
+    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---OTHER CONFIG---");
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Redline RPM: %d", this->redline_rpm);
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
@@ -116,10 +116,10 @@ void Gearbox::set_profile(AbstractProfile *prof)
     }
 }
 
-bool Gearbox::start_controller()
+esp_err_t Gearbox::start_controller()
 {
     xTaskCreatePinnedToCore(Gearbox::start_controller_internal, "GEARBOX", 32768, static_cast<void *>(this), 10, nullptr, 1);
-    return true;
+    return ESP_OK;
 }
 
 GearboxGear gear_from_idx(uint8_t idx)
@@ -898,7 +898,7 @@ void Gearbox::controller_loop()
             }
             this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
         }
-        if (Sensors::parking_lock_engaged(&lock_state))
+        if (Sensors::parking_lock_engaged(&lock_state) == ESP_OK)
         {
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
@@ -1066,7 +1066,7 @@ void Gearbox::controller_loop()
             sol_y5->write_pwm_12_bit(0);
         }
         int16_t tmp_atf = 0;
-        if (lock_state || !Sensors::read_atf_temp(&tmp_atf))
+        if (lock_state || !Sensors::read_atf_temp(&tmp_atf) == ESP_OK)
         {
             // Default to engine coolant
             tmp_atf = (egs_can_hal->get_engine_coolant_temp(now, 1000));
@@ -1237,7 +1237,7 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
                                                                                 (this->actual_gear == GearboxGear::Third) ||  // .. or 3 ..
                                                                                 (this->actual_gear == GearboxGear::Fourth)    // .. or 4
                                                                             );
-    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check))
+    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check) == ESP_OK)
     {
         ok = true;
         this->sensor_data.input_rpm = rpm.calc_rpm;
@@ -1250,7 +1250,6 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
     bool result = false;
     WheelData left = egs_can_hal->get_rear_left_wheel(now, 500);
     WheelData right = egs_can_hal->get_rear_right_wheel(now, 500);
-    // ESP_LOG_LEVEL(ESP_LOG_INFO, "WRPM","R:(%d %d) L:(%d %d)", (int)right.current_dir, right.double_rpm, (int)left.current_dir, left.double_rpm);
     if ((WheelDirection::SignalNotAvaliable != left.current_dir) || (WheelDirection::SignalNotAvaliable != right.current_dir))
     {
         float rpm = 0.0F;

@@ -16,14 +16,14 @@ RLI_31_DATA get_rli_31(AbstractCan* can_layer) {
     RLI_31_DATA ret = {};
     uint64_t now = esp_timer_get_time() / 1000;
     RpmReading d;
-    if (!Sensors::read_input_rpm(&d, false)) {
-        ret.n2_pulse_count = 0xFFFF;
-        ret.n3_pulse_count = 0xFFFF;
-        ret.input_rpm = 0xFFFF;
-    } else {
+    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_pulse_count = d.n2_raw;
         ret.n3_pulse_count = d.n3_raw;
         ret.input_rpm = d.calc_rpm;
+    } else {
+        ret.n2_pulse_count = 0xFFFF;
+        ret.n3_pulse_count = 0xFFFF;
+        ret.input_rpm = 0xFFFF;
     }
     ret.vehicle_speed_rear_wheels = 0; // TODO
     ret.vehicle_speed_front_wheels = 0; // TODO

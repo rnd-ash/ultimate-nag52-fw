@@ -11,12 +11,6 @@
 
 // Shift phase IDs
 
-// #define SHIFT_PHASE_BLEED 1
-// #define SHIFT_PHASE_FILL 2
-// #define SHIFT_PHASE_TORQUE 3
-// #define SHIFT_PHASE_OVERLAP 4
-// #define SHIFT_PHASE_MAX_P 5
-
 static const uint16_t SHIFT_PHASE_BLEED = 1u;
 static const uint16_t SHIFT_PHASE_FILL = 2u;
 static const uint16_t SHIFT_PHASE_TORQUE = 3u;
@@ -89,7 +83,7 @@ public:
      * @return true if adaptation reset was OK
      * @return false if adaptation reset failed
      */
-    bool diag_reset_adaptation(void) {
+    esp_err_t diag_reset_adaptation(void) {
         bool result = false;
         if (this->adapt_map != nullptr) { 
             this->adapt_map->reset();

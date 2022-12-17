@@ -73,7 +73,9 @@ esp_err_t StoredTcuMap::replace_map_content(int16_t *new_data, uint16_t content_
     esp_err_t result = ESP_OK;
     if (content_len == (this->map_element_count))
     {
-        result = this->add_data(new_data, this->map_element_count);
+        if(!this->add_data(new_data, this->map_element_count)) {
+            result = ESP_ERR_INVALID_STATE;
+        }
     }
     else
     {

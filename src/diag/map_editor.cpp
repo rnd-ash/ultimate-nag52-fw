@@ -125,7 +125,7 @@ uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, 
     
 uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
-    if (ptr->replace_map_content(buffer, dest_size)) {
+    if (ptr->replace_map_content(buffer, dest_size) == ESP_OK) {
         return 0;
     } else {
         return NRC_GENERAL_REJECT;
@@ -134,7 +134,7 @@ uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* b
 
 uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     CHECK_MAP(map_id)
-    if (ptr->save_to_eeprom()) {
+    if (ptr->save_to_eeprom() == ESP_OK) {
         return 0;
     } else {
         return NRC_GENERAL_REJECT;
@@ -152,7 +152,7 @@ uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
 
 uint8_t MapEditor::undo_changes(uint8_t map_id) {
     CHECK_MAP(map_id)
-    if (ptr->reload_from_eeprom()) {
+    if (ptr->reload_from_eeprom() == ESP_OK) {
         return 0;
     } else {
         return NRC_GENERAL_REJECT;

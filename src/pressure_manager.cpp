@@ -245,7 +245,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         Clutch to_release = get_clutch_to_release(change);
         dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
-        dest->mpc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_release) + curr_mpc/2;
+        dest->mpc_pressure = MAX(hold2_pressure_map->get_value(1, (uint8_t)to_release), curr_mpc);
     }
     dest->ramp_time = 100;
     //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
@@ -257,17 +257,17 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     float overlap_ratio = 1.0-torque_ratio;
     
     dest_torque->hold_time = 0;
-    dest_overlap->hold_time = 0;
+    dest_overlap->hold_time = (float)chars.target_shift_time*overlap_ratio*0.75;
 
     dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
-    dest_overlap->ramp_time = (float)chars.target_shift_time*overlap_ratio;
+    dest_overlap->ramp_time = dest_overlap->hold_time/4;
     
     dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
-    dest_overlap->mpc_pressure = hold2_pressure_map->get_value(1, (uint8_t)get_clutch_to_release(change)); // Reduce MPC to just apply pressure
+    dest_overlap->mpc_pressure = prev->mpc_pressure;
 
-    uint16_t spc_addr =  MAX(50, abs(sensor_data->static_torque)*2); // 2mBar per Nm
+    uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2); // 2mBar per Nm
 
-    dest_torque->spc_pressure = prev->mpc_pressure; // Same as MPC (Begin torque transfer)
+    dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
     dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase
 }
 

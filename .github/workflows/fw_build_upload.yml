@@ -32,6 +32,12 @@ jobs:
       - name: Build Prod PCB FW
         run: |
           pio run -e unified
+      - uses: actions/upload-artifact@v3
+        with:
+          name: UNIFIED_FW
+          path: |
+            .pio/build/unified/firmware.elf
+            .pio/build/unified/firmware.bin
       - uses: pyTooling/Actions/releaser@r0
         with:
           tag: "dev"

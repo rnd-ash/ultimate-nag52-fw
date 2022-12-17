@@ -348,3 +348,21 @@ int16_t W_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overla
     /* 75% Redline     */ 1400, 1300, 1200, 1100,  800,  650,
     /* Redline (100%)  */ 1200, 1000,  900,  800,  700,  600
 };
+
+int16_t R_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
+    /*                       0    20    40   60    80  100 <- Pedal % */
+    /* < 1000 RPM (0%) */  100,  100,  100,  100,  100,  100, 
+    /* 25% Redline     */  100,  100,  100,  100,  100,  100,
+    /* 50% Redline     */  100,  150,  100,  100,  100,  100,
+    /* 75% Redline     */  100,  175,  150,  100,  100,  100,
+    /* Redline (100%)  */  100,  125,  100,  100,  100,  100
+};
+
+int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
+    /*                       0    20    40   60    80  100 <- Pedal % */
+    /* < 1000 RPM (0%) */  100,  100,  100, 100,  100,  100, 
+    /* 25% Redline     */  100,  100,  100, 100,  100,  100,
+    /* 50% Redline     */  100,  100,  100, 100,  100,  100,
+    /* 75% Redline     */  100,  100,  100, 100,  100,  100,
+    /* Redline (100%)  */  100,  100,  100, 100,  100,  100
+};

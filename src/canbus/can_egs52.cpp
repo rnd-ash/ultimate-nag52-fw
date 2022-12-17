@@ -620,6 +620,9 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             gs418.set_FPC('M');
             break;
         case GearboxProfile::Individual:
+            gs418.set_FPC('I');
+            break;
+        case GearboxProfile::Race:
             gs418.set_FPC('R');
             break;
         case GearboxProfile::Underscore:

@@ -12,6 +12,7 @@
 #define PROFILE_ID_WINTER 2
 #define PROFILE_ID_AGILITY 3
 #define PROFILE_ID_MANUAL 4
+#define PROFILE_ID_RACE 5
 
 #define SHIFT_MAP_X_SIZE 11
 #define SHIFT_MAP_Y_SIZE 4
@@ -129,7 +130,7 @@ public:
 class WinterProfile : public AbstractProfile {
 public:
     explicit WinterProfile(bool is_diesel);
-    GearboxProfile get_profile() const override { return GearboxProfile::Individual; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -162,10 +163,22 @@ public:
     uint8_t get_profile_id() override { return PROFILE_ID_MANUAL; }
 };
 
+class RaceProfile : public AbstractProfile {
+public:
+    explicit RaceProfile(bool is_diesel);
+    GearboxProfile get_profile() const override { return GearboxProfile::Race; }
+    GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
+    bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
+    bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) override;
+    uint8_t get_profile_id() override { return PROFILE_ID_RACE; }
+};
+
 extern AgilityProfile* agility;
 extern ComfortProfile* comfort;
 extern WinterProfile* winter;
 extern ManualProfile* manual;
 extern StandardProfile* standard;
+extern RaceProfile* race;
 
 #endif

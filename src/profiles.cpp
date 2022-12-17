@@ -431,14 +431,14 @@ ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
         MAP_NAME_M_DIESEL_DOWNSHIFT,
         MAP_NAME_M_PETROL_UPSHIFT, 
         MAP_NAME_M_PETROL_DOWNSHIFT,
-        MAP_NAME_W_UPSHIFT_TIME,
-        MAP_NAME_W_DOWNSHIFT_TIME,
+        MAP_NAME_R_UPSHIFT_TIME,
+        MAP_NAME_R_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
         M_PETROL_DOWNSHIFT_MAP,
-        W_UPSHIFT_TIME_MAP,
-        W_DOWNSHIFT_TIME_MAP
+        R_UPSHIFT_TIME_MAP,
+        R_DOWNSHIFT_TIME_MAP
     ) {
 }
 
@@ -462,6 +462,44 @@ TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearbo
     };
 }
 
+
+RaceProfile::RaceProfile(bool is_diesel): AbstractProfile(
+        is_diesel,
+        "RACE", 
+        MAP_NAME_M_DIESEL_UPSHIFT, 
+        MAP_NAME_M_DIESEL_DOWNSHIFT,
+        MAP_NAME_M_PETROL_UPSHIFT, 
+        MAP_NAME_M_PETROL_DOWNSHIFT,
+        MAP_NAME_W_UPSHIFT_TIME,
+        MAP_NAME_W_DOWNSHIFT_TIME,
+        M_DIESEL_UPSHIFT_MAP,
+        M_DIESEL_DOWNSHIFT_MAP,
+        M_PETROL_UPSHIFT_MAP,
+        M_PETROL_DOWNSHIFT_MAP,
+        W_UPSHIFT_TIME_MAP,
+        W_DOWNSHIFT_TIME_MAP
+    ) {
+}
+
+GearboxDisplayGear RaceProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+    return manual->get_display_gear(target, actual);
+}
+
+bool RaceProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    return manual->should_upshift(current_gear, sensors);
+}
+
+bool RaceProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+    return manual->should_downshift(current_gear, sensors);
+}
+
+TccLockupBounds RaceProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+    return TccLockupBounds {
+        .max_slip_rpm = 50,
+        .min_slip_rpm = 10
+    };
+}
+
 /*
 AgilityProfile* agility = new AgilityProfile();
 ComfortProfile* comfort = new ComfortProfile();
@@ -476,3 +514,4 @@ ComfortProfile* comfort = nullptr;
 WinterProfile* winter = nullptr;
 ManualProfile* manual = nullptr;
 StandardProfile* standard = nullptr;
+RaceProfile* race = nullptr;

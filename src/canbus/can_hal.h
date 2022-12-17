@@ -102,6 +102,8 @@ enum class GearboxProfile: uint8_t {
     Winter,
     // Failure (F)
     Failure,
+    // Race (R)
+    Race,
     Individual,
     // Reserved for 'no profile' (_)
     Underscore

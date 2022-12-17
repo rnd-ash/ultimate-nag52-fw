@@ -24,7 +24,7 @@
 Kwp2000_server* diag_server;
 
 uint8_t profile_id = 0;
-#define NUM_PROFILES 5 // A, C, W, M, S
+#define NUM_PROFILES 6 // A, C, W, M, S, R
 AbstractProfile* profiles[NUM_PROFILES];
 
 Speaker* spkr2 = nullptr;
@@ -93,12 +93,14 @@ SPEAKER_POST_CODE setup_tcm() {
         winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
         agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
         manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
+        race = new RaceProfile(VEHICLE_CONFIG.engine_type == 0);
 
         profiles[0] = standard;
         profiles[1] = comfort;
         profiles[2] = winter;
         profiles[3] = agility;
         profiles[4] = manual;
+        profiles[5] = race;
 
         // Read profile ID on startup based on TCM config
         profile_id = VEHICLE_CONFIG.default_profile;

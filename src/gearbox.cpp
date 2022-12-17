@@ -136,32 +136,14 @@ esp_err_t Gearbox::start_controller()
 
 GearboxGear gear_from_idx(uint8_t idx)
 {
+    // Only for drivable gears. P/R/SNV is never used
     GearboxGear ret = GearboxGear::SignalNotAvailable;
-    switch (idx)
-    {
-    case 1:
-        ret = GearboxGear::First;
-        break;
-    case 2:
-        ret = GearboxGear::Second;
-        break;
-    case 3:
-        ret = GearboxGear::Third;
-        break;
-    case 4:
-        ret = GearboxGear::Fourth;
-        break;
-    case 5:
-        ret = GearboxGear::Fifth;
-        break;
-    case 6:
+    if (likely(idx >= 1 && idx <= 5)) {
+        ret = (GearboxGear)(idx); // Direct cast for gears 1-5
+    } else if (idx == 6) {
         ret = GearboxGear::Reverse_First;
-        break;
-    case 7:
+    } else if (idx == 7) {
         ret = GearboxGear::Reverse_Second;
-        break;
-    default:
-        break;
     }
     return ret;
 }
@@ -227,47 +209,22 @@ void Gearbox::dec_gear_request()
 
 GearboxGear next_gear(GearboxGear g)
 {
-    switch (g)
-    {
-    case GearboxGear::First:
-        return GearboxGear::Second;
-    case GearboxGear::Second:
-        return GearboxGear::Third;
-    case GearboxGear::Third:
-        return GearboxGear::Fourth;
-    case GearboxGear::Fourth:
-        return GearboxGear::Fifth;
-    case GearboxGear::Park:
-    case GearboxGear::SignalNotAvailable:
-    case GearboxGear::Neutral:
-    case GearboxGear::Reverse_First:
-    case GearboxGear::Reverse_Second:
-    default:
-        return g;
+    GearboxGear next = g;
+    uint8_t idx = (uint8_t)g;
+    if (idx < 5) { // 1-4
+        next = (GearboxGear)(idx+1);
     }
+    return next;
 }
 
 GearboxGear prev_gear(GearboxGear g)
 {
-    switch (g)
-    {
-    case GearboxGear::Second:
-        return GearboxGear::First;
-    case GearboxGear::Third:
-        return GearboxGear::Second;
-    case GearboxGear::Fourth:
-        return GearboxGear::Third;
-    case GearboxGear::Fifth:
-        return GearboxGear::Fourth;
-    case GearboxGear::First:
-    case GearboxGear::Park:
-    case GearboxGear::SignalNotAvailable:
-    case GearboxGear::Neutral:
-    case GearboxGear::Reverse_First:
-    case GearboxGear::Reverse_Second:
-    default:
-        return g;
+    GearboxGear prev = g;
+    uint8_t idx = (uint8_t)g;
+    if (idx > 1 && idx <= 5) { // 2-5
+        prev = (GearboxGear)(idx-1);
     }
+    return prev;
 }
 
 // int find_target_ratio(int targ_gear, FwdRatios ratios) {

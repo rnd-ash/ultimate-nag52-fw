@@ -2,7 +2,7 @@
 #ifndef __KWP_UTILS_H__
 #define __KWP_UTILS_H__
 
-#include "endpoint.h"
+#include "endpoints/endpoint.h"
 #include "stdint.h"
 
 // Couple of helpful functions

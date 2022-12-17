@@ -153,7 +153,7 @@ int16_t *StoredTcuMap::get_current_eeprom_map_data(void)
     if (nullptr != dest)
     {
         succesful_allocation = true;
-        if (!EEPROM::read_nvs_map_data(this->map_name, dest, this->default_map, this->map_element_count))
+        if (EEPROM::read_nvs_map_data(this->map_name, dest, this->default_map, this->map_element_count) != ESP_OK)
         {
             heap_caps_free(dest);
             succesful_allocation = false;            

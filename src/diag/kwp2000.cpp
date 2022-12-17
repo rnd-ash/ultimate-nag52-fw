@@ -146,19 +146,15 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
-    this->usb_diag_endpoint = new UsbEndpoint(true);
+    this->usb_diag_endpoint = new UsbEndpoint();
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
-    if (can_layer != nullptr) {
-        this->can_endpoint = new CanEndpoint(can_layer);
+    this->can_endpoint = new CanEndpoint(can_layer);
+    if (this->can_endpoint->init_state() == ESP_OK) {
         // Start ISO-TP endpoint
         xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
-    } else {
-        this->can_endpoint = nullptr;
-        this->can_layer = nullptr;
     }
-
     this->supplier_id = 0x08;
     if (can_layer == nullptr || gearbox == nullptr) {
         this->diag_var_code = 0x0000;
@@ -168,7 +164,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
                 this->diag_var_code = 0x0251;
                 break;
             case 2:
-                this->diag_var_code = 0x0251;
+                this->diag_var_code = 0x0252;
                 break;
             case 3:
                 this->diag_var_code = 0x0353;
@@ -217,16 +213,15 @@ void Kwp2000_server::server_loop() {
         uint64_t timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
         bool endpoint_was_usb = false;
-        if (this->usb_diag_endpoint->read_data(&this->rx_msg)) {
+        if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = true;
             read_msg = true;
-        } else if (this->can_endpoint != nullptr && this->can_endpoint->read_data(&this->rx_msg)) {
+        } else if (this->can_endpoint->init_state() == ESP_OK && this->can_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = false;
             read_msg = true;
         }
         if (read_msg) {
             this->next_tp_time = timestamp+KWP_TP_TIMEOUT_MS;
-            //ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 continue; // Huh?
             }

@@ -6,7 +6,7 @@
 #include "gearbox.h"
 #include "nvs/eeprom_config.h"
 #include "common_structs.h"
-#include "endpoint.h"
+#include "endpoints/endpoint.h"
 #include <esp_app_format.h>
 
 // Needed extra bytes for response, SID, RLI, Shift ID

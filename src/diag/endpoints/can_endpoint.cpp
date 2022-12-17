@@ -1,5 +1,5 @@
 #include "endpoint.h"
-#include "kwp2000_defines.h"
+#include "../kwp2000_defines.h"
 #include "driver/twai.h"
 
 const DiagCanMessage FLOW_CONTROL = {0x30, KWP_CAN_BS, KWP_CAN_ST_MIN, 0, 0, 0, 0, 0};
@@ -23,6 +23,11 @@ CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
     this->last_rx_time = 0;
     this->last_tx_time = 0;
     can_layer->register_diag_queue(&this->rx_queue, KWP_ECU_RX_ID);
+    this->status = ESP_OK;
+}
+
+esp_err_t CanEndpoint::init_state() {
+    return this->status;
 }
 
 bool CanEndpoint::send_to_twai(DiagCanMessage msg) {

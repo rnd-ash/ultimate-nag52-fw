@@ -42,5 +42,5 @@ bool is_engine_off(EgsBaseCan* can) {
 bool is_shifter_passive(EgsBaseCan* can) {
     // Shifter must be Offline (SNV) or P or N
     ShifterPosition pos = can->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
-    return (pos == ShifterPosition::N || pos == ShifterPosition::D || pos == ShifterPosition::SignalNotAvailable);
+    return (pos == ShifterPosition::N || pos == ShifterPosition::P || pos == ShifterPosition::SignalNotAvailable);
 }

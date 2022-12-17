@@ -55,23 +55,23 @@ static void IRAM_ATTR cpu_load_interrupt(void *arg)
     }
 }
 
+const static timer_config_t PERFORM_T_CONFIG = {
+    .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
+    .counter_en = timer_start_t::TIMER_START,
+    .intr_type = TIMER_INTR_LEVEL,
+    .counter_dir = TIMER_COUNT_UP,
+    .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
+    .divider = 80 /* 1 us per tick */
+};
+
 esp_err_t init_perfmon(void)
 {
     if (!perfmon_running)
     {
-        timer_config_t config = {
-            .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
-            .counter_en = timer_start_t::TIMER_START,
-            .intr_type = TIMER_INTR_LEVEL,
-            .counter_dir = TIMER_COUNT_UP,
-            .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
-            .divider = 80 /* 1 us per tick */
-        };
-
         dest.load_core_1 = 0;
         dest.load_core_2 = 0;
 
-        ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_1, &config), "PERFMON", "Timer init failed");
+        ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_1, &PERFORM_T_CONFIG), "PERFMON", "Timer init failed");
         ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0), "PERFMON", "Set counter value failed");
         ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, LOAD_FETCH_INTERVAL_MS * 1000), "PERFMON", "Set alarm value failed");
         ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_1), "PERFMON", "Enable intr failed");

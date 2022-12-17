@@ -3,7 +3,7 @@
 #ifndef _KWP_H__
 #define _KWP_H__
 
-#include "endpoint.h"
+#include "endpoints/endpoint.h"
 #include <stdint.h>
 #include "kwp2000_defines.h"
 #include "gearbox.h"

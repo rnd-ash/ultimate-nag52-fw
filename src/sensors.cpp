@@ -41,42 +41,40 @@ bool output_rpm_ok = false;
 static void IRAM_ATTR on_pcnt_overflow_n2(void *args)
 {
     t_n2 = esp_timer_get_time();
-    if (t_n2 - n2_intr_times[1] < 10)
+    if (t_n2 - n2_intr_times[1] > 10)
     {
-        return;
+        portENTER_CRITICAL_ISR(&n2_mux);
+        n2_intr_times[0] = n2_intr_times[1];
+        n2_intr_times[1] = t_n2;
+        portEXIT_CRITICAL_ISR(&n2_mux);
     }
-    portENTER_CRITICAL_ISR(&n2_mux);
-    n2_intr_times[0] = n2_intr_times[1];
-    n2_intr_times[1] = t_n2;
-    portEXIT_CRITICAL_ISR(&n2_mux);
+    
 }
 
 static void IRAM_ATTR on_pcnt_overflow_n3(void *args)
 {
     t_n3 = esp_timer_get_time();
-    if (t_n3 - n3_intr_times[1] < 10)
+    if (t_n3 - n3_intr_times[1] > 10)
     {
-        return;
+        portENTER_CRITICAL_ISR(&n3_mux);
+        n3_intr_times[0] = n3_intr_times[1];
+        n3_intr_times[1] = t_n3;
+        portEXIT_CRITICAL_ISR(&n3_mux);
     }
-    portENTER_CRITICAL_ISR(&n3_mux);
-    n3_intr_times[0] = n3_intr_times[1];
-    n3_intr_times[1] = t_n3;
-    portEXIT_CRITICAL_ISR(&n3_mux);
 }
 
 static void IRAM_ATTR on_pcnt_overflow_output(void* args) {
     t_output = esp_timer_get_time();
-    if (t_output - output_intr_times[1] < 10) {
-        return;
+    if (t_output - output_intr_times[1] > 10) {
+        portENTER_CRITICAL_ISR(&output_mux);
+        output_intr_times[0] = output_intr_times[1];
+        output_intr_times[1] = t_output;
+        portEXIT_CRITICAL_ISR(&output_mux);
     }
-    portENTER_CRITICAL_ISR(&output_mux);
-    output_intr_times[0] = output_intr_times[1];
-    output_intr_times[1] = t_output;
-    portEXIT_CRITICAL_ISR(&output_mux);
 }
 
 esp_err_t Sensors::init_sensors(){
-    pcnt_config_t pcnt_cfg_n2{
+    const pcnt_config_t pcnt_cfg_n2{
         .pulse_gpio_num = pcb_gpio_matrix->n2_pin,
         .ctrl_gpio_num = PCNT_PIN_NOT_USED,
         .lctrl_mode = PCNT_MODE_KEEP,
@@ -88,7 +86,7 @@ esp_err_t Sensors::init_sensors(){
         .unit = PCNT_N2_RPM,
         .channel = PCNT_CHANNEL_0};
 
-    pcnt_config_t pcnt_cfg_n3{
+    const pcnt_config_t pcnt_cfg_n3{
         .pulse_gpio_num = pcb_gpio_matrix->n3_pin,
         .ctrl_gpio_num = PCNT_PIN_NOT_USED,
         .lctrl_mode = PCNT_MODE_KEEP,

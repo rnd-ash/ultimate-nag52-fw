@@ -239,7 +239,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
     if (this->hold2_time_map == nullptr) {
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
-        dest->mpc_pressure = 750 + curr_mpc;
+        dest->mpc_pressure = curr_mpc;
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
@@ -266,6 +266,9 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_overlap->mpc_pressure = prev->mpc_pressure;
 
     uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2); // 2mBar per Nm
+    if (sensor_data->static_torque < 0) {
+        spc_addr += 100; // For coast shifts
+    }
 
     dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
     dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase

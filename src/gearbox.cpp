@@ -21,19 +21,19 @@ int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, FwdRatios
     switch (req_gear)
     {
     case GearboxGear::First:
-        calculated *= ratios[1];
+        calculated *= ratios[0];
         break;
     case GearboxGear::Second:
-        calculated *= ratios[2];
+        calculated *= ratios[1];
         break;
     case GearboxGear::Third:
-        calculated *= ratios[3];
+        calculated *= ratios[2];
         break;
     case GearboxGear::Fourth:
-        calculated *= ratios[4];
+        calculated *= ratios[3];
         break;
     case GearboxGear::Fifth:
-        calculated *= ratios[5];
+        calculated *= ratios[4];
         break;
     default:
         break;

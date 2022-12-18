@@ -168,7 +168,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->static_torque*100)/(float)this->gb_max_torque;
+    float trq_percent = (float)(MAX(sensor_data->driver_requested_torque, sensor_data->static_torque)*100)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -265,7 +265,7 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
     dest_overlap->mpc_pressure = prev->mpc_pressure;
 
-    uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2); // 2mBar per Nm
+    uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2); // 2mBar per Nm
 
     dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
     dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase

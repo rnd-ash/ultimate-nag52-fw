@@ -55,7 +55,7 @@ Gearbox::Gearbox()
         .static_torque = 0,
         .max_torque = 0,
         .min_torque = 0,
-        .driver_default_torque = 0,
+        .driver_requested_torque = 0,
         .tcc_slip_rpm = 0,
         .last_shift_time = 0,
         .current_timestamp_ms = (uint64_t)(esp_timer_get_time() / 1000),
@@ -211,7 +211,7 @@ GearboxGear next_gear(GearboxGear g)
 {
     GearboxGear next = g;
     uint8_t idx = (uint8_t)g;
-    if (idx < 5) { // 1-4
+    if (idx >= 1 && idx < 5) { // 1-4
         next = (GearboxGear)(idx+1);
     }
     return next;
@@ -325,7 +325,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             {
                                 // request the torque!
                                 // torque_req_amt = sd.torque_down_amount;
-                                //curr_torque_req = sensor_data.driver_default_torque - 1;
+                                //curr_torque_req = sensor_data.driver_requested_torque - 1;
                                 //req_trq = true;
                                 //egs_can_hal->set_torque_request(TorqueRequest::Decrease);
                                 //egs_can_hal->set_requested_torque(curr_torque_req);
@@ -390,7 +390,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
                     else
                     { // Max P. Increase torque
-                        if (curr_torque_req < sensor_data.driver_default_torque)
+                        if (curr_torque_req < sensor_data.driver_requested_torque)
                         {
                             curr_torque_req += 2;
                             egs_can_hal->set_torque_request(TorqueRequest::Increase);
@@ -1087,7 +1087,7 @@ void Gearbox::controller_loop()
         int driver_torque = egs_can_hal->get_driver_engine_torque(now, 500);
         if (driver_torque != INT_MAX)
         {
-            this->sensor_data.driver_default_torque = driver_torque;
+            this->sensor_data.driver_requested_torque = driver_torque;
         }
         int max_torque = egs_can_hal->get_maximum_engine_torque(now, 500);
         if (max_torque != INT_MAX)

@@ -643,10 +643,55 @@ void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
 
 }
 void Kwp2000_server::process_disable_msg_tx(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (!egs_can_hal) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_GENERAL_REJECT);
+        return;
+    }
+    bool response = true;
+    if (args[0] == 0x01) { response = true; }
+    else if (args[0] == 0x02) { response = false; }
+    else {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    egs_can_hal->disable_normal_msg_transmission();
+    if (response) {
+        make_diag_pos_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, nullptr, 0);
+    }
 }
-void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
 
+void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (!egs_can_hal) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_GENERAL_REJECT);
+        return;
+    }
+    bool response = true;
+    if (args[0] == 0x01) { response = true; }
+    else if (args[0] == 0x02) { response = false; }
+    else {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    egs_can_hal->enable_normal_msg_transmission();
+    if (response) {
+        make_diag_pos_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, nullptr, 0);
+    }
 }
 void Kwp2000_server::process_dynamically_define_local_ident(uint8_t* args, uint16_t arg_len) {
 

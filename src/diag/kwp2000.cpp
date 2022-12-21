@@ -299,6 +299,12 @@ void Kwp2000_server::server_loop() {
                 case SID_SHIFT_MGR_OP:
                     this->process_shift_mgr_op(args_ptr, args_size);
                     break;
+                case SID_ENABLE_NORMAL_MSG_TRANSMISSION:
+                    this->process_enable_msg_tx(args_ptr, args_size);
+                    break;
+                case SID_DISABLE_NORMAL_MSG_TRANSMISSION:
+                    this->process_disable_msg_tx(args_ptr, args_size);
+                    break;
                 default:
                     ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported, full msg was:", rx_msg.data[0]);
                     ESP_LOG_BUFFER_HEX_LEVEL("KWP_HANDLE_REQ", rx_msg.data, rx_msg.data_size, ESP_LOG_WARN);

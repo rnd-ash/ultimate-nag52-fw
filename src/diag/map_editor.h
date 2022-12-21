@@ -2,6 +2,7 @@
 #define __MAP_EDITOR_H_
 
 #include <stdint.h>
+#include "kwp2000_defines.h"
 
 #define A_UPSHIFT_MAP_ID 0x01
 #define C_UPSHIFT_MAP_ID 0x02
@@ -43,12 +44,12 @@
 #define MAP_READ_TYPE_STO 0x03
 
 namespace MapEditor {
-    uint8_t read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);
-    uint8_t read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer);
-    uint8_t write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer);
-    uint8_t burn_to_eeprom(uint8_t map_id);
-    uint8_t reset_to_program_default(uint8_t map_id);
-    uint8_t undo_changes(uint8_t map_id);
+    kwp_result_t read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);
+    kwp_result_t read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer);
+    kwp_result_t write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer);
+    kwp_result_t burn_to_eeprom(uint8_t map_id);
+    kwp_result_t reset_to_program_default(uint8_t map_id);
+    kwp_result_t undo_changes(uint8_t map_id);
 }
 
 #endif

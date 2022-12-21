@@ -207,7 +207,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
     return cfg;
 }
 
-uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
+kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions

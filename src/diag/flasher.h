@@ -48,7 +48,7 @@ class Flasher {
         size_t read_bytes;
         size_t read_bytes_total;
 
-        DiagMessage make_diag_neg_msg(uint8_t sid, uint8_t nrc){
+        DiagMessage make_diag_neg_msg(uint8_t sid, kwp_result_t nrc){
             DiagMessage msg;
             global_make_diag_neg_msg(&msg, sid, nrc);
             return msg;

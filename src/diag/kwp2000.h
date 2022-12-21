@@ -35,7 +35,9 @@ class Kwp2000_server {
             static_cast<Kwp2000_server*>(_this)->server_loop();
         }
 
-        void make_diag_neg_msg(uint8_t sid, uint8_t nrc);
+        kwp_result_t convert_err_result(kwp_result_t in);
+
+        void make_diag_neg_msg(uint8_t sid, kwp_result_t nrc);
         void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
         void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
         Gearbox* gearbox_ptr;

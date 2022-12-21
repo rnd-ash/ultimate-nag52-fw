@@ -179,6 +179,25 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     init_perfmon();
 }
 
+kwp_result_t Kwp2000_server::convert_err_result(kwp_result_t in) {
+    kwp_result_t out = NRC_GENERAL_REJECT;
+    switch(in) {
+        case NRC_UN52_ENGINE_OFF:
+        case NRC_UN52_ENGINE_ON:
+        case NRC_UN52_SHIFTER_ACTIVE:
+        case NRC_UN52_SHIFTER_PASSIVE:
+            out = NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR;
+            break;
+        case NRC_UN52_NO_MEM:
+            out = NRC_GENERAL_REJECT;
+            break;
+        default:
+            out = in;
+            break;
+    }
+    return out;
+}
+
 Kwp2000_server::~Kwp2000_server() {
     if (this->flash_handler != nullptr) {
         delete this->flash_handler;
@@ -188,7 +207,12 @@ Kwp2000_server::~Kwp2000_server() {
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
-    global_make_diag_neg_msg(&this->tx_msg, sid, nrc);
+    kwp_result_t nrc_convert = nrc;
+    if (this->session_mode != SESSION_CUSTOM_UN52) {
+        nrc_convert = this->convert_err_result(nrc);
+        ESP_LOGI("KWP2000", "Converting %s NRC to %s", kwp_nrc_to_name(nrc), kwp_nrc_to_name(nrc_convert));
+    }
+    global_make_diag_neg_msg(&this->tx_msg, sid, nrc_convert);
     this->send_resp = true;
 }
 
@@ -296,7 +320,6 @@ void Kwp2000_server::server_loop() {
             this->session_mode == SESSION_CUSTOM_UN52)
             && timestamp > this->next_tp_time
         ) {
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "KWP2000", "Tester present interval has expired, returning to default mode");
             this->session_mode = SESSION_DEFAULT;
         }
         if (this->reboot_pending) {
@@ -614,7 +637,6 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RMA","Pointer: %p", address);
     make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, address, args[arg_len-1]); // Copy args[3] len bytes from address into positive message
 }
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
@@ -645,7 +667,7 @@ void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_le
             // resp[1..2] - 0x0001 - Normal, 0x0002 - Assembly mode, 0x0004 - Role mode, 0x0008 - Slave mode
             uint8_t resp[3] = {0x10, 0x00, 0x02};
             if (BOARD_CONFIG.board_ver == 0) {
-                resp[2] = 0x04; // Assembly mode if mode is unknown
+                resp[2] = 0x02; // Assembly mode if mode is unknown
             }
             make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 3);
             return;
@@ -849,7 +871,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                 TCM_CORE_CONFIG cfg;
                 memcpy(&cfg, &args[1], sizeof(TCM_CORE_CONFIG));
                 uint8_t res = set_tcm_config(cfg);
-                if (res == 0x00) {
+                if (res == NRC_OK) {
                     make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
                 } else {
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
@@ -863,7 +885,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                 TCM_EFUSE_CONFIG cfg;
                 memcpy(&cfg, &args[1], sizeof(TCM_EFUSE_CONFIG));
                 bool res = EEPROM::write_efuse_config(&cfg);
-                if (res == true) {
+                if (res == ESP_OK) {
                     make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
                 } else {
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
@@ -958,7 +980,6 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
 
 void Kwp2000_server::run_solenoid_test() {
     vTaskDelay(50);
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Starting solenoid test");
     this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
@@ -1113,8 +1134,7 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[37] = curr & 0xFF;
     this->routine_result[38] = (curr >> 8) & 0xFF;
     sol_y5->write_pwm_12_bit(0);
-
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Cleaning up");
+    
     this->routine_running = false;
     mpc_cc->toggle_state(true);
     spc_cc->toggle_state(true);

@@ -8,6 +8,7 @@
 #include "common_structs.h"
 #include "endpoints/endpoint.h"
 #include <esp_app_format.h>
+#include "kwp2000_defines.h"
 
 // Needed extra bytes for response, SID, RLI, Shift ID
 static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too big to fit in Diag message!");
@@ -135,7 +136,7 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 
 // Read and write SCN config
 TCM_CORE_CONFIG get_tcm_config(void);
-uint8_t set_tcm_config(TCM_CORE_CONFIG cfg);
+kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
 COREDUMP_INFO get_coredump_info(void);
 

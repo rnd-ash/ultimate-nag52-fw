@@ -62,14 +62,14 @@ StoredTcuMap* get_map(uint8_t map_id) {
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
 
-uint8_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer) {
+kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
     // Map valid
     uint16_t size = ptr->get_map_element_count();
     uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM));
     if (b == nullptr) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
-        return NRC_GENERAL_REJECT;
+        return NRC_UN52_NO_MEM;
     }
     if (read_type ==  MAP_READ_TYPE_PRG) {
         memcpy(b, ptr->get_default_map_data(), size*sizeof(int16_t));
@@ -85,10 +85,10 @@ uint8_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *de
     }
     *buffer = b;
     *dest_size_bytes = size*sizeof(int16_t);
-    return 0;
+    return NRC_OK;
 }
 
-uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
+kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id);
     // X meta, Y meta, KEY_NAME
     int16_t* x_ptr;
@@ -106,8 +106,7 @@ uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, 
     uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));
     uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM));
     if (b == nullptr) {
-        ESP_LOGE("MAP_EDITOR_M", "Could not allocate read array!");
-        return NRC_GENERAL_REJECT;
+        return NRC_UN52_NO_MEM;
     }
     b[1] = x_size >> 8;
     b[0] = x_size & 0xFF;
@@ -120,22 +119,22 @@ uint8_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, 
     memcpy(&b[6+((x_size+y_size)*sizeof(int16_t))], k_ptr, k_size);
     *buffer = b;
     *dest_size_bytes = size;
-    return 0;
+    return NRC_OK;
 }
     
-uint8_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
+kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
     if (ptr->replace_map_content(buffer, dest_size) == ESP_OK) {
-        return 0;
+        return NRC_OK;
     } else {
         return NRC_GENERAL_REJECT;
     }
 }
 
-uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
+kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     CHECK_MAP(map_id)
     if (ptr->save_to_eeprom() == ESP_OK) {
-        return 0;
+        return NRC_OK;
     } else {
         return NRC_GENERAL_REJECT;
     }
@@ -150,10 +149,10 @@ uint8_t MapEditor::burn_to_eeprom(uint8_t map_id) {
 //     }
 // }
 
-uint8_t MapEditor::undo_changes(uint8_t map_id) {
+kwp_result_t MapEditor::undo_changes(uint8_t map_id) {
     CHECK_MAP(map_id)
     if (ptr->reload_from_eeprom() == ESP_OK) {
-        return 0;
+        return NRC_OK;
     } else {
         return NRC_GENERAL_REJECT;
     }

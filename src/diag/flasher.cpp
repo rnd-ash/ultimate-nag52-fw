@@ -30,12 +30,10 @@ Flasher::~Flasher() {
 DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
     }
     if (!is_engine_off(this->can_ref)) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Engine is on");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_ENGINE_ON);
     }
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
@@ -48,23 +46,19 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
     uint32_t dest_mem_address = args[0] << 16 | args[1] << 8 | args[2];
     uint8_t fmt = args[3];
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "DEST %08X, Format is %02X and size is %08X", dest_mem_address, fmt, dest_mem_size);
     // Valid memory regions
     if (dest_mem_address == MEM_REGION_OTA) {
         // Init OTA system
         this->update_partition = esp_ota_get_next_update_partition(NULL);
         this->update_type = UPDATE_TYPE_OTA;
         if (this->update_partition == nullptr) {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Target update partition was NULL!");
-            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
+            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_NULL_PARTITION);
         }
         this->update_handle = 0;
         esp_err_t err = esp_ota_begin(this->update_partition, dest_mem_size, &update_handle);
         if (err != ESP_OK) {
-            // HUH!?
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "esp_ota_begin failed! %s", esp_err_to_name(err));
             esp_ota_abort(this->update_handle);
-            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
+            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_OTA_BEGIN_FAIL);
         }
     } else { // Invalid memory region
         return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -87,26 +81,22 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
 DiagMessage Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Shifter not in valid position");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
     }
     if (!is_engine_off(this->can_ref)) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Rejecting download request. Engine is on");
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_ENGINE_ON);
     }
     // Format [MA, MA, MA, FF, MS, MS, MS]
     // Dest memory address
     // data format
     // Uncompressed memory size
     // For now we only support 0x00 format (Uncompressed and unencrypted)
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Upload requested. Arg size %d", arg_len);
     if (arg_len != 7) { // Request was the wrong size
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
     uint8_t fmt = args[3];
     uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6];
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "DEST %08X, Format is %02X and size is %08X", src_mem_address, fmt, src_mem_size);
     // Valid memory regions
     if (src_mem_address == MEM_REGION_COREDUMP) {
         this->update_type = UPDATE_TYPE_COREDUMP;
@@ -148,21 +138,17 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
                     this->written_data += arg_len-1;
                     return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
                 } else {
-                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "esp_ota_write failed!");
                     esp_ota_abort(this->update_handle);
-                    return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
+                    return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
                 }
             } else {
-                ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "OTA invalid type!");
-                return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_INVALID_TY);
             }
         } else if (args[0] == this->block_counter) {
             // Repeated request, KWP spec says to do nothing and just return OK!
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Skip write!");
             return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
         } else {
             // Huh
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Wtf");
             return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
         }
     } else if (this->data_dir == DATA_DIR_UPLOAD) {
@@ -181,7 +167,7 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
             this->read_bytes += max_bytes;
             return msg;
         } else {
-            return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
+            return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_INVALID_TY);
         }
     } else { // Transfer mode not set!
         return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
@@ -199,7 +185,7 @@ DiagMessage Flasher::on_transfer_exit(uint8_t* args, uint16_t arg_len) {
 DiagMessage Flasher::on_request_verification(uint8_t* args, uint16_t arg_len) {
     if (this->update_type == UPDATE_TYPE_OTA) {
         if (this->update_handle == 0) {
-            return this->make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR); // Can't start verirication without it!
+            return this->make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR); // Can't start verification without it!
         } else {
             /// Now verify and switch boot partitions!
             uint8_t res[2] = {0xE1, 0x00};

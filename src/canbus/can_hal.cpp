@@ -15,6 +15,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Booting CAN Layer");
     if (nullptr == pcb_gpio_matrix) {
+        this->can_init_status = ESP_ERR_INVALID_STATE;
         ESP_LOGE(this->name, "No GPIO matrix! Cannot start CAN");
         return;
     }
@@ -63,6 +64,10 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
             ESP_LOGE(this->name, "Failed to install TWAI driver");
         }
     }
+}
+
+esp_err_t EgsBaseCan::init_state() const {
+    return this->can_init_status;
 }
 
 EgsBaseCan::~EgsBaseCan() {

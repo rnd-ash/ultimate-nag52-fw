@@ -46,6 +46,8 @@ SPEAKER_POST_CODE setup_tcm() {
                 pcb_gpio_matrix = new BoardV13GpioMatrix();
                 break;
             default:
+                pcb_gpio_matrix = nullptr;
+                egs_can_hal = nullptr;
                 spkr = new Speaker(gpio_num_t::GPIO_NUM_4); // Assume legacy when this fails!
                 spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
                 ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;

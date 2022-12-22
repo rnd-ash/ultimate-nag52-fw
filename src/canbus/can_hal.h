@@ -187,6 +187,7 @@ class EgsBaseCan {
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
         ~EgsBaseCan();
         bool begin_tasks();
+        esp_err_t init_state() const;
 
         /**
          * Getters

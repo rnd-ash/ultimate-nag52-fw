@@ -10,6 +10,10 @@ const DiagCanMessage FLOW_CONTROL_OVERFLOW = {0x32, 0, 0, 0, 0, 0, 0, 0};
 
 CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
     this->can = can_layer;
+    if (nullptr == this->can) {
+        this->status = ESP_ERR_INVALID_ARG;
+        return;
+    }
     memset(&tx_can, 0x00, sizeof(twai_message_t));
     this->tx_can.data_length_code = 8;
     this->tx_can.identifier = KWP_ECU_TX_ID;

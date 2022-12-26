@@ -15,6 +15,9 @@ are not tested yet.
 If you have just built your board, or are updating to firmware after 30/11/22, please look at [this guide](https://youtu.be/ov3pYcKIA70)!
 Your TCU will be bricked until you follow it!
 
+## NOTICE ABOUT COPIED CODE (For PRs or change requests)
+This project contains code built from the ground up, or code based on black-box style reverse engineering of the behaviour of the standard EGS52 module. Submitions of code pull requests based on unethically sourced documentation or code will be immediatly deleted and closed. 
+
 ## Generating the code documentation
 
 1. Install [doxygen](https://www.doxygen.nl/manual/install.html)

@@ -10,7 +10,7 @@ class LookupHeader {
         /// @brief manages a table header for a lookup table or lookup map
         /// @param _header 
         /// @param _length 
-        LookupHeader(int16_t* _header, uint16_t _size);
+        LookupHeader(const int16_t* _header, const uint16_t _size);
 
         /// @brief frees the allocated memory
         ~LookupHeader(void);

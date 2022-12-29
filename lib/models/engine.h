@@ -2,6 +2,7 @@
 #define ENGINE_H
 
 #include <stdint.h>
+#include "../core/lookuptable.h"
 
 static const float DIAMETER_TO_RADIUS_FACTOR = 0.5F;
 
@@ -11,14 +12,12 @@ class Engine {
 
 public:
     /// @brief Initializes the engine model.
-    /// @param c constant required to convert mdot and current engine speed to the engine static torque (in [m²/s²])
-    /// @param M_eng_max array with the engine's maximum torque values (at wide open throttle, in [Nm])
-    /// @param M_eng_max_headers array with headers for the engine maximum torque values (in [rpm])
-    /// @param length_M_eng_max length of the array with the engines maximum torque values
+    /// @param c constant required to convert mdot and engine speed to the engine torque (in [m²/s²])
+    /// @param _M_eng_max Lookuptable with the maximum engine torques
     /// @param throttle_diameter diameter of the trottle (in [m])
-    Engine(float c, uint16_t* M_eng_max, uint16_t* M_eng_max_headers, uint16_t length_M_eng_max, float throttle_diameter);
+    Engine(const float c, const LookupTable* _M_eng_max, const float throttle_diameter);
     
-    /// @brief 
+    /// @brief Frees the memory
     ~Engine();
 
     /// @brief Contains a set of torques required by the TCU to shift.
@@ -43,28 +42,28 @@ public:
     /// @param p_a pressure before the throttle valve (in [hPa])
     /// @param maf mass air flow (in [kg/h])
     /// @return A set with the calculated torques
-    Torques getTorques(uint16_t engine_speed, float throttle_valve_flare_angle, uint16_t p_a, uint16_t maf);
+    Torques getTorques(const uint16_t engine_speed, const float throttle_valve_flare_angle, const uint16_t p_a, const uint16_t maf);
 
 private:
     /// @brief radius of the throttle valve (in [m])
     float r;
 
-    /// @brief 
+    /// @brief constant for converting mdot and engine speed to the engine torque (in [m²/s²])
     float c_eng;
 
     /// @brief cross-sectional area of the throttle valve (in [m²])
     float A_throttle_valve;
     
-    /// @brief array with the engine maximum torque values (at wide open throttle, in [Nm])
-    uint16_t* M_eng_max_loc;
-    
-    /// @brief array with headers for the engine maximum torque values (in [rpm])
-    uint16_t* M_eng_max_headers_loc;
+    /// @brief lookup table with the maximum engine torques
+    LookupTable* M_eng_max;
 
-    /// @brief length of the array with the engines maximum torque values
-    uint16_t length_M_eng_max_loc;
+    /// @brief Calculates the static engine torque.
+    /// @param throttle_valve_flare_angle the flare angle of the throttle valve (in [°])
+    /// @param maf mass air flow (in [kg/h])
+    /// @return static engine torque based on current engine speed, mass air flow and engine constant (in [Nm]) 
+    uint16_t getStaticTorque(const uint16_t engine_speed, const uint16_t maf);
 
-    /// @brief determines, if the allocation of memory for the arrays was successful
-    bool allocation_succeeded;
+    uint16_t getDemandedTorque(const float throttle_valve_flare_angle);
+
 };
 #endif /* ENGINE_H */

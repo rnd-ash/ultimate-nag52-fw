@@ -6,7 +6,7 @@ LookupMap::LookupMap(int16_t *_xHeader, uint16_t _xHeaderSize, int16_t *_yHeader
 {
 }
 
-float LookupMap::getValue(float xValue, float yValue)
+float LookupMap::getValue(const float xValue, const     float yValue)
 {
     uint16_t    x_idx_min;
     uint16_t    x_idx_max;

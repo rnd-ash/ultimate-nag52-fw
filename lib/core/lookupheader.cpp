@@ -2,10 +2,9 @@
 #include "../hal/hardwareabstractionlayer.h"
 #include <string.h>
 
-LookupHeader::LookupHeader(int16_t *_header, uint16_t _size)
+LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
 {
     size = _size;
-    // header = static_cast<int16_t*>(heap_caps_malloc(_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));
     header = static_cast<int16_t*>(MALLOC(size * sizeof(int16_t)));
     allocation_successful = (nullptr != header);
     if(allocation_successful){

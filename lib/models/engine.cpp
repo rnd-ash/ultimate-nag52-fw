@@ -1,7 +1,6 @@
 #include "engine.h"
 #include <math.h>
-#include "esp_heap_caps.h"
-#include
+#include "../hal/hardwareabstractionlayer.h"
 
 Engine::Engine(float c, uint16_t *M_eng_max, uint16_t *M_eng_max_headers, uint16_t length_M_eng_max, float throttle_diameter)
 {

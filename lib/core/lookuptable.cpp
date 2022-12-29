@@ -1,5 +1,5 @@
 #include "lookuptable.h"
-#include "esp_heap_caps.h"
+#include "../hal/hardwareabstractionlayer.h"
 #include <string.h>
 #include "tcu_maths.h"
 
@@ -13,7 +13,7 @@ LookupTable::LookupTable(int16_t *_xHeader, uint16_t _xHeaderSize) : xHeader(_xH
 LookupTable::LookupTable(int16_t *_xHeader, uint16_t _xHeaderSize, int16_t *_data, uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize)
 {
     dataSize = _dataSize;
-    data = static_cast<int16_t*>(heap_caps_malloc(dataSize * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    data = static_cast<int16_t*>(MALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {
@@ -23,7 +23,7 @@ LookupTable::LookupTable(int16_t *_xHeader, uint16_t _xHeaderSize, int16_t *_dat
 
 LookupTable::~LookupTable(void)
 {
-    heap_caps_free(data);
+    FREE(data);
 }
 
 bool LookupTable::setData(int16_t* _data, uint16_t _dataSize)
@@ -31,7 +31,7 @@ bool LookupTable::setData(int16_t* _data, uint16_t _dataSize)
     bool result = false;
     dataSize = _dataSize;
     if(allocation_successful) {
-        heap_caps_free(data);
+        FREE(data);
     }
     data = static_cast<int16_t*>(heap_caps_malloc(dataSize * sizeof(int16_t), MALLOC_CAP_SPIRAM));
     allocation_successful = (nullptr != data);

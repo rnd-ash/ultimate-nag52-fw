@@ -3,17 +3,17 @@
 
 #include <stdint.h>
 
-class TableHeader {
+class LookupHeader {
 
     public:
         
         /// @brief manages a table header for a lookup table or lookup map
         /// @param _header 
         /// @param _length 
-        TableHeader(int16_t* _header, uint16_t _size);
+        LookupHeader(int16_t* _header, uint16_t _size);
 
         /// @brief frees the allocated memory
-        ~TableHeader(void);
+        ~LookupHeader(void);
 
         /// @brief Sets the indices idx_min and idx_max in between the value is found in headers. idx_min and idx_max are identical, if value is an element of headers.
         /// @param value the value to be searched in the sorted list of headers

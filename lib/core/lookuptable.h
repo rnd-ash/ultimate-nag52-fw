@@ -1,7 +1,7 @@
 #ifndef LOOKUPTABLE_H
 #define LOOKUPTABLE_H
 
-#include "tableheader.h"
+#include "lookupheader.h"
 
 class LookupTable{
     public:
@@ -14,7 +14,7 @@ class LookupTable{
         float getValue(float xValue);
 
     protected:
-        TableHeader xHeader;
+        LookupHeader xHeader;
         int16_t* data;
         uint16_t dataSize;
 

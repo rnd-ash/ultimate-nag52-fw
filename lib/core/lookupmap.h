@@ -10,7 +10,7 @@ class LookupMap : public LookupTable {
 
         float getValue(float xValue, float yValue);
     protected:
-        TableHeader yHeader;
+        LookupHeader yHeader;
 };
 
 #endif /* lookupmap.h */

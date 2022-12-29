@@ -1,25 +1,26 @@
-#include "tableheader.h"
-#include "esp_heap_caps.h"
+#include "lookupheader.h"
+#include "../hal/hardwareabstractionlayer.h"
 #include <string.h>
 
-TableHeader::TableHeader(int16_t *_header, uint16_t _size)
+LookupHeader::LookupHeader(int16_t *_header, uint16_t _size)
 {
     size = _size;
-    header = static_cast<int16_t*>(heap_caps_malloc(_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    // header = static_cast<int16_t*>(heap_caps_malloc(_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    header = static_cast<int16_t*>(MALLOC(size * sizeof(int16_t)));
     allocation_successful = (nullptr != header);
     if(allocation_successful){
         (void)memcpy(header, _header, size);
     }
 }
 
-TableHeader::~TableHeader(void)
+LookupHeader::~LookupHeader(void)
 {
     if(allocation_successful){
-        heap_caps_free(header);
+        FREE(header);
     }
 }
 
-void TableHeader::setIndices(const float value, uint16_t *idx_min, uint16_t *idx_max)
+void LookupHeader::setIndices(const float value, uint16_t *idx_min, uint16_t *idx_max)
 {
     // Set minimum index to the first element of the field.
     *idx_min = 0u;
@@ -59,7 +60,7 @@ void TableHeader::setIndices(const float value, uint16_t *idx_min, uint16_t *idx
     }
 }
 
-int16_t TableHeader::getValue(const uint16_t index)
+int16_t LookupHeader::getValue(const uint16_t index)
 {
     int16_t result = INT16_MAX;
     if(index <= size){
@@ -68,7 +69,7 @@ int16_t TableHeader::getValue(const uint16_t index)
     return result;
 }
 
-uint16_t TableHeader::getSize(void)
+uint16_t LookupHeader::getSize(void)
 {
     return size;
 }

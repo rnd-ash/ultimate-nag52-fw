@@ -503,31 +503,39 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
+    this->current_req = request;
     switch(request) {
-        case TorqueRequest::Decrease:
+        case TorqueRequest::Begin:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(false);
-            return;
-        case TorqueRequest::Increase:
+            break;
+        case TorqueRequest::FollowMe:
+            gs218.set_MMIN_EGS(true);
+            gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(false);
+            break;
+        case TorqueRequest::Restore:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(true);
-            return;
+            break;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(false);
             gs218.set_DYN1_EGS(false);
-            return;
+            gs218.set_M_EGS(0);
+            break;
     }
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    if (torque_nm == 0 && gs218.get_DYN1_EGS() == false) {
+    if (this->current_req == TorqueRequest::None) {
         gs218.set_M_EGS(0);
     } else {
         gs218.set_M_EGS((torque_nm + 500) * 4);

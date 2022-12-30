@@ -129,6 +129,7 @@ class Egs52Can: public EgsBaseCan {
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
+        TorqueRequest current_req = TorqueRequest::None;
 };
 
 #endif // EGS53_MODE

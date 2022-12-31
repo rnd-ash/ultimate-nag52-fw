@@ -2,46 +2,157 @@
 #include "solenoids/solenoids.h"
 #include "tcu_maths.h"
 
-// 1400 mBar ~= locking
+// 1400 mBar ~= locking (C200CDI)
+// 1700 mBar ~= locking (E55 AMG)
 
+static const uint16_t TCC_ADAPT_CONSIDERED_LOCK = 25; 
 static const uint16_t TCC_PREFILL = 500u; // mBar
+const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
+const int16_t tcc_learn_y_headers[1] = {1};
+const int16_t tcc_learn_default_data[5] = {900, 900, 900, 900, 900};
+const uint16_t TCC_MIN_LOCKING_RPM = 1100;
+
+TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
+    tcc_learn_lockup_map = new StoredTcuMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
+    if (this->tcc_learn_lockup_map->init_status() != ESP_OK) {
+        delete[] this->tcc_learn_lockup_map;
+    }
+    int16_t* data = this->tcc_learn_lockup_map->get_current_data();
+    for (int i = 0; i < 5; i++) {
+        ESP_LOGI("TCC", "Adapt value for gear %d - %d mBar", i+1, data[i]);
+    }
+    // range of adaptation is 1/10 - 1/3 of the rating of the gearbox
+    // W5A330 - 33Nm - 110Nm
+    // W5A580 - 58Nm - 193Nm
+    this->high_torque_adapt_limit = max_gb_rating / 3;
+    this->low_torque_adapt_limit = max_gb_rating / 10;
+}
+
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    if (sensors->input_rpm < 1000) { // RPM too low!
-        if (sensors->engine_rpm > 900) {
-            if (!this->prefilling) {
-                this->prefilling = true;
-                prefill_start_time = sensors->current_timestamp_ms;
-                this->curr_tcc_pressure = 0;
-                pm->set_target_tcc_pressure(TCC_PREFILL); // Being early prefil
-            }
+    if (is_shifting) { // Reset strikes when changing gears!
+        this->strike_count = 0;
+        this->adapt_lock_count = 0;
+        last_adj_time = sensors->current_timestamp_ms;
+    }
+    if (sensors->input_rpm <= TCC_MIN_LOCKING_RPM) { // RPM too low!
+        last_adj_time = sensors->current_timestamp_ms;
+        if (!this->was_idle) {
+            // Input has fallen below locking RPM (Slowing down). Do our once-actions here
+            this->was_idle = true;
+            this->initial_ramp_done = false;
+            this->strike_count = 0;
+            this->adapt_lock_count = 0;
             this->state = ClutchStatus::Open;
-            strike_count = 0;
-            return;
+        } else {
+            // Input is still lower than locking RPM
         }
-        this->was_idle = true;
-        pm->set_target_tcc_pressure(0);
-        prefilling = false;
-        this->state = ClutchStatus::Open;
-        strike_count = 0;
-        return;
-    }
-    if (this->was_idle) {
-        if (!prefilling) {
-            this->prefilling = true;
-            prefill_start_time = sensors->current_timestamp_ms;
+
+        if (sensors->engine_rpm > 900) {
+            this->base_tcc_pressure = TCC_PREFILL;
+        } else {
+            this->base_tcc_pressure = 0;
         }
-        this->was_idle = false;
-        this->curr_tcc_pressure = TCC_PREFILL;
-        this->state = ClutchStatus::Open;
-        strike_count = 0;
-    }
-    if (sensors->current_timestamp_ms - prefill_start_time < 1000) {
-        pm->set_target_tcc_pressure(TCC_PREFILL);
-        this->state = ClutchStatus::Open;
-        return;
+        this->curr_tcc_pressure = this->base_tcc_pressure;
+    } else {
+        // We can lock now!
+        if (this->was_idle) {
+            // We were too low, but now we can lock! (RPM increasing)
+            this->was_idle = false;
+            if (this->tcc_learn_lockup_map != nullptr) {
+                this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
+                ESP_LOGI("TCC", "Learn cell value is %d mBar", curr_tcc_target);
+                this->initial_ramp_done = false;
+            } else {
+                this->initial_ramp_done = true;
+            }
+            this->base_tcc_pressure = TCC_PREFILL;
+            this->curr_tcc_pressure = TCC_PREFILL;
+            last_adj_time = sensors->current_timestamp_ms;
+        } else {
+            // We are just driving, TCC is free to lockup
+            if (!initial_ramp_done) {
+#define TCC_FAST_RAMP_STEP 10 // ~= 200mBar/sec
+                // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
+                int delta = MIN(TCC_FAST_RAMP_STEP, abs((int)this->curr_tcc_target - (int)this->base_tcc_pressure));
+                if (delta > TCC_FAST_RAMP_STEP) {
+                    if (this->curr_tcc_target > this->base_tcc_pressure) {
+                        this->base_tcc_pressure += TCC_FAST_RAMP_STEP;
+                    } else if (this->curr_tcc_target < this->base_tcc_pressure) {
+                        this->base_tcc_pressure -= TCC_FAST_RAMP_STEP;
+                    }
+                } else {
+                    this->base_tcc_pressure = this->curr_tcc_target;
+                    initial_ramp_done = true;
+                }
+                this->curr_tcc_pressure = this->base_tcc_pressure;
+                last_adj_time = sensors->current_timestamp_ms;
+            } else if (sensors->current_timestamp_ms - last_adj_time > 500) { // Allowed to adjust
+                last_adj_time = sensors->current_timestamp_ms;
+                bool learning = false;
+                // Learning phase / dynamic phase
+                if (!is_shifting && this->tcc_learn_lockup_map != nullptr) {
+                    // Learning phase check
+                    if (sensors->static_torque >= this->low_torque_adapt_limit && sensors->static_torque <= this->high_torque_adapt_limit) {
+                        if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_ADAPT_CONSIDERED_LOCK) {
+                            adapt_lock_count++;
+                        } else {
+                            learning = true;
+                            this->base_tcc_pressure += 25;
+                        }
+                    } else {
+                        adapt_lock_count = 0;
+                    }
+                    if (adapt_lock_count == 100) { // ~= 2 seconds
+                        // Modify map
+                        int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
+                        int16_t curr_v = modify[(uint8_t)(curr_gear)-1];
+                        if (abs(this->base_tcc_pressure-curr_v) > 100) {
+                            ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)curr_gear, curr_v, this->base_tcc_pressure);
+                            modify[(uint8_t)(curr_gear)-1] = (int16_t)this->base_tcc_pressure;
+                        }
+                    }
+                }
+                this->curr_tcc_pressure = this->base_tcc_pressure;
+                // Dynamic TCC pressure increase based on torque
+                if (!learning) {
+                    if (sensors->static_torque > high_torque_adapt_limit) {
+                        int torque_delta = sensors->static_torque - high_torque_adapt_limit;
+                        this->curr_tcc_pressure = this->base_tcc_pressure + (6*torque_delta); // 5mBar per Nm
+                    } else if (sensors->static_torque < 0) {
+                        if (this->curr_tcc_pressure > TCC_PREFILL) {
+                            this->curr_tcc_pressure = this->base_tcc_pressure - 100;
+                        }
+                    }
+                }
+                bool adj = false;
+                if (sensors->static_torque < 0 && sensors->tcc_slip_rpm < -200) {
+                    this->base_tcc_pressure += 5;
+                    adj = true;
+                } else if (sensors->static_torque < 0 && sensors->tcc_slip_rpm < -50) {
+                    this->base_tcc_pressure -= 5;
+                    adj = true;
+                }
+                if (adj) {
+                    // Too much slip
+                    int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
+                    int16_t curr_v = modify[(uint8_t)(curr_gear)-1];
+                    if (abs(this->base_tcc_pressure-curr_v) > 100) {
+                        ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)curr_gear, curr_v, this->base_tcc_pressure);
+                        modify[(uint8_t)(curr_gear)-1] = (int16_t)this->base_tcc_pressure;
+                    }
+                }
+            }
+        }
     }
 
+
+    if (this->curr_tcc_pressure > 2000) {
+        this->curr_tcc_pressure = 2000;
+    }
+    pm->set_target_tcc_pressure(this->curr_tcc_pressure);
+
+/*
     int trq = sensors->static_torque;
     if (trq < 0) {
         trq *= -1;
@@ -108,12 +219,13 @@ write_pressure:
     if (this->curr_tcc_pressure <= 0) { // Just to be safe!
         this->curr_tcc_pressure = 0;
     }
-    this->state = (slip > 100 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
-    pm->set_target_tcc_pressure((uint16_t)(this->curr_tcc_pressure+this->tcc_shift_adder));
+    this->state = (slip > 200 || is_shifting) ? ClutchStatus::Slipping : ClutchStatus::Closed;
+    pm->set_target_tcc_pressure((uint16_t)(this->curr_tcc_pressure));
+*/
 }
 
 void TorqueConverter::on_shift_complete(uint64_t now) {
-    this->tcc_shift_adder = 0;
+
 }
 
 // 1600 - lock

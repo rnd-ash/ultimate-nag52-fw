@@ -67,8 +67,6 @@ Gearbox::Gearbox()
         .fr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
         .fl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
     };
-    this->tcc = new TorqueConverter();
-    this->shift_reporter = new ShiftReporter();
     if (VEHICLE_CONFIG.is_large_nag)
     {
         this->gearboxConfig = GearboxConfiguration{
@@ -86,6 +84,8 @@ Gearbox::Gearbox()
         };
     }
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
+    this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
+    this->shift_reporter = new ShiftReporter();
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
@@ -888,6 +888,7 @@ void Gearbox::controller_loop()
                                 this->pressure_mgr->save();
                             }
                             this->shift_reporter->save();
+                            this->tcc->save();
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {

@@ -26,15 +26,16 @@ class TorqueConverter {
          * @param shifting True if the car is currently transitioning to new gear
          */
         void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
-        // void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness);
-        void on_shift_complete(uint64_t now);
         ClutchStatus get_clutch_state(void);
         void save() {
-            if (this->tcc_learn_lockup_map != nullptr) {
+            if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
             }
         };
+
+        void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
     private:
+        inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;
         uint16_t adapt_lock_count = 0;
         uint16_t low_torque_adapt_limit = 0;
@@ -54,6 +55,8 @@ class TorqueConverter {
         uint16_t tmp_pressure = 0;
         StoredTcuMap* tcc_learn_lockup_map;
         uint64_t last_adj_time = 0;
+        bool pending_changes = false;
+        bool was_shifting = false;
 };
 
 #endif

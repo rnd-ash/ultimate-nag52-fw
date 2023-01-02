@@ -501,7 +501,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "ABORTING SHIFT");
             sd.shift_solenoid->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();
-            this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
             vTaskDelay(250);
             egs_can_hal->set_torque_request(TorqueRequest::None);
             egs_can_hal->set_requested_torque(0);
@@ -551,7 +550,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->is_ramp = false;
         pressure_mgr->disable_spc();            // Max pressure!
         sd.shift_solenoid->write_pwm_12_bit(0); // Close SPC and Shift solenoid
-        this->tcc->on_shift_complete(sensor_data.current_timestamp_ms);
         this->abort_shift = false;
 
         this->sensor_data.last_shift_time = esp_timer_get_time() / 1000;

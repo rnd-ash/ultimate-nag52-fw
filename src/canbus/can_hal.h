@@ -27,17 +27,20 @@ struct WheelData {
 };
 
 enum class SystemStatusCheck: uint8_t {
-    // Waiting for check to complete
+    /// @brief Waiting for check to complete
     Waiting,
-    // No errors. Gearbox is OK
+    /// @brief Error check OK
     OK,
-    // Errors found
+    /// @brief Error check failed
     Error
 };
 
 enum class EngineType: uint8_t {
+    /// @brief Diesel engine
     Diesel,
+    /// @brief Petrol engine
     Petrol,
+    /// @brief Unknown engine type
     Unknown = 0xFF
 };
 
@@ -255,6 +258,11 @@ class EgsBaseCan {
         virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
+        // Gets the torque loss of the AC system
+        virtual uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+            return UINT8_MAX;
+        }
+
         // Gets the flappy paddle position
         virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
             return PaddlePosition::SNV;

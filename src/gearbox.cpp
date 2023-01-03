@@ -1091,6 +1091,11 @@ void Gearbox::controller_loop()
         if (static_torque != INT_MAX)
         {
             this->sensor_data.static_torque = static_torque;
+            // Now add in AC loss compensation
+            uint8_t ac_loss = egs_can_hal->get_ac_torque_loss(now, 500);
+            if (ac_loss != UINT8_MAX) {
+                this->sensor_data.static_torque -= (int)ac_loss;
+            }
         }
         int driver_torque = egs_can_hal->get_driver_engine_torque(now, 500);
         if (driver_torque != INT_MAX)

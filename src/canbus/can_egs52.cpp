@@ -213,6 +213,18 @@ int Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return INT_MAX;
 }
 
+uint8_t Egs52Can::get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+    KLA_410 kl410;
+    if (this->ezs_ecu.get_KLA_410(now, expire_time_ms, &kl410)) {
+        uint8_t ret = kl410.get_M_KOMP();
+        if (ret != UINT8_MAX) {
+            ret /= 4;
+        }
+        return ret;
+    }
+    return UINT8_MAX;
+}
+
 PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
     SBW_232 sbw;
     if (misc_ecu.get_SBW_232(now, expire_time_ms, &sbw)) { // 50ms timeout

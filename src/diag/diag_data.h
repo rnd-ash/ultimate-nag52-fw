@@ -6,8 +6,9 @@
 #include "gearbox.h"
 #include "nvs/eeprom_config.h"
 #include "common_structs.h"
-#include "endpoint.h"
+#include "endpoints/endpoint.h"
 #include <esp_app_format.h>
+#include "kwp2000_defines.h"
 
 // Needed extra bytes for response, SID, RLI, Shift ID
 static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too big to fit in Diag message!");
@@ -30,6 +31,7 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
+#define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
 // Gearbox sensor struct
@@ -79,6 +81,7 @@ typedef struct {
     uint16_t min_torque;
     uint16_t max_torque;
     uint16_t static_torque;
+    uint16_t driver_torque;
     uint16_t left_rear_rpm;
     uint16_t right_rear_rpm;
     uint8_t shift_button_pressed;
@@ -126,17 +129,17 @@ typedef struct {
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
-DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer);
-DATA_SYS_USAGE get_sys_usage();
-DATA_DMA_BUFFER dump_i2s_dma();
-SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g);
+DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
+DATA_SYS_USAGE get_sys_usage(void);
+DATA_DMA_BUFFER dump_i2s_dma(void);
+SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 
 // Read and write SCN config
-TCM_CORE_CONFIG get_tcm_config();
-uint8_t set_tcm_config(TCM_CORE_CONFIG cfg);
+TCM_CORE_CONFIG get_tcm_config(void);
+kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
-COREDUMP_INFO get_coredump_info();
+COREDUMP_INFO get_coredump_info(void);
 
-const esp_app_desc_t* get_image_header();
+const esp_app_desc_t* get_image_header(void);
 
 #endif // __DIAG_DATA_H__

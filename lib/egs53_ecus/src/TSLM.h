@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'TSLM'
 */
 
-#ifdef EGS53_MODE
-
 #ifndef __ECU_TSLM_H_
 #define __ECU_TSLM_H_
 
@@ -247,5 +245,3 @@ class ECU_TSLM {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_TSLM_H_
-
-#endif // EGS53_MODE

@@ -3,25 +3,29 @@
 #include "solenoids/solenoids.h"
 #include "solenoids/constant_current.h"
 #include "perf_mon.h"
-#include <tcm_maths.h>
+#include <tcu_maths.h>
 #include "kwp2000.h"
 #include "esp_core_dump.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
+    if (g == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     RpmReading d;
     bool b = false;
 
-    if (!Sensors::read_input_rpm(&d, false)) {
-        ret.n2_rpm = 0xFFFF;
-        ret.n3_rpm = 0xFFFF;
-        ret.calculated_rpm = 0xFFFF;
-    } else {
+    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_rpm = d.n2_raw;
         ret.n3_rpm = d.n3_raw;
         ret.calculated_rpm = d.calc_rpm;
+    } else {
+        ret.n2_rpm = 0xFFFF;
+        ret.n3_rpm = 0xFFFF;
+        ret.calculated_rpm = 0xFFFF;
     }
-    if (Sensors::parking_lock_engaged(&b)) {
+    if (Sensors::parking_lock_engaged(&b) == ESP_OK) {
          ret.parking_lock = b;
          ret.atf_temp_c = g->sensor_data.atf_temp;
     } else {
@@ -35,6 +39,10 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
 
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     DATA_SOLENOIDS ret = {};
+    if (gb_ptr == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
 
     ret.mpc_current = sol_mpc->get_current_avg(); //sol_mpc->get_current_estimate();
     ret.spc_current = sol_spc->get_current_avg();//sol_spc->get_current_estimate();
@@ -63,6 +71,10 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
 
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     DATA_PRESSURES ret = {};
+    if (gb_ptr == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
@@ -78,21 +90,25 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     return ret;
 }
 
-DATA_DMA_BUFFER dump_i2s_dma() {
+DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;
     dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
     return dma;
 }
 
-DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
+DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     DATA_CANBUS_RX ret = {};
+    if (can_layer == nullptr || gearbox == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     uint64_t now = esp_timer_get_time() / 1000;
 
-    WheelData t = can_layer->get_rear_left_wheel(now, 250);
-    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
-    t = can_layer->get_rear_right_wheel(now, 250);
-    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvaliable ? 0xFFFF : t.double_rpm;
+    WheelData t = gearbox->sensor_data.rl_wheel;
+    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
+    t = gearbox->sensor_data.rr_wheel;
+    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
 
     ret.paddle_position = can_layer->get_paddle_position(now, 250);
     ret.pedal_pos = can_layer->get_pedal_value(now, 250);
@@ -102,6 +118,8 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     ret.max_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     torque = can_layer->get_minimum_engine_torque(now, 250);
     ret.min_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    torque = can_layer->get_driver_engine_torque(now, 250);
+    ret.driver_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     torque = can_layer->get_static_engine_torque(now, 250);
     ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
@@ -111,7 +129,7 @@ DATA_CANBUS_RX get_rx_can_data(AbstractCan* can_layer) {
     return ret;
 }
 
-DATA_SYS_USAGE get_sys_usage() {
+DATA_SYS_USAGE get_sys_usage(void) {
     DATA_SYS_USAGE ret = {};
     CpuStats s = get_cpu_stats();
     ret.core1_usage = s.load_core_1;
@@ -127,8 +145,12 @@ DATA_SYS_USAGE get_sys_usage() {
     return ret;
 }
 
-SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
+SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     SHIFT_LIVE_INFO ret = {};
+    if (can_layer == nullptr || g == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
 
     ret.spc_pressure = g->pressure_mgr->get_targ_spc_pressure();
     ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_pressure();
@@ -179,14 +201,14 @@ SHIFT_LIVE_INFO get_shift_live_Data(AbstractCan* can_layer, Gearbox* g) {
 }
 
 
-TCM_CORE_CONFIG get_tcm_config() {
+TCM_CORE_CONFIG get_tcm_config(void) {
     TCM_CORE_CONFIG cfg;
     memcpy(&cfg, &VEHICLE_CONFIG, sizeof(TCM_CORE_CONFIG));
     return cfg;
 }
 
-uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions
@@ -214,7 +236,7 @@ uint8_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     }
 }
 
-COREDUMP_INFO get_coredump_info() {
+COREDUMP_INFO get_coredump_info(void) {
     size_t addr = 0;
     size_t size = 0;
     esp_core_dump_image_get(&addr, &size);
@@ -224,6 +246,6 @@ COREDUMP_INFO get_coredump_info() {
     };
 }
 
-const esp_app_desc_t* get_image_header() {
+const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
 }

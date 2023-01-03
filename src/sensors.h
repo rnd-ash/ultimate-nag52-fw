@@ -1,21 +1,22 @@
 /** @file */
-#ifndef __SENSORS_H_
-#define __SENSORS_H_
+#ifndef SENSORS_H
+#define SENSORS_H
 
 #include <stdint.h>
+#include "esp_err.h"
 
 /**
  * @brief RPM Reading structure
  * 
  */
-typedef struct {
+struct RpmReading{
     /// N2 Raw Pulse count
     uint32_t n2_raw;
     /// N3 Raw pulse count
     uint32_t n3_raw;
     /// Calculated input RPM
     uint32_t calc_rpm;
-} RpmReading;
+};
 
 namespace Sensors {
     /**
@@ -24,7 +25,7 @@ namespace Sensors {
      * @return true If initialization OK
      * @return false if initialization failed
      */
-    bool init_sensors();
+    esp_err_t init_sensors(void);
 
     /**
      * @brief Reads the input RPM of the gearbox
@@ -36,7 +37,16 @@ namespace Sensors {
      * @return true If sensor reading OK
      * @return false If sensor reading failed, or if sanity check failed
      */
-    bool read_input_rpm(RpmReading* dest, bool check_sanity);
+    esp_err_t read_input_rpm(RpmReading* dest, bool check_sanity);
+
+    /**
+     * @brief ONLY FOR BOARD V1.3+! Reads output RPM of the gearbox when the GPIO pin is configured for RPM reading
+     * 
+     * @param dest Destination to store the output RPM
+     * @return true RPM Reading OK
+     * @return false Error reading RPM
+     */
+    esp_err_t read_output_rpm(uint16_t* dest);
 
     /**
      * @brief Reads the PCB supply voltage pin in mV
@@ -45,9 +55,18 @@ namespace Sensors {
      * @return true 
      * @return false 
      */
-    bool read_vbatt(uint16_t* dest);
-    bool read_atf_temp(int16_t* dest);
-    bool parking_lock_engaged(bool* dest);
+    esp_err_t read_vbatt(uint16_t* dest);
+
+    /**
+     * @brief Reads the ATF temp from the TFT sensor in degrees C
+     * 
+     * @param dest 
+     * @return ESP_OK - ATF temp reading OK
+     * ESP_ERR_INVALID_STATE - Parking lock engaged
+     */
+    esp_err_t read_atf_temp(int16_t* dest);
+    esp_err_t parking_lock_engaged(bool* dest);
+
 }
 
-#endif // __SENSORS_H_
+#endif // SENSORS_H

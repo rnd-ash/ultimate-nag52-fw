@@ -152,7 +152,7 @@ def get_project_name(env) -> Tuple[str, str]:
 
     return progname.fallback_get(
         (
-            lambda: "{}_{}".format(env.GetProjectOption("egs_ver"), branch), #env.GetProjectOption(progname.PROG_NAME_OPTION, None),
+            lambda: "unified-un52",
             "custom_option",
         ),
         (lambda: git_relative_dir(), "git_relative_dir"),

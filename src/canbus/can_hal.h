@@ -12,24 +12,18 @@
 #include <esp_log.h>
 #include <freertos/queue.h>
 #include <string.h>
+#include "driver/twai.h"
 
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
     Reverse, // Wheel going backwards
     Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvaliable = 0xFF // SNV
+    SignalNotAvailable = 0xFF // SNV
 };
 
 struct WheelData {
     int double_rpm; // 2x real RPM (Better accuracy)
     WheelDirection current_dir; // Wheel direction
-};
-
-struct DiagIsoTpInfo {
-    uint32_t tx_canid;
-    uint32_t rx_canid;
-    uint8_t bs;
-    uint8_t st_min;
 };
 
 enum class SystemStatusCheck: uint8_t {
@@ -47,23 +41,40 @@ enum class EngineType: uint8_t {
     Unknown = 0xFF
 };
 
+/// @brief Torque request type
 enum class TorqueRequest: uint8_t {
-    Decrease,
-    Increase,
-    None
+    /// @brief No torque request specified
+    None,
+    /// @brief Begin torque request. Limit engine
+    Begin,
+    /// @brief Torque request, engine must follow EGS demand
+    FollowMe,
+    /// @brief Restore torque request back to normal
+    Restore,
 };
 
+/// @brief Gearbox gears for 722.6 gearbox
 enum class GearboxGear: uint8_t {
+    /// @brief Gear D1
     First = 1,
+    /// @brief Gear D2
     Second = 2,
+    /// @brief Gear D3
     Third = 3,
+    /// @brief Gear D4
     Fourth = 4,
+    /// @brief Gear D5
     Fifth = 5,
+    /// @brief  Park
     Park = 8,
+    /// @brief Neutral
     Neutral = 9,
+    /// @brief Gear R1
     Reverse_First = 10,
+    /// @brief Gear R2
     Reverse_Second = 11,
-    SignalNotAvaliable = 0xFF,
+    /// @brief  Implausible or signal not available
+    SignalNotAvailable = 0xFF
 };
 
 enum class PaddlePosition: uint8_t {
@@ -80,6 +91,14 @@ enum class ClutchStatus: uint8_t {
     Closed
 };
 
+enum class TransferCaseState: uint8_t {
+    Hi, // High range
+    Low, // Low range
+    Neither, // Neutral
+    Switching, // Switching in progress
+    SNA = 0xFF, // Error
+};
+ 
 enum class GearboxProfile: uint8_t {
     // Comfort (C)
     Comfort,
@@ -93,6 +112,8 @@ enum class GearboxProfile: uint8_t {
     Winter,
     // Failure (F)
     Failure,
+    // Race (R)
+    Race,
     Individual,
     // Reserved for 'no profile' (_)
     Underscore
@@ -112,7 +133,7 @@ enum class ShifterPosition: uint8_t {
     THREE, // For TRRS only
     TWO, // For TRRS only
     ONE, // For TRRS only
-    SignalNotAvaliable = 0xFF // SNV
+    SignalNotAvailable = 0xFF // SNV
 };
 
 enum class SolenoidName: uint8_t {
@@ -166,59 +187,100 @@ enum class TerminalStatus {
     SNA
 };
 
-class AbstractCan {
-    public:
-        explicit AbstractCan(const char* name, uint8_t tx_time_ms) {
-            this->name = name;
-            this->tx_time_ms = tx_time_ms;
-            this->tx_task = nullptr;
-            this->rx_task = nullptr;
-            this->diag_rx_queue = nullptr;
-        };
-        virtual bool begin_tasks();
-        ~AbstractCan();
+const WheelData DEFAULT_SNV_WD {
+    .double_rpm = 0,
+    .current_dir = WheelDirection::SignalNotAvailable
+};
 
+class EgsBaseCan {
+    public:
+        EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        ~EgsBaseCan();
+        bool begin_tasks();
+        esp_err_t init_state() const;
 
         /**
          * Getters
          */
 
         // Get the front right wheel data
-        virtual WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms);
+        virtual WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {
+            return DEFAULT_SNV_WD;
+        }
         // Get the front left wheel data
-        virtual WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms);
+        virtual WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) {
+            return DEFAULT_SNV_WD;
+        }
         // Get the rear right wheel data
-        virtual WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms);
+        virtual WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
+            return DEFAULT_SNV_WD;
+        }
         // Get the rear left wheel data
-        virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms);
+        virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
+            return DEFAULT_SNV_WD;
+        }
         // Gets shifter position from EWM module
-        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms);
+        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+            return ShifterPosition::SignalNotAvailable;
+        }
         // Gets engine type
-        virtual EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms);
+        virtual EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) {
+            return EngineType::Unknown;
+        }
         // Returns true if engine is in limp mode
-        virtual bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms);
+        virtual bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
         // Returns true if pedal is kickdown 
-        virtual bool get_kickdown(uint64_t now, uint64_t expire_time_ms);
+        virtual bool get_kickdown(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Returns the pedal percentage. Range 0-250
-        virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms);
+        virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Gets the current 'static' torque produced by the engine
-        virtual int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
+        // Gets driver torque demand (Default torque)
+        virtual int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Gets the maximum engine torque allowed at this moment by the engine map
-        virtual int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Gets the minimum engine torque allowed at this moment by the engine map
-        virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms);
+        virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+            return 0;
+        }
         // Gets the flappy paddle position
-        virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms);
+        virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
+            return PaddlePosition::SNV;
+        }
         // Gets engine coolant temperature
-        virtual int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms);
+        virtual int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
+            return INT16_MAX;
+        }
         // Gets engine oil temperature
-        virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms);
+        virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
+            return INT16_MAX;
+        }
         // Gets engine RPM
-        virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms);
+        virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
+            return UINT16_MAX;
+        }
         // Returns true if engine is cranking
-        virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms);
-        virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
-        virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms);
+        virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+        virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+        virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
         virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
@@ -227,49 +289,53 @@ class AbstractCan {
             return TerminalStatus::On; // Enabled by default unless implemented
         }
 
+        virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
+            return TransferCaseState::SNA;
+        }
+
         /**
          * Setters
          */
 
-        virtual void set_race_start(bool race_start);
+        virtual void set_race_start(bool race_start){};
         // Set solenoid PMW
         virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s){};
         // Set the gearbox clutch position on CAN
-        virtual void set_clutch_status(ClutchStatus status);
+        virtual void set_clutch_status(ClutchStatus status){};
         // Set the actual gear of the gearbox
-        virtual void set_actual_gear(GearboxGear actual);
+        virtual void set_actual_gear(GearboxGear actual){};
         // Set the target gear of the gearbox
-        virtual void set_target_gear(GearboxGear target);
+        virtual void set_target_gear(GearboxGear target){};
         // Sets the status bit indicating the car is safe to start
-        virtual void set_safe_start(bool can_start);
+        virtual void set_safe_start(bool can_start){};
         // Sets the gerabox ATF temperature. Offset by +50C
-        virtual void set_gearbox_temperature(uint16_t temp);
+        virtual void set_gearbox_temperature(uint16_t temp){};
         // Sets the RPM of the input shaft of the gearbox on CAN
-        virtual void set_input_shaft_speed(uint16_t rpm);
+        virtual void set_input_shaft_speed(uint16_t rpm){};
         // Sets 4WD activated toggle bit
-        virtual void set_is_all_wheel_drive(bool is_4wd);
+        virtual void set_is_all_wheel_drive(bool is_4wd){};
         // Sets wheel torque
-        virtual void set_wheel_torque(uint16_t t);
+        virtual void set_wheel_torque(uint16_t t){};
         // Sets shifter position message
-        virtual void set_shifter_position(ShifterPosition pos);
+        virtual void set_shifter_position(ShifterPosition pos){};
         // Sets gearbox is OK
-        virtual void set_gearbox_ok(bool is_ok);
+        virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request);
+        virtual void set_torque_request(TorqueRequest request){};
         // Sets requested engine torque
-        virtual void set_requested_torque(uint16_t torque_nm);
+        virtual void set_requested_torque(uint16_t torque_nm){};
         // Sets torque loss of torque converter
-        virtual void set_turbine_torque_loss(uint16_t loss_nm);
+        virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 
-        virtual void set_wheel_torque_multi_factor(float ratio);
+        virtual void set_wheel_torque_multi_factor(float ratio){};
         // Sets the status of system error check
-        virtual void set_error_check_status(SystemStatusCheck ssc);
+        virtual void set_error_check_status(SystemStatusCheck ssc){};
         // Sets display profile
-        virtual void set_display_gear(GearboxDisplayGear g, bool manual_mode);
+        virtual void set_display_gear(GearboxDisplayGear g, bool manual_mode){};
         // Sets drive profile
-        virtual void set_drive_profile(GearboxProfile p);
+        virtual void set_drive_profile(GearboxProfile p){};
         // Sets display message
-        virtual void set_display_msg(GearboxMessage msg);
+        virtual void set_display_msg(GearboxMessage msg){};
         // Set bit to signify the gearbox is aborting the shift
         virtual void set_abort_shift(bool is_aborting){};
         
@@ -298,6 +364,7 @@ class AbstractCan {
         }
 
     protected:
+        const char* name;
         TaskHandle_t* tx_task = nullptr;
         TaskHandle_t* rx_task = nullptr;
         uint8_t tx_time_ms = 0;
@@ -306,24 +373,36 @@ class AbstractCan {
         uint16_t diag_rx_id = 0;
 
         [[noreturn]]
-        virtual void tx_task_loop();
+        void tx_task_loop(void);
         [[noreturn]]
-        virtual void rx_task_loop();
+        void rx_task_loop(void);
 
         static void start_rx_task_loop(void *_this) {
-            static_cast<AbstractCan*>(_this)->rx_task_loop();
+            static_cast<EgsBaseCan*>(_this)->rx_task_loop();
         }
         static void start_tx_task_loop(void *_this) {
-            static_cast<AbstractCan*>(_this)->tx_task_loop();
+            static_cast<EgsBaseCan*>(_this)->tx_task_loop();
         }
+
+        virtual void tx_frames(){};
+        virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) {};
+        virtual void on_rx_done(uint64_t now_ts){};
+
         bool send_messages = true;
 
         QueueHandle_t* diag_rx_queue;
-    private:
-        const char* name;
+        twai_status_info_t can_status;
+        esp_err_t can_init_status;
+
+        inline void to_bytes(uint64_t src, uint8_t* dst) {
+            for(uint8_t i = 0; i < 8; i++) {
+                dst[7-i] = src & 0xFF;
+                src >>= 8;
+            }
+        }
 };
 
-extern AbstractCan* egs_can_hal;
+extern EgsBaseCan* egs_can_hal;
 
 typedef uint8_t DiagCanMessage[8];
 

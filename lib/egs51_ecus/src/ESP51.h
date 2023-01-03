@@ -8,18 +8,16 @@
 * CAN Defintiion for ECU 'ESP51'
 */
 
-#ifdef EGS51_MODE
-
 #ifndef __ECU_ESP51_H_
 #define __ECU_ESP51_H_
 
 #include <stdint.h>
     
-#define BS_200_CAN_ID 0x0200
-#define BS_208_CAN_ID 0x0208
+#define BS_200EGS51_CAN_ID 0x0200
+#define BS_208EGS51_CAN_ID 0x0208
 
 /** brake light switch */
-enum class BS_200h_BLS {
+enum class BS_200h_BLSEGS51 {
 	BREMSE_NBET = 0, // Brake not actuated
 	BREMSE_BET = 1, // brake actuated
 	UNKNOWN = 2, // not defined
@@ -27,7 +25,7 @@ enum class BS_200h_BLS {
 };
 
 /** rotary direction wheel front left */
-enum class BS_200h_DRTGVL {
+enum class BS_200h_DRTGVLEGS51 {
 	PASSIVE = 0, // No rotation detection
 	FWD = 1, // direction of rotation forward
 	REV = 2, // direction of rotation backwards
@@ -35,7 +33,7 @@ enum class BS_200h_DRTGVL {
 };
 
 /** direction of rotation wheel front right */
-enum class BS_200h_DRTGVR {
+enum class BS_200h_DRTGVREGS51 {
 	PASSIVE = 0, // No rotation detection
 	FWD = 1, // direction of rotation forward
 	REV = 2, // direction of rotation backwards
@@ -43,7 +41,7 @@ enum class BS_200h_DRTGVR {
 };
 
 /** Rad Left for Cruise */
-enum class BS_200h_DRTGTM {
+enum class BS_200h_DRTGTMEGS51 {
 	PASSIVE = 0, // No rotation detection
 	FWD = 1, // direction of rotation forward
 	REV = 2, // direction of rotation backwards
@@ -51,7 +49,7 @@ enum class BS_200h_DRTGTM {
 };
 
 /** Gear, upper limit */
-enum class BS_208h_GMAX_ESP {
+enum class BS_208h_GMAX_ESPEGS51 {
 	PASSIVE = 0, // passive value
 	G1 = 1, // Gear, upper limit = 1
 	G2 = 2, // Gear, upper limit = 2
@@ -63,7 +61,7 @@ enum class BS_208h_GMAX_ESP {
 };
 
 /** Gear, lower limit */
-enum class BS_208h_GMIN_ESP {
+enum class BS_208h_GMIN_ESPEGS51 {
 	PASSIVE = 0, // passive value
 	G1 = 1, // Gear, lower limit = 1
 	G2 = 2, // Gear, lower limit = 2
@@ -75,7 +73,7 @@ enum class BS_208h_GMIN_ESP {
 };
 
 /** system condition */
-enum class BS_208h_SZS {
+enum class BS_208h_SZSEGS51 {
 	ERR = 0, // system error
 	NORM = 1, // normal operation
 	DIAG = 2, // Diagnosis
@@ -83,7 +81,7 @@ enum class BS_208h_SZS {
 };
 
 /** Switching Difference ESP */
-enum class BS_208h_SLV_ESP {
+enum class BS_208h_SLV_ESPEGS51 {
 	SKL0 = 0, // Shift characteristic "0"
 	SKL1 = 1, // Shift characteristic "1"
 	SKL2 = 2, // Shift characteristic "2"
@@ -98,7 +96,7 @@ enum class BS_208h_SLV_ESP {
 };
 
 /** ESP request: "N" Insert */
-enum class BS_208h_ANFN {
+enum class BS_208h_ANFNEGS51 {
 	UNKNOWN = 0, // not defined
 	ANF_N = 1, // requirement "neutral"
 	IDLE = 2, // No requirement
@@ -106,7 +104,7 @@ enum class BS_208h_ANFN {
 };
 
 /** rotary direction wheel rear right */
-enum class BS_208h_DRTGHR {
+enum class BS_208h_DRTGHREGS51 {
 	PASSIVE = 0, // No rotation detection
 	FWD = 1, // direction of rotation forward
 	REV = 2, // direction of rotation backwards
@@ -114,7 +112,7 @@ enum class BS_208h_DRTGHR {
 };
 
 /** rotary direction wheel rear left */
-enum class BS_208h_DRTGHL {
+enum class BS_208h_DRTGHLEGS51 {
 	PASSIVE = 0, // No rotation detection
 	FWD = 1, // direction of rotation forward
 	REV = 2, // direction of rotation backwards
@@ -127,8 +125,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of BS_200 */
-	uint32_t get_canid(){ return BS_200_CAN_ID; }
+	/** Gets CAN ID of BS_200EGS51 */
+	uint32_t get_canid(){ return BS_200EGS51_CAN_ID; }
     /** Sets Brake defective control lamp (EBV_KL at 463/461 / NCV2) */
     void set_BRE_KL(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -190,16 +188,16 @@ typedef union {
     uint8_t get_BZ200h() const { return (uint8_t)(raw >> 50 & 0xf); }
         
     /** Sets brake light switch */
-    void set_BLS(BS_200h_BLS value){ raw = (raw & 0xfffcffffffffffff) | ((uint64_t)value & 0x3) << 48; }
+    void set_BLS(BS_200h_BLSEGS51 value){ raw = (raw & 0xfffcffffffffffff) | ((uint64_t)value & 0x3) << 48; }
 
     /** Gets brake light switch */
-    BS_200h_BLS get_BLS() const { return (BS_200h_BLS)(raw >> 48 & 0x3); }
+    BS_200h_BLSEGS51 get_BLS() const { return (BS_200h_BLSEGS51)(raw >> 48 & 0x3); }
         
     /** Sets rotary direction wheel front left */
-    void set_DRTGVL(BS_200h_DRTGVL value){ raw = (raw & 0xffff3fffffffffff) | ((uint64_t)value & 0x3) << 46; }
+    void set_DRTGVL(BS_200h_DRTGVLEGS51 value){ raw = (raw & 0xffff3fffffffffff) | ((uint64_t)value & 0x3) << 46; }
 
     /** Gets rotary direction wheel front left */
-    BS_200h_DRTGVL get_DRTGVL() const { return (BS_200h_DRTGVL)(raw >> 46 & 0x3); }
+    BS_200h_DRTGVLEGS51 get_DRTGVL() const { return (BS_200h_DRTGVLEGS51)(raw >> 46 & 0x3); }
         
     /** Sets wheel speed front left. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DVL(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
@@ -208,10 +206,10 @@ typedef union {
     uint16_t get_DVL() const { return (uint16_t)(raw >> 32 & 0x3fff); }
         
     /** Sets direction of rotation wheel front right */
-    void set_DRTGVR(BS_200h_DRTGVR value){ raw = (raw & 0xffffffff3fffffff) | ((uint64_t)value & 0x3) << 30; }
+    void set_DRTGVR(BS_200h_DRTGVREGS51 value){ raw = (raw & 0xffffffff3fffffff) | ((uint64_t)value & 0x3) << 30; }
 
     /** Gets direction of rotation wheel front right */
-    BS_200h_DRTGVR get_DRTGVR() const { return (BS_200h_DRTGVR)(raw >> 30 & 0x3); }
+    BS_200h_DRTGVREGS51 get_DRTGVR() const { return (BS_200h_DRTGVREGS51)(raw >> 30 & 0x3); }
         
     /** Sets Right speed front right. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DVR(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
@@ -220,10 +218,10 @@ typedef union {
     uint16_t get_DVR() const { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets Rad Left for Cruise */
-    void set_DRTGTM(BS_200h_DRTGTM value){ raw = (raw & 0xffffffffffff3fff) | ((uint64_t)value & 0x3) << 14; }
+    void set_DRTGTM(BS_200h_DRTGTMEGS51 value){ raw = (raw & 0xffffffffffff3fff) | ((uint64_t)value & 0x3) << 14; }
 
     /** Gets Rad Left for Cruise */
-    BS_200h_DRTGTM get_DRTGTM() const { return (BS_200h_DRTGTM)(raw >> 14 & 0x3); }
+    BS_200h_DRTGTMEGS51 get_DRTGTM() const { return (BS_200h_DRTGTMEGS51)(raw >> 14 & 0x3); }
         
     /** Sets wheel speed links for cruise control. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TM_DL(uint16_t value){ raw = (raw & 0xffffffffffffc000) | ((uint64_t)value & 0x3fff) << 0; }
@@ -231,7 +229,7 @@ typedef union {
     /** Gets wheel speed links for cruise control. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_TM_DL() const { return (uint16_t)(raw >> 0 & 0x3fff); }
         
-} BS_200;
+} BS_200EGS51;
 
 
 
@@ -239,8 +237,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of BS_208 */
-	uint32_t get_canid(){ return BS_208_CAN_ID; }
+	/** Gets CAN ID of BS_208EGS51 */
+	uint32_t get_canid(){ return BS_208EGS51_CAN_ID; }
     /** Sets ESP / Art-Wish: "Active Retract" */
     void set_AKT_R_ESP(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -254,16 +252,16 @@ typedef union {
     bool get_MINMAX_ART() const { return (bool)(raw >> 62 & 0x1); }
         
     /** Sets Gear, upper limit */
-    void set_GMAX_ESP(BS_208h_GMAX_ESP value){ raw = (raw & 0xc7ffffffffffffff) | ((uint64_t)value & 0x7) << 59; }
+    void set_GMAX_ESP(BS_208h_GMAX_ESPEGS51 value){ raw = (raw & 0xc7ffffffffffffff) | ((uint64_t)value & 0x7) << 59; }
 
     /** Gets Gear, upper limit */
-    BS_208h_GMAX_ESP get_GMAX_ESP() const { return (BS_208h_GMAX_ESP)(raw >> 59 & 0x7); }
+    BS_208h_GMAX_ESPEGS51 get_GMAX_ESP() const { return (BS_208h_GMAX_ESPEGS51)(raw >> 59 & 0x7); }
         
     /** Sets Gear, lower limit */
-    void set_GMIN_ESP(BS_208h_GMIN_ESP value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
+    void set_GMIN_ESP(BS_208h_GMIN_ESPEGS51 value){ raw = (raw & 0xf8ffffffffffffff) | ((uint64_t)value & 0x7) << 56; }
 
     /** Gets Gear, lower limit */
-    BS_208h_GMIN_ESP get_GMIN_ESP() const { return (BS_208h_GMIN_ESP)(raw >> 56 & 0x7); }
+    BS_208h_GMIN_ESPEGS51 get_GMIN_ESP() const { return (BS_208h_GMIN_ESPEGS51)(raw >> 56 & 0x7); }
         
     /** Sets Suppression Dynamic fully detection */
     void set_DDYN_UNT(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
@@ -272,10 +270,10 @@ typedef union {
     bool get_DDYN_UNT() const { return (bool)(raw >> 55 & 0x1); }
         
     /** Sets system condition */
-    void set_SZS(BS_208h_SZS value){ raw = (raw & 0xff9fffffffffffff) | ((uint64_t)value & 0x3) << 53; }
+    void set_SZS(BS_208h_SZSEGS51 value){ raw = (raw & 0xff9fffffffffffff) | ((uint64_t)value & 0x3) << 53; }
 
     /** Gets system condition */
-    BS_208h_SZS get_SZS() const { return (BS_208h_SZS)(raw >> 53 & 0x3); }
+    BS_208h_SZSEGS51 get_SZS() const { return (BS_208h_SZSEGS51)(raw >> 53 & 0x3); }
         
     /** Sets Tempomat operation */
     void set_TM_AUS(bool value){ raw = (raw & 0xffefffffffffffff) | ((uint64_t)value & 0x1) << 52; }
@@ -284,10 +282,10 @@ typedef union {
     bool get_TM_AUS() const { return (bool)(raw >> 52 & 0x1); }
         
     /** Sets Switching Difference ESP */
-    void set_SLV_ESP(BS_208h_SLV_ESP value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
+    void set_SLV_ESP(BS_208h_SLV_ESPEGS51 value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
 
     /** Gets Switching Difference ESP */
-    BS_208h_SLV_ESP get_SLV_ESP() const { return (BS_208h_SLV_ESP)(raw >> 48 & 0xf); }
+    BS_208h_SLV_ESPEGS51 get_SLV_ESP() const { return (BS_208h_SLV_ESPEGS51)(raw >> 48 & 0xf); }
         
     /** Sets ESP brake engagement active */
     void set_BRE_AKT_ESP(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
@@ -296,10 +294,10 @@ typedef union {
     bool get_BRE_AKT_ESP() const { return (bool)(raw >> 47 & 0x1); }
         
     /** Sets ESP request: "N" Insert */
-    void set_ANFN(BS_208h_ANFN value){ raw = (raw & 0xffff9fffffffffff) | ((uint64_t)value & 0x3) << 45; }
+    void set_ANFN(BS_208h_ANFNEGS51 value){ raw = (raw & 0xffff9fffffffffff) | ((uint64_t)value & 0x3) << 45; }
 
     /** Gets ESP request: "N" Insert */
-    BS_208h_ANFN get_ANFN() const { return (BS_208h_ANFN)(raw >> 45 & 0x3); }
+    BS_208h_ANFNEGS51 get_ANFN() const { return (BS_208h_ANFNEGS51)(raw >> 45 & 0x3); }
         
     /** Sets ART brake intervention active */
     void set_BRE_AKT_ART(bool value){ raw = (raw & 0xffffefffffffffff) | ((uint64_t)value & 0x1) << 44; }
@@ -314,10 +312,10 @@ typedef union {
     uint16_t get_MBRE_ESP() const { return (uint16_t)(raw >> 32 & 0xfff); }
         
     /** Sets rotary direction wheel rear right */
-    void set_DRTGHR(BS_208h_DRTGHR value){ raw = (raw & 0xffffffff3fffffff) | ((uint64_t)value & 0x3) << 30; }
+    void set_DRTGHR(BS_208h_DRTGHREGS51 value){ raw = (raw & 0xffffffff3fffffff) | ((uint64_t)value & 0x3) << 30; }
 
     /** Gets rotary direction wheel rear right */
-    BS_208h_DRTGHR get_DRTGHR() const { return (BS_208h_DRTGHR)(raw >> 30 & 0x3); }
+    BS_208h_DRTGHREGS51 get_DRTGHR() const { return (BS_208h_DRTGHREGS51)(raw >> 30 & 0x3); }
         
     /** Sets Rear wheel speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DHR(uint16_t value){ raw = (raw & 0xffffffffc000ffff) | ((uint64_t)value & 0x3fff) << 16; }
@@ -326,10 +324,10 @@ typedef union {
     uint16_t get_DHR() const { return (uint16_t)(raw >> 16 & 0x3fff); }
         
     /** Sets rotary direction wheel rear left */
-    void set_DRTGHL(BS_208h_DRTGHL value){ raw = (raw & 0xffffffffffff3fff) | ((uint64_t)value & 0x3) << 14; }
+    void set_DRTGHL(BS_208h_DRTGHLEGS51 value){ raw = (raw & 0xffffffffffff3fff) | ((uint64_t)value & 0x3) << 14; }
 
     /** Gets rotary direction wheel rear left */
-    BS_208h_DRTGHL get_DRTGHL() const { return (BS_208h_DRTGHL)(raw >> 14 & 0x3); }
+    BS_208h_DRTGHLEGS51 get_DRTGHL() const { return (BS_208h_DRTGHLEGS51)(raw >> 14 & 0x3); }
         
     /** Sets Rear wheel speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_DHL(uint16_t value){ raw = (raw & 0xffffffffffffc000) | ((uint64_t)value & 0x3fff) << 0; }
@@ -337,7 +335,7 @@ typedef union {
     /** Gets Rear wheel speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint16_t get_DHL() const { return (uint16_t)(raw >> 0 & 0x3fff); }
         
-} BS_208;
+} BS_208EGS51;
 
 
 
@@ -352,11 +350,11 @@ class ECU_ESP51 {
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
             switch(can_id) {
-                case BS_200_CAN_ID:
+                case BS_200EGS51_CAN_ID:
                     LAST_FRAME_TIMES[0] = timestamp_now;
                     FRAME_DATA[0] = value;
                     return true;
-                case BS_208_CAN_ID:
+                case BS_208EGS51_CAN_ID:
                     LAST_FRAME_TIMES[1] = timestamp_now;
                     FRAME_DATA[1] = value;
                     return true;
@@ -372,7 +370,7 @@ class ECU_ESP51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_BS_200(uint64_t now, uint64_t max_expire_time, BS_200* dest) const {
+        bool get_BS_200(uint64_t now, uint64_t max_expire_time, BS_200EGS51* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -390,7 +388,7 @@ class ECU_ESP51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_BS_208(uint64_t now, uint64_t max_expire_time, BS_208* dest) const {
+        bool get_BS_208(uint64_t now, uint64_t max_expire_time, BS_208EGS51* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -406,5 +404,3 @@ class ECU_ESP51 {
 		uint64_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_ESP51_H_
-
-#endif // EGS51_MODE

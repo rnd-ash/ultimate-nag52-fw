@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'GS'
 */
 
-#ifdef EGS52_MODE
-
 #ifndef __ECU_GS_H_
 #define __ECU_GS_H_
 
@@ -734,5 +732,3 @@ class ECU_GS {
 		uint64_t LAST_FRAME_TIMES[5];
 };
 #endif // __ECU_GS_H_
-
-#endif // EGS52_MODE

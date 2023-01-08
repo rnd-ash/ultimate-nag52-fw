@@ -257,7 +257,7 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     float overlap_ratio = 1.0-torque_ratio;
     
     dest_torque->hold_time = 0;
-    dest_overlap->hold_time = (float)chars.target_shift_time*overlap_ratio*0.75;
+    dest_overlap->hold_time = (float)chars.target_shift_time*overlap_ratio*0.5;
 
     dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
     dest_overlap->ramp_time = dest_overlap->hold_time/4;
@@ -265,9 +265,10 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
     dest_overlap->mpc_pressure = prev->mpc_pressure;
 
-    uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2); // 2mBar per Nm
+    uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
+    dest_overlap->mpc_pressure += spc_addr/2;
     if (sensor_data->static_torque < 0) {
-        spc_addr += 100; // For coast shifts
+        spc_addr += 250; // For coast shifts
     }
 
     dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)

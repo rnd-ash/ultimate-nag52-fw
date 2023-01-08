@@ -26,44 +26,57 @@ struct WheelData {
     WheelDirection current_dir; // Wheel direction
 };
 
-struct DiagIsoTpInfo {
-    uint32_t tx_canid;
-    uint32_t rx_canid;
-    uint8_t bs;
-    uint8_t st_min;
-};
-
 enum class SystemStatusCheck: uint8_t {
-    // Waiting for check to complete
+    /// @brief Waiting for check to complete
     Waiting,
-    // No errors. Gearbox is OK
+    /// @brief Error check OK
     OK,
-    // Errors found
+    /// @brief Error check failed
     Error
 };
 
 enum class EngineType: uint8_t {
+    /// @brief Diesel engine
     Diesel,
+    /// @brief Petrol engine
     Petrol,
+    /// @brief Unknown engine type
     Unknown = 0xFF
 };
 
+/// @brief Torque request type
 enum class TorqueRequest: uint8_t {
-    Decrease,
-    Increase,
-    None
+    /// @brief No torque request specified
+    None,
+    /// @brief Begin torque request. Limit engine
+    Begin,
+    /// @brief Torque request, engine must follow EGS demand
+    FollowMe,
+    /// @brief Restore torque request back to normal
+    Restore,
 };
 
+/// @brief Gearbox gears for 722.6 gearbox
 enum class GearboxGear: uint8_t {
+    /// @brief Gear D1
     First = 1,
+    /// @brief Gear D2
     Second = 2,
+    /// @brief Gear D3
     Third = 3,
+    /// @brief Gear D4
     Fourth = 4,
+    /// @brief Gear D5
     Fifth = 5,
+    /// @brief  Park
     Park = 8,
+    /// @brief Neutral
     Neutral = 9,
+    /// @brief Gear R1
     Reverse_First = 10,
+    /// @brief Gear R2
     Reverse_Second = 11,
+    /// @brief  Implausible or signal not available
     SignalNotAvailable = 0xFF
 };
 
@@ -245,6 +258,11 @@ class EgsBaseCan {
         virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
+        // Gets the torque loss of the AC system
+        virtual uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+            return UINT8_MAX;
+        }
+
         // Gets the flappy paddle position
         virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
             return PaddlePosition::SNV;

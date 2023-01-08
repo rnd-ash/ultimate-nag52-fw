@@ -213,6 +213,18 @@ int Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return INT_MAX;
 }
 
+uint8_t Egs52Can::get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+    KLA_410 kl410;
+    if (this->ezs_ecu.get_KLA_410(now, expire_time_ms, &kl410)) {
+        uint8_t ret = kl410.get_M_KOMP();
+        if (ret != UINT8_MAX) {
+            ret /= 4;
+        }
+        return ret;
+    }
+    return UINT8_MAX;
+}
+
 PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
     SBW_232 sbw;
     if (misc_ecu.get_SBW_232(now, expire_time_ms, &sbw)) { // 50ms timeout
@@ -503,31 +515,39 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs52Can::set_torque_request(TorqueRequest request) {
+    this->current_req = request;
     switch(request) {
-        case TorqueRequest::Decrease:
+        case TorqueRequest::Begin:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(false);
-            return;
-        case TorqueRequest::Increase:
+            break;
+        case TorqueRequest::FollowMe:
+            gs218.set_MMIN_EGS(true);
+            gs218.set_MMAX_EGS(false);
+            gs218.set_DYN0_AMR_EGS(true);
+            gs218.set_DYN1_EGS(false);
+            break;
+        case TorqueRequest::Restore:
             gs218.set_MMIN_EGS(true);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(true);
             gs218.set_DYN1_EGS(true);
-            return;
+            break;
         case TorqueRequest::None:
         default:
             gs218.set_MMIN_EGS(false);
             gs218.set_MMAX_EGS(false);
             gs218.set_DYN0_AMR_EGS(false);
             gs218.set_DYN1_EGS(false);
-            return;
+            gs218.set_M_EGS(0);
+            break;
     }
 }
 
 void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    if (torque_nm == 0 && gs218.get_DYN1_EGS() == false) {
+    if (this->current_req == TorqueRequest::None) {
         gs218.set_M_EGS(0);
     } else {
         gs218.set_M_EGS((torque_nm + 500) * 4);

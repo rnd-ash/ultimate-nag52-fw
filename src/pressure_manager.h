@@ -129,6 +129,9 @@ public:
     StoredTcuMap* get_working_map(void);
     StoredTcuMap* get_fill_time_map(void);
     StoredTcuMap* get_fill_pressure_map(void);
+    uint16_t get_max_rated_torque() {
+        return this->gb_max_torque;
+    }
 
 private:
      /**

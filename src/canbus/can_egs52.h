@@ -44,6 +44,7 @@ class Egs52Can: public EgsBaseCan {
          int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
          int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -129,6 +130,7 @@ class Egs52Can: public EgsBaseCan {
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
+        TorqueRequest current_req = TorqueRequest::None;
 };
 
 #endif // EGS53_MODE

@@ -38,11 +38,12 @@ public:
 
     /// @brief Calculates the engine torque based on the current status of the engine
     /// @param engine_speed the engine speed (in [rpm])
-    /// @param throttle_valve_flare_angle the flare angle of the throttle valve (in [°])
+    /// @param throttle_valve_opening_angle the opening angle of the throttle valve (in [°])
     /// @param p_a pressure before the throttle valve (in [hPa])
+    /// @param T_a outside temperature (in [°C])
     /// @param maf mass air flow (in [kg/h])
     /// @return A set with the calculated torques
-    Torques getTorques(const uint16_t engine_speed, const float throttle_valve_flare_angle, const uint16_t p_a, const uint16_t maf);
+    Torques getTorques(const uint16_t engine_speed, const float throttle_valve_opening_angle, const uint16_t p_a, , const uint16_t T_a, const uint16_t maf);
 
 private:
     /// @brief radius of the throttle valve (in [m])
@@ -57,13 +58,21 @@ private:
     /// @brief lookup table with the maximum engine torques
     LookupTable* M_eng_max;
 
-    /// @brief Calculates the static engine torque.
-    /// @param throttle_valve_flare_angle the flare angle of the throttle valve (in [°])
+    /// @brief Calculates the engine torque based on engine speed, mass air flow, and engine constant.
+    /// @param engine_speed the engine speed (in [rpm])
     /// @param maf mass air flow (in [kg/h])
-    /// @return static engine torque based on current engine speed, mass air flow and engine constant (in [Nm]) 
-    uint16_t getStaticTorque(const uint16_t engine_speed, const uint16_t maf);
+    /// @return static engine torque based on current engine speed, mass air flow, and engine constant (in [Nm]) 
+    uint16_t calculateTorque(const uint16_t engine_speed, const uint16_t maf);
 
-    uint16_t getDemandedTorque(const float throttle_valve_flare_angle);
+    /// @brief Estimates the demanded engine torque.
+    /// @param engine_speed the engine speed (in [rpm])
+    /// @param throttle_valve_opening_angle the flare angle of the throttle valve (in [°])
+    /// @param p_a pressure before the throttle valve (in [hPa])
+    /// @param T_a outside temperature (in [°C])
+    /// @return demanded engine torque based on current engine speed, estimated mass air flow, engine constants, and throttle valve opening angle
+    uint16_t estimateDemandedTorque(const uint16_t engine_speed, const float throttle_valve_opening_angle, const uint16_t p_a, const uint16_t T_a);
+
+    float psi(const uint16_t p_a, const uint16_t p_s);
 
 };
 #endif /* ENGINE_H */

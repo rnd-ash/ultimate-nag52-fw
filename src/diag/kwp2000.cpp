@@ -740,10 +740,12 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
             bool pl = false;
+            uint16_t v = 0;
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-                    Solenoids::get_solenoid_voltage() > 10000 && // Enough battery voltage
+                    Sensors::read_vbatt(&v) == ESP_OK &&
+                    v > 10000 && // Enough battery voltage
                     Sensors::parking_lock_engaged(&pl) == ESP_OK &&
                     !pl // Parking lock off (In D/R)
                 ) {

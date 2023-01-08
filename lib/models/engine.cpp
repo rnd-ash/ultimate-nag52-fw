@@ -39,7 +39,7 @@ Engine::Torques Engine::getTorques(const uint16_t engine_speed, const float thro
 {
     return new Torques{
         .minTorque = 0u,
-        .maxTorque = (uint16_t)(M_eng_max->getValue((float)engine_speed)),
+        .maxTorque = (uint16_t)(M_eng_max->get_value((float)engine_speed)),
         .demandedTorque = estimateDemandedTorque(engine_speed, throttle_valve_opening_angle),
         .staticTorque = calculateTorque(engine_speed, maf)        
     };

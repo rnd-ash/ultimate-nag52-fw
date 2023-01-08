@@ -72,6 +72,10 @@ private:
     /// @return demanded engine torque based on current engine speed, estimated mass air flow, engine constants, and throttle valve opening angle
     uint16_t estimateDemandedTorque(const uint16_t engine_speed, const float throttle_valve_opening_angle, const uint16_t p_a, const uint16_t T_a);
 
+    /// @brief 
+    /// @param p_a 
+    /// @param p_s 
+    /// @return 
     float psi(const uint16_t p_a, const uint16_t p_s);
 
 };

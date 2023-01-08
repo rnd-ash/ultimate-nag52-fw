@@ -2,11 +2,12 @@
 #define CAN_CLASSIC_H
 
 #include <gearbox_config.h>
-#include "can_egs51.h"
+#include "can_hal.h"
+#include "../../egs52_ecus/src/EWM.h"
 
 /// @brief The CAN-layer supports classic Mercedes-Benz cars from the early 1990's (e.g. 124, 202, 129, 140) with a 125kbit/s CAN for HFM coming partially with M104 (L6) and M111 (L4). It does not support the 500kbit/s CAN coming with the M119 (V8) in cars of the same era.
-class ClassicCan : public Egs51Can {
-        explicit ClassicCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
+class ClassicHfmCan : public EgsBaseCan {
+        explicit ClassicHfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -95,10 +96,11 @@ class ClassicCan : public Egs51Can {
         void on_rx_done(uint64_t now_ts) override;
     private:
         // CAN Frames to Tx
-        GS_218EGS51 gs218 = {0};
-        ECU_MS51 ms51 = ECU_MS51();
+        // GS_218EGS51 gs218 = {0};
+        // ECU_MS51 ms51 = ECU_MS51();
+        // CAN frames to Rx
         ECU_EWM ewm = ECU_EWM();
-        ECU_ESP51 esp51 = ECU_ESP51();
+        // ECU_ESP51 esp51 = ECU_ESP51();
         ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
         uint8_t i2c_rx_bytes[2] = {0,0};
         uint8_t i2c_tx_bytes[2] = {0,0};

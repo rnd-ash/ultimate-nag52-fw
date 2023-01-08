@@ -1,10 +1,10 @@
 #ifndef STORED_MAP_H
 #define STORED_MAP_H
 
-#include "../lib/core/tcumap.h"
+#include "../lib/core/lookupmap.h"
 #include "esp_err.h"
 
-class StoredTcuMap : public TcuMap {
+class StoredTcuMap : public LookupMap {
 
     public:
         StoredTcuMap(

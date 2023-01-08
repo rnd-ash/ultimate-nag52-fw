@@ -6,11 +6,16 @@
 class LookupMap : public LookupTable {
 
     public:
-        LookupMap(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t* _yHeader, uint16_t _yHeaderSize, int16_t* _data, uint16_t _dataSize);
+        LookupMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize);
 
-        float getValue(const float xValue, const float yValue);
+        float get_value(const float xValue, const float yValue);
+        void get_y_headers(uint16_t *size, int16_t **headers);
+
     protected:
-        LookupHeader yHeader;
+        LookupHeader* yHeader;
+
+    private:
+        uint16_t yHeaderSize;
 };
 
 #endif /* lookupmap.h */

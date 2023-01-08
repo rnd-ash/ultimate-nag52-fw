@@ -44,7 +44,7 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
         return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     uint32_t dest_mem_address = args[0] << 16 | args[1] << 8 | args[2];
-    uint8_t fmt = args[3];
+    // uint8_t fmt = args[3];
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
     // Valid memory regions
     if (dest_mem_address == MEM_REGION_OTA) {
@@ -95,7 +95,7 @@ DiagMessage Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len) {
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
-    uint8_t fmt = args[3];
+    // uint8_t fmt = args[3];
     uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6];
     // Valid memory regions
     if (src_mem_address == MEM_REGION_COREDUMP) {

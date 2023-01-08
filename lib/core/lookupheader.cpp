@@ -19,7 +19,7 @@ LookupHeader::~LookupHeader(void)
     }
 }
 
-void LookupHeader::setIndices(const float value, uint16_t *idx_min, uint16_t *idx_max)
+void LookupHeader::set_indices(const float value, uint16_t *idx_min, uint16_t *idx_max)
 {
     // Set minimum index to the first element of the field.
     *idx_min = 0u;
@@ -59,7 +59,7 @@ void LookupHeader::setIndices(const float value, uint16_t *idx_min, uint16_t *id
     }
 }
 
-int16_t LookupHeader::getValue(const uint16_t index)
+int16_t LookupHeader::get_value(const uint16_t index)
 {
     int16_t result = INT16_MAX;
     if(index <= size){
@@ -68,7 +68,12 @@ int16_t LookupHeader::getValue(const uint16_t index)
     return result;
 }
 
-uint16_t LookupHeader::getSize(void)
+uint16_t LookupHeader::get_size(void)
 {
     return size;
+}
+
+int16_t * LookupHeader::get_data(void)
+{
+    return header;
 }

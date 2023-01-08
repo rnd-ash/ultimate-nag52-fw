@@ -19,10 +19,11 @@ class LookupHeader {
         /// @param value the value to be searched in the sorted list of headers
         /// @param idx_min the index of the element in headers, which is smaller than or equal to value
         /// @param idx_max the index of the element in headers, which is greater than or equal to value
-        void setIndices(const float value, uint16_t* idx_min, uint16_t* idx_max);
+        void set_indices(const float value, uint16_t* idx_min, uint16_t* idx_max);
 
-        int16_t getValue(const uint16_t index);
-        uint16_t getSize(void);
+        int16_t get_value(const uint16_t index);
+        uint16_t get_size(void);
+        int16_t* get_data(void);
         
     private:
 

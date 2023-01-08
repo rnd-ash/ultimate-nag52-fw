@@ -278,7 +278,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // For ramp down of torque
         // int16_t torque_req_amt = 0;
         int16_t curr_torque_req = 0;
-        bool req_trq = false;
+        // bool req_trq = false;
 
         bool shift_in_progress = false;
         while (true)
@@ -323,7 +323,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             curr_phase = &sd.torque_data;
                             if (sensor_data.static_torque > 0 && this->est_gear_idx == sd.curr_g)
                             {
-                                req_trq = true;
+                                // req_trq = true;
                                 curr_torque_req = MIN(sensor_data.static_torque, sensor_data.driver_requested_torque);
                                 egs_can_hal->set_torque_request(TorqueRequest::Begin);
                                 egs_can_hal->set_requested_torque(curr_torque_req);
@@ -346,7 +346,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         }
                         else if (shift_stage_loc == SHIFT_PHASE_OVERLAP)
                         {
-                            req_trq = false;
+                            // req_trq = false;
                             ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT", "Shift start phase max pressure Targets: (%d, %d mBar)", sd.max_pressure_data.mpc_pressure, sd.max_pressure_data.spc_pressure);
                             sd.max_pressure_data.mpc_pressure = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
                             // No solenoids to touch, just inc counter
@@ -458,7 +458,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 {
                     dest_report.transition_end = total_elapsed;
                 }
-                req_trq = false;
+                // req_trq = false;
             }
 
             if (gen_report && total_elapsed % SR_REPORT_INTERVAL == 0 && index < MAX_POINTS_PER_SR_ARRAY)

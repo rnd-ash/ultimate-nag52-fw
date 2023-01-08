@@ -9,10 +9,12 @@ StoredTcuMap::StoredTcuMap(const char *eeprom_key_name,
                            const int16_t *y_headers,
                            uint16_t x_size,
                            uint16_t y_size,
-                           const int16_t *default_map) : TcuMap(x_size,
+                           const int16_t *default_map) : LookupMap(x_headers,
+                                                                x_size,
+                                                                y_headers,
                                                                 y_size,
-                                                                x_headers,
-                                                                y_headers)
+                                                                default_map,
+                                                                map_element_count)
 {
     this->default_map = default_map;
     if ((x_size * y_size) == map_element_count)
@@ -104,7 +106,7 @@ esp_err_t StoredTcuMap::reload_from_eeprom(void)
 esp_err_t StoredTcuMap::read_from_eeprom(const char *key_name, uint16_t expected_size)
 {
     esp_err_t ret;
-    bool mem_is_allocated = this->allocate_ok();
+    bool mem_is_allocated = this->is_allocated();
     if (mem_is_allocated)
     {
         int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(expected_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));

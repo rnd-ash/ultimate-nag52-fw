@@ -3,16 +3,18 @@
 #include <string.h>
 #include "tcu_maths.h"
 
-LookupTable::LookupTable(int16_t *_xHeader, uint16_t _xHeaderSize) : xHeader(_xHeader, _xHeaderSize)
+LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize)
 {
     dataSize = 0u;
     data = nullptr;
     allocation_successful = false;
+    xHeader = new LookupHeader(_xHeader, _xHeaderSize);
 }
 
-LookupTable::LookupTable(int16_t *_xHeader, uint16_t _xHeaderSize, int16_t *_data, uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize)
+LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_data, const uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize)
 {
     dataSize = _dataSize;
+    xHeaderSize = _xHeaderSize;
     data = static_cast<int16_t*>(MALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
     if (allocation_successful)
@@ -26,7 +28,7 @@ LookupTable::~LookupTable(void)
     FREE(data);
 }
 
-bool LookupTable::setData(int16_t* _data, uint16_t _dataSize)
+bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
 {
     bool result = false;
     dataSize = _dataSize;
@@ -42,22 +44,44 @@ bool LookupTable::setData(int16_t* _data, uint16_t _dataSize)
     return result;
 }
 
-bool LookupTable::isAllocated(void)
+bool LookupTable::is_allocated(void)
 {
     return allocation_successful;
 }
 
-float LookupTable::getValue(float xValue)
+float LookupTable::get_value(float xValue)
 {
     uint16_t    idx_min;
     uint16_t    idx_max;
     
     // part 1 - identification of the indices for x-value
-    xHeader.setIndices(xValue, &idx_min, &idx_max);
+    xHeader->set_indices(xValue, &idx_min, &idx_max);
 
     // part 2: do the interpolation
-    int16_t x1 = xHeader.getValue(idx_min);
-    int16_t x2 = xHeader.getValue(idx_max);
+    int16_t x1 = xHeader->get_value(idx_min);
+    int16_t x2 = xHeader->get_value(idx_max);
     
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
+}
+
+int16_t* LookupTable::get_current_data(void) {
+    return data;
+}
+
+void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
+    *size = dataSize;
+    *headers = xHeader->get_data();
+}
+
+bool LookupTable::add_data(const int16_t* map, const uint16_t size) {
+    bool result = false;
+    if (nullptr != map)
+    {
+        if (size == dataSize)
+        {
+            (void)memcpy(this->data, map, size * sizeof(int16_t));
+            result = true;
+        }
+    }
+    return result;
 }

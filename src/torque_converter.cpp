@@ -148,9 +148,9 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     }
                 }
                 bool adj = false;
-                if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 150) {
-                    //this->base_tcc_pressure += 10;
-                    //adj = true;
+                if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 100 && sensors->pedal_pos == 0) {
+                    this->base_tcc_pressure += 10;
+                    adj = true;
                 } else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
                     this->base_tcc_pressure -= 10;
                     adj = true;
@@ -160,6 +160,9 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 }
             }
         }
+    }
+    if (this->base_tcc_pressure > 1800) {
+        this->base_tcc_pressure = 1800;
     }
     pm->set_target_tcc_pressure(this->curr_tcc_pressure);
 }

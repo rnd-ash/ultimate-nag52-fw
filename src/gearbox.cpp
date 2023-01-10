@@ -571,7 +571,7 @@ void Gearbox::shift_thread()
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target))
     { // N->P or P->N
-        this->pressure_mgr->set_target_spc_pressure(100);
+        this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
         sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
@@ -584,31 +584,33 @@ void Gearbox::shift_thread()
         {
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            uint16_t y4_pwm_val = 4096;
-            pressure_mgr->set_target_spc_pressure(1200);
-            vTaskDelay(10);
-            sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
-            vTaskDelay(150);
+            uint16_t spc = 600;
+            pressure_mgr->set_target_spc_pressure(spc);
+            vTaskDelay(100);
+            sol_y4->write_pwm_12_bit(4096);
             uint16_t elapsed = 0;
-            while (elapsed <= 500)
+            this->mpc_working = 1000;
+            while (elapsed <= 250)
             {
-                pressure_mgr->set_target_spc_pressure(1200);
-                if (elapsed > 100)
-                {
-                    y4_pwm_val = 1024; // 25% on to prevent burnout
-                }
-                sol_y4->write_pwm_12_bit(y4_pwm_val); // Full on
+                pressure_mgr->set_target_spc_pressure(spc);
                 elapsed += 20;
-                vTaskDelay(20 / portTICK_PERIOD_MS);
+                vTaskDelay(10 / portTICK_PERIOD_MS);
             }
+            sol_y4->write_pwm_12_bit(1024);
+            while (spc <= this->mpc_working) {
+                pressure_mgr->set_target_spc_pressure(spc);
+                spc+=10;
+                vTaskDelay(10);
+            }
+            vTaskDelay(250);
             sol_y4->write_pwm_12_bit(0);
             pressure_mgr->disable_spc();
         }
         else
         {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            pressure_mgr->set_target_spc_pressure(50);
-            sol_y4->write_pwm_12_bit(800); // Back to idle
+            pressure_mgr->set_target_spc_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
+            sol_y4->write_pwm_12_bit(1024); // Back to idle
         }
         if (is_fwd_gear(curr_target))
         {

@@ -858,6 +858,10 @@ void Gearbox::controller_loop()
         }
         if (Sensors::parking_lock_engaged(&lock_state) == ESP_OK)
         {
+            if (lock_state) {
+                this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
+                sol_y4->write_pwm_12_bit(1024);
+            }
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
             if (

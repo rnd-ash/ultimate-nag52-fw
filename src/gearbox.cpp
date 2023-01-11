@@ -410,6 +410,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             */
             uint16_t ratio_now = sensor_data.gear_ratio * 100;
+            if (shift_stage_loc >= SHIFT_PHASE_MAX_P) {
+                // MPC now defaults to current
+                this->mpc_working = this->pressure_mgr->find_working_mpc_pressure(target_gear);
+            }
             if (gen_report)
             {
                 // Shift monitoring

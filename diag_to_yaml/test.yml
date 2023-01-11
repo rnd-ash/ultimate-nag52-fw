@@ -1,0 +1,84 @@
+gen_date: UNKNOWN
+maps:
+- id: 1
+  name: Agility upshift threshold
+  desc: Agility mode upshift threshold map
+  cell_value_desc: Input shaft speed to change at
+  y_value_desc: Gear change
+  x_value_desc: Pedal input
+  x_unit: '%'
+  cell_unit: RPM
+- id: 2
+  name: Comfort upshift threshold
+  desc: Comfort mode upshift threshold map
+  cell_value_desc: Input shaft speed to change at
+  y_value_desc: Gear change
+  x_value_desc: Pedal input
+  x_unit: '%'
+  cell_unit: RPM
+- id: 3
+  name: S_UPSHIFT
+- id: 4
+  name: A_DOWNSHIFT
+- id: 5
+  name: C_DOWNSHIFT
+- id: 6
+  name: S_DOWNSHIFT
+- id: 7
+  name: Working pressure
+  desc: Working gearbox pressure based on load
+  cell_value_desc: Desired pressure
+  y_value_desc: Gear
+  x_value_desc: Input shaft torque % of rated
+  x_unit: '%'
+  cell_unit: mBar
+- id: 8
+  name: Pressure control solenoid current
+  desc: Pressure control solenoid current mapped to gearbox pressure
+  cell_value_desc: Current
+  y_value_desc: ATF Temp
+  x_value_desc: Desired pressure
+  x_unit: mBar
+  y_unit: '*C'
+  cell_unit: mA
+- id: 9
+  name: TCC Solenoid duty
+  desc: Pressure mapping between TCC solenoid PWM and TCC clutch pressure
+  cell_value_desc: Solenoid duty
+  y_value_desc: ATF Temp
+  x_value_desc: Desired TCC pressure
+  x_unit: mBar
+  y_unit: '*C'
+  cell_unit: /4096
+- id: 10
+  name: Clutch filling time
+  desc: Clutch filling time for shift fill phase
+  cell_value_desc: Fill time
+  x_value_desc: Clutch
+  cell_unit: ms
+- id: 11
+  name: Clutch filling pressure
+  desc: Clutch filling pressure for shift fill phase
+  cell_value_desc: Fill pressure
+  x_value_desc: Clutch
+  cell_unit: mBar
+- id: 16
+  name: A_UPTIME
+- id: 17
+  name: A_DNTIME
+- id: 18
+  name: S_UPTIME
+- id: 19
+  name: S_DNTIME
+- id: 20
+  name: C_UPTIME
+- id: 21
+  name: C_DNTIME
+- id: 22
+  name: W_UPTIME
+- id: 23
+  name: W_DNTIME
+- id: 24
+  name: M_UPTIME
+- id: 25
+  name: M_DNTIME

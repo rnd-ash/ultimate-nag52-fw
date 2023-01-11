@@ -4,17 +4,84 @@
 #include <stdint.h>
 #include "kwp2000_defines.h"
 
+/*-
+ * #name: Agility upshift threshold
+ * #desc: Agility mode upshift threshold map
+ * #celldesc: Input shaft speed to change at
+ * #ydesc: Gear change
+ * #xdesc: Pedal input
+ * #xunit: %
+ * #cellunit: RPM
+ * #yov: ["1-2", "2-3", "3-4", "4-5"]
+ -*/
 #define A_UPSHIFT_MAP_ID 0x01
+/*-
+ * #name: Comfort upshift threshold
+ * #desc: Comfort mode upshift threshold map
+ * #celldesc: Input shaft speed to change at
+ * #ydesc: Gear change
+ * #xdesc: Pedal input
+ * #xunit: %
+ * #cellunit: RPM
+ * #yov: ["1-2", "2-3", "3-4", "4-5"]
+ -*/
 #define C_UPSHIFT_MAP_ID 0x02
 #define S_UPSHIFT_MAP_ID 0x03
 #define A_DOWNSHIFT_MAP_ID 0x04
 #define C_DOWNSHIFT_MAP_ID 0x05
 #define S_DOWNSHIFT_MAP_ID 0x06
 
+/*-
+ * #name: Working pressure
+ * #desc: Working gearbox pressure based on load
+ * #celldesc: Desired pressure
+ * #cellunit: mBar
+ * #ydesc: Gear
+ * #xdesc: Input shaft torque % of rated
+ * #xunit: %
+ * #yov: ["P/R", "R1/R2", "1", "2", "3", "4", "5"]
+ -*/
 #define WORKING_PRESSURE_MAP_ID 0x07
+/*-
+ * #name: Pressure control solenoid current
+ * #desc: Pressure control solenoid current mapped to gearbox pressure
+ * #celldesc: Current
+ * #cellunit: mA
+ * #ydesc: ATF Temp
+ * #yunit: *C
+ * #xdesc: Desired pressure
+ * #xunit: mBar
+ -*/
 #define PCS_CURRENT_MAP_ID 0x08
+/*-
+ * #name: TCC Solenoid duty
+ * #desc: Pressure mapping between TCC solenoid PWM and TCC clutch pressure
+ * #celldesc: Solenoid duty
+ * #cellunit: /4096
+ * #ydesc: ATF Temp
+ * #yunit: *C
+ * #xdesc: Desired TCC pressure
+ * #xunit: mBar
+ -*/
 #define TCC_PWM_MAP_ID 0x09
+/*-
+ * #name: Clutch filling time
+ * #desc: Clutch filling time for shift fill phase
+ * #celldesc: Fill time
+ * #cellunit: ms
+ * #xdesc: Clutch
+ * #xov: ["K1", "K2", "K3", "B1", "B2"]
+ -*/
 #define FILL_TIME_MAP_ID 0x0A
+
+/*-
+ * #name: Clutch filling pressure
+ * #desc: Clutch filling pressure for shift fill phase
+ * #celldesc: Fill pressure
+ * #cellunit: mBar
+ * #xdesc: Clutch
+ * #xov: ["K1", "K2", "K3", "B1", "B2"]
+ -*/
 #define FILL_PRESSURE_MAP_ID 0x0B
 
 #define A_UPTIME_MAP_ID 0x10

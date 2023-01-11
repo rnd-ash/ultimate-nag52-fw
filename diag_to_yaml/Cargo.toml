@@ -1,0 +1,12 @@
+[package]
+name = "diag_to_yaml"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = {version = "1.0.152", features = ["derive"]}
+serde_yaml = "0.9.16"
+clap={version="4.0.32", features=["derive"]}
+regex="1.7.1"

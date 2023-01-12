@@ -240,14 +240,16 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
         dest->mpc_pressure = curr_mpc;
+        dest->mpc_offset_mode = false;
+        dest->spc_offset_mode = false;
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
         dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
-        //dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
-        //dest->mpc_pressure = MIN(curr_mpc + dest->spc_pressure, curr_mpc*1.5);
-        dest->mpc_pressure = MAX(curr_mpc, hold2_pressure_map->get_value(1, (uint8_t)to_change)+100);
+        dest->mpc_pressure = 250;
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
+        dest->mpc_offset_mode = true;
+        dest->spc_offset_mode = false;
     }
     dest->hold_time = 100;
     //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
@@ -276,17 +278,23 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     //dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
     //dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase
     uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
-    dest_torque->mpc_pressure = curr_mpc;
-    dest_overlap->mpc_pressure = prev->mpc_pressure;
-    dest_torque->spc_pressure = prev->spc_pressure;
-    dest_overlap->spc_pressure = MAX(dest_overlap->mpc_pressure, prev->mpc_pressure) + spc_addr;
+    dest_torque->mpc_pressure = spc_addr/4;
+    dest_overlap->mpc_pressure = spc_addr/2;
+    dest_torque->mpc_offset_mode = true;
+    dest_overlap->mpc_offset_mode = true;
+    dest_torque->spc_offset_mode = true;
+    dest_overlap->spc_offset_mode = true;
+    dest_torque->spc_pressure = 0; // So same as MPC
+    dest_overlap->spc_pressure = spc_addr;
 }
 
 void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->ramp_time = 250;
     dest->hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
     dest->spc_pressure = 7000;
-    dest->mpc_pressure = prev->mpc_pressure;
+    dest->mpc_pressure = 0; // 0 offset
+    dest->spc_offset_mode = false;
+    dest->mpc_offset_mode = true;
 }
 
 // Get PWM value (out of 4096) to write to the solenoid

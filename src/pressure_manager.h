@@ -123,7 +123,8 @@ public:
     void make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-
+    Clutch get_clutch_to_release(ProfileGearChange change);
+    Clutch get_clutch_to_apply(ProfileGearChange change);
     StoredTcuMap* get_pcs_map(void);
     StoredTcuMap* get_tcc_pwm_map(void);
     StoredTcuMap* get_working_map(void);
@@ -160,8 +161,6 @@ private:
     StoredTcuMap* hold2_time_map;
     StoredTcuMap* hold2_pressure_map;
     uint16_t gb_max_torque;
-    Clutch get_clutch_to_release(ProfileGearChange change);
-    Clutch get_clutch_to_apply(ProfileGearChange change);
 };
 
 extern PressureManager* pressure_manager;

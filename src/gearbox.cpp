@@ -281,6 +281,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         ShiftData sd = pressure_mgr->get_shift_data(req_lookup, chars, this->mpc_working);
         ShiftPhase* current_phase_data = &sd.bleed_data;
         uint8_t current_phase = SHIFT_PHASE_BLEED;
+        Clutch apply_clutch = pressure_manager->get_clutch_to_apply(req_lookup);
+        Clutch release_clutch = pressure_manager->get_clutch_to_release(req_lookup);
         // Needed for Bleed phase
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
@@ -357,11 +359,32 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
 
             if (SHIFT_PHASE_OVERLAP == current_phase) {
-                if (req_lookup == ProfileGearChange::TWO_THREE || req_lookup == ProfileGearChange::THREE_FOUR) {
-                    curr_phase_delta_spc = MAX(500, MAX(sensor_data.driver_requested_torque, abs(sensor_data.static_torque))*5);
-                } else {
-                    curr_phase_delta_spc = MAX(500, MAX(sensor_data.driver_requested_torque, abs(sensor_data.static_torque))*2.5);
+                int min_spc;
+                float spc_trq_multi;
+                switch (apply_clutch) {
+                    case Clutch::K1: // 1->2 and 5->4
+                        min_spc = 800;
+                        spc_trq_multi = 4;
+                        break;
+                    case Clutch::K2: // 2->3
+                        min_spc = 700;
+                        spc_trq_multi = 5;
+                        break;
+                    case Clutch::K3: // 3->4 and 3->2
+                        min_spc = 700;
+                        spc_trq_multi = 4.0;
+                        break;
+                    case Clutch::B1: // 4->5 and 2->1
+                        min_spc = 500;
+                        spc_trq_multi = 4.0;
+                        break;
+                    case Clutch::B2: // 4->3
+                    default:
+                        min_spc = 1000;
+                        spc_trq_multi = 5.0;
+                        break;
                 }
+                curr_phase_delta_spc = MAX(min_spc, MAX(sensor_data.driver_requested_torque, abs(sensor_data.static_torque))*spc_trq_multi);
             }
 
             // Interpolation

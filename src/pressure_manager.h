@@ -17,14 +17,6 @@ static const uint16_t SHIFT_PHASE_TORQUE = 3u;
 static const uint16_t SHIFT_PHASE_OVERLAP = 4u;
 static const uint16_t SHIFT_PHASE_MAX_P  = 5u;
 
-enum ShiftPhases : uint8_t{
-    BLEED = 1u,
-    FILL = 2u,
-    TORQUE = 3u,
-    OVERLAP = 4u,
-    MAX_P = 5u
-};
-
 enum class Clutch {
     K1 = 1,
     K2 = 2,

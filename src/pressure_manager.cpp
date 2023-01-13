@@ -168,7 +168,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(MAX(sensor_data->driver_requested_torque, sensor_data->static_torque)*100)/(float)this->gb_max_torque;
+    float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 

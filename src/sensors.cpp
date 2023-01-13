@@ -211,7 +211,7 @@ esp_err_t Sensors::init_sensors(){
 esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 {
     uint64_t d_n2 = n2_total/RPM_SAMPLES_DEBOUNCE;
-    uint64_t d_n3 = n2_total/RPM_SAMPLES_DEBOUNCE;
+    uint64_t d_n3 = n3_total/RPM_SAMPLES_DEBOUNCE;
     uint64_t now = esp_timer_get_time();
     esp_err_t res = ESP_OK;
     if (d_n2 == 0 || now - n2_intr_times[1] > 20000)
@@ -250,9 +250,9 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
             // Also nicely handles transitionary phases between RPM readings, making gear shift RPM readings
             // a lot more accurate for the rest of the TCM code
 
-            float ratio = (float)dest->n3_raw / (float)dest->n2_raw;
             float f2 = (float)dest->n2_raw;
             float f3 = (float)dest->n3_raw;
+            float ratio = f3 / f2;
 
             dest->calc_rpm = ((f2 * 1.64f) * (1.0f - ratio)) + (f3 * ratio);
 

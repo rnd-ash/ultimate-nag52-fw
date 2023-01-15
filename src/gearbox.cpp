@@ -406,7 +406,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             current_delta_spc = linear_interp(prev_phase_delta_spc, curr_phase_delta_spc, phase_elapsed, phase_ramp_time);
             // Set pressures and solenoid actuation
             //pressure_mgr->set_target_mpc_pressure(current_mpc + current_delta_mpc);
-            this->mpc_working = current_mpc + current_delta_mpc;
+            if (current_phase == SHIFT_PHASE_BLEED || current_phase == SHIFT_PHASE_FILL) {
+                // Prevent MPC from being too low in bleed and fill phase
+                this->mpc_working = MAX(current_mpc + current_delta_mpc + 100, current_spc + current_delta_spc);
+            } else {
+                this->mpc_working = current_mpc + current_delta_mpc;
+            }
             pressure_mgr->set_target_spc_pressure(current_spc + current_delta_spc);
 
             if (SHIFT_SOLENOID_INRUSH_TIME < sensor_data.current_timestamp_ms - sol_open_time) {
@@ -471,13 +476,16 @@ void Gearbox::shift_thread()
     else if (is_controllable_gear(curr_actual) != is_controllable_gear(curr_target))
     { // This would be a garage shift, either in or out
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Garage shift");
+        bool activate_y3 = false;
         if (is_controllable_gear(curr_target))
         {
             // N/P -> R/D
             // Defaults (Start in 2nd)
             uint16_t spc = 600;
+            activate_y3 = is_fwd_gear(curr_target) && !start_second && (last_fwd_gear == GearboxGear::First ||last_fwd_gear == GearboxGear::Second);
             pressure_mgr->set_target_spc_pressure(spc);
             vTaskDelay(100);
+            if (activate_y3) { sol_y3->write_pwm_12_bit(4096); }
             sol_y4->write_pwm_12_bit(4096);
             uint16_t elapsed = 0;
             this->mpc_working = 1000;
@@ -487,6 +495,7 @@ void Gearbox::shift_thread()
                 elapsed += 20;
                 vTaskDelay(10 / portTICK_PERIOD_MS);
             }
+            if (activate_y3) { sol_y3->write_pwm_12_bit(1024); }
             sol_y4->write_pwm_12_bit(1024);
             while (spc <= this->mpc_working) {
                 pressure_mgr->set_target_spc_pressure(spc);
@@ -495,6 +504,7 @@ void Gearbox::shift_thread()
             }
             vTaskDelay(250);
             sol_y4->write_pwm_12_bit(0);
+            if (activate_y3) { sol_y3->write_pwm_12_bit(0); }
             pressure_mgr->disable_spc();
         }
         else
@@ -508,6 +518,9 @@ void Gearbox::shift_thread()
             // Last forward known gear
             // This way we better handle shifting from N->D at speed!
             this->actual_gear = this->last_fwd_gear;
+            if (activate_y3) {
+                this->actual_gear = GearboxGear::First;
+            }
         }
         else
         {
@@ -559,7 +572,6 @@ void Gearbox::shift_thread()
                 AbstractProfile *prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
                 elapse_shift(pgc, prof, true);
-                this->actual_gear = curr_target;
                 this->start_second = true;
                 goto cleanup;
             }
@@ -596,7 +608,6 @@ void Gearbox::shift_thread()
                 AbstractProfile *prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
                 elapse_shift(pgc, prof, false);
-                this->actual_gear = curr_target;
                 goto cleanup;
             }
         }

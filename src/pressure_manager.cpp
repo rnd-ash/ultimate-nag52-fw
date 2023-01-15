@@ -247,7 +247,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         Clutch to_release = get_clutch_to_release(change);
         dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->mpc_pressure = 100;
-        dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
+        dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change) + scale_number(chars.target_shift_time, 200, 0, 100, 500);
         dest->mpc_offset_mode = true;
         dest->spc_offset_mode = false;
     }
@@ -257,7 +257,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     // Maybe we tweak this?
-    
+
     dest_torque->hold_time = 10;
     dest_torque->ramp_time = 0;
     dest_overlap->ramp_time = (float)chars.target_shift_time/10;

@@ -259,10 +259,9 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     // Maybe we tweak this?
     
     dest_torque->hold_time = 10;
-    dest_overlap->hold_time = (float)chars.target_shift_time/2;
-
     dest_torque->ramp_time = 0;
-    dest_overlap->ramp_time = (float)chars.target_shift_time/2;
+    dest_overlap->ramp_time = (float)chars.target_shift_time/10;
+    dest_overlap->hold_time = (float)chars.target_shift_time - dest_overlap->ramp_time;
     
     //dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
     //dest_overlap->mpc_pressure = prev->mpc_pressure;

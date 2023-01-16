@@ -257,10 +257,10 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     // Maybe we tweak this?
-
+    int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
     dest_torque->hold_time = 10;
     dest_torque->ramp_time = 0;
-    dest_overlap->ramp_time = (float)chars.target_shift_time/10;
+    dest_overlap->ramp_time = (float)chars.target_shift_time/div;
     dest_overlap->hold_time = (float)chars.target_shift_time - dest_overlap->ramp_time;
     
     //dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same

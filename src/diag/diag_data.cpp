@@ -229,7 +229,7 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SET_TCM_CFG", "4Matic was requested, but TC ratio was 0");
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
     }
-    if (EEPROM::save_core_config(&cfg)) {
+    if (EEPROM::save_core_config(&cfg) == ESP_OK) {
         return 0x00; // OK!
     } else {
         return NRC_GENERAL_REJECT; // SCN write error

@@ -3,7 +3,7 @@
 #include "esp_heap_caps.h"
 #include "esp_check.h"
 
-StoredTcuMap::StoredTcuMap(const char *eeprom_key_name,
+StoredMap::StoredMap(const char *eeprom_key_name,
                            const uint16_t map_element_count,
                            const int16_t *x_headers,
                            const int16_t *y_headers,
@@ -52,7 +52,7 @@ StoredTcuMap::StoredTcuMap(const char *eeprom_key_name,
     }
 }
 
-esp_err_t StoredTcuMap::init_status(void) const
+esp_err_t StoredMap::init_status(void) const
 {
     return this->init_state;
 }
@@ -60,7 +60,7 @@ esp_err_t StoredTcuMap::init_status(void) const
 /**
  * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
  */
-esp_err_t StoredTcuMap::save_to_eeprom(void)
+esp_err_t StoredMap::save_to_eeprom(void)
 {
     return EEPROM::write_nvs_map_data(this->map_name, this->get_current_data(), this->map_element_count);
 }
@@ -70,7 +70,7 @@ esp_err_t StoredTcuMap::save_to_eeprom(void)
  * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
  * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
  */
-esp_err_t StoredTcuMap::replace_map_content(int16_t *new_data, uint16_t content_len)
+esp_err_t StoredMap::replace_map_content(int16_t *new_data, uint16_t content_len)
 {
     esp_err_t result = ESP_OK;
     if (content_len == (this->map_element_count))
@@ -89,7 +89,7 @@ esp_err_t StoredTcuMap::replace_map_content(int16_t *new_data, uint16_t content_
 /**
  * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
  */
-esp_err_t StoredTcuMap::reload_from_eeprom(void)
+esp_err_t StoredMap::reload_from_eeprom(void)
 {
     return this->read_from_eeprom(this->map_name, this->map_element_count);
 }
@@ -103,7 +103,7 @@ esp_err_t StoredTcuMap::reload_from_eeprom(void)
 //     return this->add_data(const_cast<int16_t *>(this->default_map), this->map_element_count);
 // }
 
-esp_err_t StoredTcuMap::read_from_eeprom(const char *key_name, uint16_t expected_size)
+esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_size)
 {
     esp_err_t ret;
     bool mem_is_allocated = this->is_allocated();
@@ -135,22 +135,22 @@ esp_err_t StoredTcuMap::read_from_eeprom(const char *key_name, uint16_t expected
     return ret;
 }
 
-uint16_t StoredTcuMap::get_map_element_count(void)
+uint16_t StoredMap::get_map_element_count(void)
 {
     return this->map_element_count;
 }
 
-const int16_t *StoredTcuMap::get_default_map_data(void)
+const int16_t *StoredMap::get_default_map_data(void)
 {
     return this->default_map;
 }
 
-const char *StoredTcuMap::get_map_name(void)
+const char *StoredMap::get_map_name(void)
 {
     return this->map_name;
 }
 
-int16_t *StoredTcuMap::get_current_eeprom_map_data(void)
+int16_t *StoredMap::get_current_eeprom_map_data(void)
 {
     bool succesful_allocation = false;
     int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(this->map_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));

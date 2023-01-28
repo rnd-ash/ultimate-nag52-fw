@@ -3,11 +3,12 @@
 
 #include "../lib/core/lookupmap.h"
 #include "esp_err.h"
+#include "stored_table.h"
 
-class StoredTcuMap : public LookupMap {
+class StoredMap : public LookupMap, StoredData {
 
     public:
-        StoredTcuMap(
+        StoredMap(
             const char* eeprom_key_name,
             const uint16_t map_element_count,
             const int16_t* x_headers,

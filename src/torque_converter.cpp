@@ -15,7 +15,7 @@ const uint16_t TCC_MIN_LOCKING_RPM = 1100;
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
-    tcc_learn_lockup_map = new StoredTcuMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
+    tcc_learn_lockup_map = new StoredMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
     if (this->tcc_learn_lockup_map->init_status() != ESP_OK) {
         delete[] this->tcc_learn_lockup_map;
     }

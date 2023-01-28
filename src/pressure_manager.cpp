@@ -34,7 +34,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
     key_name = MAP_NAME_PCS_BROWN;
     default_data = BROWN_PCS_CURRENT_MAP;
-    this->pressure_pwm_map = new StoredTcuMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
+    this->pressure_pwm_map = new StoredMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
     if (this->pressure_pwm_map->init_status() != ESP_OK) {
         delete[] this->pressure_pwm_map;
     }
@@ -44,7 +44,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
     key_name = MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
-    tcc_pwm_map = new StoredTcuMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
+    tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
         delete[] this->tcc_pwm_map;
     }
@@ -59,7 +59,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = MAP_NAME_FILL_TIME_SMALL;
         default_data = SMALL_NAG_FILL_TIME_MAP;
     }
-    hold2_time_map = new StoredTcuMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
+    hold2_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
     if (this->hold2_time_map->init_status() != ESP_OK) {
         delete[] this->hold2_time_map;
     }
@@ -74,7 +74,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = MAP_NAME_FILL_PRESSURE_SMALL;
         default_data = SMALL_NAG_FILL_PRESSURE_MAP;
     }
-    hold2_pressure_map = new StoredTcuMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
+    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
     if (this->hold2_pressure_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_map;
     }
@@ -89,7 +89,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = MAP_NAME_WORKING_SMALL;
         default_data = SMALL_NAG_WORKING_MAP;
     }
-    this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
+    this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
     if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }
@@ -236,13 +236,13 @@ ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, Shift
 }
 
 void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    if (this->hold2_time_map == nullptr) {
+    if (nullptr == this->hold2_time_map) {
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
         dest->mpc_pressure = curr_mpc;
     } else {
         Clutch to_change = get_clutch_to_apply(change);
-        Clutch to_release = get_clutch_to_release(change);
+        // Clutch to_release = get_clutch_to_release(change);
         dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         //dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
         //dest->mpc_pressure = MIN(curr_mpc + dest->spc_pressure, curr_mpc*1.5);
@@ -344,10 +344,10 @@ uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure
 uint16_t PressureManager::get_targ_spc_current(){ return this->req_current_spc; }
 uint16_t PressureManager::get_targ_mpc_current(){ return this->req_current_mpc; }
 
-StoredTcuMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
-StoredTcuMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
-StoredTcuMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
-StoredTcuMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
-StoredTcuMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
+StoredMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
+StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
+StoredMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
+StoredMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
+StoredMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
 
 PressureManager* pressure_manager = nullptr;

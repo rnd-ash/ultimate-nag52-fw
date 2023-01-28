@@ -7,7 +7,7 @@
 #include "profiles.h"
 #include "pressure_manager.h"
 
-StoredTcuMap* get_map(uint8_t map_id) {
+StoredMap* get_map(uint8_t map_id) {
     switch(map_id) {
         case A_UPSHIFT_MAP_ID:
             return agility->get_upshift_map();
@@ -57,7 +57,7 @@ StoredTcuMap* get_map(uint8_t map_id) {
 }
 
 #define CHECK_MAP(map_id) \
-    StoredTcuMap* ptr = get_map(map_id); \
+    StoredMap* ptr = get_map(map_id); \
     if (ptr == nullptr) { \
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }

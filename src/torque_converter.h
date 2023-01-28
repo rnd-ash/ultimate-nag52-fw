@@ -53,7 +53,7 @@ class TorqueConverter {
         uint64_t last_inc_time = 0;
         bool is_temp_pressure = false;
         uint16_t tmp_pressure = 0;
-        StoredTcuMap* tcc_learn_lockup_map;
+        StoredMap* tcc_learn_lockup_map;
         uint64_t last_adj_time = 0;
         bool pending_changes = false;
         bool was_shifting = false;

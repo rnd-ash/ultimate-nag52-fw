@@ -243,11 +243,13 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
-        dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
+        dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
+        //dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
+        //dest->mpc_pressure = MIN(curr_mpc + dest->spc_pressure, curr_mpc*1.5);
+        dest->mpc_pressure = MAX(curr_mpc, hold2_pressure_map->get_value(1, (uint8_t)to_change)+100);
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
-        dest->mpc_pressure = MAX(hold2_pressure_map->get_value(1, (uint8_t)to_release), curr_mpc);
     }
-    dest->ramp_time = 100;
+    dest->hold_time = 100;
     //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
 }
 
@@ -257,28 +259,33 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     float overlap_ratio = 1.0-torque_ratio;
     
     dest_torque->hold_time = 0;
-    dest_overlap->hold_time = (float)chars.target_shift_time*overlap_ratio*0.5;
+    dest_overlap->hold_time = 0;
 
     dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
-    dest_overlap->ramp_time = dest_overlap->hold_time/4;
+    dest_overlap->ramp_time = (float)chars.target_shift_time*overlap_ratio;
     
-    dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
-    dest_overlap->mpc_pressure = prev->mpc_pressure;
-
+    //dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
+    //dest_overlap->mpc_pressure = prev->mpc_pressure;
+//
+    //uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
+    //dest_overlap->mpc_pressure += spc_addr/2;
+    //if (sensor_data->static_torque < 0) {
+    //    spc_addr += 500; // For coast shifts
+    //}
+//
+    //dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
+    //dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase
     uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
-    dest_overlap->mpc_pressure += spc_addr/2;
-    if (sensor_data->static_torque < 0) {
-        spc_addr += 250; // For coast shifts
-    }
-
-    dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
-    dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase
+    dest_torque->mpc_pressure = curr_mpc;
+    dest_overlap->mpc_pressure = prev->mpc_pressure;
+    dest_torque->spc_pressure = prev->spc_pressure;
+    dest_overlap->spc_pressure = MAX(dest_overlap->mpc_pressure, prev->mpc_pressure) + spc_addr;
 }
 
 void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->ramp_time = 250;
     dest->hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
-    dest->spc_pressure = MIN(6000, prev->spc_pressure*1.5);
+    dest->spc_pressure = 7000;
     dest->mpc_pressure = prev->mpc_pressure;
 }
 

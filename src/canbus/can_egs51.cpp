@@ -1,7 +1,5 @@
 #include "can_egs51.h"
 
-const uint8_t IO_ADDR  = 0x20u;
-
 #include "driver/twai.h"
 #include "gearbox_config.h"
 #include "driver/i2c.h"
@@ -17,10 +15,10 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     switch (VEHICLE_CONFIG.shifter_style)
     {
     case (uint8_t)ShifterStyle::TRRS:
-        shifter = new ShifterTrrs(&(this->can_init_status), this->name, &(this->last_i2c_query_time), this->i2c_rx_bytes);
+        shifter = new ShifterTrrs(&(this->can_init_status), this->name, &start_enable);
         break;
     default:
-        shifter = new ShifterEwm(&(this->can_init_status), &ewm, &(this->last_i2c_query_time), this->i2c_rx_bytes);
+        shifter = new ShifterEwm(&(this->can_init_status), &ewm);
         break;
     }
 
@@ -402,40 +400,7 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
 }
 
 void Egs51Can::on_rx_done(uint64_t now_ts) {
-    if (now_ts - this->last_i2c_query_time > 50) {
-            // Query I2C IO Expander
-            uint8_t req[2] = {0,0};
-            esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
-            if (e != ESP_OK) {
-                // Error, SNV
-                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
-            } else {
-                //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
-                this->last_i2c_query_time = now_ts;
-            }
-            
-            // Set RP and Start pins on IO expander to be outputs
-            // IO 0+1 - OUTPUT
-            // IO 2-7 - INPUT
-            uint8_t write_buffer[2] = {0x07,0xFF}; // Set IO (0x06 + port 1 (0x01))
-            if (start_enable) {
-                write_buffer[1] = write_buffer[1] & ~(BIT(1));
-            }
-            //write_buffer[1] = ~(BIT(0));// | BIT(1)); // Start_EN and 
-
-            i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
-
-            /*
-            req[0] = 0x03;
-            req[1] = 0x00;
-            uint8_t resp_tmp[2] = {0,0};
-            e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, resp_tmp, 2, 5);
-            if (e != ESP_OK) {
-                // Error, SNV
-                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
-            } else {
-                ESP_LOGI("LS", "I: %02X %02X", resp_tmp[0], resp_tmp[1]);
-            }
-            */
-        }
+    if(ShifterStyle::TRRS == VEHICLE_CONFIG.shifter_style) {
+        (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
+    }
 }

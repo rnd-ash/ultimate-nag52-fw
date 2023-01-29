@@ -1,6 +1,6 @@
 #include "can_egs51.h"
 
-#define IO_ADDR 0x20
+const uint8_t IO_ADDR  = 0x20u;
 
 #include "driver/twai.h"
 #include "gearbox_config.h"
@@ -8,50 +8,20 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 
-typedef struct {
-    bool a;
-    bool b;
-    bool c;
-    bool d;
-    ShifterPosition pos;
-} TRRSPos;
-
-const static TRRSPos TRRS_SHIFTER_TABLE[8] = {
-    TRRSPos { .a = 1, .b = 1, .c = 1, .d = 0, .pos = ShifterPosition::P },
-    TRRSPos { .a = 0, .b = 1, .c = 1, .d = 1, .pos = ShifterPosition::R },
-    TRRSPos { .a = 1, .b = 0, .c = 1, .d = 1, .pos = ShifterPosition::N },
-    TRRSPos { .a = 0, .b = 0, .c = 1, .d = 0, .pos = ShifterPosition::D },
-    TRRSPos { .a = 0, .b = 0, .c = 0, .d = 1, .pos = ShifterPosition::FOUR },
-    TRRSPos { .a = 0, .b = 1, .c = 0, .d = 0, .pos = ShifterPosition::THREE },
-    TRRSPos { .a = 1, .b = 0, .c = 0, .d = 0, .pos = ShifterPosition::TWO },
-    TRRSPos { .a = 1, .b = 1, .c = 0, .d = 1, .pos = ShifterPosition::ONE },
-};
+#include "shifter/shifter_ewm.h"
+#include "shifter/shifter_trrs.h"
 
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("EGS51", "SETUP CALLED");
-    if (pcb_gpio_matrix->i2c_sda == gpio_num_t::GPIO_NUM_NC || pcb_gpio_matrix->i2c_scl == gpio_num_t::GPIO_NUM_NC) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS51_CAN", "Cannot launch TRRS on board without I2C!");
-        this->can_init_status = ESP_ERR_INVALID_VERSION;
-    }
-    if (this->can_init_status == ESP_OK) {
-        // Init TRRS sensors
-        i2c_config_t conf = {
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = pcb_gpio_matrix->i2c_sda,
-            .scl_io_num = pcb_gpio_matrix->i2c_scl,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        };
-        conf.master.clk_speed = 400000;
-        this->can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
-        if (this->can_init_status == ESP_OK) {
-            this->can_init_status = i2c_param_config(I2C_NUM_0, &conf);
-            if (this->can_init_status != ESP_OK) {
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to set param config");
-            }
-        } else {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to install driver");
-        }
+
+    switch (VEHICLE_CONFIG.shifter_style)
+    {
+    case (uint8_t)ShifterStyle::TRRS:
+        shifter = new ShifterTrrs(&(this->can_init_status), this->name, &(this->last_i2c_query_time), this->i2c_rx_bytes);
+        break;
+    default:
+        shifter = new ShifterEwm(&(this->can_init_status), &ewm, &(this->last_i2c_query_time), this->i2c_rx_bytes);
+        break;
     }
 
     this->start_enable = true;
@@ -137,85 +107,8 @@ WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs51Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
-    ShifterPosition ret = ShifterPosition::SignalNotAvailable;
-    if (VEHICLE_CONFIG.shifter_style == SHIFTER_STYLE_EWM) {
-        EWM_230 dest;
-        if (this->ewm.get_EWM_230(now, expire_time_ms, &dest)) {
-            switch (dest.get_WHC()) {
-                case EWM_230h_WHC::D:
-                    ret = ShifterPosition::D;
-                    break;
-                case EWM_230h_WHC::N:
-                    ret = ShifterPosition::N;
-                    break;
-                case EWM_230h_WHC::R:
-                    ret = ShifterPosition::R;
-                    break;
-                case EWM_230h_WHC::P:
-                    ret = ShifterPosition::P;
-                    break;
-                case EWM_230h_WHC::PLUS:
-                    ret =  ShifterPosition::PLUS;
-                    break;
-                case EWM_230h_WHC::MINUS:
-                    ret = ShifterPosition::MINUS;
-                    break;
-                case EWM_230h_WHC::N_ZW_D:
-                    ret = ShifterPosition::N_D;
-                    break;
-                case EWM_230h_WHC::R_ZW_N:
-                    ret = ShifterPosition::R_N;
-                    break;
-                case EWM_230h_WHC::P_ZW_R:
-                    ret = ShifterPosition::P_R;
-                    break;
-                case EWM_230h_WHC::SNV:
-                default:
-                    break;
-            }
-        }
-    } else {
-        if (now - this->last_i2c_query_time < expire_time_ms) {
-            // Data is valid time range!
-            uint8_t tmp = this->i2c_rx_bytes[0];
-            bool TRRS_A;
-            bool TRRS_B;
-            bool TRRS_C;
-            bool TRRS_D;
-            if (BOARD_CONFIG.board_ver == 2) { // V1.2 layout
-                TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
-                TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
-                TRRS_C = (tmp & (uint8_t)BIT(3)) != 0;
-                TRRS_D = (tmp & (uint8_t)BIT(4)) != 0;
-            } else { // V1.3+ layout
-                TRRS_A = (tmp & (uint8_t)BIT(5)) != 0;
-                TRRS_B = (tmp & (uint8_t)BIT(6)) != 0;
-                TRRS_C = (tmp & (uint8_t)BIT(4)) != 0;
-                TRRS_D = (tmp & (uint8_t)BIT(3)) != 0;
-            }
-
-            if (!TRRS_A && !TRRS_B && !TRRS_C && !TRRS_D) { // Intermediate position, now work out which one
-                if (this->last_valid_position == ShifterPosition::P) {
-                    ret = ShifterPosition::P_R;
-                } else if (this->last_valid_position == ShifterPosition::R) {
-                    ret = ShifterPosition::R_N;
-                } else if (this->last_valid_position == ShifterPosition::D || this->last_valid_position == ShifterPosition::N) {
-                    ret = ShifterPosition::N_D;
-                }
-            } else {
-                // Check truth table
-                for (uint8_t i = 0; i < 8; i++) {
-                    TRRSPos pos = TRRS_SHIFTER_TABLE[i];
-                    if (pos.a == TRRS_A && pos.b == TRRS_B && pos.c == TRRS_C && pos.d == TRRS_D) {
-                        ret = pos.pos;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    return ret;
+ShifterPosition Egs51Can::get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
+    return shifter->get_shifter_position(now, expire_time_ms);
 }
 
 EngineType Egs51Can::get_engine_type(uint64_t now, uint64_t expire_time_ms) {

@@ -115,7 +115,7 @@ WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs52Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+ShifterPosition Egs52Can::get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
     EWM_230 dest;
     if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &dest)) {
         switch (dest.get_WHC()) {

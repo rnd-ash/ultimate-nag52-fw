@@ -76,3 +76,32 @@ esp_err_t StoredTable::read_from_eeprom(const char *key_name, uint16_t expected_
     }
     return ret;
 }
+
+/**
+ * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
+ */
+esp_err_t StoredTable::save_to_eeprom(void)
+{
+    return EEPROM::write_nvs_map_data(this->data_name, this->get_current_data(), this->data_element_count);
+}
+
+/**
+ * @brief Replace map contents with new data (Keeping it in memory, call `save_to_eeprom` to write it to the TCU's EEPROM)
+ * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
+ * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
+ */
+esp_err_t StoredTable::replace_data_content(int16_t *new_data, uint16_t content_len)
+{
+    esp_err_t result = ESP_OK;
+    if (content_len == (this->data_element_count))
+    {
+        if(!this->add_data(new_data, this->data_element_count)) {
+            result = ESP_ERR_INVALID_STATE;
+        }
+    }
+    else
+    {
+        result = ESP_ERR_NVS_INVALID_LENGTH;
+    }
+    return result;
+}

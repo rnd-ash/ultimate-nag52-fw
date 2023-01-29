@@ -3,8 +3,8 @@
  * CANBUS abstraction layer for EGS52 AND EGS53!
  */
 
-#ifndef __ABSTRACT_CAN_H_
-#define __ABSTRACT_CAN_H_
+#ifndef ABSTRACT_CAN_H
+#define ABSTRACT_CAN_H
 
 #include <stdint.h>
 #include <freertos/FreeRTOS.h>
@@ -13,6 +13,7 @@
 #include <freertos/queue.h>
 #include <string.h>
 #include "driver/twai.h"
+#include "shifter/shifter.h"
 
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
@@ -122,23 +123,6 @@ enum class GearboxProfile: uint8_t {
     Underscore
 };
 
-enum class ShifterPosition: uint8_t {
-    P,
-    P_R,
-    R,
-    R_N,
-    N,
-    N_D,
-    D,
-    PLUS, // For EWM only
-    MINUS, // For EWM only
-    FOUR, // For TRRS only
-    THREE, // For TRRS only
-    TWO, // For TRRS only
-    ONE, // For TRRS only
-    SignalNotAvailable = 0xFF // SNV
-};
-
 enum class SolenoidName: uint8_t {
     Y3,
     Y4,
@@ -222,8 +206,8 @@ class EgsBaseCan {
         virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Gets shifter position from EWM module
-        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+        // Gets shifter position from shifter module
+        virtual ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
         // Gets engine type

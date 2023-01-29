@@ -123,7 +123,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     torque = can_layer->get_static_engine_torque(now, 250);
     ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
-    ret.shifter_position = can_layer->get_shifter_position_ewm(now, 250);
+    ret.shifter_position = can_layer->get_shifter_position(now, 250);
     ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
     return ret;
@@ -208,7 +208,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position_ewm(esp_timer_get_time()/1000, 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(esp_timer_get_time()/1000, 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

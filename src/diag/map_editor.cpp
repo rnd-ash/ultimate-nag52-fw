@@ -124,7 +124,7 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     
 kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
-    if (ptr->replace_map_content(buffer, dest_size) == ESP_OK) {
+    if (ptr->replace_data_content(buffer, dest_size) == ESP_OK) {
         return NRC_OK;
     } else {
         return NRC_GENERAL_REJECT;

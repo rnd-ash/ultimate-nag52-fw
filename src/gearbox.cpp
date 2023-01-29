@@ -745,7 +745,7 @@ void Gearbox::controller_loop()
     uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
     while (esp_timer_get_time() < expire_check)
     {
-        this->shifter_pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time() / 1000, 250);
+        this->shifter_pos = egs_can_hal->get_shifter_position(esp_timer_get_time() / 1000, 250);
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
@@ -869,7 +869,7 @@ void Gearbox::controller_loop()
                 sol_y4->write_pwm_12_bit(1024);
             }
             egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
+            this->shifter_pos = egs_can_hal->get_shifter_position(now, 1000);
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||

@@ -43,9 +43,9 @@ class TorqueConverter {
         uint16_t high_torque_adapt_limit = 0;
         uint16_t strike_count = 0;
         bool initial_ramp_done = false;
-        uint16_t curr_tcc_target = 0;
-        uint16_t curr_tcc_pressure = 0;
-        uint16_t base_tcc_pressure = 0;
+        uint32_t curr_tcc_target = 0;
+        uint32_t curr_tcc_pressure = 0;
+        uint32_t base_tcc_pressure = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;

@@ -276,7 +276,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
     if (nullptr != profile)
     {
         ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
-        ShiftData sd = pressure_mgr->get_shift_data(req_lookup, chars, this->mpc_working);
+        ShiftData sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
         ShiftPhase* current_phase_data = &sd.bleed_data;
         uint8_t current_phase = SHIFT_PHASE_BLEED;
         Clutch apply_clutch = pressure_manager->get_clutch_to_apply(req_lookup);
@@ -289,7 +289,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         uint32_t phase_ramp_time = 0;
         uint32_t overlap_time = 0;
         
-
         float prev_phase_mpc, curr_phase_mpc, current_mpc;
         float prev_phase_spc, curr_phase_spc, current_spc;
         float prev_phase_delta_mpc, curr_phase_delta_mpc, current_delta_mpc;
@@ -299,8 +298,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         prev_phase_spc = curr_phase_spc = current_spc = 50;
         prev_phase_delta_mpc = curr_phase_delta_mpc = current_delta_mpc = 0;
         prev_phase_delta_spc = curr_phase_delta_spc = current_delta_spc = 0;
+
+        float start_ratio = 0;
+        if (sensor_data.input_rpm > 500) {
+            start_ratio = this->sensor_data.gear_ratio;
+        }
+
         while(true) {
-            if (phase_elapsed > phase_duration && current_phase != SHIFT_PHASE_MAX_P) {
+            if (phase_elapsed > phase_duration && current_phase != SHIFT_PHASE_OVERLAP) {
                 phase_elapsed = 0;
                 current_phase++;
                 // Set pressures from the previous phase
@@ -322,9 +327,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_phase_data = &sd.torque_data;
                 } else if (SHIFT_PHASE_OVERLAP == current_phase) {
                     current_phase_data = &sd.overlap_data;
-                } else if (SHIFT_PHASE_MAX_P == current_phase) {
-                    pressure_mgr->make_max_p_data(&sd.max_pressure_data, &sd.overlap_data, chars, req_lookup, this->mpc_working);
-                    current_phase_data = &sd.max_pressure_data;
                 }
                 // Time targets are always static
                 phase_duration = current_phase_data->hold_time + current_phase_data->ramp_time;
@@ -351,8 +353,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             if (current_phase_data->mpc_offset_mode) { // Offset mode! So MPC for this phase should be current MPC working
                 curr_phase_mpc = now_working_mpc;
             }
+            if (SHIFT_PHASE_TORQUE == current_phase) {
 
-            if (SHIFT_PHASE_OVERLAP == current_phase) {
+            } else if (SHIFT_PHASE_OVERLAP == current_phase) {
                 int min_spc;
                 float spc_trq_multi;
                 ShiftCharacteristics ss_now = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
@@ -371,8 +374,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 4.0, 2.0, 100, 1000);
                         break;
                     case Clutch::K3: // 3->4 and 3->2
-                        min_spc = 700;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 4.5, 3.0, 100, 1000);
+                        min_spc = 500;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 4.0, 2.5, 100, 1000);
                         if (req_lookup == ProfileGearChange::THREE_TWO && sensor_data.static_torque <= 0) {
                             min_spc = 1000;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 7.0, 5.0, 100, 1000);
@@ -394,10 +397,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 3.0, 1.5, 100, 1000);
                         break;
                 }
+
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
                 curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, abs(sensor_data.static_torque)*spc_trq_multi));
                 if (max_spc < curr_phase_delta_spc) {
                     max_spc = curr_phase_delta_spc;
+                }
+                if (phase_elapsed > phase_duration && sd.targ_g != this->est_gear_idx) {
+                    // Not shifting, try to increase SPC a bit more!
+                    max_spc += 5;
                 }
             }
 
@@ -422,13 +430,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             } else {
                 this->mpc_working = current_mpc + current_delta_mpc;
             }
+            
             pressure_mgr->set_target_spc_pressure(current_spc + current_delta_spc);
 
             if (SHIFT_SOLENOID_INRUSH_TIME < sensor_data.current_timestamp_ms - sol_open_time) {
                 sd.shift_solenoid->write_pwm_12_bit(1024); // 25% to prevent burnout
             }
 
-            if (SHIFT_PHASE_MAX_P == current_phase && phase_elapsed >= phase_duration) { // Check for completion! (Separate if block for simplicity)
+            if (SHIFT_PHASE_OVERLAP == current_phase && phase_elapsed >= phase_duration) { // Check for completion! (Separate if block for simplicity)
                 if (sensor_data.input_rpm > 200 && sd.targ_g == this->est_gear_idx) { // Confirmed shift!
                     result = true;
                     break;
@@ -441,6 +450,34 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     break;
                 }
             }
+
+            if (start_ratio != 0 && sensor_data.input_rpm > 500) {
+                // Do ratio comparison to see if we are flaring
+                // Both have 2 cases.
+                //
+                // Case 1. Engine is being pulled. If the gearbox flares here, the engine RPM
+                //         will drop towards idle RPM
+                // Case 2. Engine is pushing. If the gearbox flares here, the engine RPM
+                //         will increase quickly
+                //
+                // To protect the gearbox in either case, it is best to ask the engine to work with the box rather than against it
+                // by doing torque requests, rather than just increase SPC pressure, as that would cause a harsh shift to the user
+
+                float below = is_upshift ? sd.end_ratio : start_ratio;
+                float above = is_upshift ? start_ratio : sd.end_ratio;
+                if (sensor_data.gear_ratio > above + 0.5) {
+                    flaring = true;
+                    // TODO we can limit the damage by stopping power output of the engine until the flare stops
+                } else if (sensor_data.gear_ratio < below - 0.5) {
+                    flaring = true;
+                } else {
+                    flaring = false;
+                }
+
+            } else {
+                this->flaring = false;
+            }
+
             //if (SHIFT_PHASE_MAX_P != current_phase && sensor_data.input_rpm > 1000 && sd.targ_g == this->est_gear_idx) { // Confirmed shift! too early! Jump to next phase
             //    phase_elapsed = phase_duration + phase_ramp_time;
             //}
@@ -449,8 +486,21 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             total_elapsed += SHIFT_DELAY_MS;
             phase_elapsed += SHIFT_DELAY_MS;
         }
+
+        // Only do max pressure phase if we shifted
+        //if (result) {
+            ESP_LOGI("SHIFT","Starting max lock phase");
+            float start_spc = current_spc + current_delta_spc;
+            uint16_t e = 0;
+            while (e < sd.max_pressure_data.hold_time + sd.max_pressure_data.ramp_time) {
+                float c = linear_interp(start_spc, 7000, e, sd.max_pressure_data.ramp_time);
+                pressure_manager->set_target_spc_pressure(c);
+                this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
+                vTaskDelay(20);
+                e += 20;
+            }
+        //}
         pressure_manager->disable_spc();
-        vTaskDelay(100);
         sd.shift_solenoid->write_pwm_12_bit(0);
         egs_can_hal->set_torque_request(TorqueRequest::None);
         egs_can_hal->set_requested_torque(0);
@@ -460,6 +510,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->flaring = false;
         if (result) { // Only set gear on conformation!
             this->actual_gear = gear_from_idx(sd.targ_g);
+        } else {
+            this->target_gear = this->actual_gear;
         }
     }
     return result;

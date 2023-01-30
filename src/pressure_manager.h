@@ -15,7 +15,6 @@ static const uint16_t SHIFT_PHASE_BLEED = 1u;
 static const uint16_t SHIFT_PHASE_FILL = 2u;
 static const uint16_t SHIFT_PHASE_TORQUE = 3u;
 static const uint16_t SHIFT_PHASE_OVERLAP = 4u;
-static const uint16_t SHIFT_PHASE_MAX_P  = 5u;
 
 enum class Clutch {
     K1 = 1,
@@ -67,7 +66,7 @@ public:
      * @param curr_mpc Current MPC working pressure at the time of shift
      * @return ShiftData 
      */
-    ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc);
+    ShiftData get_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc);
 
     /**
      * @brief Reset adaptation data

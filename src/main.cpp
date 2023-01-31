@@ -148,6 +148,7 @@ void input_manager(void*) {
     bool pressed = false;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
+    bool last_switch_pos = egs_can_hal->get_shifter_ws_mode(esp_timer_get_time()/1000, 100);
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
         bool down = egs_can_hal->get_profile_btn_press(now, 100);
@@ -166,6 +167,16 @@ void input_manager(void*) {
                     gearbox->set_profile(profiles[profile_id]);  
                 }
             }
+        }
+        // Check for W/S toggle - Reuse down variable
+        down = egs_can_hal->get_shifter_ws_mode(now, 100);
+        if (last_switch_pos != down) {
+            profile_id++;
+            if (profile_id == NUM_PROFILES) {
+                profile_id = 0;
+            }
+            gearbox->set_profile(profiles[profile_id]); 
+            last_switch_pos = down;
         }
         PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
         if (last_pos != paddle) { // Same position, ignore

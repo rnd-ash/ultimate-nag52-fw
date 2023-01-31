@@ -306,6 +306,15 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
+bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    EWM_230 ewm230;
+    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
+        return ewm230.get_W_S();
+    } else {
+        return false;
+    }
+}
+
 // TerminalStatus Egs52Can::get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
 //     EZS_240 ezs240;
 //     if (this->ezs_ecu.get_EZS_240(now, expire_time_ms, &ezs240)) {

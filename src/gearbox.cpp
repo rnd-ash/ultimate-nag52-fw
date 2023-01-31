@@ -236,6 +236,7 @@ GearboxGear prev_gear(GearboxGear g)
 // }
 
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
+#define SHIFT_TIMEOUT_COASTING_MS 10000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_DELAY_MS 10     // 10ms steps
 #define SHIFT_SOLENOID_INRUSH_TIME 500
 
@@ -303,7 +304,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         if (sensor_data.input_rpm > 500) {
             start_ratio = this->sensor_data.gear_ratio;
         }
-
+        bool coasting_shift = false;
         while(true) {
             if (phase_elapsed > phase_duration && current_phase != SHIFT_PHASE_OVERLAP) {
                 phase_elapsed = 0;
@@ -327,6 +328,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_phase_data = &sd.torque_data;
                 } else if (SHIFT_PHASE_OVERLAP == current_phase) {
                     current_phase_data = &sd.overlap_data;
+                    // Check if we are coasting or not
+                    if (sensor_data.static_torque < 0) {
+                        coasting_shift = true;
+                    }
                 }
                 // Time targets are always static
                 phase_duration = current_phase_data->hold_time + current_phase_data->ramp_time;
@@ -445,7 +450,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 else if (sensor_data.input_rpm < 200 && phase_elapsed > 1000) {
                     result = true;
                     break;
-                } else if (SHIFT_TIMEOUT_MS < phase_elapsed) { // TIMEOUT
+                } else if (!coasting_shift && SHIFT_TIMEOUT_MS < phase_elapsed) { // TIMEOUT
+                    result = false;
+                    break;
+                } else if (!coasting_shift && SHIFT_TIMEOUT_COASTING_MS < phase_elapsed) { // TIMEOUT
                     result = false;
                     break;
                 }

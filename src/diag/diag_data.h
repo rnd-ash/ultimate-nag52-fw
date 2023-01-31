@@ -26,11 +26,14 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
 #define RLI_SYS_USAGE       0x23 // Brain usage
-#define RLI_COREDUMP_SIZE   0x24 // Coredump size
 #define RLI_PRESSURES       0x25
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
+
+#define RLI_COREDUMP_PART_INFO  0xE0 // Coredump size and address
+#define RLI_CURR_SW_PART_INFO   0xE1 // Current FW size and address
+
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
@@ -110,7 +113,7 @@ typedef struct {
 typedef struct {
     uint32_t address;
     uint32_t size;
-} __attribute__ ((packed)) COREDUMP_INFO;
+} __attribute__ ((packed)) PARTITION_INFO;
 
 typedef struct {
     uint16_t spc_pressure;
@@ -138,7 +141,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 TCM_CORE_CONFIG get_tcm_config(void);
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
-COREDUMP_INFO get_coredump_info(void);
+PARTITION_INFO get_coredump_info(void);
+PARTITION_INFO get_current_sw_info(void);
 
 const esp_app_desc_t* get_image_header(void);
 

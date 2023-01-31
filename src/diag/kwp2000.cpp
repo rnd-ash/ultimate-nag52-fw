@@ -571,9 +571,6 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
-    } else if (args[0] == RLI_COREDUMP_SIZE) {
-        COREDUMP_INFO r = get_coredump_info();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
@@ -592,6 +589,12 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
     } else if (args[0] == RLI_FW_HEADER) {
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, reinterpret_cast<const uint8_t*>(get_image_header()), sizeof(esp_app_desc_t));
+    } else if (args[0] == RLI_COREDUMP_PART_INFO) {
+        PARTITION_INFO r = get_coredump_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_CURR_SW_PART_INFO) {
+        PARTITION_INFO r = get_current_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CURR_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     }
     else {
         // EGS52 emulation

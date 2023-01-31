@@ -151,13 +151,14 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     }
                 }
                 // Dynamic TCC pressure increase based on torque
+                this->curr_tcc_pressure = this->base_tcc_pressure;
                 if (!learning) {
                     if (sensors->static_torque > high_torque_adapt_limit) {
                         int torque_delta = sensors->static_torque - high_torque_adapt_limit;
-                        this->curr_tcc_pressure = this->base_tcc_pressure + (2*torque_delta); // 2mBar per Nm
+                        this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
                     } else if (sensors->static_torque < 0) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
-                            this->curr_tcc_pressure = this->base_tcc_pressure - 50;
+                            this->curr_tcc_pressure -= 50;
                         }
                     }
                 }

@@ -94,14 +94,14 @@ DiagMessage Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 7) { // Request was the wrong size
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-    uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
-    uint8_t fmt = args[3];
-    uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6];
+    uint32_t src_mem_address = args[1] << 16 | args[2] << 8 | args[3];
+    uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6]; 
     // Valid memory regions
-    if (src_mem_address == MEM_REGION_COREDUMP) {
-        this->update_type = UPDATE_TYPE_COREDUMP;
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "Upload coredump requested");
-    } else { // Invalid memory region
+    uint32_t flash_size;
+    if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
+        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_GENERAL_REJECT);
+    }
+    if (src_mem_address + src_mem_size > flash_size) { // Invalid memory
         return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     // Ok, conditions are correct, now we need to prepare
@@ -152,23 +152,19 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
             return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_GENERAL_REJECT);
         }
     } else if (this->data_dir == DATA_DIR_UPLOAD) {
-        if (this->update_type == UPDATE_TYPE_COREDUMP) {
-            if (this->read_bytes >= this->read_bytes_total) {
-                return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-            }
-            DiagMessage msg;
-            msg.data[0] = SID_TRANSFER_DATA+0x40;
-            msg.data[1] = args[0];
-            uint32_t max_bytes = MIN(CHUNK_SIZE, (uint32_t)(read_bytes_total-read_bytes));
-            // Make diag message manually
-            esp_flash_read(esp_flash_default_chip, &msg.data[2], this->read_base_addr+this->read_bytes ,max_bytes);
-            msg.id = 0x07E9;
-            msg.data_size = 2+max_bytes;
-            this->read_bytes += max_bytes;
-            return msg;
-        } else {
-            return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_INVALID_TY);
+        if (this->read_bytes >= this->read_bytes_total) {
+            return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
         }
+        DiagMessage msg;
+        msg.data[0] = SID_TRANSFER_DATA+0x40;
+        msg.data[1] = args[0];
+        uint32_t max_bytes = MIN(CHUNK_SIZE, (uint32_t)(read_bytes_total-read_bytes));
+        // Make diag message manually
+        esp_flash_read(esp_flash_default_chip, &msg.data[2], this->read_base_addr+this->read_bytes ,max_bytes);
+        msg.id = 0x07E9;
+        msg.data_size = 2+max_bytes;
+        this->read_bytes += max_bytes;
+        return msg;
     } else { // Transfer mode not set!
         return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }

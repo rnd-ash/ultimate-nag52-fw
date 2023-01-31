@@ -7,7 +7,7 @@
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
-#define CHUNK_SIZE 2045 // 254 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE 4093 // 254 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
 
 static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 
@@ -18,7 +18,6 @@ static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 #define MEM_REGION_COREDUMP 0x310000
 
 #define UPDATE_TYPE_OTA 0x00 // Read and write
-#define UPDATE_TYPE_COREDUMP 0x01 // Read only
 
 #define DATA_DIR_UPLOAD 0x02
 #define DATA_DIR_DOWNLOAD 0x01

@@ -236,13 +236,21 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
     }
 }
 
-COREDUMP_INFO get_coredump_info(void) {
+PARTITION_INFO get_coredump_info(void) {
     size_t addr = 0;
     size_t size = 0;
     esp_core_dump_image_get(&addr, &size);
-    return COREDUMP_INFO {
+    return PARTITION_INFO {
         .address = addr,
         .size = size
+    };
+}
+
+PARTITION_INFO get_current_sw_info(void) {
+    const esp_partition_t* part = esp_ota_get_running_partition();
+    return PARTITION_INFO {
+        .address = part->address,
+        .size = part->size
     };
 }
 

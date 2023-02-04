@@ -156,8 +156,8 @@ class ECU:
 * CAN Defintiion for ECU '{0}'
 */
 
-#ifndef __ECU_{0}_H_
-#define __ECU_{0}_H_
+#ifndef ECU_{0}_H
+#define ECU_{0}_H
 
 #include <stdint.h>
     """.format(self.name)
@@ -248,7 +248,7 @@ class ECU:
         tmp += "\n};"
 
         # Lastly append endif guard
-        tmp += "\n#endif // __ECU_{}_H_".format(self.name)
+        tmp += "\n#endif // ECU_{}_H".format(self.name)
         return tmp
 
 
@@ -266,7 +266,7 @@ for line in input_file:
             if getattr(current_ecu, 'name', 'nan') != ecu and current_ecu != None:
                 # Check if frame / signal is none
                 if current_signal and current_frame:
-                    if len(current_frame.signals) > 1: # Ignore ISO-TP endpoints
+                    if len(current_frame.signals) > 0: # Ignore ISO-TP endpoints
                         current_frame.add_signal(current_signal)
                     current_signal = None
                 if current_frame and current_ecu:
@@ -280,7 +280,7 @@ for line in input_file:
             if current_signal and current_frame:
                 current_frame.add_signal(current_signal)
             if current_frame:
-                if len(current_frame.signals) > 1: # Ignore ISO-TP endpoints
+                if len(current_frame.signals) > 0: # Ignore ISO-TP endpoints
                     # Its a new frame
                     current_ecu.add_frame(current_frame)
             current_frame = Frame(frame_name, frame_id)

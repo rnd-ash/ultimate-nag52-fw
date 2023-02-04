@@ -62,6 +62,7 @@ class Egs52Can: public EgsBaseCan {
         // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters

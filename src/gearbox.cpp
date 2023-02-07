@@ -525,6 +525,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             this->actual_gear = gear_from_idx(sd.targ_g);
         } else {
             this->target_gear = this->actual_gear;
+            vTaskDelay(500); // Wait for SS Solenoid to drop in pressure before attempting again
         }
     }
     return result;

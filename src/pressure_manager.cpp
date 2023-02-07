@@ -212,8 +212,6 @@ ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGear
             sd.shift_solenoid = sol_y3;
             break;
     }
-    sd.start_ratio = cfg->ratios[sd.curr_g-1];
-    sd.end_ratio = cfg->ratios[sd.targ_g-1];
 
     sd.bleed_data.ramp_time = 0;
     sd.bleed_data.hold_time = 100;

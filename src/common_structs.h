@@ -135,9 +135,6 @@ struct ShiftData{
     float torque_down_amount;
     uint8_t targ_g;
     uint8_t curr_g;
-    float start_ratio;
-    float end_ratio;
-    int16_t approx_d_rpm;
  
     /** 
      * Bleed phase

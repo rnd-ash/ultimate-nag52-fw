@@ -104,10 +104,26 @@ struct ShiftPhase{
     uint16_t ramp_time;
     /// Hold time at requested pressure
     uint16_t hold_time;
-    /// request pressure in mBar for SPC
-    uint16_t spc_pressure;
-    /// How much to modify MPC pressure by in mBar
+    /// Requested pressure for shift pressure
+    /// This value is interpreted differently based on the value of `spc_offset_mode`.
+    /// 
+    /// If `spc_offset_mode` is true, then spc_pressure is interpreted as an offset to the value of `mpc_pressure`.
+    ///
+    /// If `spc_offset_mode` is false, then spc_pressure is interpreted as a fixed static value. 
+    int16_t spc_pressure;
+    /// Requested pressure for modulating (Working) pressure
+    /// This value is interpreted differently based on the value of `mpc_offset_mode`.
+    /// 
+    /// If `mpc_offset_mode` is true, then mpc_pressure is interpreted as an offset to the current working pressure.
+    /// The working pressure is calculated dynamically based on the current application state of the clutches in the gearbox
+    /// and the load on the input shaft of the gearbox
+    ///
+    /// If `mpc_offset_mode` is false, then mpc_pressure is interpreted as a fixed static value. 
     int16_t mpc_pressure;
+    /// If true, spc_pressure is interpreted as an offset to mpc_pressure
+    bool spc_offset_mode;
+    /// If true, mpc_pressure is interpreted as an offset to working pressure
+    bool mpc_offset_mode;
 };
 
 /**
@@ -119,6 +135,9 @@ struct ShiftData{
     float torque_down_amount;
     uint8_t targ_g;
     uint8_t curr_g;
+    float start_ratio;
+    float end_ratio;
+    int16_t approx_d_rpm;
  
     /** 
      * Bleed phase
@@ -168,7 +187,7 @@ struct GearRatioLimit{
     float min;
 };
 
-// typedef const GearRatioLimit GearboxRatioBounds[7];
+
 typedef const float FwdRatios[7];
 
 struct GearboxConfiguration{

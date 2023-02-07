@@ -34,6 +34,7 @@ class TorqueConverter {
         };
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
+        StoredMap* tcc_learn_lockup_map;
     private:
         inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;
@@ -42,9 +43,9 @@ class TorqueConverter {
         uint16_t high_torque_adapt_limit = 0;
         uint16_t strike_count = 0;
         bool initial_ramp_done = false;
-        uint16_t curr_tcc_target = 0;
-        uint16_t curr_tcc_pressure = 0;
-        uint16_t base_tcc_pressure = 0;
+        uint32_t curr_tcc_target = 0;
+        uint32_t curr_tcc_pressure = 0;
+        uint32_t base_tcc_pressure = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;
@@ -53,7 +54,6 @@ class TorqueConverter {
         uint64_t last_inc_time = 0;
         bool is_temp_pressure = false;
         uint16_t tmp_pressure = 0;
-        StoredMap* tcc_learn_lockup_map;
         uint64_t last_adj_time = 0;
         bool pending_changes = false;
         bool was_shifting = false;

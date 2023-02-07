@@ -28,6 +28,8 @@
 #define M_UPTIME_MAP_ID 0x18
 #define M_DNTIME_MAP_ID 0x19
 
+#define TCC_ADAPT_MAP_ID 0xA0
+
 
 // MAP COMMAND IDs
 #define MAP_CMD_READ 0x01

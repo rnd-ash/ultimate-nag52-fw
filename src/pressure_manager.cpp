@@ -307,12 +307,18 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 }
 
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
     mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
@@ -326,6 +332,9 @@ void PressureManager::disable_spc() {
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
+    if (targ > 15000) {
+        targ = 15000;
+    }
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating

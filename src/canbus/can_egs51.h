@@ -78,9 +78,7 @@ class Egs51Can: public EgsBaseCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request) override;
-        // Sets requested engine torque
-        void set_requested_torque(uint16_t torque_nm) override;
+        void set_torque_request(TorqueRequest request, int16_t amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter

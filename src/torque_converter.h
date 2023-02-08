@@ -27,6 +27,7 @@ class TorqueConverter {
          */
         void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
         ClutchStatus get_clutch_state(void);
+        void on_shift_start(int targ_g);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
@@ -34,6 +35,7 @@ class TorqueConverter {
         };
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
+        StoredTcuMap* tcc_learn_lockup_map;
     private:
         inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;
@@ -42,9 +44,9 @@ class TorqueConverter {
         uint16_t high_torque_adapt_limit = 0;
         uint16_t strike_count = 0;
         bool initial_ramp_done = false;
-        uint16_t curr_tcc_target = 0;
-        uint16_t curr_tcc_pressure = 0;
-        uint16_t base_tcc_pressure = 0;
+        uint32_t curr_tcc_target = 0;
+        uint32_t curr_tcc_pressure = 0;
+        uint32_t base_tcc_pressure = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;
@@ -53,10 +55,10 @@ class TorqueConverter {
         uint64_t last_inc_time = 0;
         bool is_temp_pressure = false;
         uint16_t tmp_pressure = 0;
-        StoredTcuMap* tcc_learn_lockup_map;
         uint64_t last_adj_time = 0;
         bool pending_changes = false;
         bool was_shifting = false;
+        uint8_t tmp_lookup_gear = 0xFF;
 };
 
 #endif

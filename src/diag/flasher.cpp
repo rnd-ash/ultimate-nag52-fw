@@ -7,7 +7,6 @@
 Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
-    update_partition = nullptr;
     read_base_addr = 0u;
     read_bytes = 0u;
     read_bytes_total = 0u;
@@ -47,22 +46,24 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
     uint8_t fmt = args[3];
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
     // Valid memory regions
-    if (dest_mem_address == MEM_REGION_OTA) {
-        // Init OTA system
-        this->update_partition = esp_ota_get_next_update_partition(NULL);
-        this->update_type = UPDATE_TYPE_OTA;
-        if (this->update_partition == nullptr) {
-            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_NULL_PARTITION);
-        }
-        this->update_handle = 0;
-        esp_err_t err = esp_ota_begin(this->update_partition, dest_mem_size, &update_handle);
-        if (err != ESP_OK) {
-            esp_ota_abort(this->update_handle);
-            return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_UN52_OTA_BEGIN_FAIL);
-        }
-    } else { // Invalid memory region
-        return this->make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+    uint32_t flash_size;
+    if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
+        ESP_LOGE("DLD", "Get size failed");
+        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_GENERAL_REJECT);
     }
+    if (dest_mem_address+dest_mem_size > flash_size) {
+        ESP_LOGE("DLD", "Invalid memory. Src address %d, size %d", dest_mem_address, dest_mem_size);
+        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_GENERAL_REJECT);
+    }
+    // Must be 4096 byte sector aligned
+    int erase_len = (dest_mem_size + 4096 - 1) & -4096;
+    if (esp_flash_erase_region(esp_flash_default_chip, dest_mem_address, erase_len) != ESP_OK) {
+        ESP_LOGE("DLD", "Flash erase failed");
+        return this->make_diag_neg_msg(SID_REQ_UPLOAD, NRC_GENERAL_REJECT);
+    }
+    this->start_addr = dest_mem_address;
+    this->to_write = dest_mem_size;
+
     // Ok, conditions are correct, now we need to prepare
     this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
     vTaskDelay(50);
@@ -74,6 +75,7 @@ DiagMessage Flasher::on_request_download(const uint8_t* args, uint16_t arg_len) 
     resp[0] = CHUNK_SIZE >> 8 & 0xFF;
     resp[1] = CHUNK_SIZE & 0xFF;
     this->written_data = 0;
+    this->is_ota = (fmt & FMT_OTA) != 0;
     this->data_dir = DATA_DIR_DOWNLOAD;
     return this->make_diag_pos_msg(SID_REQ_DOWNLOAD, resp, 2);
 }
@@ -132,18 +134,11 @@ DiagMessage Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len) {
         if (args[0] == this->block_counter+1 || (args[0] == 0x00 && this->block_counter == 0xFF)) {
             // Next block
             this->block_counter++;
-            if (this->update_type == UPDATE_TYPE_OTA) {
-                // Write to OTA partition
-                if (esp_ota_write(this->update_handle, (const void*)&args[1], arg_len-1) == ESP_OK) {
-                    this->written_data += arg_len-1;
-                    return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
-                } else {
-                    esp_ota_abort(this->update_handle);
-                    return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
-                }
-            } else {
-                return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_INVALID_TY);
+            if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
+                return this->make_diag_neg_msg(SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
             }
+            this->written_data += arg_len-1;
+            return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
         } else if (args[0] == this->block_counter) {
             // Repeated request, KWP spec says to do nothing and just return OK!
             return this->make_diag_pos_msg(SID_TRANSFER_DATA, nullptr, 0);
@@ -179,30 +174,32 @@ DiagMessage Flasher::on_transfer_exit(uint8_t* args, uint16_t arg_len) {
 }
 
 DiagMessage Flasher::on_request_verification(uint8_t* args, uint16_t arg_len) {
-    if (this->update_type == UPDATE_TYPE_OTA) {
-        if (this->update_handle == 0) {
-            return this->make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR); // Can't start verification without it!
-        } else {
-            /// Now verify and switch boot partitions!
-            uint8_t res[2] = {0xE1, 0x00};
-            esp_err_t e = esp_ota_end(this->update_handle);
-            if (e != ESP_OK) {
-                res[1] = FLASH_CHECK_STATUS_INVALID;
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Flash check failed! %s", esp_err_to_name(e));
-                return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
-            }
-            e = esp_ota_set_boot_partition(this->update_partition);
-            if (e != ESP_OK) {
-                res[1] = FLASH_CHECK_STATUS_INVALID;
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Set boot partition failed! %s", esp_err_to_name(e));
-                return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
-            }
-            // OK!
-            res[1] = FLASH_CHECK_STATUS_OK;
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "All done!");
-            return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2); // TODO
+    uint8_t res[2] = {0xE1, 0x00};
+    if (this->is_ota) {
+        // Only for OTA update
+        esp_image_metadata_t data;
+        const esp_partition_t* part = esp_ota_get_next_update_partition(NULL);
+        const esp_partition_pos_t part_pos = {
+            .offset = part->address,
+            .size = part->size,
+        };
+        esp_err_t e = esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &data);
+        uint8_t res[2] = {0xE1, 0x00};
+        if (e != ESP_OK) {
+            res[1] = FLASH_CHECK_STATUS_INVALID;
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Flash check failed! %s", esp_err_to_name(e));
+            return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2);
         }
+        e = esp_ota_set_boot_partition(part);
+        if (e != ESP_OK) {
+            res[1] = FLASH_CHECK_STATUS_INVALID;
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Set boot partition failed! %s", esp_err_to_name(e));
+            return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2);
+        }
+        res[1] = FLASH_CHECK_STATUS_OK;
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "FLASHER", "All done!");
     } else {
-        return this->make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_GENERAL_REJECT); // TODO
+        res[1] = FLASH_CHECK_STATUS_OK;
     }
+    return this->make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2);
 }

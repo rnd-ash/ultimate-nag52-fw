@@ -168,7 +168,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(MAX(sensor_data->driver_requested_torque, sensor_data->static_torque)*100)/(float)this->gb_max_torque;
+    float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -176,7 +176,7 @@ float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
     return (float)scale_number(sensor_data->atf_temp, 100, 200, 40, 100) / 100.0;
 }
 
-ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc) {
+ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc) {
         ShiftData sd; 
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:
@@ -213,7 +213,6 @@ ShiftData PressureManager::get_shift_data(ProfileGearChange shift_request, Shift
             break;
     }
 
-
     sd.bleed_data.ramp_time = 0;
     sd.bleed_data.hold_time = 100;
     sd.bleed_data.spc_pressure = 650;
@@ -240,53 +239,45 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
         dest->mpc_pressure = curr_mpc;
+        dest->mpc_offset_mode = false;
+        dest->spc_offset_mode = false;
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
         dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
-        //dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
-        //dest->mpc_pressure = MIN(curr_mpc + dest->spc_pressure, curr_mpc*1.5);
-        dest->mpc_pressure = MAX(curr_mpc, hold2_pressure_map->get_value(1, (uint8_t)to_change)+100);
-        dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change);
+        dest->mpc_pressure = 100;
+        dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change) + scale_number(chars.target_shift_time, 200, 0, 100, 500);
+        dest->mpc_offset_mode = true;
+        dest->spc_offset_mode = false;
     }
     dest->hold_time = 100;
     //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
 }
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    // Maybe we tweak this?
-    float torque_ratio = 0.25; // 1.4 shift time in torque phase, 3/4 shift time in overlap phase
-    float overlap_ratio = 1.0-torque_ratio;
-    
-    dest_torque->hold_time = 0;
-    dest_overlap->hold_time = 0;
-
-    dest_torque->ramp_time = (float)chars.target_shift_time*torque_ratio;
-    dest_overlap->ramp_time = (float)chars.target_shift_time*overlap_ratio;
-    
-    //dest_torque->mpc_pressure = prev->mpc_pressure; // Torque MPC stays same
-    //dest_overlap->mpc_pressure = prev->mpc_pressure;
-//
-    //uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
-    //dest_overlap->mpc_pressure += spc_addr/2;
-    //if (sensor_data->static_torque < 0) {
-    //    spc_addr += 500; // For coast shifts
-    //}
-//
-    //dest_torque->spc_pressure = MAX(prev->mpc_pressure, prev->spc_pressure); // Same as MPC (Begin torque transfer)
-    //dest_overlap->spc_pressure = dest_torque->spc_pressure + spc_addr; // SPC lock into place clutch for overlap phase
-    uint16_t spc_addr =  MAX(100, MAX(sensor_data->driver_requested_torque, abs(sensor_data->static_torque))*2.5); // 2mBar per Nm
-    dest_torque->mpc_pressure = curr_mpc;
-    dest_overlap->mpc_pressure = prev->mpc_pressure;
-    dest_torque->spc_pressure = prev->spc_pressure;
-    dest_overlap->spc_pressure = MAX(dest_overlap->mpc_pressure, prev->mpc_pressure) + spc_addr;
+    //int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
+    dest_torque->hold_time = 100;
+    dest_torque->ramp_time = 0;
+    dest_overlap->ramp_time = 150;
+    dest_overlap->hold_time = (float)chars.target_shift_time;
+    uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2mBar per Nm
+    dest_torque->mpc_pressure = 0;
+    dest_overlap->mpc_pressure = 0;
+    dest_torque->mpc_offset_mode = true;
+    dest_overlap->mpc_offset_mode = true;
+    dest_torque->spc_offset_mode = true;
+    dest_overlap->spc_offset_mode = true;
+    dest_torque->spc_pressure = 100;
+    dest_overlap->spc_pressure = spc_addr;
 }
 
 void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     dest->ramp_time = 250;
     dest->hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
     dest->spc_pressure = 7000;
-    dest->mpc_pressure = prev->mpc_pressure;
+    dest->mpc_pressure = 0; // 0 offset
+    dest->spc_offset_mode = false;
+    dest->mpc_offset_mode = true;
 }
 
 // Get PWM value (out of 4096) to write to the solenoid
@@ -314,12 +305,18 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 }
 
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
     mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
@@ -333,6 +330,9 @@ void PressureManager::disable_spc() {
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
+    if (targ > 15000) {
+        targ = 15000;
+    }
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating

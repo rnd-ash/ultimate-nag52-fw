@@ -41,9 +41,10 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
     // Too much slip
     int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
     int16_t curr_v = modify[(uint8_t)(g)-1];
-    if (abs(this->base_tcc_pressure-curr_v) >= 20) {
+    if (abs(curr_v-new_pressure) > 20) {
         ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)g, curr_v, new_pressure);
         modify[(uint8_t)(g)-1] = (int16_t)new_pressure;
+        this->pending_changes = true;
     }
 }
 
@@ -54,6 +55,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         last_adj_time = sensors->current_timestamp_ms;
         this->reset_rpm_samples(sensors);
         this->was_shifting = true;
+    } else {
+        this->tmp_lookup_gear = 0xFF;
     }
     if (sensors->input_rpm <= TCC_MIN_LOCKING_RPM) { // RPM too low!
         last_adj_time = sensors->current_timestamp_ms;
@@ -112,51 +115,57 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 last_adj_time = sensors->current_timestamp_ms;
                 this->reset_rpm_samples(sensors);
             }
-            if (initial_ramp_done && sensors->current_timestamp_ms - last_adj_time > TCC_ADJ_INTERVAL_MS) { // Allowed to adjust
-                last_adj_time = sensors->current_timestamp_ms;
+            if (initial_ramp_done) {
                 bool learning = false;
-                // Learning phase / dynamic phase
-                if (!is_shifting && this->tcc_learn_lockup_map != nullptr) {
-                    // Learning phase check
-                    // Requires:
-                    // * torque in bounds
-                    // * Engine RPM - Less than TCC stall speed
-                    if (sensors->static_torque >= this->low_torque_adapt_limit && sensors->static_torque <= this->high_torque_adapt_limit && sensors->engine_rpm < 2500) {
-                        if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_ADAPT_CONSIDERED_LOCK) {
-                            adapt_lock_count++;
+                if (sensors->current_timestamp_ms - last_adj_time > TCC_ADJ_INTERVAL_MS) { // Allowed to adjust
+                    last_adj_time = sensors->current_timestamp_ms;
+                    // Learning phase / dynamic phase
+                    if (!is_shifting && this->tcc_learn_lockup_map != nullptr) {
+                        // Learning phase check
+                        // Requires:
+                        // * torque in bounds
+                        // * Engine RPM - Less than TCC stall speed
+                        if (sensors->static_torque >= this->low_torque_adapt_limit && sensors->static_torque <= this->high_torque_adapt_limit && sensors->engine_rpm < 2500) {
+                            if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_ADAPT_CONSIDERED_LOCK) {
+                                adapt_lock_count++;
+                            } else {
+                                learning = true;
+                                this->base_tcc_pressure += 10;
+                            }
                         } else {
-                            learning = true;
-                            this->base_tcc_pressure += 10;
+                            adapt_lock_count = 0;
                         }
-                    } else {
-                        adapt_lock_count = 0;
+                        if (adapt_lock_count == 2000/TCC_ADJ_INTERVAL_MS) { // ~= 2 seconds
+                            this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
+                        }
                     }
-                    if (adapt_lock_count == 2000/TCC_ADJ_INTERVAL_MS) { // ~= 2 seconds
+                    this->curr_tcc_pressure = this->base_tcc_pressure;
+                    bool adj = false;
+                    if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 100 && sensors->pedal_pos == 0) {
+                        this->base_tcc_pressure += 10;
+                        adj = true;
+                    }// else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
+                    //    this->base_tcc_pressure -= 10;
+                    //    adj = true;
+                    //}
+                    if (adj) {
                         this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
                     }
                 }
-                this->curr_tcc_pressure = this->base_tcc_pressure;
                 // Dynamic TCC pressure increase based on torque
+                this->curr_tcc_pressure = this->base_tcc_pressure;
                 if (!learning) {
                     if (sensors->static_torque > high_torque_adapt_limit) {
                         int torque_delta = sensors->static_torque - high_torque_adapt_limit;
-                        this->curr_tcc_pressure = this->base_tcc_pressure + (2*torque_delta); // 2mBar per Nm
+                        this->curr_tcc_pressure += (1.4*torque_delta); // 2mBar per Nm
                     } else if (sensors->static_torque < 0) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
-                            this->curr_tcc_pressure = this->base_tcc_pressure - 50;
+                            this->curr_tcc_pressure -= 50;
                         }
                     }
                 }
-                bool adj = false;
-                if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 100 && sensors->pedal_pos == 0) {
-                    this->base_tcc_pressure += 10;
-                    adj = true;
-                } else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
-                    this->base_tcc_pressure -= 10;
-                    adj = true;
-                }
-                if (adj) {
-                    this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
+                if (sensors->output_rpm > 1500 && this->curr_tcc_pressure > TCC_PREFILL) {
+                    this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * ((float)scale_number(sensors->output_rpm, 100, 125, 1500, 2500)/100.0);
                 }
             }
         }
@@ -164,9 +173,16 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
     if (this->base_tcc_pressure > 1800) {
         this->base_tcc_pressure = 1800;
     }
+    if (this->curr_tcc_pressure > 7000) {
+        this->curr_tcc_pressure = 7000;
+    }
     pm->set_target_tcc_pressure(this->curr_tcc_pressure);
 }
 
 ClutchStatus TorqueConverter::get_clutch_state(void) {
     return this->state;
+}
+
+void TorqueConverter::on_shift_start(int targ_g) {
+    this->curr_tcc_target = targ_g;
 }

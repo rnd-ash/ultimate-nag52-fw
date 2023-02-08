@@ -246,6 +246,22 @@ PARTITION_INFO get_coredump_info(void) {
     };
 }
 
+PARTITION_INFO get_current_sw_info(void) {
+    const esp_partition_t* i = esp_ota_get_running_partition();
+    return PARTITION_INFO {
+        .address = i->address,
+        .size = i->size
+    };
+}
+
+PARTITION_INFO get_next_sw_info(void) {
+    const esp_partition_t* i = esp_ota_get_next_update_partition(NULL);
+    return PARTITION_INFO {
+        .address = i->address,
+        .size = i->size
+    };
+}
+
 const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
 }

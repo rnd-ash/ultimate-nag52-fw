@@ -7,7 +7,7 @@
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
-#define CHUNK_SIZE 4093 // 254 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE 252 // 254 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
 
 static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 
@@ -22,6 +22,8 @@ static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 #define DATA_DIR_UPLOAD 0x02
 #define DATA_DIR_DOWNLOAD 0x01
 
+#define FMT_OTA 0xF0
+
 class Flasher {
     public:
         Flasher(EgsBaseCan *can_ref, Gearbox* gearbox);
@@ -35,17 +37,19 @@ class Flasher {
         Gearbox* gearbox_ref;
         EgsBaseCan* can_ref;
         uint8_t block_counter = 0;
-        uint8_t update_type = 0;
         uint32_t data_read = 0;
-        esp_ota_handle_t update_handle = 0;
+        //esp_ota_handle_t update_handle = 0;
         uint32_t written_data = 0;
-        const esp_partition_t *update_partition;
+        uint32_t start_addr = 0;
+        uint32_t to_write = 0;
+        //const esp_partition_t *update_partition;
         int data_dir = 0;
 
         // For reading
         size_t read_base_addr;
         size_t read_bytes;
         size_t read_bytes_total;
+        bool is_ota = false;
 
         DiagMessage make_diag_neg_msg(uint8_t sid, kwp_result_t nrc){
             DiagMessage msg;

@@ -10,8 +10,6 @@
 #include <esp_app_format.h>
 #include "kwp2000_defines.h"
 
-// Needed extra bytes for response, SID, RLI, Shift ID
-static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too big to fit in Diag message!");
 // Diagnostic data IDs and data structures
 // used by the KWP2000 server on the TCM
 
@@ -31,8 +29,9 @@ static_assert(sizeof(ShiftReport) < DIAG_CAN_MAX_SIZE-3, "Shift report is too bi
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
 
-#define RLI_COREDUMP_PART_INFO  0xE0 // Coredump size and address
-#define RLI_CURR_SW_PART_INFO   0xE1 // Current FW size and address
+#define RLI_COREDUMP_PART_INFO  0x29 // Coredump size and address
+#define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
+#define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
 
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
@@ -143,6 +142,7 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 
 PARTITION_INFO get_coredump_info(void);
 PARTITION_INFO get_current_sw_info(void);
+PARTITION_INFO get_next_sw_info(void);
 
 const esp_app_desc_t* get_image_header(void);
 

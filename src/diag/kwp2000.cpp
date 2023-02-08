@@ -595,6 +595,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_CURR_SW_PART_INFO) {
         PARTITION_INFO r = get_current_sw_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CURR_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
+        PARTITION_INFO r = get_next_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     }
     else {
         // EGS52 emulation
@@ -983,6 +986,9 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         this->session_mode == SESSION_EXTENDED ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
+        make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+        /*
         // Make request message
         // Should be 1 byte argument
         // 0x00 0x00 - Request shift summary
@@ -1028,6 +1034,7 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         } else {
             make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+        */
     } else {
         make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
     }

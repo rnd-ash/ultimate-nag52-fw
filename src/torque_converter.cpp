@@ -55,6 +55,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         last_adj_time = sensors->current_timestamp_ms;
         this->reset_rpm_samples(sensors);
         this->was_shifting = true;
+    } else {
+        this->tmp_lookup_gear = 0xFF;
     }
     if (sensors->input_rpm <= TCC_MIN_LOCKING_RPM) { // RPM too low!
         last_adj_time = sensors->current_timestamp_ms;
@@ -155,7 +157,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 if (!learning) {
                     if (sensors->static_torque > high_torque_adapt_limit) {
                         int torque_delta = sensors->static_torque - high_torque_adapt_limit;
-                        this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
+                        this->curr_tcc_pressure += (1.4*torque_delta); // 2mBar per Nm
                     } else if (sensors->static_torque < 0) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
                             this->curr_tcc_pressure -= 50;
@@ -163,7 +165,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     }
                 }
                 if (sensors->output_rpm > 1500 && this->curr_tcc_pressure > TCC_PREFILL) {
-                    this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * ((float)scale_number(sensors->output_rpm, 100, 150, 1500, 2500)/100.0);
+                    this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * ((float)scale_number(sensors->output_rpm, 100, 125, 1500, 2500)/100.0);
                 }
             }
         }
@@ -179,4 +181,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
 
 ClutchStatus TorqueConverter::get_clutch_state(void) {
     return this->state;
+}
+
+void TorqueConverter::on_shift_start(int targ_g) {
+    this->curr_tcc_target = targ_g;
 }

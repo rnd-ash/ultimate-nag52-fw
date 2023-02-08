@@ -212,8 +212,6 @@ ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGear
             sd.shift_solenoid = sol_y3;
             break;
     }
-    sd.start_ratio = cfg->ratios[sd.curr_g-1];
-    sd.end_ratio = cfg->ratios[sd.targ_g-1];
 
     sd.bleed_data.ramp_time = 0;
     sd.bleed_data.hold_time = 100;
@@ -257,14 +255,14 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
 }
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
-    dest_torque->hold_time = 10;
+    //int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
+    dest_torque->hold_time = 100;
     dest_torque->ramp_time = 0;
-    dest_overlap->ramp_time = (float)chars.target_shift_time/div;
-    dest_overlap->hold_time = (float)chars.target_shift_time - dest_overlap->ramp_time;
+    dest_overlap->ramp_time = 150;
+    dest_overlap->hold_time = (float)chars.target_shift_time;
     uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2mBar per Nm
     dest_torque->mpc_pressure = 0;
-    dest_overlap->mpc_pressure = -100;
+    dest_overlap->mpc_pressure = 0;
     dest_torque->mpc_offset_mode = true;
     dest_overlap->mpc_offset_mode = true;
     dest_torque->spc_offset_mode = true;
@@ -307,12 +305,18 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
 }
 
 void PressureManager::set_target_mpc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
     mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
 
 void PressureManager::set_target_spc_pressure(uint16_t targ) {
+    if (targ > 7000) {
+        targ = 7000;
+    }
     egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
@@ -326,6 +330,9 @@ void PressureManager::disable_spc() {
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
+    if (targ > 15000) {
+        targ = 15000;
+    }
     egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating

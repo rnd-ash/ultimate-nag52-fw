@@ -247,10 +247,18 @@ PARTITION_INFO get_coredump_info(void) {
 }
 
 PARTITION_INFO get_current_sw_info(void) {
-    const esp_partition_t* part = esp_ota_get_running_partition();
+    const esp_partition_t* i = esp_ota_get_running_partition();
     return PARTITION_INFO {
-        .address = part->address,
-        .size = part->size
+        .address = i->address,
+        .size = i->size
+    };
+}
+
+PARTITION_INFO get_next_sw_info(void) {
+    const esp_partition_t* i = esp_ota_get_next_update_partition(NULL);
+    return PARTITION_INFO {
+        .address = i->address,
+        .size = i->size
     };
 }
 

@@ -12,7 +12,7 @@
 #include "esp_err.h"
 
 // #define DIAG_CAN_MAX_SIZE 4095 // ISO-TP Maximum
-static const uint16_t DIAG_CAN_MAX_SIZE = 4095u; // ISO-TP Maximum
+static const uint16_t DIAG_CAN_MAX_SIZE = 4095u; // ISO-TP Maximum for EGS
 
 struct DiagMessage
 {

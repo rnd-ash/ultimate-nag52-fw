@@ -27,6 +27,7 @@ class TorqueConverter {
          */
         void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
         ClutchStatus get_clutch_state(void);
+        void on_shift_start(int targ_g);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
@@ -57,6 +58,7 @@ class TorqueConverter {
         uint64_t last_adj_time = 0;
         bool pending_changes = false;
         bool was_shifting = false;
+        uint8_t tmp_lookup_gear = 0xFF;
 };
 
 #endif

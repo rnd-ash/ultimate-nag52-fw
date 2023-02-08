@@ -46,14 +46,20 @@ enum class EngineType: uint8_t {
 
 /// @brief Torque request type
 enum class TorqueRequest: uint8_t {
-    /// @brief No torque request specified
+    /// @brief No torque request
     None,
-    /// @brief Begin torque request. Limit engine
-    Begin,
-    /// @brief Torque request, engine must follow EGS demand
-    FollowMe,
-    /// @brief Restore torque request back to normal
-    Restore,
+    /// @brief Make less than specified amount
+    LessThan,
+    /// @brief Make more than specified amount
+    MoreThan,
+    /// @brief Make exactly specified amount
+    Exact,
+    /// @brief Make less than specified amount - Fast reaction
+    LessThanFast,
+    /// @brief Make more than specified amount - Fast reaction
+    MoreThanFast,
+    /// @brief Make exactly specified amount - Fast reaction
+    ExactFast
 };
 
 /// @brief Gearbox gears for 722.6 gearbox
@@ -329,9 +335,7 @@ class EgsBaseCan {
         // Sets gearbox is OK
         virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request){};
-        // Sets requested engine torque
-        virtual void set_requested_torque(uint16_t torque_nm){};
+        virtual void set_torque_request(TorqueRequest request, int16_t amount_nm){};
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 

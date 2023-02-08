@@ -411,20 +411,14 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
 void Egs51Can::set_gearbox_ok(bool is_ok) {
 }
 
-void Egs51Can::set_torque_request(TorqueRequest request) {
+void Egs51Can::set_torque_request(TorqueRequest request, int16_t amount_nm) {
     if (request == TorqueRequest::None) {
         this->gs218.set_TORQUE_REQ_EN(false);
+        this->gs218.set_TORQUE_REQ(0xFE);
     } else {
         // Just enable the request
         this->gs218.set_TORQUE_REQ_EN(true);
-    }
-}
-
-void Egs51Can::set_requested_torque(uint16_t torque_nm) {
-    if (torque_nm == 0 && gs218.get_TORQUE_REQ_EN() == false) {
-        this->gs218.set_TORQUE_REQ(0xFE);
-    } else {
-        this->gs218.set_TORQUE_REQ(torque_nm/2);
+        this->gs218.set_TORQUE_REQ(amount_nm/2);
     }
 }
 

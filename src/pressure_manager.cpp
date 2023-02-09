@@ -214,7 +214,7 @@ ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGear
     }
 
     sd.bleed_data.ramp_time = 0;
-    sd.bleed_data.hold_time = 100;
+    sd.bleed_data.hold_time = 200;
     sd.bleed_data.spc_pressure = 650;
     sd.bleed_data.mpc_pressure = curr_mpc;
 
@@ -244,22 +244,22 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
-        dest->ramp_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
+        dest->ramp_time = 10;
+        dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->mpc_pressure = 100;
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change) + scale_number(chars.target_shift_time, 200, 0, 100, 500);
         dest->mpc_offset_mode = true;
         dest->spc_offset_mode = false;
     }
-    dest->hold_time = 100;
-    //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
+    //const AdaptationCell* cell = tvirhis->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
 }
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
     //int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
     dest_torque->hold_time = 100;
     dest_torque->ramp_time = 0;
-    dest_overlap->ramp_time = 150;
-    dest_overlap->hold_time = (float)chars.target_shift_time;
+    dest_overlap->ramp_time = (float)chars.target_shift_time/2;
+    dest_overlap->hold_time = (float)chars.target_shift_time/2;
     uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2mBar per Nm
     dest_torque->mpc_pressure = 0;
     dest_overlap->mpc_pressure = 0;
@@ -267,7 +267,7 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_overlap->mpc_offset_mode = true;
     dest_torque->spc_offset_mode = true;
     dest_overlap->spc_offset_mode = true;
-    dest_torque->spc_pressure = 100;
+    dest_torque->spc_pressure = 0;
     dest_overlap->spc_pressure = spc_addr;
 }
 

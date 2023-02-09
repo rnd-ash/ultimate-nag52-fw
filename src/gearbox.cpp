@@ -447,7 +447,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             bool coasting_shift = 0 > sensor_data.static_torque;
             if (SHIFT_PHASE_OVERLAP == current_phase && phase_elapsed >= phase_duration) { // Check for completion! (Separate if block for simplicity)
-                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && 20 > rpm_to_target_gear) { // Confirmed shift!
+                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && this->est_gear_idx == sd.targ_g) { // Confirmed shift!
                     result = true;
                     process_shift = false;
                 } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
@@ -491,7 +491,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
                 }
                 // Now check if we are in gear! If we are, we can exit!
-                if (20 > rpm_target_gear) {
+                if (this->est_gear_idx == sd.targ_g) {
                     result = true;
                     process_shift = false;
                     break;

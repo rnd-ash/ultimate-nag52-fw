@@ -457,17 +457,29 @@ typedef union {
 
 	/** Gets CAN ID of MS_310EGS51 */
 	uint32_t get_canid(){ return MS_310EGS51_CAN_ID; }
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/0.50 */
-    void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
+    /** Sets engine indicated torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_IND_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(0.50x)+0.0 */
-    uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
+    /** Gets engine indicated torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_IND_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/0.50 */
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
+
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 16 & 0xff); }
+        
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
     void set_MAX_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(0.50x)+0.0 */
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
     uint8_t get_MAX_TORQUE() const { return (uint8_t)(raw >> 8 & 0xff); }
+        
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_MIN_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
+
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_MIN_TORQUE() const { return (uint8_t)(raw >> 0 & 0xff); }
         
 } MS_310EGS51;
 

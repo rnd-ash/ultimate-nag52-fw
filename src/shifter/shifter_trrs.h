@@ -32,6 +32,16 @@ public:
     void update_shifter_position(const uint64_t now);
 
 private:
+    const uint8_t IO_ADDR = 0x20u;
+
+    const uint8_t RPSolenoidV12 = 0;
+    const uint8_t StartEnableV12 = 1;
+    // On 1.3 boards, the RP and Start solenoid are flipped!
+    const uint8_t RPSolenoidV13 = 1;
+    const uint8_t StartEnableV13 = 0;
+    // Only on 1.3
+    const uint8_t GenMosfet = 2;
+
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     uint8_t i2c_rx_bytes[2] = {0, 0};
     uint8_t i2c_tx_bytes[2] = {0, 0};

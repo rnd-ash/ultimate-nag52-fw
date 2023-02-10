@@ -21,7 +21,6 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
         shifter = new ShifterEwm(&(this->can_init_status), &ewm);
         break;
     }
-
     this->start_enable = true;
     this->gs218.set_TORQUE_REQ(0xFE);
     this->gs218.bytes[7] = 0xFE;
@@ -133,7 +132,7 @@ uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
 int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_310EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_STA_TORQUE()*2;
+        return (int)ms310.get_IND_TORQUE()*3;
     } else {
         return INT_MAX;
     }
@@ -147,7 +146,7 @@ int Egs51Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_310EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_MAX_TORQUE()*2;
+        return (int)ms310.get_MAX_TORQUE()*3;
     } else {
         return INT_MAX;
     }
@@ -155,7 +154,13 @@ int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 }
 
 int Egs51Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
-    return 0; // Always 0 on W210 as ECUs do NOT calculate inertia
+    MS_310EGS51 ms310;
+    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+        return (int)ms310.get_MIN_TORQUE()*3;
+    } else {
+        return INT_MAX;
+    }
+    return INT_MAX;
 }
 
 PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {

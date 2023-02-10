@@ -238,7 +238,7 @@ GearboxGear prev_gear(GearboxGear g)
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_TIMEOUT_COASTING_MS 5000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_DELAY_MS 10     // 10ms steps
-#define SHIFT_SOLENOID_INRUSH_TIME 500
+#define SHIFT_SOLENOID_INRUSH_TIME 750
 #define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 
 /**
@@ -302,6 +302,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         bool process_shift = true;
         float mpc_multi = 1.5;
+        if (gearboxConfig.max_torque != 580) {
+            mpc_multi = 2.2;
+        }
         while(process_shift) {
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, this->gearboxConfig.ratios);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
@@ -404,6 +407,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 3.0, 1.4, 100, 1000);
                         break;
                 }
+                // 330 box is about 1.7x less torque handling
+                // Test for 330. Multiple min_spc and spc_trq_multi by 1.7
+                if (gearboxConfig.max_torque != 580) {
+                    min_spc *= 1.7;
+                    spc_trq_multi *= 1.7;
+                }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
                 curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, abs(sensor_data.static_torque)*spc_trq_multi));
                 if (max_spc < curr_phase_delta_spc) {
@@ -431,7 +440,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Set pressures and solenoid actuation
             //pressure_mgr->set_target_mpc_pressure(current_mpc + current_delta_mpc);
             if (current_phase == SHIFT_PHASE_BLEED || current_phase == SHIFT_PHASE_FILL) {
-                // Prevent MPC from being too low in bleed and fill phase
+                // Prevent MPC from being too low in bleed and fill phase 
+                if (gearboxConfig.max_torque != 580) {
+                    mpc_multi = (float)scale_number(abs(sensor_data.static_torque), 130, 200, 100, gearboxConfig.max_torque)/100.0;
+                } else {
+                    mpc_multi = (float)scale_number(abs(sensor_data.static_torque), 110, 150, 100, gearboxConfig.max_torque)/100.0;
+                }
                 this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, current_spc + current_delta_spc + 100), now_working_mpc * mpc_multi);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
                 // Overlap
@@ -443,7 +457,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             pressure_mgr->set_target_spc_pressure(current_spc + current_delta_spc);
 
             if (SHIFT_SOLENOID_INRUSH_TIME < sensor_data.current_timestamp_ms - sol_open_time) {
-                sd.shift_solenoid->write_pwm_12_bit(1024); // 25% to prevent burnout
+                sd.shift_solenoid->write_pwm_12_bit(1200); // 33% to prevent burnout
             }
 
             bool coasting_shift = 0 > sensor_data.static_torque;

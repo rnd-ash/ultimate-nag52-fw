@@ -79,6 +79,16 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         delete[] this->hold2_pressure_map;
     }
 
+    /** Pressure Hold 2 pressure map **/
+    const int16_t hold2mpc_p_x_headers[11] = {0,10,20,30,40,50,60,70,80,90,100};
+    const int16_t hold2mpc_p_y_headers[5] = {1,2,3,4,5};
+    key_name = MAP_NAME_FILL_MPC_ADDER;
+    default_data = FILL_MPC_ADDER_MAP;
+    hold2_pressure_mpc_adder_map = new StoredTcuMap(key_name, FILL_PRESSURE_ADDER_MAP_SIZE, hold2mpc_p_x_headers, hold2mpc_p_y_headers, 11, 5, default_data);
+    if (this->hold2_pressure_mpc_adder_map->init_status() != ESP_OK) {
+        delete[] this->hold2_pressure_mpc_adder_map;
+    }
+
     /** Working pressure map **/
     const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
@@ -338,6 +348,15 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
 
+uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
+    uint16_t ret = 0;
+    if (this->hold2_pressure_mpc_adder_map != nullptr) {
+        float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
+        ret = hold2_pressure_mpc_adder_map->get_value(trq_percent, (uint8_t)to_apply);
+    }
+    return ret;
+}
+
 uint16_t PressureManager::get_targ_mpc_pressure(){ return this->req_mpc_pressure; }
 uint16_t PressureManager::get_targ_spc_pressure(){ return this->req_spc_pressure; }
 uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure; }
@@ -349,5 +368,6 @@ StoredTcuMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
 StoredTcuMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
 StoredTcuMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
 StoredTcuMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
+StoredTcuMap* PressureManager::get_fill_pressure_mpc_adder_map() { return  this->hold2_pressure_mpc_adder_map; }
 
 PressureManager* pressure_manager = nullptr;

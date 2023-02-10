@@ -977,7 +977,8 @@ void Egs52Can::tx_frames() {
     gs_418tx.set_FMRADTGL(toggle);
     // Now do parity calculations
     gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
+    // Includes FMRAD and FMRADTGL signal in this mask
+    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0x47FF));
     if (time_to_toggle) {
         toggle = !toggle;
     }

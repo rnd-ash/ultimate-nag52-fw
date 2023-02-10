@@ -17,9 +17,9 @@ RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     uint64_t now = esp_timer_get_time() / 1000;
     RpmReading d;
     if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
-        ret.n2_pulse_count = d.n2_raw;
-        ret.n3_pulse_count = d.n3_raw;
-        ret.input_rpm = d.calc_rpm;
+        ret.n2_pulse_count = flip_uint16_t(d.n2_raw);
+        ret.n3_pulse_count = flip_uint16_t(d.n3_raw);
+        ret.input_rpm = flip_uint16_t(d.calc_rpm);
     } else {
         ret.n2_pulse_count = 0xFFFF;
         ret.n3_pulse_count = 0xFFFF;
@@ -32,31 +32,31 @@ RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.front_left_wheel_speed = 0xFFFF;
     } else {
-        ret.front_left_wheel_speed = wd.double_rpm / 2.0;
+        ret.front_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
     wd = can_layer->get_front_right_wheel(now, 300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.front_right_wheel_speed = 0xFFFF;
     } else {
-        ret.front_right_wheel_speed = wd.double_rpm / 2.0;
+        ret.front_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
     wd = can_layer->get_rear_left_wheel(now, 300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.rear_left_wheel_speed = 0xFFFF;
     } else {
-        ret.rear_left_wheel_speed = wd.double_rpm / 2.0;
+        ret.rear_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
     wd = can_layer->get_rear_right_wheel(now, 300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.rear_right_wheel_speed = 0xFFFF;
     } else {
-        ret.rear_right_wheel_speed = wd.double_rpm / 2.0;
+        ret.rear_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
-    ret.engine_speed = can_layer->get_engine_rpm(now, 300);
+    ret.engine_speed = flip_uint16_t(can_layer->get_engine_rpm(now, 300));
 
     return ret;
 }

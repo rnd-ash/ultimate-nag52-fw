@@ -757,7 +757,9 @@ void Gearbox::controller_loop()
             continue;
         }
 
-        bool can_read = this->calc_input_rpm(&sensor_data.input_rpm) && this->calc_output_rpm(&this->sensor_data.output_rpm, now);
+        bool can_read_input = this->calc_input_rpm(&sensor_data.input_rpm);
+        bool can_read_output = this->calc_output_rpm(&this->sensor_data.output_rpm, now);
+        bool can_read = can_read_input && can_read_output;
         if (can_read)
         {
             if (now - last_output_measure_time > 250)
@@ -770,6 +772,8 @@ void Gearbox::controller_loop()
             {
                 // Store our ratio
                 this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+                this->shadow_ratio_n2 = (float)this->rpm_reading.n2_raw / (float)this->sensor_data.output_rpm;
+                this->shadow_ratio_n3 = (float)this->rpm_reading.n3_raw / (float)this->sensor_data.output_rpm;
             }
             if (!shifting && this->sensor_data.output_rpm > 300 && this->sensor_data.input_rpm > 300)
             {
@@ -1072,7 +1076,6 @@ void Gearbox::controller_loop()
         egs_can_hal->set_solenoid_pwm(sol_spc->get_current(), SolenoidName::SPC);
         egs_can_hal->set_solenoid_pwm(sol_mpc->get_current(), SolenoidName::MPC);
         egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm_compensated(), SolenoidName::TCC);
-        egs_can_hal->set_shift_stage(this->shift_stage, this->is_ramp);
         egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio * 100);
         egs_can_hal->set_gear_disagree(this->gear_disagree_count);
 
@@ -1182,7 +1185,6 @@ void Gearbox::controller_loop()
 
 bool Gearbox::calc_input_rpm(uint16_t *dest)
 {
-    RpmReading rpm{};
     bool ok = false;
     bool conduct_sanity_check = gear_disagree_count == 0 &&
                                 (this->actual_gear == this->target_gear) && (                                                 // Same gear (Not shifting)
@@ -1190,10 +1192,10 @@ bool Gearbox::calc_input_rpm(uint16_t *dest)
                                                                                 (this->actual_gear == GearboxGear::Third) ||  // .. or 3 ..
                                                                                 (this->actual_gear == GearboxGear::Fourth)    // .. or 4
                                                                             );
-    if (Sensors::read_input_rpm(&rpm, conduct_sanity_check) == ESP_OK)
+    if (Sensors::read_input_rpm(&rpm_reading, conduct_sanity_check) == ESP_OK)
     {
         ok = true;
-        this->sensor_data.input_rpm = rpm.calc_rpm;
+        this->sensor_data.input_rpm = rpm_reading.calc_rpm;
     }
     return ok;
 }

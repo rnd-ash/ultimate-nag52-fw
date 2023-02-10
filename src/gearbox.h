@@ -134,12 +134,15 @@ private:
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;
-    bool is_ramp = false;
-    uint8_t shift_stage = 0;
     bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
+    // Shadow ratios. These are calculated via the raw values from the speed sensors.
+    // This way the TCU can see if a sensor is malfunctioning
+    float shadow_ratio_n2 = 0;
+    float shadow_ratio_n3 = 0;
+    RpmReading rpm_reading;
 };
 
 extern Gearbox* gearbox;

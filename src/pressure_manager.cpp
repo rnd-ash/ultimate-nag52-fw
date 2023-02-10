@@ -244,7 +244,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
     } else {
         Clutch to_change = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
-        dest->ramp_time = 10;
+        dest->ramp_time = 0;
         dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->mpc_pressure = 100;
         dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change) + scale_number(chars.target_shift_time, 200, 0, 100, 500);

@@ -553,7 +553,7 @@ void Egs51Can::on_rx_done(uint64_t now_ts) {
             esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
             if (e != ESP_OK) {
                 // Error, SNV
-                //ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
+                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
             } else {
                 //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
                 this->last_i2c_query_time = now_ts;
@@ -571,18 +571,5 @@ void Egs51Can::on_rx_done(uint64_t now_ts) {
             if (e != ESP_OK) {
                 ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
             }
-
-            /*
-            req[0] = 0x03;
-            req[1] = 0x00;
-            uint8_t resp_tmp[2] = {0,0};
-            e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, resp_tmp, 2, 5);
-            if (e != ESP_OK) {
-                // Error, SNV
-                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
-            } else {
-                ESP_LOGI("LS", "I: %02X %02X", resp_tmp[0], resp_tmp[1]);
-            }
-            */
         }
 }

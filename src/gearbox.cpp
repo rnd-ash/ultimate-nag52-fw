@@ -238,7 +238,7 @@ GearboxGear prev_gear(GearboxGear g)
 #define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_TIMEOUT_COASTING_MS 5000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_DELAY_MS 10     // 10ms steps
-#define SHIFT_SOLENOID_INRUSH_TIME 750
+#define SHIFT_SOLENOID_INRUSH_TIME 1000
 #define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 
 /**

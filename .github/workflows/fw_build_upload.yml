@@ -69,5 +69,5 @@ jobs:
         tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
         name: Release ${{ env.BRANCH_NAME }}
         files: |
-          firmware.elf
-          firmware.bin
+          UNIFIED_FW/firmware.elf
+          UNIFIED_FW/firmware.bin

@@ -44,6 +44,7 @@ jobs:
 
   Create-Upload:
     needs: [UNIFIED_FW]
+    runs-on: ubuntu-latest
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v3.0.2

@@ -27,6 +27,31 @@ const static TRRSPos TRRS_SHIFTER_TABLE[8] = {
     TRRSPos { .a = 1, .b = 1, .c = 0, .d = 1, .pos = ShifterPosition::ONE },
 };
 
+enum class PCAReg : uint8_t {
+    INPUT0 = 0,
+    INPUT1 = 1,
+    OUTPUT0 = 2,
+    OUTPUT1 = 3,
+    POLARITY0 = 4,
+    POLARITY1 = 5,
+    CONFIG0 = 6,
+    CONFIG1 = 7
+};
+
+enum class PCAPort : uint8_t {
+    Port0 = 0,
+    Port1 = 1
+};
+
+
+#define RPSolenoidV12 0
+#define StartEnableV12 1
+// On 1.3 boards, the RP and Start solenoid are flipped!
+#define RPSolenoidV13 1
+#define StartEnableV13 0
+// Only on 1.3
+#define GenMosfet 2
+
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("EGS51", "SETUP CALLED");
     if (pcb_gpio_matrix->i2c_sda == gpio_num_t::GPIO_NUM_NC || pcb_gpio_matrix->i2c_scl == gpio_num_t::GPIO_NUM_NC) {
@@ -42,12 +67,25 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
         };
-        conf.master.clk_speed = 400000;
+        conf.master.clk_speed = 100000;
         this->can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
         if (this->can_init_status == ESP_OK) {
             this->can_init_status = i2c_param_config(I2C_NUM_0, &conf);
             if (this->can_init_status != ESP_OK) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to set param config");
+            } else {
+                uint8_t write_buffer[2] = {(uint8_t)PCAReg::CONFIG1, 0x00}; // Set IO 1 as Output
+                this->can_init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+                if (this->can_init_status != ESP_OK) {
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to set output reg");
+                } else {
+                    write_buffer[0] = (uint8_t)PCAReg::CONFIG0; // Set IO 0
+                    write_buffer[1] = 0xFF; // As all inputs
+                    this->can_init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+                    if (this->can_init_status != ESP_OK) {
+                        ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to set input reg");
+                    }
+                }
             }
         } else {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "Failed to install driver");
@@ -515,7 +553,7 @@ void Egs51Can::on_rx_done(uint64_t now_ts) {
             esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
             if (e != ESP_OK) {
                 // Error, SNV
-                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
+                //ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
             } else {
                 //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
                 this->last_i2c_query_time = now_ts;
@@ -524,13 +562,15 @@ void Egs51Can::on_rx_done(uint64_t now_ts) {
             // Set RP and Start pins on IO expander to be outputs
             // IO 0+1 - OUTPUT
             // IO 2-7 - INPUT
-            uint8_t write_buffer[2] = {0x07,0xFF}; // Set IO (0x06 + port 1 (0x01))
+            uint8_t write_buffer[2] = {(uint8_t)PCAReg::OUTPUT1, 0x00}; // Set IO (0x06 + port 1 (0x01))
             if (start_enable) {
-                write_buffer[1] = write_buffer[1] & ~(BIT(1));
+                uint8_t bit = BOARD_CONFIG.board_ver == 2 ? StartEnableV12 : StartEnableV13;
+                write_buffer[1] = write_buffer[1] | (BIT(bit));
             }
-            //write_buffer[1] = ~(BIT(0));// | BIT(1)); // Start_EN and 
-
-            i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+            e = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+            if (e != ESP_OK) {
+                ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
+            }
 
             /*
             req[0] = 0x03;

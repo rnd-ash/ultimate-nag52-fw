@@ -7,7 +7,7 @@
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
-#define CHUNK_SIZE 252 // 254 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE 1024 // 1024 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
 
 static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
 

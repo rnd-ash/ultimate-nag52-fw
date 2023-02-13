@@ -34,6 +34,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     }
     ret.v_batt = Solenoids::get_solenoid_voltage();
     ret.calc_ratio = g->get_gear_ratio();
+    ret.output_rpm = g->sensor_data.output_rpm;
     return ret;
 }
 

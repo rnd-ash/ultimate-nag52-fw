@@ -512,7 +512,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             float start_spc = current_spc + current_delta_spc;
             uint16_t e = 0;
             while (e < sd.max_pressure_data.hold_time + sd.max_pressure_data.ramp_time) {
-                float c = linear_interp(start_spc, 7000, e, sd.max_pressure_data.ramp_time);
+                float c = linear_interp(start_spc, MIN(7000, start_spc*1.5), e, sd.max_pressure_data.ramp_time);
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 vTaskDelay(20);

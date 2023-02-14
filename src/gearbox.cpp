@@ -371,7 +371,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     case Clutch::K1: // 1->2 and 5->4
                         if (req_lookup == ProfileGearChange::ONE_TWO) {
                             min_spc = 100;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 2.5, 0.9, 100, 1000);
+                            spc_trq_multi = scale_number(ss_now.target_shift_time, 2.5, 0.75, 100, 1000);
                         } else {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 2.0, 0.9, 100, 1000);
@@ -379,11 +379,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         break;
                     case Clutch::K2: // 2->3
                         min_spc = 400;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.5, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.0, 100, 1000);
                         break;
                     case Clutch::K3: // 3->4 and 3->2
                         min_spc = 700;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 2.0, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.5, 100, 1000);
                         if (req_lookup == ProfileGearChange::THREE_TWO && sensor_data.static_torque <= 0) {
                             min_spc = 800;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 6.0, 4.0, 100, 1000);
@@ -392,7 +392,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     case Clutch::B1: // 4->5 and 2->1
                         if (req_lookup == ProfileGearChange::TWO_ONE) {
                             min_spc = 100;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 3.0, 0.9, 100, 1000);
+                            spc_trq_multi = scale_number(ss_now.target_shift_time, 2.0, 0.75, 100, 1000);
                         } else {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.2, 100, 1000);
@@ -405,13 +405,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         break;
                 }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
-                curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, abs(sensor_data.static_torque)*spc_trq_multi));
+                curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, MAX(0, sensor_data.static_torque)*spc_trq_multi));
                 if (max_spc < curr_phase_delta_spc) {
                     max_spc = curr_phase_delta_spc;
                 }
                 if (phase_elapsed > phase_duration && sd.targ_g != this->est_gear_idx) {
                     // Not shifting, try to increase SPC a bit more!
-                    max_spc += 10;
+                    max_spc += scale_number(ss_now.target_shift_time, 50, 5, 100, 1000);
                 }
             }
 

@@ -143,6 +143,7 @@ private:
     float shadow_ratio_n2 = 0;
     float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
+    Solenoid* last_shift_solenoid = nullptr;
 };
 
 extern Gearbox* gearbox;

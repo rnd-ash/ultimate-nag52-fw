@@ -279,6 +279,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
     {
         ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
         ShiftData sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
+        if (this->last_shift_solenoid == sd.shift_solenoid) { // Same shift solenoid
+            while (sensor_data.current_timestamp_ms - sensor_data.last_shift_time < 1000) {
+                vTaskDelay(10);
+            }
+            // Recalculate
+            sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
+        }
+        this->last_shift_solenoid = sd.shift_solenoid;
+
         ShiftPhase* current_phase_data = &sd.bleed_data;
         uint8_t current_phase = SHIFT_PHASE_BLEED;
         Clutch apply_clutch = pressure_manager->get_clutch_to_apply(req_lookup);
@@ -331,6 +340,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     pressure_mgr->make_torque_and_overlap_data(&sd.torque_data, &sd.overlap_data, &sd.fill_data, chars, req_lookup, this->mpc_working);
                     current_phase = SHIFT_PHASE_OVERLAP; // Bypass
                     current_phase_data = &sd.overlap_data;
+                    if (sensor_data.static_torque > 150) {
+                    egs_can_hal->set_torque_request(TorqueRequest::LessThan, 150);
+                }
                 } else if (SHIFT_PHASE_OVERLAP == current_phase) {
                     //egs_can_hal->set_torque_request(TorqueRequest::None, 0);
                     current_phase_data = &sd.overlap_data;
@@ -526,7 +538,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         sd.shift_solenoid->write_pwm_12_bit(0);
         egs_can_hal->set_torque_request(TorqueRequest::None, 0);
         this->abort_shift = false;
-        this->sensor_data.last_shift_time = esp_timer_get_time()/1000;
+        this->sensor_data.last_shift_time = sensor_data.current_timestamp_ms;
         this->flaring = false;
         if (result) { // Only set gear on conformation!
             ESP_LOGI("SHIFT", "SHIFT OK!");
@@ -534,7 +546,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         } else {
             ESP_LOGE("SHIFT", "Shift failed! End ratio is %.2f", (float)sensor_data.gear_ratio/100.0);
             this->target_gear = this->actual_gear;
-            vTaskDelay(500); // Wait for SS Solenoid to drop in pressure before attempting again
         }
     }
     return result;
@@ -1198,66 +1209,66 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
     if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
         result = Sensors::read_output_rpm(dest);
     } else {
-    this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
-    this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
-    if ((WheelDirection::SignalNotAvailable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvailable != sensor_data.rr_wheel.current_dir))
-    {
-        float rpm = 0.0F;
-        if (WheelDirection::SignalNotAvailable == sensor_data.rl_wheel.current_dir)
+        this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(now, 500);
+        this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(now, 500);
+        if ((WheelDirection::SignalNotAvailable != sensor_data.rl_wheel.current_dir) || (WheelDirection::SignalNotAvailable != sensor_data.rr_wheel.current_dir))
         {
-            // Right OK
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
-            rpm = sensor_data.rr_wheel.double_rpm;
-        }
-        else if (WheelDirection::SignalNotAvailable == sensor_data.rr_wheel.current_dir)
-        {
-            // Left OK
-            ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
-            rpm = sensor_data.rl_wheel.double_rpm;
-        }
-        else
-        { // Both sensors OK!
-            rpm = (abs(sensor_data.rl_wheel.double_rpm) + abs(sensor_data.rr_wheel.double_rpm)) / 2;
-        }
-        rpm *= this->diff_ratio_f;
-        rpm /= 2;
-
-        // Car is 4Matic, but only calcualte extra if it is not a 1:1 4Matic.
-        // Cars tend to be always 1:1 (Simple 4WD), but vehicles like G-Wagon / Sprinter will have a variable transfer case
-        if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000))
-        {
-            switch (egs_can_hal->get_transfer_case_state(now, 500))
+            float rpm = 0.0F;
+            if (WheelDirection::SignalNotAvailable == sensor_data.rl_wheel.current_dir)
             {
-            case TransferCaseState::Hi:
-                rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
-                result = true;
-                break;
-            case TransferCaseState::Low:
-                rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
-                result = true;
-                break;
-            case TransferCaseState::Neither:
-                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is in Neutral!");
-                result = false;
-                break;
-            case TransferCaseState::Switching:
-                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is switching!");
-                result = false;
-                break;
-            case TransferCaseState::SNA:
-                ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "No signal from VG! Cannot read output rpm");
-                result = false;
-                break;
+                // Right OK
+                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain left wheel RPM, trusting the right one!");
+                rpm = sensor_data.rr_wheel.double_rpm;
+            }
+            else if (WheelDirection::SignalNotAvailable == sensor_data.rr_wheel.current_dir)
+            {
+                // Left OK
+                ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Could not obtain right wheel RPM, trusting the left one!");
+                rpm = sensor_data.rl_wheel.double_rpm;
+            }
+            else
+            { // Both sensors OK!
+                rpm = (abs(sensor_data.rl_wheel.double_rpm) + abs(sensor_data.rr_wheel.double_rpm)) / 2;
+            }
+            rpm *= this->diff_ratio_f;
+            rpm /= 2;
+
+            // Car is 4Matic, but only calcualte extra if it is not a 1:1 4Matic.
+            // Cars tend to be always 1:1 (Simple 4WD), but vehicles like G-Wagon / Sprinter will have a variable transfer case
+            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000))
+            {
+                switch (egs_can_hal->get_transfer_case_state(now, 500))
+                {
+                case TransferCaseState::Hi:
+                    rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
+                    result = true;
+                    break;
+                case TransferCaseState::Low:
+                    rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
+                    result = true;
+                    break;
+                case TransferCaseState::Neither:
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is in Neutral!");
+                    result = false;
+                    break;
+                case TransferCaseState::Switching:
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "CALC_OUTPUT_RPM", "Cannot calculate output RPM. VG is switching!");
+                    result = false;
+                    break;
+                case TransferCaseState::SNA:
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "CALC_OUTPUT_RPM", "No signal from VG! Cannot read output rpm");
+                    result = false;
+                    break;
+                }
+            }
+            if (result)
+            {
+                *dest = rpm;
             }
         }
-        if (result)
+        else
         {
-            *dest = rpm;
-        }
-    }
-    else
-    {
-        result = false;
+            result = false;
         }
     }
     return result;

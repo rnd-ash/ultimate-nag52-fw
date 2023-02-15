@@ -436,7 +436,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, current_spc + current_delta_spc + 100), now_working_mpc + mpc_hold_adder);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
                 // Overlap
-                float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time/2);
+                float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time);
                 this->mpc_working = ((current_mpc + current_delta_mpc) + x);
             } else {
                 this->mpc_working = current_mpc + current_delta_mpc;
@@ -456,10 +456,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
                     result = true;
                     process_shift = false;
-                } else if (!coasting_shift && SHIFT_TIMEOUT_MS < phase_elapsed) { // TIMEOUT
+                } else if (!coasting_shift && MAX(SHIFT_TIMEOUT_MS, phase_duration*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
-                } else if (coasting_shift && SHIFT_TIMEOUT_COASTING_MS < phase_elapsed) { // TIMEOUT
+                } else if (coasting_shift && MAX(SHIFT_TIMEOUT_COASTING_MS, phase_duration*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
                 }

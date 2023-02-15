@@ -28,11 +28,11 @@ class Flasher {
     public:
         Flasher(EgsBaseCan *can_ref, Gearbox* gearbox);
         ~Flasher();
-        DiagMessage on_request_download(const uint8_t* args, uint16_t arg_len);
-        DiagMessage on_request_upload(const uint8_t* args, uint16_t arg_len);
-        DiagMessage on_transfer_data(uint8_t* args, uint16_t arg_len);
-        DiagMessage on_transfer_exit(uint8_t* args, uint16_t arg_len);
-        DiagMessage on_request_verification(uint8_t* args, uint16_t arg_len);
+        void on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest);
+        void on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest);
+        void on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
+        void on_transfer_exit(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
+        void on_request_verification(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
     private:
         Gearbox* gearbox_ref;
         EgsBaseCan* can_ref;
@@ -50,18 +50,6 @@ class Flasher {
         size_t read_bytes;
         size_t read_bytes_total;
         bool is_ota = false;
-
-        DiagMessage make_diag_neg_msg(uint8_t sid, kwp_result_t nrc){
-            DiagMessage msg;
-            global_make_diag_neg_msg(&msg, sid, nrc);
-            return msg;
-        };
-
-        DiagMessage make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len){
-             DiagMessage msg;
-             global_make_diag_pos_msg(&msg, sid, resp, len);
-             return msg;
-        };
 };
 
 #endif

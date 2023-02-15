@@ -943,16 +943,21 @@ void Gearbox::controller_loop()
                     }
                     if (want_upshift && want_downshift)
                     {
-                        egs_can_hal->set_display_msg(GearboxMessage::ActuateParkingBreak); // WTF
+                        want_upshift = true; // Upshift takes priority to protect the engine
+                        want_downshift = false;
                     }
                     else if ((this->ask_upshift || want_upshift) && this->actual_gear < GearboxGear::Fifth)
                     {
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > MIN_WORKING_RPM + 100)
+                        // Second gear shift defaults to OK as we can safely start in second (For C/W mode)
+                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > MIN_WORKING_RPM + 100)
                         {
                             this->target_gear = next;
                         }
+                        // Processed, cancel request now
+                        this->ask_upshift = false;
+                        want_upshift = false;
                     }
                     else if ((this->ask_downshift || want_downshift) && this->actual_gear > GearboxGear::First)
                     {
@@ -962,29 +967,13 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = prev;
                         }
+                        // Processed, cancel request now
+                        this->ask_downshift = false;
+                        want_downshift = false;
                     }
-                    // this->ask_downshift = false;
-                    // this->ask_upshift = false;
                 }
                 // Now, how do we prioritize up/downshift behaviour?
                 // Upshifting when accelerating should take precidence.
-
-                if (this->ask_upshift)
-                {
-                    this->ask_upshift = false;
-                    if (this->actual_gear < GearboxGear::Fifth && this->target_gear == this->actual_gear && !shifting)
-                    {
-                        this->target_gear = next_gear(this->actual_gear);
-                    }
-                }
-                else if (this->ask_downshift)
-                {
-                    this->ask_downshift = false;
-                    if (this->actual_gear > GearboxGear::First && this->target_gear == this->actual_gear && !shifting)
-                    {
-                        this->target_gear = prev_gear(this->actual_gear);
-                    }
-                }
                 if (can_read)
                 {
                     if (is_fwd_gear(this->actual_gear) && is_fwd_gear(this->target_gear))

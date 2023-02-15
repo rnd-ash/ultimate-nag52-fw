@@ -382,7 +382,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.0, 100, 1000);
                         break;
                     case Clutch::K3: // 3->4 and 3->2
-                        min_spc = 700;
+                        min_spc = 500;
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.5, 100, 1000);
                         if (req_lookup == ProfileGearChange::THREE_TWO && sensor_data.static_torque <= 0) {
                             min_spc = 800;
@@ -400,7 +400,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         break;
                     case Clutch::B2: // 4->3
                     default:
-                        min_spc = 500;
+                        min_spc = 400;
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 3.0, 1.4, 100, 1000);
                         break;
                 }

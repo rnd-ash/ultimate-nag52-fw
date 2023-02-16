@@ -442,10 +442,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             current_delta_spc = linear_interp(prev_phase_delta_spc, curr_phase_delta_spc, phase_elapsed, phase_ramp_time);
             // Set pressures and solenoid actuation
             //pressure_mgr->set_target_mpc_pressure(current_mpc + current_delta_mpc);
+            float spc = current_spc + current_delta_spc;
+            if (current_phase > SHIFT_PHASE_FILL) {
+                spc = MAX(sd.fill_data.spc_pressure, current_spc + current_delta_spc);
+            }
             if (current_phase == SHIFT_PHASE_BLEED || current_phase == SHIFT_PHASE_FILL) {
                 // Prevent MPC from being too low in bleed and fill phase 
                 mpc_hold_adder = pressure_manager->get_mpc_hold_adder(apply_clutch);
-                this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, current_spc + current_delta_spc + 100), now_working_mpc + mpc_hold_adder);
+                this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + 100), now_working_mpc + mpc_hold_adder);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
                 // Overlap
                 float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time);
@@ -453,7 +457,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             } else {
                 this->mpc_working = current_mpc + current_delta_mpc;
             }
-            pressure_mgr->set_target_spc_pressure(current_spc + current_delta_spc);
+            pressure_mgr->set_target_spc_pressure(spc);
 
             if (SHIFT_SOLENOID_INRUSH_TIME < sensor_data.current_timestamp_ms - sol_open_time) {
                 sd.shift_solenoid->write_pwm_12_bit(1200); // 33% to prevent burnout

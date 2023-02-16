@@ -227,6 +227,8 @@ ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGear
     sd.bleed_data.hold_time = 200;
     sd.bleed_data.spc_pressure = 650;
     sd.bleed_data.mpc_pressure = curr_mpc;
+    sd.bleed_data.mpc_offset_mode = false;
+    sd.bleed_data.spc_offset_mode = false;
 
     // Make fill phase data
     this->make_fill_data(&sd.fill_data, chars, shift_request, curr_mpc);

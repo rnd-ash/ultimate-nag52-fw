@@ -170,7 +170,7 @@ void input_manager(void*) {
         }
         // Check for W/S toggle - Reuse down variable
         down = egs_can_hal->get_shifter_ws_mode(now, 100);
-        if (last_switch_pos != down) {
+        if ((last_switch_pos != down) && (egs_can_hal->get_engine_rpm(now, 100) > 200)) { 
             profile_id++;
             if (profile_id == NUM_PROFILES) {
                 profile_id = 0;

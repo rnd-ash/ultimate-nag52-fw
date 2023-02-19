@@ -48,7 +48,7 @@ enum class PCAPort : uint8_t {
 #define StartEnableV12 1
 // On 1.3 boards, the RP and Start solenoid are flipped!
 #define RPSolenoidV13 1
-#define StartEnableV13 0
+#define StartEnableV13 2//0
 // Only on 1.3
 #define GenMosfet 2
 
@@ -455,7 +455,7 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
 void Egs51Can::set_gearbox_ok(bool is_ok) {
 }
 
-void Egs51Can::set_torque_request(TorqueRequest request, int16_t amount_nm) {
+void Egs51Can::set_torque_request(TorqueRequest request, float amount_nm) {
     if (request == TorqueRequest::None) {
         this->gs218.set_TORQUE_REQ_EN(false);
         this->gs218.set_TORQUE_REQ(0xFE);
@@ -548,28 +548,28 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
 
 void Egs51Can::on_rx_done(uint64_t now_ts) {
     if (now_ts - this->last_i2c_query_time > 50) {
-            // Query I2C IO Expander
-            uint8_t req[2] = {0,0};
-            esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
-            if (e != ESP_OK) {
-                // Error, SNV
-                ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
-            } else {
-                //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
-                this->last_i2c_query_time = now_ts;
-            }
-            
-            // Set RP and Start pins on IO expander to be outputs
-            // IO 0+1 - OUTPUT
-            // IO 2-7 - INPUT
-            uint8_t write_buffer[2] = {(uint8_t)PCAReg::OUTPUT1, 0x00}; // Set IO (0x06 + port 1 (0x01))
-            if (start_enable) {
-                uint8_t bit = BOARD_CONFIG.board_ver == 2 ? StartEnableV12 : StartEnableV13;
-                write_buffer[1] = write_buffer[1] | (BIT(bit));
-            }
-            e = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
-            if (e != ESP_OK) {
-                ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
-            }
+        // Query I2C IO Expander
+        uint8_t req[2] = {0,0};
+        esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, this->i2c_rx_bytes, 2, 5);
+        if (e != ESP_OK) {
+            // Error, SNV
+            ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
+        } else {
+            //ESP_LOGI("EGS51_CAN", "I2C Reponse %02X %02X", this->i2c_rx_bytes[0], this->i2c_rx_bytes[1]);
+            this->last_i2c_query_time = now_ts;
         }
+        
+        // Set RP and Start pins on IO expander to be outputs
+        // IO 0+1 - OUTPUT
+        // IO 2-7 - INPUT
+        uint8_t write_buffer[2] = {(uint8_t)PCAReg::OUTPUT1, 0x00}; // Set IO (0x06 + port 1 (0x01))
+        if (start_enable) {
+            uint8_t bit = BOARD_CONFIG.board_ver == 2 ? StartEnableV12 : StartEnableV13;
+            write_buffer[1] = write_buffer[1] | (BIT(bit));
+        }
+        e = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, write_buffer, 2, 50);
+        if (e != ESP_OK) {
+            ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
+        }
+    }
 }

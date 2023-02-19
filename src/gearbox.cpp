@@ -67,6 +67,10 @@ Gearbox::Gearbox()
         .fr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
         .fl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
     };
+    this->output_data = OutputData {
+        .torque_req_amount = 0,
+        .torque_req_type = TorqueRequest::None
+    };
     if (VEHICLE_CONFIG.is_large_nag)
     {
         this->gearboxConfig = GearboxConfiguration{
@@ -207,6 +211,12 @@ void Gearbox::dec_gear_request()
     this->ask_downshift = true;
 }
 
+void Gearbox::set_torque_request(TorqueRequest type, float amount) {
+    this->output_data.torque_req_amount = amount;
+    this->output_data.torque_req_type = type;
+    egs_can_hal->set_torque_request(type, amount);
+}
+
 GearboxGear next_gear(GearboxGear g)
 {
     GearboxGear next = g;
@@ -285,6 +295,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             // Recalculate
             sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
+            sd.bleed_data.spc_pressure = sd.bleed_data.spc_pressure/2; // Even lower pressure in bleed phase
         }
         this->last_shift_solenoid = sd.shift_solenoid;
 
@@ -340,11 +351,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     pressure_mgr->make_torque_and_overlap_data(&sd.torque_data, &sd.overlap_data, &sd.fill_data, chars, req_lookup, this->mpc_working);
                     current_phase = SHIFT_PHASE_OVERLAP; // Bypass
                     current_phase_data = &sd.overlap_data;
-                    if (sensor_data.static_torque > 150) {
-                    egs_can_hal->set_torque_request(TorqueRequest::LessThan, 150);
-                }
                 } else if (SHIFT_PHASE_OVERLAP == current_phase) {
-                    //egs_can_hal->set_torque_request(TorqueRequest::None, 0);
                     current_phase_data = &sd.overlap_data;
                     // Check if we are coasting or not
                 }
@@ -524,7 +531,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         // Only do max pressure phase if we shifted
         if (result) {
-            egs_can_hal->set_torque_request(TorqueRequest::None, 0);
+            this->set_torque_request(TorqueRequest::None, 0);
             ESP_LOGI("SHIFT","Starting max lock phase");
             float start_spc = current_spc + current_delta_spc;
             int old_spc = current_spc + current_delta_spc;
@@ -540,7 +547,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         }
         pressure_manager->disable_spc();
         sd.shift_solenoid->write_pwm_12_bit(0);
-        egs_can_hal->set_torque_request(TorqueRequest::None, 0);
+        this->set_torque_request(TorqueRequest::None, 0);
         this->abort_shift = false;
         this->sensor_data.last_shift_time = sensor_data.current_timestamp_ms;
         this->flaring = false;
@@ -719,7 +726,7 @@ void Gearbox::shift_thread()
     }
 cleanup:
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Shift complete");
-    egs_can_hal->set_torque_request(TorqueRequest::None, 0);
+    this->set_torque_request(TorqueRequest::None, 0);
     this->shifting = false;
     vTaskDelete(nullptr);
 }
@@ -793,7 +800,7 @@ void Gearbox::controller_loop()
                 this->shadow_ratio_n2 = (float)this->rpm_reading.n2_raw / (float)this->sensor_data.output_rpm;
                 this->shadow_ratio_n3 = (float)this->rpm_reading.n3_raw / (float)this->sensor_data.output_rpm;
             }
-            if (!shifting && this->sensor_data.output_rpm > 300 && this->sensor_data.input_rpm > 300)
+            if (!shifting && this->sensor_data.output_rpm > MIN_RATIO_CALC_RPM && this->sensor_data.input_rpm > MIN_RATIO_CALC_RPM)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {
@@ -931,12 +938,11 @@ void Gearbox::controller_loop()
         }
         if (this->sensor_data.engine_rpm > 500)
         {
-            if (is_fwd_gear(this->actual_gear))
+            if (can_read && is_fwd_gear(this->actual_gear))
             {
+                // In gear, not shifting, and no ratio mismatch
                 if (!shifting && this->actual_gear == this->target_gear && gear_disagree_count == 0)
                 {
-                    bool want_upshift = false;
-                    bool want_downshift = false;
                     // Enter critical ISR section
                     portENTER_CRITICAL(&this->profile_mutex);
                     AbstractProfile *p = this->current_profile;
@@ -949,19 +955,19 @@ void Gearbox::controller_loop()
                         // data, if the car should up/downshift
                         if (p->should_upshift(this->actual_gear, &this->sensor_data))
                         {
-                            want_upshift = true;
+                            this->ask_upshift = true;
                         }
                         if (p->should_downshift(this->actual_gear, &this->sensor_data))
                         {
-                            want_downshift = true;
+                            this->ask_downshift = true;
                         }
                     }
-                    if (want_upshift && want_downshift)
+                    if (this->ask_upshift && this->ask_downshift)
                     {
-                        want_upshift = true; // Upshift takes priority to protect the engine
-                        want_downshift = false;
+                        // Upshift takes priority to protect the engine
+                        this->ask_downshift = false;
                     }
-                    else if ((this->ask_upshift || want_upshift) && this->actual_gear < GearboxGear::Fifth)
+                    if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
                     {
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
@@ -970,11 +976,8 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = next;
                         }
-                        // Processed, cancel request now
-                        this->ask_upshift = false;
-                        want_upshift = false;
                     }
-                    else if ((this->ask_downshift || want_downshift) && this->actual_gear > GearboxGear::First)
+                    else if (this->ask_downshift && this->actual_gear > GearboxGear::First)
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
@@ -982,16 +985,13 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = prev;
                         }
-                        // Processed, cancel request now
-                        this->ask_downshift = false;
-                        want_downshift = false;
                     }
                 }
-                // Now, how do we prioritize up/downshift behaviour?
-                // Upshifting when accelerating should take precidence.
-                if (can_read)
-                {
-                    if (is_fwd_gear(this->actual_gear) && is_fwd_gear(this->target_gear))
+                // Request processed. Cancel the requests. Put this outside here so that if there is a ratio mismatch, paddles are ignored
+                this->ask_downshift = false;
+                this->ask_upshift = false;
+
+                if (is_fwd_gear(this->target_gear))
                     {
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr)
@@ -1000,18 +1000,15 @@ void Gearbox::controller_loop()
                             egs_can_hal->set_clutch_status(this->tcc->get_clutch_state());
                         }
                     }
-                    else
-                    {
+            } else { // Cannot read, or not in foward gear!
                         this->tcc_percent = 0;
                         this->pressure_mgr->set_target_tcc_pressure(0);
                         egs_can_hal->set_clutch_status(ClutchStatus::Open);
                         // sol_tcc->write_pwm_12_bit(0);
                     }
-                }
-            }
-            if (this->target_gear != this->actual_gear && this->shifting == false)
+            // Not shifting, but target has changed! Spawn a shift thread!
+            if (this->target_gear != this->actual_gear && !this->shifting)
             {
-                // Create shift task to change gears for us!
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         }
@@ -1064,7 +1061,6 @@ void Gearbox::controller_loop()
         //    spkr.send_note(3000, 100, 110);
         //    this->asleep = true;
         //}
-
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
         egs_can_hal->set_shifter_position(this->shifter_pos);
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);

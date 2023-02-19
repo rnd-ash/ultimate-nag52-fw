@@ -76,6 +76,11 @@ struct SensorData{
     WheelData fl_wheel;
 };
 
+struct OutputData {
+    float torque_req_amount;
+    TorqueRequest torque_req_type;
+};
+
 /**
  * @brief A gearchange that a AbstractProfile can request
  * 

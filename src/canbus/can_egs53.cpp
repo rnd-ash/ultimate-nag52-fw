@@ -417,7 +417,7 @@ void Egs53Can::set_gearbox_ok(bool is_ok) {
     this->tcm_a1.set_BasShftProg_Ok(is_ok);
 }
 
-void Egs53Can::set_torque_request(TorqueRequest request, int16_t amount_nm) {
+void Egs53Can::set_torque_request(TorqueRequest request, float amount_nm) {
 
 }
 

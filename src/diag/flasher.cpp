@@ -99,7 +99,7 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
     if (arg_len != 7) { // Request was the wrong size
         return global_make_diag_neg_msg(dest, SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-    uint32_t src_mem_address = args[1] << 16 | args[2] << 8 | args[3];
+    uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
     uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6]; 
     // Valid memory regions
     uint32_t flash_size;

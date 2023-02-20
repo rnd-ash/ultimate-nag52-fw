@@ -15,15 +15,6 @@ static const uint16_t SHIFT_PHASE_BLEED = 1u;
 static const uint16_t SHIFT_PHASE_FILL = 2u;
 static const uint16_t SHIFT_PHASE_TORQUE = 3u;
 static const uint16_t SHIFT_PHASE_OVERLAP = 4u;
-static const uint16_t SHIFT_PHASE_MAX_P  = 5u;
-
-enum ShiftPhases : uint8_t{
-    BLEED = 1u,
-    FILL = 2u,
-    TORQUE = 3u,
-    OVERLAP = 4u,
-    MAX_P = 5u
-};
 
 enum class Clutch {
     K1 = 1,
@@ -75,7 +66,7 @@ public:
      * @param curr_mpc Current MPC working pressure at the time of shift
      * @return ShiftData 
      */
-    ShiftData get_shift_data(ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc);
+    ShiftData get_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc);
 
     /**
      * @brief Reset adaptation data
@@ -123,15 +114,19 @@ public:
     void make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-
+    Clutch get_clutch_to_release(ProfileGearChange change);
+    Clutch get_clutch_to_apply(ProfileGearChange change);
     StoredTcuMap* get_pcs_map(void);
     StoredTcuMap* get_tcc_pwm_map(void);
     StoredTcuMap* get_working_map(void);
     StoredTcuMap* get_fill_time_map(void);
     StoredTcuMap* get_fill_pressure_map(void);
+    StoredTcuMap* get_fill_pressure_mpc_adder_map(void);
     uint16_t get_max_rated_torque() {
         return this->gb_max_torque;
     }
+
+    uint16_t get_mpc_hold_adder(Clutch to_apply);
 
 private:
      /**
@@ -159,9 +154,8 @@ private:
     StoredTcuMap* mpc_working_pressure;
     StoredTcuMap* hold2_time_map;
     StoredTcuMap* hold2_pressure_map;
+    StoredTcuMap* hold2_pressure_mpc_adder_map;
     uint16_t gb_max_torque;
-    Clutch get_clutch_to_release(ProfileGearChange change);
-    Clutch get_clutch_to_apply(ProfileGearChange change);
 };
 
 extern PressureManager* pressure_manager;

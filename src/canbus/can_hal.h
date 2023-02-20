@@ -27,30 +27,39 @@ struct WheelData {
 };
 
 enum class SystemStatusCheck: uint8_t {
-    // Waiting for check to complete
+    /// @brief Waiting for check to complete
     Waiting,
-    // No errors. Gearbox is OK
+    /// @brief Error check OK
     OK,
-    // Errors found
+    /// @brief Error check failed
     Error
 };
 
 enum class EngineType: uint8_t {
+    /// @brief Diesel engine
     Diesel,
+    /// @brief Petrol engine
     Petrol,
+    /// @brief Unknown engine type
     Unknown = 0xFF
 };
 
 /// @brief Torque request type
 enum class TorqueRequest: uint8_t {
-    /// @brief No torque request specified
+    /// @brief No torque request
     None,
-    /// @brief Begin torque request. Limit engine
-    Begin,
-    /// @brief Torque request, engine must follow EGS demand
-    FollowMe,
-    /// @brief Restore torque request back to normal
-    Restore,
+    /// @brief Make less than specified amount
+    LessThan,
+    /// @brief Make more than specified amount
+    MoreThan,
+    /// @brief Make exactly specified amount
+    Exact,
+    /// @brief Make less than specified amount - Fast reaction
+    LessThanFast,
+    /// @brief Make more than specified amount - Fast reaction
+    MoreThanFast,
+    /// @brief Make exactly specified amount - Fast reaction
+    ExactFast
 };
 
 /// @brief Gearbox gears for 722.6 gearbox
@@ -255,6 +264,11 @@ class EgsBaseCan {
         virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
+        // Gets the torque loss of the AC system
+        virtual uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+            return UINT8_MAX;
+        }
+
         // Gets the flappy paddle position
         virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
             return PaddlePosition::SNV;
@@ -276,6 +290,10 @@ class EgsBaseCan {
             return false;
         }
         virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+        // 1 = S, 0 = W/C
+        virtual bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
             return false;
         }
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
@@ -321,9 +339,7 @@ class EgsBaseCan {
         // Sets gearbox is OK
         virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request){};
-        // Sets requested engine torque
-        virtual void set_requested_torque(uint16_t torque_nm){};
+        virtual void set_torque_request(TorqueRequest request, float amount_nm){};
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 

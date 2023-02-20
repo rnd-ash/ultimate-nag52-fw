@@ -6,6 +6,7 @@
 #include "speaker.h"
 #include "profiles.h"
 #include "pressure_manager.h"
+#include "gearbox.h"
 
 StoredTcuMap* get_map(uint8_t map_id) {
     switch(map_id) {
@@ -31,6 +32,8 @@ StoredTcuMap* get_map(uint8_t map_id) {
             return pressure_manager->get_fill_time_map();
         case FILL_PRESSURE_MAP_ID:
             return pressure_manager->get_fill_pressure_map();
+        case FILL_PRESSURE_MPC_ADDER_MAP_ID:
+            return pressure_manager->get_fill_pressure_mpc_adder_map();
         case A_UPTIME_MAP_ID:
             return agility->get_upshift_time_map();
         case A_DNTIME_MAP_ID:
@@ -51,6 +54,8 @@ StoredTcuMap* get_map(uint8_t map_id) {
             return manual->get_upshift_time_map();
         case M_DNTIME_MAP_ID:
             return manual->get_downshift_time_map();
+        case TCC_ADAPT_MAP_ID:
+            return gearbox->tcc->tcc_learn_lockup_map;
         default:
             return nullptr;
     }

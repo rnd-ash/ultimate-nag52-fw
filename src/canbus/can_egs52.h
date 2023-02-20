@@ -44,6 +44,7 @@ class Egs52Can: public EgsBaseCan {
          int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
          int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -60,6 +61,7 @@ class Egs52Can: public EgsBaseCan {
         // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
@@ -85,9 +87,7 @@ class Egs52Can: public EgsBaseCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request) override;
-        // Sets requested engine torque
-        void set_requested_torque(uint16_t torque_nm) override;
+        void set_torque_request(TorqueRequest request, float amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter

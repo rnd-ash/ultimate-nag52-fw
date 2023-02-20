@@ -12,5 +12,6 @@
 #endif
 
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
+float progress_between_targets(float current, float start, float end);
 
 #endif // TCM_MATHS_H

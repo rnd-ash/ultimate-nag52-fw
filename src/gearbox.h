@@ -81,6 +81,7 @@ public:
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
     SensorData sensor_data;
+    OutputData output_data;
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
@@ -91,7 +92,9 @@ public:
 
     bool isShifting(void) { return this->shifting; }
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
+    TorqueConverter* tcc = nullptr;
 private:
+    void set_torque_request(TorqueRequest type, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
 
@@ -128,18 +131,21 @@ private:
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
-    TorqueConverter* tcc = nullptr;
     TempSampleData temp_data;
     bool diag_stop_control = false;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     float diff_ratio_f;
-    bool is_ramp = false;
-    uint8_t shift_stage = 0;
     bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
+    // Shadow ratios. These are calculated via the raw values from the speed sensors.
+    // This way the TCU can see if a sensor is malfunctioning
+    float shadow_ratio_n2 = 0;
+    float shadow_ratio_n3 = 0;
+    RpmReading rpm_reading;
+    Solenoid* last_shift_solenoid = nullptr;
 };
 
 extern Gearbox* gearbox;

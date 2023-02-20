@@ -1,10 +1,6 @@
 #ifndef GEARBOX_CONFIG_H
 #define GEARBOX_CONFIG_H
 
-#ifndef RED_BCB
-#define BOARD_V2 // Comment this line for the red beta boards!!!
-#endif
-
 #define GB_EFFICIENCY 0.9 // 90% *TODO* - Does this changed based on GB physical vairent?
 
 // https://en.wikipedia.org/wiki/Mercedes-Benz_5G-Tronic_transmission

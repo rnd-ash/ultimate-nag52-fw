@@ -14,6 +14,7 @@ esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const i
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
         // Set default map data
         e = write_nvs_map_data(map_name, default_map, map_element_count);
+        memcpy(dest, default_map, byte_count); // As e would be ESP_OK, the memcpy below won't get executed!
     }
     if(e != ESP_OK) {
         if (default_map != nullptr) {

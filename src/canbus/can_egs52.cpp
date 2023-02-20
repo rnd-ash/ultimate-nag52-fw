@@ -72,6 +72,11 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
                 break;
         }
 
+        // Fix for some cars where SNV even with valid wheel speed
+        if (bs208.get_DHR() != 0 && d == WheelDirection::SignalNotAvailable) {
+            d = WheelDirection::Forward;
+        }
+
         return WheelData {
             .double_rpm = bs208.get_DHR(),
             .current_dir = d
@@ -101,6 +106,11 @@ WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
             case BS_208h_DRTGHL::SNV:
             default:
                 break;
+        }
+
+        // Fix for some cars where SNV even with valid wheel speed
+        if (bs208.get_DHL() != 0 && d == WheelDirection::SignalNotAvailable) {
+            d = WheelDirection::Forward;
         }
 
         return WheelData {
@@ -213,6 +223,18 @@ int Egs52Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return INT_MAX;
 }
 
+uint8_t Egs52Can::get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+    KLA_410 kl410;
+    if (this->ezs_ecu.get_KLA_410(now, expire_time_ms, &kl410)) {
+        uint8_t ret = kl410.get_M_KOMP();
+        if (ret != UINT8_MAX) {
+            ret /= 4;
+        }
+        return ret;
+    }
+    return UINT8_MAX;
+}
+
 PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
     SBW_232 sbw;
     if (misc_ecu.get_SBW_232(now, expire_time_ms, &sbw)) { // 50ms timeout
@@ -289,6 +311,15 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
             state = false;
         }
         return ewm230.get_FPT();
+    } else {
+        return false;
+    }
+}
+
+bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    EWM_230 ewm230;
+    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
+        return ewm230.get_W_S();
     } else {
         return false;
     }
@@ -502,44 +533,63 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
     gs218.set_GS_NOTL(!is_ok); // Emergency mode activated
 }
 
-void Egs52Can::set_torque_request(TorqueRequest request) {
-    this->current_req = request;
+void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
+    bool dyn0 = false;
+    bool dyn1 = false;
+    bool min = false;
+    bool max = false;
+    uint16_t trq = 0;
+    if (request != TorqueRequest::None) {
+        trq = (amount_nm + 500) * 4;
+    }
+    // Type of request bit
     switch(request) {
-        case TorqueRequest::Begin:
-            gs218.set_MMIN_EGS(true);
-            gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(false);
+        case TorqueRequest::Exact:
+        case TorqueRequest::ExactFast:
+            min = true;
+            max = true;
             break;
-        case TorqueRequest::FollowMe:
-            gs218.set_MMIN_EGS(true);
-            gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(false);
+        case TorqueRequest::LessThan:
+        case TorqueRequest::LessThanFast:
+            min = true;
+            max = false;
             break;
-        case TorqueRequest::Restore:
-            gs218.set_MMIN_EGS(true);
-            gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(true);
-            gs218.set_DYN1_EGS(true);
+        case TorqueRequest::MoreThan:
+        case TorqueRequest::MoreThanFast:
+            min = false;
+            max = true;
             break;
         case TorqueRequest::None:
         default:
-            gs218.set_MMIN_EGS(false);
-            gs218.set_MMAX_EGS(false);
-            gs218.set_DYN0_AMR_EGS(false);
-            gs218.set_DYN1_EGS(false);
-            gs218.set_M_EGS(0);
+            min = false;
+            max = false;
             break;
     }
-}
-
-void Egs52Can::set_requested_torque(uint16_t torque_nm) {
-    if (this->current_req == TorqueRequest::None) {
-        gs218.set_M_EGS(0);
-    } else {
-        gs218.set_M_EGS((torque_nm + 500) * 4);
+    // Request engage type bit
+    switch(request) {
+        case TorqueRequest::Exact:
+        case TorqueRequest::LessThan:
+        case TorqueRequest::MoreThan:
+            dyn0 = true;
+            dyn1 = false;
+            break;
+        case TorqueRequest::ExactFast:
+        case TorqueRequest::LessThanFast:
+        case TorqueRequest::MoreThanFast:
+            dyn0 = true;
+            dyn1 = true;
+            break;
+        case TorqueRequest::None:
+        default:
+            dyn0 = false;
+            dyn1 = false;
+            break;
     }
+    gs218.set_M_EGS(trq);
+    gs218.set_DYN0_AMR_EGS(dyn0);
+    gs218.set_DYN1_EGS(dyn1);
+    gs218.set_MMAX_EGS(max);
+    gs218.set_MMIN_EGS(min);
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
@@ -937,7 +987,8 @@ void Egs52Can::tx_frames() {
     gs_418tx.set_FMRADTGL(toggle);
     // Now do parity calculations
     gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
+    // Includes FMRAD and FMRADTGL signal in this mask
+    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0x47FF));
     if (time_to_toggle) {
         toggle = !toggle;
     }

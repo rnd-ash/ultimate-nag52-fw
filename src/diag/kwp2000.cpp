@@ -571,9 +571,6 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
-    } else if (args[0] == RLI_COREDUMP_SIZE) {
-        COREDUMP_INFO r = get_coredump_info();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
@@ -592,6 +589,15 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
     } else if (args[0] == RLI_FW_HEADER) {
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, reinterpret_cast<const uint8_t*>(get_image_header()), sizeof(esp_app_desc_t));
+    } else if (args[0] == RLI_COREDUMP_PART_INFO) {
+        PARTITION_INFO r = get_coredump_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_CURR_SW_PART_INFO) {
+        PARTITION_INFO r = get_current_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CURR_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
+        PARTITION_INFO r = get_next_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     }
     else {
         // EGS52 emulation
@@ -740,10 +746,12 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
             bool pl = false;
+            uint16_t v = 0;
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-                    Solenoids::get_solenoid_voltage() > 10000 && // Enough battery voltage
+                    Sensors::read_vbatt(&v) == ESP_OK &&
+                    v > 10000 && // Enough battery voltage
                     Sensors::parking_lock_engaged(&pl) == ESP_OK &&
                     !pl // Parking lock off (In D/R)
                 ) {
@@ -757,7 +765,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             }
         } else if (args[0] == ROUTINE_FLASH_CHECK) {
             if (this->flash_handler != nullptr) {
-                this->tx_msg = this->flash_handler->on_request_verification(args, arg_len);
+                this->flash_handler->on_request_verification(args, arg_len, &this->tx_msg);
                 this->send_resp = true;
                 return;
             } else {
@@ -820,7 +828,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     }
     // Make a new flash handler!
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_download(args, arg_len);
+    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -834,7 +842,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_upload(args, arg_len);
+    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -849,7 +857,7 @@ void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
         return;
     } else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_data(args, arg_len);
+        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }
@@ -865,7 +873,7 @@ void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
         return;
     }  else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_exit(args, arg_len);
+        this->flash_handler->on_transfer_exit(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }
@@ -978,6 +986,9 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         this->session_mode == SESSION_EXTENDED ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
+        make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+        /*
         // Make request message
         // Should be 1 byte argument
         // 0x00 0x00 - Request shift summary
@@ -1023,6 +1034,7 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         } else {
             make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+        */
     } else {
         make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
     }

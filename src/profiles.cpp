@@ -49,7 +49,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         key_name = downshift_map_name_petrol;
         default_map = def_downshift_data_petrol;
     }
-    this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
+    this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, downshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->downshift_table->init_status() != ESP_OK) {
         delete[] this->downshift_table;
     }
@@ -151,7 +151,7 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return (int)sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear-1);
+        return (int)sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
     } else {
         return false;
     }
@@ -223,7 +223,7 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear-1);
+        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
     } else {
         return false;
     }
@@ -353,7 +353,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear-1);
+        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
     } else {
         return false;
     }

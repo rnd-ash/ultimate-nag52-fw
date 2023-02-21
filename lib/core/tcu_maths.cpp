@@ -13,3 +13,8 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
     // See https://en.wikipedia.org/wiki/Linear_interpolation for details. Return f_1, if x_1 and x_2 are identical.
     return (x_1 != x_2) ? f_1 + ((f_2 - f_1) / (x_2_f - x_1_f)) * (x - x_1_f) : f_1;
 }
+
+
+// float progress_between_targets(float current, float start, float end) {
+//     return ((100.0F * (current - start)) / (end - start));
+// }

@@ -765,7 +765,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             }
         } else if (args[0] == ROUTINE_FLASH_CHECK) {
             if (this->flash_handler != nullptr) {
-                this->tx_msg = this->flash_handler->on_request_verification(args, arg_len);
+                this->flash_handler->on_request_verification(args, arg_len, &this->tx_msg);
                 this->send_resp = true;
                 return;
             } else {
@@ -828,7 +828,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     }
     // Make a new flash handler!
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_download(args, arg_len);
+    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -842,7 +842,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_upload(args, arg_len);
+    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -857,7 +857,7 @@ void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
         return;
     } else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_data(args, arg_len);
+        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }
@@ -873,7 +873,7 @@ void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
         return;
     }  else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_exit(args, arg_len);
+        this->flash_handler->on_transfer_exit(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }

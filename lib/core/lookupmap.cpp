@@ -4,6 +4,7 @@
 LookupMap::LookupMap(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_yHeader, const uint16_t _yHeaderSize, const int16_t *_data, const uint16_t _dataSize) :
     LookupTable(_xHeader, _xHeaderSize, _data, _dataSize)
 {
+    yHeaderSize = _yHeaderSize;
     yHeader = new LookupHeader(_yHeader, _yHeaderSize);
 }
 

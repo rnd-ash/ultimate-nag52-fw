@@ -45,6 +45,7 @@ typedef struct {
     uint16_t v_batt; // Battery voltage (mV)
     int atf_temp_c; // ATF Temp (Celcius)
     uint8_t parking_lock; // Parking lock (1 for Engaged, 0 for disengaged)
+    uint16_t output_rpm;
 } __attribute__ ((packed)) DATA_GEARBOX_SENSORS;
 
 // Solenoid command struct
@@ -91,6 +92,8 @@ typedef struct {
     PaddlePosition paddle_position;
     uint16_t engine_rpm;
     uint16_t fuel_rate;
+    uint16_t torque_req_amount;
+    TorqueRequest torque_req_type;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
 /// System usage stats 

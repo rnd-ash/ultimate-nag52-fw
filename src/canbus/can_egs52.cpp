@@ -74,6 +74,11 @@ WheelData Egs52Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
                 break;
         }
 
+        // Fix for some cars where SNV even with valid wheel speed
+        if (bs208.get_DHR() != 0 && d == WheelDirection::SignalNotAvailable) {
+            d = WheelDirection::Forward;
+        }
+
         return WheelData {
             .double_rpm = bs208.get_DHR(),
             .current_dir = d
@@ -103,6 +108,11 @@ WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
             case BS_208h_DRTGHL::SNV:
             default:
                 break;
+        }
+
+        // Fix for some cars where SNV even with valid wheel speed
+        if (bs208.get_DHL() != 0 && d == WheelDirection::SignalNotAvailable) {
+            d = WheelDirection::Forward;
         }
 
         return WheelData {
@@ -484,7 +494,7 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
     gs218.set_GS_NOTL(!is_ok); // Emergency mode activated
 }
 
-void Egs52Can::set_torque_request(TorqueRequest request, int16_t amount_nm) {
+void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
     bool dyn0 = false;
     bool dyn1 = false;
     bool min = false;
@@ -938,7 +948,8 @@ void Egs52Can::tx_frames() {
     gs_418tx.set_FMRADTGL(toggle);
     // Now do parity calculations
     gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0xFFFF));
+    // Includes FMRAD and FMRADTGL signal in this mask
+    gs_418tx.set_FMRADPAR(calc_torque_parity(gs_418tx.raw & 0x47FF));
     if (time_to_toggle) {
         toggle = !toggle;
     }

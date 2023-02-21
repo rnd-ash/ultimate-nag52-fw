@@ -130,11 +130,6 @@ void EgsBaseCan::rx_task_loop() {
         } else { // We have frames, read them
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                    tmp = 0;
-                    for(i = 0; i < rx.data_length_code; i++) {
-                        tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                    }
-                    this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                     if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                         // ISO-TP Diag endpoint
                         if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
@@ -143,7 +138,13 @@ void EgsBaseCan::rx_task_loop() {
                                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
                             }
                         }
-                    } 
+                    } else { // Normal message
+                        tmp = 0;
+                        for(i = 0; i < rx.data_length_code; i++) {
+                            tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                        }
+                        this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
+                    }
                 }
             }
             vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here

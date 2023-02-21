@@ -121,9 +121,12 @@ public:
     StoredMap* get_working_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
-    uint16_t get_max_rated_torque() {
+    StoredMap* get_fill_pressure_mpc_adder_map(void);
+    uint16_t get_max_rated_torque(void) {
         return this->gb_max_torque;
     }
+
+    uint16_t get_mpc_hold_adder(Clutch to_apply);
 
 private:
      /**
@@ -151,6 +154,7 @@ private:
     StoredMap* mpc_working_pressure;
     StoredMap* hold2_time_map;
     StoredMap* hold2_pressure_map;
+    StoredMap* hold2_pressure_mpc_adder_map;
     uint16_t gb_max_torque;
 };
 

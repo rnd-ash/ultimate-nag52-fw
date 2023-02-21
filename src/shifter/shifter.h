@@ -30,9 +30,6 @@ class Shifter
 {
 public:
 	virtual ShifterPosition get_shifter_position(const uint64_t now, const uint64_t expire_time_ms) = 0;
-protected:
-	uint64_t *_last_i2c_query_time;
-	uint8_t *_i2c_rx_bytes;
 };
 
 #endif // SHIFTER_H

@@ -34,6 +34,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     }
     ret.v_batt = Solenoids::get_solenoid_voltage();
     ret.calc_ratio = g->get_gear_ratio();
+    ret.output_rpm = g->sensor_data.output_rpm;
     return ret;
 }
 
@@ -114,18 +115,20 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.pedal_pos = can_layer->get_pedal_value(now, 250);
 
     int torque = 0xFFFF;
-    torque = can_layer->get_maximum_engine_torque(now, 250);
-    ret.max_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
-    torque = can_layer->get_minimum_engine_torque(now, 250);
-    ret.min_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
-    torque = can_layer->get_driver_engine_torque(now, 250);
-    ret.driver_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
-    torque = can_layer->get_static_engine_torque(now, 250);
-    ret.static_torque = torque == INT_MAX ? 0xFFFF : (torque + 500)*4;
+    torque = gearbox->sensor_data.max_torque;
+    ret.max_torque = (torque+500)*4;
+    torque = gearbox->sensor_data.min_torque;
+    ret.min_torque = (torque+500)*4;
+    torque = gearbox->sensor_data.driver_requested_torque;
+    ret.driver_torque = (torque+500)*4;
+    torque = gearbox->sensor_data.static_torque;
+    ret.static_torque = (torque+500)*4;
     ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
     ret.shifter_position = can_layer->get_shifter_position(now, 250);
     ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
+    ret.torque_req_type = gearbox->output_data.torque_req_type;
+    ret.torque_req_amount = ret.torque_req_type == TorqueRequest::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
     return ret;
 }
 

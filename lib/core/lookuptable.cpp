@@ -8,6 +8,7 @@ LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize)
     dataSize = 0u;
     data = nullptr;
     allocation_successful = false;
+    xHeaderSize = _xHeaderSize;
     xHeader = new LookupHeader(_xHeader, _xHeaderSize);
 }
 

@@ -45,7 +45,7 @@ private:
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     uint8_t i2c_rx_bytes[2] = {0, 0};
     uint8_t i2c_tx_bytes[2] = {0, 0};
-    uint64_t last_i2c_query_time = 0;
+    uint64_t last_i2c_query_time = 0u;
     bool *_start_enable;
 };
 

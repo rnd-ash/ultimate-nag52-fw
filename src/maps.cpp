@@ -257,6 +257,16 @@ int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     1200, 1400, 1300, 1200, 1400
 };
 
+int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE] = {
+   /* Engine torque (0-100%) of 330Nm or 580Nm */
+   /*0%,  10%   20%   30%   40%   50%   60%    70%   80%   90%  100%  */
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K1
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K2
+     100,  200,  300,  400,  500,  700,  900, 1100, 1300, 1500, 1700, // K3 <- 3-4 flare
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B1
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B2
+};
+
 
 int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */

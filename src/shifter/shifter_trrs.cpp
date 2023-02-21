@@ -82,7 +82,7 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint64_t now, const uint
 	if ((now - last_i2c_query_time) < expire_time_ms)
 	{
 		// Data is valid time range!
-		uint8_t tmp = _i2c_rx_bytes[0];
+		uint8_t tmp = i2c_rx_bytes[0];
 		bool TRRS_A = (tmp & (uint8_t)BIT(5u)) != 0;
 		bool TRRS_B = (tmp & (uint8_t)BIT(6u)) != 0;
 		bool TRRS_C;
@@ -170,7 +170,6 @@ void ShifterTrrs::update_shifter_position(const uint64_t now)
 		{
 			ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
 		}
-
 		/*
 		req[0] = 0x03;
 		req[1] = 0x00;

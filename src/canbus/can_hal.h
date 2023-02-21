@@ -323,7 +323,7 @@ class EgsBaseCan {
         // Sets gearbox is OK
         virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request, int16_t amount_nm){};
+        virtual void set_torque_request(TorqueRequest request, float amount_nm){};
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 

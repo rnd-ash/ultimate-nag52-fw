@@ -49,7 +49,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
         key_name = downshift_map_name_petrol;
         default_map = def_downshift_data_petrol;
     }
-    this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
+    this->downshift_table = new StoredTcuMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, downshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->downshift_table->init_status() != ESP_OK) {
         delete[] this->downshift_table;
     }
@@ -140,9 +140,10 @@ bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
         return false;
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return (int)sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    } else {
+        return false;
     }
-    return standard->should_upshift(current_gear, sensors);
 }
 
 bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
@@ -150,9 +151,10 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return (int)sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    } else {
+        return false;
     }
-    return standard->should_downshift(current_gear, sensors);
 }
 
 TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
@@ -206,23 +208,25 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
 }
 
 bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    if (current_gear == GearboxGear::Fifth) {
+        return false;
+    }
     if (this->upshift_table != nullptr) { // TEST TABLE
         return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    } else {
+        return false;
     }
-    return standard->should_upshift(current_gear, sensors);
 }
 
 bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-    if (current_gear == GearboxGear::Second || current_gear == GearboxGear::First) {
+    if (current_gear == GearboxGear::First) {
         return false;
     }
-    
     if (this->downshift_table != nullptr) { // TEST TABLE
         return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+    } else {
+        return false;
     }
-
-    return standard->should_downshift(current_gear, sensors);
-    
 }
 
 TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
@@ -341,55 +345,18 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
         return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
-    }
-    int curr_rpm = sensors->input_rpm;
-    if (curr_rpm >= Gearbox::redline_rpm) {
-        return true;
-    }
-    if (sensors->pedal_pos == 0 || sensors->is_braking) { // Don't upshift if not pedal or braking
+    } else {
         return false;
     }
-    float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
-    float rpm_percent = (float)(sensors->input_rpm-1000)*100.0 / (float)(Gearbox::redline_rpm-1000);
-    int rpm_threshold = 0;
-    // Load (idx) vs pedal
-    if (current_gear == GearboxGear::First) {
-        rpm_threshold = 2200;
-    } else if (current_gear == GearboxGear::Second) {
-        rpm_threshold = 2100;
-    } else if (current_gear == GearboxGear::Third) {
-        rpm_threshold = 2000;
-    } else if (current_gear == GearboxGear::Fourth) {
-        rpm_threshold = 1500;
-    }
-    if (curr_rpm > rpm_threshold && pedal_perc <= rpm_percent && sensors->current_timestamp_ms-sensors->last_shift_time > 500) {
-        return true;
-    }
-    return false;
 }
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
-    if (this->downshift_table != nullptr) { // TEST TABLE
+    if (this->upshift_table != nullptr) { // TEST TABLE
         return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
-    }
-    float pedal_perc = ((float)sensors->pedal_pos*100)/250.0;
-    float rpm_percent = (float)(sensors->input_rpm-MIN_WORKING_RPM)*100.0/(float)(Gearbox::redline_rpm-MIN_WORKING_RPM);
-    if (current_gear == GearboxGear::Second && (sensors->input_rpm > 300 || sensors->engine_rpm > 800)) {
-        return false;
-    }
-    if (sensors->input_rpm < MIN_WORKING_RPM && sensors->engine_rpm < MIN_WORKING_RPM) {
-        return true;
-    }
-    else if (sensors->input_rpm < Gearbox::redline_rpm/2 && sensors->engine_rpm < Gearbox::redline_rpm/2 && pedal_perc >= rpm_percent*4) {
-        if (current_gear == GearboxGear::Second) {
-            return false;
-        }
-        return true;
     } else {
         return false;
     }
-   return false;
 }
 
 TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
@@ -451,8 +418,9 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
         return false;
     } else if (sensors->input_rpm < 300 && sensors->engine_rpm < MIN_WORKING_RPM && sensors->pedal_pos == 0) {
         return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
 TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {

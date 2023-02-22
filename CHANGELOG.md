@@ -1,3 +1,8 @@
+# 22/02/23
+
+## Fixed
+* Fixed incorrect downshift maps lookup
+
 # 19/02/23
 
 ## Added

@@ -90,6 +90,7 @@ Gearbox::Gearbox()
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_reporter = new ShiftReporter();
+    this->itm = new InputTorqueModel();
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
@@ -390,28 +391,30 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     case Clutch::K1: // 1->2 and 5->4
                         if (req_lookup == ProfileGearChange::ONE_TWO) {
                             min_spc = 100;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 2.5, 0.75, 100, 1000);
+                            spc_trq_multi = scale_number(ss_now.target_shift_time, 3.0, 0.75, 100, 1000);
+                            spc_trq_multi *= scale_number(sensor_data.input_rpm, 0.5, 1.0, 500, 2000);
                         } else {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 2.0, 0.9, 100, 1000);
                         }
                         break;
                     case Clutch::K2: // 2->3
-                        min_spc = 400;
+                        min_spc = 300;
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.0, 100, 1000);
                         break;
                     case Clutch::K3: // 3->4 and 3->2
                         min_spc = 500;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.5, 100, 1000);
-                        if (req_lookup == ProfileGearChange::THREE_TWO && sensor_data.static_torque <= 0) {
-                            min_spc = 800;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 6.0, 4.0, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.75, 100, 1000);
+                        if (req_lookup == ProfileGearChange::THREE_TWO && sensor_data.input_torque <= 0) {
+                            min_spc = 1000;
+                            spc_trq_multi = scale_number(ss_now.target_shift_time, 7.0, 5.0, 100, 1000);
                         }
                         break;
                     case Clutch::B1: // 4->5 and 2->1
                         if (req_lookup == ProfileGearChange::TWO_ONE) {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 2.0, 0.75, 100, 1000);
+                            spc_trq_multi *= scale_number(sensor_data.input_rpm, 0.5, 1.0, 500, 2000);
                         } else {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 5.0, 1.2, 100, 1000);
@@ -424,7 +427,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         break;
                 }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
-                curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, MAX(0, sensor_data.static_torque)*spc_trq_multi));
+                curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, MAX(0, sensor_data.input_torque)*spc_trq_multi));
                 if (max_spc < curr_phase_delta_spc) {
                     max_spc = curr_phase_delta_spc;
                 }
@@ -489,6 +492,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
 
             if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) {
+                int shift_progress_percentage =  progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear);
                 // Do ratio comparison to see if we are flaring
                 // Both have 2 cases.
                 //
@@ -1081,17 +1085,20 @@ void Gearbox::controller_loop()
         egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm_compensated(), SolenoidName::TCC);
         egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio * 100);
         egs_can_hal->set_gear_disagree(this->gear_disagree_count);
+        egs_can_hal->set_wheel_torque(0); // Nm
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
         if (static_torque != INT_MAX)
         {
             this->sensor_data.static_torque = static_torque;
-            // Now add in AC loss compensation
-            uint8_t ac_loss = egs_can_hal->get_ac_torque_loss(now, 500);
-            if (ac_loss != UINT8_MAX) {
-                this->sensor_data.static_torque -= (int)ac_loss;
+            if (nullptr != this->itm) {
+                this->itm->update(egs_can_hal, &this->sensor_data, is_fwd_gear(this->target_gear) && is_fwd_gear(this->actual_gear));
+            } else {
+                this->sensor_data.input_torque = static_torque;
+                egs_can_hal->set_turbine_torque_loss(0xFFFF);
             }
         }
+
         int driver_torque = egs_can_hal->get_driver_engine_torque(now, 500);
         if (driver_torque != INT_MAX)
         {

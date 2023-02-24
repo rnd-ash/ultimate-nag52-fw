@@ -16,6 +16,7 @@
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
 #include "adaptation/shift_report.h"
+#include "models/input_torque.hpp"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -146,6 +147,7 @@ private:
     float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
     Solenoid* last_shift_solenoid = nullptr;
+    InputTorqueModel* itm;
 };
 
 extern Gearbox* gearbox;

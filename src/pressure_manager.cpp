@@ -17,7 +17,7 @@
 
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
-    this->adapt_map = new AdaptationMap();
+    this->pressure_adapt_system = new ShiftAdaptationSystem();
     this->req_tcc_pressure = 0;
     this->req_mpc_pressure = 0;
     this->req_spc_pressure = 0;

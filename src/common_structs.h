@@ -50,6 +50,8 @@ struct SensorData{
     uint8_t pedal_pos;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
+    // Input shaft torque
+    int16_t input_torque;
     /// Current 'static' torque of the engine in Nm
     int16_t static_torque;
     /// Engine torque limit maximum in Nm
@@ -243,34 +245,36 @@ struct TccLockupBounds{
     int min_slip_rpm;
 };
 
-#define SR_REPORT_INTERVAL 50
-#define MAX_POINTS_PER_SR_ARRAY 6000/SR_REPORT_INTERVAL // Every 50ms
-struct  __attribute__ ((packed)) ShiftReport{
-    int16_t atf_temp_c;
-    // Target << 4 | current
-    uint8_t targ_curr;
-    uint8_t profile;
-    uint16_t requested_torque;
-    uint8_t interval_points;
-    uint16_t report_array_len;
-    uint16_t engine_rpm[MAX_POINTS_PER_SR_ARRAY];
-    uint16_t input_rpm[MAX_POINTS_PER_SR_ARRAY];
-    uint16_t output_rpm[MAX_POINTS_PER_SR_ARRAY];
-    int16_t engine_torque[MAX_POINTS_PER_SR_ARRAY];
-    uint16_t total_ms;
-    uint16_t initial_mpc_pressure; // used to calculate with the ramps what MPC is doing
-    ShiftPhase bleed_data;
-    ShiftPhase fill_data;
-    ShiftPhase torque_data;
-    ShiftPhase overlap_data;
-    ShiftPhase max_pressure_data;
-    uint16_t transition_start;
-    uint16_t transition_end;
+struct   __attribute__ ((packed)) ShiftReportSegment {
+    int16_t static_torque;
+    int16_t driver_torque;
+    int16_t egs_req_torque;
+    uint16_t engine_rpm;
+    uint16_t input_rpm;
+    uint16_t output_rpm;
+    uint16_t mpc_pressure;
+    uint16_t spc_pressure;
+    uint16_t timestamp;
+};
 
-    // Flags for reporting shift errors
-    uint16_t flare_timestamp;
-    uint8_t shift_timeout;
-} ;
+#define MAX_OVERLAP_REPORTS 20
+struct  __attribute__ ((packed)) ShiftReport {
+    // Metadata
+    int16_t atf_temp_c;
+    ProfileGearChange change;
+    uint8_t profile;
+    uint8_t shift_status; // 0 = fail, 1 = OK
+    uint8_t overlap_reading_size;
+    uint16_t target_shift_speed;
+    ShiftReportSegment start_reading;
+    ShiftReportSegment bleed_reading;
+    ShiftReportSegment prefill_reading;
+    ShiftReportSegment overlap_readings[MAX_OVERLAP_REPORTS]; // Every 250ms (5 seconds max for load shifts), Every 500ms (10 seconds max for coasting)
+    ShiftReportSegment end_reading;
+    uint16_t detect_shift_start_ts;
+    uint16_t detect_shift_end_ts;
+    uint16_t detect_flare_ts;
+};
 
 static const int SD_Size = sizeof(ShiftReport);
 

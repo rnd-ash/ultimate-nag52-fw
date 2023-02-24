@@ -95,6 +95,7 @@ public:
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
 private:
+    ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequest type, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);

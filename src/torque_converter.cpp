@@ -5,7 +5,7 @@
 // 1400 mBar ~= locking (C200CDI)
 // 1700 mBar ~= locking (E55 AMG)
 
-static const uint16_t TCC_ADAPT_CONSIDERED_LOCK = 25; 
+static const uint16_t TCC_ADAPT_CONSIDERED_LOCK = 50; 
 static const uint16_t TCC_PREFILL = 500u; // mBar
 const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
 const int16_t tcc_learn_y_headers[1] = {1};
@@ -49,15 +49,15 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    if (is_shifting) { // Reset strikes when changing gears!
-        this->strike_count = 0;
-        this->adapt_lock_count = 0;
-        last_adj_time = sensors->current_timestamp_ms;
-        this->reset_rpm_samples(sensors);
-        this->was_shifting = true;
-    } else {
-        this->tmp_lookup_gear = 0xFF;
-    }
+    //if (is_shifting) { // Reset strikes when changing gears!
+    //    this->strike_count = 0;
+    //    this->adapt_lock_count = 0;
+    //    last_adj_time = sensors->current_timestamp_ms;
+    //    this->reset_rpm_samples(sensors);
+    //    this->was_shifting = true;
+    //} else {
+    //    this->tmp_lookup_gear = 0xFF;
+    //}
     if (sensors->input_rpm <= TCC_MIN_LOCKING_RPM) { // RPM too low!
         last_adj_time = sensors->current_timestamp_ms;
         if (!this->was_idle) {
@@ -80,7 +80,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         this->reset_rpm_samples(sensors);
     } else {
         // We can lock now!
-        if (this->was_idle || (was_shifting && !is_shifting)) {
+        if (this->was_idle) {
             was_shifting = false;
             // We were too low, but now we can lock! (RPM increasing)
             this->was_idle = false;
@@ -98,24 +98,24 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         } else {
             // We are just driving, TCC is free to lockup
             if (!initial_ramp_done) {
-#define TCC_FAST_RAMP_STEP 5 // ~= 200mBar/sec
-                // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
-                int delta = MIN(TCC_FAST_RAMP_STEP, abs((int)this->curr_tcc_target - (int)this->base_tcc_pressure));
-                if (abs(delta) > TCC_FAST_RAMP_STEP) {
-                    if (this->curr_tcc_target > this->base_tcc_pressure) {
-                        this->base_tcc_pressure += delta;
-                    } else if (this->curr_tcc_target < this->base_tcc_pressure) {
-                        this->base_tcc_pressure -= delta;
-                    }
-                } else {
+                if (is_shifting) {
                     this->base_tcc_pressure = this->curr_tcc_target;
                     initial_ramp_done = true;
+                } else {
+                    // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
+                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 2, 10, 100, 1000);
+                    int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
+                    if (delta > ramp) {
+                        this->base_tcc_pressure += delta;
+                    } else {
+                        this->base_tcc_pressure = this->curr_tcc_target;
+                        initial_ramp_done = true;
+                    }
                 }
                 this->curr_tcc_pressure = this->base_tcc_pressure;
                 last_adj_time = sensors->current_timestamp_ms;
                 this->reset_rpm_samples(sensors);
-            }
-            if (initial_ramp_done) {
+            } else {
                 bool learning = false;
                 if (sensors->current_timestamp_ms - last_adj_time > TCC_ADJ_INTERVAL_MS) { // Allowed to adjust
                     last_adj_time = sensors->current_timestamp_ms;
@@ -144,10 +144,10 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 100 && sensors->pedal_pos == 0) {
                         this->base_tcc_pressure += 10;
                         adj = true;
-                    }// else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
-                    //    this->base_tcc_pressure -= 10;
-                    //    adj = true;
-                    //}
+                    } else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
+                        this->base_tcc_pressure -= 10;
+                        adj = true;
+                    }
                     if (adj) {
                         this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
                     }
@@ -158,9 +158,9 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     if (sensors->static_torque > high_torque_adapt_limit) {
                         int torque_delta = sensors->static_torque - high_torque_adapt_limit;
                         this->curr_tcc_pressure += (1.4*torque_delta); // 2mBar per Nm
-                    } else if (sensors->static_torque < 0) {
+                    } else if (sensors->static_torque < 40) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
-                            this->curr_tcc_pressure -= 50;
+                            this->curr_tcc_pressure -= scale_number(sensors->static_torque, 100, 50, -40, 40);
                         }
                     }
                 }

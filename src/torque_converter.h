@@ -10,9 +10,12 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 
+
+
 class TorqueConverter {
     public:
-        TorqueConverter() {}
+        TorqueConverter(uint16_t max_gb_rating);
+
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters
          * clutch
@@ -23,14 +26,27 @@ class TorqueConverter {
          * @param shifting True if the car is currently transitioning to new gear
          */
         void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
-        void modify_lockup_data(GearboxGear gear, uint16_t slip_rpm, uint16_t lock_rpm);
-        void on_shift_start(uint64_t now, bool is_downshift, SensorData* sensors, float shift_firmness);
-        void on_shift_complete(uint64_t now);
-        ClutchStatus get_clutch_state();
+        ClutchStatus get_clutch_state(void);
+        void on_shift_start(int targ_g);
+        void save() {
+            if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
+                this->tcc_learn_lockup_map->save_to_eeprom();
+            }
+        };
+
+        void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
+        StoredTcuMap* tcc_learn_lockup_map;
     private:
+        inline void reset_rpm_samples(SensorData* sensors);
+        bool neg_torque_zone = false;
+        uint16_t adapt_lock_count = 0;
+        uint16_t low_torque_adapt_limit = 0;
+        uint16_t high_torque_adapt_limit = 0;
         uint16_t strike_count = 0;
-        float curr_tcc_pressure = 0;
-        float tcc_shift_adder = 0;
+        bool initial_ramp_done = false;
+        uint32_t curr_tcc_target = 0;
+        uint32_t curr_tcc_pressure = 0;
+        uint32_t base_tcc_pressure = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;
@@ -39,6 +55,10 @@ class TorqueConverter {
         uint64_t last_inc_time = 0;
         bool is_temp_pressure = false;
         uint16_t tmp_pressure = 0;
+        uint64_t last_adj_time = 0;
+        bool pending_changes = false;
+        bool was_shifting = false;
+        uint8_t tmp_lookup_gear = 0xFF;
 };
 
 #endif

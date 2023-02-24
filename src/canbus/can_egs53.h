@@ -3,20 +3,16 @@
 
 
 #include <gearbox_config.h>
-//#define EGS53_MODE
-#ifdef EGS53_MODE
 #include "can_hal.h"
-#include "TCM.h"
-#include "TSLM.h"
-#include "FSCM.h"
-#include "ECM.h"
-#include "ANY_ECU.h"
+#include "../../egs53_ecus/src/TCM.h"
+#include "../../egs53_ecus/src/TSLM.h"
+#include "../../egs53_ecus/src/FSCM.h"
+#include "../../egs53_ecus/src/ECM.h"
+#include "../../egs53_ecus/src/ANY_ECU.h"
 
-class Egs53Can: public AbstractCan {
+class Egs53Can: public EgsBaseCan {
     public:
-        explicit Egs53Can(const char* name, uint8_t tx_time_ms);
-        bool begin_tasks() override;
-        ~Egs53Can();
+        explicit Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -46,6 +42,7 @@ class Egs53Can: public AbstractCan {
          int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
          int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -84,9 +81,7 @@ class Egs53Can: public AbstractCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request) override;
-        // Sets requested engine torque
-        void set_requested_torque(uint16_t torque_nm) override;
+        void set_torque_request(TorqueRequest request, float amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter
@@ -101,10 +96,8 @@ class Egs53Can: public AbstractCan {
         void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
     protected:
-        [[noreturn]]
-        void tx_task_loop() override;
-        [[noreturn]]
-        void rx_task_loop() override;
+        void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
     private:
         // CAN Frames to Tx
         TCM_A1 tcm_a1 = {0};
@@ -120,9 +113,8 @@ class Egs53Can: public AbstractCan {
         ECU_FSCM fscm_ecu = ECU_FSCM();
         ECU_TSLM tslm_ecu = ECU_TSLM();
 
-        // ECU Data to Rx to
-        bool can_init_ok = false;
+        uint8_t counter = 0;
+        uint8_t cvn_counter = 0;
+
 };
 #endif
-
-#endif // EGS53_CAN_H_

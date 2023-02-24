@@ -44,3 +44,5 @@ cmake-build-debug/
 .idea/**
 html/**
 latex/**
+__pycache__
+__pycache__/*

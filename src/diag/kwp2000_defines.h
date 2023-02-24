@@ -6,8 +6,8 @@
 // For EGS52/53 compatibility reasons, we adopt their timing standards
 // and CAN IDs
 #define KWP_TP_TIMEOUT_MS 4500
-#define KWP_CAN_ST_MIN 0 // ISO-TP CAN Sep time min ms
-#define KWP_CAN_BS 0 // ISO-TP CAN block size
+#define KWP_CAN_ST_MIN 0x20 // ISO-TP CAN Sep time min ms
+#define KWP_CAN_BS 0x08 // ISO-TP CAN block size
 #define KWP_ECU_TX_ID 0x07E9 // ECU Sends on this ID
 #define KWP_ECU_RX_ID 0x07E1 // Tester requests on this ID
 
@@ -45,6 +45,15 @@ KWP2000 SERVICE IDENTIFIERS
 /* Custom SIDs for UN52 */
 #define SID_SHIFT_MGR_OP 0x88
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef unsigned char kwp_result_t;
+
+// For completion purposes
+#define NRC_OK 0x00
+
 /*
 KWP2000 Negative response codes
 */
@@ -67,6 +76,27 @@ KWP2000 Negative response codes
 #define NRC_DATA_DECOMPRESSION_FAILED 0x9A
 #define NRC_DATA_DECRYPTION_FAILED 0x9B
 #define NRC_ECU_NOT_RESPONDING 0xA0
+
+#ifdef __cplusplus
+}
+#endif
+
+/**
+Extended Negative response codes (Only for UN52 diag mode (0x93))
+This helps to return ESP_ERR_T types to the config app for better
+error handling and error descriptions
+*/
+#define NRC_UN52_NO_MEM 0x72 // Malloc failure
+#define NRC_UN52_ENGINE_ON 0x73 // Engine on
+#define NRC_UN52_ENGINE_OFF 0x74 // Engine off
+#define NRC_UN52_SHIFTER_PASSIVE 0x75 // Passive position (P/N/SNV)
+#define NRC_UN52_SHIFTER_ACTIVE 0x76 // Active position (R/D)
+// OTA errors
+#define NRC_UN52_NULL_PARTITION 0x41
+#define NRC_UN52_OTA_BEGIN_FAIL 0x42
+#define NRC_UN52_OTA_WRITE_FAIL 0x43
+#define NRC_UN52_OTA_INVALID_TY 0x44
+
 
 /*
 KWP Response types (Used by multiple SID parameters)

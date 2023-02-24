@@ -15,6 +15,11 @@ typedef struct {
     uint8_t week;
 } ECU_Date;
 
+uint8_t decToBcd(uint8_t val)
+{
+  return ( (val/10*16) + (val%10) );
+}
+
 uint8_t bcd_to_hex(char c) {
     switch (c) {
         case '0':
@@ -52,65 +57,83 @@ uint8_t bcd_to_hex(char c) {
     }
 }
 
+ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
+    switch (cfg->board_ver) {
+        case 1:
+            return ECU_Date {
+                .day = 12,
+                .month = 12,
+                .year = 21,
+                .week = 49
+            };
+        case 2:
+            return ECU_Date {
+                .day = 07,
+                .month = 07,
+                .year = 22,
+                .week = 27
+            };
+        
+        case 3:
+            return ECU_Date {
+                .day = 12,
+                .month = 12,
+                .year = 22,
+                .week = 49
+            };
+        
+        default:
+            return ECU_Date {
+                .day = 0,
+                .month = 0,
+                .year = 0,
+                .week = 0
+            };
+    }
+}
+
 ECU_Date fw_date_to_bcd(char* date) {
     uint8_t month = 0x01;
-    uint8_t month_base_10 = 0;
-    if (strncmp("Jan", date, 3) == 0) {
-        month = 0x01;
-        month_base_10 = 1;
-    } else if (strncmp("Feb", date, 3) == 0) {
-        month = 0x02;
-        month_base_10 = 2;
-    } else if (strncmp("Mar", date, 3) == 0) {
-        month = 0x03;
-        month_base_10 = 3;
-    } else if (strncmp("Apr", date, 3) == 0) {
-        month = 0x04;
-        month_base_10 = 4;
-    } else if (strncmp("May", date, 3) == 0) {
-        month = 0x05;
-        month_base_10 = 5;
-    } else if (strncmp("Jun", date, 3) == 0) {
-        month = 0x06;
-        month_base_10 = 6;
-    } else if (strncmp("Jul", date, 3) == 0) {
-        month = 0x07;
-        month_base_10 = 7;
-    } else if (strncmp("Aug", date, 3) == 0) {
-        month = 0x08;
-        month_base_10 = 8;
-    } else if (strncmp("Sep", date, 3) == 0) {
-        month = 0x09;
-        month_base_10 = 9;
-    } else if (strncmp("Oct", date, 3) == 0) {
-        month = 0x10;
-        month_base_10 = 10;
-    } else if (strncmp("Nov", date, 3) == 0) {
-        month = 0x11;
-        month_base_10 = 11;
-    } else if (strncmp("Dec", date, 3) == 0) {
-        month = 0x12;
-        month_base_10 = 12;
+    char* month_str = &date[3];
+    if (strncmp("Jan", month_str, 3) == 0) {
+        month = 1;
+    } else if (strncmp("Feb", month_str, 3) == 0) {
+        month = 2;
+    } else if (strncmp("Mar", month_str, 3) == 0) {
+        month = 3;
+    } else if (strncmp("Apr", month_str, 3) == 0) {
+        month = 4;
+    } else if (strncmp("May", month_str, 3) == 0) {
+        month = 5;
+    } else if (strncmp("Jun", month_str, 3) == 0) {
+        month = 6;
+    } else if (strncmp("Jul", month_str, 3) == 0) {
+        month = 7;
+    } else if (strncmp("Aug", month_str, 3) == 0) {
+        month = 8;
+    } else if (strncmp("Sep", month_str, 3) == 0) {
+        month = 9;
+    } else if (strncmp("Oct", month_str, 3) == 0) {
+        month = 10;
+    } else if (strncmp("Nov", month_str, 3) == 0) {
+        month = 11;
+    } else if (strncmp("Dec", month_str, 3) == 0) {
+        month = 12;
     } else {
-        month_base_10 = 99;
-        month = 0x99; //??
+        month = 0x00;
     }
 
-    uint8_t day_base_10 =((date[4] - '0') * 10) + (date[5]-'0'); // Hacky way
-    uint8_t day = ((bcd_to_hex(date[4]) & 0x0f) << 4) | bcd_to_hex(date[5]);
-    uint8_t year = ((bcd_to_hex(date[9]) & 0x0f) << 4) | bcd_to_hex(date[10]);
-    uint8_t year_base_10 =((date[9] - '0') * 10) + (date[10]-'0'); // Hacky way
-    
+    uint8_t day  =((date[0] - '0') * 10) + (date[1]-'0');
+    uint8_t year =((date[9] - '0') * 10) + (date[10]-'0');
     struct tm time;
     memset(&time, 0, sizeof(time));
     char timebuf[4];
-    time.tm_mday = day_base_10;
-    time.tm_year = 100 + year_base_10;
-    time.tm_mon = month_base_10-1;
+    time.tm_mday = day;
+    time.tm_year = 100 + year;
+    time.tm_mon = month-1;
     mktime(&time);
-    strftime(timebuf, 4, "%W", &time);
-    uint8_t week = ((bcd_to_hex(timebuf[0]) & 0x0f) << 4) | bcd_to_hex(timebuf[1]);
-
+    strftime(timebuf, 4, "%02W", &time);
+    uint8_t week =((timebuf[0] - '0') * 10) + (timebuf[1]-'0'); // Hacky way
     return ECU_Date {
         .day = day,
         .month = month,
@@ -119,18 +142,60 @@ ECU_Date fw_date_to_bcd(char* date) {
     };
 }
 
-Kwp2000_server::Kwp2000_server(AbstractCan* can_layer, Gearbox* gearbox) {
+Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
-    this->usb_diag_endpoint = new UsbEndpoint(true);
+    this->usb_diag_endpoint = new UsbEndpoint();
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
     this->can_endpoint = new CanEndpoint(can_layer);
-    // Start ISO-TP endpoint
-    xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
+    if (this->can_endpoint->init_state() == ESP_OK) {
+        // Start ISO-TP endpoint
+        xTaskCreatePinnedToCore(can_endpoint->start_iso_tp, "ISO_TP_DIAG", 8192, this->can_endpoint, 5, nullptr, 0);
+    }
+    this->supplier_id = 0x08;
+    if (can_layer == nullptr || gearbox == nullptr) {
+        this->diag_var_code = 0x0000;
+    } else {
+        switch (VEHICLE_CONFIG.egs_can_type) {
+            case 1:
+                this->diag_var_code = 0x0251;
+                break;
+            case 2:
+                this->diag_var_code = 0x0252;
+                break;
+            case 3:
+                this->diag_var_code = 0x0353;
+                break;
+            default:
+                this->diag_var_code = 0x0000;
+                break;
+
+        }
+    }
+
     init_perfmon();
+}
+
+kwp_result_t Kwp2000_server::convert_err_result(kwp_result_t in) {
+    kwp_result_t out = NRC_GENERAL_REJECT;
+    switch(in) {
+        case NRC_UN52_ENGINE_OFF:
+        case NRC_UN52_ENGINE_ON:
+        case NRC_UN52_SHIFTER_ACTIVE:
+        case NRC_UN52_SHIFTER_PASSIVE:
+            out = NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR;
+            break;
+        case NRC_UN52_NO_MEM:
+            out = NRC_GENERAL_REJECT;
+            break;
+        default:
+            out = in;
+            break;
+    }
+    return out;
 }
 
 Kwp2000_server::~Kwp2000_server() {
@@ -142,44 +207,21 @@ Kwp2000_server::~Kwp2000_server() {
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
-    /*
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = 3;
-    this->tx_msg.data[0] = 0x7F;
-    this->tx_msg.data[1] = sid;
-    this->tx_msg.data[2] = nrc;
-    */
-    global_make_diag_neg_msg(&this->tx_msg, sid, nrc);
+    kwp_result_t nrc_convert = nrc;
+    if (this->session_mode != SESSION_CUSTOM_UN52) {
+        nrc_convert = this->convert_err_result(nrc);
+        ESP_LOGI("KWP2000", "Converting %s NRC to %s", kwp_nrc_to_name(nrc), kwp_nrc_to_name(nrc_convert));
+    }
+    global_make_diag_neg_msg(&this->tx_msg, sid, nrc_convert);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len) {
-    /*
-    if (len + 2 > DIAG_CAN_MAX_SIZE) {
-        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
-        return;
-    }
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = len+1;
-    this->tx_msg.data[0] = sid+0x40;
-    memcpy(&this->tx_msg.data[1], resp, len);
-    */
     global_make_diag_pos_msg(&this->tx_msg, sid, resp, len);
     this->send_resp = true;
 }
 
 void Kwp2000_server::make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
-    /*
-    if (len + 3 > DIAG_CAN_MAX_SIZE) {
-        make_diag_neg_msg(sid, NRC_GENERAL_REJECT);
-        return;
-    }
-    this->tx_msg.id = KWP_ECU_TX_ID;
-    this->tx_msg.data_size = len+2;
-    this->tx_msg.data[0] = sid+0x40;
-    this->tx_msg.data[1] = pid;
-    memcpy(&this->tx_msg.data[2], resp, len);
-    */
     global_make_diag_pos_msg(&this->tx_msg, sid, pid, resp, len);
     this->send_resp = true;
 }
@@ -191,21 +233,19 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
-    uint64_t timestamp;
     while(1) {
-        timestamp = esp_timer_get_time()/1000;
+        uint64_t timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
         bool endpoint_was_usb = false;
-        if (this->usb_diag_endpoint->read_data(&this->rx_msg)) {
+        if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = true;
             read_msg = true;
-        } else if (this->can_endpoint->read_data(&this->rx_msg)) {
+        } else if (this->can_endpoint->init_state() == ESP_OK && this->can_endpoint->read_data(&this->rx_msg)) {
             endpoint_was_usb = false;
             read_msg = true;
         }
         if (read_msg) {
             this->next_tp_time = timestamp+KWP_TP_TIMEOUT_MS;
-            //ESP_LOG_BUFFER_HEX_LEVEL("KWP_READ_MSG", this->rx_msg.data, this->rx_msg.data_size, esp_log_level_t::ESP_LOG_INFO);
             if (this->rx_msg.data_size == 0) {
                 continue; // Huh?
             }
@@ -239,13 +279,16 @@ void Kwp2000_server::server_loop() {
                     this->process_start_routine_by_local_ident(args_ptr, args_size);
                     break;
                 case SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT:
-                    this->process_request_routine_resutls_by_local_ident(args_ptr, args_size);
+                    this->process_request_routine_results_by_local_ident(args_ptr, args_size);
                     break;
                 case SID_REQ_UPLOAD:
                     this->process_request_upload(args_ptr, args_size);
                     break;
                 case SID_REQ_DOWNLOAD:
                     this->process_request_download(args_ptr, args_size);
+                    break;
+                case SID_IOCTL_BY_LOCAL_IDENT:
+                    this->process_ioctl_by_local_ident(args_ptr, args_size);
                     break;
                 case SID_TRANSFER_DATA:
                     this->process_transfer_data(args_ptr, args_size);
@@ -256,8 +299,15 @@ void Kwp2000_server::server_loop() {
                 case SID_SHIFT_MGR_OP:
                     this->process_shift_mgr_op(args_ptr, args_size);
                     break;
+                case SID_ENABLE_NORMAL_MSG_TRANSMISSION:
+                    this->process_enable_msg_tx(args_ptr, args_size);
+                    break;
+                case SID_DISABLE_NORMAL_MSG_TRANSMISSION:
+                    this->process_disable_msg_tx(args_ptr, args_size);
+                    break;
                 default:
-                    ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported", rx_msg.data[0]);
+                    ESP_LOG_LEVEL(ESP_LOG_WARN, "KWP_HANDLE_REQ", "Requested SID %02X is not supported, full msg was:", rx_msg.data[0]);
+                    ESP_LOG_BUFFER_HEX_LEVEL("KWP_HANDLE_REQ", rx_msg.data, rx_msg.data_size, ESP_LOG_WARN);
                     make_diag_neg_msg(rx_msg.data[0], NRC_SERVICE_NOT_SUPPORTED);
                     break;
             }
@@ -265,7 +315,7 @@ void Kwp2000_server::server_loop() {
         if (this->send_resp) {
             if (endpoint_was_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
-            } else {
+            } else if (this->can_endpoint != nullptr) {
                 this->can_endpoint->send_data(&tx_msg);
             }
             this->send_resp = false;
@@ -276,7 +326,6 @@ void Kwp2000_server::server_loop() {
             this->session_mode == SESSION_CUSTOM_UN52)
             && timestamp > this->next_tp_time
         ) {
-            ESP_LOG_LEVEL(ESP_LOG_INFO, "KWP2000", "Tester present interval has expired, returning to default mode");
             this->session_mode = SESSION_DEFAULT;
         }
         if (this->reboot_pending) {
@@ -300,7 +349,7 @@ void Kwp2000_server::server_loop() {
 }
 
 
-void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_START_DIAGNOSTIC_SESSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -324,7 +373,7 @@ void Kwp2000_server::process_start_diag_session(uint8_t* args, uint16_t arg_len)
     make_diag_pos_msg(SID_START_DIAGNOSTIC_SESSION, &args[0], 1);
 }
 
-void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
     if (
         this->session_mode == SESSION_EXTENDED || 
         this->session_mode == SESSION_REPROGRAMMING ||
@@ -336,7 +385,7 @@ void Kwp2000_server::process_ecu_reset(uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
-                if (!is_shifter_passive(this->can_layer)) {
+                if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
                     // P or R, we CANNOT reset the ECU!
                     make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                     return;
@@ -360,7 +409,7 @@ void Kwp2000_server::process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len
 
 }
 
-void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_len) {
     // Any diagnostic session
     if (arg_len != 1) {
         make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -371,37 +420,39 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
     esp_ota_get_partition_description(running, &running_info);
     if (args[0] == 0x86) {
         ECU_Date date = fw_date_to_bcd(running_info.date);
+        ECU_Date v_date = pcb_ver_to_date(&BOARD_CONFIG);
         uint8_t daimler_ident_data[16];
         memset(daimler_ident_data, 0x00, 16);
         // Part number
-        daimler_ident_data[0] = 0x01;
+        daimler_ident_data[0] = 0x12;
         daimler_ident_data[1] = 0x23;
         daimler_ident_data[2] = 0x45;
         daimler_ident_data[3] = 0x67;
         daimler_ident_data[4] = 0x89;
         // ECU Hardware date
-        daimler_ident_data[5] = date.week;
-        daimler_ident_data[6] = date.year;
+
+        daimler_ident_data[5] = decToBcd(v_date.week); //date.week;
+        daimler_ident_data[6] = decToBcd(v_date.year); //date.year;
         // ECU Software date
-        daimler_ident_data[7] = date.week;
-        daimler_ident_data[8] = date.year;
-        daimler_ident_data[9] = SUPPLIER_ID;
-        daimler_ident_data[10] = DIAG_VARIANT_CODE >> 8;
-        daimler_ident_data[11] = DIAG_VARIANT_CODE & 0xFF;
-        daimler_ident_data[13] = date.year;
-        daimler_ident_data[14] = date.month;
-        daimler_ident_data[15] = date.day;
+        daimler_ident_data[7] = decToBcd(date.week);
+        daimler_ident_data[8] = decToBcd(date.year);
+        daimler_ident_data[9] = this->supplier_id;
+        daimler_ident_data[10] = this->diag_var_code >> 8;
+        daimler_ident_data[11] = this->diag_var_code & 0xFF;
+        daimler_ident_data[13] = decToBcd(BOARD_CONFIG.manufacture_year);
+        daimler_ident_data[14] = decToBcd(BOARD_CONFIG.manufacture_month);
+        daimler_ident_data[15] = decToBcd(BOARD_CONFIG.manufacture_day);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x86, daimler_ident_data, 16);
     } else if (args[0] == 0x87) { // Daimler and Mitsubishi compatible identification
         ECU_Date date = fw_date_to_bcd(running_info.date);
         uint8_t ident_data[19];
         memset(ident_data, 0x00, 19);
         ident_data[0] = 0x00; // TODO ECU origin
-        ident_data[1] = SUPPLIER_ID;
-        ident_data[2] = DIAG_VARIANT_CODE >> 8;
-        ident_data[3] = DIAG_VARIANT_CODE & 0xFF;
-        ident_data[5] = 0x00;// HW version
-        ident_data[6] = 0x00;// HW version
+        ident_data[1] = this->supplier_id;
+        ident_data[2] = this->diag_var_code >> 8;
+        ident_data[3] = this->diag_var_code & 0xFF;
+        ident_data[5] = 0x01;// HW version
+        ident_data[6] = BOARD_CONFIG.board_ver;// HW version
         ident_data[7] = date.day;// SW version
         ident_data[8] = date.month;// SW version
         ident_data[9] = date.year;// SW version
@@ -417,14 +468,21 @@ void Kwp2000_server::process_read_ecu_ident(uint8_t* args, uint16_t arg_len) {
         //ident_data[19] = '9'; // Part number to end
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x87, ident_data, 19);
     } else if (args[0] == 0x88) { // VIN original
-        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x88, reinterpret_cast<const uint8_t*>("ULTIMATENAG52ESP0"), 17);
     } else if (args[0] == 0x89) { // Diagnostic variant code
-        int d = DIAG_VARIANT_CODE;
+        int d = this->diag_var_code;
         uint8_t b[4];
         memcpy(b, &d, 4);
         make_diag_pos_msg(SID_READ_ECU_IDENT, 0x89, b, 4);
+    } else if (args[0] == 0x8A) {
+        char x[4];
+        x[0] = 'H';
+        x[1] = 'E';
+        x[2] = 'L';
+        x[3] = 'P';
+        return make_diag_pos_msg(SID_READ_ECU_IDENT, 0x8A, (uint8_t*)&x, 4);
     } else if (args[0] == 0x90) { // VIN current
-        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, (const uint8_t*)"ULTIMATENAG52ESP0", 17);
+        make_diag_pos_msg(SID_READ_ECU_IDENT, 0x90, reinterpret_cast<const uint8_t*>("ULTIMATENAG52ESP0"), 17);
     } else {
         make_diag_neg_msg(SID_READ_ECU_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
@@ -447,29 +505,60 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         esp_efuse_mac_get_default(mac);
         char resp[13];
         sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, (const uint8_t*)resp, 12);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, reinterpret_cast<const uint8_t*>(resp), 12);
     } else if (args[0] == RLI_MAP_EDITOR) {
-        // We need 2 args for this. 
-        if (arg_len != 2) {
+        // 0 - RLI
+        // 1 - Map ID
+        // 2 - CMD
+        // 3-4 - Arg len
+        // 5..n - Data
+        if (arg_len < 5) {
             make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
             return;
         }
-        int16_t* read_buf = nullptr;
-        uint16_t dest_size = 0;
-        uint8_t ret = MapEditor::read_map_data(args[1], &dest_size, &read_buf);
+        uint8_t map_id = args[1];
+        uint8_t cmd = args[2];
+        uint16_t map_len_bytes = args[3] << 8 | args[4];
+        if (arg_len-5 != map_len_bytes) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
+        uint8_t ret;
+        uint8_t* buffer = nullptr;
+        uint16_t read_bytes_size = 0;
+        if ( cmd == MAP_CMD_READ || cmd == MAP_CMD_READ_DEFAULT || cmd == MAP_CMD_READ_EEPROM) {
+            uint8_t c;
+            if (cmd == MAP_CMD_READ) {
+                c = MAP_READ_TYPE_MEM;
+            } else if (cmd == MAP_CMD_READ_DEFAULT) {
+                c = MAP_READ_TYPE_PRG;
+            } else { // MAP_CMD_READ_EEPROM
+                c = MAP_READ_TYPE_STO;
+            }
+            ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
+        } else if (cmd == MAP_CMD_READ_META) { 
+            ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
+        } else {
+            ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+        }
         if (ret == 0) { // OK
-            uint8_t* buf = new uint8_t[2+dest_size];
-            buf[0] = dest_size >> 8;
-            buf[1] = dest_size & 0xFF;
-            memcpy(&buf[2], read_buf, dest_size);
-            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+dest_size);
-            delete read_buf; // DELETE MapEditor allocation
+            uint8_t* buf = static_cast<uint8_t*>(heap_caps_malloc(2+read_bytes_size, MALLOC_CAP_SPIRAM));
+            if (buf == nullptr) {
+                free(buffer); // DELETE MapEditor allocation
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
+                return;
+            }
+            buf[0] = read_bytes_size & 0xFF;
+            buf[1] = read_bytes_size >> 8;
+            memcpy(&buf[2], buffer, read_bytes_size);
+            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
+            delete[] buf;
+            free(buffer); // DELETE MapEditor allocation
             return;
         } else {
             make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
             return;
         }
-
     } else if (args[0] == RLI_GEARBOX_SENSORS) {
         DATA_GEARBOX_SENSORS r = get_gearbox_sensors(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_GEARBOX_SENSORS, (uint8_t*)&r, sizeof(DATA_GEARBOX_SENSORS));
@@ -482,9 +571,6 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
-    } else if (args[0] == RLI_COREDUMP_SIZE) {
-        COREDUMP_INFO r = get_coredump_info();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_SIZE, (uint8_t*)&r, sizeof(COREDUMP_INFO));
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
@@ -494,27 +580,56 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
+    } else if (args[0] == RLI_EFUSE_CONFIG) {
+        TCM_EFUSE_CONFIG ecfg;
+        EEPROM::read_efuse_config(&ecfg);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EFUSE_CONFIG, (uint8_t*)&ecfg, sizeof(TCM_EFUSE_CONFIG));
     } else if (args[0] == RLI_SHIFT_LIVE) {
         SHIFT_LIVE_INFO r = get_shift_live_Data(egs_can_hal, gearbox);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_LIVE, (uint8_t*)&r, sizeof(SHIFT_LIVE_INFO));
     } else if (args[0] == RLI_FW_HEADER) {
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, (uint8_t*)get_image_header(), sizeof(esp_app_desc_t));
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_FW_HEADER, reinterpret_cast<const uint8_t*>(get_image_header()), sizeof(esp_app_desc_t));
+    } else if (args[0] == RLI_COREDUMP_PART_INFO) {
+        PARTITION_INFO r = get_coredump_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_COREDUMP_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_CURR_SW_PART_INFO) {
+        PARTITION_INFO r = get_current_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CURR_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
+        PARTITION_INFO r = get_next_sw_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     }
     else {
         // EGS52 emulation
-#ifdef EGS52_MODE
-        if (args[0] == RLI_31) {
-            RLI_31_DATA r = get_rli_31(egs_can_hal);
-            return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+        if (VEHICLE_CONFIG.egs_can_type == 2) {
+            if (args[0] == 0x31) {
+                RLI_31_DATA r = get_rli_31(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x31, (uint8_t*)&r, sizeof(RLI_31_DATA));
+            } else if (args[0] == 0x33) {
+                RLI_33_DATA r = get_rli_33(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x33, (uint8_t*)&r, sizeof(RLI_33_DATA));
+            } else if (args[0] == 0x32) {
+                RLI_32_DATA r = get_rli_32(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x32, (uint8_t*)&r, sizeof(RLI_32_DATA));
+            } else if (args[0] == 0x30) {
+                RLI_30_DATA r = get_rli_30(egs_can_hal);
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0x30, (uint8_t*)&r, sizeof(RLI_30_DATA));
+            } else if (args[0] == 0xD1) {
+                char x[48];
+                memset(&x, 0, 48);
+                memcpy(&x,&BOARD_CONFIG, sizeof(BOARD_CONFIG));
+                return make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xD1, (uint8_t*)&x, 48);
+            }
         }
-#endif
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
     
 }
+
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
 
 }
+
 void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
@@ -526,25 +641,69 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
     }
     uint8_t* address;
     if (arg_len == 4) {
-       address = (uint8_t*)(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
+       address = reinterpret_cast<uint8_t*>(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
     } else {
-        address = (uint8_t*)(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
+        address = reinterpret_cast<uint8_t*>(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
     }
-    if (address + args[arg_len-1] >= (uint8_t*)0x400BFFFF) { // Address too big (Not in SRAM 0 or SRAM1)!
+    if (address + args[arg_len-1] >= reinterpret_cast<uint8_t*>(0x400BFFFF)) { // Address too big (Not in SRAM 0 or SRAM1)!
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RMA","Pointer: %p", address);
     make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, address, args[arg_len-1]); // Copy args[3] len bytes from address into positive message
 }
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
 
 }
 void Kwp2000_server::process_disable_msg_tx(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (!egs_can_hal) {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_GENERAL_REJECT);
+        return;
+    }
+    bool response = true;
+    if (args[0] == 0x01) { response = true; }
+    else if (args[0] == 0x02) { response = false; }
+    else {
+        make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    egs_can_hal->disable_normal_msg_transmission();
+    if (response) {
+        make_diag_pos_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, nullptr, 0);
+    }
 }
-void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
 
+void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len != 1) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    if (!egs_can_hal) {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_GENERAL_REJECT);
+        return;
+    }
+    bool response = true;
+    if (args[0] == 0x01) { response = true; }
+    else if (args[0] == 0x02) { response = false; }
+    else {
+        make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    egs_can_hal->enable_normal_msg_transmission();
+    if (response) {
+        make_diag_pos_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, nullptr, 0);
+    }
 }
 void Kwp2000_server::process_dynamically_define_local_ident(uint8_t* args, uint16_t arg_len) {
 
@@ -553,6 +712,26 @@ void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len
 
 }
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
+        make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len == 2) {
+        // 0x10 (EGS mode), 0x01 (Report current state)
+        if (args[0] == 0x10 && args[1] == 0x01) { // Query EGS mode (DAS EGS51 and EGS52)
+            // We need to return this for DAS to be happy EGS is in 'production' mode
+            // resp[0] - 0x10 (EGS mode)
+            // resp[1..2] - 0x0001 - Normal, 0x0002 - Assembly mode, 0x0004 - Role mode, 0x0008 - Slave mode
+            uint8_t resp[3] = {0x10, 0x00, 0x02};
+            if (BOARD_CONFIG.board_ver == 0) {
+                resp[2] = 0x02; // Assembly mode if mode is unknown
+            }
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 3);
+            return;
+        }
+    }
+    make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+    return;
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
@@ -567,11 +746,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
             bool pl = false;
+            uint16_t v = 0;
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-                    Solenoids::get_solenoid_voltage() > 10000 && // Enough battery voltage
-                    Sensors::parking_lock_engaged(&pl) &&
+                    Sensors::read_vbatt(&v) == ESP_OK &&
+                    v > 10000 && // Enough battery voltage
+                    Sensors::parking_lock_engaged(&pl) == ESP_OK &&
                     !pl // Parking lock off (In D/R)
                 ) {
                 this->routine_running = true;
@@ -584,7 +765,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             }
         } else if (args[0] == ROUTINE_FLASH_CHECK) {
             if (this->flash_handler != nullptr) {
-                this->tx_msg = this->flash_handler->on_request_verification(args, arg_len);
+                this->flash_handler->on_request_verification(args, arg_len, &this->tx_msg);
                 this->send_resp = true;
                 return;
             } else {
@@ -614,7 +795,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
 void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     
 }
-void Kwp2000_server::process_request_routine_resutls_by_local_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52  && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -647,7 +828,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     }
     // Make a new flash handler!
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_download(args, arg_len);
+    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -661,7 +842,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->tx_msg = this->flash_handler->on_request_upload(args, arg_len);
+    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg);
     this->send_resp = true;
 }
 
@@ -676,7 +857,7 @@ void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
         return;
     } else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_data(args, arg_len);
+        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }
@@ -692,7 +873,7 @@ void Kwp2000_server::process_transfer_exit(uint8_t* args, uint16_t arg_len) {
         return;
     }  else {
         // Flasher will do the rest for us
-        this->tx_msg = this->flash_handler->on_transfer_exit(args, arg_len);
+        this->flash_handler->on_transfer_exit(args, arg_len, &this->tx_msg);
         this->send_resp = true;
     }
 }
@@ -707,38 +888,39 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
         if (args[0] == RLI_MAP_EDITOR) {
             // 0 - RLI
             // 1 - Map ID
-            // 2-3 - Map data size (Bytes)
-            // 4..n - Map data to write
-            //
-            // OR
-            //
-            // 0 - RLI
-            // 1 - 0xFF - RELOAD
-            // 2- Profile IDx
-            if (arg_len == 3 && args[1] == 0xFF) {
-                uint8_t ret = MapEditor::trigger_reload(args[2]);
-                if (ret != 0x00) {
-                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret); // Error
-                } else {
-                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_MAP_EDITOR, nullptr, 0); // Ok!
-                }
-                return;
-            }
-            if (arg_len < 7) {
+            // 2 - CMD
+            // 3-4 - Arg len
+            // 5..n - Data
+            if (arg_len < 5) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
                 return;
             }
             uint8_t map_id = args[1];
-            uint16_t map_len_bytes = args[2] << 8 | args[3];
-            if (arg_len-4 != map_len_bytes) {
+            uint8_t cmd = args[2];
+            uint16_t map_len_bytes = args[4] << 8 | args[3];
+            if (arg_len-5 != map_len_bytes) {
                 make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
                 return;
             }
-            uint8_t ret = MapEditor::write_map_data(map_id, map_len_bytes, (int16_t*)&args[4]);
-            if (ret != 0x00) {
-                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret); // Error
+            uint8_t ret;
+            switch (cmd) {
+                case MAP_CMD_WRITE:
+                    ret = MapEditor::write_map_data(map_id, map_len_bytes/2, (int16_t*)&args[5]); // len_bytes /2 = sizeof(int16)
+                    break;
+                case MAP_CMD_UNDO:
+                    ret = MapEditor::undo_changes(map_id);
+                    break;
+                case MAP_CMD_BURN:
+                    ret = MapEditor::burn_to_eeprom(map_id);
+                    break;
+                default:
+                    ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+                    break;
+            }
+            if (ret == 0) {
+                make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, nullptr, 0);
             } else {
-                make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_MAP_EDITOR, nullptr, 0); // Ok!
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, ret);
             }
         } else if (args[0] == RLI_TCM_CONFIG) {
             if (arg_len-1 != sizeof(TCM_CORE_CONFIG)) {
@@ -748,10 +930,24 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                 TCM_CORE_CONFIG cfg;
                 memcpy(&cfg, &args[1], sizeof(TCM_CORE_CONFIG));
                 uint8_t res = set_tcm_config(cfg);
-                if (res == 0x00) {
+                if (res == NRC_OK) {
                     make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
                 } else {
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
+                }
+            }
+        } else if (args[0] == RLI_EFUSE_CONFIG) {
+            if (arg_len-1 != sizeof(TCM_EFUSE_CONFIG)) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            } else {
+                // TCM Core config size ok
+                TCM_EFUSE_CONFIG cfg;
+                memcpy(&cfg, &args[1], sizeof(TCM_EFUSE_CONFIG));
+                bool res = EEPROM::write_efuse_config(&cfg);
+                if (res == ESP_OK) {
+                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_TCM_CONFIG, nullptr, 0);
+                } else {
+                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 }
             }
         } else {
@@ -764,7 +960,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
 
 }
-void Kwp2000_server::process_tester_present(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -790,6 +986,9 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         this->session_mode == SESSION_EXTENDED ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
+        make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+        /*
         // Make request message
         // Should be 1 byte argument
         // 0x00 0x00 - Request shift summary
@@ -835,6 +1034,7 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
         } else {
             make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+        */
     } else {
         make_diag_neg_msg(SID_SHIFT_MGR_OP, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
     }
@@ -843,13 +1043,13 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
 
 void Kwp2000_server::run_solenoid_test() {
     vTaskDelay(50);
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Starting solenoid test");
     this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
     // Routine results format
     int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
-    uint16_t batt = Solenoids::get_solenoid_voltage();
+    // uint16_t batt = Solenoids::get_solenoid_voltage();
+    uint16_t batt;
     this->routine_result[1] = atf & 0xFF;
     this->routine_result[2] = (atf >> 8) & 0xFF;
 
@@ -889,7 +1089,7 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[13] = curr & 0xFF;
     this->routine_result[14] = (curr >> 8) & 0xFF;
 
-#define NUM_CURRENT_SAMPLES 10
+    const int NUM_CURRENT_SAMPLES = 10;
     float total_batt = 0;
     float total_curr = 0;
     sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
@@ -901,8 +1101,8 @@ void Kwp2000_server::run_solenoid_test() {
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
+    curr = (uint16_t)(total_curr / (float)NUM_CURRENT_SAMPLES);
+    batt = (uint16_t)(total_batt / (float)NUM_CURRENT_SAMPLES);
     this->routine_result[15] = batt & 0xFF;
     this->routine_result[16] = (batt >> 8) & 0xFF;
     this->routine_result[17] = curr & 0xFF;
@@ -997,8 +1197,7 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[37] = curr & 0xFF;
     this->routine_result[38] = (curr >> 8) & 0xFF;
     sol_y5->write_pwm_12_bit(0);
-
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "RT_SOL_TEST", "Cleaning up");
+    
     this->routine_running = false;
     mpc_cc->toggle_state(true);
     spc_cc->toggle_state(true);

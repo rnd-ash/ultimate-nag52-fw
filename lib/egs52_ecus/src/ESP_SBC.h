@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'ESP_SBC'
 */
 
-#ifdef EGS52_MODE
-
 #ifndef __ECU_ESP_SBC_H_
 #define __ECU_ESP_SBC_H_
 
@@ -797,5 +795,3 @@ class ECU_ESP_SBC {
 		uint64_t LAST_FRAME_TIMES[5];
 };
 #endif // __ECU_ESP_SBC_H_
-
-#endif // EGS52_MODE

@@ -1,9 +1,5 @@
-#ifndef __GEARBOX_CONFIG_H_
-#define __GEARBOX_CONFIG_H_
-
-#ifndef RED_BCB
-#define BOARD_V2 // Comment this line for the red beta boards!!!
-#endif
+#ifndef GEARBOX_CONFIG_H
+#define GEARBOX_CONFIG_H
 
 #define GB_EFFICIENCY 0.9 // 90% *TODO* - Does this changed based on GB physical vairent?
 
@@ -28,4 +24,4 @@
 
 // The old EGS51, EGS52 and EGS53 MODE FLAGS ARE NOW MOVED TO PLATFORMIO.INI!
 
-#endif // __GEARBOX_CONFIG_H_
+#endif // GEARBOX_CONFIG_H

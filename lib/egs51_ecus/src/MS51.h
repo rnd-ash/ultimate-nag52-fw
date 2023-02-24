@@ -8,20 +8,18 @@
 * CAN Defintiion for ECU 'MS51'
 */
 
-#ifdef EGS51_MODE
-
 #ifndef __ECU_MS51_H_
 #define __ECU_MS51_H_
 
 #include <stdint.h>
     
-#define MS_308_CAN_ID 0x0308
-#define MS_210_CAN_ID 0x0210
-#define MS_310_CAN_ID 0x0310
-#define MS_608_CAN_ID 0x0608
+#define MS_308EGS51_CAN_ID 0x0308
+#define MS_210EGS51_CAN_ID 0x0210
+#define MS_310EGS51_CAN_ID 0x0310
+#define MS_608EGS51_CAN_ID 0x0608
 
 /** switching line shift MS */
-enum class MS_210h_SLV_MS {
+enum class MS_210h_SLV_MSEGS51 {
 	SKL0 = 0, // Shift characteristic "0"
 	SKL1 = 1, // Shift characteristic "1"
 	SKL2 = 2, // Shift characteristic "2"
@@ -36,7 +34,7 @@ enum class MS_210h_SLV_MS {
 };
 
 /** Gear, upper limit */
-enum class MS_210h_GMAX_MS {
+enum class MS_210h_GMAX_MSEGS51 {
 	PASSIVE = 0, // passive value
 	G1 = 1, // Gear, upper limit = 1
 	G2 = 2, // Gear, upper limit = 2
@@ -48,7 +46,7 @@ enum class MS_210h_GMAX_MS {
 };
 
 /** Gear, lower limit */
-enum class MS_210h_GMIN_MS {
+enum class MS_210h_GMIN_MSEGS51 {
 	PASSIVE = 0, // passive value
 	G1 = 1, // Gear, lower limit = 1
 	G2 = 2, // Gear, lower limit = 2
@@ -65,8 +63,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of MS_308 */
-	uint32_t get_canid(){ return MS_308_CAN_ID; }
+	/** Gets CAN ID of MS_308EGS51 */
+	uint32_t get_canid(){ return MS_308EGS51_CAN_ID; }
     /** Sets clutch kicked */
     void set_KPL(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -229,7 +227,7 @@ typedef union {
     /** Gets oil quality. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_OEL_QUAL() const { return (uint8_t)(raw >> 0 & 0xff); }
         
-} MS_308;
+} MS_308EGS51;
 
 
 
@@ -237,8 +235,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of MS_210 */
-	uint32_t get_canid(){ return MS_210_CAN_ID; }
+	/** Gets CAN ID of MS_210EGS51 */
+	uint32_t get_canid(){ return MS_210EGS51_CAN_ID; }
     /** Sets Air compressor Emergency Shutdown */
     void set_KOMP_NOTAUS(bool value){ raw = (raw & 0x7fffffffffffffff) | ((uint64_t)value & 0x1) << 63; }
 
@@ -246,10 +244,10 @@ typedef union {
     bool get_KOMP_NOTAUS() const { return (bool)(raw >> 63 & 0x1); }
         
     /** Sets switching line shift MS */
-    void set_SLV_MS(MS_210h_SLV_MS value){ raw = (raw & 0x87ffffffffffffff) | ((uint64_t)value & 0xf) << 59; }
+    void set_SLV_MS(MS_210h_SLV_MSEGS51 value){ raw = (raw & 0x87ffffffffffffff) | ((uint64_t)value & 0xf) << 59; }
 
     /** Gets switching line shift MS */
-    MS_210h_SLV_MS get_SLV_MS() const { return (MS_210h_SLV_MS)(raw >> 59 & 0xf); }
+    MS_210h_SLV_MSEGS51 get_SLV_MS() const { return (MS_210h_SLV_MSEGS51)(raw >> 59 & 0xf); }
         
     /** Sets Switch KSG-creep */
     void set_KRIECH_AUS(bool value){ raw = (raw & 0xfdffffffffffffff) | ((uint64_t)value & 0x1) << 57; }
@@ -276,16 +274,16 @@ typedef union {
     bool get_ZH_AUS_MS() const { return (bool)(raw >> 54 & 0x1); }
         
     /** Sets Gear, upper limit */
-    void set_GMAX_MS(MS_210h_GMAX_MS value){ raw = (raw & 0xffc7ffffffffffff) | ((uint64_t)value & 0x7) << 51; }
+    void set_GMAX_MS(MS_210h_GMAX_MSEGS51 value){ raw = (raw & 0xffc7ffffffffffff) | ((uint64_t)value & 0x7) << 51; }
 
     /** Gets Gear, upper limit */
-    MS_210h_GMAX_MS get_GMAX_MS() const { return (MS_210h_GMAX_MS)(raw >> 51 & 0x7); }
+    MS_210h_GMAX_MSEGS51 get_GMAX_MS() const { return (MS_210h_GMAX_MSEGS51)(raw >> 51 & 0x7); }
         
     /** Sets Gear, lower limit */
-    void set_GMIN_MS(MS_210h_GMIN_MS value){ raw = (raw & 0xfff8ffffffffffff) | ((uint64_t)value & 0x7) << 48; }
+    void set_GMIN_MS(MS_210h_GMIN_MSEGS51 value){ raw = (raw & 0xfff8ffffffffffff) | ((uint64_t)value & 0x7) << 48; }
 
     /** Gets Gear, lower limit */
-    MS_210h_GMIN_MS get_GMIN_MS() const { return (MS_210h_GMIN_MS)(raw >> 48 & 0x7); }
+    MS_210h_GMIN_MSEGS51 get_GMIN_MS() const { return (MS_210h_GMIN_MSEGS51)(raw >> 48 & 0x7); }
         
     /** Sets pedal. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_PW(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
@@ -449,7 +447,7 @@ typedef union {
     /** Gets Set maximum or cruise control speed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
     uint8_t get_V_MAX_TM() const { return (uint8_t)(raw >> 0 & 0xff); }
         
-} MS_210;
+} MS_210EGS51;
 
 
 
@@ -457,21 +455,33 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of MS_310 */
-	uint32_t get_canid(){ return MS_310_CAN_ID; }
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/2.00 */
-    void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
+	/** Gets CAN ID of MS_310EGS51 */
+	uint32_t get_canid(){ return MS_310EGS51_CAN_ID; }
+    /** Sets engine indicated torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_IND_TORQUE(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(2.00x)+0.0 */
-    uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
+    /** Gets engine indicated torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_IND_TORQUE() const { return (uint8_t)(raw >> 24 & 0xff); }
         
-    /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/2.00 */
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_STA_TORQUE(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
+
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_STA_TORQUE() const { return (uint8_t)(raw >> 16 & 0xff); }
+        
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
     void set_MAX_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
 
-    /** Gets engine coolant temperature. Conversion formula (To real from raw): y=(2.00x)+0.0 */
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
     uint8_t get_MAX_TORQUE() const { return (uint8_t)(raw >> 8 & 0xff); }
         
-} MS_310;
+    /** Sets engine drag torque. Conversion formula (To raw from real): y=(x-0.0)/3.00 */
+    void set_MIN_TORQUE(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
+
+    /** Gets engine drag torque. Conversion formula (To real from raw): y=(3.00x)+0.0 */
+    uint8_t get_MIN_TORQUE() const { return (uint8_t)(raw >> 0 & 0xff); }
+        
+} MS_310EGS51;
 
 
 
@@ -479,8 +489,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of MS_608 */
-	uint32_t get_canid(){ return MS_608_CAN_ID; }
+	/** Gets CAN ID of MS_608EGS51 */
+	uint32_t get_canid(){ return MS_608EGS51_CAN_ID; }
     /** Sets engine coolant temperature. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_T_MOT(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
@@ -535,7 +545,7 @@ typedef union {
     /** Gets consumption. Conversion formula (To real from raw): y=(0.50x)+0.0 */
     uint16_t get_VB() const { return (uint16_t)(raw >> 8 & 0xffff); }
         
-} MS_608;
+} MS_608EGS51;
 
 
 
@@ -550,19 +560,19 @@ class ECU_MS51 {
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
             switch(can_id) {
-                case MS_308_CAN_ID:
+                case MS_308EGS51_CAN_ID:
                     LAST_FRAME_TIMES[0] = timestamp_now;
                     FRAME_DATA[0] = value;
                     return true;
-                case MS_210_CAN_ID:
+                case MS_210EGS51_CAN_ID:
                     LAST_FRAME_TIMES[1] = timestamp_now;
                     FRAME_DATA[1] = value;
                     return true;
-                case MS_310_CAN_ID:
+                case MS_310EGS51_CAN_ID:
                     LAST_FRAME_TIMES[2] = timestamp_now;
                     FRAME_DATA[2] = value;
                     return true;
-                case MS_608_CAN_ID:
+                case MS_608EGS51_CAN_ID:
                     LAST_FRAME_TIMES[3] = timestamp_now;
                     FRAME_DATA[3] = value;
                     return true;
@@ -578,7 +588,7 @@ class ECU_MS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_308(uint64_t now, uint64_t max_expire_time, MS_308* dest) const {
+        bool get_MS_308(uint64_t now, uint64_t max_expire_time, MS_308EGS51* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -596,7 +606,7 @@ class ECU_MS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_210(uint64_t now, uint64_t max_expire_time, MS_210* dest) const {
+        bool get_MS_210(uint64_t now, uint64_t max_expire_time, MS_210EGS51* dest) const {
             if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -614,7 +624,7 @@ class ECU_MS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_310(uint64_t now, uint64_t max_expire_time, MS_310* dest) const {
+        bool get_MS_310(uint64_t now, uint64_t max_expire_time, MS_310EGS51* dest) const {
             if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -632,7 +642,7 @@ class ECU_MS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_608(uint64_t now, uint64_t max_expire_time, MS_608* dest) const {
+        bool get_MS_608(uint64_t now, uint64_t max_expire_time, MS_608EGS51* dest) const {
             if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -648,5 +658,3 @@ class ECU_MS51 {
 		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_MS51_H_
-
-#endif // EGS51_MODE

@@ -1,6 +1,5 @@
-
-#ifndef __SOLENOID_H_
-#define __SOLENOID_H_
+#ifndef SOLENOID_H
+#define SOLENOID_H
 
 #include <stdint.h>
 #include "driver/gpio.h"
@@ -11,6 +10,7 @@
 #include <soc/syscon_reg.h>
 #include <driver/adc.h>
 #include <esp_event.h>
+#include "esp_err.h"
 
 const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
 
@@ -64,24 +64,24 @@ public:
      * 
      * @return The current PWM being written to the solenoid
      */
-    uint16_t get_pwm_compensated();
+    uint16_t get_pwm_compensated() const;
 
     /**
      * @brief Gets the average current consumed by the solenoid
      * over multiple I2S samples
      */
-    uint16_t get_current_avg();
+    uint16_t get_current_avg() const;
 
     /**
      * @brief Gets the current consumed by the solenoid at the previous I2S sample
      */
-    uint16_t get_current();
+    uint16_t get_current() const;
 
     /**
      * @brief returns the ADC1 channel being used to read
      * the current of the solenoid
      */
-    adc1_channel_t get_adc_channel();
+    adc1_channel_t get_adc_channel() const;
 
     /**
      * @brief Returns if the solenoid initialized OK
@@ -89,7 +89,7 @@ public:
      * @return true LEDC / Timer initialized OK, and no short-circuit present within the solenoid circuit
      * @return false Something went wrong trying to intialize the solenoid
      */
-    bool init_ok() const;
+    esp_err_t init_ok() const;
 
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_adc_reading(uint16_t c);
@@ -100,7 +100,7 @@ public:
     // -- These functions are only accessed by sw_fader class! -- //
 private:
     uint32_t default_freq;
-    bool ready;
+    esp_err_t ready;
     const char *name;
     ledc_channel_t channel;
     ledc_timer_t timer;
@@ -126,10 +126,15 @@ namespace Solenoids {
      * @return true All solenoids initialized OK
      * @return false A solenoid failed to initialize
      */
-    bool init_all_solenoids();
+    esp_err_t init_all_solenoids();
     uint16_t get_solenoid_voltage();
     void toggle_all_solenoid_current_monitoring(bool enable);
     bool is_monitoring_all_solenoids();
+
+    void boot_solenoid_test(void*);
+
+    bool init_routine_completed(void);
+    // bool startup_test_ok();
 }
 
 extern Solenoid *sol_y3;
@@ -149,4 +154,4 @@ extern int16_t temp_at_test;
 #define I2S_DMA_BUF_LEN 1024
 extern uint16_t* buf;
 
-#endif // __SOLENOID_H_
+#endif // SOLENOID_H

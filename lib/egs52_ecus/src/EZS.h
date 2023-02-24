@@ -8,8 +8,6 @@
 * CAN Defintiion for ECU 'EZS'
 */
 
-#ifdef EGS52_MODE
-
 #ifndef __ECU_EZS_H_
 #define __ECU_EZS_H_
 
@@ -557,5 +555,3 @@ class ECU_EZS {
 		uint64_t LAST_FRAME_TIMES[4];
 };
 #endif // __ECU_EZS_H_
-
-#endif // EGS52_MODE

@@ -2,21 +2,18 @@
 #define __EGS52_CAN_H_
 #include <gearbox_config.h>
 
-#ifdef EGS52_MODE
 #include "can_hal.h"
-#include "ANY_ECU.h"
-#include "ESP_SBC.h"
-#include "EWM.h"
-#include "GS.h"
-#include "MS.h"
-#include "EZS.h"
-#include "KOMBI.h"
+#include "../../egs52_ecus/src/ANY_ECU52.h"
+#include "../../egs52_ecus/src/ESP_SBC.h"
+#include "../../egs52_ecus/src/EWM.h"
+#include "../../egs52_ecus/src/GS.h"
+#include "../../egs52_ecus/src/MS.h"
+#include "../../egs52_ecus/src/EZS.h"
+#include "../../egs52_ecus/src/KOMBI.h"
 
-class Egs52Can: public AbstractCan {
+class Egs52Can: public EgsBaseCan {
     public:
-        explicit Egs52Can(const char* name, uint8_t tx_time_ms);
-        bool begin_tasks() override;
-        ~Egs52Can();
+        explicit Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -42,10 +39,12 @@ class Egs52Can: public AbstractCan {
          uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the current 'static' torque produced by the engine
          int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
          int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
          int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -59,8 +58,10 @@ class Egs52Can: public AbstractCan {
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
-        TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
+        // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
+        TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
@@ -86,9 +87,7 @@ class Egs52Can: public AbstractCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request) override;
-        // Sets requested engine torque
-        void set_requested_torque(uint16_t torque_nm) override;
+        void set_torque_request(TorqueRequest request, float amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter
@@ -109,10 +108,8 @@ class Egs52Can: public AbstractCan {
         void set_gear_ratio(int16_t g100) override;
         void set_abort_shift(bool is_aborting) override;
     protected:
-        [[noreturn]]
-        void tx_task_loop() override;
-        [[noreturn]]
-        void rx_task_loop() override;
+        void tx_frames() override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
     private:
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
@@ -128,10 +125,11 @@ class Egs52Can: public AbstractCan {
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        bool can_init_ok = false;
         bool esp_toggle = false;
+        bool time_to_toggle = false;
+        bool toggle = false;
+        uint8_t cvn_counter = 0;
+        TorqueRequest current_req = TorqueRequest::None;
 };
 
 #endif // EGS53_MODE
-
-#endif // EGS52_CAN_H_

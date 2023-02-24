@@ -8,17 +8,15 @@
 * CAN Defintiion for ECU 'KOMBI51'
 */
 
-#ifdef EGS51_MODE
-
 #ifndef __ECU_KOMBI51_H_
 #define __ECU_KOMBI51_H_
 
 #include <stdint.h>
     
-#define KOMBI_408_CAN_ID 0x0408
+#define KOMBI_408EGS51_CAN_ID 0x0408
 
 /** Winter tire maximum speed with 4 bits */
-enum class KOMBI_408h_WRC {
+enum class KOMBI_408h_WRCEGS51 {
 	UBG = 0, // Unlimited
 	BG210 = 1, // 210 km / h
 	BG190 = 2, // 190 km / h
@@ -43,8 +41,8 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 
-	/** Gets CAN ID of KOMBI_408 */
-	uint32_t get_canid(){ return KOMBI_408_CAN_ID; }
+	/** Gets CAN ID of KOMBI_408EGS51 */
+	uint32_t get_canid(){ return KOMBI_408EGS51_CAN_ID; }
     /** Sets Tank level. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
     void set_TANK_FS(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
 
@@ -154,12 +152,12 @@ typedef union {
     bool get_RT_EIN() const { return (bool)(raw >> 3 & 0x1); }
         
     /** Sets Winter tire maximum speed with 4 bits */
-    void set_WRC(KOMBI_408h_WRC value){ raw = (raw & 0xfffffffffffffff8) | ((uint64_t)value & 0x7) << 0; }
+    void set_WRC(KOMBI_408h_WRCEGS51 value){ raw = (raw & 0xfffffffffffffff8) | ((uint64_t)value & 0x7) << 0; }
 
     /** Gets Winter tire maximum speed with 4 bits */
-    KOMBI_408h_WRC get_WRC() const { return (KOMBI_408h_WRC)(raw >> 0 & 0x7); }
+    KOMBI_408h_WRCEGS51 get_WRC() const { return (KOMBI_408h_WRCEGS51)(raw >> 0 & 0x7); }
         
-} KOMBI_408;
+} KOMBI_408EGS51;
 
 
 
@@ -174,7 +172,7 @@ class ECU_KOMBI51 {
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
             switch(can_id) {
-                case KOMBI_408_CAN_ID:
+                case KOMBI_408EGS51_CAN_ID:
                     LAST_FRAME_TIMES[0] = timestamp_now;
                     FRAME_DATA[0] = value;
                     return true;
@@ -190,7 +188,7 @@ class ECU_KOMBI51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_KOMBI_408(uint64_t now, uint64_t max_expire_time, KOMBI_408* dest) const {
+        bool get_KOMBI_408(uint64_t now, uint64_t max_expire_time, KOMBI_408EGS51* dest) const {
             if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
                 return false;
             } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
@@ -206,5 +204,3 @@ class ECU_KOMBI51 {
 		uint64_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_KOMBI51_H_
-
-#endif // EGS51_MODE

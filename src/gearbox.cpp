@@ -625,7 +625,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         sr.overlap_reading_size = overlap_report_size;
         sr.shift_status = result;
         sr.target_shift_speed = chars.target_shift_time;
-        egs_can_hal->set_fake_engine_rpm(0);
+        //egs_can_hal->set_fake_engine_rpm(0);
         pressure_manager->disable_spc();
         sd.shift_solenoid->write_pwm_12_bit(0);
         this->set_torque_request(TorqueRequest::None, 0);

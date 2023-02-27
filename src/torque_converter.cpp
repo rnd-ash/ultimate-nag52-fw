@@ -49,16 +49,15 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    //if (is_shifting) { // Reset strikes when changing gears!
-    //    this->strike_count = 0;
-    //    this->adapt_lock_count = 0;
-    //    last_adj_time = sensors->current_timestamp_ms;
-    //    this->reset_rpm_samples(sensors);
-    //    this->was_shifting = true;
-    //} else {
-    //    this->tmp_lookup_gear = 0xFF;
-    //}
-    if (sensors->input_rpm <= TCC_MIN_LOCKING_RPM) { // RPM too low!
+    uint32_t input_rpm = sensors->input_rpm;
+    if (input_rpm <= TCC_MIN_LOCKING_RPM) {
+        if (this->last_idle_timestamp == 0) {
+            this->last_idle_timestamp = sensors->current_timestamp_ms;
+        }
+    } else {
+        this->last_idle_timestamp = 0;
+    }
+    if (input_rpm <= TCC_MIN_LOCKING_RPM && sensors->current_timestamp_ms - this->last_idle_timestamp > 100) { // RPM too low (More than 100ms under the RPM target)!
         last_adj_time = sensors->current_timestamp_ms;
         if (!this->was_idle) {
             // Input has fallen below locking RPM (Slowing down). Do our once-actions here
@@ -70,7 +69,6 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
         } else {
             // Input is still lower than locking RPM
         }
-
         if (sensors->engine_rpm > 900) {
             this->base_tcc_pressure = TCC_PREFILL;
         } else {
@@ -88,11 +86,13 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
                 ESP_LOGI("TCC", "Learn cell value is %d mBar", curr_tcc_target);
                 this->initial_ramp_done = false;
+                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-500);
+                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-500);
             } else {
                 this->initial_ramp_done = true;
+                this->base_tcc_pressure = TCC_PREFILL;
+                this->curr_tcc_pressure = TCC_PREFILL;
             }
-            this->base_tcc_pressure = TCC_PREFILL;
-            this->curr_tcc_pressure = TCC_PREFILL;
             last_adj_time = sensors->current_timestamp_ms;
             this->reset_rpm_samples(sensors);
         } else {

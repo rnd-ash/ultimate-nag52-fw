@@ -59,6 +59,7 @@ class TorqueConverter {
         bool pending_changes = false;
         bool was_shifting = false;
         uint8_t tmp_lookup_gear = 0xFF;
+        uint64_t last_idle_timestamp = 0;
 };
 
 #endif

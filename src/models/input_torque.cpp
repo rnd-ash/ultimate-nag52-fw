@@ -19,9 +19,11 @@ void InputTorqueModel::update(EgsBaseCan* can_hal, SensorData* measures, bool is
         if (is_fwd_gear) {
             // Now calculate torque loss (Function of TCC slip)
             if (measures->input_rpm > 0 && measures->input_rpm > measures->engine_rpm) {
-                multi = ((float)measures->input_rpm/(float)measures->engine_rpm);
-                this->last_tcc_loss = input_torque * multi;
-                input_torque -= this->last_tcc_loss;
+                if (measures->input_rpm - measures->engine_rpm > 25) {
+                    multi = ((float)measures->input_rpm/(float)measures->engine_rpm);
+                    this->last_tcc_loss = input_torque * multi;
+                    input_torque -= this->last_tcc_loss;
+                }
             }
             egs_can_hal->set_turbine_torque_loss(MIN(0, (float)this->last_tcc_loss));
 

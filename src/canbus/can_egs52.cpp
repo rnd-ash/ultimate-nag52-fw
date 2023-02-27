@@ -534,13 +534,15 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
-    bool dyn0 = false;
+    bool dyn0 = request != TorqueRequest::None; // Markes torque request active
     bool dyn1 = false;
     bool min = false;
     bool max = false;
     uint16_t trq = 0;
     if (request != TorqueRequest::None) {
         trq = (amount_nm + 500) * 4;
+    } else {
+        trq = 0;
     }
     // Type of request bit
     switch(request) {
@@ -570,18 +572,15 @@ void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
         case TorqueRequest::Exact:
         case TorqueRequest::LessThan:
         case TorqueRequest::MoreThan:
-            dyn0 = true;
             dyn1 = false;
             break;
         case TorqueRequest::ExactFast:
         case TorqueRequest::LessThanFast:
         case TorqueRequest::MoreThanFast:
-            dyn0 = true;
             dyn1 = true;
             break;
         case TorqueRequest::None:
         default:
-            dyn0 = false;
             dyn1 = false;
             break;
     }

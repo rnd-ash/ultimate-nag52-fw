@@ -508,15 +508,12 @@ void Egs52Can::set_shifter_position(ShifterPosition pos) {
             gs418.set_WHST(GS_418h_WHST::P);
             break;
         case ShifterPosition::R:
-        case ShifterPosition::R_N:
-        case ShifterPosition::P_R:
             gs418.set_WHST(GS_418h_WHST::R);
             break;
         case ShifterPosition::N:
             gs418.set_WHST(GS_418h_WHST::N);
             break;
         case ShifterPosition::D:
-        case ShifterPosition::N_D:
             gs418.set_WHST(GS_418h_WHST::D);
             break;
         case ShifterPosition::SignalNotAvailable:

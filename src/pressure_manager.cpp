@@ -90,16 +90,11 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 
     /** Working pressure map **/
-    const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    const int16_t wp_x_headers[16] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    if (VEHICLE_CONFIG.is_large_nag) { // Large
-        key_name = MAP_NAME_WORKING_LARGE;
-        default_data = LARGE_NAG_WORKING_MAP;
-    } else { // Small
-        key_name = MAP_NAME_WORKING_SMALL;
-        default_data = SMALL_NAG_WORKING_MAP;
-    }
-    this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
+    key_name = MAP_NAME_WORKING_MPC;
+    default_data = NAG_WORKING_MAP;
+    this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 16, 7, default_data);
     if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }

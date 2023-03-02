@@ -669,6 +669,7 @@ void Gearbox::shift_thread()
         {
             // N/P -> R/D
             // Defaults (Start in 2nd)
+            egs_can_hal->set_garage_shift_state(true);
             uint16_t spc = 600;
             activate_y3 = is_fwd_gear(curr_target) && !start_second && (last_fwd_gear == GearboxGear::First ||last_fwd_gear == GearboxGear::Second);
             pressure_mgr->set_target_spc_pressure(spc);
@@ -694,6 +695,7 @@ void Gearbox::shift_thread()
             sol_y4->write_pwm_12_bit(0);
             if (activate_y3) { sol_y3->write_pwm_12_bit(0); }
             pressure_mgr->disable_spc();
+            egs_can_hal->set_garage_shift_state(false);
         }
         else
         {

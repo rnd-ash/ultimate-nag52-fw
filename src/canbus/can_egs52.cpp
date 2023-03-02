@@ -515,6 +515,10 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
     gs218.GS_NOTL = !is_ok; // Emergency mode activated
 }
 
+void Egs52Can::set_garage_shift_state(bool enable) {
+    gs218.KS = enable;
+}
+
 void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
     bool dyn0 = request != TorqueRequest::None; // Markes torque request active
     bool dyn1 = false;

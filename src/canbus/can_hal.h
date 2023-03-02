@@ -302,7 +302,6 @@ class EgsBaseCan {
         virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
-
         virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
             return TransferCaseState::SNA;
         }
@@ -348,6 +347,11 @@ class EgsBaseCan {
         virtual void set_abort_shift(bool is_aborting){};
 
         virtual void set_fake_engine_rpm(uint16_t rpm){};
+        // Tells the engine if we are shifting from P->R or N->D.
+        // This is needed so the engine limits itself to 1K RPM, in order
+        // to prevent any damage to the box!
+        virtual void set_garage_shift_state(bool enable){};
+
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

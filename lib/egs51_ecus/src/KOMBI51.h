@@ -13,10 +13,10 @@
 
 #include <stdint.h>
     
-#define KOMBI_408EGS51_CAN_ID 0x0408
+#define KOMBI_408_EGS51_CAN_ID 0x0408
 
 /** Winter tire maximum speed with 4 bits */
-enum class KOMBI_408h_WRCEGS51 {
+enum class KOMBI_408h_WRC_EGS51 : uint16_t {
 	UBG = 0, // Unlimited
 	BG210 = 1, // 210 km / h
 	BG190 = 2, // 190 km / h
@@ -40,124 +40,49 @@ enum class KOMBI_408h_WRCEGS51 {
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of KOMBI_408EGS51 */
-	uint32_t get_canid(){ return KOMBI_408EGS51_CAN_ID; }
-    /** Sets Tank level. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_TANK_FS(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Tank level. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_TANK_FS() const { return (uint8_t)(raw >> 56 & 0xff); }
-        
-    /** Sets driver's door */
-    void set_TF_AUF(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
-
-    /** Gets driver's door */
-    bool get_TF_AUF() const { return (bool)(raw >> 55 & 0x1); }
-        
-    /** Sets Speed Limit / Tempose Display Not possible */
-    void set_V_DSPL_AUS(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
-
-    /** Gets Speed Limit / Tempose Display Not possible */
-    bool get_V_DSPL_AUS() const { return (bool)(raw >> 54 & 0x1); }
-        
-    /** Sets Tacho oak */
-    void set_TACHO_SYM(bool value){ raw = (raw & 0xffdfffffffffffff) | ((uint64_t)value & 0x1) << 53; }
-
-    /** Gets Tacho oak */
-    bool get_TACHO_SYM() const { return (bool)(raw >> 53 & 0x1); }
-        
-    /** Sets MPH instead of km / h (variable speed bends) */
-    void set_V_MPH(bool value){ raw = (raw & 0xffefffffffffffff) | ((uint64_t)value & 0x1) << 52; }
-
-    /** Gets MPH instead of km / h (variable speed bends) */
-    bool get_V_MPH() const { return (bool)(raw >> 52 & 0x1); }
-        
-    /** Sets Air conditioning available */
-    void set_KLA_VH(bool value){ raw = (raw & 0xfff7ffffffffffff) | ((uint64_t)value & 0x1) << 51; }
-
-    /** Gets Air conditioning available */
-    bool get_KLA_VH() const { return (bool)(raw >> 51 & 0x1); }
-        
-    /** Sets pre-glow control lamp defective */
-    void set_VGL_KL_DEF(bool value){ raw = (raw & 0xfffbffffffffffff) | ((uint64_t)value & 0x1) << 50; }
-
-    /** Gets pre-glow control lamp defective */
-    bool get_VGL_KL_DEF() const { return (bool)(raw >> 50 & 0x1); }
-        
-    /** Sets Tank level minimum */
-    void set_TFSM(bool value){ raw = (raw & 0xfffdffffffffffff) | ((uint64_t)value & 0x1) << 49; }
-
-    /** Gets Tank level minimum */
-    bool get_TFSM() const { return (bool)(raw >> 49 & 0x1); }
-        
-    /** Sets Clamp 61 decoupled */
-    void set_KL_61E(bool value){ raw = (raw & 0xfffeffffffffffff) | ((uint64_t)value & 0x1) << 48; }
-
-    /** Gets Clamp 61 decoupled */
-    bool get_KL_61E() const { return (bool)(raw >> 48 & 0x1); }
-        
-    /** Sets Outdoor air temperature raw value. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_T_AUSSEN(uint8_t value){ raw = (raw & 0xffff00ffffffffff) | ((uint64_t)value & 0xff) << 40; }
-
-    /** Gets Outdoor air temperature raw value. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_T_AUSSEN() const { return (uint8_t)(raw >> 40 & 0xff); }
-        
-    /** Sets Terminal 58 dimmed. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_KL_58D(uint8_t value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
-
-    /** Gets Terminal 58 dimmed. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_KL_58D() const { return (uint8_t)(raw >> 32 & 0xff); }
-        
-    /** Sets Motor setting time (will be sent from Kl.15). Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_MAZ(uint8_t value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
-
-    /** Gets Motor setting time (will be sent from Kl.15). Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MAZ() const { return (uint8_t)(raw >> 24 & 0xff); }
-        
-    /** Sets mileage. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_KM16(uint16_t value){ raw = (raw & 0xffffffffff0000ff) | ((uint64_t)value & 0xffff) << 8; }
-
-    /** Gets mileage. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_KM16() const { return (uint16_t)(raw >> 8 & 0xffff); }
-        
-    /** Sets Winter Tire Top Speed Bit 3 */
-    void set_WRC3(bool value){ raw = (raw & 0xffffffffffffff7f) | ((uint64_t)value & 0x1) << 7; }
-
-    /** Gets Winter Tire Top Speed Bit 3 */
-    bool get_WRC3() const { return (bool)(raw >> 7 & 0x1); }
-        
-    /** Sets Speed Limit / Tempomat Display Active */
-    void set_V_DSPL_AKT(bool value){ raw = (raw & 0xffffffffffffffbf) | ((uint64_t)value & 0x1) << 6; }
-
-    /** Gets Speed Limit / Tempomat Display Active */
-    bool get_V_DSPL_AKT() const { return (bool)(raw >> 6 & 0x1); }
-        
-    /** Sets Segment tacho available */
-    void set_SGT_VH(bool value){ raw = (raw & 0xffffffffffffffdf) | ((uint64_t)value & 0x1) << 5; }
-
-    /** Gets Segment tacho available */
-    bool get_SGT_VH() const { return (bool)(raw >> 5 & 0x1); }
-        
-    /** Sets Release Heaters */
-    void set_ZH_FREIG(bool value){ raw = (raw & 0xffffffffffffffef) | ((uint64_t)value & 0x1) << 4; }
-
-    /** Gets Release Heaters */
-    bool get_ZH_FREIG() const { return (bool)(raw >> 4 & 0x1); }
-        
-    /** Sets Switch on Roll Test Mode ESP */
-    void set_RT_EIN(bool value){ raw = (raw & 0xfffffffffffffff7) | ((uint64_t)value & 0x1) << 3; }
-
-    /** Gets Switch on Roll Test Mode ESP */
-    bool get_RT_EIN() const { return (bool)(raw >> 3 & 0x1); }
-        
-    /** Sets Winter tire maximum speed with 4 bits */
-    void set_WRC(KOMBI_408h_WRCEGS51 value){ raw = (raw & 0xfffffffffffffff8) | ((uint64_t)value & 0x7) << 0; }
-
-    /** Gets Winter tire maximum speed with 4 bits */
-    KOMBI_408h_WRCEGS51 get_WRC() const { return (KOMBI_408h_WRCEGS51)(raw >> 0 & 0x7); }
-        
-} KOMBI_408EGS51;
+	struct {
+		/** Winter tire maximum speed with 4 bits **/
+		KOMBI_408h_WRC_EGS51 WRC: 3;
+		/** Switch on Roll Test Mode ESP **/
+		bool RT_EIN: 1;
+		/** Release Heaters **/
+		bool ZH_FREIG: 1;
+		/** Segment tacho available **/
+		bool SGT_VH: 1;
+		/** Speed Limit / Tempomat Display Active **/
+		bool V_DSPL_AKT: 1;
+		/** Winter Tire Top Speed Bit 3 **/
+		bool WRC3: 1;
+		/** mileage **/
+		uint16_t KM16: 16;
+		/** Motor setting time (will be sent from Kl.15) **/
+		uint8_t MAZ: 8;
+		/** Terminal 58 dimmed **/
+		uint8_t KL_58D: 8;
+		/** Outdoor air temperature raw value **/
+		uint8_t T_AUSSEN: 8;
+		/** Clamp 61 decoupled **/
+		bool KL_61E: 1;
+		/** Tank level minimum **/
+		bool TFSM: 1;
+		/** pre-glow control lamp defective **/
+		bool VGL_KL_DEF: 1;
+		/** Air conditioning available **/
+		bool KLA_VH: 1;
+		/** MPH instead of km / h (variable speed bends) **/
+		bool V_MPH: 1;
+		/** Tacho oak **/
+		bool TACHO_SYM: 1;
+		/** Speed Limit / Tempose Display Not possible **/
+		bool V_DSPL_AUS: 1;
+		/** driver's door **/
+		bool TF_AUF: 1;
+		/** Tank level **/
+		uint8_t TANK_FS: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of KOMBI_408_EGS51 **/
+	uint32_t get_canid(){ return KOMBI_408_EGS51_CAN_ID; }
+} KOMBI_408_EGS51;
 
 
 
@@ -171,14 +96,21 @@ class ECU_KOMBI51 {
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+            uint8_t idx = 0;
+            bool add = true;
             switch(can_id) {
-                case KOMBI_408EGS51_CAN_ID:
-                    LAST_FRAME_TIMES[0] = timestamp_now;
-                    FRAME_DATA[0] = value;
-                    return true;
+                case KOMBI_408_EGS51_CAN_ID:
+                    idx = 0;
+                    break;
                 default:
-                    return false;
+                    add = false;
+                    break;
             }
+            if (add) {
+                LAST_FRAME_TIMES[idx] = timestamp_now;
+                FRAME_DATA[idx] = value;
+            }
+            return add;
         }
         
         /** Sets data in pointer to KOMBI_408
@@ -188,15 +120,13 @@ class ECU_KOMBI51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_KOMBI_408(uint64_t now, uint64_t max_expire_time, KOMBI_408EGS51* dest) const {
-            if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_KOMBI_408(uint64_t now, uint64_t max_expire_time, KOMBI_408_EGS51* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
 	private:

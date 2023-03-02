@@ -1132,16 +1132,6 @@ void Gearbox::controller_loop()
                 this->sensor_data.atf_temp = tmp_atf;
             }
         }
-
-        // Check for vehicle in sleep mode
-        // if (!asleep && this->sensor_data.input_rpm == 0 && !is_controllable_gear(this->actual_gear) && egs_can_hal->get_engine_rpm(now, 1000) == UINT16_MAX) {
-        //    egs_can_hal->disable_normal_msg_transmission();
-        //    // Feedback (Debug) - Car going to sleep
-        //    spkr.send_note(3000, 100, 110);
-        //    spkr.send_note(3000, 100, 110);
-        //    spkr.send_note(3000, 100, 110);
-        //    this->asleep = true;
-        //}
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
         egs_can_hal->set_shifter_position(this->shifter_pos);
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);
@@ -1154,14 +1144,6 @@ void Gearbox::controller_loop()
             egs_can_hal->set_target_gear(this->target_gear);
         }
         egs_can_hal->set_actual_gear(this->actual_gear);
-        egs_can_hal->set_solenoid_pwm(sol_y3->get_pwm_compensated(), SolenoidName::Y3);
-        egs_can_hal->set_solenoid_pwm(sol_y4->get_pwm_compensated(), SolenoidName::Y4);
-        egs_can_hal->set_solenoid_pwm(sol_y5->get_pwm_compensated(), SolenoidName::Y5);
-        egs_can_hal->set_solenoid_pwm(sol_spc->get_current(), SolenoidName::SPC);
-        egs_can_hal->set_solenoid_pwm(sol_mpc->get_current(), SolenoidName::MPC);
-        egs_can_hal->set_solenoid_pwm(sol_tcc->get_pwm_compensated(), SolenoidName::TCC);
-        egs_can_hal->set_gear_ratio(this->sensor_data.gear_ratio * 100);
-        egs_can_hal->set_gear_disagree(this->gear_disagree_count);
         egs_can_hal->set_wheel_torque(0); // Nm
 
         int static_torque = egs_can_hal->get_static_engine_torque(now, 500);
@@ -1192,6 +1174,7 @@ void Gearbox::controller_loop()
             this->sensor_data.min_torque = min_torque;
         }
         // Wheel torque
+        /*
         if (this->sensor_data.gear_ratio == 0)
         {
             // Fallback ratio for when gear ratio is actually 0
@@ -1229,6 +1212,7 @@ void Gearbox::controller_loop()
         {
             egs_can_hal->set_wheel_torque_multi_factor(this->sensor_data.gear_ratio);
         }
+        */
 
         // ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Torque: MIN: %3d, MAX: %3d, STAT: %3d", min_torque, max_torque, static_torque);
         //  Show debug symbols on IC

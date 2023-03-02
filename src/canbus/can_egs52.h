@@ -66,7 +66,6 @@ class Egs52Can: public EgsBaseCan {
         /**
          * Setters
          */
-        void set_race_start(bool race_start) override;
         void set_clutch_status(ClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
@@ -98,15 +97,9 @@ class Egs52Can: public EgsBaseCan {
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
-        void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
-        void set_spc_pressure(uint16_t p) override;
-        void set_mpc_pressure(uint16_t p) override;
-        void set_tcc_pressure(uint16_t p) override;
-        void set_shift_stage(uint8_t stage, bool is_ramp) override;
-        void set_gear_disagree(uint8_t count) override;
-        void set_gear_ratio(int16_t g100) override;
         void set_abort_shift(bool is_aborting) override;
+        void set_fake_engine_rpm(uint16_t rpm) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
@@ -114,11 +107,9 @@ class Egs52Can: public EgsBaseCan {
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
         // CAN Frames to Tx
-        GS_218 gs218 = {0};
-        GS_418 gs418 = {0};
-        GS_338 gs338 = {0};
-        GS_CUSTOM_558 gs558 = {0};
-        GS_CUSTOM_668 gs668 = {0};
+        GS_218_EGS52 gs218 = {0};
+        GS_418_EGS52 gs418 = {0};
+        GS_338_EGS52 gs338 = {0};
         // ECU Data to Rx to
         ECU_EZS ezs_ecu = ECU_EZS();
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
@@ -129,6 +120,7 @@ class Egs52Can: public EgsBaseCan {
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
+        uint16_t fake_rpm = 0;
         TorqueRequest current_req = TorqueRequest::None;
 };
 

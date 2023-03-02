@@ -302,10 +302,6 @@ class EgsBaseCan {
         virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
-        // Gets status of terminal 15
-        virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
-            return TerminalStatus::On; // Enabled by default unless implemented
-        }
 
         virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
             return TransferCaseState::SNA;
@@ -314,10 +310,6 @@ class EgsBaseCan {
         /**
          * Setters
          */
-
-        virtual void set_race_start(bool race_start){};
-        // Set solenoid PMW
-        virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s){};
         // Set the gearbox clutch position on CAN
         virtual void set_clutch_status(ClutchStatus status){};
         // Set the actual gear of the gearbox
@@ -354,14 +346,8 @@ class EgsBaseCan {
         virtual void set_display_msg(GearboxMessage msg){};
         // Set bit to signify the gearbox is aborting the shift
         virtual void set_abort_shift(bool is_aborting){};
-        
-        /// Custom setters
-        virtual void set_spc_pressure(uint16_t p){}
-        virtual void set_mpc_pressure(uint16_t p){}
-        virtual void set_tcc_pressure(uint16_t p){}
-        virtual void set_shift_stage(uint8_t stage, bool is_ramp){}
-        virtual void set_gear_disagree(uint8_t count){}
-        virtual void set_gear_ratio(int16_t g100){};
+
+        virtual void set_fake_engine_rpm(uint16_t rpm){};
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

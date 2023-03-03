@@ -346,11 +346,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float curr_torq_request = 0;
         bool do_egs_req = true;
         float mpc_release_delay = 0;
+        float reduction_factor = 0;
         while(process_shift) {
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, this->gearboxConfig.ratios);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
             int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
-
+            int current_trq = sensor_data.input_torque;
+            if (sensor_data.input_torque > 0 && sensor_data.driver_requested_torque > sensor_data.input_torque) {
+                current_trq = sensor_data.driver_requested_torque;
+            }
             if (phase_elapsed > phase_hold_time+phase_ramp_time && current_phase < SHIFT_PHASE_OVERLAP) {
                 phase_elapsed = 0;
                 current_phase++;
@@ -410,7 +414,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 float spc_trq_multi;
                 ShiftCharacteristics ss_now = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
                 // 0% - 100% (Or more)
-                float torque_decimal = (float)(abs(sensor_data.input_torque)*100.0) / (float)(gearboxConfig.max_torque);
+                float torque_decimal = (float)(abs(current_trq)*100.0) / (float)(gearboxConfig.max_torque);
                 switch (apply_clutch) {
                     case Clutch::K1: // 1->2 and 5->4
                         if (req_lookup == ProfileGearChange::ONE_TWO) {
@@ -567,22 +571,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 // Torque request behaviour (Experiment for EGS52 and ME2.7/8)
-                if (current_phase > SHIFT_PHASE_BLEED) { 
-                    if (sensor_data.static_torque > 100 && is_upshift && do_egs_req) { // No need for EGS Req
+                if (current_phase >= SHIFT_PHASE_BLEED) { 
+                    if (sensor_data.driver_requested_torque > 100) { // No need for EGS Req
                         TorqueRequest req = TorqueRequest::LessThan;
-                        if (shift_progress_percentage < 50 && curr_torq_request > 50) { // Decrease torque from driver demand
-                            curr_torq_request -= scale_number(sensor_data.static_torque, 0.5, 2.0, 0, gearboxConfig.max_torque) * scale_number(chars.target_shift_time, 2.5, 1.0, 100, 1000); ;
+                        if (shift_progress_percentage < 50) { // Decrease torque from driver demand
+                            reduction_factor = scale_number(chars.target_shift_time , 50, 80, 100, 1000)/100.0;
+                            curr_torq_request = linear_interp(MIN(sensor_data.driver_requested_torque, sensor_data.static_torque), (float)sensor_data.driver_requested_torque*reduction_factor, shift_progress_percentage, 50);
                         } else { // Shifting nearing completion
                             req = TorqueRequest::LessThanFast;
-                            curr_torq_request += scale_number(sensor_data.static_torque, 0.5, 2.0, 0, gearboxConfig.max_torque);
-                        }
-                        if (sensor_data.static_torque < curr_torq_request) {
-                            do_egs_req = false;
-                            this->set_torque_request(TorqueRequest::None, 0);
+                            curr_torq_request = linear_interp(sensor_data.static_torque, sensor_data.driver_requested_torque, shift_progress_percentage-50, 50);
                         }
                         this->set_torque_request(req, curr_torq_request);
-                    } else {
-                        do_egs_req = false;
                     }
                 } else {
                     // Set the start torque amount, but don't use it yet
@@ -617,9 +616,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 // Finish torque request
-                if (do_egs_req) {
+                if (curr_torq_request != 0 && curr_torq_request < MIN(sensor_data.static_torque, sensor_data.driver_requested_torque)) {
                     // End target is always pedal torque
-                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time + sd.max_pressure_data.hold_time));
+                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time));
+                } else {
+                    this->set_torque_request(TorqueRequest::None, 0);
                 }
                 vTaskDelay(20);
                 e += 20;
@@ -871,6 +872,7 @@ void Gearbox::controller_loop()
 
         bool can_read_input = this->calc_input_rpm(&sensor_data.input_rpm);
         bool can_read_output = this->calc_output_rpm(&this->sensor_data.output_rpm, now);
+        //ESP_LOGI("MAIN", "%d %d", can_read_input, can_read_output);
         bool can_read = can_read_input && can_read_output;
         if (can_read)
         {
@@ -1303,7 +1305,7 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
             }
             rpm *= this->diff_ratio_f;
             rpm /= 2;
-
+            //ESP_LOGI("ORPM", "Output RPM %.1f (%d %d)", rpm, sensor_data.rl_wheel.double_rpm, sensor_data.rr_wheel.double_rpm);
             // Car is 4Matic, but only calcualte extra if it is not a 1:1 4Matic.
             // Cars tend to be always 1:1 (Simple 4WD), but vehicles like G-Wagon / Sprinter will have a variable transfer case
             if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000))
@@ -1348,6 +1350,7 @@ bool Gearbox::calc_output_rpm(uint16_t *dest, uint64_t now)
 bool Gearbox::calcGearFromRatio(bool is_reverse)
 {
     float ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+    //ESP_LOGI("CGFR", "R %.3f", ratio);
     if (is_reverse)
     {
         ratio *= -1;
@@ -1356,6 +1359,7 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
             GearRatioLimit limits = gearboxConfig.bounds[i + 5];
             if (ratio >= limits.min && ratio <= limits.max)
             {
+                //ESP_LOGI("CGFR", "G %d", i+1);
                 this->est_gear_idx = i + 1;
                 return true;
             }

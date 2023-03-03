@@ -173,7 +173,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
+    float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -344,7 +344,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
     uint16_t ret = 0;
     if (this->hold2_pressure_mpc_adder_map != nullptr) {
-        float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
+        float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
         ret = hold2_pressure_mpc_adder_map->get_value(trq_percent, (uint8_t)to_apply);
     }
     return ret;

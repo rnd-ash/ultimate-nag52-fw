@@ -344,15 +344,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float mpc_hold_adder = 0;
         sr.start_reading = this->collect_report_segment(shift_start_time);
         float curr_torq_request = 0;
-        bool do_egs_req = true;
         float mpc_release_delay = 0;
-        float reduction_factor = 0;
+        float d_trq = 0;
         while(process_shift) {
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, this->gearboxConfig.ratios);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
             int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
             int current_trq = sensor_data.input_torque;
-            if (sensor_data.input_torque > 0 && sensor_data.driver_requested_torque > sensor_data.input_torque) {
+            if (!is_upshift && (sensor_data.input_torque > 0 && sensor_data.driver_requested_torque > sensor_data.input_torque)) {
                 current_trq = sensor_data.driver_requested_torque;
             }
             if (phase_elapsed > phase_hold_time+phase_ramp_time && current_phase < SHIFT_PHASE_OVERLAP) {
@@ -571,30 +570,26 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 // Torque request behaviour (Experiment for EGS52 and ME2.7/8)
-                if (current_phase >= SHIFT_PHASE_BLEED) { 
-                    if (sensor_data.driver_requested_torque > 100) { // No need for EGS Req
-                        TorqueRequest req = TorqueRequest::LessThan;
-                        if (shift_progress_percentage < 50) { // Decrease torque from driver demand
-                            reduction_factor = scale_number(chars.target_shift_time , 50, 80, 100, 1000)/100.0;
-                            curr_torq_request = linear_interp(MIN(sensor_data.driver_requested_torque, sensor_data.static_torque), (float)sensor_data.driver_requested_torque*reduction_factor, shift_progress_percentage, 50);
-                        } else { // Shifting nearing completion
-                            req = TorqueRequest::LessThanFast;
-                            curr_torq_request = linear_interp(sensor_data.static_torque, sensor_data.driver_requested_torque, shift_progress_percentage-50, 50);
-                        }
-                        this->set_torque_request(req, curr_torq_request);
-                    }
-                } else {
-                    // Set the start torque amount, but don't use it yet
-                    curr_torq_request = sensor_data.static_torque;
-                    this->set_torque_request(TorqueRequest::None, 0);
+                if (d_trq == 0) {
+                    float multi = scale_number(chars.target_shift_time, 0.6, 0.2, 100, 1000);
+                    d_trq = sensor_data.driver_requested_torque * multi; // Our offset from pedal torque (Max)
                 }
-                //if (sensor_data.input_rpm > 1000 && (profile == race || profile == manual)) {
-                //    int shift_progress_percentage = progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear);
-                //    if (shift_progress_percentage > 2 || current_phase == SHIFT_PHASE_OVERLAP) {
-                //        uint16_t predict_rpm = MAX(1000, rpm_target_gear + ((sensor_data.engine_rpm-sensor_data.input_rpm)/2));
-                //        egs_can_hal->set_fake_engine_rpm(predict_rpm);
-                //    }
-                //}
+
+
+                if (current_phase >= SHIFT_PHASE_BLEED && is_upshift) {
+                    int shift_progress_clamped = MIN(MAX(shift_progress_percentage, 0), 100);
+                    TorqueRequest req = TorqueRequest::LessThan;
+                    // start reduction
+                    if (shift_progress_clamped < 25) { // Decrease torque from driver demand
+                        curr_torq_request = MAX(0, linear_interp(sensor_data.driver_requested_torque, sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
+                    } else if (shift_progress_clamped < 75) { // Hold phase
+                        curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
+                    } else { // Nearing the end 75%+
+                        req = TorqueRequest::LessThanFast;
+                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-75, 25);
+                    }
+                    this->set_torque_request(req, curr_torq_request);
+                }
             } else {
                 this->flaring = false;
                 // No torque request if stationary
@@ -616,7 +611,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 // Finish torque request
-                if (curr_torq_request != 0 && curr_torq_request < MIN(sensor_data.static_torque, sensor_data.driver_requested_torque)) {
+                if (curr_torq_request != 0 && curr_torq_request < sensor_data.driver_requested_torque) {
                     // End target is always pedal torque
                     this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time));
                 } else {

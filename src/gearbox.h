@@ -29,26 +29,33 @@ struct TempSampleData {
     uint8_t sample_id;
 };
 
-#define MAX_LIMIT 0.05 // 5% drift
+#define MAX_LIMIT_1 0.10 //10% drift
+#define MAX_LIMIT_2 0.10 //10% drift
+#define MAX_LIMIT_3 0.09 // 9% drift
+#define MAX_LIMIT_4 0.08 // 8% drift
+#define MAX_LIMIT_5 0.05 // 5% drift
+
+#define MAX_LIMIT_R1 0.10 //10% drift
+#define MAX_LIMIT_R2 0.10 //10% drift
 
 const static GearRatioLimit GEAR_RATIO_LIMITS_SMALL[7] {
-    GearRatioLimit { .max = RAT_1_SMALL*(1.0+MAX_LIMIT), .min = RAT_1_SMALL*(1.0-MAX_LIMIT) }, // 1
-    GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT), .min = RAT_2_SMALL*(1.0-MAX_LIMIT) }, // 2
-    GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT), .min = RAT_3_SMALL*(1.0-MAX_LIMIT) }, // 3
-    GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT), .min = RAT_4_SMALL*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_SMALL*(1.0+(MAX_LIMIT/2)), .min = RAT_5_SMALL*(1.0-MAX_LIMIT) }, // 5
-    GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT) }, // R1
-    GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT) }, // R2
+    GearRatioLimit { .max = RAT_1_SMALL*(1.0+MAX_LIMIT_1), .min = RAT_1_SMALL*(1.0-MAX_LIMIT_1) }, // 1
+    GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT_2), .min = RAT_2_SMALL*(1.0-MAX_LIMIT_2) }, // 2
+    GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT_3), .min = RAT_3_SMALL*(1.0-MAX_LIMIT_3) }, // 3
+    GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT_4), .min = RAT_4_SMALL*(1.0-MAX_LIMIT_4) }, // 4
+    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT_5), .min = RAT_5_SMALL*(1.0-MAX_LIMIT_5) }, // 5
+    GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT_R1), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT_R1) }, // R1
+    GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT_R2), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT_R2) }, // R2
 };
 
 const static GearRatioLimit GEAR_RATIO_LIMITS_LARGE[7] {
-    GearRatioLimit { .max = RAT_1_LARGE*(1.0+MAX_LIMIT), .min = RAT_1_LARGE*(1.0-MAX_LIMIT) }, // 1
-    GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT), .min = RAT_2_LARGE*(1.0-MAX_LIMIT) }, // 2
-    GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT), .min = RAT_3_LARGE*(1.0-MAX_LIMIT) }, // 3
-    GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT), .min = RAT_4_LARGE*(1.0-MAX_LIMIT) }, // 4
-    GearRatioLimit { .max = RAT_5_LARGE*(1.0+(MAX_LIMIT/2)), .min = RAT_5_LARGE*(1.0-MAX_LIMIT) }, // 5
-    GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT) }, // R1
-    GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT) }, // R2
+    GearRatioLimit { .max = RAT_1_LARGE*(1.0+MAX_LIMIT_1), .min = RAT_1_LARGE*(1.0-MAX_LIMIT_1) }, // 1
+    GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT_2), .min = RAT_2_LARGE*(1.0-MAX_LIMIT_2) }, // 2
+    GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT_3), .min = RAT_3_LARGE*(1.0-MAX_LIMIT_3) }, // 3
+    GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT_4), .min = RAT_4_LARGE*(1.0-MAX_LIMIT_4) }, // 4
+    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT_5), .min = RAT_5_LARGE*(1.0-MAX_LIMIT_5) }, // 5
+    GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT_R1), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT_R1) }, // R1
+    GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT_R2), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT_R2) }, // R2
 };
 
 const static FwdRatios RATIOS_LARGE {

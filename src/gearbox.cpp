@@ -570,18 +570,18 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 // Torque request behaviour (Experiment for EGS52 and ME2.7/8)
-                if (d_trq == 0) {
-                    float multi = scale_number(chars.target_shift_time, 0.6, 0.2, 100, 1000);
-                    d_trq = sensor_data.driver_requested_torque * multi; // Our offset from pedal torque (Max)
-                }
-
-
                 if (current_phase >= SHIFT_PHASE_BLEED && is_upshift) {
+                if (d_trq == 0) {
+                        // Multi increases with output torque. 25% of 100Nm is 25Nm whilst 10% of 580Nm is still 58Nm reduction!
+                        float multi = scale_number(sensor_data.driver_requested_torque, 0.7, 0.85, 100, gearboxConfig.max_torque);
+                        multi *= scale_number(chars.target_shift_time, 0.8, 1.0, 100, 1000);
+                        d_trq = sensor_data.driver_requested_torque - (sensor_data.driver_requested_torque * multi); // Our offset from pedal torque (Max)
+                }
                     int shift_progress_clamped = MIN(MAX(shift_progress_percentage, 0), 100);
                     TorqueRequest req = TorqueRequest::LessThan;
                     // start reduction
                     if (shift_progress_clamped < 25) { // Decrease torque from driver demand
-                        curr_torq_request = MAX(0, linear_interp(sensor_data.driver_requested_torque, sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
+                        curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
                     } else if (shift_progress_clamped < 75) { // Hold phase
                         curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
                     } else { // Nearing the end 75%+

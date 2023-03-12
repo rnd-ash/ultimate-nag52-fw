@@ -419,19 +419,18 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         if (req_lookup == ProfileGearChange::ONE_TWO) {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 20.0, 4.00, 100, 1000);
-                            spc_trq_multi *= scale_number(sensor_data.input_rpm, 0.5, 1.0, 500, 2000);
                         } else {
-                            min_spc = 200;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 11.6, 5.22, 100, 1000);
+                            min_spc = 300;
+                            spc_trq_multi = scale_number(ss_now.target_shift_time, 15, 6.5, 100, 1000);
                         }
                         break;
                     case Clutch::K2: // 2->3
                         min_spc = 300;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 29.0, 5.8, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 30.0, 7, 100, 1000);
                         break;
                     case Clutch::K3: // 3->4 and 3->2
-                        min_spc = 500;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 40.60, 10.15, 100, 1000);
+                        min_spc = 750;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
                         if (req_lookup == ProfileGearChange::THREE_FOUR) {
                             mpc_release_delay = scale_number(torque_decimal, 0, 250, 0.0, 150);
                         }
@@ -444,7 +443,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         if (req_lookup == ProfileGearChange::TWO_ONE) {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 11.5, 4.35, 100, 1000);
-                            spc_trq_multi *= scale_number(sensor_data.input_rpm, 0.5, 1.0, 500, 2000);
                         } else { 
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 29.0, 7, 100, 1000);
@@ -453,7 +451,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     case Clutch::B2: // 4->3
                     default:
                         min_spc = 400;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 8.1, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 9, 100, 1000);
                         break;
                 }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
@@ -573,20 +571,20 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (current_phase >= SHIFT_PHASE_BLEED && is_upshift) {
                 if (d_trq == 0) {
                         // Multi increases with output torque. 25% of 100Nm is 25Nm whilst 10% of 580Nm is still 58Nm reduction!
-                        float multi = scale_number(sensor_data.driver_requested_torque, 0.7, 0.85, 100, gearboxConfig.max_torque);
-                        multi *= scale_number(chars.target_shift_time, 0.8, 1.0, 100, 1000);
-                        d_trq = sensor_data.driver_requested_torque - (sensor_data.driver_requested_torque * multi); // Our offset from pedal torque (Max)
+                        float multi = scale_number(sensor_data.driver_requested_torque, 0.3, 0.2, 100, gearboxConfig.max_torque);
+                        multi *= scale_number(chars.target_shift_time, 1.3, 1.0, 100, 1000);
+                        d_trq = (sensor_data.driver_requested_torque * multi); // Our offset from pedal torque (Max)
                 }
                     int shift_progress_clamped = MIN(MAX(shift_progress_percentage, 0), 100);
                     TorqueRequest req = TorqueRequest::LessThan;
                     // start reduction
                     if (shift_progress_clamped < 25) { // Decrease torque from driver demand
                         curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
-                    } else if (shift_progress_clamped < 75) { // Hold phase
+                    } else if (shift_progress_clamped < 50) { // Hold phase
                         curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
                     } else { // Nearing the end 75%+
                         req = TorqueRequest::LessThanFast;
-                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-75, 25);
+                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-50, 50);
                     }
                     this->set_torque_request(req, curr_torq_request);
                 }
@@ -613,7 +611,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Finish torque request
                 if (curr_torq_request != 0 && curr_torq_request < sensor_data.driver_requested_torque) {
                     // End target is always pedal torque
-                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time));
+                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time+sd.max_pressure_data.hold_time));
                 } else {
                     this->set_torque_request(TorqueRequest::None, 0);
                 }

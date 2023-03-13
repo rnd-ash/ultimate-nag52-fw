@@ -9,7 +9,8 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
     this->gs418.raw = ~0;
-
+    this->gs218.MKRIECH = 0;
+    this->gs418.FMRAD = 1.0;
     this->set_target_gear(GearboxGear::SignalNotAvailable);
     this->set_actual_gear(GearboxGear::SignalNotAvailable);
     this->set_shifter_position(ShifterPosition::SignalNotAvailable);

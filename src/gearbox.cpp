@@ -605,7 +605,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             uint16_t e = 0;
             while (e < sd.max_pressure_data.hold_time + sd.max_pressure_data.ramp_time) {
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
-                float c = linear_interp(start_spc, MAX(this->mpc_working*1.5, old_spc+250), e, sd.max_pressure_data.ramp_time);
+                float c = linear_interp(start_spc, MAX(this->mpc_working*2.5, old_spc*2), e, sd.max_pressure_data.ramp_time);
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 // Finish torque request

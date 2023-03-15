@@ -50,6 +50,7 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     uint32_t input_rpm = sensors->input_rpm;
+    bool hypermiling = profile == hypermile;
     int trq = MAX(sensors->static_torque, sensors->driver_requested_torque);
     if (input_rpm <= TCC_MIN_LOCKING_RPM) {
         if (this->last_idle_timestamp == 0) {
@@ -158,8 +159,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 if (!learning) {
                     if (trq > high_torque_adapt_limit) {
                         int torque_delta = trq - high_torque_adapt_limit;
-                        this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
-                    } else if (sensors->static_torque < 40) {
+                        this->curr_tcc_pressure += (2.0*torque_delta); // 2mBar per Nm
+                    } else if (sensors->static_torque < 40 && !hypermile) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
                             this->curr_tcc_pressure -= scale_number(sensors->static_torque, 100, 50, -40, 40);
                         }
@@ -171,13 +172,14 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             }
         }
     }
-    if (this->base_tcc_pressure > 1800) {
-        this->base_tcc_pressure = 1800;
-    }
     if (this->curr_tcc_pressure > 7000) {
         this->curr_tcc_pressure = 7000;
     }
-    pm->set_target_tcc_pressure(this->curr_tcc_pressure);
+    if (is_shifting && this->curr_tcc_pressure > 1500) {
+       pm->set_target_tcc_pressure(this->curr_tcc_pressure + 250);
+    } else {
+        pm->set_target_tcc_pressure(this->curr_tcc_pressure);
+    }
 }
 
 ClutchStatus TorqueConverter::get_clutch_state(void) {

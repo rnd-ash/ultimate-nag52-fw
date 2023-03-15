@@ -281,26 +281,34 @@ GearboxDisplayGear HypermileProfile::get_display_gear(GearboxGear target, Gearbo
 }
 
 bool HypermileProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    return comfort->should_upshift(current_gear, sensors);
+    if (sensors->pedal_pos < 15  && coast_downshift && sensors->engine_rpm < 2500) {
+        return false;
+    } else {
+        this->coast_downshift = false;
+        return comfort->should_upshift(current_gear, sensors);
+    }
 }
 
 bool HypermileProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+    if (sensors->pedal_pos == 0 && this->idle_count < 200) {
+        this->idle_count++;
+    } else {
+        this->idle_count = 0;
+    }
     if (current_gear == GearboxGear::Second) { // First is too innefficient, so never shift to it
         return false;
     }
-    // Shift before TCC unlocks when under little load
-    if (sensors->input_rpm < 1200 && sensors->pedal_pos < 10) {
-        return true;
-    }
-    if (sensors->current_timestamp_ms - sensors->last_shift_time > 1500) {
+    if (sensors->current_timestamp_ms - sensors->last_shift_time > 1500) { // Don't check straight after a gear shift
         // More than 1ml/sec of fuel to keep engine rotating. We have to downshift
         // so we can enter 'coasting' region
-        if (sensors->pedal_pos == 0 && sensors->current_consumption > 1000) { 
+        if (this->idle_count > 100 && sensors->current_consumption > 1000) { 
+            this->idle_count = 0;
+            this->coast_downshift = true;
             return true;
         }
         // else -> already in cuttoff zone, keep gear so engine uses 0 fuel
     }
-    return manual->should_downshift(current_gear, sensors);
+    return comfort->should_downshift(current_gear, sensors);
 }
 
 // Minimum lockup

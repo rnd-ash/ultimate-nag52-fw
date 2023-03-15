@@ -130,7 +130,7 @@ public:
 class HypermileProfile : public AbstractProfile {
 public:
     explicit HypermileProfile(bool is_diesel);
-    GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
+    GearboxProfile get_profile() const override { return GearboxProfile::Hypermile; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -139,6 +139,9 @@ public:
     GearboxGear get_start_gear() const override {
         return GearboxGear::Second;
     }
+private:
+    bool coast_downshift = false;
+    uint16_t idle_count = 0;
 };
 
 class StandardProfile : public AbstractProfile {

@@ -47,9 +47,9 @@ StoredTcuMap* get_map(uint8_t map_id) {
         case C_DNTIME_MAP_ID:
             return comfort->get_downshift_time_map();
         case W_UPTIME_MAP_ID:
-            return winter->get_upshift_time_map();
+            return hypermile->get_upshift_time_map();
         case W_DNTIME_MAP_ID:
-            return winter->get_downshift_time_map();
+            return hypermile->get_downshift_time_map();
         case M_UPTIME_MAP_ID:
             return manual->get_upshift_time_map();
         case M_DNTIME_MAP_ID:

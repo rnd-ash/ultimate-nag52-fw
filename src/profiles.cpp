@@ -249,6 +249,7 @@ HypermileProfile::HypermileProfile(bool is_diesel) : AbstractProfile(
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
         M_PETROL_DOWNSHIFT_MAP,
+        // Fastest shifting
         C_UPSHIFT_TIME_MAP,
         C_DOWNSHIFT_TIME_MAP
     ) {
@@ -280,12 +281,24 @@ GearboxDisplayGear HypermileProfile::get_display_gear(GearboxGear target, Gearbo
 }
 
 bool HypermileProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    return false;
+    return comfort->should_upshift(current_gear, sensors);
 }
 
 bool HypermileProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
-    if (current_gear == GearboxGear::Second) {
+    if (current_gear == GearboxGear::Second) { // First is too innefficient, so never shift to it
         return false;
+    }
+    // Shift before TCC unlocks when under little load
+    if (sensors->input_rpm < 1200 && sensors->pedal_pos < 10) {
+        return true;
+    }
+    if (sensors->current_timestamp_ms - sensors->last_shift_time > 1500) {
+        // More than 1ml/sec of fuel to keep engine rotating. We have to downshift
+        // so we can enter 'coasting' region
+        if (sensors->pedal_pos == 0 && sensors->current_consumption > 1000) { 
+            return true;
+        }
+        // else -> already in cuttoff zone, keep gear so engine uses 0 fuel
     }
     return manual->should_downshift(current_gear, sensors);
 }

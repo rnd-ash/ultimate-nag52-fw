@@ -935,6 +935,7 @@ void Gearbox::controller_loop()
             this->sensor_data.pedal_pos = p_tmp;
         }
         sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(now, 1000);
+        sensor_data.current_consumption = egs_can_hal->get_fuel_flow_rate(now, 1000);
         this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(now, 1000);
         if (this->sensor_data.engine_rpm == UINT16_MAX)
         {

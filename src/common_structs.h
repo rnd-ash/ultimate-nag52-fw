@@ -76,6 +76,8 @@ struct SensorData{
     WheelData rl_wheel;
     WheelData fr_wheel;
     WheelData fl_wheel;
+    /// In ul/sec 
+    uint16_t current_consumption;
 };
 
 struct OutputData {

@@ -597,7 +597,7 @@ void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
 
 void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
     if (loss_nm > 0xFF/4) {
-        loss_nm = 0xFF;
+        loss_nm = 0xFE;
     }
     gs418.M_VERL = loss_nm*4;
 }
@@ -674,6 +674,9 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Underscore:
             gs418.FPC = '_';
+            break;
+        case GearboxProfile::Hypermile:
+            gs418.FPC = 'H';
             break;
         default:
             break;

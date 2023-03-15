@@ -127,9 +127,9 @@ public:
     }
 };
 
-class WinterProfile : public AbstractProfile {
+class HypermileProfile : public AbstractProfile {
 public:
-    explicit WinterProfile(bool is_diesel);
+    explicit HypermileProfile(bool is_diesel);
     GearboxProfile get_profile() const override { return GearboxProfile::Winter; }
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
@@ -176,7 +176,7 @@ public:
 
 extern AgilityProfile* agility;
 extern ComfortProfile* comfort;
-extern WinterProfile* winter;
+extern HypermileProfile* hypermile;
 extern ManualProfile* manual;
 extern StandardProfile* standard;
 extern RaceProfile* race;

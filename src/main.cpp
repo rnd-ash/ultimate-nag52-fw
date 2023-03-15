@@ -91,14 +91,14 @@ SPEAKER_POST_CODE setup_tcm() {
 
         standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
         comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
-        winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
+        hypermile = new HypermileProfile(VEHICLE_CONFIG.engine_type == 0);
         agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
         manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
         race = new RaceProfile(VEHICLE_CONFIG.engine_type == 0);
 
         profiles[0] = standard;
         profiles[1] = comfort;
-        profiles[2] = winter;
+        profiles[2] = hypermile;
         profiles[3] = agility;
         profiles[4] = manual;
         profiles[5] = race;

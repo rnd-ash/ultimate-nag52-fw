@@ -236,7 +236,7 @@ TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, Gearb
     };
 }
 
-WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
+HypermileProfile::HypermileProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "WINTER", 
         MAP_NAME_M_DIESEL_UPSHIFT, 
@@ -254,7 +254,7 @@ WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
     ) {
 }
 
-GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
+GearboxDisplayGear HypermileProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
             return GearboxDisplayGear::P;
@@ -279,11 +279,11 @@ GearboxDisplayGear WinterProfile::get_display_gear(GearboxGear target, GearboxGe
     }
 }
 
-bool WinterProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+bool HypermileProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
     return false;
 }
 
-bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
+bool HypermileProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::Second) {
         return false;
     }
@@ -291,7 +291,7 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 }
 
 // Minimum lockup
-TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
+TccLockupBounds HypermileProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
     return TccLockupBounds {
         .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
         .min_slip_rpm = (int)MAX(50, sensors->static_torque)
@@ -479,7 +479,7 @@ StandardProfile* standard = new StandardProfile();
 /* Now initialized in main.cpp */
 AgilityProfile* agility = nullptr;
 ComfortProfile* comfort = nullptr;
-WinterProfile* winter = nullptr;
+HypermileProfile* hypermile = nullptr;
 ManualProfile* manual = nullptr;
 StandardProfile* standard = nullptr;
 RaceProfile* race = nullptr;

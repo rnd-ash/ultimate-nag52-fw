@@ -123,6 +123,8 @@ enum class GearboxProfile: uint8_t {
     Failure,
     // Race (R)
     Race,
+    // Hypermile (AA)
+    Hypermile,
     Individual,
     // Reserved for 'no profile' (_)
     Underscore

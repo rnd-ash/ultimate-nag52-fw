@@ -34,14 +34,18 @@ volatile uint64_t n2_intr_times[2] = {0, 0};
 volatile uint64_t output_intr_times[2] = {0,0};
 
 // For RPM sensor debouncing / smoothing
+#define RPM_CHANGE_MAX 1000
 #define RPM_SAMPLES_DEBOUNCE 10
+#define RPM_TIMER_INTERVAL_MS 20
 volatile uint64_t n3_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
 volatile uint64_t n3_total = 0;
 volatile uint64_t n2_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
 volatile uint64_t n2_total = 0;
 volatile uint64_t output_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
 volatile uint64_t output_total = 0;
-uint8_t avg_idx = 0;
+uint8_t avg_n2_idx = 0;
+uint8_t avg_n3_idx = 0;
+uint8_t avg_out_idx = 0;
 
 
 uint64_t t_n2 = 0;
@@ -102,23 +106,26 @@ static void IRAM_ATTR on_rpm_timer(void* args) {
     time_delta_output = output_intr_times[1] - output_intr_times[0];
     portEXIT_CRITICAL_ISR(&output_mux);
 
-    n3_total -= n3_avgs[avg_idx];
-    n3_avgs[avg_idx] = time_delta_n3;
-    n3_total += time_delta_n3;
-
-    n2_total -= n2_avgs[avg_idx];
-    n2_avgs[avg_idx] = time_delta_n2;
-    n2_total += time_delta_n2;
-
-    output_total -= output_avgs[avg_idx];
-    output_avgs[avg_idx] = time_delta_output;
-    output_total += time_delta_output;
-
-    avg_idx++;
-    if (avg_idx >= RPM_SAMPLES_DEBOUNCE) {
-        avg_idx=0;
+    if (time_delta_n3 != 0) {
+        n3_total -= n3_avgs[avg_n3_idx];
+        n3_avgs[avg_n3_idx] = time_delta_n3;
+        n3_total += time_delta_n3;
+        avg_n3_idx = (avg_n3_idx+1)%RPM_SAMPLES_DEBOUNCE;
     }
 
+    if (time_delta_n2 != 0) {
+        n2_total -= n2_avgs[avg_n2_idx];
+        n2_avgs[avg_n2_idx] = time_delta_n2;
+        n2_total += time_delta_n2;
+        avg_n2_idx = (avg_n2_idx+1)%RPM_SAMPLES_DEBOUNCE;
+    }
+
+    if (time_delta_output != 0) {
+        output_total -= output_avgs[avg_out_idx];
+        output_avgs[avg_out_idx] = time_delta_output;
+        output_total += time_delta_output;
+        avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
+    }
 }
 
 esp_err_t Sensors::init_sensors(){
@@ -231,7 +238,7 @@ esp_err_t Sensors::init_sensors(){
 
     ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_0, &config), "SENSORS", "Failed to init Timer");
     ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "SENSORS", "Failed to set counter value");
-    ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 20*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
+    ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, RPM_TIMER_INTERVAL_MS*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
     ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to enable timer interrupt");
     ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_0, &on_rpm_timer, NULL, 0, &rpm_timer_handle), "SENSORS", "Failed to register timer ISR");
     ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to start timer");
@@ -246,22 +253,10 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
     uint64_t d_n3 = n3_total/RPM_SAMPLES_DEBOUNCE;
     uint64_t now = esp_timer_get_time();
     esp_err_t res = ESP_OK;
-    if (d_n2 == 0 || now - n2_intr_times[1] > 20000)
-    {
-        dest->n2_raw = 0;
-    }
-    else
-    {
-        dest->n2_raw = 1000000 / d_n2;
-    }
-    if (d_n3 == 0 || now - n3_intr_times[1] > 20000)
-    {
-        dest->n3_raw = 0;
-    }
-    else
-    {
-        dest->n3_raw = 1000000 / d_n3;
-    }
+
+    dest->n2_raw = (now - n2_intr_times[1] > RPM_TIMER_INTERVAL_MS*5000 || d_n2 == 0) ? 0 : 1000000 / d_n2;
+    dest->n3_raw = (now - n3_intr_times[1] > RPM_TIMER_INTERVAL_MS*5000 || d_n3 == 0) ? 0 : 1000000 / d_n3;
+    
     if (dest->n2_raw < 60 && dest->n3_raw < 60)
     { // Stationary ( < 1rpm ), break here to avoid divideBy0Ex, and also noise
         dest->calc_rpm = 0;
@@ -306,14 +301,8 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
         uint16_t rpm = 0;
         uint64_t d_output = output_total/RPM_SAMPLES_DEBOUNCE;
         uint64_t now = esp_timer_get_time();
-        if (d_output == 0 || now - output_intr_times[1] > 20000)
-        {
-            rpm = 0;
-        }
-        else
-        {
-            rpm = ((1000000 / d_output) / VEHICLE_CONFIG.input_sensor_pulses_per_rev);
-        }
+        rpm = (now - output_intr_times[1] > RPM_TIMER_INTERVAL_MS*10000) ? 0 : 1000000 / d_output;
+        rpm /= VEHICLE_CONFIG.input_sensor_pulses_per_rev;
         *dest = rpm;
     }
     return res;

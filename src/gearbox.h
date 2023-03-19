@@ -16,6 +16,7 @@
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
 #include "adaptation/shift_report.h"
+#include "models/input_torque.hpp"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -94,6 +95,7 @@ public:
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
 private:
+    ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequest type, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
     bool calcGearFromRatio(bool is_reverse);
@@ -146,6 +148,7 @@ private:
     float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
     Solenoid* last_shift_solenoid = nullptr;
+    InputTorqueModel* itm;
 };
 
 extern Gearbox* gearbox;

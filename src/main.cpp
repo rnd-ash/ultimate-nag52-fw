@@ -12,7 +12,6 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
-#include "adaptation/adapt_map.h"
 #include "solenoids/constant_current.h"
 
 // CAN LAYERS

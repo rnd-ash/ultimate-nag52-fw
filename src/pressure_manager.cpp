@@ -17,7 +17,7 @@
 
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
-    this->adapt_map = new AdaptationMap();
+    this->pressure_adapt_system = new ShiftAdaptationSystem();
     this->req_tcc_pressure = 0;
     this->req_mpc_pressure = 0;
     this->req_spc_pressure = 0;
@@ -178,7 +178,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
+    float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -272,7 +272,7 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->ramp_time = 0;
     dest_overlap->ramp_time = (float)chars.target_shift_time/2;
     dest_overlap->hold_time = (float)chars.target_shift_time/2;
-    uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2mBar per Nm
+    uint16_t spc_addr =  MAX(100, abs(sensor_data->input_torque)*2.5); // 2mBar per Nm
     dest_torque->mpc_pressure = 0;
     dest_overlap->mpc_pressure = 0;
     dest_torque->mpc_offset_mode = true;
@@ -353,7 +353,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
     uint16_t ret = 0;
     if (this->hold2_pressure_mpc_adder_map != nullptr) {
-        float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
+        float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
         ret = hold2_pressure_mpc_adder_map->get_value(trq_percent, (uint8_t)to_apply);
     }
     return ret;

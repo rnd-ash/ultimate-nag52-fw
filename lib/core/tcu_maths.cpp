@@ -15,6 +15,6 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 }
 
 
-// float progress_between_targets(float current, float start, float end) {
-//     return ((100.0F * (current - start)) / (end - start));
-// }
+float progress_between_targets(float current, float start, float end) {
+    return ((100.0F * (current - start)) / (end - start));
+}

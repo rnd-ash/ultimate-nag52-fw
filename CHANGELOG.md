@@ -1,3 +1,18 @@
+# Unreleased (Dev)
+
+* Smooth TCC apply 
+* Make TCC lockup apply instantly during shifts
+* Stop TCC from releasing for 10ms after a shift (Fixes 'bump' feeling)
+* Added input torque model. Does the following:
+    * Calculates torque converter loss
+    * Calculates torque converter output multiplication
+    * Factors in AC/accessory loss on engine torque
+
+# 22/02/23
+
+## Fixed
+* Fixed incorrect downshift maps lookup
+
 # 19/02/23
 
 ## Added

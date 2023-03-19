@@ -4,7 +4,7 @@
 #include <common_structs.h>
 #include "tcu_maths.h"
 #include "profiles.h"
-#include "adaptation/adapt_map.h"
+#include "adaptation/shift_adaptation.h"
 #include <gearbox_config.h>
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
@@ -76,8 +76,8 @@ public:
      */
     esp_err_t diag_reset_adaptation(void) {
         bool result = false;
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->reset();
+        if (this->pressure_adapt_system != nullptr) { 
+            this->pressure_adapt_system->reset();
             result = true;
         }
         return result;
@@ -92,8 +92,8 @@ public:
      * @param is_valid_rpt If the response is valid or not (Invalid would be due to a shift at stantstill)
      */
     void perform_adaptation(SensorData* prefill_sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
+        if (this->pressure_adapt_system != nullptr) { 
+            //this->pressure_adapt_system->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
         }
     }
 
@@ -102,8 +102,8 @@ public:
      * 
      */
     void save(void) {
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->save(); 
+        if (this->pressure_adapt_system != nullptr) { 
+            this->pressure_adapt_system->save(); 
         }
     }
 
@@ -142,8 +142,7 @@ private:
     uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar);
 
     SensorData* sensor_data;
-    AdaptationMap* adapt_map;
-
+    ShiftAdaptationSystem* pressure_adapt_system;
     uint16_t req_tcc_pressure;
     uint16_t req_spc_pressure;
     uint16_t req_mpc_pressure;

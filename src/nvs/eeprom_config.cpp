@@ -64,6 +64,8 @@ esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_wri
 //     return (e == ESP_OK);
 // }
 
+const char* LEGACY_EEPROM_KEYS[] = {"WORK_LARGE", "WORK_SMALL"};
+
 esp_err_t EEPROM::init_eeprom() {
     // Called on startup
     esp_err_t result = nvs_flash_init();
@@ -77,6 +79,16 @@ esp_err_t EEPROM::init_eeprom() {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(result));
         }
         MAP_NVS_HANDLE = config_handle;
+        bool erase = false;
+        for (int i = 0; i < sizeof(LEGACY_EEPROM_KEYS) / sizeof(const char*); i++) {
+            if(nvs_erase_key(MAP_NVS_HANDLE, LEGACY_EEPROM_KEYS[i]) == ESP_OK) {
+                ESP_LOGI("EEPROM INIT", "Erasing old map entry %s", LEGACY_EEPROM_KEYS[i]);
+                erase = true;
+            }
+        }
+        if (erase) {
+            nvs_commit(MAP_NVS_HANDLE);
+        }
         result = read_core_config(&VEHICLE_CONFIG);
     }
     return result;

@@ -22,7 +22,7 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
         break;
     }
     this->start_enable = true;
-    this->gs218.set_TORQUE_REQ(0xFE);
+    this->gs218.TORQUE_REQ = 0xFE;
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
@@ -43,26 +43,26 @@ WheelData Egs51Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_208EGS51 bs208;
+    BS_208_EGS51 bs208;
     if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.get_DRTGHR()) {
-            case BS_208h_DRTGHREGS51::FWD:
+        switch(bs208.DRTGHR) {
+            case BS_208h_DRTGHR_EGS51::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_208h_DRTGHREGS51::REV:
+            case BS_208h_DRTGHR_EGS51::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_208h_DRTGHREGS51::PASSIVE:
+            case BS_208h_DRTGHR_EGS51::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_208h_DRTGHREGS51::SNV:
+            case BS_208h_DRTGHR_EGS51::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs208.get_DHR(),
+            .double_rpm = bs208.DHR,
             .current_dir = d
         };
     } else {
@@ -74,26 +74,26 @@ WheelData Egs51Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
 }
 
 WheelData Egs51Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
-    BS_208EGS51 bs208;
+    BS_208_EGS51 bs208;
     if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.get_DRTGHL()) {
-            case BS_208h_DRTGHLEGS51::FWD:
+        switch(bs208.DRTGHL) {
+            case BS_208h_DRTGHL_EGS51::FWD:
                 d = WheelDirection::Forward;
                 break;
-            case BS_208h_DRTGHLEGS51::REV:
+            case BS_208h_DRTGHL_EGS51::REV:
                 d = WheelDirection::Reverse;
                 break;
-            case BS_208h_DRTGHLEGS51::PASSIVE:
+            case BS_208h_DRTGHL_EGS51::PASSIVE:
                 d = WheelDirection::Stationary;
                 break;
-            case BS_208h_DRTGHLEGS51::SNV:
+            case BS_208h_DRTGHL_EGS51::SNV:
             default:
                 break;
         }
 
         return WheelData {
-            .double_rpm = bs208.get_DHL(),
+            .double_rpm = bs208.DHL,
             .current_dir = d
         };
     } else {
@@ -121,18 +121,18 @@ bool Egs51Can::get_kickdown(uint64_t now, uint64_t expire_time_ms) { // TODO
 }
 
 uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TODO
-    MS_210EGS51 ms210;
+    MS_210_EGS51 ms210;
     if (this->ms51.get_MS_210(now, expire_time_ms, &ms210)) {
-        return ms210.get_PW();
+        return ms210.PW;
     } else {
         return 0xFF;
     }
 }
 
 int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
-    MS_310EGS51 ms310;
+    MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_IND_TORQUE()*3;
+        return (int)ms310.IND_TORQUE*3;
     } else {
         return INT_MAX;
     }
@@ -144,9 +144,9 @@ int Egs51Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 }
 
 int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
-    MS_310EGS51 ms310;
+    MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_MAX_TORQUE()*3;
+        return (int)ms310.MAX_TORQUE*3;
     } else {
         return INT_MAX;
     }
@@ -154,9 +154,9 @@ int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 }
 
 int Egs51Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
-    MS_310EGS51 ms310;
+    MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.get_MIN_TORQUE()*3;
+        return (int)ms310.MIN_TORQUE*3;
     } else {
         return INT_MAX;
     }
@@ -168,27 +168,27 @@ PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 }
 
 int16_t Egs51Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
-    MS_608EGS51 ms608;
+    MS_608_EGS51 ms608;
     if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
-        return ms608.get_T_MOT() - 40;
+        return ms608.T_MOT - 40;
     } else {
         return UINT16_MAX;
     }
 }
 
 int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
-    MS_308EGS51 ms308;
+    MS_308_EGS51 ms308;
     if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
-        return ms308.get_T_OEL() - 40;
+        return ms308.T_OEL - 40;
     } else {
         return UINT16_MAX;
     }
 }
 
 uint16_t Egs51Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
-    MS_308EGS51 ms308;
+    MS_308_EGS51 ms308;
     if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
-        return ms308.get_NMOT();
+        return ms308.NMOT;
     } else {
         return UINT16_MAX;
     }
@@ -213,35 +213,35 @@ void Egs51Can::set_clutch_status(ClutchStatus status) {
 void Egs51Can::set_actual_gear(GearboxGear actual) {
     switch(actual) {
         case GearboxGear::First:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_D1);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_D1;
             break;
         case GearboxGear::Second:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_D2);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_D2;
             break;
         case GearboxGear::Third:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_D3);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_D3;
             break;
         case GearboxGear::Fourth:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_D4);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_D4;
             break;
         case GearboxGear::Fifth:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_D5);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_D5;
             break;
         case GearboxGear::Park:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_P);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_P;
             break;
         case GearboxGear::Neutral:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_N);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_N;
             break;
         case GearboxGear::Reverse_First:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_R);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_R;
             break;
         case GearboxGear::Reverse_Second:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_R2);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_R2;
             break;
         case GearboxGear::SignalNotAvailable:
         default:
-            this->gs218.set_GIC(GS_218h_GICEGS51::G_SNV);
+            this->gs218.GIC = GS_218h_GIC_EGS51::G_SNV;
             break;
     }
 }
@@ -249,44 +249,41 @@ void Egs51Can::set_actual_gear(GearboxGear actual) {
 void Egs51Can::set_target_gear(GearboxGear target) {
     switch(target) {
         case GearboxGear::First:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_D1);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_D1;
             break;
         case GearboxGear::Second:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_D2);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_D2;
             break;
         case GearboxGear::Third:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_D3);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_D3;
             break;
         case GearboxGear::Fourth:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_D4);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_D4;
             break;
         case GearboxGear::Fifth:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_D5);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_D5;
             break;
         case GearboxGear::Park:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_P);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_P;
             break;
         case GearboxGear::Neutral:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_N);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_N;
             break;
         case GearboxGear::Reverse_First:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_R);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_R;
             break;
         case GearboxGear::Reverse_Second:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_R2);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_R2;
             break;
         case GearboxGear::SignalNotAvailable:
         default:
-            this->gs218.set_GZC(GS_218h_GZCEGS51::G_SNV);
+            this->gs218.GZC = GS_218h_GZC_EGS51::G_SNV;
             break;
     }
 }
 
 void Egs51Can::set_safe_start(bool can_start) {
     this->start_enable = can_start;
-}
-
-void Egs51Can::set_race_start(bool race_start) {
 }
 
 void Egs51Can::set_gearbox_temperature(uint16_t temp) {
@@ -309,12 +306,12 @@ void Egs51Can::set_gearbox_ok(bool is_ok) {
 
 void Egs51Can::set_torque_request(TorqueRequest request, float amount_nm) {
     if (request == TorqueRequest::None) {
-        this->gs218.set_TORQUE_REQ_EN(false);
-        this->gs218.set_TORQUE_REQ(0xFE);
+        this->gs218.TORQUE_REQ_EN = false;
+        this->gs218.TORQUE_REQ = 0xFE;
     } else {
         // Just enable the request
-        this->gs218.set_TORQUE_REQ_EN(true);
-        this->gs218.set_TORQUE_REQ(amount_nm/2);
+        this->gs218.TORQUE_REQ_EN = true;
+        this->gs218.TORQUE_REQ = amount_nm/2;
     }
 }
 
@@ -365,7 +362,7 @@ inline bool calc_torque_parity(uint16_t s) {
 void Egs51Can::tx_frames() {
     twai_message_t tx;
     tx.data_length_code = 8; // Always
-    GS_218EGS51 gs_218tx;
+    GS_218_EGS51 gs_218tx;
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
@@ -383,9 +380,9 @@ void Egs51Can::tx_frames() {
     time_to_toggle = !time_to_toggle;
     
     // Now set CVN Counter (Increases every frame)
-    gs_218tx.set_FEHLER(cvn_counter);
+    gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;
-    tx.identifier = GS_218EGS51_CAN_ID;
+    tx.identifier = GS_218_EGS51_CAN_ID;
     tx.data_length_code = 6;
     to_bytes(gs_218tx.raw, tx.data);
     twai_transmit(&tx, 5);

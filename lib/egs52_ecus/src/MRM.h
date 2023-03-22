@@ -13,11 +13,11 @@
 
 #include <stdint.h>
     
-#define LRW_236_CAN_ID 0x0236
-#define MRM_238_CAN_ID 0x0238
+#define LRW_236_EGS52_CAN_ID 0x0236
+#define MRM_238_EGS52_CAN_ID 0x0238
 
 /** Identification steering wheel angle sensor */
-enum class LRW_236h_LRWS_ID {
+enum class LRW_236h_LRWS_ID_EGS52 : uint16_t {
 	INIT_PSBL = 0, // LRW sensor is initializable
 	INIT_SELF = 1, // LRW sensor initializes itself
 	INIT_MUST = 2, // (LRW sensor must be initialized)
@@ -25,7 +25,7 @@ enum class LRW_236h_LRWS_ID {
 };
 
 /** Status steering wheel angle sensor */
-enum class LRW_236h_LRWS_ST {
+enum class LRW_236h_LRWS_ST_EGS52 : uint16_t {
 	OK = 0, // Steering wheel angle sensor I.O.
 	INI = 1, // Steering wheel angle sensor not initialized
 	ERR = 2, // steering wheel angle sensor faulty
@@ -37,152 +37,78 @@ enum class LRW_236h_LRWS_ST {
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of LRW_236 */
-	uint32_t get_canid(){ return LRW_236_CAN_ID; }
-    /** Sets Steering wheel angle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_LRW(uint16_t value){ raw = (raw & 0xc000ffffffffffff) | ((uint64_t)value & 0x3fff) << 48; }
-
-    /** Gets Steering wheel angle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_LRW() const { return (uint16_t)(raw >> 48 & 0x3fff); }
-        
-    /** Sets steering wheel angular velocity. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_VLRW(uint16_t value){ raw = (raw & 0xffffc000ffffffff) | ((uint64_t)value & 0x3fff) << 32; }
-
-    /** Gets steering wheel angular velocity. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_VLRW() const { return (uint16_t)(raw >> 32 & 0x3fff); }
-        
-    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_BZ236h(uint8_t value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
-
-    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_BZ236h() const { return (uint8_t)(raw >> 28 & 0xf); }
-        
-    /** Sets Identification steering wheel angle sensor */
-    void set_LRWS_ID(LRW_236h_LRWS_ID value){ raw = (raw & 0xfffffffff3ffffff) | ((uint64_t)value & 0x3) << 26; }
-
-    /** Gets Identification steering wheel angle sensor */
-    LRW_236h_LRWS_ID get_LRWS_ID() const { return (LRW_236h_LRWS_ID)(raw >> 26 & 0x3); }
-        
-    /** Sets Status steering wheel angle sensor */
-    void set_LRWS_ST(LRW_236h_LRWS_ST value){ raw = (raw & 0xfffffffffcffffff) | ((uint64_t)value & 0x3) << 24; }
-
-    /** Gets Status steering wheel angle sensor */
-    LRW_236h_LRWS_ST get_LRWS_ST() const { return (LRW_236h_LRWS_ST)(raw >> 24 & 0x3); }
-        
-    /** Sets CRC checksum byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_CRC236h(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
-
-    /** Gets CRC checksum byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC236h() const { return (uint8_t)(raw >> 0 & 0xff); }
-        
-} LRW_236;
+	struct {
+		/** CRC checksum byte 1 - 7 to SAE J1850 **/
+		uint8_t CRC236h: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint16_t __PADDING1__: 16;
+		/** Status steering wheel angle sensor **/
+		LRW_236h_LRWS_ST_EGS52 LRWS_ST: 2;
+		/** Identification steering wheel angle sensor **/
+		LRW_236h_LRWS_ID_EGS52 LRWS_ID: 2;
+		/** Message counter **/
+		uint8_t BZ236h: 4;
+		/** steering wheel angular velocity **/
+		uint16_t VLRW: 14;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 2;
+		/** Steering wheel angle **/
+		uint16_t LRW: 14;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING3__: 2;
+	} __attribute__((packed));
+	/** Gets CAN ID of LRW_236_EGS52 **/
+	uint32_t get_canid(){ return LRW_236_EGS52_CAN_ID; }
+} LRW_236_EGS52;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of MRM_238 */
-	uint32_t get_canid(){ return MRM_238_CAN_ID; }
-    /** Sets Tempomat selector lever unplausible */
-    void set_WH_UP(bool value){ raw = (raw & 0xdfffffffffffffff) | ((uint64_t)value & 0x1) << 61; }
-
-    /** Gets Tempomat selector lever unplausible */
-    bool get_WH_UP() const { return (bool)(raw >> 61 & 0x1); }
-        
-    /** Sets Operation variable speed limitation */
-    void set_VMAX_AKT(bool value){ raw = (raw & 0xefffffffffffffff) | ((uint64_t)value & 0x1) << 60; }
-
-    /** Gets Operation variable speed limitation */
-    bool get_VMAX_AKT() const { return (bool)(raw >> 60 & 0x1); }
-        
-    /** Sets Tempomatwatch Lever: "Setting and delaying Levo0" */
-    void set_S_MINUS_B(bool value){ raw = (raw & 0xf7ffffffffffffff) | ((uint64_t)value & 0x1) << 59; }
-
-    /** Gets Tempomatwatch Lever: "Setting and delaying Levo0" */
-    bool get_S_MINUS_B() const { return (bool)(raw >> 59 & 0x1); }
-        
-    /** Sets Tempomat selector lever: "Setting and Accelerating Level0" */
-    void set_S_PLUS_B(bool value){ raw = (raw & 0xfbffffffffffffff) | ((uint64_t)value & 0x1) << 58; }
-
-    /** Gets Tempomat selector lever: "Setting and Accelerating Level0" */
-    bool get_S_PLUS_B() const { return (bool)(raw >> 58 & 0x1); }
-        
-    /** Sets Cruise control lever: "Recovery" */
-    void set_WA(bool value){ raw = (raw & 0xfdffffffffffffff) | ((uint64_t)value & 0x1) << 57; }
-
-    /** Gets Cruise control lever: "Recovery" */
-    bool get_WA() const { return (bool)(raw >> 57 & 0x1); }
-        
-    /** Sets Tempomat selector lever: "Switch off" */
-    void set_AUS(bool value){ raw = (raw & 0xfeffffffffffffff) | ((uint64_t)value & 0x1) << 56; }
-
-    /** Gets Tempomat selector lever: "Switch off" */
-    bool get_AUS() const { return (bool)(raw >> 56 & 0x1); }
-        
-    /** Sets directional flashing right */
-    void set_BLI_RE(bool value){ raw = (raw & 0xff7fffffffffffff) | ((uint64_t)value & 0x1) << 55; }
-
-    /** Gets directional flashing right */
-    bool get_BLI_RE() const { return (bool)(raw >> 55 & 0x1); }
-        
-    /** Sets direction flash left */
-    void set_BLI_LI(bool value){ raw = (raw & 0xffbfffffffffffff) | ((uint64_t)value & 0x1) << 54; }
-
-    /** Gets direction flash left */
-    bool get_BLI_LI() const { return (bool)(raw >> 54 & 0x1); }
-        
-    /** Sets Tempomat selector lever Parity (straight parity) */
-    void set_WH_PA(bool value){ raw = (raw & 0xffefffffffffffff) | ((uint64_t)value & 0x1) << 52; }
-
-    /** Gets Tempomat selector lever Parity (straight parity) */
-    bool get_WH_PA() const { return (bool)(raw >> 52 & 0x1); }
-        
-    /** Sets Message counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_BZ238h(uint8_t value){ raw = (raw & 0xfff0ffffffffffff) | ((uint64_t)value & 0xf) << 48; }
-
-    /** Gets Message counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_BZ238h() const { return (uint8_t)(raw >> 48 & 0xf); }
-        
-    /** Sets Steering angle parity (straight parity) */
-    void set_LW_PA(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
-
-    /** Gets Steering angle parity (straight parity) */
-    bool get_LW_PA() const { return (bool)(raw >> 47 & 0x1); }
-        
-    /** Sets Steering angle sensor: overflow */
-    void set_LW_OV(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
-
-    /** Gets Steering angle sensor: overflow */
-    bool get_LW_OV() const { return (bool)(raw >> 46 & 0x1); }
-        
-    /** Sets Steering angle sensor: Code error */
-    void set_LW_CF(bool value){ raw = (raw & 0xffffdfffffffffff) | ((uint64_t)value & 0x1) << 45; }
-
-    /** Gets Steering angle sensor: Code error */
-    bool get_LW_CF() const { return (bool)(raw >> 45 & 0x1); }
-        
-    /** Sets Steering angle sensor: not initialized */
-    void set_LW_INI(bool value){ raw = (raw & 0xffffefffffffffff) | ((uint64_t)value & 0x1) << 44; }
-
-    /** Gets Steering angle sensor: not initialized */
-    bool get_LW_INI() const { return (bool)(raw >> 44 & 0x1); }
-        
-    /** Sets Steering angle sign */
-    void set_LW_VZ(bool value){ raw = (raw & 0xfffff7ffffffffff) | ((uint64_t)value & 0x1) << 43; }
-
-    /** Gets Steering angle sign */
-    bool get_LW_VZ() const { return (bool)(raw >> 43 & 0x1); }
-        
-    /** Sets steering angle. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_LW(uint16_t value){ raw = (raw & 0xfffff800ffffffff) | ((uint64_t)value & 0x7ff) << 32; }
-
-    /** Gets steering angle. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint16_t get_LW() const { return (uint16_t)(raw >> 32 & 0x7ff); }
-        
-} MRM_238;
+	struct {
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint32_t __PADDING1__: 32;
+		/** steering angle **/
+		uint16_t LW: 11;
+		/** Steering angle sign **/
+		bool LW_VZ: 1;
+		/** Steering angle sensor: not initialized **/
+		bool LW_INI: 1;
+		/** Steering angle sensor: Code error **/
+		bool LW_CF: 1;
+		/** Steering angle sensor: overflow **/
+		bool LW_OV: 1;
+		/** Steering angle parity (straight parity) **/
+		bool LW_PA: 1;
+		/** Message counter **/
+		uint8_t BZ238h: 4;
+		/** Tempomat selector lever Parity (straight parity) **/
+		bool WH_PA: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		bool __PADDING2__: 1;
+		/** direction flash left **/
+		bool BLI_LI: 1;
+		/** directional flashing right **/
+		bool BLI_RE: 1;
+		/** Tempomat selector lever: "Switch off" **/
+		bool AUS: 1;
+		/** Cruise control lever: "Recovery" **/
+		bool WA: 1;
+		/** Tempomat selector lever: "Setting and Accelerating Level0" **/
+		bool S_PLUS_B: 1;
+		/** Tempomatwatch Lever: "Setting and delaying Levo0" **/
+		bool S_MINUS_B: 1;
+		/** Operation variable speed limitation **/
+		bool VMAX_AKT: 1;
+		/** Tempomat selector lever unplausible **/
+		bool WH_UP: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING3__: 2;
+	} __attribute__((packed));
+	/** Gets CAN ID of MRM_238_EGS52 **/
+	uint32_t get_canid(){ return MRM_238_EGS52_CAN_ID; }
+} MRM_238_EGS52;
 
 
 
@@ -196,18 +122,24 @@ class ECU_MRM {
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+            uint8_t idx = 0;
+            bool add = true;
             switch(can_id) {
-                case LRW_236_CAN_ID:
-                    LAST_FRAME_TIMES[0] = timestamp_now;
-                    FRAME_DATA[0] = value;
-                    return true;
-                case MRM_238_CAN_ID:
-                    LAST_FRAME_TIMES[1] = timestamp_now;
-                    FRAME_DATA[1] = value;
-                    return true;
+                case LRW_236_EGS52_CAN_ID:
+                    idx = 0;
+                    break;
+                case MRM_238_EGS52_CAN_ID:
+                    idx = 1;
+                    break;
                 default:
-                    return false;
+                    add = false;
+                    break;
             }
+            if (add) {
+                LAST_FRAME_TIMES[idx] = timestamp_now;
+                FRAME_DATA[idx] = value;
+            }
+            return add;
         }
         
         /** Sets data in pointer to LRW_236
@@ -217,15 +149,13 @@ class ECU_MRM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_LRW_236(uint64_t now, uint64_t max_expire_time, LRW_236* dest) const {
-            if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_LRW_236(uint64_t now, uint64_t max_expire_time, LRW_236_EGS52* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to MRM_238
@@ -235,15 +165,13 @@ class ECU_MRM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MRM_238(uint64_t now, uint64_t max_expire_time, MRM_238* dest) const {
-            if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_MRM_238(uint64_t now, uint64_t max_expire_time, MRM_238_EGS52* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
                 dest->raw = FRAME_DATA[1];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
 	private:

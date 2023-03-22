@@ -58,7 +58,6 @@ class Egs51Can: public EgsBaseCan {
         /**
          * Setters
          */
-        void set_race_start(bool race_start) override;
         void set_clutch_status(ClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
@@ -97,7 +96,7 @@ class Egs51Can: public EgsBaseCan {
         void on_rx_done(uint64_t now_ts) override;
     private:
         // CAN Frames to Tx
-        GS_218EGS51 gs218 = {0};
+        GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();

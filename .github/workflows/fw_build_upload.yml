@@ -58,7 +58,7 @@ jobs:
       with:
         tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
         release_name: Release ${{ env.BRANCH_NAME }}
-        draft: false
+        draft: ${{env.BRANCH_NAME}} != "main"
         prerelease: ${{env.BRANCH_NAME}} != "main"
     - name: Upload firmware
       id: upload-release-asset 

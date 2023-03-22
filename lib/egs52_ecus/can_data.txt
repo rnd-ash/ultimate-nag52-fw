@@ -278,7 +278,7 @@ ECU MS
 		SIGNAL V_DSPL_ERR, OFFSET: 45, LEN: 1, DESC: "Error" indicator on the display, DATA TYPE BOOL
 		SIGNAL V_DSPL_BL, OFFSET: 46, LEN: 1, DESC: display flashes, DATA TYPE BOOL
 		SIGNAL V_DSPL_EIN, OFFSET: 47, LEN: 1, DESC: Geschw.begrenzer- / cruise control display a, DATA TYPE BOOL
-		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: factor for fill value. d. max. Mom with remo.. A.druck, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: factor for altitude value. d. max. Mom with remo.. A.druck, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL V_MAX_TM, OFFSET: 56, LEN: 8, DESC: Set maximum or cruise control speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME MS_212h (0x00000212)
 		SIGNAL NMOTS, OFFSET: 0, LEN: 16, DESC: Motorley roll speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
@@ -431,7 +431,7 @@ ECU MS
 			ENUM SNV, RAW: 31, DESC: Code not available
 		SIGNAL FCOD_MOT6, OFFSET: 24, LEN: 1, DESC: Vehicle code engine with 7 bit, bit 6, DATA TYPE BOOL
 		SIGNAL GS_NVH, OFFSET: 25, LEN: 1, DESC: Transmission control not available, DATA TYPE BOOL
-		SIGNAL FCOD_MOT, OFFSET: 26, LEN: 6, DESC: FZGCOD.Motor 7Bit, bit0-5 (bit6 -> signal fcod_mot6), DATA TYPE ENUM
+		SIGNAL FCOD_MOT, OFFSET: 26, LEN: 6, MASK: 10111111, DESC: FZGCOD.Motor 7Bit, bit0-5 (bit6 -> signal fcod_mot6), DATA TYPE ENUM
 			ENUM M272E35, RAW: 0, DESC: M272 E35
 			ENUM M271E18ML105, RAW: 1, DESC: M271 E18 ml Red. (105 kW)
 			ENUM M271E18ML120, RAW: 2, DESC: M271 E18 ml (120 kW)
@@ -608,48 +608,49 @@ ECU GS
 #			ENUM R, RAW: 82, DESC: Driving "R"
 #			ENUM SNV, RAW: 255, DESC: passive value
 		SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE CHAR
-		SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: Driving program, DATA TYPE ENUM
-			ENUM C_MGFB_WT, RAW: 2, DESC: "C", message "Activate gearbox, parking brake!" warning
-			ENUM C_MGSNN, RAW: 3, DESC: "C", message "Gearbox, shift lever according to N!"
-			ENUM C_MGBB, RAW: 4, DESC: "C", message "Activate gear, brake!"
-			ENUM C_MGGEA, RAW: 6, DESC: "C", message "Request gearbox, gear again!"
-			ENUM C_MGZSN, RAW: 7, DESC: "C", Message "Transmission, Insert to Start N!"
-			ENUM A_MGFB_WT, RAW: 10, DESC: "A", message "Activate gearbox, parking brake!" warning
-			ENUM A_MGSNN, RAW: 11, DESC: "A", message "Gear, shift lever to N!"
-			ENUM A_MGBB, RAW: 12, DESC: "A", message "Activate gearbox, brake!"
-			ENUM A_MGGEA, RAW: 14, DESC: "A", message "Request transmission, gear again!"
-			ENUM A_MGZSN, RAW: 15, DESC: "A", Message "Transmission, Insert to Start N!"
-			ENUM S_MGFB_WT, RAW: 18, DESC: "S", message "Activate gearbox, parking brake!" warning
-			ENUM S_MGSNN, RAW: 19, DESC: "S", message "Gear, shift lever after N!"
-			ENUM S_MGBB, RAW: 20, DESC: "S", message "Activate gearbox, brake!"
-			ENUM S_MGGEA, RAW: 22, DESC: "S", message "Request transmission, gear again!"
-			ENUM S_MGZSN, RAW: 23, DESC: "S", message "Transmission, insert it to start n!"
-			ENUM HOCH, RAW: 24, DESC: switching recommendation "Upshift"
-			ENUM RUNTER, RAW: 25, DESC: Shift recommendation "Down"
-			ENUM BLANK, RAW: 32, DESC: "" (blank)
-			ENUM BLANK_MGN, RAW: 64, DESC: "" (blank), message "Enter transmission, n!"
-			ENUM A, RAW: 65, DESC: "A"
-			ENUM C, RAW: 67, DESC: "C"
-			ENUM F, RAW: 70, DESC: Error Mark "F"
-			ENUM M, RAW: 77, DESC: "M"
-			ENUM S, RAW: 83, DESC: "S"
-			ENUM W, RAW: 87, DESC: "W"
-			ENUM _, RAW: 95, DESC: "_" (Underscore)
-			ENUM BLANK_MGW, RAW: 96, DESC: "" (blank), message "Check out gear, workshop!"
-			ENUM A_MGN, RAW: 97, DESC: "A", message "Insert transmission, n!"
-			ENUM C_MGN, RAW: 99, DESC: "C", message "Insert transmission, n!"
-			ENUM M_MGN, RAW: 109, DESC: "M", message "Transmission, n insert!"
-			ENUM S_MGN, RAW: 115, DESC: "S", message "Insert transmission, n!"
-			ENUM W_MGN, RAW: 119, DESC: "W", message "Transmission, n insert!"
-			ENUM __MGN, RAW: 127, DESC: "_" (undercore), message "Transmission, n insert!"
-			ENUM A_MGW, RAW: 129, DESC: "A", message "Check out gear, workshop!"
-			ENUM C_MGW, RAW: 131, DESC: "C", message "Check out gear, workshop!"
-			ENUM F_MGW, RAW: 134, DESC: Error Mark "F", Message "Check Gear, Workshop!"
-			ENUM M_MGW, RAW: 141, DESC: "M", message "Check out transmission, workshop!"
-			ENUM S_MGW, RAW: 147, DESC: "S", message "Check out gear, workshop!"
-			ENUM W_MGW, RAW: 151, DESC: "W", message "Get gear, workshop visit!"
-			ENUM __MGW, RAW: 159, DESC: "_" (Underscore), message "Check out gear, workshop!"
-			ENUM SNV, RAW: 255, DESC: passive value
+		SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: drive, DATA TYPE CHAR
+		#SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: Driving program, DATA TYPE ENUM
+		#	ENUM C_MGFB_WT, RAW: 2, DESC: "C", message "Activate gearbox, parking brake!" warning
+		#	ENUM C_MGSNN, RAW: 3, DESC: "C", message "Gearbox, shift lever according to N!"
+		#	ENUM C_MGBB, RAW: 4, DESC: "C", message "Activate gear, brake!"
+		#	ENUM C_MGGEA, RAW: 6, DESC: "C", message "Request gearbox, gear again!"
+		#	ENUM C_MGZSN, RAW: 7, DESC: "C", Message "Transmission, Insert to Start N!"
+		#	ENUM A_MGFB_WT, RAW: 10, DESC: "A", message "Activate gearbox, parking brake!" warning
+		#	ENUM A_MGSNN, RAW: 11, DESC: "A", message "Gear, shift lever to N!"
+		#	ENUM A_MGBB, RAW: 12, DESC: "A", message "Activate gearbox, brake!"
+		#	ENUM A_MGGEA, RAW: 14, DESC: "A", message "Request transmission, gear again!"
+		#	ENUM A_MGZSN, RAW: 15, DESC: "A", Message "Transmission, Insert to Start N!"
+		#	ENUM S_MGFB_WT, RAW: 18, DESC: "S", message "Activate gearbox, parking brake!" warning
+		#	ENUM S_MGSNN, RAW: 19, DESC: "S", message "Gear, shift lever after N!"
+		#	ENUM S_MGBB, RAW: 20, DESC: "S", message "Activate gearbox, brake!"
+		#	ENUM S_MGGEA, RAW: 22, DESC: "S", message "Request transmission, gear again!"
+		#	ENUM S_MGZSN, RAW: 23, DESC: "S", message "Transmission, insert it to start n!"
+		#	ENUM HOCH, RAW: 24, DESC: switching recommendation "Upshift"
+		#	ENUM RUNTER, RAW: 25, DESC: Shift recommendation "Down"
+		#	ENUM BLANK, RAW: 32, DESC: "" (blank)
+		#	ENUM BLANK_MGN, RAW: 64, DESC: "" (blank), message "Enter transmission, n!"
+		#	ENUM A, RAW: 65, DESC: "A"
+		#	ENUM C, RAW: 67, DESC: "C"
+		#	ENUM F, RAW: 70, DESC: Error Mark "F"
+		#	ENUM M, RAW: 77, DESC: "M"
+		#	ENUM S, RAW: 83, DESC: "S"
+		#	ENUM W, RAW: 87, DESC: "W"
+		#	ENUM _, RAW: 95, DESC: "_" (Underscore)
+		#	ENUM BLANK_MGW, RAW: 96, DESC: "" (blank), message "Check out gear, workshop!"
+		#	ENUM A_MGN, RAW: 97, DESC: "A", message "Insert transmission, n!"
+		#	ENUM C_MGN, RAW: 99, DESC: "C", message "Insert transmission, n!"
+		#	ENUM M_MGN, RAW: 109, DESC: "M", message "Transmission, n insert!"
+		#	ENUM S_MGN, RAW: 115, DESC: "S", message "Insert transmission, n!"
+		#	ENUM W_MGN, RAW: 119, DESC: "W", message "Transmission, n insert!"
+		#	ENUM __MGN, RAW: 127, DESC: "_" (undercore), message "Transmission, n insert!"
+		#	ENUM A_MGW, RAW: 129, DESC: "A", message "Check out gear, workshop!"
+		#	ENUM C_MGW, RAW: 131, DESC: "C", message "Check out gear, workshop!"
+		#	ENUM F_MGW, RAW: 134, DESC: Error Mark "F", Message "Check Gear, Workshop!"
+		#	ENUM M_MGW, RAW: 141, DESC: "M", message "Check out transmission, workshop!"
+		#	ENUM S_MGW, RAW: 147, DESC: "S", message "Check out gear, workshop!"
+		#	ENUM W_MGW, RAW: 151, DESC: "W", message "Get gear, workshop visit!"
+		#	ENUM __MGW, RAW: 159, DESC: "_" (Underscore), message "Check out gear, workshop!"
+		#	ENUM SNV, RAW: 255, DESC: passive value
 		SIGNAL T_GET, OFFSET: 16, LEN: 8, DESC: Gear oil temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL ALLRAD, OFFSET: 24, LEN: 1, DESC: four-wheel drive, DATA TYPE BOOL
 		SIGNAL FRONT, OFFSET: 25, LEN: 1, DESC: Front drive [1], rear drive [0], DATA TYPE BOOL
@@ -706,26 +707,6 @@ ECU GS
 			ENUM D, RAW: 4, DESC: gear selector lever in position "D"
 			ENUM SNV, RAW: 7, DESC: signal not available
 		SIGNAL FMRAD, OFFSET: 53, LEN: 11, DESC: Factor wheel torque (7ffh at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-#
-# This CAN Frame is 100% custom to ultimate-nag52 and is never transmitted on CANBUS by the OEM TCM!
-#
-	FRAME GS_CUSTOM_558h (0x00000558)
-		SIGNAL Y3_DUTY, OFFSET: 0, LEN: 4, DESC: Y3 duty, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL Y4_DUTY, OFFSET: 4, LEN: 4, DESC: Y4 duty, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL Y5_DUTY, OFFSET: 8, LEN: 4, DESC: Y5 duty, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL SPC_CURRENT, OFFSET: 12, LEN: 16, DESC: SPC current, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL MPC_CURRENT, OFFSET: 28, LEN: 16, DESC: MPC current, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL TCC_DUTY, OFFSET: 44, LEN: 8, DESC: TCC current, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL RATIO, OFFSET: 52, LEN: 12, DESC: Est ratio, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-#
-# This CAN Frame is 100% custom to ultimate-nag52 and is never transmitted on CANBUS by the OEM TCM!
-#
-	FRAME GS_CUSTOM_668h (0x00000668)
-		SIGNAL SPC_PRESSURE_EST, OFFSET: 0, LEN: 16, DESC: SPC Pressure target, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL MPC_PRESSURE_EST, OFFSET: 16, LEN: 16, DESC: MPC Pressure target, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL TCC_PRESSURE_EST, OFFSET: 32, LEN: 16, DESC: TCC Pressure target, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL SHIFT_STAGE, OFFSET: 48, LEN: 8, DESC: Shift stage, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL GEAR_DISAGREE, OFFSET: 56, LEN: 8, DESC: Shift stage, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME D_RS_GS (0x000007E9)
 		SIGNAL D_RS, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnostic Response, DATA TYPE ISO_TP
 	FRAME SD_RS_GS (0x00000723)
@@ -944,7 +925,7 @@ ECU KOMBI
 		SIGNAL SGT_VH, OFFSET: 58, LEN: 1, DESC: Segment tacho available, DATA TYPE BOOL
 		SIGNAL ZH_FREIG, OFFSET: 59, LEN: 1, DESC: Release Heaters, DATA TYPE BOOL
 		SIGNAL RT_EIN, OFFSET: 60, LEN: 1, DESC: Switch on Roll Test Mode ESP, DATA TYPE BOOL
-		SIGNAL WRC, OFFSET: 61, LEN: 3, DESC: Winter tire maximum speed with 4 bits, DATA TYPE ENUM
+		SIGNAL WRC, OFFSET: 61, LEN: 3, MASK: 10000111, DESC: Winter tire maximum speed with 4 bits, DATA TYPE ENUM
 			ENUM UBG, RAW: 0, DESC: Unlimited
 			ENUM BG210, RAW: 1, DESC: 210 km / h
 			ENUM BG190, RAW: 2, DESC: 190 km / h

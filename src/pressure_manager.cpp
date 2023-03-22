@@ -90,16 +90,11 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 
     /** Working pressure map **/
-    const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    const int16_t wp_x_headers[16] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    if (VEHICLE_CONFIG.is_large_nag) { // Large
-        key_name = MAP_NAME_WORKING_LARGE;
-        default_data = LARGE_NAG_WORKING_MAP;
-    } else { // Small
-        key_name = MAP_NAME_WORKING_SMALL;
-        default_data = SMALL_NAG_WORKING_MAP;
-    }
-    this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
+    key_name = MAP_NAME_WORKING_MPC;
+    default_data = NAG_WORKING_MAP;
+    this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 16, 7, default_data);
     if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }
@@ -178,7 +173,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
+    float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -255,7 +250,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->spc_offset_mode = false;
     } else {
         Clutch to_change = get_clutch_to_apply(change);
-        // Clutch to_release = get_clutch_to_release(change);
+        Clutch to_release = get_clutch_to_release(change);
         dest->ramp_time = 0;
         dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->mpc_pressure = 100;
@@ -320,7 +315,6 @@ void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     if (targ > 7000) {
         targ = 7000;
     }
-    egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
     mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
@@ -329,7 +323,6 @@ void PressureManager::set_target_spc_pressure(uint16_t targ) {
     if (targ > 7000) {
         targ = 7000;
     }
-    egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
 }
@@ -337,7 +330,6 @@ void PressureManager::set_target_spc_pressure(uint16_t targ) {
 void PressureManager::disable_spc() {
     this->req_spc_pressure = 0;
     this->req_current_spc = 0;
-    egs_can_hal->set_spc_pressure(7000);
     spc_cc->set_target_current(0);
 }
 
@@ -345,7 +337,6 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     if (targ > 15000) {
         targ = 15000;
     }
-    egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
@@ -353,7 +344,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
     uint16_t ret = 0;
     if (this->hold2_pressure_mpc_adder_map != nullptr) {
-        float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
+        float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
         ret = hold2_pressure_mpc_adder_map->get_value(trq_percent, (uint8_t)to_apply);
     }
     return ret;

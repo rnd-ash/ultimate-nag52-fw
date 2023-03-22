@@ -123,6 +123,7 @@ void err_beep_loop(void* a) {
     SPEAKER_POST_CODE p = (SPEAKER_POST_CODE)(int)a;
     if (p == SPEAKER_POST_CODE::INIT_OK) {
         spkr->post(p); // All good, return
+        egs_can_hal->set_gearbox_ok(true);
         vTaskDelete(NULL);
     } else {
         if (egs_can_hal != nullptr) {

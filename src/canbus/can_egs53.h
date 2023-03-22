@@ -92,23 +92,21 @@ class Egs53Can: public EgsBaseCan {
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
-        void set_race_start(bool race_start) override;
-        void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
     private:
         // CAN Frames to Tx
-        TCM_A1 tcm_a1 = {0};
-        TCM_A2 tcm_a2 = {0};
-        ENG_RQ1_TCM eng_rq1_tcm = {0};
-        ENG_RQ2_TCM eng_rq2_tcm = {0};
-        ENG_RQ3_TCM eng_rq3_tcm = {0};
-        SBW_RS_TCM sbw_rs_tcm = {0};
-        TCM_DISP_RQ tcm_disp_rq = {0};
-        NM_TCM nm_tcm = {0};
-        WHL_STAT2 eng_wheel_stat_1 = {0};
+        TCM_A1_EGS53 tcm_a1 = {0};
+        TCM_A2_EGS53 tcm_a2 = {0};
+        ENG_RQ1_TCM_EGS53 eng_rq1_tcm = {0};
+        ENG_RQ2_TCM_EGS53 eng_rq2_tcm = {0};
+        ENG_RQ3_TCM_EGS53 eng_rq3_tcm = {0};
+        SBW_RS_TCM_EGS53 sbw_rs_tcm = {0};
+        TCM_DISP_RQ_EGS53 tcm_disp_rq = {0};
+        NM_TCM_EGS53 nm_tcm = {0};
+        WHL_STAT2_EGS53 eng_wheel_stat_1 = {0};
         ECU_ECM ecm_ecu = ECU_ECM();
         ECU_FSCM fscm_ecu = ECU_FSCM();
         ECU_TSLM tslm_ecu = ECU_TSLM();

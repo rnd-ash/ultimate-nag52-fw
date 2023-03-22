@@ -50,6 +50,7 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 
 void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     uint32_t input_rpm = sensors->input_rpm;
+    int trq = MAX(sensors->static_torque, sensors->driver_requested_torque);
     if (input_rpm <= TCC_MIN_LOCKING_RPM) {
         if (this->last_idle_timestamp == 0) {
             this->last_idle_timestamp = sensors->current_timestamp_ms;
@@ -125,7 +126,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                         // Requires:
                         // * torque in bounds
                         // * Engine RPM - Less than TCC stall speed
-                        if (sensors->static_torque >= this->low_torque_adapt_limit && sensors->static_torque <= this->high_torque_adapt_limit && sensors->engine_rpm < 2500) {
+                        if (trq >= this->low_torque_adapt_limit && trq <= this->high_torque_adapt_limit && sensors->engine_rpm < 2500) {
                             if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_ADAPT_CONSIDERED_LOCK) {
                                 adapt_lock_count++;
                             } else {
@@ -155,9 +156,9 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 // Dynamic TCC pressure increase based on torque
                 this->curr_tcc_pressure = this->base_tcc_pressure;
                 if (!learning) {
-                    if (sensors->static_torque > high_torque_adapt_limit) {
-                        int torque_delta = sensors->static_torque - high_torque_adapt_limit;
-                        this->curr_tcc_pressure += (1.4*torque_delta); // 2mBar per Nm
+                    if (trq > high_torque_adapt_limit) {
+                        int torque_delta = trq - high_torque_adapt_limit;
+                        this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
                     } else if (sensors->static_torque < 40) {
                         if (this->curr_tcc_pressure > TCC_PREFILL) {
                             this->curr_tcc_pressure -= scale_number(sensors->static_torque, 100, 50, -40, 40);

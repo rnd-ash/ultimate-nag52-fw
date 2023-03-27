@@ -1,5 +1,6 @@
 #include "kwp2000_defines.h"
 #include "kwp_utils.h"
+#include "esp_timer.h"
 
 // Couple of helpful functions
 void global_make_diag_neg_msg(DiagMessage *dest, uint8_t sid, uint8_t nrc) {

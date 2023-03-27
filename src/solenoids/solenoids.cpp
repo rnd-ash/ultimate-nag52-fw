@@ -1,18 +1,20 @@
 #include "solenoids.h"
 #include "esp_log.h"
-#include "esp_adc_cal.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 #include "board_config.h"
 #include "../sensors.h"
 #include "soc/syscon_periph.h"
 #include "soc/i2s_periph.h"
 #include "string.h"
-#include "driver/adc_deprecated.h"
+#include "esp_adc/adc_continuous.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_check.h"
 
-esp_adc_cal_characteristics_t adc1_cal;
+adc_cali_handle_t adc1_cal = nullptr;
 uint16_t voltage = 12000;
 
-Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel)
+Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc_channel_t read_channel)
 {
     this->channel = channel;
     this->timer = timer;
@@ -43,7 +45,7 @@ Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, led
     };
 
 
-    ESP_GOTO_ON_ERROR(adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11), set_err, "SOLENOID", "Solenoid %s ADC1 init failed", name);
+    //ESP_GOTO_ON_ERROR(adc1_config_channel_atten(this->adc_channel, adc_atten_t::ADC_ATTEN_DB_11), set_err, "SOLENOID", "Solenoid %s ADC1 init failed", name);
     // Set the timer configuration
     ESP_GOTO_ON_ERROR(ledc_timer_config(&timer_cfg), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
     // Set PWM channel configuration
@@ -86,8 +88,8 @@ uint16_t Solenoid::diag_get_adc_peak_raw() {
 
 uint16_t Solenoid::get_current_avg() const
 {   
-    uint32_t v = esp_adc_cal_raw_to_voltage((float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
-    if (v <= adc1_cal.coeff_b) {
+    uint32_t v = adc_cali_raw_to_voltage((float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
+    if (v <= adc1_cal coeff_b) {
         v = 0; // Too small
     }
     return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
@@ -123,7 +125,7 @@ void Solenoid::__set_adc_reading(uint16_t c)
     this->adc_sample_idx = (this->adc_sample_idx+1)%SOLENOID_CURRENT_AVG_SAMPLES;
 }
 
-adc1_channel_t Solenoid::get_adc_channel() const {
+adc_channel_t Solenoid::get_adc_channel() const {
     return this->adc_channel;
 }
 
@@ -141,11 +143,47 @@ Solenoid *sol_spc = nullptr;
 Solenoid *sol_tcc = nullptr;
 
 
-uint16_t* buf = nullptr;
-uint16_t glob_dma_buf[I2S_DMA_BUF_LEN];
+uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
 bool monitor_all = false;
 
+void read_solenoids_i2s(void*) {
+    Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
+    adc_continuous_handle_t c_handle = nullptr;
+    adc_continuous_handle_cfg_t c_cfg = {
+        .max_store_buf_size = 1024,
+        .conv_frame_size = 1024/SOC_ADC_DIGI_DATA_BYTES_PER_CONV
+    };
+    adc_continuous_new_handle(&c_cfg, &c_handle);
+    adc_continuous_config_t dig_cfg = {
+        .pattern_num = 6,
+        .sample_freq_hz = 600000,
+        .conv_mode = ADC_CONV_SINGLE_UNIT_1,
+        .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
+    };
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+    for (int i = 0; i < 6; i++) {
+        adc_pattern[i].atten = ADC_ATTEN_DB_11;
+        adc_pattern[i].channel = sol_batch[i]->get_adc_channel() & 0x7;
+        adc_pattern[i].unit = ADC_UNIT_1;
+        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+    }
+    dig_cfg.adc_pattern = adc_pattern;
+    adc_continuous_config(c_handle, &dig_cfg);
+    esp_err_t ret;
+    memset(adc_read_buf, 0xcc, I2S_DMA_BUF_LEN);
+    uint32_t out_len = 0;
+    while(true) {
+        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, 0);
+        if (ret == ESP_OK) {
+            ESP_LOGI("ADC", "Read ok %lu bytes", out_len);
+        } else {
+            ESP_LOGE("ADC", "DIGI Read failed with %s", esp_err_to_name(ret));
+        }
+    }
+}
+
+/*
 void read_solenoids_i2s(void*) {
     esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
@@ -207,6 +245,7 @@ void read_solenoids_i2s(void*) {
         first_read_complete = true;
     }
 }
+*/
 
 uint16_t Solenoids::get_solenoid_voltage() {
     return voltage;
@@ -302,7 +341,7 @@ void Solenoids::boot_solenoid_test(void*) {
             c_total += sol_mpc->get_current_avg();
             vTaskDelay(10);
         }
-        ESP_LOGI("SOLENOID", "MPC Current: %d mA at %d mV", c_total/10, b_total/10);
+        ESP_LOGI("SOLENOID", "MPC Current: %lu mA at %lu mV", c_total/10, b_total/10);
         resistance_mpc = (float)b_total / (float)c_total;
         sol_mpc->write_pwm_12_bit(0);
         sol_spc->write_pwm_12_bit(4096, false);
@@ -314,7 +353,7 @@ void Solenoids::boot_solenoid_test(void*) {
             c_total += sol_spc->get_current_avg();
             vTaskDelay(10);
         }
-        ESP_LOGI("SOLENOID", "SPC Current: %d mA at %d mV", c_total/10, b_total/10);
+        ESP_LOGI("SOLENOID", "SPC Current: %lu mA at %lu mV", c_total/10, b_total/10);
         resistance_spc = (float)b_total / (float)c_total;
         sol_mpc->write_pwm_12_bit(0);
         sol_spc->write_pwm_12_bit(0);
@@ -327,14 +366,17 @@ void Solenoids::boot_solenoid_test(void*) {
 
 esp_err_t Solenoids::init_all_solenoids()
 {
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
+    adc_cali_scheme_ver_t cal_type;
+    adc_cali_check_scheme(&cal_type);
+    adc_cali_scheme_line_fitting_check_efuse()
+    //esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
     // Read calibration for ADC1
-    sol_y3 = new Solenoid("Y3", pcb_gpio_matrix->y3_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_0);
-    sol_y4 = new Solenoid("Y4", pcb_gpio_matrix->y4_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_3);
-    sol_y5 = new Solenoid("Y5", pcb_gpio_matrix->y5_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_7);
-    sol_mpc = new Solenoid("MPC", pcb_gpio_matrix->mpc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_6);
-    sol_spc = new Solenoid("SPC", pcb_gpio_matrix->spc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_0, ADC1_CHANNEL_4);
-    sol_tcc = new Solenoid("TCC", pcb_gpio_matrix->tcc_pwm, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1, ADC1_CHANNEL_5);
+    sol_y3 = new Solenoid("Y3", pcb_gpio_matrix->y3_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_0);
+    sol_y4 = new Solenoid("Y4", pcb_gpio_matrix->y4_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_3);
+    sol_y5 = new Solenoid("Y5", pcb_gpio_matrix->y5_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_2, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_7);
+    sol_mpc = new Solenoid("MPC", pcb_gpio_matrix->mpc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_3, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_6);
+    sol_spc = new Solenoid("SPC", pcb_gpio_matrix->spc_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_4, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_4);
+    sol_tcc = new Solenoid("TCC", pcb_gpio_matrix->tcc_pwm, 100, ledc_channel_t::LEDC_CHANNEL_5, ledc_timer_t::LEDC_TIMER_1, ADC_CHANNEL_5);
     ESP_RETURN_ON_ERROR(ledc_fade_func_install(0), "SOLENOID", "Could not insert LEDC_FADE");
     ESP_RETURN_ON_ERROR(sol_tcc->init_ok(), "SOLENOID", "TCC init not OK");
     ESP_RETURN_ON_ERROR(sol_mpc->init_ok(), "SOLENOID", "MPC init not OK");

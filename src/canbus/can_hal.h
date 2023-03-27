@@ -355,8 +355,8 @@ class EgsBaseCan {
 
     protected:
         const char* name;
-        TaskHandle_t* tx_task = nullptr;
-        TaskHandle_t* rx_task = nullptr;
+        TaskHandle_t tx_task = nullptr;
+        TaskHandle_t rx_task = nullptr;
         uint8_t tx_time_ms = 0;
 
         uint16_t diag_tx_id = 0;

@@ -1,6 +1,7 @@
 #include "can_hal.h"
 #include "board_config.h"
 #include "esp_check.h"
+#include "esp_timer.h"
 
 EgsBaseCan* egs_can_hal = nullptr;
 
@@ -44,7 +45,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
             timing_config = TWAI_TIMING_CONFIG_100KBITS();
             break;
         default:
-            ESP_LOGE(this->name, "Cannot set CAN baud to %d", baud);
+            ESP_LOGE(this->name, "Cannot set CAN baud to %lu", baud);
             this->can_init_status = ESP_ERR_INVALID_ARG;
             break;
         
@@ -91,14 +92,14 @@ bool EgsBaseCan::begin_tasks() {
     // Prevent starting again
     if (this->rx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Rx task");
-        if (xTaskCreate(this->start_rx_task_loop, "EGS_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
+        if (xTaskCreate(this->start_rx_task_loop, "EGS_CAN_RX", 8192, this, 5, &this->rx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Rx task creation failed!");
             return false;
         }
     }
     if (this->tx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
+        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, &this->tx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Tx task creation failed!");
             return false;
         }

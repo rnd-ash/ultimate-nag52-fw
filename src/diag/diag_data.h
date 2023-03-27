@@ -9,6 +9,7 @@
 #include "endpoints/endpoint.h"
 #include <esp_app_format.h>
 #include "kwp2000_defines.h"
+#include "esp_app_desc.h"
 
 // Diagnostic data IDs and data structures
 // used by the KWP2000 server on the TCM

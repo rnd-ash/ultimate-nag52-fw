@@ -6,11 +6,11 @@
 #include "driver/ledc.h"
 #include <freertos/FreeRTOS.h>
 #include "freertos/task.h"
-#include <driver/i2s.h>
+#include "hal/adc_types.h"
 #include <soc/syscon_reg.h>
-#include <driver/adc.h>
 #include <esp_event.h>
 #include "esp_err.h"
+#include "esp_timer.h"
 
 const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
 
@@ -29,7 +29,7 @@ public:
      * @param timer Timer to use for controlling the solenoids PWM signal
      * @param read_channel The ADC 1 Channel used for current sense feedback
      */
-    Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc1_channel_t read_channel);
+    Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc_channel_t read_channel);
 
 
     const char* get_name() {
@@ -81,7 +81,7 @@ public:
      * @brief returns the ADC1 channel being used to read
      * the current of the solenoid
      */
-    adc1_channel_t get_adc_channel() const;
+    adc_channel_t get_adc_channel() const;
 
     /**
      * @brief Returns if the solenoid initialized OK
@@ -106,7 +106,7 @@ private:
     ledc_timer_t timer;
     uint16_t adc_reading_current;
     bool voltage_compensate = true;
-    adc1_channel_t adc_channel;
+    adc_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
 

@@ -85,7 +85,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             this->was_idle = false;
             if (this->tcc_learn_lockup_map != nullptr) {
                 this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
-                ESP_LOGI("TCC", "Learn cell value is %d mBar", curr_tcc_target);
+                ESP_LOGI("TCC", "Learn cell value is %lu mBar", curr_tcc_target);
                 this->initial_ramp_done = false;
                 this->base_tcc_pressure = MAX(0, this->curr_tcc_target-500);
                 this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-500);

@@ -10,6 +10,8 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "esp_check.h"
+#include "driver/timer.h"
+#include "driver/gptimer.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define PCNT_H_LIM 1
@@ -21,7 +23,7 @@ const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
 const pcnt_unit_t PCNT_OUT_RPM = PCNT_UNIT_2;
 
 #define ADC2_ATTEN ADC_ATTEN_11db
-#define ADC2_WIDTH ADC_WIDTH_12Bit
+#define ADC2_WIDTH ADC_WIDTH_BIT_12
 
 esp_adc_cal_characteristics_t adc2_cal = {};
 
@@ -89,10 +91,7 @@ static void IRAM_ATTR on_pcnt_overflow_output(void* args) {
 }
 
 static intr_handle_t rpm_timer_handle;
-static void IRAM_ATTR on_rpm_timer(void* args) {
-    // Clear timer interrupt
-    TIMERG0.int_clr_timers.t0 = 1;
-    TIMERG0.hw_timer[0].config.alarm_en = 1;
+static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
     uint64_t time_delta_n2 = 0;
     uint64_t time_delta_n3 = 0;
     uint64_t time_delta_output = 0;
@@ -126,6 +125,13 @@ static void IRAM_ATTR on_rpm_timer(void* args) {
         output_total += time_delta_output;
         avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
     }
+
+        // Clear timer interrupt
+    gptimer_alarm_config_t alarm_config = {
+        .alarm_count = edata->alarm_value + 20000 // +20ms for next alarm trigger
+    };
+    gptimer_set_alarm_action(timer, &alarm_config);
+    return true;
 }
 
 esp_err_t Sensors::init_sensors(){
@@ -163,8 +169,8 @@ esp_err_t Sensors::init_sensors(){
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(pcb_gpio_matrix->n3_pin, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set PIN_N3 to Input!");
 
     // Configure ADC2 for analog readings
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.atf_channel, ADC_ATTEN_11db), "SENSORS", "Failed to set ADC attenuation for PIN_ATF!");
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_11db), "SENSORS", "Failed to set ADC attenuation for PIN_VBATT!");
+    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.atf_channel, ADC_ATTEN_DB_11), "SENSORS", "Failed to set ADC attenuation for PIN_ATF!");
+    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_DB_11), "SENSORS", "Failed to set ADC attenuation for PIN_VBATT!");
     // Characterise ADC2       
     esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal);
     
@@ -226,23 +232,41 @@ esp_err_t Sensors::init_sensors(){
         output_rpm_ok = true;
     }
 
-    timer_config_t config = {
-            .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
-            .counter_en = timer_start_t::TIMER_START,
-            .intr_type = TIMER_INTR_LEVEL,
-            .counter_dir = TIMER_COUNT_UP,
-            .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
-            .divider = 80   /* 1 us per tick */
+    gptimer_handle_t gptimer = NULL;
+    gptimer_config_t timer_config = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = 1000000
     };
+    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "SENSORS", "Failed to create new GPTIMER");
+    gptimer_event_callbacks_t cbs = {
+        .on_alarm = on_rpm_timer
+    };
+    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer, &cbs, nullptr), "SENSORS", "Failed to register GPTIMER callback");
+    ESP_RETURN_ON_ERROR(gptimer_enable(gptimer), "SENSORS", "Failed to enable GPTIMER");
+    gptimer_alarm_config_t alarm_config = {
+        .alarm_count = 20000, // period = 20ms
+    };
+    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer, &alarm_config), "SENSORS", "Failed to set GPTIMER alarm action");
+    ESP_RETURN_ON_ERROR(gptimer_start(gptimer), "SENSORS", "Failed to start GPTIMER");
 
-
-    ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_0, &config), "SENSORS", "Failed to init Timer");
-    ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "SENSORS", "Failed to set counter value");
-    ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, RPM_TIMER_INTERVAL_MS*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
-    ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to enable timer interrupt");
-    ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_0, &on_rpm_timer, NULL, 0, &rpm_timer_handle), "SENSORS", "Failed to register timer ISR");
-    ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to start timer");
-    ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
+    //timer_config_t config = {
+    //        .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
+    //        .counter_en = timer_start_t::TIMER_START,
+    //        .intr_type = TIMER_INTR_LEVEL,
+    //        .counter_dir = TIMER_COUNT_UP,
+    //        .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
+    //        .divider = 80   /* 1 us per tick */
+    //};
+//
+//
+    //ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_0, &config), "SENSORS", "Failed to init Timer");
+    //ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "SENSORS", "Failed to set counter value");
+    //ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, RPM_TIMER_INTERVAL_MS*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
+    //ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to enable timer interrupt");
+    //ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_0, &on_rpm_timer, NULL, 0, &rpm_timer_handle), "SENSORS", "Failed to register timer ISR");
+    //ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to start timer");
+    //ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
     return ESP_OK;
 }
 

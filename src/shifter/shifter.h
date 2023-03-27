@@ -3,13 +3,13 @@
 
 #include <stdint.h>
 
-enum ShifterStyle{
+enum ShifterStyle : uint8_t {
 	EWM = 0u,
 	TRRS = 1u,
 	SLR = 2u
 };
 
-enum ShifterPosition{
+enum ShifterPosition : uint8_t {
     P,
     P_R,
     R,

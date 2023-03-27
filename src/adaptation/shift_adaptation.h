@@ -48,7 +48,7 @@ public:
     esp_err_t reset(void);
     esp_err_t save(void);
 private:
-    StoredTcuMap* shift_adaptation_maps[8];
+    StoredMap* shift_adaptation_maps[8];
 };
 
 

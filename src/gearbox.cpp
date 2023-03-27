@@ -254,7 +254,7 @@ GearboxGear prev_gear(GearboxGear g)
 
 /**
  * @brief Linear interpolate between 2 values
- * 
+ *
  * @param start_value Start value (At time 0)
  * @param end_value End target value (At `interp_duration` ms from start)
  * @param current_elapsed The current elapsed time
@@ -324,24 +324,32 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         Clutch apply_clutch = pressure_manager->get_clutch_to_apply(req_lookup);
         Clutch release_clutch = pressure_manager->get_clutch_to_release(req_lookup);
         // Needed for Bleed phase
-        uint32_t phase_elapsed = 0;
-        uint32_t sol_open_time = 0;
+        uint32_t phase_elapsed = 0u;
+        uint32_t sol_open_time = 0u;
         // Bleed phase is phase 1, set the times here
         uint32_t phase_hold_time = sd.bleed_data.hold_time;
         uint32_t phase_ramp_time = sd.bleed_data.ramp_time;
-        float max_spc = 0; // To ensure SPC doesn't decrease
+        float max_spc = 0.0F; // To ensure SPC doesn't decrease
 
-        float prev_phase_mpc, curr_phase_mpc, current_mpc;
-        float prev_phase_spc, curr_phase_spc, current_spc;
-        float prev_phase_delta_mpc, curr_phase_delta_mpc, current_delta_mpc;
-        float prev_phase_delta_spc, curr_phase_delta_spc, current_delta_spc;
+        float prev_phase_mpc;
+        float curr_phase_mpc;
+        float current_mpc;
+        float prev_phase_spc;
+        float curr_phase_spc;
+        float current_spc;
+        float prev_phase_delta_mpc;
+        float curr_phase_delta_mpc;
+        float current_delta_mpc;
+        float prev_phase_delta_spc;
+        float curr_phase_delta_spc;
+        float current_delta_spc;
         prev_phase_mpc = curr_phase_mpc = current_mpc = this->mpc_working;
-        prev_phase_spc = curr_phase_spc = current_spc = 50;
-        prev_phase_delta_mpc = curr_phase_delta_mpc = current_delta_mpc = 0;
-        prev_phase_delta_spc = curr_phase_delta_spc = current_delta_spc = 0;
+        prev_phase_spc = curr_phase_spc = current_spc = 50.0F;
+        prev_phase_delta_mpc = curr_phase_delta_mpc = current_delta_mpc = 0.0F;
+        prev_phase_delta_spc = curr_phase_delta_spc = current_delta_spc = 0.0F;
 
         bool process_shift = true;
-        float mpc_hold_adder = 0;
+        float mpc_hold_adder = 0.0F;
         sr.start_reading = this->collect_report_segment(shift_start_time);
         float curr_torq_request = 0;
         float mpc_release_delay = 0;
@@ -349,7 +357,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         while(process_shift) {
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, this->gearboxConfig.ratios);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
-            int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
+            // int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
             int current_trq = sensor_data.input_torque;
             if (!is_upshift && (sensor_data.input_torque > 0 && sensor_data.driver_requested_torque > sensor_data.input_torque)) {
                 current_trq = sensor_data.driver_requested_torque;
@@ -443,7 +451,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         if (req_lookup == ProfileGearChange::TWO_ONE) {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 11.5, 4.35, 100, 1000);
-                        } else { 
+                        } else {
                             min_spc = 100;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 29.0, 7, 100, 1000);
                         }
@@ -489,7 +497,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 spc = MAX(sd.fill_data.spc_pressure, current_spc + current_delta_spc);
             }
             if (current_phase < SHIFT_PHASE_OVERLAP) {
-                // Prevent MPC from being too low in bleed and fill phase 
+                // Prevent MPC from being too low in bleed and fill phase
                 mpc_hold_adder = pressure_manager->get_mpc_hold_adder(apply_clutch);
                 this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + 100), now_working_mpc + mpc_hold_adder);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
@@ -830,7 +838,7 @@ void Gearbox::controller_loop()
     uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
     while (esp_timer_get_time() < expire_check)
     {
-        this->shifter_pos = egs_can_hal->get_shifter_position_ewm(esp_timer_get_time() / 1000, 250);
+        this->shifter_pos = egs_can_hal->get_shifter_position(esp_timer_get_time() / 1000, 250);
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
@@ -956,7 +964,7 @@ void Gearbox::controller_loop()
                 sol_y4->write_pwm_12_bit(1024);
             }
             egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position_ewm(now, 1000);
+            this->shifter_pos = egs_can_hal->get_shifter_position(now, 1000);
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||

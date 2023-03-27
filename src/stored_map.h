@@ -1,15 +1,16 @@
 #ifndef STORED_MAP_H
 #define STORED_MAP_H
 
-#include "../lib/core/tcumap.h"
+#include "../lib/core/lookupmap.h"
 #include "esp_err.h"
+#include "stored_table.h"
 
-class StoredTcuMap : public TcuMap {
+class StoredMap : public LookupMap, public StoredData {
 
     public:
-        StoredTcuMap(
+        StoredMap(
             const char* eeprom_key_name,
-            const uint16_t map_element_count,
+            const uint16_t data_element_count,
             const int16_t* x_headers,
             const int16_t* y_headers,
             uint16_t x_size,
@@ -17,23 +18,22 @@ class StoredTcuMap : public TcuMap {
             const int16_t* default_map
         );
 
-        esp_err_t init_status(void) const;
-        /**
-         * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
-         */
-        esp_err_t save_to_eeprom(void);
-
         /**
          * @brief Replace map contents with new data (Keeping it in memory, call `save_to_eeprom` to write it to the TCU's EEPROM)
          * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
          * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
          */
-        esp_err_t replace_map_content(int16_t* new_data, uint16_t content_len);
+        esp_err_t replace_data_content(int16_t* new_data, uint16_t content_len);
 
         /**
          * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
          */
         esp_err_t reload_from_eeprom(void);
+
+        /**
+         * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
+         */
+        esp_err_t save_to_eeprom(void) override;
 
         /**
          * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
@@ -49,11 +49,8 @@ class StoredTcuMap : public TcuMap {
         const char* get_map_name(void);
 
     private:
-        const char* map_name;
-        uint16_t map_element_count;
         const int16_t* default_map;
-        esp_err_t init_state;
-        esp_err_t read_from_eeprom(const char* key_name, uint16_t expected_size);
+        esp_err_t read_from_eeprom(const char* key_name, uint16_t expected_size) override;
 };
 
 #endif // STORED_MAP_H

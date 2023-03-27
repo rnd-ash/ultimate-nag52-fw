@@ -18,10 +18,6 @@ static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 static const char NVS_UCFG_KEY_PROFILE[13] = "LAST_PROFILE";
 static const char NVS_KEY_GEAR_ADAPTATION[16] = "GEAR_ADAPTATION";
 
-#define SHIFTER_STYLE_EWM 0
-#define SHIFTER_STYLE_TRRS 1
-#define SHIFTER_STYLE_SLR 2
-
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t is_large_nag;
     uint16_t diff_ratio;
@@ -42,6 +38,12 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
     uint8_t gen_mosfet_purpose;
+    
+    // values required for classic Hfm
+    // maximum opening angle of the throttle valve (in [°] to be more universal)
+    uint8_t throttlevalve_maxopeningangle;
+    // constant factor required to convert mdot and engine speed to the engine torque (in [m²/s²])
+    float c_eng;
 };
 
 

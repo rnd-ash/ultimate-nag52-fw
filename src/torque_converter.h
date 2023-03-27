@@ -35,7 +35,7 @@ class TorqueConverter {
         };
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
-        StoredTcuMap* tcc_learn_lockup_map;
+        StoredMap* tcc_learn_lockup_map;
     private:
         inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;

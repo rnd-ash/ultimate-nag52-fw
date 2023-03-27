@@ -116,13 +116,13 @@ public:
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
-    StoredTcuMap* get_pcs_map(void);
-    StoredTcuMap* get_tcc_pwm_map(void);
-    StoredTcuMap* get_working_map(void);
-    StoredTcuMap* get_fill_time_map(void);
-    StoredTcuMap* get_fill_pressure_map(void);
-    StoredTcuMap* get_fill_pressure_mpc_adder_map(void);
-    uint16_t get_max_rated_torque() {
+    StoredMap* get_pcs_map(void);
+    StoredMap* get_tcc_pwm_map(void);
+    StoredMap* get_working_map(void);
+    StoredMap* get_fill_time_map(void);
+    StoredMap* get_fill_pressure_map(void);
+    StoredMap* get_fill_pressure_mpc_adder_map(void);
+    uint16_t get_max_rated_torque(void) {
         return this->gb_max_torque;
     }
 
@@ -148,12 +148,12 @@ private:
     uint16_t req_mpc_pressure;
     uint16_t req_current_spc;
     uint16_t req_current_mpc;
-    StoredTcuMap* pressure_pwm_map;
-    StoredTcuMap* tcc_pwm_map;
-    StoredTcuMap* mpc_working_pressure;
-    StoredTcuMap* hold2_time_map;
-    StoredTcuMap* hold2_pressure_map;
-    StoredTcuMap* hold2_pressure_mpc_adder_map;
+    StoredMap* pressure_pwm_map;
+    StoredMap* tcc_pwm_map;
+    StoredMap* mpc_working_pressure;
+    StoredMap* hold2_time_map;
+    StoredMap* hold2_pressure_map;
+    StoredMap* hold2_pressure_mpc_adder_map;
     uint16_t gb_max_torque;
 };
 

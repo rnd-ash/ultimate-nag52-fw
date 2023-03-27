@@ -3,8 +3,10 @@
 #include "gearbox_config.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "../shifter/shifter_ewm.h"
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
+    shifter = new ShifterEwm(&(this->can_init_status), &ewm_ecu);
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -124,35 +126,8 @@ WheelData Egs52Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs52Can::get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
-    EWM_230_EGS52 dest;
-    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &dest)) {
-        switch (dest.WHC) {
-            case EWM_230h_WHC_EGS52::D:
-                return ShifterPosition::D;
-            case EWM_230h_WHC_EGS52::N:
-                return ShifterPosition::N;
-            case EWM_230h_WHC_EGS52::R:
-                return ShifterPosition::R;
-            case EWM_230h_WHC_EGS52::P:
-                return ShifterPosition::P;
-            case EWM_230h_WHC_EGS52::PLUS:
-                return ShifterPosition::PLUS;
-            case EWM_230h_WHC_EGS52::MINUS:
-                return ShifterPosition::MINUS;
-            case EWM_230h_WHC_EGS52::N_ZW_D:
-                return ShifterPosition::N_D;
-            case EWM_230h_WHC_EGS52::R_ZW_N:
-                return ShifterPosition::R_N;
-            case EWM_230h_WHC_EGS52::P_ZW_R:
-                return ShifterPosition::P_R;
-            case EWM_230h_WHC_EGS52::SNV:
-            default:
-                return ShifterPosition::SignalNotAvailable;
-        }
-    } else {
-        return ShifterPosition::SignalNotAvailable;
-    }
+ShifterPosition Egs52Can::get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
+    return shifter->get_shifter_position(now, expire_time_ms);    
 }
 
 EngineType Egs52Can::get_engine_type(uint64_t now, uint64_t expire_time_ms) {
@@ -297,22 +272,8 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-bool state = false;
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
-    EWM_230_EGS52 ewm230;
-    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
-        if (ewm230.FPT) {
-            if (!state) {
-                this->esp_toggle = !this->esp_toggle;
-            }
-            state = true;
-        } else {
-            state = false;
-        }
-        return ewm230.FPT;
-    } else {
-        return false;
-    }
+    return (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);    
 }
 
 bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {

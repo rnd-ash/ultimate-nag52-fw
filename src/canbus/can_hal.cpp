@@ -121,9 +121,8 @@ void EgsBaseCan::rx_task_loop() {
     twai_message_t rx;
     uint8_t i;
     uint64_t tmp;
-    uint64_t now;
     while(true) {
-        now = esp_timer_get_time() / 1000;
+        uint64_t now = esp_timer_get_time() / 1000;
         twai_get_status_info(&this->can_status);
         uint8_t f_count  = can_status.msgs_to_rx;
         if (f_count == 0) {

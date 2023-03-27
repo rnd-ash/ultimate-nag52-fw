@@ -2,7 +2,7 @@ name: PlatformIO Build
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main"]
 
 env:
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
@@ -50,16 +50,18 @@ jobs:
       uses: actions/download-artifact@v3.0.2
     - name: View artifacts
       run: ls -R
+    - name: set date env
+      run: echo "NOW=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
     - name: create release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
-        release_name: Release ${{ env.BRANCH_NAME }}
-        draft: ${{env.BRANCH_NAME}} != "main"
-        prerelease: ${{env.BRANCH_NAME}} != "main"
+        tag_name: ${{ env.BRANCH_NAME }}-${{ env.NOW }}
+        release_name: Release Main
+        draft: false
+        prerelease: false
     - name: Upload firmware
       id: upload-release-asset 
       uses: softprops/action-gh-release@v1

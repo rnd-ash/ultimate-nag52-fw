@@ -1,8 +1,9 @@
-# Firmware for Ultimate NAG52 (Open source 722.6 TCM with CANBUS support)
+# Firmware for Ultimate NAG52 722.6 TCU
 
-EARLY WIP. See the [main repository](https://github.com/rnd-ash/ultimate_nag52) for details about the project and the [wiki](https://github.com/rnd-ash/ultimate_nag52/wiki)
-
-For context on this project, checkout my [video playlist](https://youtube.com/playlist?list=PLxrw-4Vt7xtu9d8lCkMCG0_K7oHcsSMtF) showing the TCM in action and progress on it!
+## Links
+* [YT playlist](https://www.youtube.com/watch?v=V27D5PrgMk8&list=PLxrw-4Vt7xtu9d8lCkMCG0_K7oHcsSMtF)
+* [Store website](http://ultimate-nag52.net/)
+* [Wiki](http://docs.ultimate-nag52.net/)
 
 ## DISCLAIMER
 
@@ -24,3 +25,9 @@ This project contains code built from the ground up, or code based on black-box 
 2. Clone doxygen-awesome-css submodule with `git submodule update --init --recursive`
 3. Run `doxygen`
 4. View code documentation in the generated `html` folder
+
+## Additional contributors 
+
+* @chrissivo - ClassicCAN contributor
+
+

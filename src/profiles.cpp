@@ -281,7 +281,9 @@ GearboxDisplayGear HypermileProfile::get_display_gear(GearboxGear target, Gearbo
 }
 
 bool HypermileProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    if (sensors->pedal_pos < 15  && coast_downshift && sensors->engine_rpm < 2500) {
+    if (sensors->pedal_pos  == 0 && sensors->engine_rpm < 3000) {
+        return false;
+    } else if (sensors->pedal_pos < 15  && coast_downshift && sensors->engine_rpm < 2500) {
         return false;
     } else {
         this->coast_downshift = false;

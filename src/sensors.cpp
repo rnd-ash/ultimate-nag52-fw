@@ -1,8 +1,8 @@
 #include "sensors.h"
 #include "driver/pcnt.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
-#include "driver/timer.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -10,7 +10,6 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "esp_check.h"
-#include "driver/timer.h"
 #include "driver/gptimer.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
@@ -22,10 +21,15 @@ const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
 const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
 const pcnt_unit_t PCNT_OUT_RPM = PCNT_UNIT_2;
 
-#define ADC2_ATTEN ADC_ATTEN_11db
-#define ADC2_WIDTH ADC_WIDTH_BIT_12
-
-esp_adc_cal_characteristics_t adc2_cal = {};
+adc_oneshot_unit_handle_t adc2_handle;
+adc_oneshot_unit_init_cfg_t init_adc2 = {
+    .unit_id = ADC_UNIT_2
+};
+adc_oneshot_chan_cfg_t adc2_chan_config = {
+    .atten = ADC_ATTEN_DB_11,
+    .bitwidth = ADC_BITWIDTH_12,
+};
+adc_cali_handle_t adc2_cal = nullptr;
 
 portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -125,12 +129,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         output_total += time_delta_output;
         avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
     }
-
-        // Clear timer interrupt
-    gptimer_alarm_config_t alarm_config = {
-        .alarm_count = edata->alarm_value + 20000 // +20ms for next alarm trigger
-    };
-    gptimer_set_alarm_action(timer, &alarm_config);
     return true;
 }
 
@@ -169,10 +167,16 @@ esp_err_t Sensors::init_sensors(){
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(pcb_gpio_matrix->n3_pin, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set PIN_N3 to Input!");
 
     // Configure ADC2 for analog readings
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.atf_channel, ADC_ATTEN_DB_11), "SENSORS", "Failed to set ADC attenuation for PIN_ATF!");
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_DB_11), "SENSORS", "Failed to set ADC attenuation for PIN_VBATT!");
+    ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
+    ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
+    ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for VBATT channel");
     // Characterise ADC2       
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal);
+    adc_cali_line_fitting_config_t cali = {
+        .unit_id = ADC_UNIT_2,
+        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
+    };
+    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc2_cal), "SENSORS", "Failed to create line fitting ADC2 scheme");
     
     // Now configure PCNT to begin counting!
     ESP_RETURN_ON_ERROR(pcnt_unit_config(&pcnt_cfg_n2), "SENSORS", "Failed to configure PCNT for N2 RPM reading!");
@@ -236,37 +240,25 @@ esp_err_t Sensors::init_sensors(){
     gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = 1000000
+        .resolution_hz = (1 * 1000 * 1000)
     };
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "SENSORS", "Failed to create new GPTIMER");
+    
+    gptimer_alarm_config_t alarm_config = {
+        .alarm_count = (20 * 1000),
+        .reload_count = 0,
+        .flags = {
+            .auto_reload_on_alarm = true,
+        }
+    };
+    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer, &alarm_config), "SENSORS", "Failed to set GPTIMER Alarm action");
+
     gptimer_event_callbacks_t cbs = {
         .on_alarm = on_rpm_timer
     };
     ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer, &cbs, nullptr), "SENSORS", "Failed to register GPTIMER callback");
     ESP_RETURN_ON_ERROR(gptimer_enable(gptimer), "SENSORS", "Failed to enable GPTIMER");
-    gptimer_alarm_config_t alarm_config = {
-        .alarm_count = 20000, // period = 20ms
-    };
-    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer, &alarm_config), "SENSORS", "Failed to set GPTIMER alarm action");
     ESP_RETURN_ON_ERROR(gptimer_start(gptimer), "SENSORS", "Failed to start GPTIMER");
-
-    //timer_config_t config = {
-    //        .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
-    //        .counter_en = timer_start_t::TIMER_START,
-    //        .intr_type = TIMER_INTR_LEVEL,
-    //        .counter_dir = TIMER_COUNT_UP,
-    //        .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
-    //        .divider = 80   /* 1 us per tick */
-    //};
-//
-//
-    //ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_0, &config), "SENSORS", "Failed to init Timer");
-    //ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "SENSORS", "Failed to set counter value");
-    //ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, RPM_TIMER_INTERVAL_MS*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
-    //ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to enable timer interrupt");
-    //ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_0, &on_rpm_timer, NULL, 0, &rpm_timer_handle), "SENSORS", "Failed to register timer ISR");
-    //ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to start timer");
-    //ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
     return ESP_OK;
 }
 
@@ -333,8 +325,10 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
 }
 
 esp_err_t Sensors::read_vbatt(uint16_t *dest){
-    uint32_t v;
-    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_batt, &adc2_cal, &v);
+    int v = 0;
+    int read = 0;
+    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &read);
+    res = adc_cali_raw_to_voltage(adc2_cal, read, &v);
     if (res == ESP_OK) {
         // Vin = Vout(R1+R2)/R2
         *dest = v * 5.54; // 5.54 = (100+22)/22
@@ -346,17 +340,11 @@ esp_err_t Sensors::read_vbatt(uint16_t *dest){
 esp_err_t Sensors::read_atf_temp(int16_t *dest)
 {
     esp_err_t res;
-    uint32_t avg = 0;
+    int avg = 0;
     float ATF_TEMP_CORR = BOARD_CONFIG.board_ver >= 2 ? 1.0 : 0.8;
-    if (BOARD_CONFIG.board_ver >= 2)
-    {
-        res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal, &avg);
-    }
-    else
-    {
-        res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &avg);
-    }
-
+    int read = 0;
+    res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &read);
+    res = adc_cali_raw_to_voltage(adc2_cal, read, &avg);
     if (avg >= 3000)
     {
         res = ESP_ERR_INVALID_STATE; // Parking lock engaged, cannot read.
@@ -391,8 +379,8 @@ esp_err_t Sensors::read_atf_temp(int16_t *dest)
 
 esp_err_t Sensors::parking_lock_engaged(bool *dest)
 {
-    uint32_t raw;
-    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_atf, &adc2_cal, &raw);
+    int raw;
+    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &raw);
     if (res == ESP_OK)
     {
         *dest = raw >= 3000;

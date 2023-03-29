@@ -64,10 +64,11 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
 }
 
 uint16_t Solenoid::get_current() const {
-    uint32_t v = esp_adc_cal_raw_to_voltage(this->adc_reading_current, &adc1_cal);
-    if (v <= adc1_cal.coeff_b) {
-        v = 0; // Too small
-    }
+    int v = 0;
+    adc_cali_raw_to_voltage(adc1_cal, this->adc_reading_current, &v);
+    //if (v <= adc1_cal.coeff_b) {
+    //    v = 0; // Too small
+    //}
     return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
@@ -88,10 +89,11 @@ uint16_t Solenoid::diag_get_adc_peak_raw() {
 
 uint16_t Solenoid::get_current_avg() const
 {   
-    uint32_t v = adc_cali_raw_to_voltage((float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &adc1_cal);
-    if (v <= adc1_cal coeff_b) {
-        v = 0; // Too small
-    }
+    int v = 0;
+    adc_cali_raw_to_voltage(adc1_cal, (float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &v);
+    //if (v <= adc1_cal->) {
+    //    v = 0; // Too small
+    //}
     return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
@@ -173,13 +175,35 @@ void read_solenoids_i2s(void*) {
     esp_err_t ret;
     memset(adc_read_buf, 0xcc, I2S_DMA_BUF_LEN);
     uint32_t out_len = 0;
+    adc_continuous_start(c_handle);
+
+    uint32_t samples[adc_channel_t::ADC_CHANNEL_9]; // Indexes all ADC channels like this
+    uint64_t totals[adc_channel_t::ADC_CHANNEL_9];
+    uint8_t channel;
+    uint16_t value;
     while(true) {
-        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, 0);
+        uint32_t read = 0;
+        memset(samples, 0, sizeof(samples));
+        memset(totals, 0, sizeof(totals));
+        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, 1);
         if (ret == ESP_OK) {
-            ESP_LOGI("ADC", "Read ok %lu bytes", out_len);
-        } else {
-            ESP_LOGE("ADC", "DIGI Read failed with %s", esp_err_to_name(ret));
+            for (int i = 0; i < out_len; i+= SOC_ADC_DIGI_RESULT_BYTES) {
+                adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                uint32_t channel_number = p->type1.channel;
+                uint32_t value = p->type1.data;
+                if (value != 0) {
+                    totals[channel_number]+=value;
+                    samples[channel_number]++;
+                }
+            }
+            for (int solenoid = 0; solenoid < 6; solenoid++) {
+                uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
+                float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];
+                sol_batch[solenoid]->__set_adc_reading(avg);
+            }
+            //ESP_LOGI("ADC", "Read ok %lu bytes", out_len);
         }
+        //vTaskDelay(1);
     }
 }
 
@@ -366,9 +390,12 @@ void Solenoids::boot_solenoid_test(void*) {
 
 esp_err_t Solenoids::init_all_solenoids()
 {
-    adc_cali_scheme_ver_t cal_type;
-    adc_cali_check_scheme(&cal_type);
-    adc_cali_scheme_line_fitting_check_efuse()
+    adc_cali_line_fitting_config_t cali = {
+        .unit_id = ADC_UNIT_1,
+        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
+    };
+    adc_cali_create_scheme_line_fitting(&cali, &adc1_cal);
     //esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
     // Read calibration for ADC1
     sol_y3 = new Solenoid("Y3", pcb_gpio_matrix->y3_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_0);

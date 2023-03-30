@@ -5,14 +5,13 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "driver/gptimer.h"
-#include <atomic>
-// 346834 per second
-std::atomic_llong _idle_ticks_c1 = 0;
-std::atomic_llong _idle_ticks_c2 = 0;
 
-const uint64_t LOAD_FETCH_INTERVAL_MS = 100u;
-const uint64_t TICKS_PER_MS = 371000u / 1000u; 
-const uint64_t MAX_TICKS = TICKS_PER_MS * LOAD_FETCH_INTERVAL_MS;
+uint32_t _idle_ticks_c1 = 0;
+uint32_t _idle_ticks_c2 = 0;
+
+const uint32_t LOAD_FETCH_INTERVAL_MS = 100u;
+const uint32_t TICKS_PER_SEC = 454967u; // IDF 5.0 barebones
+const uint32_t MAX_TICKS = TICKS_PER_SEC/(1000u/LOAD_FETCH_INTERVAL_MS);
 
 CpuStats dest;
 bool perfmon_running = false;
@@ -29,22 +28,18 @@ static bool idle_hook_c2(void)
     return false;
 }
 
-uint64_t i0 = 0;
-uint64_t i1 = 0;
 // Guaranteed to run every 100ms
 static bool IRAM_ATTR cpu_load_check(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    i0 = _idle_ticks_c1;
-    i1 = _idle_ticks_c2;
+    if (_idle_ticks_c1 <= MAX_TICKS)
+    {
+        dest.load_core_1 = 1000 - ((1000 * _idle_ticks_c1) / MAX_TICKS);
+    }
     _idle_ticks_c1 = 0;
+    if (_idle_ticks_c2 <= MAX_TICKS)
+    {
+        dest.load_core_2 = 1000 - ((1000 * _idle_ticks_c2) / MAX_TICKS);
+    }
     _idle_ticks_c2 = 0;
-    if (i0 <= MAX_TICKS)
-    {
-        dest.load_core_1 = 1000 - ((1000 * i0) / MAX_TICKS);
-    }
-    if (i1 <= MAX_TICKS)
-    {
-        dest.load_core_2 = 1000 - ((1000 * i1) / MAX_TICKS);
-    }
     return true;
 }
 
@@ -64,7 +59,7 @@ esp_err_t init_perfmon(void)
         ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "PERFMON", "Failed to create new GPTIMER");
 
         gptimer_alarm_config_t alarm_config = {
-            .alarm_count = (100 * 1000),
+            .alarm_count = (LOAD_FETCH_INTERVAL_MS * 1000),
             .reload_count = 0,
             .flags = {
                 .auto_reload_on_alarm = true,

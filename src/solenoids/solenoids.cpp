@@ -153,8 +153,8 @@ void read_solenoids_i2s(void*) {
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     adc_continuous_handle_t c_handle = nullptr;
     adc_continuous_handle_cfg_t c_cfg = {
-        .max_store_buf_size = 1024,
-        .conv_frame_size = 1024/SOC_ADC_DIGI_DATA_BYTES_PER_CONV
+        .max_store_buf_size = I2S_DMA_BUF_LEN,
+        .conv_frame_size = I2S_DMA_BUF_LEN/SOC_ADC_DIGI_DATA_BYTES_PER_CONV
     };
     adc_continuous_new_handle(&c_cfg, &c_handle);
     adc_continuous_config_t dig_cfg = {
@@ -172,38 +172,33 @@ void read_solenoids_i2s(void*) {
     }
     dig_cfg.adc_pattern = adc_pattern;
     adc_continuous_config(c_handle, &dig_cfg);
-    esp_err_t ret;
-    memset(adc_read_buf, 0xcc, I2S_DMA_BUF_LEN);
-    uint32_t out_len = 0;
     adc_continuous_start(c_handle);
-
+    esp_err_t ret;
     uint32_t samples[adc_channel_t::ADC_CHANNEL_9]; // Indexes all ADC channels like this
     uint64_t totals[adc_channel_t::ADC_CHANNEL_9];
-    uint8_t channel;
-    uint16_t value;
+    uint32_t out_len = 0;
+    uint32_t channel_num = 0;
+    uint32_t value = 0;
+    uint8_t idx = 0;
     while(true) {
-        uint32_t read = 0;
         memset(samples, 0, sizeof(samples));
         memset(totals, 0, sizeof(totals));
-        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, 1);
+        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
         if (ret == ESP_OK) {
             for (int i = 0; i < out_len; i+= SOC_ADC_DIGI_RESULT_BYTES) {
                 adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
-                uint32_t channel_number = p->type1.channel;
-                uint32_t value = p->type1.data;
+                channel_num = p->type1.channel;
+                value = p->type1.data;
                 if (value != 0) {
-                    totals[channel_number]+=value;
-                    samples[channel_number]++;
+                    totals[channel_num]+=value;
+                    samples[channel_num]++;
                 }
             }
             for (int solenoid = 0; solenoid < 6; solenoid++) {
-                uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
-                float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];
-                sol_batch[solenoid]->__set_adc_reading(avg);
+                idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
+                sol_batch[solenoid]->__set_adc_reading((samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx]);
             }
-            //ESP_LOGI("ADC", "Read ok %lu bytes", out_len);
         }
-        //vTaskDelay(1);
     }
 }
 

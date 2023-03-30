@@ -13,7 +13,7 @@
 
 adc_cali_handle_t adc1_cal = nullptr;
 uint16_t voltage = 12000;
-
+uint16_t min_adc_v_reading = 0;
 Solenoid::Solenoid(const char *name, gpio_num_t pwm_pin, uint32_t frequency, ledc_channel_t channel, ledc_timer_t timer, adc_channel_t read_channel)
 {
     this->channel = channel;
@@ -66,9 +66,9 @@ void Solenoid::write_pwm_12_bit(uint16_t pwm_raw, bool voltage_compensate) {
 uint16_t Solenoid::get_current() const {
     int v = 0;
     adc_cali_raw_to_voltage(adc1_cal, this->adc_reading_current, &v);
-    //if (v <= adc1_cal.coeff_b) {
-    //    v = 0; // Too small
-    //}
+    if (v <= min_adc_v_reading) {
+        v = 0; // Too small
+    }
     return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
@@ -91,9 +91,9 @@ uint16_t Solenoid::get_current_avg() const
 {   
     int v = 0;
     adc_cali_raw_to_voltage(adc1_cal, (float)this->adc_total/(float)SOLENOID_CURRENT_AVG_SAMPLES, &v);
-    //if (v <= adc1_cal->) {
-    //    v = 0; // Too small
-    //}
+    if (v <= min_adc_v_reading) {
+        v = 0; // Too small
+    }
     return v*pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
@@ -147,7 +147,6 @@ Solenoid *sol_tcc = nullptr;
 
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
-bool monitor_all = false;
 
 void read_solenoids_i2s(void*) {
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
@@ -198,84 +197,13 @@ void read_solenoids_i2s(void*) {
                 idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
                 sol_batch[solenoid]->__set_adc_reading((samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx]);
             }
+            first_read_complete = true;
         }
     }
 }
-
-/*
-void read_solenoids_i2s(void*) {
-    esp_log_level_set("I2S", esp_log_level_t::ESP_LOG_WARN); // Discard noisy I2S logs!
-    Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
-    i2s_config_t i2s_conf = {
-        .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
-        .sample_rate = 600000,
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-        .communication_format = I2S_COMM_FORMAT_STAND_MSB,
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
-        .dma_buf_count = 4,
-        .dma_buf_len = I2S_DMA_BUF_LEN,
-        .use_apll = false,
-        .tx_desc_auto_clear = false
-    };
-    ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_conf, 0, nullptr));
-    ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, adc1_channel_t::ADC1_CHANNEL_0)); // Don't care about this
-    vTaskDelay(10);
-    // Enable ADC I2S. Then manipulate registers of SAR
-    i2s_adc_enable(I2S_NUM_0);
-    // Now modify SAR1 register so that it scans for ALL 6 channels at once
-    // This lets us scan all 6 Solenoid feedback channels at one time!
-    SYSCON.saradc_sar1_patt_tab[0] = 
-        (((sol_batch[0]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 24) |
-        (((sol_batch[1]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 16) |
-        (((sol_batch[2]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 8)  |
-        (((sol_batch[3]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 0);
-    SYSCON.saradc_sar1_patt_tab[1] = 
-        (((sol_batch[4]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 24) |
-        (((sol_batch[5]->get_adc_channel() << 4) | (ADC_WIDTH_BIT_12 << 2) | ADC_ATTEN_DB_11) << 16);
-    SYSCON.saradc_ctrl.sar1_patt_len = 0x05; // 0x05 = 6 channel patterns stored in SAR registers
-    SET_PERI_REG_MASK(SYSCON_SARADC_CTRL2_REG, SYSCON_SARADC_SAR1_INV); // Invert SAR data to correct endienness
-    ESP_LOGI("CC", "Starting");
-    uint32_t samples[ADC_CHANNEL_MAX];
-    uint64_t totals[ADC_CHANNEL_MAX];
-    uint8_t channel;
-    uint16_t value;
-    while(true) {
-        // Invert back data from ADC
-        uint32_t read = 0;
-        memset(samples, 0, sizeof(samples));
-        memset(totals, 0, sizeof(totals));
-        //for (int sample_id = 0; sample_id < 5; sample_id++) {
-        i2s_read(I2S_NUM_0, glob_dma_buf, I2S_DMA_BUF_LEN*2, &read, portMAX_DELAY);
-        for (int i = 0; i < read/2; i++) {
-            channel = (glob_dma_buf[i] >> 12) & 0x07;
-            value = glob_dma_buf[i] & 0xFFF;
-            if (value != 0) {
-                totals[channel]+=value;
-                samples[channel]++;
-            }
-        }
-        //}
-        for (int solenoid = 0; solenoid < 6; solenoid++) {
-            uint8_t idx = (uint8_t)sol_batch[solenoid]->get_adc_channel(); // Channel index
-            float avg = (samples[idx] == 0) ? 0 :  totals[idx] / (float)samples[idx];
-            sol_batch[solenoid]->__set_adc_reading(avg);
-        }
-        first_read_complete = true;
-    }
-}
-*/
 
 uint16_t Solenoids::get_solenoid_voltage() {
     return voltage;
-}
-
-void Solenoids::toggle_all_solenoid_current_monitoring(bool enable) {
-    monitor_all = enable;
-}
-
-bool Solenoids::is_monitoring_all_solenoids() {
-    return monitor_all;
 }
 
 void update_solenoids(void*) {
@@ -305,7 +233,7 @@ bool Solenoids::init_routine_completed(void) {
 // }
 
 void Solenoids::boot_solenoid_test(void*) {
-    vTaskDelay(50);
+    while(!first_read_complete){vTaskDelay(1);}
     if(sol_spc->get_current_avg() > 500) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
         routine = true;
@@ -347,12 +275,10 @@ void Solenoids::boot_solenoid_test(void*) {
         startup_ok = false;
         return;
     }
-    toggle_all_solenoid_current_monitoring(false);
     // Get resistance values from SPC and MPC
     if (get_solenoid_voltage() > 11000) {
         uint32_t c_total = 0;
         uint32_t b_total = 0;
-        while(!first_read_complete){vTaskDelay(1);}
         sol_mpc->write_pwm_12_bit(4096, false);
         vTaskDelay(50);
         for (int i = 0; i < 10; i++) {
@@ -377,6 +303,8 @@ void Solenoids::boot_solenoid_test(void*) {
         sol_mpc->write_pwm_12_bit(0);
         sol_spc->write_pwm_12_bit(0);
         ESP_LOGI("SOLENOID", "Resistance values. SPC: %.2f Ohms, MPC: %.2f Ohms", resistance_spc, resistance_mpc);
+    } else {
+        ESP_LOGW("SOLENOID", "Not starting boot check. Voltage is only %u mV", get_solenoid_voltage());
     }
     startup_ok = true;
     routine = true;
@@ -391,7 +319,8 @@ esp_err_t Solenoids::init_all_solenoids()
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
     };
     adc_cali_create_scheme_line_fitting(&cali, &adc1_cal);
-    //esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_1, adc_atten_t::ADC_ATTEN_DB_11, adc_bits_width_t::ADC_WIDTH_BIT_12, 0, &adc1_cal);   
+    // Set the minimum ADC Reading in mV
+    adc_cali_raw_to_voltage(adc1_cal, 0, (int*)&min_adc_v_reading);
     // Read calibration for ADC1
     sol_y3 = new Solenoid("Y3", pcb_gpio_matrix->y3_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_0, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_0);
     sol_y4 = new Solenoid("Y4", pcb_gpio_matrix->y4_pwm, 1000, ledc_channel_t::LEDC_CHANNEL_1, ledc_timer_t::LEDC_TIMER_0, ADC_CHANNEL_3);
@@ -406,7 +335,6 @@ esp_err_t Solenoids::init_all_solenoids()
     ESP_RETURN_ON_ERROR(sol_y3->init_ok(), "SOLENOID", "Y3 init not OK");
     ESP_RETURN_ON_ERROR(sol_y4->init_ok(), "SOLENOID", "Y4 init not OK");
     ESP_RETURN_ON_ERROR(sol_y5->init_ok(), "SOLENOID", "Y5 init not OK");
-    toggle_all_solenoid_current_monitoring(true);
     Sensors::read_vbatt(&voltage);
     xTaskCreate(update_solenoids, "LEDC-Update", 4096, nullptr, 10, nullptr);
     xTaskCreate(read_solenoids_i2s, "I2S-Reader", 16000, nullptr, 3, nullptr);

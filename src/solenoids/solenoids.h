@@ -128,8 +128,6 @@ namespace Solenoids {
      */
     esp_err_t init_all_solenoids();
     uint16_t get_solenoid_voltage();
-    void toggle_all_solenoid_current_monitoring(bool enable);
-    bool is_monitoring_all_solenoids();
 
     void boot_solenoid_test(void*);
 

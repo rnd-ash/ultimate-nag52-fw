@@ -8,7 +8,7 @@ LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
     header = static_cast<int16_t*>(MALLOC(size * sizeof(int16_t)));
     allocation_successful = (nullptr != header);
     if(allocation_successful){
-        (void)memcpy(header, _header, size);
+        (void)memcpy(header, _header, size*sizeof(int16_t));
     }
 }
 

@@ -11,7 +11,7 @@ class StoredTable : public LookupTable, public StoredData{
             const char* eeprom_key_name,
             const uint16_t data_element_count,
             const int16_t* x_headers,
-            uint16_t x_size,
+            uint16_t x_element_count,
             const int16_t* default_data
         );
     

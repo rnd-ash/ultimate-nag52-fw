@@ -4,14 +4,14 @@
 #include "esp_check.h"
 
 
-StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_element_count, const int16_t * x_headers, uint16_t x_size, const int16_t * default_data):
+StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_element_count, const int16_t * x_headers, uint16_t x_element_count, const int16_t * default_data):
 															LookupTable(x_headers,
-                                                                x_size,
+                                                                x_element_count,
                                                                 default_data,
                                                                 data_element_count)
 {
     this->default_data = default_data;
-    if (x_size == data_element_count)
+    if (x_element_count == data_element_count)
     {
         int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(data_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
         if (nullptr != dest)
@@ -41,7 +41,7 @@ StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_eleme
     }
     else
     {
-        ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Map size is %d, but has %d elements!", eeprom_key_name, x_size, data_element_count);
+        ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Map size is %d, but has %d elements!", eeprom_key_name, x_element_count, data_element_count);
         this->init_state = ESP_ERR_INVALID_SIZE;
     }
 }

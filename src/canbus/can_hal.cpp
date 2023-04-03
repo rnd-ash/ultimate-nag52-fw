@@ -68,7 +68,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
     // Now set the constants for the Tx message.
     this->tx.extd = 0;
     this->tx.rtr = 0;
-    this->tx.ss = 1; // Always single shot
+    this->tx.ss = 0; // Always single shot
     this->tx.self = 0;
     this->tx.dlc_non_comp = 0;
 }

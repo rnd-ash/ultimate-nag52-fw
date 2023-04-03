@@ -18,6 +18,11 @@ CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
     memset(&tx_can, 0x00, sizeof(twai_message_t));
     this->tx_can.data_length_code = 8;
     this->tx_can.identifier = KWP_ECU_TX_ID;
+    this->tx_can.extd = 0;
+    this->tx_can.rtr = 0;
+    this->tx_can.ss = 1; // Always single shot
+    this->tx_can.self = 0;
+    this->tx_can.dlc_non_comp = 0;
     this->rx_queue = xQueueCreate(20, sizeof(DiagCanMessage)); // Queue for receiving CAN frames
 
     this->send_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for sent messages out of KWP server

@@ -868,7 +868,6 @@ inline bool calc_torque_parity(uint16_t s) {
 }
 
 void Egs52Can::tx_frames() {
-    twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_338_EGS52 gs_338tx;
     GS_218_EGS52 gs_218tx;

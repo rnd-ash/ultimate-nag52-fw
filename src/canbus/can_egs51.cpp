@@ -360,7 +360,6 @@ inline bool calc_torque_parity(uint16_t s) {
  */
 
 void Egs51Can::tx_frames() {
-    twai_message_t tx;
     tx.data_length_code = 8; // Always
     GS_218_EGS51 gs_218tx;
     // Copy current CAN frame values to here so we don't

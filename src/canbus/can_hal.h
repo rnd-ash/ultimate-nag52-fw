@@ -383,7 +383,7 @@ class EgsBaseCan {
         QueueHandle_t* diag_rx_queue;
         twai_status_info_t can_status;
         esp_err_t can_init_status;
-
+        twai_message_t tx;
         inline void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;

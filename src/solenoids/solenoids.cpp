@@ -105,7 +105,6 @@ void Solenoid::__write_pwm() {
         this->pwm = 0;
     } else {
         if (this->voltage_compensate) {
-            Sensors::read_vbatt(&voltage);
             this->pwm = (float)this->pwm_raw * SOLENOID_VREF / (float)voltage;
             if (this->pwm > 4096) {
                 this->pwm = 4096; // Clamp to max
@@ -144,7 +143,7 @@ Solenoid *sol_mpc = nullptr;
 Solenoid *sol_spc = nullptr;
 Solenoid *sol_tcc = nullptr;
 
-
+#define I2S_DMA_BUF_LEN 2048
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
 
@@ -152,8 +151,8 @@ void read_solenoids_i2s(void*) {
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     adc_continuous_handle_t c_handle = nullptr;
     adc_continuous_handle_cfg_t c_cfg = {
-        .max_store_buf_size = I2S_DMA_BUF_LEN,
-        .conv_frame_size = I2S_DMA_BUF_LEN/SOC_ADC_DIGI_DATA_BYTES_PER_CONV
+        .max_store_buf_size = I2S_DMA_BUF_LEN*4,
+        .conv_frame_size = I2S_DMA_BUF_LEN,
     };
     adc_continuous_new_handle(&c_cfg, &c_handle);
     adc_continuous_config_t dig_cfg = {
@@ -167,7 +166,7 @@ void read_solenoids_i2s(void*) {
         adc_pattern[i].atten = ADC_ATTEN_DB_11;
         adc_pattern[i].channel = sol_batch[i]->get_adc_channel() & 0x7;
         adc_pattern[i].unit = ADC_UNIT_1;
-        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH; // 12bits
     }
     dig_cfg.adc_pattern = adc_pattern;
     adc_continuous_config(c_handle, &dig_cfg);
@@ -184,11 +183,11 @@ void read_solenoids_i2s(void*) {
         memset(totals, 0, sizeof(totals));
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
         if (ret == ESP_OK) {
-            for (int i = 0; i < out_len; i+= SOC_ADC_DIGI_RESULT_BYTES) {
+            for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
                 channel_num = p->type1.channel;
                 value = p->type1.data;
-                if (value != 0) {
+                if (channel_num < SOC_ADC_CHANNEL_NUM(ADC_UNIT_1) && value != 0) {
                     totals[channel_num]+=value;
                     samples[channel_num]++;
                 }
@@ -199,6 +198,7 @@ void read_solenoids_i2s(void*) {
             }
             first_read_complete = true;
         }
+
     }
 }
 
@@ -209,6 +209,7 @@ uint16_t Solenoids::get_solenoid_voltage() {
 void update_solenoids(void*) {
     Solenoid* sol_order[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5 };
     while(true) {
+        Sensors::read_vbatt(&voltage);
         for (int i = 0; i < 6; i++) {
             sol_order[i]->__write_pwm();
         }

@@ -87,8 +87,8 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                 this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
                 ESP_LOGI("TCC", "Learn cell value is %lu mBar", curr_tcc_target);
                 this->initial_ramp_done = false;
-                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-500);
-                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-500);
+                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-300);
+                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-300);
             } else {
                 this->initial_ramp_done = true;
                 this->base_tcc_pressure = TCC_PREFILL;
@@ -104,7 +104,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     initial_ramp_done = true;
                 } else {
                     // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
-                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 2, 10, 100, 1000);
+                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 1, 5, 100, 1000);
                     int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
                     if (delta > ramp) {
                         this->base_tcc_pressure += delta;

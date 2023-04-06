@@ -71,27 +71,27 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
     int pulses = 0;
     // N2 Sensor
     if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses)) {
-        n2_total -= n2_avgs[avg_n2_idx];
+        n2_total = n2_total - n2_avgs[avg_n2_idx];
         n2_avgs[avg_n2_idx] = pulses;
-        n2_total += pulses;
+        n2_total = n2_total + pulses;
         avg_n2_idx = (avg_n2_idx+1)%RPM_SAMPLES_DEBOUNCE;
     } else {
 
     }
     // N3 Sensor
     if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses)) {
-        n3_total -= n3_avgs[avg_n3_idx];
+        n3_total = n3_total - n3_avgs[avg_n3_idx];
         n3_avgs[avg_n3_idx] = pulses;
-        n3_total += pulses;
+        n3_total = n3_total + pulses;
         avg_n3_idx = (avg_n3_idx+1)%RPM_SAMPLES_DEBOUNCE;
     } else {
 
     }
     // Output Sensor (If present)
     if (output_rpm_ok && ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses)) {
-        output_total -= output_avgs[avg_out_idx];
+        output_total = output_total - output_avgs[avg_out_idx];
         output_avgs[avg_out_idx] = pulses;
-        output_total += pulses;
+        output_total = output_total + pulses;
         avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
     } else {
 

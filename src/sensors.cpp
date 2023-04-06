@@ -107,7 +107,7 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
     ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set %s Pin to Input", name);
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set %s Pin to pullup", name);
     ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Unit", name);
-    pcnt_chan_config_t rpm_chan_config = {
+    const pcnt_chan_config_t rpm_chan_config = {
         .edge_gpio_num = gpio,
         .level_gpio_num = -1,
         .flags {
@@ -140,7 +140,7 @@ esp_err_t Sensors::init_sensors(){
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for VBATT channel");
     // Characterise ADC2       
-    adc_cali_line_fitting_config_t cali = {
+    const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_2,
         .atten = adc_atten_t::ADC_ATTEN_DB_11,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
@@ -161,7 +161,7 @@ esp_err_t Sensors::init_sensors(){
     }
 
     gptimer_handle_t gptimer = NULL;
-    gptimer_config_t timer_config = {
+    const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = (1 * 1000 * 1000),
@@ -171,7 +171,7 @@ esp_err_t Sensors::init_sensors(){
     };
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "SENSORS", "Failed to create new GPTIMER");
     
-    gptimer_alarm_config_t alarm_config = {
+    const gptimer_alarm_config_t alarm_config = {
         .alarm_count = (20 * 1000),
         .reload_count = 0,
         .flags = {
@@ -180,7 +180,7 @@ esp_err_t Sensors::init_sensors(){
     };
     ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer, &alarm_config), "SENSORS", "Failed to set GPTIMER Alarm action");
 
-    gptimer_event_callbacks_t cbs = {
+    const gptimer_event_callbacks_t cbs = {
         .on_alarm = on_rpm_timer
     };
     ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer, &cbs, nullptr), "SENSORS", "Failed to register GPTIMER callback");

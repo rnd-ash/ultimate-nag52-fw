@@ -150,7 +150,7 @@ bool first_read_complete = false;
 void read_solenoids_i2s(void*) {
     Solenoid* sol_batch[6] = { sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     adc_continuous_handle_t c_handle = nullptr;
-    adc_continuous_handle_cfg_t c_cfg = {
+    const adc_continuous_handle_cfg_t c_cfg = {
         .max_store_buf_size = I2S_DMA_BUF_LEN*4,
         .conv_frame_size = I2S_DMA_BUF_LEN,
     };
@@ -314,10 +314,11 @@ void Solenoids::boot_solenoid_test(void*) {
 
 esp_err_t Solenoids::init_all_solenoids()
 {
-    adc_cali_line_fitting_config_t cali = {
+    const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_1,
         .atten = adc_atten_t::ADC_ATTEN_DB_11,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
+        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
     };
     adc_cali_create_scheme_line_fitting(&cali, &adc1_cal);
     // Set the minimum ADC Reading in mV

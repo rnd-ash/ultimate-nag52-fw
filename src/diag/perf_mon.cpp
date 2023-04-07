@@ -12,6 +12,7 @@ uint32_t _idle_ticks_c2 = 0;
 const uint32_t LOAD_FETCH_INTERVAL_MS = 100u;
 const uint32_t TICKS_PER_SEC = 454967u; // IDF 5.0 barebones
 const uint32_t MAX_TICKS = TICKS_PER_SEC/(1000u/LOAD_FETCH_INTERVAL_MS);
+gptimer_handle_t gptimer = NULL;
 
 CpuStats dest;
 bool perfmon_running = false;
@@ -49,8 +50,6 @@ esp_err_t init_perfmon(void)
     {
         dest.load_core_1 = 0;
         dest.load_core_2 = 0;
-
-        gptimer_handle_t gptimer = NULL;
         gptimer_config_t timer_config = {
             .clk_src = GPTIMER_CLK_SRC_DEFAULT,
             .direction = GPTIMER_COUNT_UP,
@@ -82,7 +81,7 @@ esp_err_t init_perfmon(void)
 
 void remove_perfmon(void)
 {
-    //gptimer_disable(gptimer);
+    gptimer_disable(gptimer);
     perfmon_running = false;
 }
 

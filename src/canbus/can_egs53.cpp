@@ -549,9 +549,7 @@ uint8_t msg_counter = 0;
 
 
 void Egs53Can::tx_frames() {
-    twai_message_t tx;
     tx.data_length_code = 8; // Always
-
     TCM_A1_EGS53 tcm_a1_tx = {0};
     TCM_A2_EGS53 tcm_a2_tx = {0};
     ENG_RQ1_TCM_EGS53 eng_rq1_tcm_tx = {0};

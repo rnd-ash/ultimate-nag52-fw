@@ -20,7 +20,7 @@ LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, c
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {
-        (void)memcpy(data, _data, dataSize);
+        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
     }
 }
 
@@ -40,7 +40,7 @@ bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {
-        (void)memcpy(data, _data, dataSize);
+        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
     }
     return result;
 }
@@ -70,7 +70,7 @@ int16_t* LookupTable::get_current_data(void) {
 }
 
 void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
-    *size = dataSize;
+    *size = xHeaderSize;
     *headers = xHeader->get_data();
 }
 

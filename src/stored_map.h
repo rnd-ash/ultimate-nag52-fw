@@ -13,8 +13,8 @@ class StoredMap : public LookupMap, public StoredData {
             const uint16_t data_element_count,
             const int16_t* x_headers,
             const int16_t* y_headers,
-            uint16_t x_size,
-            uint16_t y_size,
+            const uint16_t x_size,
+            const uint16_t y_size,
             const int16_t* default_map
         );
 

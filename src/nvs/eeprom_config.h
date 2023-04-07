@@ -38,12 +38,11 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
     uint8_t gen_mosfet_purpose;
-    
     // values required for classic Hfm
     // maximum opening angle of the throttle valve (in [°] to be more universal)
     uint8_t throttlevalve_maxopeningangle;
-    // constant factor required to convert mdot and engine speed to the engine torque (in [m²/s²])
-    float c_eng;
+    // constant factor required to convert mdot and engine speed to the engine torque (in [m²/s²] * 1000)
+    uint16_t c_eng;
 };
 
 

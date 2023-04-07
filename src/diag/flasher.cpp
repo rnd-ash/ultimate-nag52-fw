@@ -3,7 +3,9 @@
 #include "speaker.h"
 #include "esp_partition.h"
 #include "tcu_maths.h"
-
+#include "esp_ota_ops.h"
+#include "esp_flash.h"
+#include "esp_image_format.h"
 Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;

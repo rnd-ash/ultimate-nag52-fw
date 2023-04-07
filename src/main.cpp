@@ -4,7 +4,6 @@
 #include "esp_log.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp32/ulp.h>
 #include "speaker.h"
 #include "sensors.h"
 #include <gearbox_config.h>

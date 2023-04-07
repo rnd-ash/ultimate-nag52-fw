@@ -4,6 +4,7 @@
 #include <tcu_maths.h>
 #include "solenoids/constant_current.h"
 #include "speaker.h"
+#include "esp_timer.h"
 
 uint16_t Gearbox::redline_rpm = 4000;
 
@@ -601,7 +602,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // No torque request if stationary
                 this->set_torque_request(TorqueRequest::None, 0);
             }
-            vTaskDelay(SHIFT_DELAY_MS / portTICK_RATE_MS);
+            vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
             phase_elapsed += SHIFT_DELAY_MS;
         }
 

@@ -1,6 +1,7 @@
 #include "endpoint.h"
 #include "../kwp2000_defines.h"
 #include "driver/twai.h"
+#include "esp_timer.h"
 
 const DiagCanMessage FLOW_CONTROL = {0x30, KWP_CAN_BS, KWP_CAN_ST_MIN, 0, 0, 0, 0, 0};
 const DiagCanMessage FLOW_CONTROL_BUSY = {0x31, 0, 0, 0, 0, 0, 0, 0};
@@ -17,6 +18,11 @@ CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
     memset(&tx_can, 0x00, sizeof(twai_message_t));
     this->tx_can.data_length_code = 8;
     this->tx_can.identifier = KWP_ECU_TX_ID;
+    this->tx_can.extd = 0;
+    this->tx_can.rtr = 0;
+    this->tx_can.ss = 1; // Always single shot
+    this->tx_can.self = 0;
+    this->tx_can.dlc_non_comp = 0;
     this->rx_queue = xQueueCreate(20, sizeof(DiagCanMessage)); // Queue for receiving CAN frames
 
     this->send_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for sent messages out of KWP server

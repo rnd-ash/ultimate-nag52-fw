@@ -75,8 +75,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         n2_avgs[avg_n2_idx] = pulses;
         n2_total = n2_total + pulses;
         avg_n2_idx = (avg_n2_idx+1)%RPM_SAMPLES_DEBOUNCE;
-    } else {
-
     }
     // N3 Sensor
     if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses)) {
@@ -84,8 +82,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         n3_avgs[avg_n3_idx] = pulses;
         n3_total = n3_total + pulses;
         avg_n3_idx = (avg_n3_idx+1)%RPM_SAMPLES_DEBOUNCE;
-    } else {
-
     }
     // Output Sensor (If present)
     if (output_rpm_ok && ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses)) {
@@ -93,8 +89,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         output_avgs[avg_out_idx] = pulses;
         output_total = output_total + pulses;
         avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
-    } else {
-
     }
     return true;
 }
@@ -131,7 +125,7 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
     return ESP_OK;
 }
 
-esp_err_t Sensors::init_sensors(){
+esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_VBATT to Input!");
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
 

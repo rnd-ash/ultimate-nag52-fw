@@ -2,7 +2,8 @@
 #define PINS_H
 
 #include <driver/gpio.h>
-#include <driver/adc.h>
+#include <esp_adc/adc_cali.h>
+#include <esp_adc/adc_oneshot.h>
 
 static const uint16_t NUM_TEMP_POINTS = 22u;
 
@@ -70,8 +71,8 @@ const static temp_reading_t atf_temp_lookup_V11[NUM_TEMP_POINTS] = {
 };
 
 typedef struct {
-    adc2_channel_t batt_channel;
-    adc2_channel_t atf_channel;
+    //adc2_channel_t batt_channel;
+    //adc2_channel_t atf_channel;
     adc_channel_t adc_batt;
     adc_channel_t adc_atf;
     const temp_reading_t* atf_calibration_curve;

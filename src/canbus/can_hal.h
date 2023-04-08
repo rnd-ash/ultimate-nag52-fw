@@ -3,8 +3,8 @@
  * CANBUS abstraction layer for EGS52 AND EGS53!
  */
 
-#ifndef __ABSTRACT_CAN_H_
-#define __ABSTRACT_CAN_H_
+#ifndef ABSTRACT_CAN_H
+#define ABSTRACT_CAN_H
 
 #include <stdint.h>
 #include <freertos/FreeRTOS.h>
@@ -13,6 +13,7 @@
 #include <freertos/queue.h>
 #include <string.h>
 #include "driver/twai.h"
+#include "shifter/shifter.h"
 
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
@@ -130,23 +131,6 @@ enum class GearboxProfile: uint8_t {
     Underscore
 };
 
-enum class ShifterPosition: uint8_t {
-    P,
-    P_R,
-    R,
-    R_N,
-    N,
-    N_D,
-    D,
-    PLUS, // For EWM only
-    MINUS, // For EWM only
-    FOUR, // For TRRS only
-    THREE, // For TRRS only
-    TWO, // For TRRS only
-    ONE, // For TRRS only
-    SignalNotAvailable = 0xFF // SNV
-};
-
 enum class SolenoidName: uint8_t {
     Y3,
     Y4,
@@ -230,8 +214,8 @@ class EgsBaseCan {
         virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Gets shifter position from EWM module
-        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+        // Gets shifter position from shifter module
+        virtual ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
         // Gets engine type
@@ -373,8 +357,8 @@ class EgsBaseCan {
 
     protected:
         const char* name;
-        TaskHandle_t* tx_task = nullptr;
-        TaskHandle_t* rx_task = nullptr;
+        TaskHandle_t tx_task = nullptr;
+        TaskHandle_t rx_task = nullptr;
         uint8_t tx_time_ms = 0;
 
         uint16_t diag_tx_id = 0;
@@ -401,7 +385,7 @@ class EgsBaseCan {
         QueueHandle_t* diag_rx_queue;
         twai_status_info_t can_status;
         esp_err_t can_init_status;
-
+        twai_message_t tx;
         inline void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;

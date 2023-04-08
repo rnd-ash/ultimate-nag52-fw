@@ -3,7 +3,9 @@
 #include "speaker.h"
 #include "esp_partition.h"
 #include "tcu_maths.h"
-
+#include "esp_ota_ops.h"
+#include "esp_flash.h"
+#include "esp_image_format.h"
 Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
@@ -192,7 +194,7 @@ void Flasher::on_request_verification(uint8_t* args, uint16_t arg_len, DiagMessa
             .size = part->size,
         };
         esp_err_t e = esp_image_verify(ESP_IMAGE_VERIFY, &part_pos, &data);
-        uint8_t res[2] = {0xE1, 0x00};
+        // uint8_t res[2] = {0xE1, 0x00};
         if (e != ESP_OK) {
             res[1] = FLASH_CHECK_STATUS_INVALID;
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "Flash check failed! %s", esp_err_to_name(e));

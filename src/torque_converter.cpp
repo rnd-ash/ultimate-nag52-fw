@@ -15,7 +15,7 @@ const uint16_t TCC_MIN_LOCKING_RPM = 1100;
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
-    tcc_learn_lockup_map = new StoredTcuMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
+    tcc_learn_lockup_map = new StoredMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
     if (this->tcc_learn_lockup_map->init_status() != ESP_OK) {
         delete[] this->tcc_learn_lockup_map;
     }
@@ -86,10 +86,10 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             this->was_idle = false;
             if (this->tcc_learn_lockup_map != nullptr) {
                 this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
-                ESP_LOGI("TCC", "Learn cell value is %d mBar", curr_tcc_target);
+                ESP_LOGI("TCC", "Learn cell value is %lu mBar", curr_tcc_target);
                 this->initial_ramp_done = false;
-                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-500);
-                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-500);
+                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-300);
+                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-300);
             } else {
                 this->initial_ramp_done = true;
                 this->base_tcc_pressure = TCC_PREFILL;
@@ -105,7 +105,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
                     initial_ramp_done = true;
                 } else {
                     // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
-                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 2, 10, 100, 1000);
+                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 1, 5, 100, 1000);
                     int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
                     if (delta > ramp) {
                         this->base_tcc_pressure += delta;

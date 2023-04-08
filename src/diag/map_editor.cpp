@@ -8,7 +8,7 @@
 #include "pressure_manager.h"
 #include "gearbox.h"
 
-StoredTcuMap* get_map(uint8_t map_id) {
+StoredMap* get_map(uint8_t map_id) {
     switch(map_id) {
         case A_UPSHIFT_MAP_ID:
             return agility->get_upshift_map();
@@ -62,7 +62,7 @@ StoredTcuMap* get_map(uint8_t map_id) {
 }
 
 #define CHECK_MAP(map_id) \
-    StoredTcuMap* ptr = get_map(map_id); \
+    StoredMap* ptr = get_map(map_id); \
     if (ptr == nullptr) { \
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
@@ -129,7 +129,7 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     
 kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
-    if (ptr->replace_map_content(buffer, dest_size) == ESP_OK) {
+    if (ptr->replace_data_content(buffer, dest_size) == ESP_OK) {
         return NRC_OK;
     } else {
         return NRC_GENERAL_REJECT;

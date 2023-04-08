@@ -1,6 +1,7 @@
 #include "can_hal.h"
 #include "board_config.h"
 #include "esp_check.h"
+#include "esp_timer.h"
 
 EgsBaseCan* egs_can_hal = nullptr;
 
@@ -44,7 +45,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
             timing_config = TWAI_TIMING_CONFIG_100KBITS();
             break;
         default:
-            ESP_LOGE(this->name, "Cannot set CAN baud to %d", baud);
+            ESP_LOGE(this->name, "Cannot set CAN baud to %lu", baud);
             this->can_init_status = ESP_ERR_INVALID_ARG;
             break;
         
@@ -64,6 +65,12 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
             ESP_LOGE(this->name, "Failed to install TWAI driver");
         }
     }
+    // Now set the constants for the Tx message.
+    this->tx.extd = 0;
+    this->tx.rtr = 0;
+    this->tx.ss = 0; // Always single shot
+    this->tx.self = 0;
+    this->tx.dlc_non_comp = 0;
 }
 
 esp_err_t EgsBaseCan::init_state() const {
@@ -91,14 +98,14 @@ bool EgsBaseCan::begin_tasks() {
     // Prevent starting again
     if (this->rx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Rx task");
-        if (xTaskCreate(this->start_rx_task_loop, "EGS_CAN_RX", 8192, this, 5, this->rx_task) != pdPASS) {
+        if (xTaskCreate(this->start_rx_task_loop, "EGS_CAN_RX", 8192, this, 5, &this->rx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Rx task creation failed!");
             return false;
         }
     }
     if (this->tx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, this->tx_task) != pdPASS) {
+        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, &this->tx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Tx task creation failed!");
             return false;
         }
@@ -121,9 +128,8 @@ void EgsBaseCan::rx_task_loop() {
     twai_message_t rx;
     uint8_t i;
     uint64_t tmp;
-    uint64_t now;
     while(true) {
-        now = esp_timer_get_time() / 1000;
+        uint64_t now = esp_timer_get_time() / 1000;
         twai_get_status_info(&this->can_status);
         uint8_t f_count  = can_status.msgs_to_rx;
         if (f_count == 0) {

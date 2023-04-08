@@ -1,5 +1,5 @@
-#ifndef __EGS52_CAN_H_
-#define __EGS52_CAN_H_
+#ifndef EGS52_CAN_H
+#define EGS52_CAN_H
 #include <gearbox_config.h>
 
 #include "can_hal.h"
@@ -10,6 +10,7 @@
 #include "../../egs52_ecus/src/MS.h"
 #include "../../egs52_ecus/src/EZS.h"
 #include "../../egs52_ecus/src/KOMBI.h"
+#include "../shifter/shifter.h"
 
 class Egs52Can: public EgsBaseCan {
     public:
@@ -28,7 +29,7 @@ class Egs52Can: public EgsBaseCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) override;
+        ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -117,7 +118,7 @@ class Egs52Can: public EgsBaseCan {
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        bool esp_toggle = false;
+        Shifter *shifter;
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
@@ -125,4 +126,4 @@ class Egs52Can: public EgsBaseCan {
         TorqueRequest current_req = TorqueRequest::None;
 };
 
-#endif // EGS53_MODE
+#endif // EGS52_CAN_H

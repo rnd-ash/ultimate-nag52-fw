@@ -1,0 +1,73 @@
+name: PlatformIO Build
+
+on:
+  push:
+    branches: ["dev"]
+
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
+jobs:
+  UNIFIED_FW:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: Cache pip
+        uses: actions/cache@v3.2.5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Cache PlatformIO
+        uses: actions/cache@v3.2.5
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+      - name: Set up Python
+        uses: actions/setup-python@v4.5.0
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+      - name: Build Prod PCB FW
+        run: |
+          pio run -e unified
+      - uses: actions/upload-artifact@v3
+        with:
+          name: UNIFIED_FW
+          path: |
+            .pio/build/unified/firmware.elf
+            .pio/build/unified/firmware.bin
+
+  Create-Upload:
+    needs: [UNIFIED_FW]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3.0.2
+    - name: View artifacts
+      run: ls -R
+    - name: create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
+        release_name: Release Dev
+        draft: false
+        prerelease: true
+    - name: Upload firmware
+      id: upload-release-asset 
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
+        name: Release ${{ env.BRANCH_NAME }}
+        files: |
+          UNIFIED_FW/firmware.elf
+          UNIFIED_FW/firmware.bin

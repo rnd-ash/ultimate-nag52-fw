@@ -52,16 +52,16 @@ public:
     ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
     virtual TccLockupBounds get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) = 0;
 
-    StoredTcuMap* get_upshift_map(void) {
+    StoredMap* get_upshift_map(void) {
         return this->upshift_table;
     }
-    StoredTcuMap* get_downshift_map(void) {
+    StoredMap* get_downshift_map(void) {
         return this->downshift_table;
     }
-    StoredTcuMap* get_upshift_time_map(void) {
+    StoredMap* get_upshift_time_map(void) {
         return this->upshift_time_map;
     }
-    StoredTcuMap* get_downshift_time_map(void) {
+    StoredMap* get_downshift_time_map(void) {
         return this->downshift_time_map;
     }
 
@@ -93,10 +93,10 @@ public:
     virtual uint8_t get_profile_id(void) = 0;
 protected:
     uint8_t profile_id = 0;
-    StoredTcuMap* upshift_table = nullptr;
-    StoredTcuMap* downshift_table = nullptr;
-    StoredTcuMap* upshift_time_map = nullptr;
-    StoredTcuMap* downshift_time_map = nullptr;
+    StoredMap* upshift_table = nullptr;
+    StoredMap* downshift_table = nullptr;
+    StoredMap* upshift_time_map = nullptr;
+    StoredMap* downshift_time_map = nullptr;
 private:
     bool is_diesel; 
     const char* tag_id;

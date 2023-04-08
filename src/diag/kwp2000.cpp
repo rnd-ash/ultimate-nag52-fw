@@ -7,6 +7,7 @@
 #include "kwp_utils.h"
 #include "solenoids/constant_current.h"
 #include "map_editor.h"
+#include "esp_mac.h"
 
 typedef struct {
     uint8_t day;

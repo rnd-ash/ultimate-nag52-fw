@@ -13,7 +13,16 @@
     #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+typedef struct {
+    float new_min;
+    float new_max;
+    float raw_min;
+    float raw_max;
+} __attribute__ ((packed)) LinearInterpSetting;
+
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
+float scale_number(float raw, LinearInterpSetting* settings);
+
 float progress_between_targets(float current, float start, float end);
 
 /// @brief Calulates interpolated value between given values of function f_1 and f_2 for given value x.

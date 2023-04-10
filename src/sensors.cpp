@@ -1,8 +1,7 @@
 #include "sensors.h"
-#include "driver/pcnt.h"
-#include "driver/adc.h"
-#include "esp_adc_cal.h"
-#include "driver/timer.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -10,258 +9,188 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "esp_check.h"
+#include "driver/gptimer.h"
+#include "driver/pulse_cnt.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define PCNT_H_LIM 1
+#define MAX_RPM_PCNT 10000
 
-#define LOG_TAG "SENSORS"
+const pcnt_unit_config_t RPM_UNIT_CFG = {
+    .low_limit = INT16_MIN,
+    .high_limit = INT16_MAX,
+    .flags {
+        .accum_count = 0
+    }
+};
 
-const pcnt_unit_t PCNT_N2_RPM = PCNT_UNIT_0;
-const pcnt_unit_t PCNT_N3_RPM = PCNT_UNIT_1;
-const pcnt_unit_t PCNT_OUT_RPM = PCNT_UNIT_2;
+pcnt_unit_handle_t PCNT_HANDLE_N2;
+pcnt_channel_handle_t PCNT_C_HANDLE_N2;
 
-#define ADC2_ATTEN ADC_ATTEN_11db
-#define ADC2_WIDTH ADC_WIDTH_12Bit
+pcnt_unit_handle_t PCNT_HANDLE_N3;
+pcnt_channel_handle_t PCNT_C_HANDLE_N3;
 
-esp_adc_cal_characteristics_t adc2_cal = {};
+pcnt_unit_handle_t PCNT_HANDLE_OUTPUT;
+pcnt_channel_handle_t PCNT_C_HANDLE_OUTPUT;
 
-portMUX_TYPE n2_mux = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE n3_mux = portMUX_INITIALIZER_UNLOCKED;
-portMUX_TYPE output_mux = portMUX_INITIALIZER_UNLOCKED;
-
-volatile uint64_t n3_intr_times[2] = {0, 0};
-volatile uint64_t n2_intr_times[2] = {0, 0};
-volatile uint64_t output_intr_times[2] = {0,0};
+adc_oneshot_unit_handle_t adc2_handle;
+adc_oneshot_unit_init_cfg_t init_adc2 = {
+    .unit_id = ADC_UNIT_2,
+    .ulp_mode = adc_ulp_mode_t::ADC_ULP_MODE_DISABLE
+};
+adc_oneshot_chan_cfg_t adc2_chan_config = {
+    .atten = ADC_ATTEN_DB_11,
+    .bitwidth = ADC_BITWIDTH_12,
+};
+adc_cali_handle_t adc2_cal = nullptr;
 
 // For RPM sensor debouncing / smoothing
+#define RPM_CHANGE_MAX 1000
 #define RPM_SAMPLES_DEBOUNCE 10
-volatile uint64_t n3_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint64_t n3_total = 0;
-volatile uint64_t n2_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint64_t n2_total = 0;
-volatile uint64_t output_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint64_t output_total = 0;
-uint8_t avg_idx = 0;
-
-
-uint64_t t_n2 = 0;
-uint64_t t_n3 = 0;
-uint64_t t_output = 0;
+#define RPM_TIMER_INTERVAL_MS 20
+uint32_t n3_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
+volatile uint32_t n3_total = 0;
+uint32_t n2_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
+volatile uint32_t n2_total = 0;
+uint32_t output_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
+volatile uint32_t output_total = 0;
+uint8_t avg_n2_idx = 0;
+uint8_t avg_n3_idx = 0;
+uint8_t avg_out_idx = 0;
 bool output_rpm_ok = false;
 
-static void IRAM_ATTR on_pcnt_overflow_n2(void *args)
-{
-    t_n2 = esp_timer_get_time();
-    if (t_n2 - n2_intr_times[1] > 10)
-    {
-        portENTER_CRITICAL_ISR(&n2_mux);
-        n2_intr_times[0] = n2_intr_times[1];
-        n2_intr_times[1] = t_n2;
-        portEXIT_CRITICAL_ISR(&n2_mux);
+
+static esp_err_t IRAM_ATTR read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
+    esp_err_t res = pcnt_unit_get_count(unit, dest);
+    if (ESP_OK == res) {
+        pcnt_unit_clear_count(unit);
     }
-    
+    return res;
 }
 
-static void IRAM_ATTR on_pcnt_overflow_n3(void *args)
-{
-    t_n3 = esp_timer_get_time();
-    if (t_n3 - n3_intr_times[1] > 10)
-    {
-        portENTER_CRITICAL_ISR(&n3_mux);
-        n3_intr_times[0] = n3_intr_times[1];
-        n3_intr_times[1] = t_n3;
-        portEXIT_CRITICAL_ISR(&n3_mux);
+static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
+    int pulses = 0;
+    // N2 Sensor
+    if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses)) {
+        n2_total = n2_total - n2_avgs[avg_n2_idx];
+        n2_avgs[avg_n2_idx] = pulses;
+        n2_total = n2_total + pulses;
+        avg_n2_idx = (avg_n2_idx+1)%RPM_SAMPLES_DEBOUNCE;
     }
+    // N3 Sensor
+    if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses)) {
+        n3_total = n3_total - n3_avgs[avg_n3_idx];
+        n3_avgs[avg_n3_idx] = pulses;
+        n3_total = n3_total + pulses;
+        avg_n3_idx = (avg_n3_idx+1)%RPM_SAMPLES_DEBOUNCE;
+    }
+    // Output Sensor (If present)
+    if (output_rpm_ok && ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses)) {
+        output_total = output_total - output_avgs[avg_out_idx];
+        output_avgs[avg_out_idx] = pulses;
+        output_total = output_total + pulses;
+        avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
+    }
+    return true;
 }
 
-static void IRAM_ATTR on_pcnt_overflow_output(void* args) {
-    t_output = esp_timer_get_time();
-    if (t_output - output_intr_times[1] > 10) {
-        portENTER_CRITICAL_ISR(&output_mux);
-        output_intr_times[0] = output_intr_times[1];
-        output_intr_times[1] = t_output;
-        portEXIT_CRITICAL_ISR(&output_mux);
-    }
+const pcnt_glitch_filter_config_t glitch_filter = {
+    .max_glitch_ns = 1000
+};
+
+esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE) {
+    ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set %s Pin to Input", name);
+    ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set %s Pin to pullup", name);
+    ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Unit", name);
+    const pcnt_chan_config_t rpm_chan_config = {
+        .edge_gpio_num = gpio,
+        .level_gpio_num = -1,
+        .flags {
+            .invert_edge_input = 0,
+            .invert_level_input = 0,
+            .virt_edge_io_level = 0,
+            .virt_level_io_level = 0,
+            .io_loop_back = 0,
+        }     
+    };
+    ESP_RETURN_ON_ERROR(pcnt_new_channel(*UNIT_HANDLE, &rpm_chan_config, CHANNEL_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Channel", name);
+    ESP_RETURN_ON_ERROR(
+        pcnt_channel_set_edge_action(*CHANNEL_HANDLE, pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE, pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE),
+        "SENSORS",
+        "Failed to set PCNT actions for %s PCNT",
+        name
+    );
+    ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(*UNIT_HANDLE, &glitch_filter), "SENSORS", "Failed to set glitch filter for PCNT unit %s", name);
+    ESP_RETURN_ON_ERROR(pcnt_unit_enable(*UNIT_HANDLE), "SENSORS", "Failed to enable PCNT unit %s", name);
+    ESP_RETURN_ON_ERROR(pcnt_unit_start(*UNIT_HANDLE), "SENSORS", "Failed to start PCNT unit %s", name);
+    return ESP_OK;
 }
 
-static intr_handle_t rpm_timer_handle;
-static void IRAM_ATTR on_rpm_timer(void* args) {
-    // Clear timer interrupt
-    TIMERG0.int_clr_timers.t0 = 1;
-    TIMERG0.hw_timer[0].config.alarm_en = 1;
-    uint64_t time_delta_n2 = 0;
-    uint64_t time_delta_n3 = 0;
-    uint64_t time_delta_output = 0;
-    portENTER_CRITICAL_ISR(&n2_mux);
-    time_delta_n2 = n2_intr_times[1] - n2_intr_times[0];
-    portEXIT_CRITICAL_ISR(&n2_mux);
-    portENTER_CRITICAL_ISR(&n3_mux);
-    time_delta_n3 = n3_intr_times[1] - n3_intr_times[0];
-    portEXIT_CRITICAL_ISR(&n3_mux);
-    portENTER_CRITICAL_ISR(&output_mux);
-    time_delta_output = output_intr_times[1] - output_intr_times[0];
-    portEXIT_CRITICAL_ISR(&output_mux);
-
-    n3_total -= n3_avgs[avg_idx];
-    n3_avgs[avg_idx] = time_delta_n3;
-    n3_total += time_delta_n3;
-
-    n2_total -= n2_avgs[avg_idx];
-    n2_avgs[avg_idx] = time_delta_n2;
-    n2_total += time_delta_n2;
-
-    output_total -= output_avgs[avg_idx];
-    output_avgs[avg_idx] = time_delta_output;
-    output_total += time_delta_output;
-
-    avg_idx++;
-    if (avg_idx >= RPM_SAMPLES_DEBOUNCE) {
-        avg_idx=0;
-    }
-
-}
-
-esp_err_t Sensors::init_sensors(){
-    const pcnt_config_t pcnt_cfg_n2{
-        .pulse_gpio_num = pcb_gpio_matrix->n2_pin,
-        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-        .lctrl_mode = PCNT_MODE_KEEP,
-        .hctrl_mode = PCNT_MODE_KEEP,
-        .pos_mode = PCNT_COUNT_INC,
-        .neg_mode = PCNT_COUNT_DIS,
-        .counter_h_lim = PCNT_H_LIM,
-        .counter_l_lim = 0,
-        .unit = PCNT_N2_RPM,
-        .channel = PCNT_CHANNEL_0};
-
-    const pcnt_config_t pcnt_cfg_n3{
-        .pulse_gpio_num = pcb_gpio_matrix->n3_pin,
-        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-        .lctrl_mode = PCNT_MODE_KEEP,
-        .hctrl_mode = PCNT_MODE_KEEP,
-        .pos_mode = PCNT_COUNT_INC,
-        .neg_mode = PCNT_COUNT_DIS,
-        .counter_h_lim = PCNT_H_LIM,
-        .counter_l_lim = 0,
-        .unit = PCNT_N3_RPM,
-        .channel = PCNT_CHANNEL_0};
-
-
+esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_VBATT to Input!");
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
-    ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->n2_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_N2 to Input!");
-    ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->n3_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_N3 to Input!");
-    // Set RPM pins to pullup
-    ESP_RETURN_ON_ERROR(gpio_set_pull_mode(pcb_gpio_matrix->n2_pin, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set PIN_N2 to Input!");
-    ESP_RETURN_ON_ERROR(gpio_set_pull_mode(pcb_gpio_matrix->n3_pin, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set PIN_N3 to Input!");
 
     // Configure ADC2 for analog readings
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.atf_channel, ADC_ATTEN_11db), "SENSORS", "Failed to set ADC attenuation for PIN_ATF!");
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(pcb_gpio_matrix->sensor_data.batt_channel, ADC_ATTEN_11db), "SENSORS", "Failed to set ADC attenuation for PIN_VBATT!");
+    ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
+    ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
+    ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for VBATT channel");
     // Characterise ADC2       
-    esp_adc_cal_characterize(adc_unit_t::ADC_UNIT_2, adc_atten_t::ADC_ATTEN_DB_11, ADC2_WIDTH, 0, &adc2_cal);
+    const adc_cali_line_fitting_config_t cali = {
+        .unit_id = ADC_UNIT_2,
+        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
+        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
+    };
+    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc2_cal), "SENSORS", "Failed to create line fitting ADC2 scheme");
     
     // Now configure PCNT to begin counting!
-    ESP_RETURN_ON_ERROR(pcnt_unit_config(&pcnt_cfg_n2), "SENSORS", "Failed to configure PCNT for N2 RPM reading!");
-    ESP_RETURN_ON_ERROR(pcnt_unit_config(&pcnt_cfg_n3), "SENSORS", "Failed to configure PCNT for N3 RPM reading!");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N2", pcb_gpio_matrix->n2_pin, &PCNT_HANDLE_N2, &PCNT_C_HANDLE_N2), "SENSORS", "N2 PCNT Setup failed");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N3", pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3), "SENSORS", "N3 PCNT Setup failed");
 
-    // Pause PCNTs unit configuration is complete
-    ESP_RETURN_ON_ERROR(pcnt_counter_pause(PCNT_N2_RPM), "SENSORS", "Failed to pause PCNT N2 RPM!");
-    ESP_RETURN_ON_ERROR(pcnt_counter_pause(PCNT_N3_RPM), "SENSORS", "Failed to pause PCNT N3 RPM!");
-                    
-                        // Clear their stored values (If present)
-    ESP_RETURN_ON_ERROR(pcnt_counter_clear(PCNT_N2_RPM), "SENSORS", "Failed to clear PCNT N2 RPM!");
-    ESP_RETURN_ON_ERROR(pcnt_counter_clear(PCNT_N3_RPM), "SENSORS", "Failed to clear PCNT N3 RPM!");
-
-    // Setup filter to ignore ultra short pulses (possibly noise)
-    // Using a value of 40 at 80Mhz APB_CLOCK = this will correctly filter noise up to 30,000RPM
-    ESP_RETURN_ON_ERROR(pcnt_set_filter_value(PCNT_N2_RPM, 1000), "SENSORS", "Failed to set filter for PCNT N2!");
-    ESP_RETURN_ON_ERROR(pcnt_set_filter_value(PCNT_N3_RPM, 1000), "SENSORS", "Failed to set filter for PCNT N3!");
-    ESP_RETURN_ON_ERROR(pcnt_filter_enable(PCNT_N2_RPM), "SENSORS", "Failed to enable filter for PCNT N2!");
-    ESP_RETURN_ON_ERROR(pcnt_filter_enable(PCNT_N3_RPM), "SENSORS", "Failed to enable filter for PCNT N3!");
-
-    // Now install and register ISR interrupts
-    ESP_RETURN_ON_ERROR(pcnt_isr_service_install(0), "SENSORS", "Failed to install ISR service for PCNT!");
-    ESP_RETURN_ON_ERROR(pcnt_isr_handler_add(PCNT_N2_RPM, &on_pcnt_overflow_n2, nullptr), "SENSORS", "Failed to add PCNT N2 to ISR handler!");
-    ESP_RETURN_ON_ERROR(pcnt_isr_handler_add(PCNT_N3_RPM, &on_pcnt_overflow_n3, nullptr), "SENSORS", "Failed to add PCNT N3 to ISR handler!");
-
-    // Enable interrupts on hitting hlim on PCNTs
-    ESP_RETURN_ON_ERROR(pcnt_event_enable(PCNT_N2_RPM, pcnt_evt_type_t::PCNT_EVT_H_LIM), "SENSORS", "Failed to register event for PCNT N2!");
-    ESP_RETURN_ON_ERROR(pcnt_event_enable(PCNT_N3_RPM, pcnt_evt_type_t::PCNT_EVT_H_LIM), "SENSORS", "Failed to register event for PCNT N3!");
-
-    // Resume counting
-    ESP_RETURN_ON_ERROR(pcnt_counter_resume(PCNT_N2_RPM), "SENSORS", "Failed to resume PCNT N2 RPM!");
-    ESP_RETURN_ON_ERROR(pcnt_counter_resume(PCNT_N3_RPM), "SENSORS", "Failed to resume PCNT N3 RPM!");
-    
     // Enable output RPM reading if needed
     if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
         ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-        const pcnt_config_t pcnt_cfg_output {
-            .pulse_gpio_num = pcb_gpio_matrix->io_pin,
-            .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-            .lctrl_mode = PCNT_MODE_KEEP,
-            .hctrl_mode = PCNT_MODE_KEEP,
-            .pos_mode = PCNT_COUNT_INC,
-            .neg_mode = PCNT_COUNT_DIS,
-            .counter_h_lim = PCNT_H_LIM,
-            .counter_l_lim = 0,
-            .unit = PCNT_OUT_RPM,
-            .channel = PCNT_CHANNEL_0
-        };
-        ESP_RETURN_ON_ERROR(gpio_set_pull_mode(pcb_gpio_matrix->io_pin, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set PIN_IO to Input!");
-        ESP_RETURN_ON_ERROR(pcnt_unit_config(&pcnt_cfg_output), "SENSORS", "Failed to configure PCNT for OUTPUT RPM reading!");
-        ESP_RETURN_ON_ERROR(pcnt_counter_clear(PCNT_OUT_RPM), "SENSORS", "Failed to clear PCNT OUTPUT RPM!");
-        ESP_RETURN_ON_ERROR(pcnt_set_filter_value(PCNT_OUT_RPM, 1000), "SENSORS", "Failed to set filter for PCNT OUTPUT!");
-        ESP_RETURN_ON_ERROR(pcnt_filter_enable(PCNT_OUT_RPM), "SENSORS", "Failed to enable filter for PCNT OUTPUT!");
-        ESP_RETURN_ON_ERROR(pcnt_isr_handler_add(PCNT_OUT_RPM, &on_pcnt_overflow_output, nullptr), "SENSORS", "Failed to add PCNT OUTPUT to ISR handler!");
-        ESP_RETURN_ON_ERROR(pcnt_event_enable(PCNT_OUT_RPM, pcnt_evt_type_t::PCNT_EVT_H_LIM), "SENSORS", "Failed to register event for PCNT OUTPUT!");
-        ESP_RETURN_ON_ERROR(pcnt_counter_resume(PCNT_OUT_RPM), "SENSORS", "Failed to resume PCNT OUTPUT RPM!");
-        output_rpm_ok = true;
+        if (ESP_OK == configure_pcnt("OUTPUT", pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT)) {
+            output_rpm_ok = true;
+        }
     }
 
-    timer_config_t config = {
-            .alarm_en = timer_alarm_t::TIMER_ALARM_EN,
-            .counter_en = timer_start_t::TIMER_START,
-            .intr_type = TIMER_INTR_LEVEL,
-            .counter_dir = TIMER_COUNT_UP,
-            .auto_reload = timer_autoreload_t::TIMER_AUTORELOAD_EN,
-            .divider = 80   /* 1 us per tick */
+    gptimer_handle_t gptimer = NULL;
+    const gptimer_config_t timer_config = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = (1 * 1000 * 1000),
+        .flags = {
+            .intr_shared = 1
+        }
     };
+    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "SENSORS", "Failed to create new GPTIMER");
+    
+    const gptimer_alarm_config_t alarm_config = {
+        .alarm_count = (20 * 1000),
+        .reload_count = 0,
+        .flags = {
+            .auto_reload_on_alarm = true,
+        }
+    };
+    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer, &alarm_config), "SENSORS", "Failed to set GPTIMER Alarm action");
 
-
-    ESP_RETURN_ON_ERROR(timer_init(TIMER_GROUP_0, TIMER_0, &config), "SENSORS", "Failed to init Timer");
-    ESP_RETURN_ON_ERROR(timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0), "SENSORS", "Failed to set counter value");
-    ESP_RETURN_ON_ERROR(timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 20*1000), "SENSORS", "Failed to set alarm value"); // 20ms intervals
-    ESP_RETURN_ON_ERROR(timer_enable_intr(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to enable timer interrupt");
-    ESP_RETURN_ON_ERROR(timer_isr_register(TIMER_GROUP_0, TIMER_0, &on_rpm_timer, NULL, 0, &rpm_timer_handle), "SENSORS", "Failed to register timer ISR");
-    ESP_RETURN_ON_ERROR(timer_start(TIMER_GROUP_0, TIMER_0), "SENSORS", "Failed to start timer");
-    ESP_LOG_LEVEL(ESP_LOG_INFO, LOG_TAG, "Sensors INIT OK!");
+    const gptimer_event_callbacks_t cbs = {
+        .on_alarm = on_rpm_timer
+    };
+    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer, &cbs, nullptr), "SENSORS", "Failed to register GPTIMER callback");
+    ESP_RETURN_ON_ERROR(gptimer_enable(gptimer), "SENSORS", "Failed to enable GPTIMER");
+    ESP_RETURN_ON_ERROR(gptimer_start(gptimer), "SENSORS", "Failed to start GPTIMER");
     return ESP_OK;
 }
 
 // 1rpm = 60 pulse/sec -> 1 pulse every 20ms at MINIMUM
 esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 {
-    uint64_t d_n2 = n2_total/RPM_SAMPLES_DEBOUNCE;
-    uint64_t d_n3 = n3_total/RPM_SAMPLES_DEBOUNCE;
-    uint64_t now = esp_timer_get_time();
     esp_err_t res = ESP_OK;
-    if (d_n2 == 0 || now - n2_intr_times[1] > 20000)
-    {
-        dest->n2_raw = 0;
-    }
-    else
-    {
-        dest->n2_raw = 1000000 / d_n2;
-    }
-    if (d_n3 == 0 || now - n3_intr_times[1] > 20000)
-    {
-        dest->n3_raw = 0;
-    }
-    else
-    {
-        dest->n3_raw = 1000000 / d_n3;
-    }
+
+    dest->n2_raw = (n2_total*(50/2))/RPM_SAMPLES_DEBOUNCE; // /2 as we are counting both high and low edge, so we get 2x the number of pulses as teeth
+    dest->n3_raw = (n3_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
+    
     if (dest->n2_raw < 60 && dest->n3_raw < 60)
     { // Stationary ( < 1rpm ), break here to avoid divideBy0Ex, and also noise
         dest->calc_rpm = 0;
@@ -304,24 +233,18 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
         res = ESP_ERR_INVALID_STATE;
     } else {
         uint16_t rpm = 0;
-        uint64_t d_output = output_total/RPM_SAMPLES_DEBOUNCE;
-        uint64_t now = esp_timer_get_time();
-        if (d_output == 0 || now - output_intr_times[1] > 20000)
-        {
-            rpm = 0;
-        }
-        else
-        {
-            rpm = ((1000000 / d_output) / VEHICLE_CONFIG.input_sensor_pulses_per_rev);
-        }
+        uint64_t pulses_per_min = 60*(output_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
+        rpm = pulses_per_min / VEHICLE_CONFIG.input_sensor_pulses_per_rev;
         *dest = rpm;
     }
     return res;
 }
 
 esp_err_t Sensors::read_vbatt(uint16_t *dest){
-    uint32_t v;
-    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_batt, &adc2_cal, &v);
+    int v = 0;
+    int read = 0;
+    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &read);
+    res = adc_cali_raw_to_voltage(adc2_cal, read, &v);
     if (res == ESP_OK) {
         // Vin = Vout(R1+R2)/R2
         *dest = v * 5.54; // 5.54 = (100+22)/22
@@ -333,17 +256,11 @@ esp_err_t Sensors::read_vbatt(uint16_t *dest){
 esp_err_t Sensors::read_atf_temp(int16_t *dest)
 {
     esp_err_t res;
-    uint32_t avg = 0;
+    int avg = 0;
     float ATF_TEMP_CORR = BOARD_CONFIG.board_ver >= 2 ? 1.0 : 0.8;
-    if (BOARD_CONFIG.board_ver >= 2)
-    {
-        res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_7, &adc2_cal, &avg);
-    }
-    else
-    {
-        res = esp_adc_cal_get_voltage(adc_channel_t::ADC_CHANNEL_9, &adc2_cal, &avg);
-    }
-
+    int read = 0;
+    res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &read);
+    res = adc_cali_raw_to_voltage(adc2_cal, read, &avg);
     if (avg >= 3000)
     {
         res = ESP_ERR_INVALID_STATE; // Parking lock engaged, cannot read.
@@ -378,8 +295,8 @@ esp_err_t Sensors::read_atf_temp(int16_t *dest)
 
 esp_err_t Sensors::parking_lock_engaged(bool *dest)
 {
-    uint32_t raw;
-    esp_err_t res = esp_adc_cal_get_voltage(pcb_gpio_matrix->sensor_data.adc_atf, &adc2_cal, &raw);
+    int raw;
+    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &raw);
     if (res == ESP_OK)
     {
         *dest = raw >= 3000;

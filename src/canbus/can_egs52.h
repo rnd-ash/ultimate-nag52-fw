@@ -1,5 +1,5 @@
-#ifndef __EGS52_CAN_H_
-#define __EGS52_CAN_H_
+#ifndef EGS52_CAN_H
+#define EGS52_CAN_H
 #include <gearbox_config.h>
 
 #include "can_hal.h"
@@ -10,6 +10,7 @@
 #include "../../egs52_ecus/src/MS.h"
 #include "../../egs52_ecus/src/EZS.h"
 #include "../../egs52_ecus/src/KOMBI.h"
+#include "../shifter/shifter.h"
 
 class Egs52Can: public EgsBaseCan {
     public:
@@ -28,7 +29,7 @@ class Egs52Can: public EgsBaseCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) override;
+        ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -66,7 +67,6 @@ class Egs52Can: public EgsBaseCan {
         /**
          * Setters
          */
-        void set_race_start(bool race_start) override;
         void set_clutch_status(ClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
@@ -98,15 +98,10 @@ class Egs52Can: public EgsBaseCan {
         void set_drive_profile(GearboxProfile p) override;
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
-        void set_solenoid_pwm(uint16_t duty, SolenoidName s) override;
         void set_wheel_torque_multi_factor(float ratio) override;
-        void set_spc_pressure(uint16_t p) override;
-        void set_mpc_pressure(uint16_t p) override;
-        void set_tcc_pressure(uint16_t p) override;
-        void set_shift_stage(uint8_t stage, bool is_ramp) override;
-        void set_gear_disagree(uint8_t count) override;
-        void set_gear_ratio(int16_t g100) override;
         void set_abort_shift(bool is_aborting) override;
+        void set_fake_engine_rpm(uint16_t rpm) override;
+        void set_garage_shift_state(bool enable) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
@@ -114,22 +109,21 @@ class Egs52Can: public EgsBaseCan {
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
         // CAN Frames to Tx
-        GS_218 gs218 = {0};
-        GS_418 gs418 = {0};
-        GS_338 gs338 = {0};
-        GS_CUSTOM_558 gs558 = {0};
-        GS_CUSTOM_668 gs668 = {0};
+        GS_218_EGS52 gs218 = {0};
+        GS_418_EGS52 gs418 = {0};
+        GS_338_EGS52 gs338 = {0};
         // ECU Data to Rx to
         ECU_EZS ezs_ecu = ECU_EZS();
         ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        bool esp_toggle = false;
+        Shifter *shifter;
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
+        uint16_t fake_rpm = 0;
         TorqueRequest current_req = TorqueRequest::None;
 };
 
-#endif // EGS53_MODE
+#endif // EGS52_CAN_H

@@ -4,7 +4,7 @@
 #include <common_structs.h>
 #include "tcu_maths.h"
 #include "profiles.h"
-#include "adaptation/adapt_map.h"
+#include "adaptation/shift_adaptation.h"
 #include <gearbox_config.h>
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
@@ -76,8 +76,8 @@ public:
      */
     esp_err_t diag_reset_adaptation(void) {
         bool result = false;
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->reset();
+        if (this->pressure_adapt_system != nullptr) { 
+            this->pressure_adapt_system->reset();
             result = true;
         }
         return result;
@@ -92,8 +92,8 @@ public:
      * @param is_valid_rpt If the response is valid or not (Invalid would be due to a shift at stantstill)
      */
     void perform_adaptation(SensorData* prefill_sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
+        if (this->pressure_adapt_system != nullptr) { 
+            //this->pressure_adapt_system->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
         }
     }
 
@@ -102,8 +102,8 @@ public:
      * 
      */
     void save(void) {
-        if (this->adapt_map != nullptr) { 
-            this->adapt_map->save(); 
+        if (this->pressure_adapt_system != nullptr) { 
+            this->pressure_adapt_system->save(); 
         }
     }
 
@@ -116,13 +116,13 @@ public:
     void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
-    StoredTcuMap* get_pcs_map(void);
-    StoredTcuMap* get_tcc_pwm_map(void);
-    StoredTcuMap* get_working_map(void);
-    StoredTcuMap* get_fill_time_map(void);
-    StoredTcuMap* get_fill_pressure_map(void);
-    StoredTcuMap* get_fill_pressure_mpc_adder_map(void);
-    uint16_t get_max_rated_torque() {
+    StoredMap* get_pcs_map(void);
+    StoredMap* get_tcc_pwm_map(void);
+    StoredMap* get_working_map(void);
+    StoredMap* get_fill_time_map(void);
+    StoredMap* get_fill_pressure_map(void);
+    StoredMap* get_fill_pressure_mpc_adder_map(void);
+    uint16_t get_max_rated_torque(void) {
         return this->gb_max_torque;
     }
 
@@ -142,19 +142,18 @@ private:
     uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar);
 
     SensorData* sensor_data;
-    AdaptationMap* adapt_map;
-
+    ShiftAdaptationSystem* pressure_adapt_system;
     uint16_t req_tcc_pressure;
     uint16_t req_spc_pressure;
     uint16_t req_mpc_pressure;
     uint16_t req_current_spc;
     uint16_t req_current_mpc;
-    StoredTcuMap* pressure_pwm_map;
-    StoredTcuMap* tcc_pwm_map;
-    StoredTcuMap* mpc_working_pressure;
-    StoredTcuMap* hold2_time_map;
-    StoredTcuMap* hold2_pressure_map;
-    StoredTcuMap* hold2_pressure_mpc_adder_map;
+    StoredMap* pressure_pwm_map;
+    StoredMap* tcc_pwm_map;
+    StoredMap* mpc_working_pressure;
+    StoredMap* hold2_time_map;
+    StoredMap* hold2_pressure_map;
+    StoredMap* hold2_pressure_mpc_adder_map;
     uint16_t gb_max_torque;
 };
 

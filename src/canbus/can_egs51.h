@@ -1,11 +1,12 @@
-#ifndef __EGS51_CAN_H_
-#define __EGS51_CAN_H_
+#ifndef EGS51_CAN_H
+#define EGS51_CAN_H
 #include <gearbox_config.h>
 #include "can_hal.h"
 #include "../../egs51_ecus/src/GS51.h"
 #include "../../egs51_ecus/src/MS51.h"
 #include "../../egs51_ecus/src/ESP51.h"
 #include "../../egs52_ecus/src/EWM.h"
+#include "shifter/shifter.h"
 
 class Egs51Can: public EgsBaseCan {
     public:
@@ -24,7 +25,7 @@ class Egs51Can: public EgsBaseCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
         // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) override;
+        ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -57,7 +58,6 @@ class Egs51Can: public EgsBaseCan {
         /**
          * Setters
          */
-        void set_race_start(bool race_start) override;
         void set_clutch_status(ClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
@@ -96,19 +96,16 @@ class Egs51Can: public EgsBaseCan {
         void on_rx_done(uint64_t now_ts) override;
     private:
         // CAN Frames to Tx
-        GS_218EGS51 gs218 = {0};
+        GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
-        ECU_EWM ewm = ECU_EWM();
+        ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
-        ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
-        uint8_t i2c_rx_bytes[2] = {0,0};
-        uint8_t i2c_tx_bytes[2] = {0,0};
-        uint64_t last_i2c_query_time = 0;
+        Shifter *shifter;
         bool start_enable = false;
         bool rp_lock_enage = false;
         bool toggle = false;
         bool time_to_toggle = false;
-        uint8_t cvn_counter = 0;
+        uint8_t cvn_counter = 0;        
 };
 
-#endif // EGS52_CAN_H_
+#endif // EGS52_CAN_H

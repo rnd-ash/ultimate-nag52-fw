@@ -13,15 +13,15 @@
 
 #include <stdint.h>
     
-#define SG_A1_CAN_ID 0x02F7
-#define ISM_DISP_RQ_CAN_ID 0x02F5
-#define SSP_RS_SSP_CAN_ID 0x0381
-#define NM_FSCM2_CAN_ID 0x0435
-#define NM_ISM_CAN_ID 0x041D
-#define NM_SSP_CAN_ID 0x041E
+#define SG_A1_EGS53_CAN_ID 0x02F7
+#define ISM_DISP_RQ_EGS53_CAN_ID 0x02F5
+#define SSP_RS_SSP_EGS53_CAN_ID 0x0381
+#define NM_FSCM2_EGS53_CAN_ID 0x0435
+#define NM_ISM_EGS53_CAN_ID 0x041D
+#define NM_SSP_EGS53_CAN_ID 0x041E
 
 /** Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
-enum class SG_A1_EM1_Diag_Stat {
+enum class SG_A1_EM1_Diag_Stat_EGS53 : uint16_t {
 	IDLE = 0, // No Reaction
 	AUTOEPSOFF_ENBL = 1, // carpsof_enable
 	LHOM = 2, // LIMP Home
@@ -34,7 +34,7 @@ enum class SG_A1_EM1_Diag_Stat {
 };
 
 /** Error Check State / Status Error Check */
-enum class SG_A1_SG_ErrChk_Stat {
+enum class SG_A1_SG_ErrChk_Stat_EGS53 : uint16_t {
 	WAIT = 0, // Error Test Not Yet Finished
 	OK = 1, // Error Test Finished, result is ok
 	ERROR = 2, // Error Detected, Record Actual Data
@@ -42,7 +42,7 @@ enum class SG_A1_SG_ErrChk_Stat {
 };
 
 /** Transmission Driving Position Display Request / Request Display Gearbox */
-enum class ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM_EGS53 : uint16_t {
 	M1 = 1, // Driving position "M1"
 	M2 = 2, // Driving position "M2"
 	M3 = 3, // Driving position "M3"
@@ -68,7 +68,7 @@ enum class ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM {
 };
 
 /** Shift by Wire Message Display Request / Request Shift by Wire Show message */
-enum class ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM_EGS53 : uint16_t {
 	IDLE = 0, // No Message
 	M1 = 1, // Message 1
 	M2 = 2, // Message 2
@@ -80,7 +80,7 @@ enum class ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM {
 };
 
 /** Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
-enum class ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM_EGS53 : uint16_t {
 	IDLE = 0, // No Lock icon display
 	ARR_UP = 1, // Lock icon arrow up
 	ARR_DN = 2, // Lock Symbol Arrow Down
@@ -93,7 +93,7 @@ enum class ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM {
 };
 
 /** Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
-enum class ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM_EGS53 : uint16_t {
 	IDLE = 0, // No Lock icon display
 	ARR_UP = 1, // Lock icon arrow up
 	ARR_DN = 2, // Lock Symbol Arrow Down
@@ -106,7 +106,7 @@ enum class ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM {
 };
 
 /** Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
-enum class ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM_EGS53 : uint16_t {
 	IDLE = 0, // No Lock icon display
 	ARR_UP = 1, // Lock icon arrow up
 	ARR_DN = 2, // Lock Symbol Arrow Down
@@ -119,7 +119,7 @@ enum class ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM {
 };
 
 /** Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
-enum class ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM {
+enum class ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM_EGS53 : uint16_t {
 	IDLE = 0, // No Lock icon display
 	ARR_UP = 1, // Lock icon arrow up
 	ARR_DN = 2, // Lock Symbol Arrow Down
@@ -132,7 +132,7 @@ enum class ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM {
 };
 
 /** SSP Diagnostics State / SSP Diagnostic Status */
-enum class SSP_RS_SSP_SSP_Diag_Stat {
+enum class SSP_RS_SSP_SSP_Diag_Stat_EGS53 : uint16_t {
 	OK = 0, // No Fault
 	CURR = 1, // Nominal Current Not Obtained
 	VOLT = 2, // Voltage
@@ -147,7 +147,7 @@ enum class SSP_RS_SSP_SSP_Diag_Stat {
 };
 
 /** Network Management Mode / Network Management Mode */
-enum class NM_FSCM2_NM_Mode {
+enum class NM_FSCM2_NM_Mode_EGS53 : uint16_t {
 	LHOM = 252, // LIMP-HOME Fashion
 	RING = 253, // ring fashion
 	ALIVE = 254, // Alive mode
@@ -155,13 +155,13 @@ enum class NM_FSCM2_NM_Mode {
 };
 
 /** Network Management UserData Launch Type / Network Management UserData Sendart */
-enum class NM_FSCM2_NM_Ud_Launch {
+enum class NM_FSCM2_NM_Ud_Launch_EGS53 : uint16_t {
 	BROADCAST = 4, // Broadcast or Start Alive
 	SNA = 63, // Signal Not Available
 };
 
 /** Network Management UserData Service No./netzmanagement UserData service */
-enum class NM_FSCM2_NM_Ud_Srv {
+enum class NM_FSCM2_NM_Ud_Srv_EGS53 : uint16_t {
 	DATA_OK_BC = 1, // UserData Transmission OK (Broadcast)
 	WAKEUP_SA = 2, // Wakeup status (start alive)
 	SBC_STAT_BC = 5, // System Base Chip Status (Broadcast)
@@ -170,13 +170,13 @@ enum class NM_FSCM2_NM_Ud_Srv {
 };
 
 /** Wakeup Reason / Wake-up */
-enum class NM_FSCM2_WakeupRsn_FSCM2 {
+enum class NM_FSCM2_WakeupRsn_FSCM2_EGS53 : uint16_t {
 	NETWORK = 0, // Wakeup by Network
 	SNA = 255, // Signal Not Available
 };
 
 /** Network Identification No./netzwerk-id */
-enum class NM_FSCM2_Nw_Id {
+enum class NM_FSCM2_Nw_Id_EGS53 : uint16_t {
 	BACKBONE = 4, // Backbone CAN
 	DIAGNOSTICS = 5, // Diagnostics CAN
 	BODY = 6, // Body CAN
@@ -191,7 +191,7 @@ enum class NM_FSCM2_Nw_Id {
 };
 
 /** Network Management Mode / Network Management Mode */
-enum class NM_ISM_NM_Mode {
+enum class NM_ISM_NM_Mode_EGS53 : uint16_t {
 	LHOM = 252, // LIMP-HOME Fashion
 	RING = 253, // ring fashion
 	ALIVE = 254, // Alive mode
@@ -199,13 +199,13 @@ enum class NM_ISM_NM_Mode {
 };
 
 /** Network Management UserData Launch Type / Network Management UserData Sendart */
-enum class NM_ISM_NM_Ud_Launch {
+enum class NM_ISM_NM_Ud_Launch_EGS53 : uint16_t {
 	BROADCAST = 4, // Broadcast or Start Alive
 	SNA = 63, // Signal Not Available
 };
 
 /** Network Management UserData Service No./netzmanagement UserData service */
-enum class NM_ISM_NM_Ud_Srv {
+enum class NM_ISM_NM_Ud_Srv_EGS53 : uint16_t {
 	DATA_OK_BC = 1, // UserData Transmission OK (Broadcast)
 	WAKEUP_SA = 2, // Wakeup status (start alive)
 	SBC_STAT_BC = 5, // System Base Chip Status (Broadcast)
@@ -214,13 +214,13 @@ enum class NM_ISM_NM_Ud_Srv {
 };
 
 /** Wakeup Reason / Wake-up */
-enum class NM_ISM_WakeupRsn_ISM {
+enum class NM_ISM_WakeupRsn_ISM_EGS53 : uint16_t {
 	NETWORK = 0, // Wakeup by Network
 	SNA = 255, // Signal Not Available
 };
 
 /** Network Identification No./netzwerk-id */
-enum class NM_ISM_Nw_Id {
+enum class NM_ISM_Nw_Id_EGS53 : uint16_t {
 	BACKBONE = 4, // Backbone CAN
 	DIAGNOSTICS = 5, // Diagnostics CAN
 	BODY = 6, // Body CAN
@@ -235,7 +235,7 @@ enum class NM_ISM_Nw_Id {
 };
 
 /** Network Management Mode / Network Management Mode */
-enum class NM_SSP_NM_Mode {
+enum class NM_SSP_NM_Mode_EGS53 : uint16_t {
 	LHOM = 252, // LIMP-HOME Fashion
 	RING = 253, // ring fashion
 	ALIVE = 254, // Alive mode
@@ -243,13 +243,13 @@ enum class NM_SSP_NM_Mode {
 };
 
 /** Network Management UserData Launch Type / Network Management UserData Sendart */
-enum class NM_SSP_NM_Ud_Launch {
+enum class NM_SSP_NM_Ud_Launch_EGS53 : uint16_t {
 	BROADCAST = 4, // Broadcast or Start Alive
 	SNA = 63, // Signal Not Available
 };
 
 /** Network Management UserData Service No./netzmanagement UserData service */
-enum class NM_SSP_NM_Ud_Srv {
+enum class NM_SSP_NM_Ud_Srv_EGS53 : uint16_t {
 	DATA_OK_BC = 1, // UserData Transmission OK (Broadcast)
 	WAKEUP_SA = 2, // Wakeup status (start alive)
 	SBC_STAT_BC = 5, // System Base Chip Status (Broadcast)
@@ -258,13 +258,13 @@ enum class NM_SSP_NM_Ud_Srv {
 };
 
 /** Wakeup Reason / Wake-up */
-enum class NM_SSP_WakeupRsn_SSP {
+enum class NM_SSP_WakeupRsn_SSP_EGS53 : uint16_t {
 	NETWORK = 0, // Wakeup by Network
 	SNA = 255, // Signal Not Available
 };
 
 /** Network Identification No./netzwerk-id */
-enum class NM_SSP_Nw_Id {
+enum class NM_SSP_Nw_Id_EGS53 : uint16_t {
 	BACKBONE = 4, // Backbone CAN
 	DIAGNOSTICS = 5, // Diagnostics CAN
 	BODY = 6, // Body CAN
@@ -283,330 +283,176 @@ enum class NM_SSP_Nw_Id {
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of SG_A1 */
-	uint32_t get_canid(){ return SG_A1_CAN_ID; }
-    /** Sets Starter / Generator Output DC Current / DC Current. Conversion formula (To raw from real): y=(x+3276.60009765625)/0.10 (Unit: A) */
-    void set_SG_OutDC_Curr(uint16_t value){ raw = (raw & 0x0000ffffffffffff) | ((uint64_t)value & 0xffff) << 48; }
-
-    /** Gets Starter / Generator Output DC Current / DC Current. Conversion formula (To real from raw): y=(0.10x)-3276.60009765625 (Unit: A) */
-    uint16_t get_SG_OutDC_Curr() const { return (uint16_t)(raw >> 48 & 0xffff); }
-        
-    /** Sets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To raw from real): y=(x-0.0)/0.10 (Unit: V) */
-    void set_SG_OutDC_Volt(uint16_t value){ raw = (raw & 0xffff0000ffffffff) | ((uint64_t)value & 0xffff) << 32; }
-
-    /** Gets Starter / Generator Output DC Voltage / DC Voltage. Conversion formula (To real from raw): y=(0.10x)+0.0 (Unit: V) */
-    uint16_t get_SG_OutDC_Volt() const { return (uint16_t)(raw >> 32 & 0xffff); }
-        
-    /** Sets Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
-    void set_EM1_Diag_Stat(SG_A1_EM1_Diag_Stat value){ raw = (raw & 0xffffffffffff00ff) | ((uint64_t)value & 0xff) << 8; }
-
-    /** Gets Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
-    SG_A1_EM1_Diag_Stat get_EM1_Diag_Stat() const { return (SG_A1_EM1_Diag_Stat)(raw >> 8 & 0xff); }
-        
-    /** Sets Error Check State / Status Error Check */
-    void set_SG_ErrChk_Stat(SG_A1_SG_ErrChk_Stat value){ raw = (raw & 0xffffffffffffff3f) | ((uint64_t)value & 0x3) << 6; }
-
-    /** Gets Error Check State / Status Error Check */
-    SG_A1_SG_ErrChk_Stat get_SG_ErrChk_Stat() const { return (SG_A1_SG_ErrChk_Stat)(raw >> 6 & 0x3); }
-        
-    /** Sets Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 */
-    void set_EM1_EnhCool_Rq(bool value){ raw = (raw & 0xffffffffffffffdf) | ((uint64_t)value & 0x1) << 5; }
-
-    /** Gets Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 */
-    bool get_EM1_EnhCool_Rq() const { return (bool)(raw >> 5 & 0x1); }
-        
-    /** Sets Error Number / Error Number. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_EM1_ErrNum(uint8_t value){ raw = (raw & 0xffffffffffffffe0) | ((uint64_t)value & 0x1f) << 0; }
-
-    /** Gets Error Number / Error Number. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_EM1_ErrNum() const { return (uint8_t)(raw >> 0 & 0x1f); }
-        
-} SG_A1;
+	struct {
+		/** Error Number / Error Number **/
+		uint8_t EM1_ErrNum: 5;
+		/** Electric Machine # 1 Enhanced Cooling Request / Request Advanced Cooling of the E-Machine 1 **/
+		bool EM1_EnhCool_Rq: 1;
+		/** Error Check State / Status Error Check **/
+		SG_A1_SG_ErrChk_Stat_EGS53 SG_ErrChk_Stat: 2;
+		/** Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 **/
+		SG_A1_EM1_Diag_Stat_EGS53 EM1_Diag_Stat: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint16_t __PADDING1__: 16;
+		/** Starter / Generator Output DC Voltage / DC Voltage **/
+		uint16_t SG_OutDC_Volt: 16;
+		/** Starter / Generator Output DC Current / DC Current **/
+		uint16_t SG_OutDC_Curr: 16;
+	} __attribute__((packed));
+	/** Gets CAN ID of SG_A1_EGS53 **/
+	uint32_t get_canid(){ return SG_A1_EGS53_CAN_ID; }
+} SG_A1_EGS53;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of ISM_DISP_RQ */
-	uint32_t get_canid(){ return ISM_DISP_RQ_CAN_ID; }
-    /** Sets Transmission Driving Position Display Request / Request Display Gearbox */
-    void set_TxDrvPosn_Disp_Rq_ISM(ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Transmission Driving Position Display Request / Request Display Gearbox */
-    ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM get_TxDrvPosn_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM)(raw >> 56 & 0xff); }
-        
-    /** Sets Shift by Wire Beep Request / Request Shift by Wire Warnington */
-    void set_SBW_Beep_Rq_ISM(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
-
-    /** Gets Shift by Wire Beep Request / Request Shift by Wire Warnington */
-    bool get_SBW_Beep_Rq_ISM() const { return (bool)(raw >> 47 & 0x1); }
-        
-    /** Sets Shift by Wire Message Display Request / Request Shift by Wire Show message */
-    void set_SBW_Msg_Disp_Rq_ISM(ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM value){ raw = (raw & 0xfffff8ffffffffff) | ((uint64_t)value & 0x7) << 40; }
-
-    /** Gets Shift by Wire Message Display Request / Request Shift by Wire Show message */
-    ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM get_SBW_Msg_Disp_Rq_ISM() const { return (ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM)(raw >> 40 & 0x7); }
-        
-    /** Sets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
-    void set_TSL_MtnLk2_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM value){ raw = (raw & 0xffffff0fffffffff) | ((uint64_t)value & 0xf) << 36; }
-
-    /** Gets Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display */
-    ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM get_TSL_MtnLk2_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM)(raw >> 36 & 0xf); }
-        
-    /** Sets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
-    void set_TSL_MtnLk1_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM value){ raw = (raw & 0xfffffff0ffffffff) | ((uint64_t)value & 0xf) << 32; }
-
-    /** Gets Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display */
-    ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM get_TSL_MtnLk1_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM)(raw >> 32 & 0xf); }
-        
-    /** Sets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
-    void set_TSL_MtnLk4_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM value){ raw = (raw & 0xffffffff0fffffff) | ((uint64_t)value & 0xf) << 28; }
-
-    /** Gets Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display */
-    ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM get_TSL_MtnLk4_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM)(raw >> 28 & 0xf); }
-        
-    /** Sets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
-    void set_TSL_MtnLk3_Disp_Rq_ISM(ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM value){ raw = (raw & 0xfffffffff0ffffff) | ((uint64_t)value & 0xf) << 24; }
-
-    /** Gets Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display */
-    ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM get_TSL_MtnLk3_Disp_Rq_ISM() const { return (ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM)(raw >> 24 & 0xf); }
-        
-} ISM_DISP_RQ;
+	struct {
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint32_t __PADDING1__: 24;
+		/** Transmission Selector Lever Motion Lock 3 Display Request / Request Transmission Lock Lock 3 Display **/
+		ISM_DISP_RQ_TSL_MtnLk3_Disp_Rq_ISM_EGS53 TSL_MtnLk3_Disp_Rq_ISM: 4;
+		/** Transmission Selector Lever Motion Lock 4 Display Request / Request Transmission Lock Lock 4 Display **/
+		ISM_DISP_RQ_TSL_MtnLk4_Disp_Rq_ISM_EGS53 TSL_MtnLk4_Disp_Rq_ISM: 4;
+		/** Transmission Selector Lever Motion Lock 1 Display Request / Request Transmission Lock Lock 1 Display **/
+		ISM_DISP_RQ_TSL_MtnLk1_Disp_Rq_ISM_EGS53 TSL_MtnLk1_Disp_Rq_ISM: 4;
+		/** Transmission Selector Lever Motion Lock 2 Display Request / Request Transmission Lock Lock 2 Display **/
+		ISM_DISP_RQ_TSL_MtnLk2_Disp_Rq_ISM_EGS53 TSL_MtnLk2_Disp_Rq_ISM: 4;
+		/** Shift by Wire Message Display Request / Request Shift by Wire Show message **/
+		ISM_DISP_RQ_SBW_Msg_Disp_Rq_ISM_EGS53 SBW_Msg_Disp_Rq_ISM: 3;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 4;
+		/** Shift by Wire Beep Request / Request Shift by Wire Warnington **/
+		bool SBW_Beep_Rq_ISM: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING3__: 8;
+		/** Transmission Driving Position Display Request / Request Display Gearbox **/
+		ISM_DISP_RQ_TxDrvPosn_Disp_Rq_ISM_EGS53 TxDrvPosn_Disp_Rq_ISM: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of ISM_DISP_RQ_EGS53 **/
+	uint32_t get_canid(){ return ISM_DISP_RQ_EGS53_CAN_ID; }
+} ISM_DISP_RQ_EGS53;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of SSP_RS_SSP */
-	uint32_t get_canid(){ return SSP_RS_SSP_CAN_ID; }
-    /** Sets Actual Current Duty Cycle / Actual Electricity (duty cycle). Conversion formula (To raw from real): y=(x-0.0)/0.50 (Unit: %) */
-    void set_CurrDtyCyc_Actl(uint8_t value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Actual Current Duty Cycle / Actual Electricity (duty cycle). Conversion formula (To real from raw): y=(0.50x)+0.0 (Unit: %) */
-    uint8_t get_CurrDtyCyc_Actl() const { return (uint8_t)(raw >> 56 & 0xff); }
-        
-    /** Sets SSP Diagnostics State / SSP Diagnostic Status */
-    void set_SSP_Diag_Stat(SSP_RS_SSP_SSP_Diag_Stat value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
-
-    /** Gets SSP Diagnostics State / SSP Diagnostic Status */
-    SSP_RS_SSP_SSP_Diag_Stat get_SSP_Diag_Stat() const { return (SSP_RS_SSP_SSP_Diag_Stat)(raw >> 48 & 0xff); }
-        
-    /** Sets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To raw from real): y=(x-0.0)/1.00 (Unit: rpm) */
-    void set_SSP_RPM(uint16_t value){ raw = (raw & 0xffffffc000ffffff) | ((uint64_t)value & 0x3fff) << 24; }
-
-    /** Gets ACTUAL RPM SSP / Current SSP speed. Conversion formula (To real from raw): y=(1.00x)+0.0 (Unit: rpm) */
-    uint16_t get_SSP_RPM() const { return (uint16_t)(raw >> 24 & 0x3fff); }
-        
-    /** Sets Message Counter / Message Counter. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_MC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffff0fff) | ((uint64_t)value & 0xf) << 12; }
-
-    /** Gets Message Counter / Message Counter. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_MC_SSP_RS_SSP() const { return (uint8_t)(raw >> 12 & 0xf); }
-        
-    /** Sets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_CRC_SSP_RS_SSP(uint8_t value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
-
-    /** Gets CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_CRC_SSP_RS_SSP() const { return (uint8_t)(raw >> 0 & 0xff); }
-        
-} SSP_RS_SSP;
+	struct {
+		/** CRC Checksum Byte 1 to 7 Accordinging to SAE J1850 / CRC Checksum Byte 1 - 7 to SAE J1850 **/
+		uint8_t CRC_SSP_RS_SSP: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING1__: 4;
+		/** Message Counter / Message Counter **/
+		uint8_t MC_SSP_RS_SSP: 4;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 8;
+		/** ACTUAL RPM SSP / Current SSP speed **/
+		uint16_t SSP_RPM: 14;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint16_t __PADDING3__: 10;
+		/** SSP Diagnostics State / SSP Diagnostic Status **/
+		SSP_RS_SSP_SSP_Diag_Stat_EGS53 SSP_Diag_Stat: 8;
+		/** Actual Current Duty Cycle / Actual Electricity (duty cycle) **/
+		uint8_t CurrDtyCyc_Actl: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of SSP_RS_SSP_EGS53 **/
+	uint32_t get_canid(){ return SSP_RS_SSP_EGS53_CAN_ID; }
+} SSP_RS_SSP_EGS53;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of NM_FSCM2 */
-	uint32_t get_canid(){ return NM_FSCM2_CAN_ID; }
-    /** Sets Network Management Mode / Network Management Mode */
-    void set_NM_Mode(NM_FSCM2_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Network Management Mode / Network Management Mode */
-    NM_FSCM2_NM_Mode get_NM_Mode() const { return (NM_FSCM2_NM_Mode)(raw >> 56 & 0xff); }
-        
-    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
-
-    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
-        
-    /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
-    void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
-
-    /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
-        
-    /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
-
-    /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
-        
-    /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
-    void set_NM_Ud_Launch(NM_FSCM2_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
-
-    /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_FSCM2_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_FSCM2_NM_Ud_Launch)(raw >> 40 & 0x3f); }
-        
-    /** Sets Network Management UserData Service No./netzmanagement UserData service */
-    void set_NM_Ud_Srv(NM_FSCM2_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
-
-    /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_FSCM2_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_FSCM2_NM_Ud_Srv)(raw >> 32 & 0xff); }
-        
-    /** Sets Wakeup Reason / Wake-up */
-    void set_WakeupRsn_FSCM2(NM_FSCM2_WakeupRsn_FSCM2 value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
-
-    /** Gets Wakeup Reason / Wake-up */
-    NM_FSCM2_WakeupRsn_FSCM2 get_WakeupRsn_FSCM2() const { return (NM_FSCM2_WakeupRsn_FSCM2)(raw >> 24 & 0xff); }
-        
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
-
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
-        
-    /** Sets Network Identification No./netzwerk-id */
-    void set_Nw_Id(NM_FSCM2_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
-
-    /** Gets Network Identification No./netzwerk-id */
-    NM_FSCM2_Nw_Id get_Nw_Id() const { return (NM_FSCM2_Nw_Id)(raw >> 0 & 0xff); }
-        
-} NM_FSCM2;
+	struct {
+		/** Network Identification No./netzwerk-id **/
+		NM_FSCM2_Nw_Id_EGS53 Nw_Id: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING1__: 8;
+		/** Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest **/
+		uint8_t WakeupCnt: 8;
+		/** Wakeup Reason / Wake-up **/
+		NM_FSCM2_WakeupRsn_FSCM2_EGS53 WakeupRsn_FSCM2: 8;
+		/** Network Management UserData Service No./netzmanagement UserData service **/
+		NM_FSCM2_NM_Ud_Srv_EGS53 NM_Ud_Srv: 8;
+		/** Network Management UserData Launch Type / Network Management UserData Sendart **/
+		NM_FSCM2_NM_Ud_Launch_EGS53 NM_Ud_Launch: 6;
+		/** Network Management Sleep Acknowledge / Network Management Sleep Acknowledge **/
+		bool NM_Sleep_Ack: 1;
+		/** Network Management Sleep Indication / Network Management Sleep Indication **/
+		bool NM_Sleep_Ind: 1;
+		/** Network Management Logical Successor / Network Management Logical Successor **/
+		uint8_t NM_Successor: 8;
+		/** Network Management Mode / Network Management Mode **/
+		NM_FSCM2_NM_Mode_EGS53 NM_Mode: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of NM_FSCM2_EGS53 **/
+	uint32_t get_canid(){ return NM_FSCM2_EGS53_CAN_ID; }
+} NM_FSCM2_EGS53;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of NM_ISM */
-	uint32_t get_canid(){ return NM_ISM_CAN_ID; }
-    /** Sets Network Management Mode / Network Management Mode */
-    void set_NM_Mode(NM_ISM_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Network Management Mode / Network Management Mode */
-    NM_ISM_NM_Mode get_NM_Mode() const { return (NM_ISM_NM_Mode)(raw >> 56 & 0xff); }
-        
-    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
-
-    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
-        
-    /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
-    void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
-
-    /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
-        
-    /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
-
-    /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
-        
-    /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
-    void set_NM_Ud_Launch(NM_ISM_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
-
-    /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_ISM_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_ISM_NM_Ud_Launch)(raw >> 40 & 0x3f); }
-        
-    /** Sets Network Management UserData Service No./netzmanagement UserData service */
-    void set_NM_Ud_Srv(NM_ISM_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
-
-    /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_ISM_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_ISM_NM_Ud_Srv)(raw >> 32 & 0xff); }
-        
-    /** Sets Wakeup Reason / Wake-up */
-    void set_WakeupRsn_ISM(NM_ISM_WakeupRsn_ISM value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
-
-    /** Gets Wakeup Reason / Wake-up */
-    NM_ISM_WakeupRsn_ISM get_WakeupRsn_ISM() const { return (NM_ISM_WakeupRsn_ISM)(raw >> 24 & 0xff); }
-        
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
-
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
-        
-    /** Sets Network Identification No./netzwerk-id */
-    void set_Nw_Id(NM_ISM_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
-
-    /** Gets Network Identification No./netzwerk-id */
-    NM_ISM_Nw_Id get_Nw_Id() const { return (NM_ISM_Nw_Id)(raw >> 0 & 0xff); }
-        
-} NM_ISM;
+	struct {
+		/** Network Identification No./netzwerk-id **/
+		NM_ISM_Nw_Id_EGS53 Nw_Id: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING1__: 8;
+		/** Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest **/
+		uint8_t WakeupCnt: 8;
+		/** Wakeup Reason / Wake-up **/
+		NM_ISM_WakeupRsn_ISM_EGS53 WakeupRsn_ISM: 8;
+		/** Network Management UserData Service No./netzmanagement UserData service **/
+		NM_ISM_NM_Ud_Srv_EGS53 NM_Ud_Srv: 8;
+		/** Network Management UserData Launch Type / Network Management UserData Sendart **/
+		NM_ISM_NM_Ud_Launch_EGS53 NM_Ud_Launch: 6;
+		/** Network Management Sleep Acknowledge / Network Management Sleep Acknowledge **/
+		bool NM_Sleep_Ack: 1;
+		/** Network Management Sleep Indication / Network Management Sleep Indication **/
+		bool NM_Sleep_Ind: 1;
+		/** Network Management Logical Successor / Network Management Logical Successor **/
+		uint8_t NM_Successor: 8;
+		/** Network Management Mode / Network Management Mode **/
+		NM_ISM_NM_Mode_EGS53 NM_Mode: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of NM_ISM_EGS53 **/
+	uint32_t get_canid(){ return NM_ISM_EGS53_CAN_ID; }
+} NM_ISM_EGS53;
 
 
 
 typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
-
-	/** Gets CAN ID of NM_SSP */
-	uint32_t get_canid(){ return NM_SSP_CAN_ID; }
-    /** Sets Network Management Mode / Network Management Mode */
-    void set_NM_Mode(NM_SSP_NM_Mode value){ raw = (raw & 0x00ffffffffffffff) | ((uint64_t)value & 0xff) << 56; }
-
-    /** Gets Network Management Mode / Network Management Mode */
-    NM_SSP_NM_Mode get_NM_Mode() const { return (NM_SSP_NM_Mode)(raw >> 56 & 0xff); }
-        
-    /** Sets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_NM_Successor(uint8_t value){ raw = (raw & 0xff00ffffffffffff) | ((uint64_t)value & 0xff) << 48; }
-
-    /** Gets Network Management Logical Successor / Network Management Logical Successor. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_NM_Successor() const { return (uint8_t)(raw >> 48 & 0xff); }
-        
-    /** Sets Network Management Sleep Indication / Network Management Sleep Indication */
-    void set_NM_Sleep_Ind(bool value){ raw = (raw & 0xffff7fffffffffff) | ((uint64_t)value & 0x1) << 47; }
-
-    /** Gets Network Management Sleep Indication / Network Management Sleep Indication */
-    bool get_NM_Sleep_Ind() const { return (bool)(raw >> 47 & 0x1); }
-        
-    /** Sets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    void set_NM_Sleep_Ack(bool value){ raw = (raw & 0xffffbfffffffffff) | ((uint64_t)value & 0x1) << 46; }
-
-    /** Gets Network Management Sleep Acknowledge / Network Management Sleep Acknowledge */
-    bool get_NM_Sleep_Ack() const { return (bool)(raw >> 46 & 0x1); }
-        
-    /** Sets Network Management UserData Launch Type / Network Management UserData Sendart */
-    void set_NM_Ud_Launch(NM_SSP_NM_Ud_Launch value){ raw = (raw & 0xffffc0ffffffffff) | ((uint64_t)value & 0x3f) << 40; }
-
-    /** Gets Network Management UserData Launch Type / Network Management UserData Sendart */
-    NM_SSP_NM_Ud_Launch get_NM_Ud_Launch() const { return (NM_SSP_NM_Ud_Launch)(raw >> 40 & 0x3f); }
-        
-    /** Sets Network Management UserData Service No./netzmanagement UserData service */
-    void set_NM_Ud_Srv(NM_SSP_NM_Ud_Srv value){ raw = (raw & 0xffffff00ffffffff) | ((uint64_t)value & 0xff) << 32; }
-
-    /** Gets Network Management UserData Service No./netzmanagement UserData service */
-    NM_SSP_NM_Ud_Srv get_NM_Ud_Srv() const { return (NM_SSP_NM_Ud_Srv)(raw >> 32 & 0xff); }
-        
-    /** Sets Wakeup Reason / Wake-up */
-    void set_WakeupRsn_SSP(NM_SSP_WakeupRsn_SSP value){ raw = (raw & 0xffffffff00ffffff) | ((uint64_t)value & 0xff) << 24; }
-
-    /** Gets Wakeup Reason / Wake-up */
-    NM_SSP_WakeupRsn_SSP get_WakeupRsn_SSP() const { return (NM_SSP_WakeupRsn_SSP)(raw >> 24 & 0xff); }
-        
-    /** Sets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To raw from real): y=(x-0.0)/1.00 */
-    void set_WakeupCnt(uint8_t value){ raw = (raw & 0xffffffffff00ffff) | ((uint64_t)value & 0xff) << 16; }
-
-    /** Gets Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest. Conversion formula (To real from raw): y=(1.00x)+0.0 */
-    uint8_t get_WakeupCnt() const { return (uint8_t)(raw >> 16 & 0xff); }
-        
-    /** Sets Network Identification No./netzwerk-id */
-    void set_Nw_Id(NM_SSP_Nw_Id value){ raw = (raw & 0xffffffffffffff00) | ((uint64_t)value & 0xff) << 0; }
-
-    /** Gets Network Identification No./netzwerk-id */
-    NM_SSP_Nw_Id get_Nw_Id() const { return (NM_SSP_Nw_Id)(raw >> 0 & 0xff); }
-        
-} NM_SSP;
+	struct {
+		/** Network Identification No./netzwerk-id **/
+		NM_SSP_Nw_Id_EGS53 Nw_Id: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING1__: 8;
+		/** Counter for Module Wakeup States During Network Sleep / Counter for ECUs Internal Wachzustäustände during bus rest **/
+		uint8_t WakeupCnt: 8;
+		/** Wakeup Reason / Wake-up **/
+		NM_SSP_WakeupRsn_SSP_EGS53 WakeupRsn_SSP: 8;
+		/** Network Management UserData Service No./netzmanagement UserData service **/
+		NM_SSP_NM_Ud_Srv_EGS53 NM_Ud_Srv: 8;
+		/** Network Management UserData Launch Type / Network Management UserData Sendart **/
+		NM_SSP_NM_Ud_Launch_EGS53 NM_Ud_Launch: 6;
+		/** Network Management Sleep Acknowledge / Network Management Sleep Acknowledge **/
+		bool NM_Sleep_Ack: 1;
+		/** Network Management Sleep Indication / Network Management Sleep Indication **/
+		bool NM_Sleep_Ind: 1;
+		/** Network Management Logical Successor / Network Management Logical Successor **/
+		uint8_t NM_Successor: 8;
+		/** Network Management Mode / Network Management Mode **/
+		NM_SSP_NM_Mode_EGS53 NM_Mode: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of NM_SSP_EGS53 **/
+	uint32_t get_canid(){ return NM_SSP_EGS53_CAN_ID; }
+} NM_SSP_EGS53;
 
 
 
@@ -620,34 +466,36 @@ class ECU_ANY_ECU {
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
         bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+            uint8_t idx = 0;
+            bool add = true;
             switch(can_id) {
-                case SG_A1_CAN_ID:
-                    LAST_FRAME_TIMES[0] = timestamp_now;
-                    FRAME_DATA[0] = value;
-                    return true;
-                case ISM_DISP_RQ_CAN_ID:
-                    LAST_FRAME_TIMES[1] = timestamp_now;
-                    FRAME_DATA[1] = value;
-                    return true;
-                case SSP_RS_SSP_CAN_ID:
-                    LAST_FRAME_TIMES[2] = timestamp_now;
-                    FRAME_DATA[2] = value;
-                    return true;
-                case NM_FSCM2_CAN_ID:
-                    LAST_FRAME_TIMES[3] = timestamp_now;
-                    FRAME_DATA[3] = value;
-                    return true;
-                case NM_ISM_CAN_ID:
-                    LAST_FRAME_TIMES[4] = timestamp_now;
-                    FRAME_DATA[4] = value;
-                    return true;
-                case NM_SSP_CAN_ID:
-                    LAST_FRAME_TIMES[5] = timestamp_now;
-                    FRAME_DATA[5] = value;
-                    return true;
+                case SG_A1_EGS53_CAN_ID:
+                    idx = 0;
+                    break;
+                case ISM_DISP_RQ_EGS53_CAN_ID:
+                    idx = 1;
+                    break;
+                case SSP_RS_SSP_EGS53_CAN_ID:
+                    idx = 2;
+                    break;
+                case NM_FSCM2_EGS53_CAN_ID:
+                    idx = 3;
+                    break;
+                case NM_ISM_EGS53_CAN_ID:
+                    idx = 4;
+                    break;
+                case NM_SSP_EGS53_CAN_ID:
+                    idx = 5;
+                    break;
                 default:
-                    return false;
+                    add = false;
+                    break;
             }
+            if (add) {
+                LAST_FRAME_TIMES[idx] = timestamp_now;
+                FRAME_DATA[idx] = value;
+            }
+            return add;
         }
         
         /** Sets data in pointer to SG_A1
@@ -657,15 +505,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SG_A1(uint64_t now, uint64_t max_expire_time, SG_A1* dest) const {
-            if (LAST_FRAME_TIMES[0] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[0] && now - LAST_FRAME_TIMES[0] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_SG_A1(uint64_t now, uint64_t max_expire_time, SG_A1_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to ISM_DISP_RQ
@@ -675,15 +521,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ISM_DISP_RQ(uint64_t now, uint64_t max_expire_time, ISM_DISP_RQ* dest) const {
-            if (LAST_FRAME_TIMES[1] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[1] && now - LAST_FRAME_TIMES[1] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_ISM_DISP_RQ(uint64_t now, uint64_t max_expire_time, ISM_DISP_RQ_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
                 dest->raw = FRAME_DATA[1];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to SSP_RS_SSP
@@ -693,15 +537,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SSP_RS_SSP(uint64_t now, uint64_t max_expire_time, SSP_RS_SSP* dest) const {
-            if (LAST_FRAME_TIMES[2] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[2] && now - LAST_FRAME_TIMES[2] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_SSP_RS_SSP(uint64_t now, uint64_t max_expire_time, SSP_RS_SSP_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[2] <= now && now - LAST_FRAME_TIMES[2] < max_expire_time) {
                 dest->raw = FRAME_DATA[2];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to NM_FSCM2
@@ -711,15 +553,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_FSCM2(uint64_t now, uint64_t max_expire_time, NM_FSCM2* dest) const {
-            if (LAST_FRAME_TIMES[3] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[3] && now - LAST_FRAME_TIMES[3] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_NM_FSCM2(uint64_t now, uint64_t max_expire_time, NM_FSCM2_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[3] <= now && now - LAST_FRAME_TIMES[3] < max_expire_time) {
                 dest->raw = FRAME_DATA[3];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to NM_ISM
@@ -729,15 +569,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_ISM(uint64_t now, uint64_t max_expire_time, NM_ISM* dest) const {
-            if (LAST_FRAME_TIMES[4] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[4] && now - LAST_FRAME_TIMES[4] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_NM_ISM(uint64_t now, uint64_t max_expire_time, NM_ISM_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[4] <= now && now - LAST_FRAME_TIMES[4] < max_expire_time) {
                 dest->raw = FRAME_DATA[4];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
         /** Sets data in pointer to NM_SSP
@@ -747,15 +585,13 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_SSP(uint64_t now, uint64_t max_expire_time, NM_SSP* dest) const {
-            if (LAST_FRAME_TIMES[5] == 0 || dest == nullptr) { // CAN Frame has not been seen on bus yet / NULL pointer
-                return false;
-            } else if (now > LAST_FRAME_TIMES[5] && now - LAST_FRAME_TIMES[5] > max_expire_time) { // CAN Frame has not refreshed in valid interval
-                return false;
-            } else { // CAN Frame is valid! return it
+        bool get_NM_SSP(uint64_t now, uint64_t max_expire_time, NM_SSP_EGS53* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[5] <= now && now - LAST_FRAME_TIMES[5] < max_expire_time) {
                 dest->raw = FRAME_DATA[5];
-                return true;
+                ret = true;
             }
+            return ret;
         }
             
 	private:

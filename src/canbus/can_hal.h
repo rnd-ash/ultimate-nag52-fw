@@ -3,8 +3,8 @@
  * CANBUS abstraction layer for EGS52 AND EGS53!
  */
 
-#ifndef __ABSTRACT_CAN_H_
-#define __ABSTRACT_CAN_H_
+#ifndef ABSTRACT_CAN_H
+#define ABSTRACT_CAN_H
 
 #include <stdint.h>
 #include <freertos/FreeRTOS.h>
@@ -13,6 +13,7 @@
 #include <freertos/queue.h>
 #include <string.h>
 #include "driver/twai.h"
+#include "shifter/shifter.h"
 
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
@@ -128,23 +129,6 @@ enum class GearboxProfile: uint8_t {
     Underscore
 };
 
-enum class ShifterPosition: uint8_t {
-    P,
-    P_R,
-    R,
-    R_N,
-    N,
-    N_D,
-    D,
-    PLUS, // For EWM only
-    MINUS, // For EWM only
-    FOUR, // For TRRS only
-    THREE, // For TRRS only
-    TWO, // For TRRS only
-    ONE, // For TRRS only
-    SignalNotAvailable = 0xFF // SNV
-};
-
 enum class SolenoidName: uint8_t {
     Y3,
     Y4,
@@ -228,8 +212,8 @@ class EgsBaseCan {
         virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Gets shifter position from EWM module
-        virtual ShifterPosition get_shifter_position_ewm(uint64_t now, uint64_t expire_time_ms) {
+        // Gets shifter position from shifter module
+        virtual ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
         // Gets engine type
@@ -302,11 +286,6 @@ class EgsBaseCan {
         virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
             return 0;
         }
-        // Gets status of terminal 15
-        virtual TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) {
-            return TerminalStatus::On; // Enabled by default unless implemented
-        }
-
         virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
             return TransferCaseState::SNA;
         }
@@ -314,10 +293,6 @@ class EgsBaseCan {
         /**
          * Setters
          */
-
-        virtual void set_race_start(bool race_start){};
-        // Set solenoid PMW
-        virtual void set_solenoid_pwm(uint16_t duty, SolenoidName s){};
         // Set the gearbox clutch position on CAN
         virtual void set_clutch_status(ClutchStatus status){};
         // Set the actual gear of the gearbox
@@ -354,14 +329,13 @@ class EgsBaseCan {
         virtual void set_display_msg(GearboxMessage msg){};
         // Set bit to signify the gearbox is aborting the shift
         virtual void set_abort_shift(bool is_aborting){};
-        
-        /// Custom setters
-        virtual void set_spc_pressure(uint16_t p){}
-        virtual void set_mpc_pressure(uint16_t p){}
-        virtual void set_tcc_pressure(uint16_t p){}
-        virtual void set_shift_stage(uint8_t stage, bool is_ramp){}
-        virtual void set_gear_disagree(uint8_t count){}
-        virtual void set_gear_ratio(int16_t g100){};
+
+        virtual void set_fake_engine_rpm(uint16_t rpm){};
+        // Tells the engine if we are shifting from P->R or N->D.
+        // This is needed so the engine limits itself to 1K RPM, in order
+        // to prevent any damage to the box!
+        virtual void set_garage_shift_state(bool enable){};
+
 
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {
@@ -381,8 +355,8 @@ class EgsBaseCan {
 
     protected:
         const char* name;
-        TaskHandle_t* tx_task = nullptr;
-        TaskHandle_t* rx_task = nullptr;
+        TaskHandle_t tx_task = nullptr;
+        TaskHandle_t rx_task = nullptr;
         uint8_t tx_time_ms = 0;
 
         uint16_t diag_tx_id = 0;
@@ -409,7 +383,7 @@ class EgsBaseCan {
         QueueHandle_t* diag_rx_queue;
         twai_status_info_t can_status;
         esp_err_t can_init_status;
-
+        twai_message_t tx;
         inline void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;

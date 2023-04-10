@@ -4,7 +4,6 @@
 #include "esp_log.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp32/ulp.h>
 #include "speaker.h"
 #include "sensors.h"
 #include <gearbox_config.h>
@@ -12,7 +11,6 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
-#include "adaptation/adapt_map.h"
 #include "solenoids/constant_current.h"
 
 // CAN LAYERS
@@ -124,6 +122,7 @@ void err_beep_loop(void* a) {
     SPEAKER_POST_CODE p = (SPEAKER_POST_CODE)(int)a;
     if (p == SPEAKER_POST_CODE::INIT_OK) {
         spkr->post(p); // All good, return
+        egs_can_hal->set_gearbox_ok(true);
         vTaskDelete(NULL);
     } else {
         if (egs_can_hal != nullptr) {
@@ -157,7 +156,7 @@ void input_manager(void*) {
         } else { // Released
             if (pressed) {
                 pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position_ewm(now, 1000) == ShifterPosition::PLUS) {
+                if (egs_can_hal->get_shifter_position(now, 1000) == ShifterPosition::PLUS) {
                     gearbox->inc_subprofile();
                 } else {
                     profile_id++;
@@ -190,7 +189,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position_ewm(now, 1000);
+        ShifterPosition spos = egs_can_hal->get_shifter_position(now, 1000);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {

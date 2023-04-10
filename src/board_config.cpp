@@ -29,8 +29,6 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() {
     #define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
     #define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
     this->sensor_data = SensorFuncData {
-        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
-        .atf_channel  = adc2_channel_t::ADC2_CHANNEL_9,
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_9,
         .atf_calibration_curve = atf_temp_lookup_V11,
@@ -66,8 +64,6 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
     this->i2c_sda    = gpio_num_t::GPIO_NUM_15; // I2C clock
     this->i2c_scl    = gpio_num_t::GPIO_NUM_2; // I2C data 
     this->sensor_data = SensorFuncData {
-        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
-        .atf_channel  = adc2_channel_t::ADC2_CHANNEL_7,
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_7,
         .atf_calibration_curve = atf_temp_lookup_V12,
@@ -100,8 +96,6 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
     this->i2c_sda    = gpio_num_t::GPIO_NUM_15; // I2C clock
     this->i2c_scl    = gpio_num_t::GPIO_NUM_2; // I2C data 
     this->sensor_data = SensorFuncData {
-        .batt_channel = adc2_channel_t::ADC2_CHANNEL_8,
-        .atf_channel = adc2_channel_t::ADC2_CHANNEL_7,
         .adc_batt = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf = adc_channel_t::ADC_CHANNEL_7,
         .atf_calibration_curve = atf_temp_lookup_V12,

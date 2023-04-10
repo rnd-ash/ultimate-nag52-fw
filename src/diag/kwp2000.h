@@ -10,7 +10,6 @@
 #include "canbus/can_hal.h"
 #include "gearbox_config.h"
 #include "perf_mon.h"
-#include "esp32/spiram.h"
 #include "flasher.h"
 
 #define PROCESSOR_TYPE
@@ -98,7 +97,6 @@ class Kwp2000_server {
         }
 
         void run_solenoid_test();
-        xTaskHandle* running_routine;
         Flasher* flash_handler = nullptr;
         uint8_t supplier_id;
         uint16_t diag_var_code;

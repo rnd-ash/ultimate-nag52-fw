@@ -5,8 +5,8 @@
 #include <esp_err.h>
 
 struct CpuStats{
-    volatile uint16_t load_core_1;
-    volatile uint16_t load_core_2;
+    uint16_t load_core_1;
+    uint16_t load_core_2;
 } ;
 
 

@@ -17,7 +17,7 @@
 
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
-    this->adapt_map = new AdaptationMap();
+    this->pressure_adapt_system = new ShiftAdaptationSystem();
     this->req_tcc_pressure = 0;
     this->req_mpc_pressure = 0;
     this->req_spc_pressure = 0;
@@ -34,7 +34,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
     key_name = MAP_NAME_PCS_BROWN;
     default_data = BROWN_PCS_CURRENT_MAP;
-    this->pressure_pwm_map = new StoredTcuMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
+    this->pressure_pwm_map = new StoredMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
     if (this->pressure_pwm_map->init_status() != ESP_OK) {
         delete[] this->pressure_pwm_map;
     }
@@ -44,7 +44,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
     key_name = MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
-    tcc_pwm_map = new StoredTcuMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
+    tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
         delete[] this->tcc_pwm_map;
     }
@@ -59,7 +59,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = MAP_NAME_FILL_TIME_SMALL;
         default_data = SMALL_NAG_FILL_TIME_MAP;
     }
-    hold2_time_map = new StoredTcuMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
+    hold2_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
     if (this->hold2_time_map->init_status() != ESP_OK) {
         delete[] this->hold2_time_map;
     }
@@ -74,7 +74,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = MAP_NAME_FILL_PRESSURE_SMALL;
         default_data = SMALL_NAG_FILL_PRESSURE_MAP;
     }
-    hold2_pressure_map = new StoredTcuMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
+    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
     if (this->hold2_pressure_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_map;
     }
@@ -84,22 +84,17 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t hold2mpc_p_y_headers[5] = {1,2,3,4,5};
     key_name = MAP_NAME_FILL_MPC_ADDER;
     default_data = FILL_MPC_ADDER_MAP;
-    hold2_pressure_mpc_adder_map = new StoredTcuMap(key_name, FILL_PRESSURE_ADDER_MAP_SIZE, hold2mpc_p_x_headers, hold2mpc_p_y_headers, 11, 5, default_data);
+    hold2_pressure_mpc_adder_map = new StoredMap(key_name, FILL_PRESSURE_ADDER_MAP_SIZE, hold2mpc_p_x_headers, hold2mpc_p_y_headers, 11, 5, default_data);
     if (this->hold2_pressure_mpc_adder_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_mpc_adder_map;
     }
 
     /** Working pressure map **/
-    const int16_t wp_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    const int16_t wp_x_headers[16] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    if (VEHICLE_CONFIG.is_large_nag) { // Large
-        key_name = MAP_NAME_WORKING_LARGE;
-        default_data = LARGE_NAG_WORKING_MAP;
-    } else { // Small
-        key_name = MAP_NAME_WORKING_SMALL;
-        default_data = SMALL_NAG_WORKING_MAP;
-    }
-    this->mpc_working_pressure = new StoredTcuMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 11, 7, default_data);
+    key_name = MAP_NAME_WORKING_MPC;
+    default_data = NAG_WORKING_MAP;
+    this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 16, 7, default_data);
     if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }
@@ -178,7 +173,10 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
+    float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
+    if (sensor_data->output_rpm == 0 && sensor_data->pedal_pos == 0) {
+        return 500;
+    }
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
@@ -247,7 +245,7 @@ ShiftData PressureManager::get_shift_data(GearboxConfiguration* cfg, ProfileGear
 }
 
 void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    if (this->hold2_time_map == nullptr) {
+    if (nullptr == this->hold2_time_map) {
         dest->hold_time = 500;
         dest->spc_pressure = 1500;
         dest->mpc_pressure = curr_mpc;
@@ -263,7 +261,7 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->mpc_offset_mode = true;
         dest->spc_offset_mode = false;
     }
-    //const AdaptationCell* cell = tvirhis->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
+    //const AdaptationCell* cell = this->adapt_map->get_adapt_cell(sensor_data, change, this->gb_max_torque);
 }
 
 void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
@@ -272,7 +270,7 @@ void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, Shif
     dest_torque->ramp_time = 0;
     dest_overlap->ramp_time = (float)chars.target_shift_time/2;
     dest_overlap->hold_time = (float)chars.target_shift_time/2;
-    uint16_t spc_addr =  MAX(100, abs(sensor_data->static_torque)*2.5); // 2mBar per Nm
+    uint16_t spc_addr =  MAX(100, abs(sensor_data->input_torque)*2.5); // 2mBar per Nm
     dest_torque->mpc_pressure = 0;
     dest_overlap->mpc_pressure = 0;
     dest_torque->mpc_offset_mode = true;
@@ -320,7 +318,6 @@ void PressureManager::set_target_mpc_pressure(uint16_t targ) {
     if (targ > 7000) {
         targ = 7000;
     }
-    egs_can_hal->set_mpc_pressure(targ);
     this->req_mpc_pressure = targ;
     mpc_cc->set_target_current(this->get_p_solenoid_current(this->req_mpc_pressure, false));
 }
@@ -329,7 +326,6 @@ void PressureManager::set_target_spc_pressure(uint16_t targ) {
     if (targ > 7000) {
         targ = 7000;
     }
-    egs_can_hal->set_spc_pressure(targ);
     this->req_spc_pressure = targ;
     spc_cc->set_target_current(this->get_p_solenoid_current(this->req_spc_pressure, true));
 }
@@ -337,7 +333,6 @@ void PressureManager::set_target_spc_pressure(uint16_t targ) {
 void PressureManager::disable_spc() {
     this->req_spc_pressure = 0;
     this->req_current_spc = 0;
-    egs_can_hal->set_spc_pressure(7000);
     spc_cc->set_target_current(0);
 }
 
@@ -345,7 +340,6 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     if (targ > 15000) {
         targ = 15000;
     }
-    egs_can_hal->set_tcc_pressure(targ);
     this->req_tcc_pressure = targ;
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_pressure)); // TCC is just raw PWM, no voltage compensating
 }
@@ -353,7 +347,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
     uint16_t ret = 0;
     if (this->hold2_pressure_mpc_adder_map != nullptr) {
-        float trq_percent = (float)(sensor_data->static_torque*100.0)/(float)this->gb_max_torque;
+        float trq_percent = (float)(MAX(sensor_data->input_torque, sensor_data->driver_requested_torque)*100.0)/(float)this->gb_max_torque;
         ret = hold2_pressure_mpc_adder_map->get_value(trq_percent, (uint8_t)to_apply);
     }
     return ret;
@@ -365,11 +359,11 @@ uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure
 uint16_t PressureManager::get_targ_spc_current(){ return this->req_current_spc; }
 uint16_t PressureManager::get_targ_mpc_current(){ return this->req_current_mpc; }
 
-StoredTcuMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
-StoredTcuMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
-StoredTcuMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
-StoredTcuMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
-StoredTcuMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
-StoredTcuMap* PressureManager::get_fill_pressure_mpc_adder_map() { return  this->hold2_pressure_mpc_adder_map; }
+StoredMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
+StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
+StoredMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
+StoredMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
+StoredMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
+StoredMap* PressureManager::get_fill_pressure_mpc_adder_map() { return  this->hold2_pressure_mpc_adder_map; }
 
 PressureManager* pressure_manager = nullptr;

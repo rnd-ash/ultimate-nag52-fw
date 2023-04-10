@@ -84,11 +84,7 @@ void constant_current_driver_thread(void*) {
     while(true) {
         mpc_cc->update();
         spc_cc->update();
-        if (Solenoids::is_monitoring_all_solenoids()) {
-            vTaskDelay(I2S_LOOP_INVERVAL_ALL);
-        } else {
-            vTaskDelay(I2S_LOOP_INTERVAL_CC_ONLY);
-        }
+        vTaskDelay(I2S_LOOP_INTERVAL_CC_ONLY);
     }
 }
 

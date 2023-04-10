@@ -71,18 +71,18 @@ ECU ECM
 			ENUM P2, RAW: 1, DESC: Profile 2
 			ENUM P3, RAW: 2, DESC: Profile 3
 			ENUM P4, RAW: 3, DESC: Profile 4
-			ENUM DEFAULT, RAW: 4, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 5, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 6, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 7, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 8, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 9, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 10, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 11, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 12, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 13, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 14, DESC: Default Profiles
-			ENUM DEFAULT, RAW: 15, DESC: Default Profiles
+			ENUM DEFAULT1, RAW: 4, DESC: Default Profiles
+			ENUM DEFAULT2, RAW: 5, DESC: Default Profiles
+			ENUM DEFAULT3, RAW: 6, DESC: Default Profiles
+			ENUM DEFAULT4, RAW: 7, DESC: Default Profiles
+			ENUM DEFAULT5, RAW: 8, DESC: Default Profiles
+			ENUM DEFAULT6, RAW: 9, DESC: Default Profiles
+			ENUM DEFAULT7, RAW: 10, DESC: Default Profiles
+			ENUM DEFAULT8, RAW: 11, DESC: Default Profiles
+			ENUM DEFAULT9, RAW: 12, DESC: Default Profiles
+			ENUM DEFAULT10, RAW: 13, DESC: Default Profiles
+			ENUM DEFAULT11, RAW: 14, DESC: Default Profiles
+			ENUM DEFAULT12, RAW: 15, DESC: Default Profiles
 		SIGNAL CLkS_Gas_Dr_Stat, OFFSET: 24, LEN: 2, DESC: Central Locking System Gas Door State / ZV Status Tank Flap, DATA TYPE ENUM
 			ENUM NDEF0, RAW: 0, DESC: Not Defined
 			ENUM LOCK, RAW: 1, DESC: Locked
@@ -1229,9 +1229,9 @@ ECU TCM
 			ENUM D7, RAW: 7, DESC: Target Gear "7"
 			ENUM D_CVT, RAW: 8, DESC: Target Gear "Continuously Forward"
 			ENUM R_CVT, RAW: 9, DESC: Target Gear "Continuously Backward"
-			ENUM R3, RAW: 10, DESC: Target Gear "R3"
+			ENUM R_3, RAW: 10, DESC: Target Gear "R3"
 			ENUM R, RAW: 11, DESC: Target Gear "R"
-			ENUM R2, RAW: 12, DESC: Target Gear "R2"
+			ENUM R_2, RAW: 12, DESC: Target Gear "R2"
 			ENUM P, RAW: 13, DESC: Target Gear "P"
 			ENUM ABORT, RAW: 14, DESC: Gear Shift Abortion
 			ENUM SNA, RAW: 15, DESC: Signal Not Available
@@ -1246,9 +1246,9 @@ ECU TCM
 			ENUM D7, RAW: 7, DESC: Actual Gear "7"
 			ENUM D_CVT, RAW: 8, DESC: Actual Gear "Continuously Forward"
 			ENUM R_CVT, RAW: 9, DESC: Actual Gear "Continuously Backward"
-			ENUM R3, RAW: 10, DESC: Actual Gear "R3"
+			ENUM R_3, RAW: 10, DESC: Actual Gear "R3"
 			ENUM R, RAW: 11, DESC: Actual Gear "R"
-			ENUM R2, RAW: 12, DESC: Actual Gear "R2"
+			ENUM R_2, RAW: 12, DESC: Actual Gear "R2"
 			ENUM P, RAW: 13, DESC: Actual Gear "P"
 			ENUM PWRFREE, RAW: 14, DESC: Power Free
 			ENUM SNA, RAW: 15, DESC: Signal Not Available
@@ -1258,8 +1258,8 @@ ECU TCM
 		SIGNAL VehDrvStyle, OFFSET: 40, LEN: 2, DESC: Vehicle Drive Style / Drive Variant, DATA TYPE ENUM
 			ENUM REAR, RAW: 0, DESC: Rear Wheel Driven
 			ENUM FRONT, RAW: 1, DESC: Front Wheel Driven
-			ENUM ALL, RAW: 2, DESC: All Wheel Driven
-			ENUM ALL, RAW: 3, DESC: All Wheel Driven
+			ENUM ALL2, RAW: 2, DESC: All Wheel Driven
+			ENUM ALL3, RAW: 3, DESC: All Wheel Driven
 		SIGNAL TxStyle, OFFSET: 42, LEN: 2, DESC: Transmission Variant / Gear Variant, DATA TYPE ENUM
 			ENUM SAT, RAW: 0, DESC: Stepped Automatic Transmission
 			ENUM CVT, RAW: 1, DESC: Continously Variable Automatic Transmission

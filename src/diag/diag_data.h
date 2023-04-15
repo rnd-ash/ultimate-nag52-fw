@@ -95,6 +95,10 @@ typedef struct {
     uint16_t fuel_rate;
     uint16_t torque_req_amount;
     TorqueRequest torque_req_type;
+    // Temps (All offset by +40C)
+    int16_t e_iat_temp;
+    int16_t e_oil_temp;
+    int16_t e_coolant_temp;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
 /// System usage stats 

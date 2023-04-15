@@ -52,6 +52,8 @@ class Egs52Can: public EgsBaseCan {
          int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine oil temperature
          int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) override;
+        // Gets engine charge air temperature
+        int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine RPM
          uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is cranking

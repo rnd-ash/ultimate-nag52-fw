@@ -74,6 +74,12 @@ namespace EEPROM {
 
     esp_err_t read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     esp_err_t write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
+    
+    template <typename T>
+    esp_err_t read_subsystem_settings(const char* key_name, T* dest, const T* default_settings);
+
+    template <typename T>
+    esp_err_t write_subsystem_settings(const char* key_name, const T* write);
 };
 
 #define NUM_GEARS 5

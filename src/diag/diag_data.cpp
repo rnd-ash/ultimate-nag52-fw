@@ -129,6 +129,10 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
     ret.torque_req_type = gearbox->output_data.torque_req_type;
     ret.torque_req_amount = ret.torque_req_type == TorqueRequest::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
+    // Temps
+    ret.e_coolant_temp = egs_can_hal->get_engine_coolant_temp(now, 250);
+    ret.e_iat_temp = egs_can_hal->get_engine_iat_temp(now, 250);
+    ret.e_oil_temp = egs_can_hal->get_engine_oil_temp(now, 250);
     return ret;
 }
 

@@ -5,6 +5,10 @@ float scale_number(float raw, float new_min, float new_max, float raw_min, float
     return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
 }
 
+float scale_number(float raw, LinearInterpSetting* settings) {
+    return scale_number(raw, settings->new_min, settings->new_max, settings->raw_min, settings->raw_max);
+}
+
 float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x)
 {
     // cast values from signed integer values to floating values in order to avoid casting the same value twice

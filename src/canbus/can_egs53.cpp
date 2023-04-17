@@ -237,18 +237,35 @@ PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 
 int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
-        return (ecm_a1.EngCoolTemp - 40);
+        if (ecm_a1.EngCoolTemp != UINT8_MAX) {
+            res = ecm_a1.EngCoolTemp - 40;
+        }
     }
-    return INT16_MAX; // UNDEFINED
+    return res;
 }
 
 int16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
     ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
-        return (ecm_a1.EngOilTemp - 40);
+        if (ecm_a1.EngOilTemp != UINT8_MAX) {
+            res = ecm_a1.EngOilTemp - 40;
+        }
     }
-    return INT16_MAX; // UNDEFINED
+    return res;
+}
+
+int16_t Egs53Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+    ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
+    if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
+        if (ecm_a1.IntkAirTemp != UINT8_MAX) {
+            res = ecm_a1.IntkAirTemp - 40;
+        }
+    }
+    return res;
 }
 
 uint16_t Egs53Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {

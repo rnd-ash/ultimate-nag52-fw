@@ -267,6 +267,10 @@ class EgsBaseCan {
         virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
             return INT16_MAX;
         }
+        // Gets engine charge air temperature
+        virtual int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+            return INT16_MAX;
+        }
         // Gets engine RPM
         virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
             return UINT16_MAX;

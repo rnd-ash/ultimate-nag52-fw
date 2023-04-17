@@ -169,20 +169,35 @@ PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 
 int16_t Egs51Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_608_EGS51 ms608;
+    int16_t res = INT16_MAX;
     if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
-        return ms608.T_MOT - 40;
-    } else {
-        return UINT16_MAX;
+        if (ms608.T_MOT != UINT8_MAX) {
+            res = ms608.T_MOT - 40;
+        }
     }
+    return res;
 }
 
-int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
+int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_308_EGS51 ms308;
+    int16_t res = INT16_MAX;
     if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
-        return ms308.T_OEL - 40;
-    } else {
-        return UINT16_MAX;
+        if (ms308.T_OEL != UINT8_MAX) {
+            res = ms308.T_OEL - 40;
+        }
     }
+    return res;
+}
+
+int16_t Egs51Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+    MS_608_EGS51 ms608;
+    int16_t res = INT16_MAX;
+    if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
+        if (ms608.T_LUFT != UINT8_MAX) {
+            res = ms608.T_LUFT - 40;
+        }
+    }
+    return res;
 }
 
 uint16_t Egs51Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {

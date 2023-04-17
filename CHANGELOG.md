@@ -1,17 +1,27 @@
-# Unreleased (Dev)
 
-* Smooth TCC apply 
-* Make TCC lockup apply instantly during shifts
-* Stop TCC from releasing for 10ms after a shift (Fixes 'bump' feeling)
-* Added input torque model. Does the following:
-    * Calculates torque converter loss
-    * Calculates torque converter output multiplication
-    * Factors in AC/accessory loss on engine torque
+# 10/04/23
 
-# 22/02/23
+### Added
+* TCC learning can now reduce pressure if it detects too much biting at low load
+* Input torque calculation model (Reports torque loss to ESP/ART ECU over CAN)
+* Added Gearbox speed protection when garage shifting (Engine will slow down to < 1000 RPM when garage shifting
+* **ADDED BACK WORKING TORQUE REQUESTS!**
 
-## Fixed
-* Fixed incorrect downshift maps lookup
+#### Merged classic CAN branch	
+    * Split shifter code away from CAN layers (Each shifter can now be independently selected regardless of CAN layer)
+    * Add draft support for fuel and air table to calculate input torque without any torque readings on CAN (For W124 HFM)
+    * Add basic petrol engine model (W124 HFM)
+* Restructure a lot of the code base to be more [MISRA-C compliant](https://caxapa.ru/thumbs/468328/misra-c-2004.pdf)
+### Changed
+* BREAKING - Update IDF version from 4.4 to 5.0!
+* Smooth TCC bite and apply algorithm for smoother applying
+* Fixed bump after shifting caused by TCC re-applying
+* Improved PCNT based RPM reading
+* Modify the default downshift 2-1 map for C/W mode to disable 2-1 downshift at idle
+* Update entire CAN Layer implementation for all EGS. Now uses bitfields instead of getter/setter functions for interacting with CAN Data
+* EGS52 - Don't send shifter position when in middle positions
+### Fixed
+* Fixed downshift maps not being used correctly by the TCU
 
 # 19/02/23
 

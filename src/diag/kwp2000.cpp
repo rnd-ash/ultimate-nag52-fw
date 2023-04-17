@@ -232,17 +232,50 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
     return 0;
 }
 
+void Kwp2000_server::start_response_timer(uint8_t sid) {
+    this->response_pending_sid = sid;
+    this->cmd_recv_time = esp_timer_get_time() / 1000;
+    this->response_pending = true;
+}
+
+void Kwp2000_server::end_response_timer() {
+    this->response_pending = false;
+}
+
+DiagMessage response_pending_msg = {
+    .id = KWP_ECU_TX_ID,
+    .data_size = 3,
+    .data = {0x7F, 0x00, NRC_RESPONSE_PENDING}
+};
+
+void Kwp2000_server::response_timer_loop() {
+    ESP_LOGI("KWP2000", "Timer started");
+    while(1) {
+        if (this->response_pending && ((esp_timer_get_time()/1000) - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
+            ESP_LOGI("KWP2000", "Sending ResponsePending");
+            response_pending_msg.data[1] = this->response_pending_sid;
+            // Send 0x78 (Response pending)
+            if (this->diag_on_usb) {
+                this->usb_diag_endpoint->send_data(&response_pending_msg);
+            } else {
+                this->can_endpoint->send_data(&response_pending_msg);
+            }
+            this->cmd_recv_time = esp_timer_get_time()/1000;
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+}
+
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
     while(1) {
         uint64_t timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
-        bool endpoint_was_usb = false;
         if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
-            endpoint_was_usb = true;
+            this->diag_on_usb = true;
             read_msg = true;
         } else if (this->can_endpoint->init_state() == ESP_OK && this->can_endpoint->read_data(&this->rx_msg)) {
-            endpoint_was_usb = false;
+            this->diag_on_usb = false;
             read_msg = true;
         }
         if (read_msg) {
@@ -254,6 +287,7 @@ void Kwp2000_server::server_loop() {
             // New message! process it
             uint8_t* args_ptr = &rx_msg.data[1];
             uint16_t args_size = rx_msg.data_size - 1;
+            start_response_timer(rx_msg.data[0]);
             switch(rx_msg.data[0]) { // SID byte
                 case SID_START_DIAGNOSTIC_SESSION:
                     this->process_start_diag_session(args_ptr, args_size);
@@ -313,8 +347,9 @@ void Kwp2000_server::server_loop() {
                     break;
             }
         }
+        end_response_timer();
         if (this->send_resp) {
-            if (endpoint_was_usb) {
+            if (this->diag_on_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
             } else if (this->can_endpoint != nullptr) {
                 this->can_endpoint->send_data(&tx_msg);

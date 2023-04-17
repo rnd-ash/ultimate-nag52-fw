@@ -30,7 +30,7 @@ esp_err_t UsbEndpoint::init_state() {
     return this->status;
 }
 
-void UsbEndpoint::send_data(DiagMessage *msg)
+void UsbEndpoint::send_data(const DiagMessage *msg)
 {
     this->write_buffer[0] = '#';
     this->write_buffer[1] = HEX_DEF[(msg->id >> 12) & 0x0F];

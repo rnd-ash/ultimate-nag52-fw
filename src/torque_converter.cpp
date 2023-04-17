@@ -101,8 +101,7 @@ void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, Abstrac
             // We are just driving, TCC is free to lockup
             if (!initial_ramp_done) {
                 if (is_shifting) {
-                    this->base_tcc_pressure = this->curr_tcc_target;
-                    initial_ramp_done = true;
+                    this->base_tcc_pressure = this->curr_tcc_target-100;
                 } else {
                     // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
                     float ramp = scale_number(abs(sensors->tcc_slip_rpm), &tcc_settings.pressure_increase_ramp_settings);

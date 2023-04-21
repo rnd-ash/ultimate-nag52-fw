@@ -156,6 +156,7 @@ private:
     RpmReading rpm_reading;
     Solenoid* last_shift_solenoid = nullptr;
     InputTorqueModel* itm;
+    GearboxGear restrict_target = GearboxGear::Fifth;
 };
 
 extern Gearbox* gearbox;

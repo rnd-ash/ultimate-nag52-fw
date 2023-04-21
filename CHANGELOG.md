@@ -1,4 +1,10 @@
 
+# Dev (Unreleased)
+
+### Added
+* TCC Settings tweaker interface
+* TRRS Range-restrict mode!
+
 # 10/04/23
 
 ### Added

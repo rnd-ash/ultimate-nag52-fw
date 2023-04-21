@@ -1029,6 +1029,31 @@ void Gearbox::controller_loop()
         {
             if (can_read && is_fwd_gear(this->actual_gear))
             {
+                // Check our range restict (Only for TRRS)
+                switch (this->shifter_pos) {
+                    case ShifterPosition::FOUR:
+                        this->restrict_target = GearboxGear::Fourth;
+                        break;
+                    case ShifterPosition::THREE:
+                        this->restrict_target = GearboxGear::Third;
+                        break;
+                    case ShifterPosition::TWO:
+                        this->restrict_target = GearboxGear::Second;
+                        break;
+                    case ShifterPosition::ONE:
+                        this->restrict_target = GearboxGear::First;
+                        break;
+                    default:
+                        this->restrict_target = GearboxGear::Fifth;
+                        break;
+                }
+                // Seek up the restriction target if the RPM is too high for the current gear!
+                // Seek up to Fifth
+                while (this->restrict_target != GearboxGear::Fifth && calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, this->restrict_target, this->gearboxConfig.ratios) > this->redline_rpm)
+                {
+                    this->restrict_target = next_gear(this->restrict_target);
+                }
+
                 // In gear, not shifting, and no ratio mismatch
                 if (!shifting && this->actual_gear == this->target_gear && gear_disagree_count == 0)
                 {
@@ -1042,11 +1067,11 @@ void Gearbox::controller_loop()
                     {
                         // Ask the current drive profile if it thinks, given the current
                         // data, if the car should up/downshift
-                        if (p->should_upshift(this->actual_gear, &this->sensor_data))
+                        if (this->restrict_target > this->actual_gear && p->should_upshift(this->actual_gear, &this->sensor_data))
                         {
                             this->ask_upshift = true;
                         }
-                        if (p->should_downshift(this->actual_gear, &this->sensor_data))
+                        if (this->restrict_target < this->actual_gear && p->should_downshift(this->actual_gear, &this->sensor_data))
                         {
                             this->ask_downshift = true;
                         }

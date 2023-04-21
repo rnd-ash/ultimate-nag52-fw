@@ -272,3 +272,45 @@ PARTITION_INFO get_next_sw_info(void) {
 const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
 }
+
+kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
+    if (module_id == CFG_IDX_TCC) {
+        const TCC_ADV_OPTS* ptr = gearbox->tcc->get_running_opts();
+        uint8_t* dest = (uint8_t*)heap_caps_malloc(sizeof(TCC_ADV_OPTS)+1, MALLOC_CAP_SPIRAM);
+        if (nullptr == ptr || nullptr == dest) {
+            delete[] dest;
+            return NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR;
+        } else {
+            // Malloc OK, copy and return
+            dest[0] = CFG_IDX_TCC;
+            memcpy(&dest[1], ptr, sizeof(TCC_ADV_OPTS));
+            *buffer_len = sizeof(TCC_ADV_OPTS)+1;
+            *buffer = dest;
+            return NRC_OK;
+        }
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
+}
+
+kwp_result_t set_module_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer) {
+    if (module_id == CFG_IDX_TCC) {
+        if (buffer_len == 1 && buffer[0] == 0x00) {
+            if (ESP_OK == gearbox->tcc->reset_opts()) {
+                return NRC_OK;
+            } else {
+                return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+            }
+        } else if (buffer_len != sizeof(TCC_ADV_OPTS)) {
+            return NRC_GENERAL_REJECT;
+        } else {
+            if (ESP_OK == gearbox->tcc->set_running_opts(*(TCC_ADV_OPTS*)buffer)) {
+                return NRC_OK;
+            } else {
+                return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+            }
+        }
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
+}

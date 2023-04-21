@@ -10,8 +10,15 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 
+
+#define TCC_ADV_OPTS_NVS_KEY "TCC_A1"
 typedef struct {
     bool adapt_enable;
+    bool enable_d1;
+    bool enable_d2;
+    bool enable_d3;
+    bool enable_d4;
+    bool enable_d5;
     uint16_t prefill_pressure;
     uint16_t lock_rpm_threshold;
     uint16_t min_locking_rpm;
@@ -32,10 +39,15 @@ typedef struct {
     LinearInterpSetting pressure_multiplier_output_rpm; 
     uint16_t max_allowed_bite_pressure;
     uint16_t max_allowed_pressure_longterm;
-} TCC_ADV_OPTS;
+} __attribute__ ((packed)) TCC_ADV_OPTS;
 
 const TCC_ADV_OPTS TCC_ADV_OPTS_DEFAULT = {
     .adapt_enable = true,
+    .enable_d1 = true,
+    .enable_d2 = true,
+    .enable_d3 = true,
+    .enable_d4 = true,
+    .enable_d5 = true,
     .prefill_pressure = 500,
     .lock_rpm_threshold = 50,
     .min_locking_rpm = 1100,
@@ -88,9 +100,8 @@ class TorqueConverter {
          * @param sensors Sensor data used as input
          * @param shifting True if the car is currently transitioning to new gear
          */
-        void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
+        void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
         ClutchStatus get_clutch_state(void);
-        void on_shift_start(int targ_g);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
@@ -99,7 +110,13 @@ class TorqueConverter {
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
         StoredMap* tcc_learn_lockup_map;
+
+        const TCC_ADV_OPTS* get_running_opts();
+        esp_err_t set_running_opts(TCC_ADV_OPTS opts);
+        esp_err_t reset_opts();
+        esp_err_t write_opts(TCC_ADV_OPTS opts);
     private:
+        esp_err_t check_running_opts(TCC_ADV_OPTS opts);
         inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;
         uint16_t adapt_lock_count = 0;
@@ -121,7 +138,6 @@ class TorqueConverter {
         uint64_t last_adj_time = 0;
         bool pending_changes = false;
         bool was_shifting = false;
-        uint8_t tmp_lookup_gear = 0xFF;
         uint64_t last_idle_timestamp = 0;
         TCC_ADV_OPTS tcc_settings;
 };

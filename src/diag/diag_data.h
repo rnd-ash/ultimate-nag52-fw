@@ -10,6 +10,7 @@
 #include <esp_app_format.h>
 #include "kwp2000_defines.h"
 #include "esp_app_desc.h"
+#include "config_editor.h"
 
 // Diagnostic data IDs and data structures
 // used by the KWP2000 server on the TCM
@@ -34,6 +35,7 @@
 #define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
 #define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
 
+#define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
 
@@ -143,6 +145,12 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
 DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
+
+// Read and write TCU Module settings
+
+// MUST DEALLOCATE buffer!
+kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer);
+kwp_result_t set_module_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer);
 
 // Read and write SCN config
 TCM_CORE_CONFIG get_tcm_config(void);

@@ -525,7 +525,7 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (arg_len != 1 && args[0] != RLI_MAP_EDITOR) {
+    if (arg_len != 1 && (args[0] != RLI_MAP_EDITOR && args[0] != RLI_SETTINGS_EDIT)) {
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
@@ -634,6 +634,21 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
         PARTITION_INFO r = get_next_sw_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_SETTINGS_EDIT) {
+        // [RLI, MODULE ID]
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            uint8_t* buffer;
+            uint16_t read_len;
+            kwp_result_t res = get_module_settings(args[1], &read_len, &buffer);
+            if (NRC_OK == res) {
+                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SETTINGS_EDIT, buffer, read_len);
+                delete[] buffer; // Remember to deallocate!
+            } else {
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, res);
+            }
+        }
     }
     else {
         // EGS52 emulation
@@ -856,7 +871,7 @@ void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_
 void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     // Valid session only
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
-        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
     if (this->flash_handler != nullptr) {
@@ -871,7 +886,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
 void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
     // Valid session only
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
-        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
     if (this->flash_handler != nullptr) {
@@ -986,6 +1001,18 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 }
             }
+        } else if (args[0] == RLI_SETTINGS_EDIT) {
+            // [RLI, MODULE ID,...]
+            if (arg_len < 3) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            } else {
+                kwp_result_t res = set_module_settings(args[1], arg_len-2, &args[2]);
+                if (res == NRC_OK) {
+                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_SETTINGS_EDIT, nullptr, 0);
+                } else {
+                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
+                }
+            }
         } else {
             make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
         }
@@ -996,6 +1023,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
 
 }
+
 void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);

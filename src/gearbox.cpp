@@ -1085,7 +1085,7 @@ void Gearbox::controller_loop()
                         this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr)
                         {
-                            this->tcc->update(this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting);
+                            this->tcc->update(this->actual_gear, this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting);
                             egs_can_hal->set_clutch_status(this->tcc->get_clutch_state());
                         }
                     }

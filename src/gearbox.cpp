@@ -1071,7 +1071,7 @@ void Gearbox::controller_loop()
                         {
                             this->ask_upshift = true;
                         }
-                        if (this->restrict_target < this->actual_gear && p->should_downshift(this->actual_gear, &this->sensor_data))
+                        if (this->restrict_target < this->actual_gear || p->should_downshift(this->actual_gear, &this->sensor_data))
                         {
                             this->ask_downshift = true;
                         }

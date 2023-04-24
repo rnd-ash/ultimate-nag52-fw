@@ -176,7 +176,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     if (!learning) {
                         if (trq > this->tcc_settings.max_torque_adapt) {
                             int torque_delta = trq - this->tcc_settings.max_torque_adapt;
-                            this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
+                            this->curr_tcc_pressure += (this->tcc_settings.reaction_torque_multiplier*torque_delta); // 2mBar per Nm
                         } else if (sensors->static_torque < tcc_settings.trq_consider_coasting) {
                             if (this->curr_tcc_pressure > tcc_settings.prefill_pressure) {
                                 this->curr_tcc_pressure -= scale_number(sensors->static_torque, &tcc_settings.load_dampening); //scale_number(sensors->static_torque, 100, 50, -40, 40);

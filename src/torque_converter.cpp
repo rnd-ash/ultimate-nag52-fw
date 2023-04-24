@@ -22,11 +22,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         //data[i] = tcc_learn_default_data[i];
         ESP_LOGI("TCC", "Adapt value for gear %d - %d mBar", i+1, data[i]);
     }
-    // range of adaptation is 1/10 - 1/3 of the rating of the gearbox
-    // W5A330 - 33Nm - 55Nm
-    // W5A580 - 58Nm - 96Nm
-    this->high_torque_adapt_limit = max_gb_rating / 6;
-    this->low_torque_adapt_limit = max_gb_rating / 10;
     if (ESP_OK != EEPROM::read_subsystem_settings(TCC_ADV_OPTS_NVS_KEY, &this->tcc_settings, &TCC_ADV_OPTS_DEFAULT)) {
         this->tcc_settings = TCC_ADV_OPTS_DEFAULT;
     }
@@ -149,7 +144,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                             // Requires:
                             // * torque in bounds
                             // * Engine RPM - Less than TCC stall speed
-                            if (trq >= this->low_torque_adapt_limit && trq <= this->high_torque_adapt_limit && sensors->engine_rpm < tcc_settings.tcc_stall_speed) {
+                            if (trq >= this->tcc_settings.min_torque_adapt && trq <= this->tcc_settings.max_torque_adapt && sensors->engine_rpm < tcc_settings.tcc_stall_speed) {
                                 if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < tcc_settings.lock_rpm_threshold) {
                                     adapt_lock_count++;
                                 } else {
@@ -179,8 +174,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     // Dynamic TCC pressure increase based on torque
                     this->curr_tcc_pressure = this->base_tcc_pressure;
                     if (!learning) {
-                        if (trq > high_torque_adapt_limit) {
-                            int torque_delta = trq - high_torque_adapt_limit;
+                        if (trq > this->tcc_settings.max_torque_adapt) {
+                            int torque_delta = trq - this->tcc_settings.max_torque_adapt;
                             this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
                         } else if (sensors->static_torque < tcc_settings.trq_consider_coasting) {
                             if (this->curr_tcc_pressure > tcc_settings.prefill_pressure) {

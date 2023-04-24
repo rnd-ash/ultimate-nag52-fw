@@ -11,7 +11,7 @@
 #include "canbus/can_hal.h"
 
 
-#define TCC_ADV_OPTS_NVS_KEY "TCC_A1"
+#define TCC_ADV_OPTS_NVS_KEY "TCC_A2"
 typedef struct {
     bool adapt_enable;
     bool enable_d1;
@@ -24,8 +24,8 @@ typedef struct {
     uint16_t min_locking_rpm;
     uint16_t adjust_interval_ms;
     uint16_t tcc_stall_speed;
-    uint16_t min_torque_adapt_percent;
-    uint16_t max_torque_adapt_percent;
+    uint16_t min_torque_adapt;
+    uint16_t max_torque_adapt;
     uint16_t prefill_min_engine_rpm;
     uint16_t base_pressure_offset_start_ramp;
     LinearInterpSetting pressure_increase_ramp_settings;
@@ -53,8 +53,8 @@ const TCC_ADV_OPTS TCC_ADV_OPTS_DEFAULT = {
     .min_locking_rpm = 1100,
     .adjust_interval_ms = 500,
     .tcc_stall_speed = 2500,
-    .min_torque_adapt_percent = 15,
-    .max_torque_adapt_percent = 10,
+    .min_torque_adapt = 50,
+    .max_torque_adapt = 110,
     .prefill_min_engine_rpm = 900,
     .base_pressure_offset_start_ramp = 300,
     .pressure_increase_ramp_settings = {
@@ -120,8 +120,6 @@ class TorqueConverter {
         inline void reset_rpm_samples(SensorData* sensors);
         bool neg_torque_zone = false;
         uint16_t adapt_lock_count = 0;
-        uint16_t low_torque_adapt_limit = 0;
-        uint16_t high_torque_adapt_limit = 0;
         uint16_t strike_count = 0;
         bool initial_ramp_done = false;
         uint32_t curr_tcc_target = 0;

@@ -12,6 +12,7 @@
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
 #include "solenoids/constant_current.h"
+#include "nvs/module_settings.h"
 
 // CAN LAYERS
 #include "canbus/can_egs51.h"
@@ -55,6 +56,8 @@ SPEAKER_POST_CODE setup_tcm() {
             if (EEPROM::init_eeprom() != ESP_OK) {
                 ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             } else {
+                // Read our configuration (This is allowed to fail as the default opts are always set by default)
+                ModuleConfiguration::load_all_settings();
                 switch (VEHICLE_CONFIG.egs_can_type) {
                     case 1:
                         egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer

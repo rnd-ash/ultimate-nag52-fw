@@ -12,8 +12,6 @@
 #include "esp_err.h"
 #include "esp_timer.h"
 
-const static float SOLENOID_VREF = 12000.0f; // 12V Vref for solenoids
-
 #define SOLENOID_CURRENT_AVG_SAMPLES 10
 
 class Solenoid
@@ -147,8 +145,5 @@ extern float resistance_spc;
 extern float resistance_mpc;
 extern bool temp_cal;
 extern int16_t temp_at_test;
-
-#define DIAG_DMA_BUFFER_LEN 500
-extern uint16_t* buf;
 
 #endif // SOLENOID_H

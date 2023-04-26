@@ -10,6 +10,7 @@
 #include "esp_adc/adc_continuous.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_check.h"
+#include "../nvs/module_settings.h"
 
 adc_cali_handle_t adc1_cal = nullptr;
 uint16_t voltage = 12000;
@@ -105,7 +106,7 @@ void Solenoid::__write_pwm() {
         this->pwm = 0;
     } else {
         if (this->voltage_compensate) {
-            this->pwm = (float)this->pwm_raw * SOLENOID_VREF / (float)voltage;
+            this->pwm = (float)this->pwm_raw * (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
             if (this->pwm > 4096) {
                 this->pwm = 4096; // Clamp to max
             }
@@ -235,49 +236,49 @@ bool Solenoids::init_routine_completed(void) {
 
 void Solenoids::boot_solenoid_test(void*) {
     while(!first_read_complete){vTaskDelay(1);}
-    if(sol_spc->get_current_avg() > 500) {
+    if(sol_spc->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_mpc->get_current_avg() > 500) {
+    if(sol_mpc->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_tcc->get_current_avg() > 500) {
+    if(sol_tcc->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y3->get_current_avg() > 500) {
+    if(sol_y3->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y4->get_current_avg() > 500) {
+    if(sol_y4->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y5->get_current_avg() > 500) {
+    if(sol_y5->get_current_avg() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
     // Get resistance values from SPC and MPC
-    if (get_solenoid_voltage() > 11000) {
+    if (get_solenoid_voltage() > SOL_CURRENT_SETTINGS.min_batt_power_on_test) {
         uint32_t c_total = 0;
         uint32_t b_total = 0;
         sol_mpc->write_pwm_12_bit(4096, false);

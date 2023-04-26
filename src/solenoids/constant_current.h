@@ -20,7 +20,6 @@ private:
     uint64_t last_change_time = 0;
 };
 
-
 extern ConstantCurrentDriver* mpc_cc;
 extern ConstantCurrentDriver* spc_cc;
 

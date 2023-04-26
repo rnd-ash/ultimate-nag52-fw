@@ -239,18 +239,7 @@ GearboxGear prev_gear(GearboxGear g)
     return prev;
 }
 
-// int find_target_ratio(int targ_gear, FwdRatios ratios) {
-//     if (targ_gear >= 1 && targ_gear <= 5) {
-//         return ratios[targ_gear-1]*100;
-//     } else {
-//         return 100; // Invalid
-//     }
-// }
-
-#define SHIFT_TIMEOUT_MS 3000 // If a shift hasn't occurred after this much time, we assume shift has failed!
-#define SHIFT_TIMEOUT_COASTING_MS 5000 // If a shift hasn't occurred after this much time, we assume shift has failed!
 #define SHIFT_DELAY_MS 10     // 10ms steps
-#define SHIFT_SOLENOID_INRUSH_TIME 1000
 #define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 
 /**
@@ -360,9 +349,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
             // int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
             int current_trq = sensor_data.input_torque;
-            if (!is_upshift && (sensor_data.input_torque > 0 && sensor_data.driver_requested_torque > sensor_data.input_torque)) {
-                current_trq = sensor_data.driver_requested_torque;
+            if (sensor_data.static_torque > 0) {
+                if (is_upshift && SBS_CURRENT_SETTINGS.upshift_use_driver_torque_as_input) {
+                    current_trq = sensor_data.driver_requested_torque;
+                } else if (!is_upshift && SBS_CURRENT_SETTINGS.downshift_use_driver_torque_as_input) {
+                    current_trq = sensor_data.driver_requested_torque;
+                }
             }
+
             if (phase_elapsed > phase_hold_time+phase_ramp_time && current_phase < SHIFT_PHASE_OVERLAP) {
                 phase_elapsed = 0;
                 current_phase++;
@@ -500,7 +494,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             if (current_phase < SHIFT_PHASE_OVERLAP) {
                 // Prevent MPC from being too low in bleed and fill phase
                 mpc_hold_adder = pressure_manager->get_mpc_hold_adder(apply_clutch);
-                this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + 100), now_working_mpc + mpc_hold_adder);
+                this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + SBS_CURRENT_SETTINGS.min_spc_delta_mpc), now_working_mpc + mpc_hold_adder);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
                 // Overlap
                 float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time+(mpc_release_delay*phase_hold_time));
@@ -510,7 +504,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             pressure_mgr->set_target_spc_pressure(spc);
 
-            if (SHIFT_SOLENOID_INRUSH_TIME < sensor_data.current_timestamp_ms - sol_open_time) {
+            if (SBS_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time < sensor_data.current_timestamp_ms - sol_open_time) {
                 sd.shift_solenoid->write_pwm_12_bit(1200); // 33% to prevent burnout
             }
 
@@ -524,10 +518,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
                     result = true;
                     process_shift = false;
-                } else if (!coasting_shift && MAX(SHIFT_TIMEOUT_MS, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
+                } else if (!coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_pulling, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
-                } else if (coasting_shift && MAX(SHIFT_TIMEOUT_COASTING_MS, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
+                } else if (coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_coasting, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
                 }
@@ -546,17 +540,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // To protect the gearbox in either case, it is best to ask the engine to work with the box rather than against it
                 // by doing torque requests, rather than just increase SPC pressure, as that would cause a harsh shift to the user
                 if (is_upshift) { // Upshift
-                    if (sensor_data.input_rpm > rpm_current_gear + 20) { // Flaring, rpm increase
+                    if (sensor_data.input_rpm > rpm_current_gear + SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // Flaring, rpm increase
                         flaring = true;
-                    } else if (sensor_data.input_rpm < rpm_target_gear - 20) { // RPM drop on shift end
+                    } else if (sensor_data.input_rpm < rpm_target_gear - SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // RPM drop on shift end
                         flaring = true;
                     } else {
                         flaring = false;
                     }
                 } else { // Downshift
-                    if (sensor_data.input_rpm > rpm_target_gear + 20) { // RPM overshoot!
+                    if (sensor_data.input_rpm > rpm_target_gear + SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // RPM overshoot!
                         flaring = true;
-                    } else if (sensor_data.input_rpm < rpm_current_gear - 20) { // RPM drop on shift start
+                    } else if (sensor_data.input_rpm < rpm_current_gear - SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // RPM drop on shift start
                         flaring = true;
                     } else {
                         flaring = false;
@@ -577,20 +571,20 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 // Torque request behaviour (Experiment for EGS52 and ME2.7/8)
-                if (current_phase >= SHIFT_PHASE_BLEED && is_upshift) {
-                if (d_trq == 0) {
+                if (current_phase >= SHIFT_PHASE_BLEED && ((SBS_CURRENT_SETTINGS.torque_request_upshift && is_upshift) || (SBS_CURRENT_SETTINGS.torque_request_downshift && !is_upshift))) {
+                    if (d_trq == 0) {
                         int t_now = MAX(sensor_data.static_torque, sensor_data.driver_requested_torque);
                         // Multi increases with output torque. 25% of 100Nm is 25Nm whilst 10% of 580Nm is still 58Nm reduction!
-                        float multi = scale_number(t_now, 0.3, 0.2, 100, gearboxConfig.max_torque);
-                        multi *= scale_number(chars.target_shift_time, 1.3, 1.0, 100, 1000);
+                        float multi = scale_number(t_now, &SBS_CURRENT_SETTINGS.torque_reduction_factor_input_torque);
+                        multi *= scale_number(chars.target_shift_time, &SBS_CURRENT_SETTINGS.torque_reduction_factor_shift_speed);
                         d_trq = (t_now * multi); // Our offset from pedal torque (Max)
-                }
+                    }
                     int shift_progress_clamped = MIN(MAX(shift_progress_percentage, 0), 100);
                     TorqueRequest req = TorqueRequest::LessThan;
                     // start reduction
-                    if (shift_progress_clamped < 25) { // Decrease torque from driver demand
+                    if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_downramp_percent) { // Decrease torque from driver demand
                         curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
-                    } else if (shift_progress_clamped < 50) { // Hold phase
+                    } else if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_hold_percent) { // Hold phase
                         curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
                     } else { // Nearing the end 75%+
                         req = TorqueRequest::LessThanFast;
@@ -1271,7 +1265,7 @@ void Gearbox::controller_loop()
         if (this->current_profile != nullptr)
         {
             egs_can_hal->set_drive_profile(this->current_profile->get_profile());
-            if (this->flaring)
+            if (this->flaring && SBS_CURRENT_SETTINGS.f_shown_if_flare)
             {
                 // Takes president
                 egs_can_hal->set_display_msg(GearboxMessage::None);

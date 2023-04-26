@@ -103,12 +103,63 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_max_adjust_per_step = 2
 };
 
+#define SBS_SETTINGS_NVS_KEY "SBS_A0"
+
+typedef struct {
+    uint16_t shift_solenoid_pwm_reduction_time;
+    uint16_t delta_rpm_flare_detect;
+    bool f_shown_if_flare;
+    bool torque_request_upshift;
+    bool torque_request_downshift;
+    bool upshift_use_driver_torque_as_input;
+    bool downshift_use_driver_torque_as_input;
+    uint16_t torque_request_downramp_percent;
+    uint16_t torque_request_hold_percent;
+    LinearInterpSetting torque_reduction_factor_input_torque;
+    LinearInterpSetting torque_reduction_factor_shift_speed;
+    uint16_t min_spc_delta_mpc;
+    uint16_t stationary_shift_hold_time;
+    uint16_t shift_timeout_pulling;
+    uint16_t shift_timeout_coasting;
+} __attribute__ ((packed)) SBS_MODULE_SETTINGS;
+
+const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
+    .shift_solenoid_pwm_reduction_time = 1000,
+    .delta_rpm_flare_detect = 20,
+    .f_shown_if_flare = false,
+    .torque_request_upshift = true,
+    .torque_request_downshift = false,
+    .upshift_use_driver_torque_as_input = false,
+    .downshift_use_driver_torque_as_input = false,
+    .torque_request_downramp_percent = 25,
+    .torque_request_hold_percent = 50,
+    .torque_reduction_factor_input_torque = {
+        .new_min = 0.3,
+        .new_max = 0.2,
+        .raw_min = 100,
+        .raw_max = 400,
+    },
+    .torque_reduction_factor_shift_speed = {
+        .new_min = 1.3,
+        .new_max = 1.0,
+        .raw_min = 100,
+        .raw_max = 1000,
+    },
+    .min_spc_delta_mpc = 100,
+    .stationary_shift_hold_time = 1000,
+    .shift_timeout_pulling = 3000,
+    .shift_timeout_coasting = 5000,
+};
+
+// module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
+extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETINGS_SCN_ID 0x01
 #define SOL_MODULE_SETINGS_SCN_ID 0x02
+#define SBS_MODULE_SETINGS_SCN_ID 0x03
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

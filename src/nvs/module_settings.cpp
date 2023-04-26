@@ -3,6 +3,7 @@
 
 TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS = TCC_DEFAULT_SETTINGS;
 SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS = SOL_DEFAULT_SETTINGS;
+SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS = SBS_DEFAULT_SETTINGS;
 
 // These macro will fail should the naming convension of the settings not be correct
 // so it enforces the following rule:
@@ -46,17 +47,23 @@ SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS = SOL_DEFAULT_SETTINGS;
 
 esp_err_t ModuleConfiguration::load_all_settings() {
     esp_err_t res = ESP_OK;
-    READ_EEPROM_SETTING(TCC);
-    READ_EEPROM_SETTING(SOL);
+    READ_EEPROM_SETTING(TCC); // Torque converter
+    READ_EEPROM_SETTING(SOL); // Solenoid program
+    READ_EEPROM_SETTING(SBS); // Shift basic control program
     return res;
 }
 
 esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
     switch (idx) {
         case TCC_MODULE_SETINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(TCC)
+            RESET_EEPROM_SETINGS(TCC);
+            break;
         case SOL_MODULE_SETINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(SOL)
+            RESET_EEPROM_SETINGS(SOL);
+            break;
+        case SBS_MODULE_SETINGS_SCN_ID:
+            RESET_EEPROM_SETINGS(SBS);
+            break;
         default:
             return ESP_ERR_INVALID_ARG;
     }
@@ -67,6 +74,8 @@ esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer
         READ_SETTINGS_TO_BUFFER(TCC, buffer_len, buffer);
     } else if (module_id == SOL_MODULE_SETINGS_SCN_ID) {
         READ_SETTINGS_TO_BUFFER(SOL, buffer_len, buffer);
+    } else if (module_id == SBS_MODULE_SETINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(SBS, buffer_len, buffer);
     } else {
         return ESP_ERR_INVALID_ARG;
     }
@@ -77,6 +86,8 @@ esp_err_t ModuleConfiguration::write_settings(uint8_t module_id, uint16_t buffer
         CHECK_AND_WRITE_SETTINGS(TCC, buffer_len, buffer)
     } else if (module_id == SOL_MODULE_SETINGS_SCN_ID) {
         CHECK_AND_WRITE_SETTINGS(SOL, buffer_len, buffer)
+    }  else if (module_id == SBS_MODULE_SETINGS_SCN_ID) {
+        CHECK_AND_WRITE_SETTINGS(SBS, buffer_len, buffer)
     }
     return ESP_ERR_INVALID_ARG;
 }

@@ -29,10 +29,10 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t red_line_rpm_diesel;
     uint16_t red_line_rpm_petrol;
     uint8_t engine_type; // 0 for diesel, 1 for petrol
+    uint8_t egs_can_type;
     // 0 - EWM
     // 1 - TRRS
     // 2 - SLR
-    uint8_t egs_can_type;
     uint8_t shifter_style;
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;

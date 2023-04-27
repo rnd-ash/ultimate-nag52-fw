@@ -2,8 +2,12 @@
 # Dev (Unreleased)
 
 ### Added
-* TCC Settings tweaker interface
+#### EEPROM Module settings interface
+    * TCC Settings
+    * Solenoid control program settings
+    * Basic shift settings
 * TRRS Range-restrict mode!
+* HFM CAN (WIP)
 
 # 10/04/23
 

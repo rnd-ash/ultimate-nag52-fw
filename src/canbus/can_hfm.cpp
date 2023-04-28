@@ -1,7 +1,5 @@
 #include "can_hfm.h"
-
 #include "driver/twai.h"
-#include "gearbox_config.h"
 #include "driver/i2c.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"

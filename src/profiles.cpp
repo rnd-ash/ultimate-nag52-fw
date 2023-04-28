@@ -1,5 +1,4 @@
 #include "profiles.h"
-#include <gearbox_config.h>
 #include "adv_opts.h"
 #include "tcu_maths.h"
 #include "gearbox.h"

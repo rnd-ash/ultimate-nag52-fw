@@ -186,19 +186,17 @@ struct ShiftData{
     ShiftPhase max_pressure_data;
 };
 
-struct GearRatioLimit{
-    float max;
-    float min;
+struct GearRatioInfo {
+    float ratio_max_drift;
+    float ratio;
+    float ratio_min_drift;
+    float power_loss;
 };
-
-
-typedef const float FwdRatios[7];
 
 struct GearboxConfiguration{
     uint16_t max_torque;
-    const GearRatioLimit* bounds;
-    const float* ratios; // 1-5 and R1+R2
-} ;
+    GearRatioInfo bounds[7];
+};
 
 struct PressureMgrData{
     pressure_map spc_1_2;

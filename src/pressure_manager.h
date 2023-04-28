@@ -5,7 +5,6 @@
 #include "tcu_maths.h"
 #include "profiles.h"
 #include "adaptation/shift_adaptation.h"
-#include <gearbox_config.h>
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
 

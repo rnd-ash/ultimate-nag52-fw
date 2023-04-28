@@ -151,15 +151,93 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .shift_timeout_coasting = 5000,
 };
 
+#define NAG_SETTINGS_NVS_KEY "NAG_A0"
+
+typedef struct {
+    uint16_t max_torque;
+    float ratio_1;
+    float ratio_2;
+    float ratio_3;
+    float ratio_4;
+    float ratio_5;
+    float ratio_r1;
+    float ratio_r2;
+    uint8_t power_loss_1;
+    uint8_t power_loss_2;
+    uint8_t power_loss_3;
+    uint8_t power_loss_4;
+    uint8_t power_loss_5;
+    uint8_t power_loss_r1;
+    uint8_t power_loss_r2;
+} __attribute__ ((packed)) NAG_SETTINGS;
+
+typedef struct {
+    uint8_t max_drift_1;
+    uint8_t max_drift_2;
+    uint8_t max_drift_3;
+    uint8_t max_drift_4;
+    uint8_t max_drift_5;
+    uint8_t max_drift_r1;
+    uint8_t max_drift_r2;
+    NAG_SETTINGS small_nag;
+    NAG_SETTINGS large_nag;
+} __attribute__ ((packed)) NAG_MODULE_SETTINGS;
+
+const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
+    .max_drift_1 = 10,
+    .max_drift_2 = 10,
+    .max_drift_3 = 9,
+    .max_drift_4 = 8,
+    .max_drift_5 = 5,
+    .max_drift_r1 = 10,
+    .max_drift_r2 = 10,
+    .small_nag = {
+        .max_torque = 330,
+        .ratio_1 = 3.951,
+        .ratio_2 = 2.423,
+        .ratio_3 = 1.486,
+        .ratio_4 = 1.000,
+        .ratio_5 = 0.833,
+        .ratio_r1 = -3.147,
+        .ratio_r2 = -1.930,
+        .power_loss_1 = 10,
+        .power_loss_2 = 10,
+        .power_loss_3 = 10,
+        .power_loss_4 = 10,
+        .power_loss_5 = 10,
+        .power_loss_r1 = 10,
+        .power_loss_r2 = 10,
+    },
+    .large_nag = {
+        .max_torque = 580,
+        .ratio_1 = 3.595,
+        .ratio_2 = 2.186,
+        .ratio_3 = 1.405,
+        .ratio_4 = 1.000,
+        .ratio_5 = 0.831,
+        .ratio_r1 = -3.167,
+        .ratio_r2 = -1.926,
+        .power_loss_1 = 10,
+        .power_loss_2 = 10,
+        .power_loss_3 = 10,
+        .power_loss_4 = 10,
+        .power_loss_5 = 10,
+        .power_loss_r1 = 10,
+        .power_loss_r2 = 10,
+    }
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
 extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
+extern NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETINGS_SCN_ID 0x01
 #define SOL_MODULE_SETINGS_SCN_ID 0x02
 #define SBS_MODULE_SETINGS_SCN_ID 0x03
+#define NAG_MODULE_SETINGS_SCN_ID 0x04
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

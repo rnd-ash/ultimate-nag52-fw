@@ -16,25 +16,25 @@ uint16_t Gearbox::redline_rpm = 4000;
     })
 
 // ONLY FOR FORWARD GEARS!
-int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, FwdRatios ratios)
+int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, GearboxConfiguration* gb_config)
 {
     int calculated = output_rpm;
     switch (req_gear)
     {
     case GearboxGear::First:
-        calculated *= ratios[0];
+        calculated *= gb_config->bounds[0].ratio;
         break;
     case GearboxGear::Second:
-        calculated *= ratios[1];
+        calculated *= gb_config->bounds[1].ratio;
         break;
     case GearboxGear::Third:
-        calculated *= ratios[2];
+        calculated *= gb_config->bounds[2].ratio;
         break;
     case GearboxGear::Fourth:
-        calculated *= ratios[3];
+        calculated *= gb_config->bounds[3].ratio;
         break;
     case GearboxGear::Fifth:
-        calculated *= ratios[4];
+        calculated *= gb_config->bounds[4].ratio;
         break;
     default:
         break;
@@ -72,22 +72,54 @@ Gearbox::Gearbox()
         .torque_req_amount = 0,
         .torque_req_type = TorqueRequest::None
     };
-    if (VEHICLE_CONFIG.is_large_nag)
-    {
-        this->gearboxConfig = GearboxConfiguration{
-            .max_torque = MAX_TORQUE_RATING_NM_LARGE,
-            .bounds = GEAR_RATIO_LIMITS_LARGE,
-            .ratios = RATIOS_LARGE,
-        };
-    }
-    else
-    {
-        this->gearboxConfig = GearboxConfiguration{
-            .max_torque = MAX_TORQUE_RATING_NM_SMALL,
-            .bounds = GEAR_RATIO_LIMITS_SMALL,
-            .ratios = RATIOS_SMALL,
-        };
-    }
+
+
+    NAG_SETTINGS* nag_settings = VEHICLE_CONFIG.is_large_nag ? &NAG_CURRENT_SETTINGS.large_nag : &NAG_CURRENT_SETTINGS.small_nag;
+    // Generate our ratio info
+    this->gearboxConfig.max_torque = nag_settings->max_torque;
+    this->gearboxConfig.bounds[0] = GearRatioInfo { // 1st 
+        .ratio_max_drift = nag_settings->ratio_1*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_1/100.0f)),
+        .ratio = nag_settings->ratio_1,
+        .ratio_min_drift = nag_settings->ratio_1*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_1/100.0f)),
+        .power_loss = (nag_settings->power_loss_1)/100.0f,
+    };
+    this->gearboxConfig.bounds[1] = GearRatioInfo { // 2nd 
+        .ratio_max_drift = nag_settings->ratio_2*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_2/100.0f)),
+        .ratio = nag_settings->ratio_2,
+        .ratio_min_drift = nag_settings->ratio_2*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_2/100.0f)),
+        .power_loss = (nag_settings->power_loss_2)/100.0f,
+    };
+    this->gearboxConfig.bounds[2] = GearRatioInfo { // 3rd 
+        .ratio_max_drift = nag_settings->ratio_3*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_3/100.0f)),
+        .ratio = nag_settings->ratio_3,
+        .ratio_min_drift = nag_settings->ratio_3*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_3/100.0f)),
+        .power_loss = (nag_settings->power_loss_3)/100.0f,
+    };
+    this->gearboxConfig.bounds[3] = GearRatioInfo { // 4th 
+        .ratio_max_drift = nag_settings->ratio_4*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_4/100.0f)),
+        .ratio = nag_settings->ratio_4,
+        .ratio_min_drift = nag_settings->ratio_4*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_4/100.0f)),
+        .power_loss = (nag_settings->power_loss_4)/100.0f,
+    };
+    this->gearboxConfig.bounds[4] = GearRatioInfo { // 5th 
+        .ratio_max_drift = nag_settings->ratio_5*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_5/100.0f)),
+        .ratio = nag_settings->ratio_5,
+        .ratio_min_drift = nag_settings->ratio_5*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_5/100.0f)),
+        .power_loss = (nag_settings->power_loss_5)/100.0f,
+    };
+    this->gearboxConfig.bounds[5] = GearRatioInfo { // r1 
+        .ratio_max_drift = nag_settings->ratio_r1*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_r1/100.0f)),
+        .ratio = nag_settings->ratio_r1,
+        .ratio_min_drift = nag_settings->ratio_r1*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_r1/100.0f)),
+        .power_loss = (nag_settings->power_loss_r1)/100.0f,
+    };
+    this->gearboxConfig.bounds[6] = GearRatioInfo { // r2 
+        .ratio_max_drift = nag_settings->ratio_r2*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_r2/100.0f)),
+        .ratio = nag_settings->ratio_r2,
+        .ratio_min_drift = nag_settings->ratio_r2*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_r2/100.0f)),
+        .power_loss = (nag_settings->power_loss_r2)/100.0f,
+    };
+
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_reporter = new ShiftReporter();
@@ -104,7 +136,7 @@ Gearbox::Gearbox()
     {
         char c = i < 5 ? 'D' : 'R';
         int g = i < 5 ? i + 1 : i - 4;
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Gear ratio %c%d %.2f. Bounds: (%.2f - %.2f)", c, g, gearboxConfig.ratios[i], gearboxConfig.bounds[i].max, gearboxConfig.bounds[i].min);
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Gear ratio %c%d %.3f. Bounds: (%.3f - %.3f). Power loss %.2f", c, g, gearboxConfig.bounds[i].ratio, gearboxConfig.bounds[i].ratio_max_drift, gearboxConfig.bounds[i].ratio_min_drift, gearboxConfig.bounds[i].power_loss);
     }
     if (VEHICLE_CONFIG.engine_type == 1)
     {
@@ -345,8 +377,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float mpc_release_delay = 0;
         float d_trq = 0;
         while(process_shift) {
-            int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, this->gearboxConfig.ratios);
-            int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, this->gearboxConfig.ratios);
+            int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
+            int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
             // int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
             int current_trq = sensor_data.input_torque;
             if (sensor_data.static_torque > 0) {
@@ -1043,7 +1075,7 @@ void Gearbox::controller_loop()
                 }
                 // Seek up the restriction target if the RPM is too high for the current gear!
                 // Seek up to Fifth
-                while (this->restrict_target != GearboxGear::Fifth && calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, this->restrict_target, this->gearboxConfig.ratios) > this->redline_rpm)
+                while (this->restrict_target != GearboxGear::Fifth && calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, this->restrict_target, &this->gearboxConfig) > this->redline_rpm)
                 {
                     this->restrict_target = next_gear(this->restrict_target);
                 }
@@ -1080,7 +1112,7 @@ void Gearbox::controller_loop()
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
                         // Second gear shift defaults to OK as we can safely start in second (For C/W mode)
-                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, this->gearboxConfig.ratios) > MIN_WORKING_RPM + 100)
+                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > MIN_WORKING_RPM + 100)
                         {
                             this->target_gear = next;
                         }
@@ -1089,7 +1121,7 @@ void Gearbox::controller_loop()
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, this->gearboxConfig.ratios) < this->redline_rpm - 500)
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, &this->gearboxConfig) < this->redline_rpm - 500)
                         {
                             this->target_gear = prev;
                         }
@@ -1378,8 +1410,8 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
         ratio *= -1;
         for (uint8_t i = 0; i < 2; i++)
         { // Scan the 2 reverse gears
-            GearRatioLimit limits = gearboxConfig.bounds[i + 5];
-            if (ratio >= limits.min && ratio <= limits.max)
+            GearRatioInfo limits = gearboxConfig.bounds[i + 5];
+            if (ratio >= limits.ratio_min_drift && ratio <= limits.ratio_max_drift)
             {
                 //ESP_LOGI("CGFR", "G %d", i+1);
                 this->est_gear_idx = i + 1;
@@ -1391,8 +1423,8 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     {
         for (uint8_t i = 0; i < 5; i++)
         { // Scan the 5 forwards gears
-            GearRatioLimit limits = gearboxConfig.bounds[i];
-            if (ratio >= limits.min && ratio <= limits.max)
+            GearRatioInfo limits = gearboxConfig.bounds[i];
+            if (ratio >= limits.ratio_min_drift && ratio <= limits.ratio_max_drift)
             {
                 this->est_gear_idx = i + 1;
                 return true;

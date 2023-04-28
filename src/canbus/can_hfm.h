@@ -1,6 +1,6 @@
 #ifndef HFM_CAN_H
 #define HFM_CAN_H
-#include <gearbox_config.h>
+
 #include "can_hal.h"
 #include "../../lib/hfm/src/HFM.h"
 #include "shifter/shifter.h"

@@ -1,6 +1,5 @@
 #include "can_egs53.h"
 #include "driver/twai.h"
-#include "gearbox_config.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 

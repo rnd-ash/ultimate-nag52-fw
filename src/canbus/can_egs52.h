@@ -1,6 +1,5 @@
 #ifndef EGS52_CAN_H
 #define EGS52_CAN_H
-#include <gearbox_config.h>
 
 #include "can_hal.h"
 #include "../../egs52_ecus/src/ANY_ECU52.h"

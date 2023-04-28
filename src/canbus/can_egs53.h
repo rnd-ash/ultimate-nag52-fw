@@ -1,8 +1,6 @@
 #ifndef __EGS53_CAN_H_
 #define __EGS53_CAN_H_
 
-
-#include <gearbox_config.h>
 #include "can_hal.h"
 #include "../../egs53_ecus/src/TCM.h"
 #include "../../egs53_ecus/src/TSLM.h"

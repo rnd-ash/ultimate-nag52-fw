@@ -8,7 +8,6 @@
 #include "kwp2000_defines.h"
 #include "gearbox.h"
 #include "canbus/can_hal.h"
-#include "gearbox_config.h"
 #include "perf_mon.h"
 #include "flasher.h"
 

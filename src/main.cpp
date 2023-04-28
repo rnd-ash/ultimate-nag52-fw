@@ -6,7 +6,6 @@
 #include <freertos/task.h>
 #include "speaker.h"
 #include "sensors.h"
-#include <gearbox_config.h>
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"

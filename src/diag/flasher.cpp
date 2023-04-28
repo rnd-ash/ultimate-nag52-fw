@@ -66,6 +66,13 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+
+    const esp_partition_t* part_info_for_ota = esp_ota_get_next_update_partition(nullptr);
+    if (part_info_for_ota != nullptr && part_info_for_ota->address == dest_mem_address) {
+        // Erase coredump for an OTA. This stops old coredumps from hanging around
+        esp_core_dump_image_erase();
+    }
+
     this->start_addr = dest_mem_address;
     this->to_write = dest_mem_size;
 

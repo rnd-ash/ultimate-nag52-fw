@@ -116,7 +116,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 // We are just driving, TCC is free to lockup
                 if (!initial_ramp_done) {
                     if (is_shifting) {
-                        this->base_tcc_pressure = this->curr_tcc_target-100;
+                        this->base_tcc_pressure = MAX(this->base_tcc_pressure, this->curr_tcc_target-100);
                     } else {
                         // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
                         float ramp = scale_number(abs(sensors->tcc_slip_rpm), &TCC_CURRENT_SETTINGS.pressure_increase_ramp_settings);
@@ -170,14 +170,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     }
                     // Dynamic TCC pressure increase based on torque
                     this->curr_tcc_pressure = this->base_tcc_pressure;
-                    if (!learning) {
-                        if (trq > TCC_CURRENT_SETTINGS.max_torque_adapt) {
-                            int torque_delta = trq - TCC_CURRENT_SETTINGS.max_torque_adapt;
-                            this->curr_tcc_pressure += (TCC_CURRENT_SETTINGS.reaction_torque_multiplier*torque_delta); // 2mBar per Nm
-                        } else if (sensors->static_torque < TCC_CURRENT_SETTINGS.trq_consider_coasting) {
-                            if (this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
-                                this->curr_tcc_pressure -= scale_number(sensors->static_torque, &TCC_CURRENT_SETTINGS.load_dampening); //scale_number(sensors->static_torque, 100, 50, -40, 40);
-                            }
+                    if (trq > TCC_CURRENT_SETTINGS.max_torque_adapt) {
+                        int torque_delta = trq - TCC_CURRENT_SETTINGS.max_torque_adapt;
+                        this->curr_tcc_pressure += (TCC_CURRENT_SETTINGS.reaction_torque_multiplier*torque_delta);
+                    } else if (sensors->static_torque < TCC_CURRENT_SETTINGS.min_torque_adapt) {
+                        if (this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
+                            this->curr_tcc_pressure -= scale_number(sensors->static_torque, &TCC_CURRENT_SETTINGS.load_dampening);
                         }
                     }
                     if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min && this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {

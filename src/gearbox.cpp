@@ -615,12 +615,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     TorqueRequest req = TorqueRequest::LessThan;
                     // start reduction
                     if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_downramp_percent) { // Decrease torque from driver demand
-                        curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, 25));
+                        curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, SBS_CURRENT_SETTINGS.torque_request_downramp_percent));
                     } else if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_hold_percent) { // Hold phase
                         curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
                     } else { // Nearing the end 75%+
                         req = TorqueRequest::LessThanFast;
-                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-50, 50);
+                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-SBS_CURRENT_SETTINGS.torque_request_hold_percent, SBS_CURRENT_SETTINGS.torque_request_hold_percent);
                     }
                     this->set_torque_request(req, curr_torq_request);
                 }

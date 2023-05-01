@@ -118,6 +118,7 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .input_sensor_pulses_per_rev = 1,
             .output_pulse_width_per_kmh = 1,
             .gen_mosfet_purpose = 0,
+            .engine_drag_torque = 400 // 40Nm
         };
         result = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
         if (result != ESP_OK) {

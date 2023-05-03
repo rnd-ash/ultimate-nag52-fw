@@ -4,21 +4,15 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
-#include "maps.h"
 
-#include "shifter/shifter_trrs.h"
 
 HfmCan::HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("ClassicEGS", "SETUP CALLED");
-    if(ShifterStyle::TRRS == VEHICLE_CONFIG.shifter_style){
-        shifter = new ShifterTrrs(&(this->can_init_status), this->name, &start_enable);    
-    }
-    else {
+    if(ShifterStyle::TRRS != VEHICLE_CONFIG.shifter_style){
         // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
         ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to (500kbit/s)! Set shifter to TRRS instead!");                        
     }
     this->start_enable = true;
-    enginemaxtorque = new StoredTable(MAP_NAME_ENGINE_TORQUE_MAX, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
 }
 
 WheelData HfmCan::generateWheelData(uint64_t now, uint64_t expire_time_ms) {

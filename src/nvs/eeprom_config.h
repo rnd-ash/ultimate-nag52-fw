@@ -45,6 +45,8 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t c_eng;
     // Engine drag torque (Nm/10)
     uint16_t engine_drag_torque;
+    // teeth of the parking lock gear; might be different to 16, if modified
+    uint8_t parking_lock_gear_teeth;
 };
 
 

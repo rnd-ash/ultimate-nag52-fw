@@ -16,20 +16,32 @@ HfmCan::HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan
 }
 
 WheelData HfmCan::generateWheelData(uint64_t now, uint64_t expire_time_ms) {
-    // TODO: should be read from sensor through GPIO instead of using the inaccurate vehicle speed
     WheelData result = WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
-        if (!hfm210.get_VSIG_UP_B())
+        if (!hfm210.VSIG_UP_B)
         {
-            if (0 < VEHICLE_CONFIG.wheel_circumference)
+            if (0u < VEHICLE_CONFIG.wheel_circumference)
             {
+                // V_SIGNAL is rather inaccurate, since it considers a fixed wheel circumference, that might deviate from the actually mounted tires
                 // convert from km/h to m/min first and divide by circumference, which originally is in mm
-                result.double_rpm = ((((double)hfm210.get_V_SIGNAL()) * 1.2 * 1000.0) / 60.0) * (1000.0 / ((double)VEHICLE_CONFIG.wheel_circumference));
-                switch (hfm210.get_WHC())
+                // 1. v_Veh = V_SIGNAL * 1.2 // v_Veh in km/h
+                // 2. v_Veh_in_m_per_min = v_Veh * 1000 / 60
+                // 3. wheel_circumference_in_m = wheel_circumference / 1000
+                // 4. wheel_rpm = v_Veh_in_m_per_min / wheel_circumference_in_m
+                // 5. wheel_rpm_double = 2 * wheel_rpm
+                // <=> wheel_rpm_double = 2 * (v_Veh_in_m_per_min / (wheel_circumference / 1000))
+                // <=> wheel_rpm_double = 2 * ((v_Veh * 1000 / 60) / (wheel_circumference / 1000))
+                // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 1.2 * 1000 / 60) / (wheel_circumference / 1000))
+                // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 1200 / 60) * (1000 / wheel_circumference))
+                // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 20) * (1000 / wheel_circumference))
+                // <=> wheel_rpm_double = (2 * 20 * 1000 * V_SIGNAL) / wheel_circumference
+                // <=> wheel_rpm_double = (40000 * V_SIGNAL) / wheel_circumference
+                result.double_rpm = (40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference;
+                switch (hfm210.WHC)
                 {
                 case HFM_210h_WHC::PN_B:
                     result.current_dir = WheelDirection::Stationary;
@@ -47,6 +59,16 @@ WheelData HfmCan::generateWheelData(uint64_t now, uint64_t expire_time_ms) {
             }
         }
     }
+    // TODO: should be read from sensor through GPIO and would look like the following:
+    // 1. ticks = 0; 
+    // 2. gearbox_output_rpm = ticks / ((int)VEHICLE_CONFIG.parking_lock_gear_teeth);
+    // 3. wheel_rpm = gearbox_output_rpm / (VEHICLE_CONFIG.diff_ratio / 1000);
+    // 4. wheel_rpm_double = 2 * wheel_rpm;
+    // <=> wheel_rpm_double = 2 * (gearbox_output_rpm / (VEHICLE_CONFIG.diff_ratio / 1000));
+    // <=> wheel_rpm_double = 2 * (1000 * gearbox_output_rpm / VEHICLE_CONFIG.diff_ratio);
+    // <=> wheel_rpm_double = (2000 * gearbox_output_rpm) / VEHICLE_CONFIG.diff_ratio;
+    // <=> wheel_rpm_double = (2000 * (ticks / ((int)VEHICLE_CONFIG.parking_lock_gear_teeth))) / VEHICLE_CONFIG.diff_ratio;
+    // <=> wheel_rpm_double = (2000 * ticks) / (((int)VEHICLE_CONFIG.diff_ratio) * ((int)VEHICLE_CONFIG.parking_lock_gear_teeth));
     return result;
 }
 
@@ -71,16 +93,71 @@ ShifterPosition HfmCan::get_shifter_position(uint64_t now, uint64_t expire_time_
 }
 
 EngineType HfmCan::get_engine_type(uint64_t now, uint64_t expire_time_ms) {
-    // M104 & M111 are always petrol
-    // TODO: Additional logic can check, if car-type sent on CAN matches the engine type
-    return EngineType::Petrol;
+    // M104 & M111 are always petrol; this function can be used to avoid wrong usage of the CAN-layer
+    EngineType result = EngineType::Unknown;
+    HFM_308 hfm308;
+    if (hfm_ecu.get_HFM_308(now, expire_time_ms, &hfm308))
+    {
+        switch (hfm308.HFM_COD)
+        {
+        case HFM_308h_HFM_COD::BR202E22:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR124E22MPSV:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR124E22OPSV:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR202E32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR124E32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR140E32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR129E32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR210E32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR202E28:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR124E28:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR140E28:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR129E28:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR210E28:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::FFVE32:
+            result = EngineType::Petrol;
+            break;
+        case HFM_308h_HFM_COD::BR140E32FE:
+            result = EngineType::Petrol;
+            break;
+        default:
+            result = EngineType::Unknown;
+            break;
+        }
+    }
+    return result;
 }
 
 bool HfmCan::get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) {
     bool result = false;
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
-        result = hfm210.get_NOTL_B();
+        result = hfm210.NOTL_B;
     }
     return result;
 }
@@ -91,7 +168,7 @@ bool HfmCan::get_kickdown(uint64_t now, uint64_t expire_time_ms) {
     bool result = false;
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
-        result = hfm210.get_VG_B();
+        result = hfm210.VG_B;
     }
     return result;
 }
@@ -102,8 +179,8 @@ uint8_t HfmCan::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TODO
     uint8_t result = UINT8_MAX;
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
-        if(!hfm210.get_DKI_UP_B()){
-            uint8_t dki = hfm210.get_DKI();
+        if(!hfm210.DKI_UP_B){
+            uint8_t dki = hfm210.DKI;
             result = (250u < dki) ? 250u : dki;
         }
     }
@@ -114,11 +191,11 @@ int HfmCan::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     int result = INT_MAX;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(now, expire_time_ms, &hfm308)){
-        if(hfm308.get_HFM_UP_B()){
+        if(hfm308.HFM_UP_B){
             HFM_610 hfm610;
             if(this->hfm_ecu.get_HFM_610(now, expire_time_ms, &hfm610)){
                 // TODO: calculate using int-values
-                float mle = ((float)(hfm610.get_MLE())) * 4.F;                
+                float mle = ((float)(hfm610.MLE)) * 4.F;                
                 float nmot = ((float)(get_engine_rpm(now, expire_time_ms)));
                 // constant * mass air flow / engine speed
                 // TODO: convert c_eng, if need
@@ -137,12 +214,12 @@ int HfmCan::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
         HFM_210 hfm210;
         if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
             // check if throttle valve actual value is plausible
-            if(!hfm210.get_DKI_UP_B()){
-                uint8_t dki = hfm210.get_DKI();
+            if(!hfm210.DKI_UP_B){
+                uint8_t dki = hfm210.DKI;
                 uint8_t dkv = 0u;
                 // check if throttle valve target value is plausible
-                if(!hfm210.get_DKV_UP_B()){
-                    dkv = hfm210.get_DKV();
+                if(!hfm210.DKV_UP_B){
+                    dkv = hfm210.DKV;
                 }
                 // use the higher value to ensure the requested value is collected and convert it to angle in degrees
                 uint8_t dk = MAX(dki, dkv);
@@ -162,8 +239,8 @@ int HfmCan::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { /
     int result = INT_MAX;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(now, expire_time_ms, &hfm308)){
-        if(!hfm308.get_NMOT_UP_B()){
-            float nmot = ((float)(hfm308.get_NMOT()));
+        if(!hfm308.NMOT_UP_B){
+            float nmot = ((float)(hfm308.NMOT));
             result = (int)(enginemaxtorque->get_value(nmot));
         }
     }
@@ -183,8 +260,8 @@ int16_t HfmCan::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     int16_t result = INT16_MAX;
     HFM_608 hfm608;
     if(this->hfm_ecu.get_HFM_608(now, expire_time_ms, &hfm608)) {
-        if(!hfm608.get_TFM_UP_B()){
-            result = (int16_t)((((float)(hfm608.get_T_MOT())) * 1.6F) - 44.F);
+        if(!hfm608.TFM_UP_B){
+            result = (int16_t)((((float)(hfm608.T_MOT)) * 1.6F) - 44.F);
         }
     }
     return result;
@@ -204,8 +281,8 @@ uint16_t HfmCan::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
     uint16_t result = UINT16_MAX;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(now, expire_time_ms, &hfm308)){
-        if(!hfm308.get_NMOT_UP_B()){
-            result = hfm308.get_NMOT();
+        if(!hfm308.NMOT_UP_B){
+            result = hfm308.NMOT;
         }
     }
     return result;
@@ -215,7 +292,7 @@ bool HfmCan::get_is_starting(uint64_t now, uint64_t expire_time_ms) { // TODO
     bool result =  false;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(now, expire_time_ms, &hfm308)){
-        result = hfm308.get_KL50_B();
+        result = hfm308.KL50_B;
     }
     return result;
 }
@@ -224,7 +301,7 @@ bool HfmCan::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     bool result = false;
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(now, expire_time_ms, &hfm210)){
-        result = hfm210.get_BLS_B();
+        result = hfm210.BLS_B;
     }
     return result;
 }

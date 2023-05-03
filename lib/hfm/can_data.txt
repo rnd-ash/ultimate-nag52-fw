@@ -20,6 +20,22 @@ ECU HFM
 		SIGNAL DKI_UP_B, OFFSET: 47, LEN: 1, DESC: throttle valve actual value implausible, DATA TYPE BOOL
 	FRAME HFM_308h (0x00000308)
 		SIGNAL NMOT_UP_B, OFFSET: 7, LEN: 1, DESC: engine speed implausible, DATA TYPE BOOL
+		SIGNAL HFM_COD, OFFSET: 8, LEN: 8, DESC: HFM coding, DATA TYPE ENUM
+			ENUM BR202E22, RAW: 40, DESC: M111 E22, model series 202
+			ENUM BR124E22MPSV, RAW: 41, DESC: M111 E22, model series 124 w/ partial intake manifold preheating
+			ENUM BR124E22OPSV, RAW: 42, DESC: M111 E22, model series 124 wo/ partial intake manifold preheating
+			ENUM BR202E32, RAW: 60, DESC: M104 E32, model series 202
+			ENUM BR124E32, RAW: 61, DESC: M104 E32, model series 124
+			ENUM BR140E32, RAW: 62, DESC: M104 E32, model series 140
+			ENUM BR129E32, RAW: 63, DESC: M104 E32, model series 129
+			ENUM BR210E32, RAW: 64, DESC: M104 E32, model series 210
+			ENUM BR202E28, RAW: 65, DESC: M104 E28, model series 202
+			ENUM BR124E28, RAW: 66, DESC: M104 E28, model series 124
+			ENUM BR140E28, RAW: 67, DESC: M104 E28, model series 140
+			ENUM BR129E28, RAW: 68, DESC: M104 E28, model series 129
+			ENUM BR210E28, RAW: 69, DESC: M104 E28, model series 210
+			ENUM FFVE32, RAW: 72, DESC: M104 E32, flexible fuel engine
+			ENUM BR140E32FE, RAW: 82, DESC: M104 E32, model series 140, functional testing
 		SIGNAL NMOT, OFFSET: 16, LEN: 16, DESC: engine speed, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)
 		SIGNAL HFM_UP_B, OFFSET: 40, LEN: 1, DESC: air mass signal implausible, DATA TYPE BOOL
 		SIGNAL KL50_B, OFFSET: 47, LEN: 1, DESC: starter running, DATA TYPE BOOL

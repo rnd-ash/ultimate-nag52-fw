@@ -69,7 +69,7 @@ SPEAKER_POST_CODE setup_tcm() {
                         egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
                         break;
                     case 4:
-                        egs_can_hal = new Egs53Can("HFM", 20, 125000); // HFM CAN Abstraction layer
+                        egs_can_hal = new HfmCan("HFM", 20, 125000); // HFM CAN Abstraction layer
                         break;
                     default:
                         // Unknown (Fallback to basic CAN)

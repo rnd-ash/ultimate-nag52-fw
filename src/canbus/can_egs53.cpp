@@ -231,7 +231,27 @@ int Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 }
 
 PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
-    return PaddlePosition::None;
+    SBW_RQ_SCCM_EGS53 sbw_rq;
+    PaddlePosition ret = PaddlePosition::SNV;
+    if (this->ecm_ecu.get_SBW_RQ_SCCM(now, expire_time_ms*1000, &sbw_rq)) {
+        switch(sbw_rq.StW_Sw_Stat3) {
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::MINUS: // Minus
+                ret = PaddlePosition::Minus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::PLUS: // Plus
+                ret = PaddlePosition::Plus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::PLUS_MINUS: // Plus + Minus
+                ret = PaddlePosition::PlusAndMinus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::NPSD: // None
+                ret = PaddlePosition::None;
+                break;
+            default: // Other??
+                break;
+        }
+    }
+    return ret;
 }
 
 int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {

@@ -261,7 +261,7 @@ int16_t HfmCan::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     HFM_608 hfm608;
     if(this->hfm_ecu.get_HFM_608(now, expire_time_ms, &hfm608)) {
         if(!hfm608.TFM_UP_B){
-            result = (int16_t)((((float)(hfm608.T_MOT)) * 1.6F) - 44.F);
+            result = (int16_t)((((float)(hfm608.T_MOT)) * 1.16078431372549F) - 44.F);
         }
     }
     return result;
@@ -273,8 +273,13 @@ int16_t HfmCan::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
 }
 
 int16_t HfmCan::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
-    // TODO
-    return INT16_MAX;
+    int16_t result = INT16_MAX;
+    HFM_608 hfm608;
+    if(this->hfm_ecu.get_HFM_608(now, expire_time_ms, &hfm608)) {
+        if(!hfm608.TFA_UP_B){
+            result = (int16_t)((((float)(hfm608.T_LUFT)) * 1.16078431372549F) - 44.F);
+        }
+    }return result;
 }
 
 uint16_t HfmCan::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {

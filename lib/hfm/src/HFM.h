@@ -126,11 +126,17 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint64_t __PADDING1__: 47;
+		uint16_t __PADDING1__: 16;
+		/** intake air temperature **/
+		uint8_t T_LUFT: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint32_t __PADDING2__: 22;
+		/** intake air temperature implausible **/
+		bool TFA_UP_B: 1;
 		/** engine temperature implausible **/
 		bool TFM_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
+		uint8_t __PADDING3__: 8;
 		/** engine temperature **/
 		uint8_t T_MOT: 8;
 	} __attribute__((packed));

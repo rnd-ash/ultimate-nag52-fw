@@ -261,7 +261,7 @@ int16_t HfmCan::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     HFM_608 hfm608;
     if(this->hfm_ecu.get_HFM_608(now, expire_time_ms, &hfm608)) {
         if(!hfm608.TFM_UP_B){
-            result = (int16_t)((((float)(hfm608.T_MOT)) * 1.16078431372549F) - 44.F);
+            result = (int16_t)((((float)(hfm608.T_MOT)) * temperature_factor) + temperature_offset);
         }
     }
     return result;
@@ -277,7 +277,7 @@ int16_t HfmCan::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
     HFM_608 hfm608;
     if(this->hfm_ecu.get_HFM_608(now, expire_time_ms, &hfm608)) {
         if(!hfm608.TFA_UP_B){
-            result = (int16_t)((((float)(hfm608.T_LUFT)) * 1.16078431372549F) - 44.F);
+            result = (int16_t)((((float)(hfm608.T_LUFT)) * temperature_factor) + temperature_offset);
         }
     }return result;
 }

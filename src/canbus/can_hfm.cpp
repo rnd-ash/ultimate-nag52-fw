@@ -195,7 +195,7 @@ int HfmCan::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
             HFM_610 hfm610;
             if(this->hfm_ecu.get_HFM_610(now, expire_time_ms, &hfm610)){
                 // TODO: calculate using int-values
-                float mle = ((float)(hfm610.MLE)) * 4.F;                
+                float mle = ((float)(hfm610.MLE)) * air_mass_factor;                
                 float nmot = ((float)(get_engine_rpm(now, expire_time_ms)));
                 // constant * mass air flow / engine speed
                 // TODO: convert c_eng, if need

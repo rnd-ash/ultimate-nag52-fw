@@ -475,19 +475,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 9, 100, 1000);
                         break;
                     case ProfileGearChange::THREE_TWO: // K3
-                        if (sensor_data.input_torque <= 0) {
-                            min_spc = 1000;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 40.6, 29.0, 100, 1000);
-                        } else {
                             min_spc = 750;
                             spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
-                        }
                         break;
                     case ProfileGearChange::TWO_ONE: // B1
                     default:
                         min_spc = 50;
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 11.5, 4.35, 100, 1000);
                         break;
+                }
+                if (sensor_data.static_torque < 0) {
+                    spc_trq_multi *= 2; // For coast shifting
                 }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
                 curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, torque_decimal*spc_trq_multi));

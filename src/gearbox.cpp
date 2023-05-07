@@ -351,8 +351,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // Bleed phase is phase 1, set the times here
         uint32_t phase_hold_time = sd.bleed_data.hold_time;
         uint32_t phase_ramp_time = sd.bleed_data.ramp_time;
-        float max_spc = 0.0F; // To ensure SPC doesn't decrease
-
+        float max_spc = 0;
         float prev_phase_mpc;
         float curr_phase_mpc;
         float current_mpc;
@@ -376,6 +375,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float curr_torq_request = 0;
         float mpc_release_delay = 0;
         float d_trq = 0;
+        float clamped_trq = 0;
         while(process_shift) {
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
@@ -475,8 +475,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 9, 100, 1000);
                         break;
                     case ProfileGearChange::THREE_TWO: // K3
-                            min_spc = 750;
-                            spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
+                        min_spc = 750;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
                         break;
                     case ProfileGearChange::TWO_ONE: // B1
                     default:
@@ -489,9 +489,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
                 curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, torque_decimal*spc_trq_multi));
-                if (max_spc < curr_phase_delta_spc) {
-                    max_spc = curr_phase_delta_spc;
-                }
                 if (phase_elapsed > phase_hold_time+phase_ramp_time && sd.targ_g != this->est_gear_idx) {
                     // Not shifting, try to increase SPC a bit more!
                     max_spc += scale_number(ss_now.target_shift_time, 50, 5, 100, 1000);
@@ -516,10 +513,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             current_delta_mpc = linear_interp(prev_phase_delta_mpc, curr_phase_delta_mpc, phase_elapsed, phase_ramp_time);
             current_delta_spc = linear_interp(prev_phase_delta_spc, curr_phase_delta_spc, phase_elapsed, phase_ramp_time);
             // Set pressures and solenoid actuation
-            //pressure_mgr->set_target_mpc_pressure(current_mpc + current_delta_mpc);
             float spc = current_spc + current_delta_spc;
             if (current_phase > SHIFT_PHASE_FILL) {
-                spc = MAX(sd.fill_data.spc_pressure, current_spc + current_delta_spc);
+                spc =  MAX(sd.fill_data.spc_pressure, current_spc + current_delta_spc);
             }
             if (current_phase < SHIFT_PHASE_OVERLAP) {
                 // Prevent MPC from being too low in bleed and fill phase

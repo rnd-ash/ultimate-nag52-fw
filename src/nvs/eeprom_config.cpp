@@ -64,7 +64,14 @@ esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_wri
 //     return (e == ESP_OK);
 // }
 
-const char* LEGACY_EEPROM_KEYS[] = {"WORK_LARGE", "WORK_SMALL", "TCC_A0", "TCC_A1"};
+const char* LEGACY_EEPROM_KEYS[] = {
+    "WORK_LARGE", 
+    "WORK_SMALL", 
+    "TCC_A0", 
+    "TCC_A1", 
+    "FILL_PRESS_L", 
+    "FILL_PRESS_S"
+};
 
 esp_err_t EEPROM::init_eeprom() {
     // Called on startup

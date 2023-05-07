@@ -237,13 +237,13 @@ const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
 const int16_t SMALL_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
    /* K1    K2    K3    B1    B2 */
-    1200, 1400, 1300, 1200, 1400
+     800,  900,  900,  900,  800
 };
 
 const int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
    /* K1    K2    K3    B1    B2 */
-    1200, 1400, 1300, 1200, 1400
+     800,  900,  900,  900,  800
 };
 
 const int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE] = {

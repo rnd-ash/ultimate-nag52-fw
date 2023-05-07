@@ -237,8 +237,25 @@ const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
    /* K1    K2    K3    B1    B2 */
-    1200, 1400, 1300, 1200, 1400
+     800,  900,  900,  900,  800
 };
+
+const int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
+    /* Clutch                    */
+   /* K1    K2    K3    B1    B2 */
+     800,  900,  900,  900,  800
+};
+
+const int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE] = {
+   /* Engine torque (0-100%) of 330Nm or 580Nm */
+   /*0%,  10%   20%   30%   40%   50%   60%    70%   80%   90%  100%  */ // NOTE this map does not exceed 100%. Torque is restricted instead
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K1
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K2
+     100,  200,  300,  400,  500,  700,  900, 1100, 1300, 1500, 1700, // K3 <- 3-4 flare
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B1
+     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B2
+};
+
 
 const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */

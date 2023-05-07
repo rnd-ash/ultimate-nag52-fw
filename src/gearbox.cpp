@@ -1054,7 +1054,7 @@ void Gearbox::controller_loop()
             if (can_read && is_fwd_gear(this->actual_gear))
             {
                 // Check our range restict (Only for TRRS)
-                switch (this->shifter_pos) {
+                switch (egs_can_hal->get_shifter_position(now, 250)) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
                     case ShifterPosition::FOUR:
                         this->restrict_target = GearboxGear::Fourth;
                         break;
@@ -1093,17 +1093,10 @@ void Gearbox::controller_loop()
                         // data, if the car should up/downshift
                         if (this->restrict_target > this->actual_gear && p->should_upshift(this->actual_gear, &this->sensor_data))
                         {
-                            this->ask_upshift = true;
+                            this->ask_upshift = true; // Upshift takes priority
+                        } else if (this->restrict_target < this->actual_gear || p->should_downshift(this->actual_gear, &this->sensor_data)) {
+                            this->ask_downshift = true; // Downshift is secondary
                         }
-                        if (this->restrict_target < this->actual_gear || p->should_downshift(this->actual_gear, &this->sensor_data))
-                        {
-                            this->ask_downshift = true;
-                        }
-                    }
-                    if (this->ask_upshift && this->ask_downshift)
-                    {
-                        // Upshift takes priority to protect the engine
-                        this->ask_downshift = false;
                     }
                     if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
                     {

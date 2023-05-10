@@ -1,6 +1,6 @@
 # Manually generated
 #
-# ECU CAN definitions for HGS (hybrid transmission control) compatibility in early 1990's M104/M111 cars with Hfm
+# ECU CAN definitions for HGS52 (hybrid transmission control) compatibility in early 1990's M104/M111 Mercedes-Benz cars with Hfm
 
 ECU HFM
 	FRAME HFM_210h (0x00000210)

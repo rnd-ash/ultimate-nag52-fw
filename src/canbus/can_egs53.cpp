@@ -522,8 +522,6 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-// uint8_t x = 0;
-unsigned long last_time = 0;
 void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
     switch (g) {
         case GearboxDisplayGear::One:
@@ -543,8 +541,8 @@ void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
             : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D4;
             break;
         case GearboxDisplayGear::Five:
-            manual_mode ? this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::M1
-            : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D1;
+            manual_mode ? this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::M5
+            : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D5;
             break;
         case GearboxDisplayGear::P:
             this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::P;

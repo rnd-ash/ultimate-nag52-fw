@@ -474,7 +474,43 @@ void Egs53Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs53Can::set_torque_request(TorqueRequest request, float amount_nm) {
-
+    uint16_t trq = 0;
+    if (request != TorqueRequest::None) {
+        trq = (amount_nm + 500) * 4;
+    }
+    switch (request) {
+        case TorqueRequest::Exact:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
+        case TorqueRequest::ExactFast:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::FAST;
+        case TorqueRequest::LessThan:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = false;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::RATE_DEC;
+        case TorqueRequest::LessThanFast:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = false;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::RATE_INC;
+        case TorqueRequest::MoreThan:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = false;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::RATE_INC;
+        case TorqueRequest::MoreThanFast:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = false;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::RATE_INC;
+        case TorqueRequest::None:
+        default:
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = false;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = false;
+            eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
+            break;
+    }
+    eng_rq1_tcm.EngTrq_Rq_TCM = trq;
 }
 
 void Egs53Can::set_error_check_status(SystemStatusCheck ssc) {

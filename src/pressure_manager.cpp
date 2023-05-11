@@ -65,16 +65,11 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 
     /** Pressure Hold 2 pressure map **/
-    const int16_t hold2p_x_headers[1] = {1};
-    const int16_t hold2p_y_headers[5] = {1,2,3,4,5};
-    if (VEHICLE_CONFIG.is_large_nag) { // Large
-        key_name = MAP_NAME_FILL_PRESSURE_LARGE;
-        default_data = LARGE_NAG_FILL_PRESSURE_MAP;
-    } else { // Small
-        key_name = MAP_NAME_FILL_PRESSURE_SMALL;
-        default_data = SMALL_NAG_FILL_PRESSURE_MAP;
-    }
-    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
+    const int16_t hold2p_x_headers[4] = {-10, 0, 50, 100};
+    const int16_t hold2p_y_headers[6] = {1,2,3,4,5,6};
+    key_name = MAP_NAME_FILL_PRESSURE_LARGE;
+    default_data = NAG_FILL_PRESSURE_MAP;
+    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 4, 6, default_data);
     if (this->hold2_pressure_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_map;
     }
@@ -257,7 +252,8 @@ void PressureManager::make_fill_data(ShiftPhase* dest, ShiftCharacteristics char
         dest->ramp_time = 0;
         dest->hold_time = hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_change);
         dest->mpc_pressure = 100;
-        dest->spc_pressure = hold2_pressure_map->get_value(1, (uint8_t)to_change) + scale_number(chars.target_shift_time, 200, 0, 100, 500);
+        float load = (this->sensor_data->input_torque * 100.0) / gb_max_torque;
+        dest->spc_pressure = hold2_pressure_map->get_value(load, (uint8_t)to_change);
         dest->mpc_offset_mode = true;
         dest->spc_offset_mode = false;
     }

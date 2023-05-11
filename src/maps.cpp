@@ -234,16 +234,15 @@ const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
     /* 150C */     1175,  975,  795,  745,  625,  370,  260,   0
 };
 
-const int16_t SMALL_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
-    /* Clutch                    */
-   /* K1    K2    K3    B1    B2 */
-     800,  900,  900,  900,  800
-};
+const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
+   /* -10%    0%   50%  100% <- Torque load on input shaft */
+      1000,  800, 1000, 1200, // K1
+      1200,  800, 1200, 1300, // K2
+      1200,  900, 1200, 1300, // K3
+      1100,  800, 1100, 1300, // B1
+      1000,  800, 1000, 1200, // B2
+       800,  800,  800,  800, // B3
 
-const int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
-    /* Clutch                    */
-   /* K1    K2    K3    B1    B2 */
-     800,  900,  900,  900,  800
 };
 
 const int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE] = {

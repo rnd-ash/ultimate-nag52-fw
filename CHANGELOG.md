@@ -2,12 +2,16 @@
 # Dev (Unreleased)
 
 ### Added
+* EGS53 - Add support for shift paddles
 #### EEPROM Module settings interface
     * TCC Settings
     * Solenoid control program settings
     * Basic shift settings
 * TRRS Range-restrict mode!
 * HFM CAN (WIP)
+* Update to PIO ESP Framework 6.2.0
+* Improve gear shifting smoothness
+* Change prefill maps to account for load
 
 # 10/04/23
 

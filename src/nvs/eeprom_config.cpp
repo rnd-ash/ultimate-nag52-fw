@@ -70,7 +70,9 @@ const char* LEGACY_EEPROM_KEYS[] = {
     "TCC_A0", 
     "TCC_A1", 
     "FILL_PRESS_L", 
-    "FILL_PRESS_S"
+    "FILL_PRESS_S",
+    "FILL_PRESS_L1", 
+    "FILL_PRESS_S1"
 };
 
 esp_err_t EEPROM::init_eeprom() {

@@ -373,7 +373,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float mpc_hold_adder = 0.0F;
         sr.start_reading = this->collect_report_segment(shift_start_time);
         float curr_torq_request = 0;
-        float mpc_release_delay = 0;
         float d_trq = 0;
         float clamped_trq = 0;
         while(process_shift) {
@@ -455,28 +454,28 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spc_trq_multi = scale_number(ss_now.target_shift_time, 20.0, 4.00, 100, 1000);
                         break;
                     case ProfileGearChange::TWO_THREE: // K2
-                        min_spc = 200;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 30.0, 7, 100, 1000);
+                        min_spc = 100;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 30.0, 8, 100, 1000);
                         break;
                     case ProfileGearChange::THREE_FOUR: // K3
-                        min_spc = 750;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
+                        min_spc = 100;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 80, 40, 100, 1000);
                         break;
                     case ProfileGearChange::FOUR_FIVE: // B1
                         min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 29.0, 7, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 8, 100, 1000);
                         break;
                     case ProfileGearChange::FIVE_FOUR: // K1
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 15, 6.5, 100, 1000);
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 16, 10, 100, 1000);
                         min_spc = 100;
                         break;
                     case ProfileGearChange::FOUR_THREE: // B2
-                        min_spc = 400;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 9, 100, 1000);
+                        min_spc = 100;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 20.0, 10, 100, 1000);
                         break;
                     case ProfileGearChange::THREE_TWO: // K3
-                        min_spc = 750;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 50, 15, 100, 1000);
+                        min_spc = 100;
+                        spc_trq_multi = scale_number(ss_now.target_shift_time, 80, 40, 100, 1000);
                         break;
                     case ProfileGearChange::TWO_ONE: // B1
                     default:
@@ -523,7 +522,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + SBS_CURRENT_SETTINGS.min_spc_delta_mpc), now_working_mpc + mpc_hold_adder);
             } else if (current_phase == SHIFT_PHASE_OVERLAP) {
                 // Overlap
-                float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time+(mpc_release_delay*phase_hold_time));
+                float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time/2);
                 this->mpc_working = ((current_mpc + current_delta_mpc) + x);
             } else {
                 this->mpc_working = current_mpc + current_delta_mpc;

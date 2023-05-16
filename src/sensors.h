@@ -26,6 +26,12 @@ namespace Sensors {
      * @return false if initialization failed
      */
     esp_err_t init_sensors(void);
+    
+    /**
+     * @brief Sets the Ratio of Gear2/Gear1. This is used when doing RPM calculations
+     * for the input shaft speed
+    */
+    void set_ratio_2_1(float r);
 
     /**
      * @brief Reads the input RPM of the gearbox

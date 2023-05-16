@@ -58,6 +58,10 @@ uint8_t avg_n3_idx = 0;
 uint8_t avg_out_idx = 0;
 bool output_rpm_ok = false;
 
+// Good enough for both boxes, but will be corrected as soon as the gearbox code boots up
+// to a more accurate value
+float RATIO_2_1 = 1.61f;
+
 
 static esp_err_t IRAM_ATTR read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
     esp_err_t res = pcnt_unit_get_count(unit, dest);
@@ -213,9 +217,8 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 
             float f2 = (float)dest->n2_raw;
             float f3 = (float)dest->n3_raw;
-            float ratio = f3 / f2;
 
-            dest->calc_rpm = ((f2 * 1.64f) * (1.0f - ratio)) + (f3 * ratio);
+            dest->calc_rpm = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
 
             // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
             // otherwise we have a faulty conductor place sensor!
@@ -225,6 +228,10 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
         }
     }
     return res;
+}
+
+void set_ratio_2_1(float r) {
+    RATIO_2_1 = r;
 }
 
 esp_err_t Sensors::read_output_rpm(uint16_t* dest) {

@@ -119,6 +119,8 @@ Gearbox::Gearbox()
         .ratio_min_drift = nag_settings->ratio_r2*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_r2/100.0f)),
         .power_loss = (nag_settings->power_loss_r2)/100.0f,
     };
+    // IMPORTANT - Set the Ratio2/Ratio1 multiplier for the sensor RPM reading algorithm!
+    Sensors::set_ratio_2_1(nag_settings->ratio_2/nag_settings->ratio_1);
 
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);

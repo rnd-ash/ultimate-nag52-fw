@@ -329,19 +329,19 @@ TransferCaseState Egs52Can::get_transfer_case_state(uint64_t now, uint64_t expir
     }
 }
 
-void Egs52Can::set_clutch_status(ClutchStatus status) {
+void Egs52Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
-        case ClutchStatus::Open:
+        case TccClutchStatus::Open:
             gs218.K_G_B = false;
             gs218.K_O_B = true;
             gs218.K_S_B = false;
             break;
-        case ClutchStatus::Slipping:
+        case TccClutchStatus::Slipping:
             gs218.K_G_B = false;
             gs218.K_O_B = false;
             gs218.K_S_B = true;
             break;
-        case ClutchStatus::Closed:
+        case TccClutchStatus::Closed:
             gs218.K_G_B = true;
             gs218.K_O_B = false;
             gs218.K_S_B = false;

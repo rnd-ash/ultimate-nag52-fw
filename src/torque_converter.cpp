@@ -63,7 +63,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->initial_ramp_done = false;
         this->strike_count = 0;
         this->adapt_lock_count = 0;
-        this->state = ClutchStatus::Open;
+        this->state = TccClutchStatus::Open;
     } else {
         uint32_t input_rpm = sensors->input_rpm;
         int trq = MAX(sensors->static_torque, sensors->driver_requested_torque);
@@ -82,7 +82,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->initial_ramp_done = false;
                 this->strike_count = 0;
                 this->adapt_lock_count = 0;
-                this->state = ClutchStatus::Open;
+                this->state = TccClutchStatus::Open;
             } else {
                 // Input is still lower than locking RPM
             }
@@ -101,7 +101,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->was_idle = false;
                 if (this->tcc_learn_lockup_map != nullptr) {
                     this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
-                    ESP_LOGI("TCC", "Learn cell value is %lu mBar", curr_tcc_target);
+                    ESP_LOGI("TCC", "Learn cell value is %lu mBar", (uint32_t)curr_tcc_target);
                     this->initial_ramp_done = false;
                     this->base_tcc_pressure = MAX(0, this->curr_tcc_target-TCC_CURRENT_SETTINGS.base_pressure_offset_start_ramp);
                     this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-TCC_CURRENT_SETTINGS.base_pressure_offset_start_ramp);
@@ -144,7 +144,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                             if (trq >= TCC_CURRENT_SETTINGS.min_torque_adapt && trq <= TCC_CURRENT_SETTINGS.max_torque_adapt && sensors->engine_rpm < TCC_CURRENT_SETTINGS.tcc_stall_speed) {
                                 if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_CURRENT_SETTINGS.lock_rpm_threshold) {
                                     adapt_lock_count++;
-                                } else {
+                                } else if (this->base_tcc_pressure < TCC_CURRENT_SETTINGS.max_allowed_bite_pressure) {
                                     learning = true;
                                     this->base_tcc_pressure += TCC_CURRENT_SETTINGS.adapt_pressure_inc;
                                 }
@@ -168,20 +168,26 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                             this->adjust_map_cell(cmp_gear, this->base_tcc_pressure);
                         }
                     }
-                    // Dynamic TCC pressure increase based on torque
-                    this->curr_tcc_pressure = this->base_tcc_pressure;
-                    if (trq > TCC_CURRENT_SETTINGS.max_torque_adapt) {
-                        int torque_delta = trq - TCC_CURRENT_SETTINGS.max_torque_adapt;
-                        this->curr_tcc_pressure += (TCC_CURRENT_SETTINGS.reaction_torque_multiplier*torque_delta);
-                    } else if (sensors->static_torque < TCC_CURRENT_SETTINGS.min_torque_adapt) {
-                        if (this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
-                            this->curr_tcc_pressure -= scale_number(sensors->static_torque, &TCC_CURRENT_SETTINGS.load_dampening);
-                        }
-                    }
-                    if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min && this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
-                        this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
-                    }
                 }
+            }
+            // Dynamic TCC pressure increase based on torque
+            this->curr_tcc_pressure = this->base_tcc_pressure;
+            if (trq > TCC_CURRENT_SETTINGS.max_torque_adapt) {
+                int torque_delta = trq - TCC_CURRENT_SETTINGS.max_torque_adapt;
+                this->curr_tcc_pressure += scale_number(
+                    this->base_tcc_pressure,
+                    0,
+                    TCC_CURRENT_SETTINGS.reaction_torque_multiplier*torque_delta,
+                    TCC_CURRENT_SETTINGS.prefill_pressure,
+                    this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0)
+                );
+            } else if (sensors->static_torque < TCC_CURRENT_SETTINGS.min_torque_adapt) {
+                if (this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
+                    this->curr_tcc_pressure -= scale_number(sensors->static_torque, &TCC_CURRENT_SETTINGS.load_dampening);
+                }
+            }
+            if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min && this->curr_tcc_pressure > TCC_CURRENT_SETTINGS.prefill_pressure) {
+                this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
             }
         }
     }
@@ -194,6 +200,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     pm->set_target_tcc_pressure(this->curr_tcc_pressure);
 }
 
-ClutchStatus TorqueConverter::get_clutch_state(void) {
+TccClutchStatus TorqueConverter::get_clutch_state(void) {
     return this->state;
 }

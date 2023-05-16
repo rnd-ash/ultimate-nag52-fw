@@ -1131,7 +1131,7 @@ void Gearbox::controller_loop()
             } else { // Cannot read, or not in foward gear!
                         this->tcc_percent = 0;
                         this->pressure_mgr->set_target_tcc_pressure(0);
-                        egs_can_hal->set_clutch_status(ClutchStatus::Open);
+                        egs_can_hal->set_clutch_status(TccClutchStatus::Open);
                         // sol_tcc->write_pwm_12_bit(0);
                     }
             // Not shifting, but target has changed! Spawn a shift thread!

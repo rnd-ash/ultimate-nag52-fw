@@ -25,7 +25,7 @@ class TorqueConverter {
          * @param shifting True if the car is currently transitioning to new gear
          */
         void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
-        ClutchStatus get_clutch_state(void);
+        TccClutchStatus get_clutch_state(void);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
@@ -40,14 +40,14 @@ class TorqueConverter {
         uint16_t adapt_lock_count = 0;
         uint16_t strike_count = 0;
         bool initial_ramp_done = false;
-        uint32_t curr_tcc_target = 0;
-        uint32_t curr_tcc_pressure = 0;
-        uint32_t base_tcc_pressure = 0;
+        float curr_tcc_target = 0;
+        float curr_tcc_pressure = 0;
+        float base_tcc_pressure = 0;
         bool inhibit_increase = false;
         bool was_idle = false;
         bool prefilling = false;
         uint64_t prefill_start_time = 0;
-        ClutchStatus state = ClutchStatus::Open;
+        TccClutchStatus state = TccClutchStatus::Open;
         uint64_t last_inc_time = 0;
         bool is_temp_pressure = false;
         uint16_t tmp_pressure = 0;

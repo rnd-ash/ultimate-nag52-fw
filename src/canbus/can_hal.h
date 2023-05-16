@@ -95,10 +95,14 @@ enum class PaddlePosition: uint8_t {
     SNV = 0xFF
 };
 
-enum class ClutchStatus: uint8_t {
+enum class TccClutchStatus: uint8_t {
     Open,
+    OpenToSlipping,
     Slipping,
-    Closed
+    SlippingToClosed,
+    Closed,
+    ClosedToSlipping,
+    SlippingToOpen
 };
 
 enum class TransferCaseState: uint8_t {
@@ -298,7 +302,7 @@ class EgsBaseCan {
          * Setters
          */
         // Set the gearbox clutch position on CAN
-        virtual void set_clutch_status(ClutchStatus status){};
+        virtual void set_clutch_status(TccClutchStatus status){};
         // Set the actual gear of the gearbox
         virtual void set_actual_gear(GearboxGear actual){};
         // Set the target gear of the gearbox

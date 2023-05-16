@@ -331,7 +331,7 @@ bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
-void Egs53Can::set_clutch_status(ClutchStatus status) {
+void Egs53Can::set_clutch_status(TccClutchStatus status) {
     
 }
 

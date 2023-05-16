@@ -68,7 +68,7 @@ class Egs52Can: public EgsBaseCan {
         /**
          * Setters
          */
-        void set_clutch_status(ClutchStatus status) override;
+        void set_clutch_status(TccClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
         // Set the target gear of the gearbox

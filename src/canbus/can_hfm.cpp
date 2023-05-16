@@ -107,7 +107,7 @@ bool HfmCan::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
-void HfmCan::set_clutch_status(ClutchStatus status) {
+void HfmCan::set_clutch_status(TccClutchStatus status) {
     
 }
 

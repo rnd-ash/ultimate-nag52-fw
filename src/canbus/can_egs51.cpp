@@ -220,7 +220,7 @@ bool Egs51Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
-void Egs51Can::set_clutch_status(ClutchStatus status) {
+void Egs51Can::set_clutch_status(TccClutchStatus status) {
     
 }
 

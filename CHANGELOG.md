@@ -12,6 +12,11 @@
 * Update to PIO ESP Framework 6.2.0
 * Improve gear shifting smoothness
 * Change prefill maps to account for load
+* Modified Input speed calculation algorithm to not use a fixed multiplier when in 1st or 5th.
+* Remove the MPC filler adder map
+* Make MPC prefill pressure += SPC prefill pressure for better prefill quality
+* EGS53 - Fixed display showing 1st when in 5th gear
+* EGS53 - Calculate drivers demand torque based on engine map pedal curve and maximum torque output of the engine
 
 # 10/04/23
 

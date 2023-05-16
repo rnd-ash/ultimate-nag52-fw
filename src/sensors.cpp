@@ -230,7 +230,7 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
     return res;
 }
 
-void set_ratio_2_1(float r) {
+void Sensors::set_ratio_2_1(float r) {
     RATIO_2_1 = r;
 }
 

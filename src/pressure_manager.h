@@ -152,7 +152,6 @@ private:
     StoredMap* mpc_working_pressure;
     StoredMap* hold2_time_map;
     StoredMap* hold2_pressure_map;
-    StoredMap* hold2_pressure_mpc_adder_map;
     uint16_t gb_max_torque;
 };
 

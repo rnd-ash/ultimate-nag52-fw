@@ -32,6 +32,14 @@ template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
     }
 };
 
+enum class ShiftStage {
+    Bleed = 1,
+    Fill = 2,
+    Torque = 3,
+    Overlap = 4,
+    MaxPressure = 5
+};
+
 /**
  * @brief Gearbox sensor data
  * This structure gets passed between a lot of the gearbox
@@ -106,31 +114,11 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
-struct ShiftPhase{
+struct ShiftPhaseTiming {
     /// Ramp down from current pressure to new pressure
     uint16_t ramp_time;
     /// Hold time at requested pressure
     uint16_t hold_time;
-    /// Requested pressure for shift pressure
-    /// This value is interpreted differently based on the value of `spc_offset_mode`.
-    /// 
-    /// If `spc_offset_mode` is true, then spc_pressure is interpreted as an offset to the value of `mpc_pressure`.
-    ///
-    /// If `spc_offset_mode` is false, then spc_pressure is interpreted as a fixed static value. 
-    int16_t spc_pressure;
-    /// Requested pressure for modulating (Working) pressure
-    /// This value is interpreted differently based on the value of `mpc_offset_mode`.
-    /// 
-    /// If `mpc_offset_mode` is true, then mpc_pressure is interpreted as an offset to the current working pressure.
-    /// The working pressure is calculated dynamically based on the current application state of the clutches in the gearbox
-    /// and the load on the input shaft of the gearbox
-    ///
-    /// If `mpc_offset_mode` is false, then mpc_pressure is interpreted as a fixed static value. 
-    int16_t mpc_pressure;
-    /// If true, spc_pressure is interpreted as an offset to mpc_pressure
-    bool spc_offset_mode;
-    /// If true, mpc_pressure is interpreted as an offset to working pressure
-    bool mpc_offset_mode;
 };
 
 /**
@@ -139,7 +127,6 @@ struct ShiftPhase{
  */
 struct ShiftData{
     Solenoid* shift_solenoid;
-    float torque_down_amount;
     uint8_t targ_g;
     uint8_t curr_g;
  
@@ -149,41 +136,8 @@ struct ShiftData{
      * This reduces the line pressure of the SPC line so that
      * there is not a spike in pressure when Shift solenoid opens
      */
-    ShiftPhase bleed_data;
-
-    /** 
-     * Fill phase
-     * Clutches are moved into 0 tolerance position
-     * This phase uses adaptation data
-     * 
-     * AFTER THIS PHASE, SHIFT CANNOT BE ABORTED!
-     */
-    ShiftPhase fill_data;
-
-    /** 
-     * Shift torque phase 
-     * Just before overlap, engine torque is reduced to aid shifting
-     */
-    ShiftPhase torque_data;
-
-    /** 
-     * Shift overlap phase
-     * New clutches are moved into place and old once released
-     * SPC now controls new clutches, MPC is relaxed.
-     * 
-     * Duration and pressure during the overlap phase
-     * affects shift feeling
-     * 
-     * Duration: Longer = slower gear change
-     * SPC Ramp: Bigger = firmer shift
-     */
-    ShiftPhase overlap_data;
-
-    /** 
-     * Shift complete max pressure phase 
-     * New clutches are locked into place
-     */
-    ShiftPhase max_pressure_data;
+    ShiftPhaseTiming bleed_data;
+    uint16_t bleed_pressure;
 };
 
 struct GearRatioInfo {

@@ -8,13 +8,6 @@
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
 
-// Shift phase IDs
-
-static const uint16_t SHIFT_PHASE_BLEED = 1u;
-static const uint16_t SHIFT_PHASE_FILL = 2u;
-static const uint16_t SHIFT_PHASE_TORQUE = 3u;
-static const uint16_t SHIFT_PHASE_OVERLAP = 4u;
-
 enum class Clutch {
     K1 = 1,
     K2 = 2,
@@ -23,6 +16,16 @@ enum class Clutch {
     B2 = 5,
     B3 = 6 // Reverse ONLY
 };
+
+typedef struct {
+    uint16_t fill_time;
+    uint16_t fill_pressure;
+} PrefillData;
+
+typedef struct {
+    uint16_t hold_time;
+    uint16_t ramp_time;
+} PressureStageTiming;
 
 class PressureManager {
 
@@ -65,7 +68,7 @@ public:
      * @param curr_mpc Current MPC working pressure at the time of shift
      * @return ShiftData 
      */
-    ShiftData get_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars, uint16_t curr_mpc);
+    ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
     /**
      * @brief Reset adaptation data
@@ -110,9 +113,10 @@ public:
     
     float get_tcc_temp_multiplier(int atf_temp);
 
-    void make_fill_data(ShiftPhase* dest, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-    void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-    void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    PrefillData make_fill_data(ProfileGearChange change);
+    //void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    //void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
+    PressureStageTiming get_max_pressure_timing();
     Clutch get_clutch_to_release(ProfileGearChange change);
     Clutch get_clutch_to_apply(ProfileGearChange change);
     StoredMap* get_pcs_map(void);
@@ -120,7 +124,6 @@ public:
     StoredMap* get_working_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
-    StoredMap* get_fill_pressure_mpc_adder_map(void);
     uint16_t get_max_rated_torque(void) {
         return this->gb_max_torque;
     }

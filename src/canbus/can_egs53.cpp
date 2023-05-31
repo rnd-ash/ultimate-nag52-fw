@@ -214,22 +214,10 @@ int Egs53Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     // Test - suspect this is based on the parsed pedal curve from the engine
     // Take min trq and max trq, and take (pedal %) of that number, offset it from min torque
     // For example
-    //
-    // MIN: -10Nm
-    // MAX: 100Nm
-    // Pedal value: 25%
-    // = -10 -> 100 = 110Nm
-    // 110*0.25 = 27.5
-    // -10 + 27.5 = 17.5Nm
-    ENG_RS3_PT_EGS53 rs3_pt;
-    ENG_RS2_PT_EGS53 rs2_pt;
+    ENG_RS1_PT_EGS53 rs1_pt;
     int trq = 0;
-    if (this->ecm_ecu.get_ENG_RS3_PT(now, expire_time_ms*1000, &rs3_pt) && this->ecm_ecu.get_ENG_RS2_PT(now, expire_time_ms*1000, &rs2_pt)) {
-        float pedal_off_engine_map = (rs3_pt.AccelPdlPosn*250.0)/100.0; // as decimal (0-1)
-        float min = (rs2_pt.EngTrqMinTTC / 4) - 500.0;
-        float max = (rs2_pt.EngTrqMaxETC / 4) - 500.0;
-        float offset = pedal_off_engine_map*(abs(min) + abs(max));
-        trq = min + offset;
+    if (this->ecm_ecu.get_ENG_RS1_PT(now, expire_time_ms*1000, &rs1_pt)) {
+        return (rs1_pt.EngTrqSel_D_TTC / 4) - 500;
     }
     return trq;
 }

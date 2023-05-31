@@ -316,7 +316,37 @@ bool Egs53Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
 }
 
 bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
-    return false;
+    BRK_STAT_EGS53 brk;
+    bool ret = false;
+    if (this->ecm_ecu.get_BRK_STAT(now, expire_time_ms, &brk)) {
+        ret = brk.Brk_Stat == BRK_STAT_Brk_Stat_EGS53::BRAKING;
+    }
+    return ret;
+}
+
+bool Egs53Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+    ENG_RS1_PT_EGS53 engrs1;
+    bool ret = false;
+    if (this->ecm_ecu.get_ENG_RS1_PT(now, expire_time_ms, &engrs1)) {
+        ret = engrs1.EngTrq_Ack_ECM;
+    }
+    return ret;
+}
+
+bool Egs53Can::esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+    return false; // TODO
+}
+
+bool Egs53Can::is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+    return false; // TODO
+}
+
+int Egs53Can::cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    return INT_MAX; // TODO
+}
+
+int Egs53Can::esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    return INT_MAX; // TODO
 }
 
 void Egs53Can::set_clutch_status(TccClutchStatus status) {

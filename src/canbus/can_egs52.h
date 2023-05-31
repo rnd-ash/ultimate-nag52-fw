@@ -64,6 +64,11 @@ class Egs52Can: public EgsBaseCan {
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
         bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
+        bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
+        bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
+        bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
+        int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
+        int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters

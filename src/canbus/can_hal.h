@@ -100,9 +100,7 @@ enum class TccClutchStatus: uint8_t {
     OpenToSlipping,
     Slipping,
     SlippingToClosed,
-    Closed,
-    ClosedToSlipping,
-    SlippingToOpen
+    Closed
 };
 
 enum class TransferCaseState: uint8_t {

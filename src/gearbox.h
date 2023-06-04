@@ -16,6 +16,7 @@
 #include "pressure_manager.h"
 #include "adaptation/shift_report.h"
 #include "models/input_torque.hpp"
+#include "adaptation/shift_adaptation.h"
 
 // TODO Auto-set these based on CAN data about engine type
 // 4000 is safe for now as it stops us over-revving diesel!
@@ -99,6 +100,7 @@ private:
     Solenoid* last_shift_solenoid = nullptr;
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
+    ShiftAdaptationSystem* shift_adapter = nullptr;
 
 };
 

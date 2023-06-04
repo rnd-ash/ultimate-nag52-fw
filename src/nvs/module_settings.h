@@ -227,17 +227,72 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
     }
 };
 
+#define PRM_SETTINGS_NVS_KEY "PRM_A0"
+
+typedef struct {
+    uint16_t max_spc_pressure;
+    uint16_t max_mpc_pressure;
+    uint16_t max_line_pressure;
+    LinearInterpSetting engine_rpm_pressure_multi;
+    float k1_pressure_multi;
+    
+} __attribute__ ((packed)) PRM_MODULE_SETTINGS;
+
+const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
+    .max_spc_pressure = 7000,
+    .max_mpc_pressure = 7000,
+    .max_line_pressure = 15000,
+    .engine_rpm_pressure_multi = {
+        .new_min = 1.0,
+        .new_max = 1.5,
+        .raw_min = 1000,
+        .raw_max = 6000,
+    },
+    .k1_pressure_multi = 2.0
+};
+
+#define ADP_SETTINGS_NVS_KEY "ADP_A0"
+
+typedef struct {
+    int16_t min_atf_temp;
+    int16_t max_atf_temp;
+    uint16_t max_engine_rpm;
+    //bool enable_d1_2;
+    //bool enable_d2_3;
+    //bool enable_d3_4;
+    //bool enable_d4_5;
+    //bool enable_d5_4;
+    //bool enable_d4_3;
+    
+} __attribute__ ((packed)) ADP_MODULE_SETTINGS;
+
+const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
+    .min_atf_temp = 60,
+    .max_atf_temp = 110,
+    .max_engine_rpm = 3000,
+    //bool enable_d1_2;
+    //bool enable_d2_3;
+    //bool enable_d3_4;
+    //bool enable_d4_5;
+    //bool enable_d5_4;
+    //bool enable_d4_3;
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
 extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
 extern NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS;
+extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
+extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 
 // Setting IDx
-#define TCC_MODULE_SETINGS_SCN_ID 0x01
-#define SOL_MODULE_SETINGS_SCN_ID 0x02
-#define SBS_MODULE_SETINGS_SCN_ID 0x03
-#define NAG_MODULE_SETINGS_SCN_ID 0x04
+#define TCC_MODULE_SETTINGS_SCN_ID 0x01
+#define SOL_MODULE_SETTINGS_SCN_ID 0x02
+#define SBS_MODULE_SETTINGS_SCN_ID 0x03
+#define NAG_MODULE_SETTINGS_SCN_ID 0x04
+#define PRM_MODULE_SETTINGS_SCN_ID 0x05
+#define ADP_MODULE_SETTINGS_SCN_ID 0x06
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

@@ -499,9 +499,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             } else if (current_stage == ShiftStage::Overlap) {
                 // To adjust on the fly in realtime, we have to modify both target and prev
                 phase_targ_mpc = linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0);
-                float step = scale_number(abs(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque)), 1, 10, 0, 580) ; // 200mBar/sec
+                float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, 580) ; // 200mBar/sec
                 if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
                     step *= 2;
+                }
+                // Ease in Ease out
+                if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
+                    step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
+                } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
+                    step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
                 }
                 spc_delta += step;
                 phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;

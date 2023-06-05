@@ -76,6 +76,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             // See if we should slip or close
             if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
                 targ = InternalTccState::Slipping;
+                if (this->current_tcc_state == InternalTccState::Slipping) {
+                    // Now see if we can fully lock
+                    if (sensors->pedal_pos != 0 && sensors->pedal_pos < 50) {
+                        targ = InternalTccState::Closed;
+                    }
+                }
             } else {
                 targ = InternalTccState::Open;
             }
@@ -98,7 +104,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
             this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
         } else { // Requesting lock
-            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0) + 150;
+            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
+            if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
+                this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
+            }
         }
     }
 

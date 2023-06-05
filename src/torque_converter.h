@@ -48,6 +48,7 @@ class TorqueConverter {
         inline void reset_rpm_samples(SensorData* sensors);
         float tcc_pressure_target = 0;
         float tcc_pressure_current = 0;
+        float tcc_pressure_preshift = 0;
         uint64_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;

@@ -33,10 +33,12 @@ inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
 void TorqueConverter::on_shift_starting(void) {
     this->preshift_tcc_state = this->current_tcc_state;
     this->target_tcc_state = InternalTccState::Open;
+    this->tcc_pressure_preshift = this->tcc_pressure_current;
 }
 
 void TorqueConverter::on_shift_ending(void) {
     this->target_tcc_state = this->preshift_tcc_state;
+    this->tcc_pressure_current = this->tcc_pressure_preshift;
 }
 
 void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {

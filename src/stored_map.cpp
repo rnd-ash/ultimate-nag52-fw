@@ -47,7 +47,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
     }
     else
     {
-        ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Map size is, but X and Y headers (%d,%d) make %d elements!", eeprom_key_name, x_size, y_size, x_size * y_size);
+        ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Map size is %d, but X and Y headers (%d,%d) make %d elements!", eeprom_key_name, data_element_count, x_size, y_size, x_size * y_size);
         this->init_state = ESP_ERR_INVALID_SIZE;
     }
 }

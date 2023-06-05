@@ -65,11 +65,11 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 
     /** Pressure Hold 2 pressure map **/
-    const int16_t hold2p_x_headers[4] = {-10, 0, 50, 100};
-    const int16_t hold2p_y_headers[6] = {1,2,3,4,5,6};
+    const int16_t hold2p_x_headers[1] = {1};
+    const int16_t hold2p_y_headers[5] = {1,2,3,4,5};
     key_name = MAP_NAME_FILL_PRESSURE_LARGE;
     default_data = NAG_FILL_PRESSURE_MAP;
-    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 4, 6, default_data);
+    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
     if (this->hold2_pressure_map->init_status() != ESP_OK) {
         delete[] this->hold2_pressure_map;
     }
@@ -221,10 +221,9 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
         };
     } else {
         Clutch to_apply = get_clutch_to_apply(change);
-        float load = (this->sensor_data->input_torque * 100.0) / gb_max_torque;
         return PrefillData {
             .fill_time = (uint16_t)hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
-            .fill_pressure = (uint16_t)hold2_pressure_map->get_value(load, (uint8_t)to_apply)
+            .fill_pressure = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_apply)
         };
     }
 }
@@ -330,6 +329,7 @@ uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
 uint16_t PressureManager::get_targ_mpc_pressure(){ return this->req_mpc_pressure; }
 uint16_t PressureManager::get_targ_spc_pressure(){ return this->req_spc_pressure; }
 uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_pressure; }
+uint16_t PressureManager::get_targ_line_pressure(){ return this->req_current_mpc; }
 uint16_t PressureManager::get_targ_spc_current(){ return this->req_current_spc; }
 uint16_t PressureManager::get_targ_mpc_current(){ return this->req_current_mpc; }
 

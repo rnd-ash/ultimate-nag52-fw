@@ -51,6 +51,13 @@ public:
      * @param targ Target TCC pressure to achieve in mBar
      */
     void set_target_tcc_pressure(uint16_t targ);
+
+    /**
+     * @brief Sets the target for working line pressure (In gears)
+    */
+   void set_target_line_pressure(uint16_t targ);
+
+    uint16_t get_targ_line_pressure(void);
     uint16_t get_targ_mpc_pressure(void);
     uint16_t get_targ_spc_pressure(void);
     uint16_t get_targ_tcc_pressure(void);

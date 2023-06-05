@@ -382,6 +382,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int t_d_rpm = 10; // per 20ms (Changed when overlap phase begins)
         float spc_delta = 0;
         int start_nm = sensor_data.static_torque;
+        int16_t prefill_torque_requested = INT16_MAX;
+        prefill_torque_requested = MIN(150, sensor_data.driver_requested_torque*0.75);
         while(process_shift) {
             // Grab ratio informations
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
@@ -418,19 +420,21 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (!flaring && shift_progress_percentage > 2 && sr.detect_shift_start_ts == 0) {
                     sr.detect_shift_start_ts = (uint16_t)(sensor_data.current_timestamp_ms - shift_start_time);
                 }
-                // Do torque request
-                if (d_trq != 0) {
-                    TorqueRequest req = TorqueRequest::LessThan;
-                    // start reduction
-                    if (shift_progress_percentage < SBS_CURRENT_SETTINGS.torque_request_downramp_percent) { // Decrease torque from driver demand
-                        curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_percentage, SBS_CURRENT_SETTINGS.torque_request_downramp_percent));
-                    } else if (shift_progress_percentage < SBS_CURRENT_SETTINGS.torque_request_hold_percent) { // Hold phase
-                        curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
-                    } else { // Nearing the end 75%+
-                        req = TorqueRequest::LessThanFast;
-                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_percentage-SBS_CURRENT_SETTINGS.torque_request_hold_percent, SBS_CURRENT_SETTINGS.torque_request_hold_percent);
+                if (current_stage < ShiftStage::Fill) {
+                    if (prefill_torque_requested != INT16_MAX) {
+                        int trq = scale_number(total_elapsed, sensor_data.static_torque, prefill_torque_requested, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThan, trq);
                     }
-                    this->set_torque_request(req, curr_torq_request);
+                } else if (current_stage < ShiftStage::Overlap) { // Prefill or torque
+                    if (prefill_torque_requested != INT16_MAX) {
+                        this->set_torque_request(TorqueRequest::LessThan, prefill_torque_requested);
+                    }
+                } else { // Overlap phase
+                    // Ramp back up
+                    if (prefill_torque_requested != INT16_MAX) {
+                        int trq = scale_number(shift_progress_percentage, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 100);
+                        this->set_torque_request(TorqueRequest::LessThanFast, MAX(prefill_torque_requested, trq));
+                    }
                 }
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
@@ -455,11 +459,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_elapsed = 0;
                 // One time phase initial code
                 if (current_stage == ShiftStage::Fill) {
-                    int t_now = MAX(sensor_data.static_torque, sensor_data.driver_requested_torque);
-                    // Multi increases with output torque. 25% of 100Nm is 25Nm whilst 10% of 580Nm is still 58Nm reduction!
-                    float multi = scale_number(t_now, &SBS_CURRENT_SETTINGS.torque_reduction_factor_input_torque);
-                    multi *= scale_number(chars.target_shift_time, &SBS_CURRENT_SETTINGS.torque_reduction_factor_shift_speed);
-                    d_trq = (t_now * multi); // Our offset from pedal torque (Max)
                     ESP_LOGI("SHIFT", "Fill start");
                     this->tcc->on_shift_starting();
                     // Open shift solenoid

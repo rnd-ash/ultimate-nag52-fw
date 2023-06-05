@@ -38,7 +38,10 @@ void TorqueConverter::on_shift_starting(void) {
 
 void TorqueConverter::on_shift_ending(void) {
     this->target_tcc_state = this->preshift_tcc_state;
+    this->current_tcc_state = this->preshift_tcc_state;
+    // Setting both will trigger revaluation
     this->tcc_pressure_current = this->tcc_pressure_preshift;
+    this->tcc_pressure_target = this->tcc_pressure_preshift;
 }
 
 void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {

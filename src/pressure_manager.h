@@ -8,15 +8,6 @@
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
 
-enum class Clutch {
-    K1 = 1,
-    K2 = 2,
-    K3 = 3,
-    B1 = 4,
-    B2 = 5,
-    B3 = 6 // Reverse ONLY
-};
-
 typedef struct {
     uint16_t fill_time;
     uint16_t fill_pressure;
@@ -124,8 +115,6 @@ public:
     //void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     //void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     PressureStageTiming get_max_pressure_timing();
-    Clutch get_clutch_to_release(ProfileGearChange change);
-    Clutch get_clutch_to_apply(ProfileGearChange change);
     StoredMap* get_pcs_map(void);
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_working_map(void);

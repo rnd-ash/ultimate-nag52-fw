@@ -2,6 +2,7 @@
 #include <tcu_maths.h>
 #include "solenoids/constant_current.h"
 #include "maps.h"
+#include "common_structs_ops.h"
 
 // inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 //     if (percent <= 0) { return map[0]; }
@@ -84,45 +85,6 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         delete[] this->mpc_working_pressure;
     }
 }
-
-Clutch PressureManager::get_clutch_to_apply(ProfileGearChange change) {
-    switch(change) {
-        case ProfileGearChange::ONE_TWO:
-        case ProfileGearChange::FIVE_FOUR:
-            return Clutch::K1;
-        case ProfileGearChange::TWO_THREE:
-            return Clutch::K2;
-        case ProfileGearChange::THREE_FOUR:
-        case ProfileGearChange::THREE_TWO:
-            return Clutch::K3;
-        case ProfileGearChange::FOUR_THREE:
-            return Clutch::B2;
-        case ProfileGearChange::FOUR_FIVE:
-        case ProfileGearChange::TWO_ONE:
-        default:
-            return Clutch::B1;
-    }
-}
-
-Clutch PressureManager::get_clutch_to_release(ProfileGearChange change) {
-    switch(change) {
-        case ProfileGearChange::ONE_TWO:
-        case ProfileGearChange::FIVE_FOUR:
-            return Clutch::B1;
-        case ProfileGearChange::TWO_THREE:
-        case ProfileGearChange::FOUR_THREE:
-            return Clutch::K3;
-        case ProfileGearChange::THREE_FOUR:
-            return Clutch::B2;
-        case ProfileGearChange::THREE_TWO:
-            return Clutch::K2;
-        case ProfileGearChange::FOUR_FIVE:
-        case ProfileGearChange::TWO_ONE:
-        default:
-            return Clutch::K1;
-    }
-}
-
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     if (this->mpc_working_pressure == nullptr) {

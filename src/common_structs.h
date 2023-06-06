@@ -40,6 +40,15 @@ enum class ShiftStage {
     MaxPressure = 5
 };
 
+enum class Clutch {
+    K1 = 1,
+    K2 = 2,
+    K3 = 3,
+    B1 = 4,
+    B2 = 5,
+    B3 = 6 // Reverse ONLY
+};
+
 /**
  * @brief Gearbox sensor data
  * This structure gets passed between a lot of the gearbox

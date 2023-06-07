@@ -235,14 +235,9 @@ const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
 };
 
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
-   /* -10%    0%   50%  100% <- Torque load on input shaft */
-      1000,  800, 1000, 1200, // K1
-      1200,  800, 1200, 1300, // K2
-      1200,  900, 1200, 1300, // K3
-      1100,  800, 1100, 1300, // B1
-      1000,  800, 1000, 1200, // B2
-       800,  800,  800,  800, // B3
-
+    /* Clutch                    */
+   /* K1    K2    K3    B1    B2 */
+    1200, 1400, 1300, 1200, 1400
 };
 
 const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
@@ -352,4 +347,18 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* 50% Redline     */  100,  100,  100, 100,  100,  100,
     /* 75% Redline     */  100,  100,  100, 100,  100,  100,
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
+};
+
+const int16_t ADAPT_PREFILL_PRESSURE_MAP[] = {
+//  K1 K2 K3 B1 B2    
+    0, 0, 0, 0, 0, // 0%
+    0, 0, 0, 0, 0, // 10%
+    0, 0, 0, 0, 0  // 25% 
+};
+
+const int16_t ADAPT_PREFILL_TIMING_MAP[] = {
+//  K1 K2 K3 B1 B2   
+    0, 0, 0, 0, 0, // 0%
+    0, 0, 0, 0, 0, // 10%
+    0, 0, 0, 0, 0  // 25%
 };

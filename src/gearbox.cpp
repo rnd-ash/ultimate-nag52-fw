@@ -1,4 +1,5 @@
 #include "gearbox.h"
+#include "common_structs_ops.h"
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
 #include <tcu_maths.h>
@@ -126,6 +127,7 @@ Gearbox::Gearbox()
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_reporter = new ShiftReporter();
     this->itm = new InputTorqueModel();
+    this->shift_adapter = new ShiftAdaptationSystem(&this->gearboxConfig);
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
@@ -332,240 +334,92 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         uint64_t shift_start_time = sensor_data.current_timestamp_ms;
         uint8_t overlap_report_size = 0;
         ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
-        ShiftData sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
+        ShiftData sd = pressure_mgr->get_basic_shift_data(&this->gearboxConfig, req_lookup, chars);
         if (this->last_shift_solenoid == sd.shift_solenoid) { // Same shift solenoid
-            while (sensor_data.current_timestamp_ms - sensor_data.last_shift_time < 1000) {
+            while (sensor_data.current_timestamp_ms - sensor_data.last_shift_time < 500) {
                 vTaskDelay(10);
             }
             // Recalculate
-            sd = pressure_mgr->get_shift_data(&this->gearboxConfig, req_lookup, chars, this->mpc_working);
-            sd.bleed_data.spc_pressure = sd.bleed_data.spc_pressure/2; // Even lower pressure in bleed phase
+            sd.bleed_pressure /= 2; // Even lower pressure in bleed phase
         }
         this->last_shift_solenoid = sd.shift_solenoid;
-
-        ShiftPhase* current_phase_data = &sd.bleed_data;
-        uint8_t current_phase = SHIFT_PHASE_BLEED;
-        Clutch apply_clutch = pressure_manager->get_clutch_to_apply(req_lookup);
-        Clutch release_clutch = pressure_manager->get_clutch_to_release(req_lookup);
-        // Needed for Bleed phase
-        uint32_t phase_elapsed = 0u;
+        ShiftStage current_stage = ShiftStage::Bleed;
         uint32_t sol_open_time = 0u;
-        // Bleed phase is phase 1, set the times here
-        uint32_t phase_hold_time = sd.bleed_data.hold_time;
-        uint32_t phase_ramp_time = sd.bleed_data.ramp_time;
-        float max_spc = 0;
-        float prev_phase_mpc;
-        float curr_phase_mpc;
-        float current_mpc;
-        float prev_phase_spc;
-        float curr_phase_spc;
-        float current_spc;
-        float prev_phase_delta_mpc;
-        float curr_phase_delta_mpc;
-        float current_delta_mpc;
-        float prev_phase_delta_spc;
-        float curr_phase_delta_spc;
-        float current_delta_spc;
-        prev_phase_mpc = curr_phase_mpc = current_mpc = this->mpc_working;
-        prev_phase_spc = curr_phase_spc = current_spc = 50.0F;
-        prev_phase_delta_mpc = curr_phase_delta_mpc = current_delta_mpc = 0.0F;
-        prev_phase_delta_spc = curr_phase_delta_spc = current_delta_spc = 0.0F;
-
         bool process_shift = true;
-        float mpc_hold_adder = 0.0F;
         sr.start_reading = this->collect_report_segment(shift_start_time);
         float curr_torq_request = 0;
         float d_trq = 0;
         float clamped_trq = 0;
+
+        // For all the stages, we only need these numbers for interpolation
+        // calculate prefill data now, as we need this to set MPC offset
+        PrefillData prefill_data = pressure_mgr->make_fill_data(req_lookup);
+
+        AdaptShiftRequest adaptation_req;
+        bool adapting_shift = false;
+
+        // When a phase starts, its X value (Time) will always be 0
+        float phase_targ_spc = 0;
+        float phase_targ_mpc = 0;
+
+        float phase_x_ramp_time = 0;
+        float phase_total_time = 50;
+
+        float prev_spc = 50;
+        float prev_mpc = 0;
+
+        // Current Y values
+        float current_mpc = 0;
+        float current_spc = 0;
+
+        uint32_t total_elapsed = 0;
+        uint32_t phase_elapsed = 0;
+
+        int shift_progress_percentage = 0;
+
+        int trq_now = sensor_data.static_torque;
+        // Test - set trq req to trq/2 now preshift (prevent engine overrunning with TCC opening)
+        int t_d_rpm = 10; // per 20ms (Changed when overlap phase begins)
+        float spc_delta = 0;
+        int start_nm = sensor_data.static_torque;
+        int16_t prefill_torque_requested = INT16_MAX;
+        uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup, &prefill_torque_requested);
+        if (prefill_torque_requested != INT16_MAX) {
+            // Use prefill test torque so we modify the same cell in the adapt map
+            prefill_data.fill_pressure += this->shift_adapter->get_prefill_pressure_offset(prefill_torque_requested, get_clutch_to_apply(req_lookup));
+        } else {
+            prefill_data.fill_pressure += this->shift_adapter->get_prefill_pressure_offset(sensor_data.input_torque, get_clutch_to_apply(req_lookup));// Use torque now
+        }
+        int prefill_pre_adapt = prefill_data.fill_pressure;
+        if (prefill_adapt_flags != 0) {
+            ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
+        } else {
+            ESP_LOGI("SHIFT", "Prefill adapting is allowed. Torque limit is %d Nm", prefill_torque_requested);
+        }
+        // Limit torque if adapter doesn't ask
+        if (prefill_torque_requested == INT16_MAX) {
+            prefill_torque_requested = MIN(250.0, sensor_data.static_torque*0.75);
+        }
         while(process_shift) {
+            // Shifter moved mid shift!
+            if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
+                process_shift = false;
+                result = false;
+                break;
+            }
+
+            // Grab ratio informations
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
-            // int rpm_to_target_gear = abs(sensor_data.input_rpm - rpm_current_gear);
-            int current_trq = sensor_data.input_torque;
-            if (sensor_data.static_torque > 0) {
-                if (is_upshift && SBS_CURRENT_SETTINGS.upshift_use_driver_torque_as_input) {
-                    current_trq = sensor_data.driver_requested_torque;
-                } else if (!is_upshift && SBS_CURRENT_SETTINGS.downshift_use_driver_torque_as_input) {
-                    current_trq = sensor_data.driver_requested_torque;
-                }
-            }
 
-            if (phase_elapsed > phase_hold_time+phase_ramp_time && current_phase < SHIFT_PHASE_OVERLAP) {
-                phase_elapsed = 0;
-                current_phase++;
-                // Set pressures from the previous phase
-                prev_phase_mpc = current_mpc;
-                prev_phase_spc = current_spc;
-                prev_phase_delta_mpc = current_delta_mpc;
-                prev_phase_delta_spc = current_delta_spc;
-
-                // Set data for the next phase
-                if (SHIFT_PHASE_BLEED == current_phase) {
-                    current_phase_data = &sd.bleed_data;
-                } else if (SHIFT_PHASE_FILL == current_phase) {
-                    sr.bleed_reading = this->collect_report_segment(shift_start_time); // End of bleed
-                    current_phase_data = &sd.fill_data;
-                    // Open the shift solenoid on starting this phase!
-                    sd.shift_solenoid->write_pwm_12_bit(4096);
-                    sol_open_time = sensor_data.current_timestamp_ms;
-                } else if (SHIFT_PHASE_TORQUE == current_phase) {
-                    sr.prefill_reading = this->collect_report_segment(shift_start_time); // End of bleed
-                    pressure_mgr->make_torque_and_overlap_data(&sd.torque_data, &sd.overlap_data, &sd.fill_data, chars, req_lookup, this->mpc_working);
-                    current_phase = SHIFT_PHASE_OVERLAP; // Bypass
-                    current_phase_data = &sd.overlap_data;
-                } else if (SHIFT_PHASE_OVERLAP == current_phase) {
-                    current_phase_data = &sd.overlap_data;
-                    // Check if we are coasting or not
-                }
-                // Time targets are always static
-                phase_hold_time = current_phase_data->hold_time;
-                phase_ramp_time = current_phase_data->ramp_time;
-                // Set pressure values for our new phase
-                if (current_phase_data->mpc_offset_mode) {
-                    curr_phase_mpc = 0;
-                    curr_phase_delta_mpc = current_phase_data->mpc_pressure;
-                } else {
-                    curr_phase_mpc = current_phase_data->mpc_pressure;
-                    curr_phase_delta_mpc = 0;
-                }
-                if (current_phase_data->spc_offset_mode) {
-                    curr_phase_spc = 0;
-                    curr_phase_delta_spc = current_phase_data->spc_pressure;
-                } else {
-                    curr_phase_spc = current_phase_data->spc_pressure;
-                    curr_phase_delta_spc = 0;
-                }
-            }
-
-            // TODO Transition this based on gear ratio!
-            uint16_t now_working_mpc = pressure_manager->find_working_mpc_pressure(this->actual_gear);
-            if (current_phase_data->mpc_offset_mode) { // Offset mode! So MPC for this phase should be current MPC working
-                curr_phase_mpc = now_working_mpc;
-            }
-            if (SHIFT_PHASE_TORQUE == current_phase) {
-
-            } else if (SHIFT_PHASE_OVERLAP == current_phase) {
-                int min_spc;
-                float spc_trq_multi;
-                ShiftCharacteristics ss_now = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
-                // 0% - 100% (Or more)
-                float torque_decimal = (float)(abs(current_trq)*100.0) / (float)(gearboxConfig.max_torque);
-                switch (req_lookup) {
-                    case ProfileGearChange::ONE_TWO: // K1
-                        min_spc = 50;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 20.0, 4.00, 100, 1000);
-                        break;
-                    case ProfileGearChange::TWO_THREE: // K2
-                        min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 30.0, 8, 100, 1000);
-                        break;
-                    case ProfileGearChange::THREE_FOUR: // K3
-                        min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 80, 40, 100, 1000);
-                        break;
-                    case ProfileGearChange::FOUR_FIVE: // B1
-                        min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 18.0, 8, 100, 1000);
-                        break;
-                    case ProfileGearChange::FIVE_FOUR: // K1
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 16, 10, 100, 1000);
-                        min_spc = 100;
-                        break;
-                    case ProfileGearChange::FOUR_THREE: // B2
-                        min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 20.0, 10, 100, 1000);
-                        break;
-                    case ProfileGearChange::THREE_TWO: // K3
-                        min_spc = 100;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 80, 40, 100, 1000);
-                        break;
-                    case ProfileGearChange::TWO_ONE: // B1
-                    default:
-                        min_spc = 50;
-                        spc_trq_multi = scale_number(ss_now.target_shift_time, 11.5, 4.35, 100, 1000);
-                        break;
-                }
-                if (sensor_data.static_torque < 0) {
-                    spc_trq_multi *= 2; // For coast shifting
-                }
-                curr_phase_mpc = MAX(curr_phase_spc, now_working_mpc);
-                curr_phase_delta_spc = MAX(max_spc, MAX(min_spc, torque_decimal*spc_trq_multi));
-                if (phase_elapsed > phase_hold_time+phase_ramp_time && sd.targ_g != this->est_gear_idx) {
-                    // Not shifting, try to increase SPC a bit more!
-                    max_spc += scale_number(ss_now.target_shift_time, 50, 5, 100, 1000);
-                }
-                if (phase_elapsed % 250 == 0 && overlap_report_size < MAX_OVERLAP_REPORTS) {
-                    sr.overlap_readings[overlap_report_size] = this->collect_report_segment(shift_start_time);
-                    overlap_report_size += 1;
-                }
-            }
-
-            // Interpolation
-            // Values are clipped to end value after ramp time
-            // For both MPC and SPC we want the following:
-            // 1. Slowly interpolate the delta pressure from the old value to new value
-            // 2. Slowly interpolate the realtime pressure from the old value to new value
-            // 3. Combine the 2
-            current_mpc = linear_interp(prev_phase_mpc, curr_phase_mpc, phase_elapsed, phase_ramp_time);
-            if (current_phase_data->spc_offset_mode) {
-                curr_phase_spc = curr_phase_mpc;
-            }
-            current_spc = linear_interp(prev_phase_spc, curr_phase_spc, phase_elapsed, phase_ramp_time);
-            current_delta_mpc = linear_interp(prev_phase_delta_mpc, curr_phase_delta_mpc, phase_elapsed, phase_ramp_time);
-            current_delta_spc = linear_interp(prev_phase_delta_spc, curr_phase_delta_spc, phase_elapsed, phase_ramp_time);
-            // Set pressures and solenoid actuation
-            float spc = current_spc + current_delta_spc;
-            if (current_phase > SHIFT_PHASE_FILL) {
-                spc =  MAX(sd.fill_data.spc_pressure, current_spc + current_delta_spc);
-            }
-            if (current_phase < SHIFT_PHASE_OVERLAP) {
-                // Prevent MPC from being too low in bleed and fill phase
-                mpc_hold_adder = pressure_manager->get_mpc_hold_adder(apply_clutch);
-                this->mpc_working = MAX(MAX(current_mpc + current_delta_mpc, spc + SBS_CURRENT_SETTINGS.min_spc_delta_mpc), now_working_mpc + mpc_hold_adder);
-            } else if (current_phase == SHIFT_PHASE_OVERLAP) {
-                // Overlap
-                float x = linear_interp(mpc_hold_adder, 0, phase_elapsed, phase_ramp_time/2);
-                this->mpc_working = ((current_mpc + current_delta_mpc) + x);
-            } else {
-                this->mpc_working = current_mpc + current_delta_mpc;
-            }
-            pressure_mgr->set_target_spc_pressure(spc);
-
-            if (SBS_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time < sensor_data.current_timestamp_ms - sol_open_time) {
-                sd.shift_solenoid->write_pwm_12_bit(1200); // 33% to prevent burnout
-            }
+            int wp_current_gear = pressure_manager->find_working_mpc_pressure(this->actual_gear);
+            int wp_target_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
 
             bool coasting_shift = 0 > sensor_data.static_torque;
-            if (SHIFT_PHASE_OVERLAP == current_phase && phase_elapsed >= phase_hold_time+phase_ramp_time) { // Check for completion! (Separate if block for simplicity)
-                // MPC should be slightly higher than normal
-                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && this->est_gear_idx == sd.targ_g) { // Confirmed shift!
-                    result = true;
-                    process_shift = false;
-                    sr.detect_shift_end_ts = (uint16_t)(sensor_data.current_timestamp_ms - shift_start_time);
-                } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
-                    result = true;
-                    process_shift = false;
-                } else if (!coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_pulling, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
-                    result = false;
-                    process_shift = false;
-                } else if (coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_coasting, (phase_hold_time+phase_ramp_time)*2) < phase_elapsed) { // TIMEOUT
-                    result = false;
-                    process_shift = false;
-                }
-            }
 
+            // Shift reporting
             if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) {
-                int shift_progress_percentage =  progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear);
-                // Do ratio comparison to see if we are flaring
-                // Both have 2 cases.
-                //
-                // Case 1. Engine is being pulled. If the gearbox flares here, the engine RPM
-                //         will drop towards idle RPM
-                // Case 2. Engine is pushing. If the gearbox flares here, the engine RPM
-                //         will increase quickly
-                //
-                // To protect the gearbox in either case, it is best to ask the engine to work with the box rather than against it
-                // by doing torque requests, rather than just increase SPC pressure, as that would cause a harsh shift to the user
+                shift_progress_percentage =  MIN(MAX(progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear),0), 100);
                 if (is_upshift) { // Upshift
                     if (sensor_data.input_rpm > rpm_current_gear + SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // Flaring, rpm increase
                         flaring = true;
@@ -589,60 +443,174 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (!flaring && shift_progress_percentage > 2 && sr.detect_shift_start_ts == 0) {
                     sr.detect_shift_start_ts = (uint16_t)(sensor_data.current_timestamp_ms - shift_start_time);
                 }
-                // Now check if we are in gear! If we are, we can exit!
-                if (this->est_gear_idx == sd.targ_g) {
+                if (current_stage < ShiftStage::Fill) {
+                    if (prefill_torque_requested != INT16_MAX) {
+                        int trq = scale_number(total_elapsed, sensor_data.static_torque, prefill_torque_requested, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThan, trq);
+                    }
+                } else if (current_stage < ShiftStage::Overlap) { // Prefill or torque
+                    if (prefill_torque_requested != INT16_MAX) {
+                        this->set_torque_request(TorqueRequest::LessThan, prefill_torque_requested);
+                    }
+                } else { // Overlap phase
+                    // Ramp back up
+                    if (prefill_torque_requested != INT16_MAX) {
+                        int trq = scale_number(shift_progress_percentage, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 100);
+                        this->set_torque_request(TorqueRequest::LessThanFast, MAX(prefill_torque_requested, trq));
+                    }
+                }
+            } else {
+                // If input speed is too low, use the overlap time as a way of measuring shift progress
+                int t = shift_progress_percentage;
+                if (ShiftStage::Overlap == current_stage) {
+                    t = linear_interp(0.0, 100.0, phase_elapsed, phase_total_time);
+                }
+                shift_progress_percentage = MAX(t, shift_progress_percentage);
+                this->flaring = false;
+                adapting_shift = false; // Disable adaptation if RPM is too low
+                this->set_torque_request(TorqueRequest::None, 0); // And also torque requests
+            }
+
+
+            // Check next stage (Only when in bleeding, filling)
+            // Overlap phase self cancels as it has to monitor shift progress
+            if (phase_elapsed > phase_total_time && current_stage < ShiftStage::Overlap) {
+                current_stage = next_shift_stage(current_stage);
+                // New stage
+                prev_spc = current_spc;
+                prev_mpc = current_mpc;
+                phase_elapsed = 0;
+                // One time phase initial code
+                if (current_stage == ShiftStage::Fill) {
+                    ESP_LOGI("SHIFT", "Fill start");
+                    this->tcc->on_shift_starting();
+                    // Open shift solenoid
+                    sd.shift_solenoid->write_pwm_12_bit(4096);
+                    sol_open_time = total_elapsed;
+                    phase_total_time = prefill_data.fill_time;
+                    phase_x_ramp_time = 0;
+                } else if (current_stage == ShiftStage::Torque) {
+                    ESP_LOGI("SHIFT", "Torque start");
+                    // MPC and SPC are equal here (Reduce MPC)
+                    phase_x_ramp_time = 100;
+                    phase_total_time = 200;
+                } else if (current_stage == ShiftStage::Overlap) {
+                    ESP_LOGI("SHIFT", "Overlap start");
+                    if (prefill_adapt_flags == 0) {
+                        this->shift_adapter->on_overlap_start(sensor_data.current_timestamp_ms, chars.target_shift_time, shift_progress_percentage);
+                    }
+                    // SPC increases
+                    // Calculate target D_RPM
+                    t_d_rpm = (rpm_target_gear-rpm_current_gear)/(chars.target_shift_time/100.0);
+                    ESP_LOGI("SHIFT", "RPM should change by %d/100ms for target shift speed", t_d_rpm);
+                    phase_total_time = (chars.target_shift_time*2)+SBS_CURRENT_SETTINGS.shift_timeout_coasting; //(No ramping) (Worse case time)
+                    phase_x_ramp_time = 0;
+                    spc_delta = 0;
+                }
+            }
+            
+            if (current_stage == ShiftStage::Bleed) {
+                phase_targ_spc = 50;
+                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
+            } else if (current_stage == ShiftStage::Fill) {
+                bool was_adapting = prefill_adapt_flags == 0;
+                if (prefill_adapt_flags == 0) {
+                    prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_shift(&this->sensor_data, egs_can_hal);
+                }
+                if (was_adapting && prefill_adapt_flags != 0) {
+                    ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
+                }
+                phase_targ_spc = prefill_data.fill_pressure;
+                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
+            } else if (current_stage == ShiftStage::Torque) { // Just for conformation
+                // Make MPC and SPC equal
+                phase_targ_mpc = MAX(wp_current_gear, prefill_data.fill_pressure);
+                phase_targ_spc = prefill_data.fill_pressure;
+            } else if (current_stage == ShiftStage::Overlap) {
+                phase_targ_mpc = MAX(linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0), prefill_pre_adapt);
+                // To adjust on the fly in realtime, we have to modify both target and prev
+                if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
+                    this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
+                }
+                // Normal overlap
+                float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, gearboxConfig.max_torque) ; // 200mBar/sec
+                if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
+                    step *= 2;
+                }
+                // Ease in Ease out
+                if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
+                    step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
+                } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
+                    step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
+                }
+                spc_delta += step;
+                phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
+            }
+
+            // Do shift solenoid control (Burnout prevention)
+            if (sol_open_time != 0 && total_elapsed-sol_open_time > SBS_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
+                sol_open_time = 0; // To prevent this check again (Skip instructions)
+                sd.shift_solenoid->write_pwm_12_bit(1024);
+            }
+
+            // Do lerp for pressure targets
+            if (phase_x_ramp_time != 0 || phase_elapsed <= phase_x_ramp_time) { // Lerp is expensive, so only do it if we have to
+                current_mpc = linear_interp(prev_mpc, phase_targ_mpc, phase_elapsed, phase_x_ramp_time);
+                current_spc = linear_interp(prev_spc, phase_targ_spc, phase_elapsed, phase_x_ramp_time);
+            } else {
+                current_mpc = phase_targ_mpc;
+                current_spc = phase_targ_spc;
+            }
+            pressure_mgr->set_target_mpc_pressure(current_mpc);
+
+            if (req_lookup == ProfileGearChange::TWO_ONE) {
+                pressure_mgr->set_target_spc_pressure(current_spc*0.75); // K1 factor of 0.75
+            } else {
+                pressure_mgr->set_target_spc_pressure(current_spc);
+            }
+
+            // Timeout checking (Only in overlap)
+            if (ShiftStage::Overlap == current_stage) {
+                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && this->est_gear_idx == sd.targ_g) { // Confirmed shift!
                     result = true;
                     process_shift = false;
                     sr.detect_shift_end_ts = (uint16_t)(sensor_data.current_timestamp_ms - shift_start_time);
-                    break;
+                } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
+                    result = true;
+                    process_shift = false;
+                } else if (!coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_pulling, phase_total_time*2) < phase_elapsed) { // TIMEOUT
+                    result = false;
+                    process_shift = false;
+                } else if (coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_coasting, phase_total_time*2) < phase_elapsed) { // TIMEOUT
+                    result = false;
+                    process_shift = false;
                 }
-
-                // Torque request behaviour (Experiment for EGS52 and ME2.7/8)
-                if (current_phase >= SHIFT_PHASE_BLEED && ((SBS_CURRENT_SETTINGS.torque_request_upshift && is_upshift) || (SBS_CURRENT_SETTINGS.torque_request_downshift && !is_upshift))) {
-                    if (d_trq == 0) {
-                        int t_now = MAX(sensor_data.static_torque, sensor_data.driver_requested_torque);
-                        // Multi increases with output torque. 25% of 100Nm is 25Nm whilst 10% of 580Nm is still 58Nm reduction!
-                        float multi = scale_number(t_now, &SBS_CURRENT_SETTINGS.torque_reduction_factor_input_torque);
-                        multi *= scale_number(chars.target_shift_time, &SBS_CURRENT_SETTINGS.torque_reduction_factor_shift_speed);
-                        d_trq = (t_now * multi); // Our offset from pedal torque (Max)
-                    }
-                    int shift_progress_clamped = MIN(MAX(shift_progress_percentage, 0), 100);
-                    TorqueRequest req = TorqueRequest::LessThan;
-                    // start reduction
-                    if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_downramp_percent) { // Decrease torque from driver demand
-                        curr_torq_request = MAX(0, linear_interp(MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), sensor_data.driver_requested_torque - d_trq , shift_progress_clamped, SBS_CURRENT_SETTINGS.torque_request_downramp_percent));
-                    } else if (shift_progress_clamped < SBS_CURRENT_SETTINGS.torque_request_hold_percent) { // Hold phase
-                        curr_torq_request = MAX(0, sensor_data.driver_requested_torque - d_trq);
-                    } else { // Nearing the end 75%+
-                        req = TorqueRequest::LessThanFast;
-                        curr_torq_request = linear_interp(MAX(0, sensor_data.driver_requested_torque-d_trq), sensor_data.driver_requested_torque, shift_progress_clamped-SBS_CURRENT_SETTINGS.torque_request_hold_percent, SBS_CURRENT_SETTINGS.torque_request_hold_percent);
-                    }
-                    this->set_torque_request(req, curr_torq_request);
-                }
-            } else {
-                this->flaring = false;
-                // No torque request if stationary
-                this->set_torque_request(TorqueRequest::None, 0);
             }
+
             vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
             phase_elapsed += SHIFT_DELAY_MS;
+            total_elapsed += SHIFT_DELAY_MS;
         }
-
+        this->shift_adapter->debug_print_offset_array();
         // Only do max pressure phase if we shifted
+        this->tcc->on_shift_ending();
         if (result) {
-            ESP_LOGI("SHIFT","Starting max lock phase");
-            float start_spc = current_spc + current_delta_spc;
-            int old_spc = current_spc + current_delta_spc;
+            ESP_LOGI("SHIFT","Max-lock start");
+            // Timings
+            PressureStageTiming max_p_timings = pressure_manager->get_max_pressure_timing();
+            float start_spc = current_spc;
+            int old_spc = current_spc;
             uint16_t e = 0;
-            while (e < sd.max_pressure_data.hold_time + sd.max_pressure_data.ramp_time) {
+            //this->tcc.
+            while (e < max_p_timings.hold_time + max_p_timings.ramp_time) {
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
-                float c = linear_interp(start_spc, MAX(this->mpc_working*2.5, old_spc*2), e, sd.max_pressure_data.ramp_time);
+                float c = linear_interp(start_spc, MAX(this->mpc_working*2.5, old_spc*2), e, max_p_timings.ramp_time);
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 // Finish torque request
                 if (curr_torq_request != 0 && curr_torq_request < sensor_data.driver_requested_torque) {
                     // End target is always pedal torque
-                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, sd.max_pressure_data.ramp_time+sd.max_pressure_data.hold_time));
+                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, max_p_timings.ramp_time+max_p_timings.hold_time));
                 } else {
                     this->set_torque_request(TorqueRequest::None, 0);
                 }
@@ -665,8 +633,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             ESP_LOGI("SHIFT", "SHIFT OK!");
             this->actual_gear = gear_from_idx(sd.targ_g);
         } else {
-            ESP_LOGE("SHIFT", "Shift failed! End ratio is %.2f", (float)sensor_data.gear_ratio/100.0);
-            this->target_gear = this->actual_gear;
+            if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
+                ESP_LOGE("SHIFT", "Shift failed due to selector moving");
+                this->target_gear = GearboxGear::Neutral;
+                this->actual_gear = GearboxGear::Neutral;
+            } else {
+                ESP_LOGE("SHIFT", "Shift failed! End ratio is %.2f", (float)sensor_data.gear_ratio/100.0);
+                this->target_gear = this->actual_gear;
+            }
         }
     }
     return result;
@@ -1009,9 +983,9 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = GearboxGear::Park;
                             last_position = this->shifter_pos;
-                            if (this->pressure_mgr != nullptr)
+                            if (this->shift_adapter != nullptr)
                             {
-                                this->pressure_mgr->save();
+                                this->shift_adapter->save();
                             }
                             this->shift_reporter->save();
                             this->tcc->save();

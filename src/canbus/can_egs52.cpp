@@ -329,6 +329,51 @@ TransferCaseState Egs52Can::get_transfer_case_state(uint64_t now, uint64_t expir
     }
 }
 
+bool Egs52Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+    MS_212_EGS52 ms212;
+    if (this->ecu_ms.get_MS_212(now, expire_time_ms, &ms212)) {
+        return ms212.M_EGS_Q;
+    } else {
+        return false;
+    }
+}
+
+bool Egs52Can::esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = false;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = bs300.MMIN_ESP || bs300.MMAX_ESP;
+    }
+    return r;
+}
+
+bool Egs52Can::is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = false;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = bs300.DMMAX_ART || bs300.DMMIN_ART;
+    }
+    return r;
+}
+
+int Egs52Can::cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = INT_MAX;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = (bs300.DM_ART/4) - 500.0;
+    }
+    return r;
+}
+
+int Egs52Can::esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = INT_MAX;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = (bs300.M_ESP/4) - 500.0;
+    }
+    return r;
+}
+
 void Egs52Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
         case TccClutchStatus::Open:

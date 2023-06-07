@@ -30,6 +30,20 @@ inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
         //this->rpm_samples = 1;
 }
 
+void TorqueConverter::on_shift_starting(void) {
+    this->preshift_tcc_state = this->current_tcc_state;
+    this->target_tcc_state = InternalTccState::Open;
+    this->tcc_pressure_preshift = this->tcc_pressure_current;
+}
+
+void TorqueConverter::on_shift_ending(void) {
+    this->target_tcc_state = this->preshift_tcc_state;
+    this->current_tcc_state = this->preshift_tcc_state;
+    // Setting both will trigger revaluation
+    this->tcc_pressure_current = this->tcc_pressure_preshift;
+    this->tcc_pressure_target = this->tcc_pressure_preshift;
+}
+
 void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
     // Too much slip
     int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
@@ -43,6 +57,78 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
     GearboxGear cmp_gear = curr_gear;
+
+    // Decider 
+    InternalTccState targ = InternalTccState::Open;
+
+    // Now evaluate target state
+    if (!is_shifting) { // Target is evaluated by shifter
+        // See if we should be enabled in gear
+        if (
+            (cmp_gear == GearboxGear::First && !TCC_CURRENT_SETTINGS.enable_d1) ||
+            (cmp_gear == GearboxGear::Second && !TCC_CURRENT_SETTINGS.enable_d2) ||
+            (cmp_gear == GearboxGear::Third && !TCC_CURRENT_SETTINGS.enable_d3) ||
+            (cmp_gear == GearboxGear::Fourth && !TCC_CURRENT_SETTINGS.enable_d4) ||
+            (cmp_gear == GearboxGear::Fifth && !TCC_CURRENT_SETTINGS.enable_d5)
+        ) {
+            targ = InternalTccState::Open;
+        } else {
+            // See if we should slip or close
+            if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
+                targ = InternalTccState::Slipping;
+                if (this->current_tcc_state >= InternalTccState::Slipping) {
+                    // Now see if we can fully lock
+                    if (sensors->pedal_pos != 0 && sensors->pedal_pos < 128) {
+                        targ = InternalTccState::Closed;
+                    }
+                }
+            } else {
+                targ = InternalTccState::Open;
+            }
+        }
+    }
+    this->target_tcc_state = targ;
+    if (sensors->input_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm) {
+        // RPM too low for slipping, see if we can prefill
+        if (sensors->input_rpm != 0 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
+            this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
+        } else {
+            this->tcc_pressure_target = 0;
+        }
+        this->current_tcc_state = InternalTccState::Open;
+        this->target_tcc_state = InternalTccState::Open;
+    } else {
+        // Safe to lock or slip
+        if (this->target_tcc_state == InternalTccState::Open) {
+            this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
+        } else if (this->target_tcc_state == InternalTccState::Slipping) {
+            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
+        } else { // Requesting lock
+            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
+            if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
+                this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
+            }
+        }
+    }
+
+    if (this->tcc_pressure_target == this->tcc_pressure_current) {
+        this->current_tcc_state = this->target_tcc_state;        
+    }
+
+    // State reduction or same state, Immedate pressure change
+    if (this->target_tcc_state < current_tcc_state || this->target_tcc_state == current_tcc_state) {
+        this->tcc_pressure_current = this->tcc_pressure_target;
+    } else { // State increase, ramp up pressure
+        // Ramp up
+        this->tcc_pressure_current = MIN(this->tcc_pressure_current+50, this->tcc_pressure_target);
+    }
+
+    pm->set_target_tcc_pressure(this->tcc_pressure_current);
+
+
+
+
+    /*
     if (curr_gear != targ_gear && is_shifting) {
         // Check for when we should not be powering TCC
         cmp_gear = targ_gear;
@@ -63,7 +149,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->initial_ramp_done = false;
         this->strike_count = 0;
         this->adapt_lock_count = 0;
-        this->state = TccClutchStatus::Open;
+        this->state = InternalTccState::Open;
     } else {
         uint32_t input_rpm = sensors->input_rpm;
         int trq = MAX(sensors->static_torque, sensors->driver_requested_torque);
@@ -82,7 +168,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->initial_ramp_done = false;
                 this->strike_count = 0;
                 this->adapt_lock_count = 0;
-                this->state = TccClutchStatus::Open;
+                this->state = InternalTccState::Open;
             } else {
                 // Input is still lower than locking RPM
             }
@@ -115,18 +201,14 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             } else {
                 // We are just driving, TCC is free to lockup
                 if (!initial_ramp_done) {
-                    if (is_shifting) {
-                        this->base_tcc_pressure = MAX(this->base_tcc_pressure, this->curr_tcc_target-100);
+                    // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
+                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), &TCC_CURRENT_SETTINGS.pressure_increase_ramp_settings);
+                    int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
+                    if (delta > ramp) {
+                        this->base_tcc_pressure += delta;
                     } else {
-                        // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
-                        float ramp = scale_number(abs(sensors->tcc_slip_rpm), &TCC_CURRENT_SETTINGS.pressure_increase_ramp_settings);
-                        int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
-                        if (delta > ramp) {
-                            this->base_tcc_pressure += delta;
-                        } else {
-                            this->base_tcc_pressure = this->curr_tcc_target;
-                            initial_ramp_done = true;
-                        }
+                        this->base_tcc_pressure = this->curr_tcc_target;
+                        initial_ramp_done = true;
                     }
                     this->curr_tcc_pressure = this->base_tcc_pressure;
                     last_adj_time = sensors->current_timestamp_ms;
@@ -198,8 +280,37 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->curr_tcc_pressure = TCC_CURRENT_SETTINGS.max_allowed_pressure_longterm;
     }
     pm->set_target_tcc_pressure(this->curr_tcc_pressure);
+    */
 }
 
 TccClutchStatus TorqueConverter::get_clutch_state(void) {
-    return this->state;
+    TccClutchStatus ret = TccClutchStatus::Open;
+    InternalTccState cmp = this->target_tcc_state;
+    // Reduction or equal state (EG: Closed -> Slipping)
+    // Just return the target state
+    if (this->current_tcc_state >= cmp) {
+        switch (this->current_tcc_state) {
+            case InternalTccState::Closed:
+                ret = TccClutchStatus::Closed;
+                break;
+            case InternalTccState::Slipping:
+                ret = TccClutchStatus::Slipping;
+                break;
+            case InternalTccState::Open: // Already set
+            default:
+                break;
+        }
+    } 
+    // Increasing state (EG: Open -> Slipping)
+    else {
+        if (this->current_tcc_state == InternalTccState::Open && this->target_tcc_state == InternalTccState::Slipping) {
+            ret = TccClutchStatus::OpenToSlipping;
+        } else if (this->current_tcc_state == InternalTccState::Slipping && this->target_tcc_state == InternalTccState::Closed) {
+            ret = TccClutchStatus::SlippingToClosed;
+        } else {
+            // Open -> Closed (Return slipping as then TCC will be slipping which then results in slipping -> Closed)
+            ret = TccClutchStatus::OpenToSlipping;
+        }
+    }
+    return ret;
 }

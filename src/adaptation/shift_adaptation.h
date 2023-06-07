@@ -7,48 +7,74 @@
 #include "esp_err.h"
 
 // Adaptation inputs:
-// 1. The Gear change (8 different maps)
-// 2. Transmission input speed (Which correlates to output speed) (0-6000RPM - 1000RPM increments)
-// 3. Engine input torque (-20%-100% - 20% Load intervals) - 100% is 330Nm for small NAG, and 580Nm for large NAG
-// 4. Desired shift speed (100-1000ms - 200ms intervals)
-//
-// Adaptation outputs:
-// 1. MPC prefill padding adder
-// 2. MPC prefill delay for release
-// 3. SPC Prefill adder
-// 4. SPC prefill time adder
-// 5. SPC Target adder
-//
-// Adaptation limits (Same index listing as adaption outputs):
-// 1. -500 - +500mBar
-// 2. N/A
-// 3. -500 - + 500mBar
-// 4. -200 - +500mSec
-// 5. -500 - +1500mBar
+// 1. Clutch to apply (To prefill)
 
-const int16_t LOAD_COL[7] = { -20, 0, 20, 40, 60, 80, 100 };
-const int16_t RPM_COL[7] = {0, 1000, 2000, 3000, 4000, 5000, 6000};
-const int16_t SHIFT_SPD_COL[5] = { 200, 400, 600, 800, 1000 };
+// 0%, 10%, 25%, 50%
 
 typedef struct {
-    int16_t mpc_prefill_adder;
-    int16_t mpc_prefill_release_time_adder;
-    int16_t spc_prefill_adder;
-    int16_t spc_prefill_time_adder;
-    int16_t spc_ramp_end_adder;
-} AdaptationCell;
+    uint16_t override_shift_torque;
+} AdaptShiftRequest;
 
-// Total cells = 245 * 8 = 1960.
-// Cell size = 10 bytes (5x int16_t)
-// Total memory for adaptation = ~20Kb
+// Flags for adapt cancelled 
+typedef enum {
+    ADAPTABLE = 0,
+    NOT_ADAPTABLE = 1 << 0,
+    USER_CANCELLED = 1 << 1,
+    ENGINE_NOT_ACK_TORQUE = 1 << 2,
+    ESP_INTERVENTION = 1 << 3,
+    PEDAL_DELTA_TOO_HIGH = 1 << 4,
+    ATF_TEMP_TOO_HIGH = 1 << 5,
+    ATF_TEMP_TOO_LOW = 1 << 6,
+    INPUT_RPM_TOO_HIGH = 1 << 7,
+    INPUT_RPM_TOO_LOW = 1 << 8,
+    ENGINE_RPM_ERROR = 1 << 9,
+    INPUT_RPM_ERROR = 1 << 10,
+    ABS_RPM_ERROR = 1 << 11,
+    INPUT_TRQ_TOO_HIGH = 1 << 12,
+} AdaptCancelFlag;
+
+#define CELL_ID_NEG_TRQ 0
+#define CELL_ID_10_PST_TRQ 1
+#define CELL_ID_25_PST_TRQ 2
 
 class ShiftAdaptationSystem  {
 public:
-    ShiftAdaptationSystem(void);
+    ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr);
+    
+    uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change, int16_t* dest_trq_limit);
+    uint32_t check_prefill_adapt_conditions_shift(SensorData* sensors, EgsBaseCan* can);
+
+    uint32_t prefill_adapt_step(int shift_progress, SensorData* sensors);
+
+    void get_adapted_prefeill_data(ProfileGearChange change);
+
+    bool prefill_adapt_step();
+    void on_overlap_start(uint64_t timestamp, uint64_t expected_shift_time, int shift_progress_percent);
+    void do_prefill_overlap_check(uint64_t timestamp, bool flaring, int shift_progress_percent);
+
+    void notify_early_shift(Clutch to_apply);
+
+    int16_t get_prefill_pressure_offset(int16_t trq_nm, Clutch to_apply);
+
     esp_err_t reset(void);
     esp_err_t save(void);
+
+    void debug_print_offset_array();
+
 private:
-    StoredMap* shift_adaptation_maps[8];
+    bool offset_cell_value(StoredMap* map, Clutch clutch, uint8_t load_cell_idx, int16_t offset);
+    uint8_t cell_idx_prefill;
+    int16_t requested_trq;
+    GearboxConfiguration* gb_cfg;
+    uint8_t pre_shift_pedal_pos;
+    StoredMap* prefill_pressure_offset_map;
+    StoredMap* prefill_time_offset_map;
+    uint64_t last_overlap_check = 0;
+    uint64_t expected_shift_time = 0;
+    uint64_t overlap_start_time = 0;
+    Clutch to_apply;
+    bool flare_notified = false;
+    int last_shift_progress = 0;
 };
 
 

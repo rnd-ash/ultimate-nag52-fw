@@ -56,6 +56,11 @@ class Egs53Can: public EgsBaseCan {
         // 
         bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
+        bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
+        bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
+        int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
+        int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
         /**
          * Setters
          */

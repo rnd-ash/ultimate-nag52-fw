@@ -100,9 +100,7 @@ enum class TccClutchStatus: uint8_t {
     OpenToSlipping,
     Slipping,
     SlippingToClosed,
-    Closed,
-    ClosedToSlipping,
-    SlippingToOpen
+    Closed
 };
 
 enum class TransferCaseState: uint8_t {
@@ -297,7 +295,30 @@ class EgsBaseCan {
         virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
             return TransferCaseState::SNA;
         }
+        virtual bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }   
 
+        // Checks if ESP torque intervention is active (AKA Stability assist)
+        virtual bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+
+        // Checks if cruise control is active
+        virtual bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+
+        // Gets the torque demand from the cruise control system
+        virtual int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+            return INT_MAX;
+        }
+
+        // Gets the torque demand from the ESP system
+        virtual int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+            return INT_MAX;
+        }
+        
         /**
          * Setters
          */

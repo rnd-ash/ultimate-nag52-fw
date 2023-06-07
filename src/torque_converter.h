@@ -11,6 +11,12 @@
 #include "canbus/can_hal.h"
 #include "nvs/module_settings.h"
 
+enum class InternalTccState {
+    Open,
+    Slipping,
+    Closed
+};
+
 class TorqueConverter {
     public:
         TorqueConverter(uint16_t max_gb_rating);
@@ -34,27 +40,18 @@ class TorqueConverter {
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
         StoredMap* tcc_learn_lockup_map;
+        void on_shift_starting(void);
+        void on_shift_ending(void);
     private:
         inline void reset_rpm_samples(SensorData* sensors);
-        bool neg_torque_zone = false;
-        uint16_t adapt_lock_count = 0;
-        uint16_t strike_count = 0;
-        bool initial_ramp_done = false;
-        float curr_tcc_target = 0;
-        float curr_tcc_pressure = 0;
-        float base_tcc_pressure = 0;
-        bool inhibit_increase = false;
-        bool was_idle = false;
-        bool prefilling = false;
+        float tcc_pressure_target = 0;
+        float tcc_pressure_current = 0;
+        float tcc_pressure_preshift = 0;
         uint64_t prefill_start_time = 0;
-        TccClutchStatus state = TccClutchStatus::Open;
-        uint64_t last_inc_time = 0;
-        bool is_temp_pressure = false;
-        uint16_t tmp_pressure = 0;
-        uint64_t last_adj_time = 0;
+        InternalTccState current_tcc_state = InternalTccState::Open;
+        InternalTccState target_tcc_state = InternalTccState::Open;
+        InternalTccState preshift_tcc_state = InternalTccState::Open;
         bool pending_changes = false;
-        bool was_shifting = false;
-        uint64_t last_idle_timestamp = 0;
 };
 
 #endif

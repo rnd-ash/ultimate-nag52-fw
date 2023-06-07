@@ -325,7 +325,7 @@ void Egs51Can::set_torque_request(TorqueRequest request, float amount_nm) {
     } else {
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
-        this->gs218.TORQUE_REQ = amount_nm/2;
+        this->gs218.TORQUE_REQ = amount_nm/3;
     }
 }
 

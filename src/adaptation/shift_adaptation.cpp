@@ -53,11 +53,13 @@ int16_t ShiftAdaptationSystem::get_prefill_pressure_offset(int16_t trq_nm, Clutc
         ret = this->prefill_pressure_offset_map->get_value((float)to_apply, trq_percent);
         ESP_LOGI("ADAPT", "Using prefill adder of %d mBar", ret);
     }
+    this->to_apply = to_apply;
     return ret;
 }
 
 uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change, int16_t* dest_trq_limit) {
     uint32_t ret = (int)AdaptCancelFlag::ADAPTABLE;
+    this->to_apply = get_clutch_to_apply(change);
     // Check if we can actually adapt this shift
     // 3-2 and 2-1 are not adapted as we can adapt the clutch packs on 3-4 and 4-5 respectively
     if (change == ProfileGearChange::THREE_TWO || change == ProfileGearChange::TWO_ONE) {
@@ -133,7 +135,7 @@ bool ShiftAdaptationSystem::offset_cell_value(StoredMap* map, Clutch clutch, uin
     // X is clutch, Y is load point
     if (map) {
         uint8_t idx = ((uint8_t)clutch) - (uint8_t)Clutch::K1;
-        idx *= 5;
+        idx *= 3;
         idx += load_cell_idx;
         // Double safety
         if (idx < this->prefill_pressure_offset_map->get_map_element_count()) {
@@ -145,20 +147,53 @@ bool ShiftAdaptationSystem::offset_cell_value(StoredMap* map, Clutch clutch, uin
     return ret;
 }
 
-void ShiftAdaptationSystem::do_prefill_overlap_check(uint64_t timestamp, Clutch to_apply, int16_t* offset, bool flaring) {
-    // Assuming shift not done
-    if (timestamp - this->last_overlap_check > 50) {
-        *offset = 20;
-        offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, 20.0);
-        this->last_overlap_check = timestamp;
+void ShiftAdaptationSystem::on_overlap_start(uint64_t timestamp, uint64_t expected_shift_time, int shift_progress_percent) {
+    this->flare_notified = false;
+    this->last_overlap_check = timestamp;
+    this->overlap_start_time = timestamp;
+    this->expected_shift_time = expected_shift_time;
+    if (shift_progress_percent > 5) {
+        ESP_LOGI("ADAPT", "Shift started too early (Start of overlap). Decreasing prefill by 20mBar");
+        offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, -20.0);
+        this->last_shift_progress = 5;
+    } else {
+        this->last_shift_progress = 0;
     }
-    if (flaring) {
+}
+
+void ShiftAdaptationSystem::do_prefill_overlap_check(
+    uint64_t timestamp,
+    bool flaring,
+    int shift_progress_percent
+) {
+    // Assuming shift not done
+    if (shift_progress_percent <= 0) {
         this->last_overlap_check = timestamp;
-        if (!this->flare_notified) {
-            this->flare_notified = true;
-            *offset = 20;
-            offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, 20.0);
+        this->last_shift_progress = 0;
+    }
+    if (timestamp - this->last_overlap_check > 100) {
+        if (this->last_shift_progress == 0 && shift_progress_percent != 0) {
+            ESP_LOGI("ADAPT", "Shift started with a speed of %d%%/100ms, %d ms into overlap", (int)(this->last_shift_progress - shift_progress_percent), (int)(timestamp-overlap_start_time));
+            // Shift has now started, lets check the delta and timestamp (Only for longer shifts)
+            if (this->expected_shift_time >= 500) {
+                // > 50% of overlap time gone by with no shifting
+                bool late_shifting = ((timestamp - this->overlap_start_time) > this->expected_shift_time/2);
+                // Drop in RPM at the start of the shift was far too harsh
+                // 20%/100ms is perfect for 500ms, so any more than this, no matter the shift time is 'harsh'
+                bool harsh_shifting = (shift_progress_percent - this->last_shift_progress) > 20.0;
+
+                if (harsh_shifting) {
+                    ESP_LOGW("ADAPT", "Shift was too harsh (%d %% - %d %% in < 100ms). Decreasing prefill by 20mBar", this->last_shift_progress, shift_progress_percent);
+                    offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, -20.0);
+                } else if (late_shifting) {
+                    ESP_LOGW("ADAPT", "Shift started too late (%d ms in overlap). Increasing prefill by 20mBar", (int)(timestamp - this->overlap_start_time));
+                    offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, 20.0);
+                }
+                ESP_LOGI("ADAPT", "Shift adapt result: Was harsh?: %d, Was too late?: %d", harsh_shifting, late_shifting);
+            }
         }
+        this->last_shift_progress = shift_progress_percent;
+        this->last_overlap_check = timestamp;
     }
 }
 

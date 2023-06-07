@@ -181,7 +181,7 @@ extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 // 3 load points, 5 clutches
 #define ADAPT_PREFILL_DATA_MAP_SIZE 5*3
 
-#define MAP_NAME_ADAPT_PREFILL_PRESSURE "ADP_P_P" // Adapt Prefill Pressure
+#define MAP_NAME_ADAPT_PREFILL_PRESSURE "ADP_P_P0" // Adapt Prefill Pressure
 extern const int16_t ADAPT_PREFILL_PRESSURE_MAP[ADAPT_PREFILL_DATA_MAP_SIZE];
 #define MAP_NAME_ADAPT_PREFILL_TIMING "ADP_P_T" // Adapt prefill timing
 extern const int16_t ADAPT_PREFILL_TIMING_MAP[ADAPT_PREFILL_DATA_MAP_SIZE];

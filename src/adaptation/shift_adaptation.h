@@ -49,8 +49,8 @@ public:
     void get_adapted_prefeill_data(ProfileGearChange change);
 
     bool prefill_adapt_step();
-
-    void do_prefill_overlap_check(uint64_t timestamp, Clutch to_apply, int16_t* offset, bool flaring);
+    void on_overlap_start(uint64_t timestamp, uint64_t expected_shift_time, int shift_progress_percent);
+    void do_prefill_overlap_check(uint64_t timestamp, bool flaring, int shift_progress_percent);
 
     void notify_early_shift(Clutch to_apply);
 
@@ -70,7 +70,11 @@ private:
     StoredMap* prefill_pressure_offset_map;
     StoredMap* prefill_time_offset_map;
     uint64_t last_overlap_check = 0;
+    uint64_t expected_shift_time = 0;
+    uint64_t overlap_start_time = 0;
+    Clutch to_apply;
     bool flare_notified = false;
+    int last_shift_progress = 0;
 };
 
 

@@ -390,6 +390,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         } else {
             prefill_data.fill_pressure += this->shift_adapter->get_prefill_pressure_offset(sensor_data.input_torque, get_clutch_to_apply(req_lookup));// Use torque now
         }
+        int prefill_pre_adapt = prefill_data.fill_pressure;
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
         } else {
@@ -491,17 +492,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else if (current_stage == ShiftStage::Torque) {
                     ESP_LOGI("SHIFT", "Torque start");
                     // MPC and SPC are equal here (Reduce MPC)
-                    phase_x_ramp_time = 250;
-                    phase_total_time = 250;
+                    phase_x_ramp_time = 100;
+                    phase_total_time = 200;
                 } else if (current_stage == ShiftStage::Overlap) {
                     ESP_LOGI("SHIFT", "Overlap start");
-                    if (shift_progress_percentage > 5 && prefill_adapt_flags == 0) {
-                        this->shift_adapter->notify_early_shift(get_clutch_to_apply(req_lookup));
+                    if (prefill_adapt_flags == 0) {
+                        this->shift_adapter->on_overlap_start(sensor_data.current_timestamp_ms, chars.target_shift_time, shift_progress_percentage);
                     }
                     // SPC increases
                     // Calculate target D_RPM
-                    t_d_rpm = (rpm_target_gear-rpm_current_gear)/(chars.target_shift_time/SHIFT_DELAY_MS);
-                    ESP_LOGI("SHIFT", "D_RPM needs to be %d for target shift speed", t_d_rpm);
+                    t_d_rpm = (rpm_target_gear-rpm_current_gear)/(chars.target_shift_time/100.0);
+                    ESP_LOGI("SHIFT", "RPM should change by %d/100ms for target shift speed", t_d_rpm);
                     phase_total_time = (chars.target_shift_time*2)+SBS_CURRENT_SETTINGS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     phase_x_ramp_time = 0;
                     spc_delta = 0;
@@ -526,28 +527,24 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_targ_mpc = MAX(wp_current_gear, prefill_data.fill_pressure);
                 phase_targ_spc = prefill_data.fill_pressure;
             } else if (current_stage == ShiftStage::Overlap) {
-                phase_targ_mpc = MAX(linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0), prefill_data.fill_pressure);
+                phase_targ_mpc = MAX(linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0), prefill_pre_adapt);
                 // To adjust on the fly in realtime, we have to modify both target and prev
-                if (prefill_adapt_flags == 0 && shift_progress_percentage <= 5) { // Adapting (Not shifting yet!)
-                    int16_t adder = 0;
-                    this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, get_clutch_to_apply(req_lookup), &adder, flaring);
-                    prefill_data.fill_pressure += adder;
-                    phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure);
-                } else {
-                    // Normal overlap
-                    float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, 580) ; // 200mBar/sec
-                    if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
-                        step *= 2;
-                    }
-                    // Ease in Ease out
-                    if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
-                        step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
-                    } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
-                        step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
-                    }
-                    spc_delta += step;
-                    phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
+                if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
+                    this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
+                // Normal overlap
+                float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, gearboxConfig.max_torque) ; // 200mBar/sec
+                if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
+                    step *= 2;
+                }
+                // Ease in Ease out
+                if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
+                    step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
+                } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
+                    step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
+                }
+                spc_delta += step;
+                phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
             }
 
             // Do shift solenoid control (Burnout prevention)
@@ -566,8 +563,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             pressure_mgr->set_target_mpc_pressure(current_mpc);
 
-            if (req_lookup == ProfileGearChange::TWO_ONE && current_stage >= ShiftStage::Fill) {
-                pressure_mgr->set_target_spc_pressure(current_spc*0.75); // K1 factor of 2
+            if (req_lookup == ProfileGearChange::TWO_ONE) {
+                pressure_mgr->set_target_spc_pressure(current_spc*0.75); // K1 factor of 0.75
             } else {
                 pressure_mgr->set_target_spc_pressure(current_spc);
             }

@@ -76,9 +76,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             // See if we should slip or close
             if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
                 targ = InternalTccState::Slipping;
-                if (this->current_tcc_state == InternalTccState::Slipping) {
+                if (this->current_tcc_state >= InternalTccState::Slipping) {
                     // Now see if we can fully lock
-                    if (sensors->pedal_pos != 0 && sensors->pedal_pos < 50) {
+                    if (sensors->pedal_pos != 0 && sensors->pedal_pos < 128) {
                         targ = InternalTccState::Closed;
                     }
                 }

@@ -385,6 +385,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int16_t prefill_torque_requested = INT16_MAX;
         prefill_torque_requested = MIN(150, sensor_data.driver_requested_torque*0.75);
         while(process_shift) {
+            // Shifter moved mid shift!
+            if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
+                process_shift = false;
+                result = false;
+                break;
+            }
+
             // Grab ratio informations
             int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
             int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
@@ -599,8 +606,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             ESP_LOGI("SHIFT", "SHIFT OK!");
             this->actual_gear = gear_from_idx(sd.targ_g);
         } else {
-            ESP_LOGE("SHIFT", "Shift failed! End ratio is %.2f", (float)sensor_data.gear_ratio/100.0);
-            this->target_gear = this->actual_gear;
+            if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
+                ESP_LOGE("SHIFT", "Shift failed due to selector moving");
+                this->target_gear = GearboxGear::Neutral;
+                this->actual_gear = GearboxGear::Neutral;
+            } else {
+                ESP_LOGE("SHIFT", "Shift failed! End ratio is %.2f", (float)sensor_data.gear_ratio/100.0);
+                this->target_gear = this->actual_gear;
+            }
         }
     }
     return result;

@@ -52,3 +52,18 @@ Clutch get_clutch_to_release(ProfileGearChange change) {
             return Clutch::K1;
     }
 }
+
+bool is_shifter_in_valid_drive_pos(ShifterPosition p) {
+    bool ret = true;
+    switch (p) {
+        case ShifterPosition::P:
+        case ShifterPosition::P_R:
+        case ShifterPosition::N:
+        case ShifterPosition::R_N:
+            ret = false;
+            break;
+        default: // Already true (All other positions)
+            break;
+    }
+    return ret;
+}

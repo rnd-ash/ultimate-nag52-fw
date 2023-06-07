@@ -9,6 +9,14 @@
 #include "common_structs_ops.h"
 #include "maps.h"
 
+const char* CLUTCH_NAMES[5] = {
+    "K1",
+    "K2",
+    "K3",
+    "B1",
+    "B2",
+};
+
 ShiftAdaptationSystem::ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr)
 {
     this->gb_cfg = cfg_ptr;
@@ -51,7 +59,7 @@ int16_t ShiftAdaptationSystem::get_prefill_pressure_offset(int16_t trq_nm, Clutc
     if (nullptr != this->prefill_pressure_offset_map) {
         float trq_percent = ((float)trq_nm*100.0)/(float)(this->gb_cfg->max_torque);
         ret = this->prefill_pressure_offset_map->get_value((float)to_apply, trq_percent);
-        ESP_LOGI("ADAPT", "Using prefill adder of %d mBar", ret);
+        ESP_LOGI("ADAPT", "Using prefill adder of %d mBar for %s", ret, CLUTCH_NAMES[(int)to_apply-1]);
     }
     this->to_apply = to_apply;
     return ret;
@@ -96,6 +104,8 @@ uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData*
                 } else if (sensors->input_torque <= gb_cfg->max_torque/2) {
                     *dest_trq_limit = gb_cfg->max_torque*0.25;
                     this->cell_idx_prefill = CELL_ID_25_PST_TRQ;
+                } else {
+                    ret |= (uint32_t)AdaptCancelFlag::INPUT_TRQ_TOO_HIGH;
                 }
                 this->pre_shift_pedal_pos = sensors->pedal_pos;
                 this->flare_notified = false;
@@ -134,14 +144,15 @@ bool ShiftAdaptationSystem::offset_cell_value(StoredMap* map, Clutch clutch, uin
     bool ret = false;
     // X is clutch, Y is load point
     if (map) {
-        uint8_t idx = ((uint8_t)clutch) - (uint8_t)Clutch::K1;
+        uint8_t idx = ((uint8_t)clutch) - 1;
         idx *= 3;
         idx += load_cell_idx;
         // Double safety
         if (idx < this->prefill_pressure_offset_map->get_map_element_count()) {
             int16_t* data = this->prefill_pressure_offset_map->get_current_data();
             int16_t modify = data[idx] + offset;
-            data[idx] = (int16_t)modify;
+            ESP_LOGI("SHIFT", "Setting cell %d from %d to %d", idx, data[idx], modify);
+            data[idx] = modify;
         }
     }
     return ret;
@@ -153,7 +164,7 @@ void ShiftAdaptationSystem::on_overlap_start(uint64_t timestamp, uint64_t expect
     this->overlap_start_time = timestamp;
     this->expected_shift_time = expected_shift_time;
     if (shift_progress_percent > 5) {
-        ESP_LOGI("ADAPT", "Shift started too early (Start of overlap). Decreasing prefill by 20mBar");
+        ESP_LOGI("ADAPT", "Shift started too early (Start of overlap). Decreasing prefill of %s by 20mBar", CLUTCH_NAMES[(int)to_apply-1]);
         offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, -20.0);
         this->last_shift_progress = 5;
     } else {
@@ -171,7 +182,7 @@ void ShiftAdaptationSystem::do_prefill_overlap_check(
         this->last_overlap_check = timestamp;
         this->last_shift_progress = 0;
     }
-    if (timestamp - this->last_overlap_check > 100) {
+    if (timestamp - this->last_overlap_check > 200) {
         if (this->last_shift_progress == 0 && shift_progress_percent != 0) {
             ESP_LOGI("ADAPT", "Shift started with a speed of %d%%/100ms, %d ms into overlap", (int)(this->last_shift_progress - shift_progress_percent), (int)(timestamp-overlap_start_time));
             // Shift has now started, lets check the delta and timestamp (Only for longer shifts)
@@ -179,14 +190,14 @@ void ShiftAdaptationSystem::do_prefill_overlap_check(
                 // > 50% of overlap time gone by with no shifting
                 bool late_shifting = ((timestamp - this->overlap_start_time) > this->expected_shift_time/2);
                 // Drop in RPM at the start of the shift was far too harsh
-                // 20%/100ms is perfect for 500ms, so any more than this, no matter the shift time is 'harsh'
-                bool harsh_shifting = (shift_progress_percent - this->last_shift_progress) > 20.0;
+                // 50%/200ms is perfect for 500ms, so any more than this, no matter the shift time is 'harsh'
+                bool harsh_shifting = (shift_progress_percent - this->last_shift_progress) > 40.0;
 
                 if (harsh_shifting) {
-                    ESP_LOGW("ADAPT", "Shift was too harsh (%d %% - %d %% in < 100ms). Decreasing prefill by 20mBar", this->last_shift_progress, shift_progress_percent);
+                    ESP_LOGI("ADAPT", "Shift was too harsh (%d %% - %d %% in < 100ms). Decreasing prefill for %s by 20mBar", this->last_shift_progress, shift_progress_percent, CLUTCH_NAMES[(int)to_apply-1]);
                     offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, -20.0);
                 } else if (late_shifting) {
-                    ESP_LOGW("ADAPT", "Shift started too late (%d ms in overlap). Increasing prefill by 20mBar", (int)(timestamp - this->overlap_start_time));
+                    ESP_LOGI("ADAPT", "Shift started too late (%d ms in overlap). Increasing prefill for %s by 20mBar", (int)(timestamp - this->overlap_start_time), CLUTCH_NAMES[(int)to_apply-1]);
                     offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, 20.0);
                 }
                 ESP_LOGI("ADAPT", "Shift adapt result: Was harsh?: %d, Was too late?: %d", harsh_shifting, late_shifting);
@@ -205,9 +216,10 @@ void ShiftAdaptationSystem::notify_early_shift(Clutch to_apply) {
 void ShiftAdaptationSystem::debug_print_offset_array() {
     int16_t* data = this->prefill_pressure_offset_map->get_current_data();
     for (int i = 1; i <= 5; i++) {
-        int p0 = this->prefill_pressure_offset_map->get_value(i, 0);
-        int p1 = this->prefill_pressure_offset_map->get_value(i, 10);
-        int p2 = this->prefill_pressure_offset_map->get_value(i, 25);
-        ESP_LOGI("ADAPT", "Clutch %d - 0%%: %d 10%%: %d 25%%: %d", i, p0, p1, p2);
+        int16_t* ptr = &data[(i-1)*3];
+        int p0 = ptr[0];
+        int p1 = ptr[1];
+        int p2 = ptr[2];
+        ESP_LOGI("ADAPT", "Clutch %s - 0%%: %d 10%%: %d 25%%: %d", CLUTCH_NAMES[i-1], p0, p1, p2);
     }
 }

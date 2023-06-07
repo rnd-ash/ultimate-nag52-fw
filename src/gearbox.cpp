@@ -521,7 +521,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
                 phase_targ_spc = prefill_data.fill_pressure;
-                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
+                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure/2);
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
                 phase_targ_mpc = MAX(wp_current_gear, prefill_data.fill_pressure);
@@ -532,18 +532,24 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
-                // Normal overlap
-                float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, gearboxConfig.max_torque) ; // 200mBar/sec
-                if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
-                    step *= 2;
+                if (phase_elapsed > 100 && shift_progress_percentage <= 0) {
+                    spc_delta += 100/(100/SHIFT_DELAY_MS); // 100/100ms
+                } else {
+                    if (shift_progress_percentage < 75) { // Stop increasing shift pressure after this much of the shift is done - prevents harsh shift ending
+                        // Normal overlap
+                        float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, gearboxConfig.max_torque) ; // 200mBar/sec
+                        if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
+                            step *= 2;
+                        }
+                        // Ease in Ease out
+                        if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
+                            step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
+                        } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
+                            step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
+                        }
+                        spc_delta += step;
+                    }
                 }
-                // Ease in Ease out
-                if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
-                    step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
-                } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
-                    step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
-                }
-                spc_delta += step;
                 phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
             }
 
@@ -571,7 +577,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {
-                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && this->est_gear_idx == sd.targ_g) { // Confirmed shift!
+                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && shift_progress_percentage >= 95) { // Confirmed shift!
                     result = true;
                     process_shift = false;
                     sr.detect_shift_end_ts = (uint16_t)(sensor_data.current_timestamp_ms - shift_start_time);
@@ -1123,6 +1129,19 @@ void Gearbox::controller_loop()
             sol_y4->write_pwm_12_bit(0);
             sol_y5->write_pwm_12_bit(0);
         }
+        //if (sensor_data.output_rpm == 0 && this->current_profile == manual) {
+        //    // Want to launch
+        //    if (egs_can_hal->get_is_brake_pressed(now, 500) && sensor_data.pedal_pos > 0) {
+        //        if (sensor_data.engine_rpm > 2000) {
+        //            egs_can_hal->set_torque_request(TorqueRequest::LessThan, 10.0);
+        //        } else {
+        //            egs_can_hal->set_torque_request(TorqueRequest::None, 0.0);
+        //        }
+        //    } else {
+        //        egs_can_hal->set_torque_request(TorqueRequest::None, 0.0);
+        //    }
+        //}
+        
         int16_t tmp_atf = 0;
         if (lock_state || !Sensors::read_atf_temp(&tmp_atf) == ESP_OK)
         {

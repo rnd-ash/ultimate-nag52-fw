@@ -251,31 +251,35 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
     .k1_pressure_multi = 2.0
 };
 
-#define ADP_SETTINGS_NVS_KEY "ADP_A0"
+#define ADP_SETTINGS_NVS_KEY "ADP_A1"
 
 typedef struct {
     int16_t min_atf_temp;
     int16_t max_atf_temp;
-    uint16_t max_engine_rpm;
-    //bool enable_d1_2;
-    //bool enable_d2_3;
-    //bool enable_d3_4;
-    //bool enable_d4_5;
-    //bool enable_d5_4;
-    //bool enable_d4_3;
+    uint16_t min_input_rpm;
+    uint16_t max_input_rpm;
+    bool prefill_adapt_k1;
+    bool prefill_adapt_k2;
+    bool prefill_adapt_k3;
+    bool prefill_adapt_b1;
+    bool prefill_adapt_b2;
+    uint16_t prefill_max_pressure_delta;
+    uint16_t prefill_max_time_delta;
     
 } __attribute__ ((packed)) ADP_MODULE_SETTINGS;
 
 const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .min_atf_temp = 60,
     .max_atf_temp = 110,
-    .max_engine_rpm = 3000,
-    //bool enable_d1_2;
-    //bool enable_d2_3;
-    //bool enable_d3_4;
-    //bool enable_d4_5;
-    //bool enable_d5_4;
-    //bool enable_d4_3;
+    .min_input_rpm = 1000,
+    .max_input_rpm = 3000,
+    .prefill_adapt_k1 = true,
+    .prefill_adapt_k2 = true,
+    .prefill_adapt_k3 = true,
+    .prefill_adapt_b1 = true,
+    .prefill_adapt_b2 = true,
+    .prefill_max_pressure_delta = 500,
+    .prefill_max_time_delta = 500,
 };
 
 // module settings

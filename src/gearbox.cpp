@@ -127,7 +127,7 @@ Gearbox::Gearbox()
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_reporter = new ShiftReporter();
     this->itm = new InputTorqueModel();
-    this->shift_adapter = new ShiftAdaptationSystem();
+    this->shift_adapter = new ShiftAdaptationSystem(&this->gearboxConfig);
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
@@ -383,7 +383,22 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float spc_delta = 0;
         int start_nm = sensor_data.static_torque;
         int16_t prefill_torque_requested = INT16_MAX;
-        prefill_torque_requested = MIN(150, sensor_data.driver_requested_torque*0.75);
+        uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup, &prefill_torque_requested);
+        if (prefill_torque_requested != INT16_MAX) {
+            // Use prefill test torque so we modify the same cell in the adapt map
+            prefill_data.fill_pressure += this->shift_adapter->get_prefill_pressure_offset(prefill_torque_requested, get_clutch_to_apply(req_lookup));
+        } else {
+            prefill_data.fill_pressure += this->shift_adapter->get_prefill_pressure_offset(sensor_data.input_torque, get_clutch_to_apply(req_lookup));// Use torque now
+        }
+        if (prefill_adapt_flags != 0) {
+            ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
+        } else {
+            ESP_LOGI("SHIFT", "Prefill adapting is allowed. Torque limit is %d Nm", prefill_torque_requested);
+        }
+        // Limit torque if adapter doesn't ask
+        if (prefill_torque_requested == INT16_MAX) {
+            prefill_torque_requested = MIN(250.0, sensor_data.static_torque*0.75);
+        }
         while(process_shift) {
             // Shifter moved mid shift!
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
@@ -476,10 +491,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else if (current_stage == ShiftStage::Torque) {
                     ESP_LOGI("SHIFT", "Torque start");
                     // MPC and SPC are equal here (Reduce MPC)
-                    phase_x_ramp_time = 100;
-                    phase_total_time = 200;
+                    phase_x_ramp_time = 250;
+                    phase_total_time = 250;
                 } else if (current_stage == ShiftStage::Overlap) {
                     ESP_LOGI("SHIFT", "Overlap start");
+                    if (shift_progress_percentage > 5 && prefill_adapt_flags == 0) {
+                        this->shift_adapter->notify_early_shift(get_clutch_to_apply(req_lookup));
+                    }
                     // SPC increases
                     // Calculate target D_RPM
                     t_d_rpm = (rpm_target_gear-rpm_current_gear)/(chars.target_shift_time/SHIFT_DELAY_MS);
@@ -494,30 +512,42 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_targ_spc = 50;
                 phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
             } else if (current_stage == ShiftStage::Fill) {
-                if (adapting_shift) {
-
+                bool was_adapting = prefill_adapt_flags == 0;
+                if (prefill_adapt_flags == 0) {
+                    prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_shift(&this->sensor_data, egs_can_hal);
+                }
+                if (was_adapting && prefill_adapt_flags != 0) {
+                    ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
                 phase_targ_spc = prefill_data.fill_pressure;
                 phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
-                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure;
+                phase_targ_mpc = MAX(wp_current_gear, prefill_data.fill_pressure);
                 phase_targ_spc = prefill_data.fill_pressure;
             } else if (current_stage == ShiftStage::Overlap) {
+                phase_targ_mpc = MAX(linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0), prefill_data.fill_pressure);
                 // To adjust on the fly in realtime, we have to modify both target and prev
-                phase_targ_mpc = linear_interp(wp_current_gear, wp_target_gear, shift_progress_percentage, 100.0);
-                float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, 580) ; // 200mBar/sec
-                if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
-                    step *= 2;
+                if (prefill_adapt_flags == 0 && shift_progress_percentage <= 5) { // Adapting (Not shifting yet!)
+                    int16_t adder = 0;
+                    this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, get_clutch_to_apply(req_lookup), &adder, flaring);
+                    prefill_data.fill_pressure += adder;
+                    phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure);
+                } else {
+                    // Normal overlap
+                    float step = scale_number(MAX(sensor_data.input_torque, sensor_data.driver_requested_torque), 5, 20, 0, 580) ; // 200mBar/sec
+                    if (sensor_data.static_torque < 0 && req_lookup == ProfileGearChange::THREE_TWO) {
+                        step *= 2;
+                    }
+                    // Ease in Ease out
+                    if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
+                        step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
+                    } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
+                        step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
+                    }
+                    spc_delta += step;
+                    phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
                 }
-                // Ease in Ease out
-                if (shift_progress_percentage > 25 && shift_progress_percentage <= 50) {
-                    step *= scale_number(shift_progress_percentage, 1.0, 2.0, 25, 50.0); // As shift progresses increase ramp
-                } else if (shift_progress_percentage > 50 && shift_progress_percentage <= 75) { // 50 = 2.0, 75 = 1.0
-                    step *= scale_number(shift_progress_percentage, 2.0, 1.0, 50, 75.0); // As shift progresses increase ramp
-                }
-                spc_delta += step;
-                phase_targ_spc = MAX(phase_targ_mpc, prefill_data.fill_pressure)+spc_delta;
             }
 
             // Do shift solenoid control (Burnout prevention)
@@ -564,7 +594,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             phase_elapsed += SHIFT_DELAY_MS;
             total_elapsed += SHIFT_DELAY_MS;
         }
-
+        this->shift_adapter->debug_print_offset_array();
         // Only do max pressure phase if we shifted
         this->tcc->on_shift_ending();
         if (result) {
@@ -956,9 +986,9 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = GearboxGear::Park;
                             last_position = this->shifter_pos;
-                            if (this->pressure_mgr != nullptr)
+                            if (this->shift_adapter != nullptr)
                             {
-                                this->pressure_mgr->save();
+                                this->shift_adapter->save();
                             }
                             this->shift_reporter->save();
                             this->tcc->save();

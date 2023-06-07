@@ -68,45 +68,6 @@ public:
      */
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
-    /**
-     * @brief Reset adaptation data
-     * 
-     * @return true if adaptation reset was OK
-     * @return false if adaptation reset failed
-     */
-    esp_err_t diag_reset_adaptation(void) {
-        bool result = false;
-        if (this->pressure_adapt_system != nullptr) { 
-            this->pressure_adapt_system->reset();
-            result = true;
-        }
-        return result;
-    }
-
-    /**
-     * @brief Called after every gear change to try and better improve future shifts
-     * 
-     * @param prefill_sensors Sensor data from just before the fill stage
-     * @param change Gear change executed
-     * @param response The report of the gear change
-     * @param is_valid_rpt If the response is valid or not (Invalid would be due to a shift at stantstill)
-     */
-    void perform_adaptation(SensorData* prefill_sensors, ProfileGearChange change, ShiftReport* response, bool is_valid_rpt) {
-        if (this->pressure_adapt_system != nullptr) { 
-            //this->pressure_adapt_system->perform_adaptation(prefill_sensors, response, change, is_valid_rpt, this->gb_max_torque);
-        }
-    }
-
-    /**
-     * @brief Save adaptation data to NVS EEPROM
-     * 
-     */
-    void save(void) {
-        if (this->pressure_adapt_system != nullptr) { 
-            this->pressure_adapt_system->save(); 
-        }
-    }
-
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     
     float get_tcc_temp_multiplier(int atf_temp);
@@ -140,7 +101,6 @@ private:
     uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar);
 
     SensorData* sensor_data;
-    ShiftAdaptationSystem* pressure_adapt_system;
     uint16_t req_tcc_pressure;
     uint16_t req_spc_pressure;
     uint16_t req_mpc_pressure;

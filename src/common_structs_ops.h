@@ -9,4 +9,6 @@ const Clutch get_clutch_to_release(ProfileGearChange change);
 
 bool is_shifter_in_valid_drive_pos(ShifterPosition p);
 
+bool is_shifter_in_valid_drive_pos(ShifterPosition p);
+
 #endif

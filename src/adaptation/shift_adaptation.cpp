@@ -18,7 +18,7 @@ ShiftAdaptationSystem::ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr)
 }
 
 esp_err_t ShiftAdaptationSystem::save(void) {
-    return this->prefill_time_offset_map->save_to_eeprom();
+    return this->prefill_pressure_offset_map->save_to_eeprom();
 }
 
 bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {

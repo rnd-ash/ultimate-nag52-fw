@@ -349,6 +349,20 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
 
+const int16_t ADAPT_PREFILL_PRESSURE_MAP[] = {
+//  K1 K2 K3 B1 B2    
+    0, 0, 0, 0, 0, // 0%
+    0, 0, 0, 0, 0, // 10%
+    0, 0, 0, 0, 0  // 25% 
+};
+
+const int16_t ADAPT_PREFILL_TIMING_MAP[] = {
+//  K1 K2 K3 B1 B2   
+    0, 0, 0, 0, 0, // 0%
+    0, 0, 0, 0, 0, // 10%
+    0, 0, 0, 0, 0  // 25%
+};
+
 const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE] = "ENGINE_TORQUE_MAX";
 const int16_t ENGINE_TORQUE_HEADERS_MAP[] = {
     /* rpm */    0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000

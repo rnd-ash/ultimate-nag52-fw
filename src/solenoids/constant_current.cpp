@@ -29,6 +29,10 @@ float ConstantCurrentDriver::get_adjustment() {
     return this->pwm_adjustment_percent;
 }
 
+uint16_t ConstantCurrentDriver::get_current_target() {
+    return this->current_target;
+}
+
 void ConstantCurrentDriver::update() {
     if (!this->is_cc_mode) {
         this->last_off_time = esp_timer_get_time()/1000;

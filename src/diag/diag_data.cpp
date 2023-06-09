@@ -60,14 +60,9 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     ret.y3_pwm = sol_y3->get_pwm_compensated();
     ret.y4_pwm = sol_y4->get_pwm_compensated();
     ret.y5_pwm = sol_y5->get_pwm_compensated();
-
-    if (gb_ptr->pressure_mgr != nullptr) {
-        ret.targ_mpc_current = gb_ptr->pressure_mgr->get_targ_mpc_current();
-        ret.targ_spc_current = gb_ptr->pressure_mgr->get_targ_spc_current();
-    } else {
-        ret.targ_mpc_current = 0xFFFF;
-        ret.targ_spc_current = 0xFFFF;
-    }
+    ret.targ_mpc_current = mpc_cc->get_current_target();
+    ret.targ_spc_current = spc_cc->get_current_target();
+    
     return ret;
 }
 

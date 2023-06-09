@@ -87,6 +87,7 @@ private:
     bool diag_stop_control = false;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
+    ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
     bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
@@ -97,7 +98,6 @@ private:
     float shadow_ratio_n2 = 0;
     float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
-    Solenoid* last_shift_solenoid = nullptr;
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     ShiftAdaptationSystem* shift_adapter = nullptr;

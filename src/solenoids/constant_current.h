@@ -10,6 +10,7 @@ public:
     void toggle_state(bool enable);
     void update();
     float get_adjustment();
+    uint16_t get_current_target();
 private:
     float pwm_adjustment_percent = 1.0;
     uint16_t current_target;

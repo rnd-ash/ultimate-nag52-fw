@@ -131,11 +131,21 @@ struct ShiftPhaseTiming {
 };
 
 /**
+ * Shift circuit
+*/
+enum ShiftCircuit {
+    None,
+    sc_1_2,
+    sc_2_3,
+    sc_3_4
+};
+
+/**
  * @brief Shift data request structure
  * 
  */
 struct ShiftData{
-    Solenoid* shift_solenoid;
+    ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
  

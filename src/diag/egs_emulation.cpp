@@ -1,6 +1,7 @@
 #include "egs_emulation.h"
 #include "sensors.h"
 #include "../pressure_manager.h"
+#include "solenoids/constant_current.h"
 
 inline uint16_t flip_uint16_t(uint16_t x) {
    return ((x & 0xff) << 8) | ((x & 0xff00) >> 8); 
@@ -73,8 +74,8 @@ RLI_33_DATA get_rli_33(EgsBaseCan* can_layer) {
 
     ret.mpc_pressure = flip_uint16_t(pressure_manager->get_targ_mpc_pressure());
     ret.spc_pressure = flip_uint16_t(pressure_manager->get_targ_spc_pressure());
-    ret.mpc_target_current = flip_uint16_t(pressure_manager->get_targ_mpc_current());
-    ret.spc_target_current = flip_uint16_t(pressure_manager->get_targ_spc_current());
+    ret.mpc_target_current = mpc_cc->get_current_target();
+    ret.spc_target_current = spc_cc->get_current_target();
     ret.mpc_actual_current = flip_uint16_t(sol_mpc->get_current_avg());
     ret.spc_actual_current = flip_uint16_t(sol_spc->get_current_avg());
     ret.tcc_pwm_255 = (uint8_t)(sol_tcc->get_pwm_raw() >> 4);

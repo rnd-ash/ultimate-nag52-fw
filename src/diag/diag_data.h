@@ -75,9 +75,13 @@ typedef struct {
     uint16_t spc_pwm;
     uint16_t mpc_pwm;
     uint16_t tcc_pwm;
-    uint16_t spc_pressure;
-    uint16_t mpc_pressure;
-    uint16_t tcc_pressure;
+    uint8_t ss_flag;
+    uint16_t spc_sol_pressure;
+    uint16_t mpc_sol_pressure;
+    uint16_t spc_clutch_pressure;
+    uint16_t mpc_clutch_pressure;
+    uint16_t tcc_clutch_pressure;
+    uint16_t line_pressure;
 }  __attribute__ ((packed)) DATA_PRESSURES;
 
 // Solenoid command struct

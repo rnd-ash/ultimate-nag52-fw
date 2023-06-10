@@ -133,11 +133,11 @@ struct ShiftPhaseTiming {
 /**
  * Shift circuit
 */
-enum ShiftCircuit {
-    None,
-    sc_1_2,
-    sc_2_3,
-    sc_3_4
+enum class ShiftCircuit {
+    None = 0,
+    sc_1_2 = 1 << 0,
+    sc_2_3 = 1 << 1,
+    sc_3_4 = 1 << 2
 };
 
 /**

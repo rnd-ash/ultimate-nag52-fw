@@ -311,8 +311,8 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
         .engine_rpm = sensor_data.engine_rpm,
         .input_rpm = sensor_data.input_rpm,
         .output_rpm = sensor_data.output_rpm,
-        .mpc_pressure = this->pressure_mgr->get_targ_mpc_pressure(),
-        .spc_pressure = this->pressure_mgr->get_targ_spc_pressure(),
+        .mpc_pressure = this->pressure_mgr->get_targ_mpc_clutch_pressure(),
+        .spc_pressure = this->pressure_mgr->get_targ_spc_clutch_pressure(),
         .timestamp = (uint16_t)(sensor_data.current_timestamp_ms-start_time)
     };
 }
@@ -529,7 +529,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure/2);
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
-                phase_targ_mpc = MAX(wp_current_gear, prefill_data.fill_pressure);
+                phase_targ_mpc = (wp_current_gear*2)+prefill_data.fill_pressure/3;
                 phase_targ_spc = 650;
             } else if (current_stage == ShiftStage::Overlap) {
                 // In overlap phase, make MPC half the reaction for working pressure

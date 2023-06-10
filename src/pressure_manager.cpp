@@ -84,51 +84,49 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     if (this->mpc_working_pressure->init_status() != ESP_OK) {
         delete[] this->mpc_working_pressure;
     }
-    this->update_solenoid_pressures();
 }
 
 void PressureManager::controller_loop() {
+    uint16_t p_last_spc = 0;
+    uint16_t p_last_mpc = 0;
     while(1) {
-        this->update_solenoid_pressures();
+        this->commanded_spc_pressure = this->req_spc_clutch_pressure;
+        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure;
+        int max_spc = 7000;
+        if (0 != this->ss_1_2_open_time) {
+            // 1-2 circuit is open (Correct pressure) (2.0 is too low (failed shift), 1.8 is too harsh (Still rough shifting))
+            // TODO - Store this val in MODULE SETTING
+            this->commanded_spc_pressure /= 1.9;
+            max_spc /= 1.9;
+        }
+        if (this->commanded_spc_pressure >= 7000) {
+            this->commanded_spc_pressure = 7000;
+        }
+        if (this->commanded_mpc_pressure >= 7000) {
+            this->commanded_mpc_pressure = 7000;
+        }
+        // Deal with shift valves
+        uint64_t now = this->sensor_data->current_timestamp_ms;
+        // PWM reduction of shift solenoids if required
+        if (0 != ss_1_2_open_time && now - ss_1_2_open_time > 1000) {
+            sol_y3->write_pwm_12_bit(1024, true);
+        }
+        if (0 != ss_2_3_open_time && now - ss_2_3_open_time > 1000) {
+            sol_y5->write_pwm_12_bit(1024, true);
+        }
+        if (0 != ss_3_4_open_time && now - ss_3_4_open_time > 1000) {
+            sol_y4->write_pwm_12_bit(1024, true);
+        }
+        if (p_last_spc != this->commanded_spc_pressure) {
+            p_last_spc = this->commanded_spc_pressure;
+            spc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_spc_pressure));
+        }
+        if (p_last_mpc != this->commanded_mpc_pressure) {
+            p_last_mpc = this->commanded_mpc_pressure;
+            mpc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_mpc_pressure));
+        }
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
-}
-
-void PressureManager::update_solenoid_pressures() {
-    this->commanded_spc_pressure = this->req_spc_clutch_pressure;
-    this->commanded_mpc_pressure = this->req_mpc_clutch_pressure;
-    int max_spc = 7000;
-    if (0 != this->ss_1_2_open_time) {
-        // 1-2 circuit is open (Correct pressure) (2.0 is too low (failed shift), 1.8 is too harsh (Still rough shifting))
-        // TODO - Store this val in MODULE SETTING
-        this->commanded_spc_pressure /= 1.9;
-        max_spc /= 1.9;
-    }
-    if (this->commanded_spc_pressure >= 7000) {
-        this->commanded_spc_pressure = 7000;
-    }
-    if (this->commanded_mpc_pressure >= 7000) {
-        this->commanded_mpc_pressure = 7000;
-    }
-    // Deal with shift valves
-    uint64_t now = this->sensor_data->current_timestamp_ms;
-    // PWM reduction of shift solenoids if required
-    if (0 != ss_1_2_open_time && now - ss_1_2_open_time > 1000) {
-        sol_y3->write_pwm_12_bit(1024, true);
-    }
-    if (0 != ss_2_3_open_time && now - ss_2_3_open_time > 1000) {
-        sol_y5->write_pwm_12_bit(1024, true);
-    }
-    if (0 != ss_3_4_open_time && now - ss_3_4_open_time > 1000) {
-        sol_y4->write_pwm_12_bit(1024, true);
-    }
-    if (this->commanded_spc_pressure == max_spc && ss_1_2_open_time != 0 && ss_2_3_open_time != 0 && ss_3_4_open_time != 0) {
-        spc_cc->set_target_current(0);
-        this->commanded_spc_pressure = 0;
-    } else {
-        spc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_spc_pressure));
-    }
-    mpc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_mpc_pressure));
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
@@ -271,14 +269,14 @@ PressureStageTiming PressureManager::get_max_pressure_timing() {
 }
 
 // Get PWM value (out of 4096) to write to the solenoid
-uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) {
+uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) const {
     if (this->pressure_pwm_map == nullptr) {
         return 0; // 10% (Failsafe)
     }
     return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
 }
 
-uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) {
+uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const {
     if (request_mbar == 0) {
         return 0; // Shortcut for when off
     }
@@ -338,18 +336,53 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     sol_tcc->write_pwm_12_bit(this->get_tcc_solenoid_pwm_duty(this->req_tcc_clutch_pressure)); // TCC is just raw PWM, no voltage compensating
 }
 
-uint16_t PressureManager::get_mpc_hold_adder(Clutch to_apply) {
+uint16_t PressureManager::get_targ_line_pressure(void) {
+    return this->req_line_pressure;
+}
+
+uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {
     uint16_t ret = 0;
-    if (this->hold2_pressure_map != nullptr) {
-        float load = (this->sensor_data->input_torque * 100.0) / gb_max_torque;
-        ret = hold2_pressure_map->get_value(load, (uint8_t)to_apply);
+    if (this->ss_1_2_open_time != 0 || this->ss_2_3_open_time != 0 || this->ss_3_4_open_time != 0) {
+        ret = this->req_mpc_clutch_pressure;
     }
     return ret;
 }
 
-uint16_t PressureManager::get_targ_mpc_pressure(){ return this->commanded_mpc_pressure; }
-uint16_t PressureManager::get_targ_spc_pressure(){ return this->commanded_spc_pressure; }
-uint16_t PressureManager::get_targ_tcc_pressure(){ return this->req_tcc_clutch_pressure; }
+uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {
+    // 0 if no shift circuits are open
+    uint16_t ret = 0;
+    if (this->ss_1_2_open_time != 0 || this->ss_2_3_open_time != 0 || this->ss_3_4_open_time != 0) {
+        ret = this->req_spc_clutch_pressure;
+    }
+    return ret;
+}
+
+uint16_t PressureManager::get_targ_mpc_solenoid_pressure(void) const {
+    return this->commanded_mpc_pressure;
+}
+
+uint16_t PressureManager::get_targ_spc_solenoid_pressure(void) const {
+    return this->commanded_spc_pressure;
+}
+
+uint16_t PressureManager::get_targ_tcc_pressure(void) const {
+    return this->req_tcc_clutch_pressure;
+}
+
+uint8_t PressureManager::get_active_shift_circuits(void) const {
+    uint8_t flg = 0;
+    if (this->ss_1_2_open_time != 0) {
+        flg |= (uint8_t)ShiftCircuit::sc_1_2;
+    }
+    if (this->ss_2_3_open_time != 0) {
+        flg |= (uint8_t)ShiftCircuit::sc_2_3;
+    }
+    if (this->ss_3_4_open_time != 0) {
+        flg |= (uint8_t)ShiftCircuit::sc_3_4;
+    }
+    return flg;
+}
+
 //uint16_t PressureManager::get_targ_line_pressure(){ return this->req_current_mpc; }
 
 StoredMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }

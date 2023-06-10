@@ -64,10 +64,13 @@ public:
     */
    void set_target_line_pressure(uint16_t targ);
 
-    //uint16_t get_targ_line_pressure(void);
-    uint16_t get_targ_mpc_pressure(void);
-    uint16_t get_targ_spc_pressure(void);
-    uint16_t get_targ_tcc_pressure(void);
+    uint16_t get_targ_line_pressure(void);
+    uint16_t get_targ_mpc_clutch_pressure(void) const;
+    uint16_t get_targ_spc_clutch_pressure(void) const;
+    uint16_t get_targ_mpc_solenoid_pressure(void) const;
+    uint16_t get_targ_spc_solenoid_pressure(void) const;
+    uint16_t get_targ_tcc_pressure(void) const;
+    uint8_t get_active_shift_circuits(void) const;
 
     /**
      * Force SPC solenoid to turn off
@@ -91,19 +94,12 @@ public:
     float get_tcc_temp_multiplier(int atf_temp);
 
     PrefillData make_fill_data(ProfileGearChange change);
-    //void make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
-    //void make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc);
     PressureStageTiming get_max_pressure_timing();
     StoredMap* get_pcs_map(void);
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_working_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
-    uint16_t get_max_rated_torque(void) {
-        return this->gb_max_torque;
-    }
-
-    uint16_t get_mpc_hold_adder(Clutch to_apply);
 private:
 
     void controller_loop();
@@ -112,15 +108,13 @@ private:
      * Returns the estimated PWM to send to either SPC or MPC solenoid
      * Based on the requested pressure that is needed withint either pressure rail.
      */
-    uint16_t get_p_solenoid_current(uint16_t request_mbar);
+    uint16_t get_p_solenoid_current(uint16_t request_mbar) const;
 
     /**
      * Returns the estimated PWM to send to the TCC solenoid
      * based on the requested pressure that is needed
      */
-    uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar);
-
-    void update_solenoid_pressures();
+    uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const;
 
     SensorData* sensor_data;
     // At the clutch

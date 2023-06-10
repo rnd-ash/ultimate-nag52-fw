@@ -72,8 +72,8 @@ RLI_33_DATA get_rli_33(EgsBaseCan* can_layer) {
     RLI_33_DATA ret = {};
     memset(&ret, 0x00, sizeof(RLI_33_DATA));
 
-    ret.mpc_pressure = flip_uint16_t(pressure_manager->get_targ_mpc_pressure());
-    ret.spc_pressure = flip_uint16_t(pressure_manager->get_targ_spc_pressure());
+    ret.mpc_pressure = flip_uint16_t(pressure_manager->get_targ_mpc_solenoid_pressure());
+    ret.spc_pressure = flip_uint16_t(pressure_manager->get_targ_spc_solenoid_pressure());
     ret.mpc_target_current = mpc_cc->get_current_target();
     ret.spc_target_current = spc_cc->get_current_target();
     ret.mpc_actual_current = flip_uint16_t(sol_mpc->get_current_avg());

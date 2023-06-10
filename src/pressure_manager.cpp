@@ -337,7 +337,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 }
 
 uint16_t PressureManager::get_targ_line_pressure(void) {
-    return this->req_line_pressure;
+    return 0; // Unimplemented this->req_line_pressure;
 }
 
 uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {

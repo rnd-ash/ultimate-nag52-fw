@@ -10,7 +10,8 @@
 
 typedef struct {
     uint16_t fill_time;
-    uint16_t fill_pressure;
+    uint16_t fill_pressure_on_clutch;
+    uint16_t fill_pressure_off_clutch;
 } PrefillData;
 
 typedef struct {

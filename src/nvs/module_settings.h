@@ -7,7 +7,7 @@
 
 // TCC Settings
 
-#define TCC_SETTINGS_NVS_KEY "TCC_A2"
+#define TCC_SETTINGS_NVS_KEY "TCC_A3"
 typedef struct {
     bool adapt_enable;
     bool enable_d1;
@@ -16,69 +16,47 @@ typedef struct {
     bool enable_d4;
     bool enable_d5;
     uint16_t prefill_pressure;
-    uint16_t lock_rpm_threshold;
     uint16_t min_locking_rpm;
-    uint16_t adjust_interval_ms;
+    uint16_t adapt_test_interval_ms;
     uint16_t tcc_stall_speed;
     uint16_t min_torque_adapt;
     uint16_t max_torque_adapt;
     uint16_t prefill_min_engine_rpm;
-    uint16_t base_pressure_offset_start_ramp;
-    LinearInterpSetting pressure_increase_ramp_settings;
-    uint8_t adapt_pressure_inc;
-    uint16_t adapt_lock_detect_time;
-    uint16_t pulling_slip_rpm_low_threshold;
-    uint16_t pulling_slip_rpm_high_threhold;
-    float reaction_torque_multiplier;
-    uint16_t trq_consider_coasting;
-    LinearInterpSetting load_dampening;
-    LinearInterpSetting pressure_multiplier_output_rpm; 
-    uint16_t max_allowed_bite_pressure;
-    uint16_t max_allowed_pressure_longterm;
+    uint16_t max_slip_max_adapt_trq;
+    uint16_t min_slip_max_adapt_trq;
+    uint16_t max_slip_min_adapt_trq;
+    uint16_t min_slip_min_adapt_trq;
+    uint8_t pressure_increase_step;
+    uint8_t adapt_pressure_step;
+    LinearInterpSetting pressure_multiplier_output_rpm;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_enable = true,
-    .enable_d1 = true,
+    .enable_d1 = false,
     .enable_d2 = true,
     .enable_d3 = true,
     .enable_d4 = true,
     .enable_d5 = true,
     .prefill_pressure = 500,
-    .lock_rpm_threshold = 50,
     .min_locking_rpm = 1100,
-    .adjust_interval_ms = 500,
+    .adapt_test_interval_ms = 1000,
     .tcc_stall_speed = 2500,
     .min_torque_adapt = 50,
     .max_torque_adapt = 110,
-    .prefill_min_engine_rpm = 900,
-    .base_pressure_offset_start_ramp = 300,
-    .pressure_increase_ramp_settings = {
-        .new_min = 1,
-        .new_max = 5,
-        .raw_min = 100,
-        .raw_max = 1000,
-    },
-    .adapt_pressure_inc = 10,
-    .adapt_lock_detect_time = 2000,
-    .pulling_slip_rpm_low_threshold = 20,
-    .pulling_slip_rpm_high_threhold = 100,
-    .reaction_torque_multiplier = 1.5,
-    .trq_consider_coasting = 40,
-    .load_dampening = {
-        .new_min = 100,
-        .new_max = 50,
-        .raw_min = -40,
-        .raw_max = 40,
-    },
+    .prefill_min_engine_rpm = 500,
+    .max_slip_max_adapt_trq = 100,
+    .min_slip_max_adapt_trq = 20,
+    .max_slip_min_adapt_trq = 50,
+    .min_slip_min_adapt_trq = 20,
+    .pressure_increase_step = 50,
+    .adapt_pressure_step = 20,
     .pressure_multiplier_output_rpm = {
         .new_min = 1.00,
         .new_max = 1.25,
         .raw_min = 1500,
         .raw_max = 2500,
     },
-    .max_allowed_bite_pressure = 1800,
-    .max_allowed_pressure_longterm = 7000,
 };
 
 #define SOL_SETTINGS_NVS_KEY "SOL_A0"
@@ -100,39 +78,26 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_temp_coefficient_wires = 0.393,
     .cc_reference_resistance = 5.3,
     .cc_reference_temp = 25,
-    .cc_max_adjust_per_step = 2
+    .cc_max_adjust_per_step = 2,
 };
 
-#define SBS_SETTINGS_NVS_KEY "SBS_A0"
+#define SBS_SETTINGS_NVS_KEY "SBS_A1"
 
 typedef struct {
-    uint16_t shift_solenoid_pwm_reduction_time;
     uint16_t delta_rpm_flare_detect;
+    uint16_t min_upshift_end_rpm;
     bool f_shown_if_flare;
-    bool torque_request_upshift;
-    bool torque_request_downshift;
-    bool upshift_use_driver_torque_as_input;
-    bool downshift_use_driver_torque_as_input;
-    uint16_t torque_request_downramp_percent;
-    uint16_t torque_request_hold_percent;
     LinearInterpSetting torque_reduction_factor_input_torque;
     LinearInterpSetting torque_reduction_factor_shift_speed;
-    uint16_t min_spc_delta_mpc;
     uint16_t stationary_shift_hold_time;
     uint16_t shift_timeout_pulling;
     uint16_t shift_timeout_coasting;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
-    .shift_solenoid_pwm_reduction_time = 1000,
     .delta_rpm_flare_detect = 20,
+    .min_upshift_end_rpm = 1000,
     .f_shown_if_flare = false,
-    .torque_request_upshift = true,
-    .torque_request_downshift = false,
-    .upshift_use_driver_torque_as_input = false,
-    .downshift_use_driver_torque_as_input = false,
-    .torque_request_downramp_percent = 25,
-    .torque_request_hold_percent = 50,
     .torque_reduction_factor_input_torque = {
         .new_min = 0.3,
         .new_max = 0.2,
@@ -145,7 +110,6 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
         .raw_min = 100,
         .raw_max = 1000,
     },
-    .min_spc_delta_mpc = 100,
     .stationary_shift_hold_time = 1000,
     .shift_timeout_pulling = 3000,
     .shift_timeout_coasting = 5000,
@@ -227,7 +191,7 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
     }
 };
 
-#define PRM_SETTINGS_NVS_KEY "PRM_A0"
+#define PRM_SETTINGS_NVS_KEY "PRM_A1"
 
 typedef struct {
     uint16_t max_spc_pressure;
@@ -235,7 +199,7 @@ typedef struct {
     uint16_t max_line_pressure;
     LinearInterpSetting engine_rpm_pressure_multi;
     float k1_pressure_multi;
-    
+    uint16_t shift_solenoid_pwm_reduction_time;
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
@@ -248,7 +212,8 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
         .raw_min = 1000,
         .raw_max = 6000,
     },
-    .k1_pressure_multi = 2.0
+    .k1_pressure_multi = 1.9,
+    .shift_solenoid_pwm_reduction_time = 1000,
 };
 
 #define ADP_SETTINGS_NVS_KEY "ADP_A1"

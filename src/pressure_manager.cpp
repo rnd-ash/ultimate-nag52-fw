@@ -3,6 +3,7 @@
 #include "solenoids/constant_current.h"
 #include "maps.h"
 #include "common_structs_ops.h"
+#include "nvs/module_settings.h"
 
 // inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
 //     if (percent <= 0) { return map[0]; }
@@ -108,13 +109,13 @@ void PressureManager::controller_loop() {
         // Deal with shift valves
         uint64_t now = this->sensor_data->current_timestamp_ms;
         // PWM reduction of shift solenoids if required
-        if (0 != ss_1_2_open_time && now - ss_1_2_open_time > 1000) {
+        if (0 != ss_1_2_open_time && now - ss_1_2_open_time > PRM_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
             sol_y3->write_pwm_12_bit(1024, true);
         }
-        if (0 != ss_2_3_open_time && now - ss_2_3_open_time > 1000) {
+        if (0 != ss_2_3_open_time && now - ss_2_3_open_time > PRM_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
             sol_y5->write_pwm_12_bit(1024, true);
         }
-        if (0 != ss_3_4_open_time && now - ss_3_4_open_time > 1000) {
+        if (0 != ss_3_4_open_time && now - ss_3_4_open_time > PRM_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
             sol_y4->write_pwm_12_bit(1024, true);
         }
         if (p_last_spc != this->commanded_spc_pressure) {
@@ -222,13 +223,16 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
     if (nullptr == this->hold2_time_map) {
         return PrefillData {
             .fill_time = 500,
-            .fill_pressure = 1500
+            .fill_pressure_on_clutch = 1500,
+            .fill_pressure_off_clutch = 1500,
         };
     } else {
         Clutch to_apply = get_clutch_to_apply(change);
+        Clutch to_release = get_clutch_to_release(change);
         return PrefillData {
             .fill_time = (uint16_t)hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
-            .fill_pressure = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_apply)
+            .fill_pressure_on_clutch = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_apply),
+            .fill_pressure_off_clutch = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_release)
         };
     }
 }

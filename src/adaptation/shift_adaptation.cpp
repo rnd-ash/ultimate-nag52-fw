@@ -151,7 +151,13 @@ bool ShiftAdaptationSystem::offset_cell_value(StoredMap* map, Clutch clutch, uin
         if (idx < this->prefill_pressure_offset_map->get_map_element_count()) {
             int16_t* data = this->prefill_pressure_offset_map->get_current_data();
             int16_t modify = data[idx] + offset;
-            ESP_LOGI("SHIFT", "Setting cell %d from %d to %d", idx, data[idx], modify);
+            if (modify < -200) {
+                ESP_LOGW("ADAPT", "Min positive prefill adaptation met");
+                modify = -200;
+            } else if (modify > 200) {
+                ESP_LOGW("ADAPT", "Max positive prefill adaptation met");
+                modify = 200;
+            }
             data[idx] = modify;
         }
     }
@@ -188,7 +194,7 @@ void ShiftAdaptationSystem::do_prefill_overlap_check(
             // Shift has now started, lets check the delta and timestamp (Only for longer shifts)
             if (this->expected_shift_time >= 500) {
                 // > 50% of overlap time gone by with no shifting
-                bool late_shifting = ((timestamp - this->overlap_start_time) > this->expected_shift_time/2);
+                bool late_shifting = false;//((timestamp - this->overlap_start_time) > this->expected_shift_time/2);
                 // Drop in RPM at the start of the shift was far too harsh
                 // 50%/200ms is perfect for 500ms, so any more than this, no matter the shift time is 'harsh'
                 bool harsh_shifting = (shift_progress_percent - this->last_shift_progress) > 40.0;

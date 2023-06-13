@@ -77,6 +77,7 @@ const char* LEGACY_EEPROM_KEYS[] = {
     "FILL_PRESS",
     "ADP_A0",
     "ADP_P_P",
+    "ADP_P_P0"
 };
 
 esp_err_t EEPROM::init_eeprom() {

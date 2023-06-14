@@ -533,17 +533,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
-                float s = scale_number(MAX(abs(sensor_data.static_torque), sensor_data.driver_requested_torque), 5, 30, 0, gearboxConfig.max_torque);
+                float s = scale_number(sensor_data.input_torque, 5, 30, 0, gearboxConfig.max_torque);
                 
                 if (shift_progress_percentage > 50) {
-                    float multi = scale_number(shift_progress_percentage-50.0, 1.0, 0.1, 0, 50.0); // Finish smoothly;
+                    float multi = scale_number(shift_progress_percentage-50.0, 1.0, 0.1, 0, 30.0); // Finish smoothly;
                     s *= multi;
                 }
                 spc_delta += s;
-                if (phase_elapsed > chars.target_shift_time*2) {
-                    spc_delta += 5; // 500mBar/sec
+                if (phase_elapsed > chars.target_shift_time && shift_progress_percentage < 25) {
+                    spc_delta += 10; // 1000mBar/sec
                 }
-                phase_targ_spc = 650+spc_delta;
+                phase_targ_spc = 800+spc_delta;
                 prev_spc = phase_targ_spc;
             }
 

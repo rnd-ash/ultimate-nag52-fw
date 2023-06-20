@@ -29,6 +29,7 @@
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
+#define RLI_CLUTCH_SPEEDS   0x29
 
 #define RLI_COREDUMP_PART_INFO  0x29 // Coredump size and address
 #define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
@@ -37,7 +38,6 @@
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
-
 // Gearbox sensor struct
 typedef struct {
     uint16_t n2_rpm; // Raw N2 RPM

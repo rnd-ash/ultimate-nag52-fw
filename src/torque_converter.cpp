@@ -104,12 +104,16 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // Safe to lock or slip
         if (this->target_tcc_state == InternalTccState::Open) {
             this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
-        } else if (this->target_tcc_state == InternalTccState::Slipping) {
-            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
-        } else { // Requesting lock
-            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0);
-            if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
-                this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
+        } else if (this->target_tcc_state == InternalTccState::Slipping || this->target_tcc_state == InternalTccState::Closed) {
+            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0); // Slip at max torque
+            //if (sensors->static_torque > TCC_CURRENT_SETTINGS.max_torque_adapt*1.5) {
+            //    this->tcc_pressure_target *= 1.0+((float)(sensors->static_torque-TCC_CURRENT_SETTINGS.max_torque_adapt)/((float)TCC_CURRENT_SETTINGS.max_torque_adapt*10));
+            //}
+            if (this->target_tcc_state == InternalTccState::Closed) { // Locked
+                if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
+                    this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
+                }
+                this->tcc_pressure_target *= 1.25;
             }
         }
     }

@@ -90,9 +90,11 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 void PressureManager::controller_loop() {
     uint16_t p_last_spc = 0;
     uint16_t p_last_mpc = 0;
+    int rpm;
     while(1) {
         this->commanded_spc_pressure = this->req_spc_clutch_pressure;
-        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure;
+        rpm = MAX(sensor_data->engine_rpm, sensor_data->input_rpm);
+        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure * scale_number(rpm, 1.0, 0.75, 1000, 6000);
         int max_spc = 7000;
         if (0 != this->ss_1_2_open_time) {
             // 1-2 circuit is open (Correct pressure) (2.0 is too low (failed shift), 1.8 is too harsh (Still rough shifting))

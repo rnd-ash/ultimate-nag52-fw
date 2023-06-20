@@ -7,6 +7,7 @@
 #include "adaptation/shift_adaptation.h"
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
+#include "sensors.h"
 
 typedef struct {
     uint16_t fill_time;
@@ -19,9 +20,21 @@ typedef struct {
     uint16_t ramp_time;
 } PressureStageTiming;
 
+struct __attribute__ ((packed)) ClutchSpeeds {
+    uint16_t turbine;
+    uint16_t k1;
+    uint16_t k2;
+    uint16_t k3;
+    uint16_t b1;
+    uint16_t b2;
+};
+
 class PressureManager {
 
 public:
+
+    ClutchSpeeds calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxConfiguration* cfg, uint16_t output_speed);
+
 
     [[noreturn]]
     static void start_pm_internal(void *_this) {
@@ -64,6 +77,8 @@ public:
      * @brief Sets the target for working line pressure (In gears)
     */
    void set_target_line_pressure(uint16_t targ);
+
+   uint16_t get_off_clutch_hold_pressure(Clutch c);
 
     uint16_t get_targ_line_pressure(void);
     uint16_t get_targ_mpc_clutch_pressure(void) const;

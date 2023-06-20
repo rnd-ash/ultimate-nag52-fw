@@ -215,7 +215,7 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
     }
 
     sd.bleed_data.ramp_time = 0;
-    sd.bleed_data.hold_time = 200;
+    sd.bleed_data.hold_time = 100;
     sd.bleed_pressure = 500;
     return sd;
 }
@@ -352,6 +352,58 @@ uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {
         ret = this->req_mpc_clutch_pressure;
     }
     return ret;
+}
+
+uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
+    uint16_t min_pressure = 0;
+    uint16_t pressure_from_trq;
+
+    switch(c) {
+        case Clutch::K1:
+            break;
+        case Clutch::K2:
+            break;
+        case Clutch::K3:
+            break;
+        case Clutch::B1:
+            break;
+        case Clutch::B2:
+        default:
+            break;
+    }
+    pressure_from_trq = 0;
+
+
+    return MAX(min_pressure, pressure_from_trq);
+}
+
+ClutchSpeeds PressureManager::calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxConfiguration* cfg, uint16_t output_speed) {
+    ClutchSpeeds cs = {};
+    float ratio_1 = cfg->bounds[0].ratio;
+    float ratio_2 = cfg->bounds[1].ratio;
+    float ratio_3 = cfg->bounds[2].ratio;
+
+    float k3_spd_r = ((ratio_2*(float)output_speed)-(float)raw->n2_raw)/(ratio_2-1.0);
+    
+    float b2_spd_r = ((ratio_3*(float)output_speed)-(float)raw->calc_rpm)/(ratio_3-1.0);
+
+    // In order front to back of gearbox
+    float b1_spd = raw->n3_raw;
+    float k1_spd = MAX(0, (float)raw->n2_raw-(float)raw->n3_raw);
+    float k2_spd = MAX(0, (float)raw->calc_rpm - (ratio_3*(float)output_speed));
+    float k3_spd = 0;
+    if (k3_spd_r != 0) {
+        k3_spd = MAX(0, (float)raw->n3_raw - k3_spd_r);
+    }
+    float b2_spd = MAX(0, b2_spd_r);
+
+    cs.turbine = raw->calc_rpm;
+    cs.b1 = b1_spd;
+    cs.b2 = b2_spd;
+    cs.k1 = k1_spd;
+    cs.k2 = k2_spd;
+    cs.k3 = k3_spd;
+    return cs;
 }
 
 uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {

@@ -25,6 +25,8 @@ static const int MIN_WORKING_RPM = 1000;
 class Gearbox {
 public:
     Gearbox(void);
+    // Diag test
+    ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
     void inc_subprofile(void);
     esp_err_t start_controller(void);
@@ -101,6 +103,7 @@ private:
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     ShiftAdaptationSystem* shift_adapter = nullptr;
+    int calc_torque_limit(ProfileGearChange change);
 
 };
 

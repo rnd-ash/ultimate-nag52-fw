@@ -1,5 +1,29 @@
 #include "tcu_maths.h"
 
+/**
+ * @brief Linear interpolate between 2 values
+ *
+ * @param start_value Start value (At time 0)
+ * @param end_value End target value (At `interp_duration` ms from start)
+ * @param current_elapsed The current elapsed time
+ * @param interp_duration Total duration for the interpolation
+ * @return int16_t interpolated current value
+ */
+float linear_interp(float start_value, float end_value, uint16_t current_elapsed, uint16_t interp_duration) {
+    float ret;
+    if (current_elapsed >= interp_duration) {
+        ret = end_value;
+    } else if (current_elapsed == 0) {
+        ret = start_value;
+    } else if (start_value == end_value) {
+        ret = start_value; // Same, no change
+    } else {
+        float step_size = (end_value-start_value) / (float)(interp_duration);
+        ret = start_value + (step_size*current_elapsed);
+    }
+    return ret;
+}
+
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max) {
     float raw_limited = MAX(raw_min, MIN(raw, raw_max));
     return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;

@@ -20,6 +20,8 @@ typedef struct {
     float raw_max;
 } __attribute__ ((packed)) LinearInterpSetting;
 
+float linear_interp(float start_value, float end_value, uint16_t current_elapsed, uint16_t interp_duration);
+
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
 float scale_number(float raw, LinearInterpSetting* settings);
 

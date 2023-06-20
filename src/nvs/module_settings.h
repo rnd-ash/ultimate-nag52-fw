@@ -243,8 +243,8 @@ const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .prefill_adapt_k3 = true,
     .prefill_adapt_b1 = true,
     .prefill_adapt_b2 = true,
-    .prefill_max_pressure_delta = 500,
-    .prefill_max_time_delta = 500,
+    .prefill_max_pressure_delta = 200,
+    .prefill_max_time_delta = 200,
 };
 
 // module settings

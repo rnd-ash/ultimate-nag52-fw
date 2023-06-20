@@ -168,6 +168,16 @@ struct GearRatioInfo {
 
 struct GearboxConfiguration{
     uint16_t max_torque;
+    /**
+     * At index
+     * 0 - 1st
+     * 1 - 2nd
+     * 2 - 3rd
+     * 3 - 4th
+     * 4 - 5th
+     * 5 - R1
+     * 6 - R2
+    */
     GearRatioInfo bounds[7];
 };
 

@@ -149,40 +149,59 @@ void err_beep_loop(void* a) {
     }
 }
 
+AbstractProfile* profile_from_auto_ty(AutoProfile prof) {
+    AbstractProfile* p = standard;
+    switch(prof) {
+        case AutoProfile::Sport:
+            p = standard;
+            break;
+        case AutoProfile::Agility:
+            p = agility;
+            break;
+        case AutoProfile::Winter:
+        case AutoProfile::Comfort:
+        default:
+            return comfort;
+    }
+    return p;
+}
+
 void input_manager(void*) {
-    bool pressed = false;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
-    bool last_switch_pos = egs_can_hal->get_shifter_ws_mode(esp_timer_get_time()/1000, 100);
+
+    uint64_t now = esp_timer_get_time()/1000;
+    bool last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
+    bool pressed = false;
+    uint8_t prof_idx = 0;
+    
+    if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
+        gearbox->set_profile(profile_from_auto_ty(last_mode ? ETS_CURRENT_SETTINGS.profile_idx_buttom : ETS_CURRENT_SETTINGS.profile_idx_top)); 
+    }
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
-        bool down = egs_can_hal->get_profile_btn_press(now, 100);
-        if (down) {
-            pressed = true;
-        } else { // Released
-            if (pressed) {
-                pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position(now, 1000) == ShifterPosition::PLUS) {
-                    gearbox->inc_subprofile();
-                } else {
-                    profile_id++;
-                    if (profile_id == NUM_PROFILES) {
-                        profile_id = 0;
-                    }
-                    gearbox->set_profile(profiles[profile_id]);  
+        if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
+            bool prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
+            // Switch based
+            if (prof_now != last_mode) {
+                prof_now = last_mode;
+                gearbox->set_profile(profile_from_auto_ty(last_mode ? ETS_CURRENT_SETTINGS.profile_idx_buttom : ETS_CURRENT_SETTINGS.profile_idx_top)); 
+            }
+        } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {
+            // EWM button
+            bool down = egs_can_hal->get_profile_btn_press(now, 100);
+            if (down && !pressed) {
+                // Pressed nutton, inc profile
+                prof_idx++;
+                if (prof_idx == NUM_PROFILES) {
+                    prof_idx = 0;
                 }
+                gearbox->set_profile(profiles[prof_idx]);
             }
-        }
-        // Check for W/S toggle - Reuse down variable
-        down = egs_can_hal->get_shifter_ws_mode(now, 100);
-        if (last_switch_pos != down) {
-            profile_id++;
-            if (profile_id == NUM_PROFILES) {
-                profile_id = 0;
-            }
-            gearbox->set_profile(profiles[profile_id]); 
-            last_switch_pos = down;
-        }
+            pressed = down;
+        } // Else - No profile button to process
+
+
         PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
         if (last_pos != paddle) { // Same position, ignore
             if (last_pos != PaddlePosition::None) {

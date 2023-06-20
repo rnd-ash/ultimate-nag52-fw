@@ -247,6 +247,35 @@ const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .prefill_max_time_delta = 200,
 };
 
+#define ETS_SETTINGS_NVS_KEY "ETS_A1"
+
+enum EwmSelectorType: uint8_t {
+    None = 0,
+    Button = 1,
+    Switch = 2
+};
+
+enum AutoProfile: uint8_t {
+    Sport = 0,
+    Comfort = 1,
+    Agility = 2,
+    Winter = 3
+};
+
+typedef struct {
+    bool trrs_has_profile_selector;
+    EwmSelectorType ewm_selector_type;
+    AutoProfile profile_idx_top;
+    AutoProfile profile_idx_buttom;
+} __attribute__ ((packed)) ETS_MODULE_SETTINGS;
+
+const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
+    .trrs_has_profile_selector = true,
+    .ewm_selector_type = EwmSelectorType::Button,
+    .profile_idx_top = AutoProfile::Comfort,
+    .profile_idx_buttom = AutoProfile::Sport
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
@@ -254,6 +283,7 @@ extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
 extern NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS;
 extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
+extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -262,6 +292,7 @@ extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 #define NAG_MODULE_SETTINGS_SCN_ID 0x04
 #define PRM_MODULE_SETTINGS_SCN_ID 0x05
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
+#define ETS_MODULE_SETTINGS_SCN_ID 0x07
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

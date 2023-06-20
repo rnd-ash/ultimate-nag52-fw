@@ -67,11 +67,19 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     } else {
         // See if we should slip or close
         if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
-            targ = InternalTccState::Slipping;
-            if (this->current_tcc_state >= InternalTccState::Slipping) {
-                // Now see if we can fully lock
-                if (sensors->pedal_pos != 0 && sensors->pedal_pos < 128) {
-                    targ = InternalTccState::Closed;
+            if (sensors->output_rpm > 1500 && sensors->pedal_pos == 0) {
+                    // Gliding. See if we are above 40mph (Approx 1500RPM output shaft speed),
+                    // Then open the TCC completely. When the gas pedal is pressed again, it will revert back to slipping
+                    // or closed TCC state
+                    // Now see if we can fully lock
+                targ = InternalTccState::Open; // Gliding mode
+            } else {
+                targ = InternalTccState::Slipping;
+                if (this->current_tcc_state >= InternalTccState::Slipping) {
+                    // Fore close at very high speeds
+                    if ((sensors->pedal_pos != 0 && sensors->pedal_pos < 128) || sensors->output_rpm > 2500) {
+                        targ = InternalTccState::Closed;
+                    }
                 }
             }
         } else {

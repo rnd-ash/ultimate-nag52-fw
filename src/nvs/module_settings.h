@@ -259,7 +259,9 @@ enum AutoProfile: uint8_t {
     Sport = 0,
     Comfort = 1,
     Agility = 2,
-    Winter = 3
+    Winter = 3,
+    Manual = 4,
+    Race = 5
 };
 
 typedef struct {

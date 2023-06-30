@@ -366,7 +366,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         uint32_t phase_elapsed = 0;
 
         int shift_progress_percentage = 0;
-
+        int shift_progress_percentage_engine = 0;
         int trq_now = sensor_data.static_torque;
         // Test - set trq req to trq/2 now preshift (prevent engine overrunning with TCC opening)
         int t_d_rpm = 10; // per 20ms (Changed when overlap phase begins)
@@ -450,6 +450,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Shift reporting
             if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) {
                 shift_progress_percentage =  MIN(MAX(progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear),0), 100);
+                shift_progress_percentage_engine = MIN(MAX(progress_between_targets(sensor_data.engine_rpm, rpm_current_gear, rpm_target_gear),0), 100);
                 if (is_upshift) { // Upshift
                     if (sensor_data.input_rpm > rpm_current_gear + SBS_CURRENT_SETTINGS.delta_rpm_flare_detect) { // Flaring, rpm increase
                         flaring = true;
@@ -475,9 +476,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 if (prefill_torque_requested != INT16_MAX) {
-                    prefill_torque_requested = calc_torque_limit(req_lookup);
-                    int trq = scale_number(shift_progress_percentage, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), prefill_torque_requested, 0, 100);
-                    this->set_torque_request(TorqueRequest::LessThan, trq);
+                    if (shift_progress_percentage_engine < 50) {
+                        prefill_torque_requested = calc_torque_limit(req_lookup);
+                        int trq = scale_number(shift_progress_percentage_engine, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), prefill_torque_requested, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThan, trq);
+                    } else {
+                        int trq = scale_number(shift_progress_percentage_engine-50, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThanFast, trq);
+                    }
                 }
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
@@ -486,6 +492,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     t = linear_interp(0.0, 100.0, phase_elapsed, phase_total_time);
                 }
                 shift_progress_percentage = MAX(t, shift_progress_percentage);
+                shift_progress_percentage_engine = shift_progress_percentage;
                 this->flaring = false;
                 adapting_shift = false; // Disable adaptation if RPM is too low
                 this->set_torque_request(TorqueRequest::None, 0); // And also torque requests
@@ -585,6 +592,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {
+                if (shift_progress_percentage > 50 && !tcc_completed) {
+                    this->tcc->on_shift_ending();
+                    tcc_completed = true;
+                }
                 if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) { // Confirmed shift!
                     if (shift_progress_percentage >= 95 || (phase_elapsed > chars.target_shift_time && sd.targ_g == this->est_gear_idx)) {
                         result = true;
@@ -628,11 +639,18 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 pressure_manager->set_target_spc_pressure(c);
                 this->mpc_working = linear_interp(start_mpc, MAX(current_mpc, pressure_manager->find_working_mpc_pressure(this->target_gear)), e, max_p_timings.ramp_time);
                 current_mpc = this->mpc_working;
-                //this->mpc_working = pressure_manager->find_working_mpc_pressure(this->target_gear);
-                // Finish torque request
-                if (curr_torq_request != 0 && curr_torq_request < sensor_data.driver_requested_torque) {
-                    // End target is always pedal torque
-                    this->set_torque_request(TorqueRequest::LessThanFast, linear_interp(curr_torq_request, sensor_data.driver_requested_torque, e, max_p_timings.ramp_time+max_p_timings.hold_time));
+
+                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm && prefill_torque_requested != UINT16_MAX) {
+                    int rpm_target_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->target_gear, &this->gearboxConfig);
+                    int rpm_current_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
+                    shift_progress_percentage =  MIN(MAX(progress_between_targets(sensor_data.input_rpm, rpm_current_gear, rpm_target_gear),0), 100);
+                    shift_progress_percentage_engine = MIN(MAX(progress_between_targets(sensor_data.engine_rpm, rpm_current_gear, rpm_target_gear),0), 100);
+                    int t_now = this->output_data.torque_req_amount;
+                    int trq_e = MAX(t_now, scale_number(shift_progress_percentage_engine-50, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 50));
+                    int trq_i = MAX(t_now, scale_number(shift_progress_percentage-50, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 50));
+                    int trq = linear_interp(MIN(trq_e, trq_i), MAX(trq_e, trq_i), e, max_p_timings.hold_time + max_p_timings.ramp_time);
+                    this->set_torque_request(TorqueRequest::LessThanFast, trq);
+                    // Dynamic calculation of torque request
                 } else {
                     this->set_torque_request(TorqueRequest::None, 0);
                 }
@@ -646,7 +664,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         sr.target_shift_speed = chars.target_shift_time;
         pressure_manager->set_spc_p_max();
         pressure_manager->set_shift_circuit(sd.shift_circuit, false);
-
         this->set_torque_request(TorqueRequest::None, 0);
         this->abort_shift = false;
         this->sensor_data.last_shift_time = sensor_data.current_timestamp_ms;

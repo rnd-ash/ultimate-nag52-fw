@@ -30,8 +30,8 @@ inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
         //this->rpm_samples = 1;
 }
 
-void TorqueConverter::on_shift_starting(void) {
-    this->shift_req_tcc_state = InternalTccState::Open;
+void TorqueConverter::on_shift_starting(InternalTccState target_state) {
+    this->shift_req_tcc_state = target_state;
 }
 
 void TorqueConverter::on_shift_ending(void) {
@@ -106,9 +106,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
         } else if (this->target_tcc_state == InternalTccState::Slipping || this->target_tcc_state == InternalTccState::Closed) {
             this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0); // Slip at max torque
-            //if (sensors->static_torque > TCC_CURRENT_SETTINGS.max_torque_adapt*1.5) {
-            //    this->tcc_pressure_target *= 1.0+((float)(sensors->static_torque-TCC_CURRENT_SETTINGS.max_torque_adapt)/((float)TCC_CURRENT_SETTINGS.max_torque_adapt*10));
-            //}
             if (this->target_tcc_state == InternalTccState::Closed) { // Locked
                 if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
                     this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);

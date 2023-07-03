@@ -103,7 +103,7 @@ private:
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     ShiftAdaptationSystem* shift_adapter = nullptr;
-    int calc_torque_limit(ProfileGearChange change);
+    int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
 
 };
 

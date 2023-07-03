@@ -93,20 +93,25 @@ void PressureManager::controller_loop() {
     int rpm;
     while(1) {
         this->commanded_spc_pressure = this->req_spc_clutch_pressure;
-        rpm = MAX(sensor_data->engine_rpm, sensor_data->input_rpm);
-        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure * scale_number(rpm, 1.0, 0.75, 1000, 6000);
-        int max_spc = 7000;
+        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure * scale_number(sensor_data->engine_rpm, 1.0, 0.75, 1000, 6000);
+        int max_spc = 7700;
         if (0 != this->ss_1_2_open_time) {
-            // 1-2 circuit is open (Correct pressure) (2.0 is too low (failed shift), 1.8 is too harsh (Still rough shifting))
-            // TODO - Store this val in MODULE SETTING
-            this->commanded_spc_pressure /= 1.9;
-            max_spc /= 1.9;
+            // 1-2 circuit is open (Correct pressure for K1)
+            // K1 is controlled by Shift pressure
+            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 5 && this->t_gear == 4)) {
+                this->commanded_spc_pressure /= 1.9;
+                max_spc /= 1.9;
+            } 
+            // K1 is controlled by Modulating pressure
+            else if ((this->c_gear == 2 && this->t_gear == 1) || (this->c_gear == 4 && this->t_gear == 5)) {
+                this->commanded_mpc_pressure = MAX(this->commanded_mpc_pressure / 1.9, 500);
+            }
         }
-        if (this->commanded_spc_pressure >= 7000) {
-            this->commanded_spc_pressure = 7000;
+        if (this->commanded_spc_pressure >= 7700) {
+            this->commanded_spc_pressure = 7700;
         }
-        if (this->commanded_mpc_pressure >= 7000) {
-            this->commanded_mpc_pressure = 7000;
+        if (this->commanded_mpc_pressure >= 7700) {
+            this->commanded_mpc_pressure = 7700;
         }
         // Deal with shift valves
         uint64_t now = this->sensor_data->current_timestamp_ms;
@@ -122,11 +127,19 @@ void PressureManager::controller_loop() {
         }
         if (p_last_spc != this->commanded_spc_pressure) {
             p_last_spc = this->commanded_spc_pressure;
-            spc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_spc_pressure));
+            if (this->commanded_spc_pressure >= 7700) {
+                spc_cc->set_target_current(0);
+            } else {
+                spc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_spc_pressure));
+            }
         }
         if (p_last_mpc != this->commanded_mpc_pressure) {
             p_last_mpc = this->commanded_mpc_pressure;
-            mpc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_mpc_pressure));
+            if (this->commanded_mpc_pressure >= 7700) {
+                mpc_cc->set_target_current(0);
+            } else {
+                mpc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_mpc_pressure));
+            }
         }
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
@@ -213,7 +226,8 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
             sd.shift_circuit = ShiftCircuit::sc_1_2;
             break;
     }
-
+    this->c_gear = sd.curr_g;
+    this->t_gear = sd.targ_g;
     sd.bleed_data.ramp_time = 0;
     sd.bleed_data.hold_time = 100;
     sd.bleed_pressure = 500;
@@ -306,6 +320,8 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
         manipulated = sol_y4;
         dest_timestamp = &ss_3_4_open_time;
     } else { // No shift circuit (placeholder)
+        this->t_gear = 0;
+        this->c_gear = 0;
         return;
     }
     // Firstly, check if new value is 0 (Close the solenoid!)

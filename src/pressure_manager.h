@@ -21,19 +21,19 @@ typedef struct {
 } PressureStageTiming;
 
 struct __attribute__ ((packed)) ClutchSpeeds {
-    uint16_t turbine;
-    uint16_t k1;
-    uint16_t k2;
-    uint16_t k3;
-    uint16_t b1;
-    uint16_t b2;
+    int16_t turbine;
+    int16_t k1;
+    int16_t k2;
+    int16_t k3;
+    int16_t b1;
+    int16_t b2;
 };
 
 class PressureManager {
 
 public:
 
-    ClutchSpeeds calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxConfiguration* cfg, uint16_t output_speed);
+    ClutchSpeeds calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxGear last_motion_gear, GearboxConfiguration* cfg, uint16_t output_speed);
 
 
     [[noreturn]]
@@ -106,8 +106,6 @@ public:
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
 
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
-    
-    float get_tcc_temp_multiplier(int atf_temp);
 
     PrefillData make_fill_data(ProfileGearChange change);
     PressureStageTiming get_max_pressure_timing();

@@ -5,18 +5,6 @@
 #include "common_structs_ops.h"
 #include "nvs/module_settings.h"
 
-// inline uint16_t locate_pressure_map_value(const pressure_map map, int percent) {
-//     if (percent <= 0) { return map[0]; }
-//     else if (percent >= 100) { return map[10]; }
-//     else {
-//         int min = percent/10;
-//         int max = min+1;
-//         float dy = map[max] - map[min];
-//         float dx = (max-min)*10;
-//         return (map[min] + ((dy/dx)) * (percent-(min*10)));
-//     }
-// }
-
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
     this->req_tcc_clutch_pressure = 0;
@@ -186,10 +174,6 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 
-float PressureManager::get_tcc_temp_multiplier(int atf_temp) {
-    return (float)scale_number(sensor_data->atf_temp, 100, 200, 40, 100) / 100.0;
-}
-
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
     ShiftData sd; 
     switch (shift_request) {
@@ -252,34 +236,6 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
         };
     }
 }
-
-/*
-void PressureManager::make_torque_and_overlap_data(ShiftPhase* dest_torque, ShiftPhase* dest_overlap, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    //int div = scale_number(abs(sensor_data->static_torque), 2, 5, 100, this->gb_max_torque);
-    dest_torque->hold_time = 0;
-    dest_torque->ramp_time = 0;
-    dest_overlap->ramp_time = (float)chars.target_shift_time;
-    dest_overlap->hold_time = 0;
-    uint16_t spc_addr =  MAX(100, abs(sensor_data->input_torque)*2.5); // 2mBar per Nm
-    dest_torque->mpc_pressure = 0;
-    dest_overlap->mpc_pressure = 0;
-    dest_torque->mpc_offset_mode = true;
-    dest_overlap->mpc_offset_mode = true;
-    dest_torque->spc_offset_mode = true;
-    dest_overlap->spc_offset_mode = true;
-    dest_torque->spc_pressure = 0;
-    dest_overlap->spc_pressure = spc_addr;
-}
-
-void PressureManager::make_max_p_data(ShiftPhase* dest, ShiftPhase* prev, ShiftCharacteristics chars, ProfileGearChange change, uint16_t curr_mpc) {
-    dest->ramp_time = 250;
-    dest->hold_time = scale_number(sensor_data->atf_temp, 1500, 100, -20, 30);
-    dest->spc_pressure = 7000;
-    dest->mpc_pressure = 0; // 0 offset
-    dest->spc_offset_mode = false;
-    dest->mpc_offset_mode = true;
-}
-*/
 
 PressureStageTiming PressureManager::get_max_pressure_timing() {
     return PressureStageTiming {
@@ -393,32 +349,60 @@ uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
     return MAX(min_pressure, pressure_from_trq);
 }
 
-ClutchSpeeds PressureManager::calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxConfiguration* cfg, uint16_t output_speed) {
-    ClutchSpeeds cs = {};
-    float ratio_1 = cfg->bounds[0].ratio;
+ClutchSpeeds PressureManager::calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxGear last_motion_gear, GearboxConfiguration* cfg, uint16_t output_speed) {
+    ClutchSpeeds cs = {0,0,0,0,0,0};
     float ratio_2 = cfg->bounds[1].ratio;
     float ratio_3 = cfg->bounds[2].ratio;
-
-    float k3_spd_r = ((ratio_2*(float)output_speed)-(float)raw->n2_raw)/(ratio_2-1.0);
-    
-    float b2_spd_r = ((ratio_3*(float)output_speed)-(float)raw->calc_rpm)/(ratio_3-1.0);
-
-    // In order front to back of gearbox
-    float b1_spd = raw->n3_raw;
-    float k1_spd = MAX(0, (float)raw->n2_raw-(float)raw->n3_raw);
-    float k2_spd = MAX(0, (float)raw->calc_rpm - (ratio_3*(float)output_speed));
-    float k3_spd = 0;
-    if (k3_spd_r != 0) {
-        k3_spd = MAX(0, (float)raw->n3_raw - k3_spd_r);
-    }
-    float b2_spd = MAX(0, b2_spd_r);
-
+    float ratio_4 = cfg->bounds[3].ratio;
+    float n2 = raw->n2_raw;
+    float n3 = raw->n3_raw;
+    float input = raw->calc_rpm;
+    // Calcualte B2 speed in all gears
+    // Otherwise, just calculate speed of on and off clutch packs (More accurate)
+    // Use the knowledge of known clutch application sequences to calculate speeds
+    // (Formula changes in each gear)
     cs.turbine = raw->calc_rpm;
-    cs.b1 = b1_spd;
-    cs.b2 = b2_spd;
-    cs.k1 = k1_spd;
-    cs.k2 = k2_spd;
-    cs.k3 = k3_spd;
+    // For neutral we have to know the last gear of the box (Maybe)
+    if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral) {
+        GearboxGear t_gear = last_motion_gear;
+        if (actual == GearboxGear::Neutral && target != GearboxGear::Neutral) {
+            t_gear = target;
+        }
+        if (t_gear == GearboxGear::First || t_gear == GearboxGear::Fifth) {
+            cs.b2 = (ratio_3*output_speed-input)/(ratio_3-ratio_4);
+        } else if (t_gear == GearboxGear::Second || t_gear == GearboxGear::Third) {
+            cs.b2 = 0;
+        } else if (t_gear == GearboxGear::Fourth) {
+            cs.b2 = input; // 1:1 as B2 is off but the rest of the gearbox is locked in 1:1
+        } else if (t_gear == GearboxGear::Reverse_First || t_gear == GearboxGear::Reverse_Second) {
+            cs.b2 = ((ratio_3 * output_speed) + input) / (ratio_3-ratio_4); // Same as R1/R2
+        }
+    } else if (target == actual) {
+        // Same gear
+        if (actual == GearboxGear::First || actual == GearboxGear::Second || actual == GearboxGear::Third) {
+            // B2 is at 0
+            cs.b2 = 0;
+        } else if (actual == GearboxGear::Fourth || actual == GearboxGear::Fifth) {
+            cs.b2 = ((ratio_3 * output_speed) - input) / (ratio_3-ratio_4);
+        } else if (actual == GearboxGear::Reverse_First || actual == GearboxGear::Reverse_Second) {
+            cs.b2 = ((ratio_3 * output_speed) + input) / (ratio_3-ratio_4);
+        }
+    } else {
+        if ((target == GearboxGear::First && actual == GearboxGear::Second) || (target == GearboxGear::Second && actual == GearboxGear::First) ||
+            (target == GearboxGear::Fourth && actual == GearboxGear::Fifth) || (target == GearboxGear::Fifth && actual == GearboxGear::Fourth)) { // 1-2 or 2-1 (or 4-5 / 5-4)
+            // 0 if in 1/2, but spinning in 4/5 or 5/4
+            cs.b2 = target == GearboxGear::Fourth || actual == GearboxGear::Fourth ? ((ratio_3*output_speed)-input)/(ratio_3-ratio_4) : 0;
+            cs.k1 = n2-n3;
+            cs.b1 = n3;
+        } else if ((target == GearboxGear::Second && actual == GearboxGear::Third) || (target == GearboxGear::Third && actual == GearboxGear::Second)) { // 2-3 or 3-2
+            cs.k3 = (ratio_3*((ratio_2*output_speed)-input))/(ratio_2-ratio_3);
+            cs.k2 = input - (ratio_3*output_speed);
+            cs.b2 = 0;
+        } else if ((target == GearboxGear::Third && actual == GearboxGear::Fourth) || (target == GearboxGear::Fourth && actual == GearboxGear::Third)) { // 3-4 or 4-3
+            cs.b2 = ((ratio_3*output_speed)-input)/(ratio_3-ratio_4);
+            cs.k3 = input - cs.b2;
+        }
+    }
     return cs;
 }
 

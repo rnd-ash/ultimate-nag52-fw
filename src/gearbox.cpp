@@ -280,7 +280,7 @@ GearboxGear prev_gear(GearboxGear g)
 #define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 
 ClutchSpeeds Gearbox::diag_get_clutch_speeds() {
-    return this->pressure_mgr->calculate_clutch_speeds(&this->rpm_reading, this->actual_gear, this->target_gear, &this->gearboxConfig, sensor_data.output_rpm);
+    return this->pressure_mgr->calculate_clutch_speeds(&this->rpm_reading, this->actual_gear, this->target_gear, this->last_motion_gear, &this->gearboxConfig, sensor_data.output_rpm);
 }
 
 ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {

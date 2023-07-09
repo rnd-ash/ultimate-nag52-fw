@@ -102,6 +102,7 @@ private:
     RpmReading rpm_reading;
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
+    GearboxGear last_motion_gear = GearboxGear::Second;
     ShiftAdaptationSystem* shift_adapter = nullptr;
     int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
 

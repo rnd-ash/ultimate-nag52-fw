@@ -59,13 +59,33 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
         if (actual == GearboxGear::Neutral && target != GearboxGear::Neutral) {
             t_gear = target;
         }
-        if (t_gear == GearboxGear::First || t_gear == GearboxGear::Second || t_gear == GearboxGear::Third) {
-            cs.b2 = 0;
+        if (t_gear == GearboxGear::First) {
+            cs.k1 = (int16_t)input.n2_raw - (int16_t)input.n3_raw;
+            cs.b1 = 0;
+            cs.b2 = input.calc_rpm;
+        } else if (t_gear == GearboxGear::Second) {
+            cs.k1 = 0;
+            cs.b1 = input.calc_rpm;
+            cs.b2 = input.calc_rpm;
+        } else if (t_gear == GearboxGear::Third) {
+            cs.k1 = 0;
+            cs.b1 = input.calc_rpm;
+            cs.b2 = input.calc_rpm;
         } else if (t_gear == GearboxGear::Fourth) {
+            cs.k1 = 0;
+            cs.b1 = input.calc_rpm;
             cs.b2 = input.calc_rpm;
         } else if (t_gear == GearboxGear::Fifth) {
+            cs.k1 = 0;
+            cs.b1 = input.calc_rpm;
             cs.b2 = get_speed_long_eq(output_speed, input, ratios[RAT_3_IDX].ratio, ratios[RAT_4_IDX].ratio);
-        } else if (t_gear == GearboxGear::Reverse_First || t_gear == GearboxGear::Reverse_Second) {
+        } else if (t_gear == GearboxGear::Reverse_First) {
+            cs.k1 = (int16_t)input.n2_raw - (int16_t)input.n3_raw;
+            cs.b1 = 0;
+            cs.b2 = get_speed_long_eq(output_speed, input, ratios[RAT_3_IDX].ratio, ratios[RAT_4_IDX].ratio, true);
+        } else if (t_gear == GearboxGear::Reverse_Second) {
+            cs.k1 = 0;
+            cs.b1 = input.calc_rpm;
             cs.b2 = get_speed_long_eq(output_speed, input, ratios[RAT_3_IDX].ratio, ratios[RAT_4_IDX].ratio, true);
         }
     } else if (target == actual) {

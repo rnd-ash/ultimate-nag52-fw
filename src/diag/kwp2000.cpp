@@ -8,6 +8,7 @@
 #include "solenoids/constant_current.h"
 #include "map_editor.h"
 #include "esp_mac.h"
+#include "models/clutch_speed.hpp"
 
 typedef struct {
     uint8_t day;

@@ -7,8 +7,6 @@
 #include "speaker.h"
 #include "esp_timer.h"
 
-uint16_t Gearbox::redline_rpm = 4000;
-
 #define max(a, b)           \
     ({                      \
         typeof(a) _a = (a); \
@@ -17,7 +15,7 @@ uint16_t Gearbox::redline_rpm = 4000;
     })
 
 // ONLY FOR FORWARD GEARS!
-int calc_input_rpm_from_req_gear(int output_rpm, GearboxGear req_gear, GearboxConfiguration* gb_config)
+int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gear, const GearboxConfiguration* gb_config)
 {
     int calculated = output_rpm;
     switch (req_gear)
@@ -280,7 +278,14 @@ GearboxGear prev_gear(GearboxGear g)
 #define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 
 ClutchSpeeds Gearbox::diag_get_clutch_speeds() {
-    return this->pressure_mgr->calculate_clutch_speeds(&this->rpm_reading, this->actual_gear, this->target_gear, this->last_motion_gear, &this->gearboxConfig, sensor_data.output_rpm);
+    return ClutchSpeedModel::get_clutch_speeds_debug(
+        sensor_data.output_rpm,
+        this->rpm_reading,
+        this->last_motion_gear,
+        this->actual_gear,
+        this->target_gear,
+        this->gearboxConfig.bounds
+    );
 }
 
 ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
@@ -541,10 +546,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 float step_adder = scale_number(abs(sensor_data.static_torque), 2, 30, 0, gearboxConfig.max_torque);
                 step_adder *= scale_number(chars.target_shift_time, 1.0, 3.0, 1000, 100);
-                step_adder *= scale_number(shift_progress_percentage, 1.0, 0.5, 50.0, 100.0);
-                if (shift_progress_percentage < 5) {
-                    step_adder *= scale_number(phase_elapsed, 2.0, 1.0, 0, chars.target_shift_time);
-                }
+                step_adder *= scale_number(shift_progress_percentage, 2.0, 1.0, 0.0, 20.0);
                 //if (phase_elapsed > chars.target_shift_time && shift_progress_percentage < 10) {
                 //    step_adder = 15; // 1000mBar/sec
                 //}
@@ -1089,7 +1091,7 @@ void Gearbox::controller_loop()
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
                         // Second gear shift defaults to OK as we can safely start in second (For C/W mode)
-                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > MIN_WORKING_RPM + 100)
+                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > TCC_CURRENT_SETTINGS.min_locking_rpm + 100)
                         {
                             this->target_gear = next;
                         }

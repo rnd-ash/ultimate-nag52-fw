@@ -17,10 +17,7 @@
 #include "adaptation/shift_report.h"
 #include "models/input_torque.hpp"
 #include "adaptation/shift_adaptation.h"
-
-// TODO Auto-set these based on CAN data about engine type
-// 4000 is safe for now as it stops us over-revving diesel!
-static const int MIN_WORKING_RPM = 1000;
+#include "models/clutch_speed.hpp"
 
 class Gearbox {
 public:
@@ -39,7 +36,7 @@ public:
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
-    static uint16_t redline_rpm;
+    uint16_t redline_rpm;
     ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;

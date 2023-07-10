@@ -20,22 +20,9 @@ typedef struct {
     uint16_t ramp_time;
 } PressureStageTiming;
 
-struct __attribute__ ((packed)) ClutchSpeeds {
-    int16_t turbine;
-    int16_t k1;
-    int16_t k2;
-    int16_t k3;
-    int16_t b1;
-    int16_t b2;
-};
-
 class PressureManager {
 
 public:
-
-    ClutchSpeeds calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxGear last_motion_gear, GearboxConfiguration* cfg, uint16_t output_speed);
-
-
     [[noreturn]]
     static void start_pm_internal(void *_this) {
         static_cast<PressureManager*>(_this)->controller_loop();

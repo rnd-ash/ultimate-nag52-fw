@@ -195,37 +195,18 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
     dest->n2_raw = (n2_total*(50/2))/RPM_SAMPLES_DEBOUNCE; // /2 as we are counting both high and low edge, so we get 2x the number of pulses as teeth
     dest->n3_raw = (n3_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
     
-    if (dest->n2_raw < 60 && dest->n3_raw < 60)
-    { // Stationary ( < 1rpm ), break here to avoid divideBy0Ex, and also noise
-        dest->calc_rpm = 0;
+    float f2 = (float)dest->n2_raw;
+    float f3 = (float)dest->n3_raw;
+    float c = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
+    if (c < 0) {
+        c = 0;
     }
-    else if (dest->n2_raw == 0)
-    { // In gears R1 or R2 (as N2 is 0)
-        dest->calc_rpm = dest->n3_raw;
-    }
-    else
-    {
-        if (abs((int)dest->n2_raw - (int)dest->n3_raw) < 10)
-        {
-            dest->calc_rpm = (dest->n2_raw + dest->n3_raw) / 2;
-        } else {
-            // More difficult calculation for all forward gears
-            // This calculation works when both RPM sensors are the same (Gears 2,3,4)
-            // Or when N3 is 0 and N2 is reporting ~0.61x real Rpm (Gears 1 and 5)
-            // Also nicely handles transitionary phases between RPM readings, making gear shift RPM readings
-            // a lot more accurate for the rest of the TCM code
+    dest->calc_rpm = c;
 
-            float f2 = (float)dest->n2_raw;
-            float f3 = (float)dest->n3_raw;
-
-            dest->calc_rpm = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
-
-            // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
-            // otherwise we have a faulty conductor place sensor!
-            if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 150) {
-                res = ESP_ERR_INVALID_STATE;
-            }
-        }
+    // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
+    // otherwise we have a faulty conductor place sensor!
+    if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 150) {
+        res = ESP_ERR_INVALID_STATE;
     }
     return res;
 }

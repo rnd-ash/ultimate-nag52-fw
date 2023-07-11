@@ -7,6 +7,8 @@
 #include "speaker.h"
 #include "esp_timer.h"
 
+#define SBS SBS_CURRENT_SETTINGS
+
 #define max(a, b)           \
     ({                      \
         typeof(a) _a = (a); \
@@ -305,8 +307,8 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
 
 int Gearbox::calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms) {
     float ped_trq = MAX(sensor_data.driver_requested_torque, sensor_data.static_torque);
-    float multi_reduction = scale_number(ped_trq, &SBS_CURRENT_SETTINGS.torque_reduction_factor_input_torque);
-    multi_reduction *= scale_number(shift_speed_ms, &SBS_CURRENT_SETTINGS.torque_reduction_factor_shift_speed);
+    float multi_reduction = scale_number(ped_trq, &SBS.torque_reduction_factor_input_torque);
+    multi_reduction *= scale_number(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed);
     int restricted = ped_trq - (ped_trq*multi_reduction);
     if (restricted > gearboxConfig.max_torque/2) {
         restricted = gearboxConfig.max_torque/2;
@@ -454,13 +456,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (cs.on_clutch_speed == 0 && shifting_velocity.on_clutch_vel == 0) {
                         detected_shift_done_clutch_progress = true;
                     }
-                    if (chars.target_shift_time >= 500 && shift_progress_percentage > 0) {
+                    if (shift_progress_percentage > 0) {
                         // Evaluate smooth shifting
-                        p_multi = scale_number(shifting_velocity.on_clutch_vel, 2.0, 0.5, target_c_on / 2, target_c_on * 2);
-                        if (p_multi > 2.0) {
-                            p_multi = 2.0;
-                        } else if (p_multi < 0.5) {
-                            p_multi = 0.5;
+                        p_multi = scale_number(shifting_velocity.on_clutch_vel, SBS.smooth_shifting_spc_multi_too_slow, SBS.smooth_shifting_spc_multi_too_fast, target_c_on / 2, target_c_on * 2);
+                        if (p_multi > SBS.smooth_shifting_spc_multi_too_slow) {
+                            p_multi = SBS.smooth_shifting_spc_multi_too_slow;
+                        } else if (p_multi < SBS.smooth_shifting_spc_multi_too_fast) {
+                            p_multi = SBS.smooth_shifting_spc_multi_too_fast;
                         }
                     }
                 }
@@ -473,11 +475,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                 if (prefill_torque_requested != INT16_MAX) {
                     prefill_torque_requested = calc_torque_limit(req_lookup, chars.target_shift_time);
-                    if (shift_progress_percentage < 50) {
-                        int trq = scale_number(shift_progress_percentage, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested, 0, 50);
+                    int max_reduction_when = is_upshift ? SBS.upshift_trq_max_reduction_at : SBS.downshift_trq_max_reduction_at;
+                    if (shift_progress_percentage < max_reduction_when) {
+                        int trq = scale_number(shift_progress_percentage, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested, 0, max_reduction_when);
                         this->set_torque_request(TorqueRequest::LessThanFast, trq);
                     } else {
-                        int trq = scale_number(shift_progress_percentage - 50.0, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 50);
+                        int trq = scale_number(shift_progress_percentage - max_reduction_when, prefill_torque_requested, sensor_data.driver_requested_torque, 0, max_reduction_when);
                         this->set_torque_request(TorqueRequest::LessThanFast, trq);
                     }
                 }
@@ -527,7 +530,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     // Calculate target D_RPM
                     //t_d_rpm = (rpm_target_gear-rpm_current_gear)/(chars.target_shift_time/100.0);
                     //ESP_LOGI("SHIFT", "RPM should change by %d/100ms for target shift speed", t_d_rpm);
-                    phase_total_time = (chars.target_shift_time*2)+SBS_CURRENT_SETTINGS.shift_timeout_coasting; //(No ramping) (Worse case time)
+                    phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     phase_x_ramp_time = 0;
                     spc_delta = 0;
                     phase_targ_spc = prefill_data.fill_pressure_on_clutch;
@@ -567,8 +570,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (prefill_adapt_flags == 0) { // Adapt1ing (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
-                float step_adder = scale_number(abs(sensor_data.static_torque), 2, 30, 0, gearboxConfig.max_torque);
-                step_adder *= scale_number(chars.target_shift_time, 1.0, 5.0, 500, 100);
+                float step_adder = scale_number(abs(sensor_data.static_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);
+                step_adder *= scale_number(chars.target_shift_time, &SBS.spc_multi_overlap_shift_speed);
                 step_adder *= p_multi;
                 phase_targ_spc += step_adder;
             }
@@ -594,10 +597,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
                     result = true;
                     process_shift = false;
-                } else if (!coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_pulling, phase_total_time*2) < phase_elapsed) { // TIMEOUT
+                } else if (!coasting_shift && MAX(SBS.shift_timeout_pulling, phase_total_time*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
-                } else if (coasting_shift && MAX(SBS_CURRENT_SETTINGS.shift_timeout_coasting, phase_total_time*2) < phase_elapsed) { // TIMEOUT
+                } else if (coasting_shift && MAX(SBS.shift_timeout_coasting, phase_total_time*2) < phase_elapsed) { // TIMEOUT
                     result = false;
                     process_shift = false;
                 }
@@ -735,9 +738,9 @@ void Gearbox::shift_thread()
                 }
                 if (sensor_data.engine_rpm > 1000) {
                     elapsed_waiting_engine += 10;
-                    if (elapsed_waiting_engine == 500) {
+                    if (elapsed_waiting_engine == SBS.garage_shift_max_timeout_engine) {
                         ESP_LOGW("SHIFT", "Garage shift timeout waiting for engine to slow down, shift may be harsh");
-                    } else if (elapsed_waiting_engine < 500) {
+                    } else if (elapsed_waiting_engine < SBS.garage_shift_max_timeout_engine) {
                         vTaskDelay(10);
                         continue;   
                     }
@@ -1363,7 +1366,7 @@ void Gearbox::controller_loop()
         if (this->current_profile != nullptr)
         {
             egs_can_hal->set_drive_profile(this->current_profile->get_profile());
-            if (this->flaring && SBS_CURRENT_SETTINGS.f_shown_if_flare)
+            if (this->flaring && SBS.f_shown_if_flare)
             {
                 // Takes president
                 egs_can_hal->set_display_msg(GearboxMessage::None);
@@ -1371,7 +1374,7 @@ void Gearbox::controller_loop()
             }
             else
             {
-                if (this->current_profile == race && this->fwd_gear_shift) {
+                if (this->current_profile == race && this->fwd_gear_shift && SBS.debug_show_up_down_arrows_in_r) {
                     egs_can_hal->set_display_msg(this->is_upshift ? GearboxMessage::Upshift : GearboxMessage::Downshift);
                 } else {
                     egs_can_hal->set_display_msg(GearboxMessage::None);

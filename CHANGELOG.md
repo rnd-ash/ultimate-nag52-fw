@@ -20,6 +20,7 @@
 * Finally, smoother N-D gear engagement, however **Shifting into reverse is STILL rough**
 * EGS53 - Fixed display showing 1st when in 5th gear
 * Modified Input speed calculation algorithm to not use a fixed multiplier when in 1st or 5th
+* Add settings to configure push button on shifter / TRRS
 ## Modified
 * Disable TCC in 1st gear by default
 * Update to PIO ESP Framework 6.3.2

@@ -414,7 +414,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         ShiftClutchData pre_cs = ClutchSpeedModel::get_shifting_clutch_speeds(sensor_data.output_rpm, this->rpm_reading, req_lookup, this->gearboxConfig.bounds);
         ShiftClutchData old_cs = pre_cs;
         bool detected_shift_done_clutch_progress = false;
-        int target_c_on = pre_cs.on_clutch_speed / (chars.target_shift_time);
+        int target_c_on = pre_cs.on_clutch_speed / MAX(100, chars.target_shift_time);
         while(process_shift) {
             bool resistive_shift = false;
             if (is_upshift && sensor_data.static_torque > 0) {
@@ -433,7 +433,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Grab ratio informations
             int wp_current_gear = pressure_manager->find_working_mpc_pressure(this->actual_gear);
             bool coasting_shift = 0 > sensor_data.static_torque;
-
+            int p_multi = 1.0;
             // Shift reporting
             if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) {
                 ShiftClutchData cs = ClutchSpeedModel::get_shifting_clutch_speeds(sensor_data.output_rpm, this->rpm_reading, req_lookup, this->gearboxConfig.bounds);
@@ -444,7 +444,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else {
                     flaring = false;
                 }
-
+                if (shift_progress_percentage == 0) {
+                    target_c_on = pre_cs.on_clutch_speed / MAX(100, chars.target_shift_time);
+                }
                 if (total_elapsed % 100 == 0) {
                     shifting_velocity.on_clutch_vel = cs.on_clutch_speed - old_cs.on_clutch_speed;
                     shifting_velocity.off_clutch_vel = cs.off_clutch_speed - old_cs.off_clutch_speed;
@@ -452,9 +454,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (cs.on_clutch_speed == 0 && shifting_velocity.on_clutch_vel == 0) {
                         detected_shift_done_clutch_progress = true;
                     }
-                    if (chars.target_shift_time >= 500) {
+                    if (chars.target_shift_time >= 500 && shift_progress_percentage > 0) {
                         // Evaluate smooth shifting
-
+                        p_multi = scale_number(shifting_velocity.on_clutch_vel, 2.0, 0.5, target_c_on / 2, target_c_on * 2);
+                        if (p_multi > 2.0) {
+                            p_multi = 2.0;
+                        } else if (p_multi < 0.5) {
+                            p_multi = 0.5;
+                        }
                     }
                 }
                 if (flaring && sr.detect_flare_ts == 0) {
@@ -466,8 +473,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                 if (prefill_torque_requested != INT16_MAX) {
                     prefill_torque_requested = calc_torque_limit(req_lookup, chars.target_shift_time);
-                    int trq = scale_number(shift_progress_percentage, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested, 0, 100);
-                    this->set_torque_request(TorqueRequest::LessThanFast, trq);
+                    if (shift_progress_percentage < 50) {
+                        int trq = scale_number(shift_progress_percentage, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThanFast, trq);
+                    } else {
+                        int trq = scale_number(shift_progress_percentage - 50.0, prefill_torque_requested, sensor_data.driver_requested_torque, 0, 50);
+                        this->set_torque_request(TorqueRequest::LessThanFast, trq);
+                    }
                 }
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
@@ -520,6 +532,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     spc_delta = 0;
                     phase_targ_spc = prefill_data.fill_pressure_on_clutch;
                     prev_spc = prefill_data.fill_pressure_on_clutch;
+                    if (req_lookup == ProfileGearChange::FIVE_FOUR || req_lookup == ProfileGearChange::THREE_TWO) {
+                        phase_targ_spc = 2.0*prefill_data.fill_pressure_on_clutch;
+                        prev_spc = 2.0 * prefill_data.fill_pressure_on_clutch;;
+                    } else if (req_lookup == ProfileGearChange::TWO_ONE) {
+                        prev_spc = 0.8 * prefill_data.fill_pressure_on_clutch;
+                        phase_targ_spc = 0.8 * prefill_data.fill_pressure_on_clutch;
+                    }
                 }
             }
             
@@ -538,19 +557,19 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch/2.0);
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
-                phase_targ_spc = prev_spc = prefill_data.fill_pressure_on_clutch/2.0;
-                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch/4.0);
+                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch/2.0);
+                phase_targ_spc = prev_spc = MAX(prefill_data.fill_pressure_on_clutch/2.0, wp_current_gear / 2);
                 trq_mpc = phase_targ_mpc;
             } else if (current_stage == ShiftStage::Overlap) {
                 // TODO MPC behaviour should change depending on resistance of releasing clutch
-                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time*2.0);
+                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time*2.0) + (phase_targ_spc/2);
                 // To adjust on the fly in realtime, we have to modify both target and prev
                 if (prefill_adapt_flags == 0) { // Adapt1ing (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
                 float step_adder = scale_number(abs(sensor_data.static_torque), 2, 30, 0, gearboxConfig.max_torque);
-                step_adder *= scale_number(chars.target_shift_time, 1.0, 3.0, 1000, 100);
-                step_adder *= scale_number(shift_progress_percentage, 2.0, 1.0, 0.0, 20.0);
+                step_adder *= scale_number(chars.target_shift_time, 1.0, 5.0, 500, 100);
+                step_adder *= p_multi;
                 phase_targ_spc += step_adder;
             }
 
@@ -566,14 +585,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {
-                //if (shift_progress_percentage > 50 && !tcc_completed) {
-                //    this->tcc->on_shift_ending();
-                //    tcc_completed = true;
-                //}
                 if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) { // Confirmed shift!
-                    //if (shift_progress_percentage >= 95 || (phase_elapsed > chars.target_shift_time && sd.targ_g == this->est_gear_idx)) {
-                    //    confirm_ticks += 1;
-                    //}
                     if (detected_shift_done_clutch_progress) {
                         result = true;
                         process_shift = false;
@@ -701,6 +713,7 @@ void Gearbox::shift_thread()
                 mpc = 300;
                 spc = 400;
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
+                this->pressure_mgr->set_spc_p_max();
             } else {
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             }
@@ -710,7 +723,9 @@ void Gearbox::shift_thread()
             int elapsed = 0;
             int step_mpc = 4;
             int step_spc = 2;
-            pressure_mgr->set_target_spc_pressure(spc);
+            if (!into_reverse) {
+                pressure_mgr->set_target_spc_pressure(spc);
+            }
             pressure_mgr->set_target_mpc_pressure(mpc);
             int elapsed_waiting_engine = 0;
             while(true) {
@@ -754,9 +769,7 @@ void Gearbox::shift_thread()
                     }
                 }
                 pressure_mgr->set_target_mpc_pressure(mpc);
-                if (elapsed < 50 && into_reverse) {
-                    pressure_mgr->set_target_spc_pressure(50);
-                } else {
+                if (!into_reverse) {
                     pressure_mgr->set_target_spc_pressure(spc);
                 }
 

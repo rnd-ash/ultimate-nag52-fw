@@ -677,7 +677,8 @@ void Gearbox::shift_thread()
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target))
     { // N->P or P->N
         this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
-        sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
+        this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+        //sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
         goto cleanup;
@@ -688,40 +689,104 @@ void Gearbox::shift_thread()
         bool activate_y3 = false;
         if (is_controllable_gear(curr_target))
         {
+            bool into_reverse = this->shifter_pos == ShifterPosition::P_R || this->shifter_pos == ShifterPosition::R || this->shifter_pos == ShifterPosition::R_N;
             // N/P -> R/D
             // Defaults (Start in 2nd)
             egs_can_hal->set_garage_shift_state(true);
-            uint16_t spc = 600;
-            activate_y3 = is_fwd_gear(curr_target) && !start_second && (last_fwd_gear == GearboxGear::First ||last_fwd_gear == GearboxGear::Second);
+            // Default for D
+            int mpc = 1500;
+            int spc = 500;
+            if (into_reverse) {
+                mpc = 300;
+                spc = 400;
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
+            } else {
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+            }
+            bool completed_ok = false;
+            this->shifting_velocity = {0,0};
+            int old_turbine_speed = this->rpm_reading.calc_rpm;
+            int elapsed = 0;
+            int step_mpc = 4;
+            int step_spc = 2;
             pressure_mgr->set_target_spc_pressure(spc);
-            vTaskDelay(100);
-            if (activate_y3) { sol_y3->write_pwm_12_bit(4096); }
-            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
-            uint16_t elapsed = 0;
-            this->mpc_working = 1000;
-            while (elapsed <= 250)
-            {
-                pressure_mgr->set_target_spc_pressure(spc);
-                elapsed += 20;
-                vTaskDelay(10 / portTICK_PERIOD_MS);
-            }
-            if (activate_y3) { sol_y3->write_pwm_12_bit(1024); }
-            while (spc <= this->mpc_working) {
-                pressure_mgr->set_target_spc_pressure(spc);
-                spc+=10;
+            pressure_mgr->set_target_mpc_pressure(mpc);
+            int elapsed_waiting_engine = 0;
+            while(true) {
+                if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
+                    completed_ok = false;
+                    break;
+                }
+                if (sensor_data.engine_rpm > 1000) {
+                    elapsed_waiting_engine += 10;
+                    if (elapsed_waiting_engine == 500) {
+                        ESP_LOGW("SHIFT", "Garage shift timeout waiting for engine to slow down, shift may be harsh");
+                    } else if (elapsed_waiting_engine < 500) {
+                        vTaskDelay(10);
+                        continue;   
+                    }
+                }
+                // To activate B3 if true, otherwise B2
+                int t_mpc = pressure_manager->find_working_mpc_pressure(curr_target);
+                int turbine = this->rpm_reading.calc_rpm;
+                if (elapsed % 100 == 0) {
+                    // Calc RPM
+                    this->shifting_velocity.on_clutch_vel = old_turbine_speed - turbine;
+                    old_turbine_speed = turbine;
+                    if (this->shifting_velocity.on_clutch_vel < 20 && elapsed > 500) {
+                        if (into_reverse) {
+                            step_mpc += 1;
+                        }
+                        step_spc += 1;
+                    } else if (this->shifting_velocity.on_clutch_vel > 60) {
+                        if (into_reverse) {
+                            step_mpc -= 1;
+                        }
+                        step_spc -= 1;
+                    }
+                }
+                mpc += step_mpc;
+                spc += step_spc;
+                if (!into_reverse) {
+                    if (mpc > t_mpc*3) {
+                        mpc = t_mpc*3;
+                    }
+                }
+                pressure_mgr->set_target_mpc_pressure(mpc);
+                if (elapsed < 50 && into_reverse) {
+                    pressure_mgr->set_target_spc_pressure(50);
+                } else {
+                    pressure_mgr->set_target_spc_pressure(spc);
+                }
+
+                if (turbine <= 50+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
+                    completed_ok = true;
+                    break;
+                }
                 vTaskDelay(10);
+                elapsed += 10;
             }
-            vTaskDelay(250);
-            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
-            if (activate_y3) { sol_y3->write_pwm_12_bit(0); }
-            pressure_mgr->set_spc_p_max();
+            this->shifting_velocity = {0,0};
+            if (!completed_ok) {
+                ESP_LOGW("SHIFT", "Garage shift aborted");
+                curr_target = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
+                curr_actual = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
+                pressure_mgr->set_target_spc_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+            } else {
+                // Shut down the 3-4 SS
+                ESP_LOGI("SHIFT", "Garage shift completed OK after %d ms", elapsed);
+                pressure_mgr->set_spc_p_max();
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
+            }
             egs_can_hal->set_garage_shift_state(false);
         }
         else
         {
             // Garage shifting to N or P, we can just set the pressure back to idle
             pressure_mgr->set_target_spc_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
-            sol_y4->write_pwm_12_bit(1024); // Back to idle
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+            //sol_y4->write_pwm_12_bit(1024); // Back to idle
         }
         if (is_fwd_gear(curr_target))
         {
@@ -975,7 +1040,8 @@ void Gearbox::controller_loop()
         {
             if (lock_state) {
                 this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
-                sol_y4->write_pwm_12_bit(1024);
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+                //sol_y4->write_pwm_12_bit(1024);
             }
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position(now, 1000);
@@ -1131,27 +1197,15 @@ void Gearbox::controller_loop()
                 xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
             }
         }
-        else if (!shifting || asleep)
+        else if (!shifting)
         {
             mpc_cc->set_target_current(0);
             spc_cc->set_target_current(0);
             sol_tcc->write_pwm_12_bit(0);
-            sol_y3->write_pwm_12_bit(0);
-            sol_y4->write_pwm_12_bit(0);
-            sol_y5->write_pwm_12_bit(0);
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
         }
-        //if (sensor_data.output_rpm == 0 && this->current_profile == manual) {
-        //    // Want to launch
-        //    if (egs_can_hal->get_is_brake_pressed(now, 500) && sensor_data.pedal_pos > 0) {
-        //        if (sensor_data.engine_rpm > 2000) {
-        //            egs_can_hal->set_torque_request(TorqueRequest::LessThan, 10.0);
-        //        } else {
-        //            egs_can_hal->set_torque_request(TorqueRequest::None, 0.0);
-        //        }
-        //    } else {
-        //        egs_can_hal->set_torque_request(TorqueRequest::None, 0.0);
-        //    }
-        //}
         
         int16_t tmp_atf = 0;
         if (lock_state || !Sensors::read_atf_temp(&tmp_atf) == ESP_OK)

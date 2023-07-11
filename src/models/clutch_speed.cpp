@@ -61,9 +61,9 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
     const GearRatioInfo* ratios
 ) {
     ClutchSpeeds cs = {0,0,0,0,0};
-    if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral) {
+    if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral || actual == GearboxGear::Park || target == GearboxGear::Park) {
         GearboxGear t_gear = last_motion_gear;
-        if (actual == GearboxGear::Neutral && target != GearboxGear::Neutral) {
+        if ((actual == GearboxGear::Neutral && target != GearboxGear::Neutral) || (actual == GearboxGear::Park && target != GearboxGear::Park)) {
             t_gear = target;
         }
         if (t_gear == GearboxGear::First) {

@@ -408,11 +408,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // Each shift has a different pressure ramp type,
         // since the timings and forces on the clutches are different
 
-        float delta_c_on = 0;
-        float delta_c_off = 0;
+        this->shifting_velocity = {0, 0};
+
         ShiftClutchData pre_cs = ClutchSpeedModel::get_shifting_clutch_speeds(sensor_data.output_rpm, this->rpm_reading, req_lookup, this->gearboxConfig.bounds);
         ShiftClutchData old_cs = pre_cs;
         bool detected_shift_done_clutch_progress = false;
+        int target_c_on = pre_cs.on_clutch_speed / (chars.target_shift_time);
         while(process_shift) {
             bool resistive_shift = false;
             if (is_upshift && sensor_data.static_torque > 0) {
@@ -444,11 +445,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 if (total_elapsed % 100 == 0) {
-                    delta_c_on = cs.on_clutch_speed - old_cs.on_clutch_speed;
-                    delta_c_off = cs.off_clutch_speed - old_cs.off_clutch_speed;
+                    shifting_velocity.on_clutch_vel = cs.on_clutch_speed - old_cs.on_clutch_speed;
+                    shifting_velocity.off_clutch_vel = cs.off_clutch_speed - old_cs.off_clutch_speed;
                     old_cs = cs;
-                    if (cs.on_clutch_speed == 0 && delta_c_on == 0) {
+                    if (cs.on_clutch_speed == 0 && shifting_velocity.on_clutch_vel == 0) {
                         detected_shift_done_clutch_progress = true;
+                    }
+                    if (chars.target_shift_time >= 500) {
+                        // Evaluate smooth shifting
+
                     }
                 }
                 if (flaring && sr.detect_flare_ts == 0) {
@@ -465,8 +470,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
-                delta_c_on = 0;
-                delta_c_off = 0;
+                shifting_velocity = {0, 0};
                 int t = shift_progress_percentage;
                 if (ShiftStage::Overlap == current_stage) {
                     t = linear_interp(0.0, 100.0, phase_elapsed, phase_total_time);
@@ -602,7 +606,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             int old_spc = current_spc;
             int old_mpc = current_mpc;
             uint16_t e = 0;
-            //this->tcc.
             int curr_torq_request = this->output_data.torque_req_amount;
             //int eng_completion = shift_progress_percentage_engine;
             while (e < max_p_timings.hold_time + max_p_timings.ramp_time) {
@@ -643,6 +646,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->abort_shift = false;
         this->sensor_data.last_shift_time = sensor_data.current_timestamp_ms;
         this->flaring = false;
+        shifting_velocity = {0, 0};
         if (result) { // Only set gear on conformation!
             ESP_LOGI("SHIFT", "SHIFT OK!");
             this->actual_gear = gear_from_idx(sd.targ_g);

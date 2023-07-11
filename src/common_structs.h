@@ -56,6 +56,11 @@ typedef struct ShiftClutchData {
     int16_t rear_sun_speed;
 };
 
+typedef struct ShiftClutchVelocity {
+    int16_t on_clutch_vel;
+    int16_t off_clutch_vel;
+} __attribute__ ((packed));
+
 /**
  * @brief Gearbox sensor data
  * This structure gets passed between a lot of the gearbox

@@ -44,6 +44,7 @@ public:
     bool isShifting(void) { return this->shifting; }
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
+    ShiftClutchVelocity shifting_velocity = {0,0};
 private:
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequest type, float amount);

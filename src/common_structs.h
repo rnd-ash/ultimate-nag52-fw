@@ -49,6 +49,18 @@ enum class Clutch {
     B3 = 6 // Reverse ONLY
 };
 
+
+typedef struct ShiftClutchData {
+    int16_t on_clutch_speed;
+    int16_t off_clutch_speed;
+    int16_t rear_sun_speed;
+};
+
+typedef struct ShiftClutchVelocity {
+    int16_t on_clutch_vel;
+    int16_t off_clutch_vel;
+} __attribute__ ((packed));
+
 /**
  * @brief Gearbox sensor data
  * This structure gets passed between a lot of the gearbox
@@ -158,6 +170,14 @@ struct ShiftData{
     ShiftPhaseTiming bleed_data;
     uint16_t bleed_pressure;
 };
+
+#define RAT_1_IDX 0
+#define RAT_2_IDX 1
+#define RAT_3_IDX 2
+#define RAT_4_IDX 3
+#define RAT_5_IDX 4
+#define RAT_R1_IDX 5
+#define RAT_R2_IDX 6
 
 struct GearRatioInfo {
     float ratio_max_drift;

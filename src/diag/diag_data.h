@@ -29,11 +29,13 @@
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
-#define RLI_CLUTCH_SPEEDS   0x29
 
 #define RLI_COREDUMP_PART_INFO  0x29 // Coredump size and address
 #define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
 #define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
+
+#define RLI_CLUTCH_SPEEDS   0x30
+#define RLI_CLUTCH_VELOCITY 0x31
 
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)

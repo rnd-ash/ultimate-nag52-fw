@@ -81,23 +81,31 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_max_adjust_per_step = 2,
 };
 
-#define SBS_SETTINGS_NVS_KEY "SBS_A1"
+#define SBS_SETTINGS_NVS_KEY "SBS_A2"
 
 typedef struct {
-    uint16_t delta_rpm_flare_detect;
     uint16_t min_upshift_end_rpm;
     bool f_shown_if_flare;
+    bool debug_show_up_down_arrows_in_r;
     LinearInterpSetting torque_reduction_factor_input_torque;
     LinearInterpSetting torque_reduction_factor_shift_speed;
     uint16_t stationary_shift_hold_time;
     uint16_t shift_timeout_pulling;
     uint16_t shift_timeout_coasting;
+    float smooth_shifting_spc_multi_too_slow;
+    float smooth_shifting_spc_multi_too_fast;
+    uint16_t upshift_trq_max_reduction_at;
+    uint16_t downshift_trq_max_reduction_at;
+    LinearInterpSetting spc_multi_overlap_shift_speed;
+    float spc_multi_overlap_zero_trq;
+    float spc_multi_overlap_max_trq;
+    uint16_t garage_shift_max_timeout_engine;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
-    .delta_rpm_flare_detect = 20,
     .min_upshift_end_rpm = 1000,
     .f_shown_if_flare = false,
+    .debug_show_up_down_arrows_in_r = false,
     .torque_reduction_factor_input_torque = {
         .new_min = 0.3,
         .new_max = 0.2,
@@ -113,6 +121,19 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .stationary_shift_hold_time = 1000,
     .shift_timeout_pulling = 3000,
     .shift_timeout_coasting = 5000,
+    .smooth_shifting_spc_multi_too_slow = 2.0,
+    .smooth_shifting_spc_multi_too_fast = 0.5,
+    .upshift_trq_max_reduction_at = 50,
+    .downshift_trq_max_reduction_at = 100,
+    .spc_multi_overlap_shift_speed = {
+        .new_min = 1.0,
+        .new_max = 5.0,
+        .raw_min = 500,
+        .raw_max = 100,
+    },
+    .spc_multi_overlap_zero_trq = 2.0,
+    .spc_multi_overlap_max_trq = 30.0,
+    .garage_shift_max_timeout_engine = 1000,
 };
 
 #define NAG_SETTINGS_NVS_KEY "NAG_A0"

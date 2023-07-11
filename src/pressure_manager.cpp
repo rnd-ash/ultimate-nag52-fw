@@ -349,63 +349,6 @@ uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
     return MAX(min_pressure, pressure_from_trq);
 }
 
-ClutchSpeeds PressureManager::calculate_clutch_speeds(RpmReading* raw, GearboxGear actual, GearboxGear target, GearboxGear last_motion_gear, GearboxConfiguration* cfg, uint16_t output_speed) {
-    ClutchSpeeds cs = {0,0,0,0,0,0};
-    float ratio_2 = cfg->bounds[1].ratio;
-    float ratio_3 = cfg->bounds[2].ratio;
-    float ratio_4 = cfg->bounds[3].ratio;
-    float n2 = raw->n2_raw;
-    float n3 = raw->n3_raw;
-    float input = raw->calc_rpm;
-    // Calcualte B2 speed in all gears
-    // Otherwise, just calculate speed of on and off clutch packs (More accurate)
-    // Use the knowledge of known clutch application sequences to calculate speeds
-    // (Formula changes in each gear)
-    cs.turbine = raw->calc_rpm;
-    // For neutral we have to know the last gear of the box (Maybe)
-    if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral) {
-        GearboxGear t_gear = last_motion_gear;
-        if (actual == GearboxGear::Neutral && target != GearboxGear::Neutral) {
-            t_gear = target;
-        }
-        if (t_gear == GearboxGear::First || t_gear == GearboxGear::Fifth) {
-            cs.b2 = (ratio_3*output_speed-input)/(ratio_3-ratio_4);
-        } else if (t_gear == GearboxGear::Second || t_gear == GearboxGear::Third) {
-            cs.b2 = 0;
-        } else if (t_gear == GearboxGear::Fourth) {
-            cs.b2 = input; // 1:1 as B2 is off but the rest of the gearbox is locked in 1:1
-        } else if (t_gear == GearboxGear::Reverse_First || t_gear == GearboxGear::Reverse_Second) {
-            cs.b2 = ((ratio_3 * output_speed) + input) / (ratio_3-ratio_4); // Same as R1/R2
-        }
-    } else if (target == actual) {
-        // Same gear
-        if (actual == GearboxGear::First || actual == GearboxGear::Second || actual == GearboxGear::Third) {
-            // B2 is at 0
-            cs.b2 = 0;
-        } else if (actual == GearboxGear::Fourth || actual == GearboxGear::Fifth) {
-            cs.b2 = ((ratio_3 * output_speed) - input) / (ratio_3-ratio_4);
-        } else if (actual == GearboxGear::Reverse_First || actual == GearboxGear::Reverse_Second) {
-            cs.b2 = ((ratio_3 * output_speed) + input) / (ratio_3-ratio_4);
-        }
-    } else {
-        if ((target == GearboxGear::First && actual == GearboxGear::Second) || (target == GearboxGear::Second && actual == GearboxGear::First) ||
-            (target == GearboxGear::Fourth && actual == GearboxGear::Fifth) || (target == GearboxGear::Fifth && actual == GearboxGear::Fourth)) { // 1-2 or 2-1 (or 4-5 / 5-4)
-            // 0 if in 1/2, but spinning in 4/5 or 5/4
-            cs.b2 = target == GearboxGear::Fourth || actual == GearboxGear::Fourth ? ((ratio_3*output_speed)-input)/(ratio_3-ratio_4) : 0;
-            cs.k1 = n2-n3;
-            cs.b1 = n3;
-        } else if ((target == GearboxGear::Second && actual == GearboxGear::Third) || (target == GearboxGear::Third && actual == GearboxGear::Second)) { // 2-3 or 3-2
-            cs.k3 = (ratio_3*((ratio_2*output_speed)-input))/(ratio_2-ratio_3);
-            cs.k2 = input - (ratio_3*output_speed);
-            cs.b2 = 0;
-        } else if ((target == GearboxGear::Third && actual == GearboxGear::Fourth) || (target == GearboxGear::Fourth && actual == GearboxGear::Third)) { // 3-4 or 4-3
-            cs.b2 = ((ratio_3*output_speed)-input)/(ratio_3-ratio_4);
-            cs.k3 = input - cs.b2;
-        }
-    }
-    return cs;
-}
-
 uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {
     // 0 if no shift circuits are open
     uint16_t ret = 0;

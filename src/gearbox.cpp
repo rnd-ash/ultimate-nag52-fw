@@ -319,7 +319,8 @@ int Gearbox::calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms
  *
  * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
  */
-bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profile, bool is_upshift)
+
+bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profile)
 {
     bool result = false;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
@@ -846,7 +847,9 @@ void Gearbox::shift_thread()
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile *prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                elapse_shift(pgc, prof, true);
+                this->is_upshift = true;
+                this->fwd_gear_shift = true;
+                elapse_shift(pgc, prof);
                 this->start_second = true;
                 goto cleanup;
             }
@@ -882,7 +885,9 @@ void Gearbox::shift_thread()
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile *prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
-                elapse_shift(pgc, prof, false);
+                this->is_upshift = false;
+                this->fwd_gear_shift = true;
+                elapse_shift(pgc, prof);
                 goto cleanup;
             }
         }
@@ -896,6 +901,8 @@ cleanup:
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Shift complete");
     this->set_torque_request(TorqueRequest::None, 0);
     this->shifting = false;
+    this->fwd_gear_shift = false;
+    this->is_upshift = false;
     vTaskDelete(nullptr);
 }
 
@@ -1351,6 +1358,11 @@ void Gearbox::controller_loop()
             }
             else
             {
+                if (this->current_profile == race && this->fwd_gear_shift) {
+                    egs_can_hal->set_display_msg(this->is_upshift ? GearboxMessage::Upshift : GearboxMessage::Downshift);
+                } else {
+                    egs_can_hal->set_display_msg(GearboxMessage::None);
+                }
                 egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear), this->current_profile == manual);
             }
         }

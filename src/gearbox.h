@@ -75,6 +75,8 @@ private:
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
+    bool is_upshift = false;
+    bool fwd_gear_shift = false;
     float tcc_percent = 0.F;
     uint8_t est_gear_idx = 0;
     uint16_t curr_hold_pressure = 0;
@@ -89,7 +91,6 @@ private:
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
-    bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;

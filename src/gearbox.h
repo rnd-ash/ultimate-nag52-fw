@@ -48,7 +48,7 @@ public:
 private:
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequest type, float amount);
-    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
+    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;

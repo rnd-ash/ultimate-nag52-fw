@@ -702,7 +702,6 @@ void Gearbox::shift_thread()
     else if (is_controllable_gear(curr_actual) != is_controllable_gear(curr_target))
     { // This would be a garage shift, either in or out
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Garage shift");
-        bool activate_y3 = false;
         if (is_controllable_gear(curr_target))
         {
             bool into_reverse = this->shifter_pos == ShifterPosition::P_R || this->shifter_pos == ShifterPosition::R || this->shifter_pos == ShifterPosition::R_N;
@@ -711,15 +710,13 @@ void Gearbox::shift_thread()
             egs_can_hal->set_garage_shift_state(true);
             // Default for D
             int mpc = 1500;
-            int spc = 500;
+            int spc = 600;
             if (into_reverse) {
-                mpc = 300;
+                mpc = 1000;
                 spc = 400;
-                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                 this->pressure_mgr->set_spc_p_max();
-            } else {
-                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             }
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             bool completed_ok = false;
             this->shifting_velocity = {0,0};
             int old_turbine_speed = this->rpm_reading.calc_rpm;
@@ -772,11 +769,9 @@ void Gearbox::shift_thread()
                     }
                 }
                 pressure_mgr->set_target_mpc_pressure(mpc);
-                if (!into_reverse) {
-                    pressure_mgr->set_target_spc_pressure(spc);
-                }
+                pressure_mgr->set_target_spc_pressure(spc);
 
-                if (turbine <= 50+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
+                if (elapsed > 1500 && turbine <= 50+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
                     completed_ok = true;
                     break;
                 }

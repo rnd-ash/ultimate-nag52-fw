@@ -30,7 +30,7 @@ inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
         //this->rpm_samples = 1;
 }
 
-void TorqueConverter::on_shift_starting(InternalTccState target_state) {
+void TorqueConverter::set_shift_target_state(InternalTccState target_state) {
     this->shift_req_tcc_state = target_state;
 }
 
@@ -67,17 +67,16 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     } else {
         // See if we should slip or close
         if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
-            if (sensors->output_rpm > 1500 && sensors->pedal_pos == 0) {
-                    // Gliding. See if we are above 40mph (Approx 1500RPM output shaft speed),
-                    // Then open the TCC completely. When the gas pedal is pressed again, it will revert back to slipping
-                    // or closed TCC state
-                    // Now see if we can fully lock
+            if (sensors->pedal_pos == 0 && sensors->output_rpm >= TCC_CURRENT_SETTINGS.sailing_mode_active_rpm) {
                 targ = InternalTccState::Open; // Gliding mode
             } else {
                 targ = InternalTccState::Slipping;
                 if (this->current_tcc_state >= InternalTccState::Slipping) {
-                    // Fore close at very high speeds
-                    if ((sensors->pedal_pos != 0 && sensors->pedal_pos < 128) || sensors->output_rpm > 2500) {
+                    // Check if we should FULLY lock
+                    if (
+                        (sensors->pedal_pos != 0 && sensors->pedal_pos < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
+                        sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
+                    ) {
                         targ = InternalTccState::Closed;
                     }
                 }
@@ -120,7 +119,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_pressure_current = this->tcc_pressure_target;
     } else { // State increase, ramp up pressure
         // Ramp up
-        this->tcc_pressure_current = MIN(this->tcc_pressure_current+TCC_CURRENT_SETTINGS.pressure_increase_step, this->tcc_pressure_target);
+        if (is_shifting) { // If shifting, don't ramp, immedietly change. The shifting of the transmission will dampen this
+            this->tcc_pressure_current = this->tcc_pressure_target;
+        } else {
+            this->tcc_pressure_current = MIN(this->tcc_pressure_current+TCC_CURRENT_SETTINGS.pressure_increase_step, this->tcc_pressure_target);
+        }
     }
 
     if (this->tcc_pressure_target == this->tcc_pressure_current) {

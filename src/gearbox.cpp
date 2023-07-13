@@ -521,7 +521,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     phase_x_ramp_time = 0;
                     phase_total_time = 100;
                 } else if (current_stage == ShiftStage::Overlap) {
-                    this->tcc->on_shift_starting(InternalTccState::Open);
+                    this->tcc->set_shift_target_state(InternalTccState::Open);
                     ESP_LOGI("SHIFT", "Overlap start");
                     if (prefill_adapt_flags == 0) {
                         this->shift_adapter->on_overlap_start(sensor_data.current_timestamp_ms, chars.target_shift_time, shift_progress_percentage);
@@ -612,7 +612,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         }
         this->shift_adapter->debug_print_offset_array();
         // Only do max pressure phase if we shifted
-        this->tcc->on_shift_starting(InternalTccState::Slipping);
+        this->tcc->set_shift_target_state(InternalTccState::Slipping);
         if (result) {
             ESP_LOGI("SHIFT","Max-lock start");
             // Timings

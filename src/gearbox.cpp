@@ -560,12 +560,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure_on_clutch;
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
-                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure_on_clutch / 2.0;
+                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch / 2.0);
                 phase_targ_spc = prev_spc = prefill_data.fill_pressure_on_clutch;
                 trq_mpc = phase_targ_mpc;
             } else if (current_stage == ShiftStage::Overlap) {
                 // TODO MPC behaviour should change depending on resistance of releasing clutch
-                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time) + phase_targ_spc / 2.0;
+                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time) + (phase_targ_spc / 2.0);
                 // To adjust on the fly in realtime, we have to modify both target and prev
                 if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);

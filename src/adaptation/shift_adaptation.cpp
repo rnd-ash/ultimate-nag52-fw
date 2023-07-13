@@ -188,25 +188,18 @@ void ShiftAdaptationSystem::do_prefill_overlap_check(
         this->last_overlap_check = timestamp;
         this->last_shift_progress = 0;
     }
-    if (timestamp - this->last_overlap_check > 200) {
+    if (timestamp - this->last_overlap_check > 100) {
         if (this->last_shift_progress == 0 && shift_progress_percent != 0) {
-            ESP_LOGI("ADAPT", "Shift started with a speed of %d%%/100ms, %d ms into overlap", (int)(this->last_shift_progress - shift_progress_percent), (int)(timestamp-overlap_start_time));
+            ESP_LOGI("ADAPT", "Shift started %d ms into overlap", (int)(timestamp-overlap_start_time));
             // Shift has now started, lets check the delta and timestamp (Only for longer shifts)
             if (this->expected_shift_time >= 500) {
-                // > 50% of overlap time gone by with no shifting
-                bool late_shifting = false;//((timestamp - this->overlap_start_time) > this->expected_shift_time/2);
-                // Drop in RPM at the start of the shift was far too harsh
-                // 50%/200ms is perfect for 500ms, so any more than this, no matter the shift time is 'harsh'
-                bool harsh_shifting = (shift_progress_percent - this->last_shift_progress) > 40.0;
-
-                if (harsh_shifting) {
-                    ESP_LOGI("ADAPT", "Shift was too harsh (%d %% - %d %% in < 100ms). Decreasing prefill for %s by 20mBar", this->last_shift_progress, shift_progress_percent, CLUTCH_NAMES[(int)to_apply-1]);
-                    offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, -20.0);
-                } else if (late_shifting) {
+                // > 25% of overlap time gone by with no shifting
+                bool late_shifting = ((timestamp - this->overlap_start_time) > this->expected_shift_time/4);
+                if (late_shifting) {
                     ESP_LOGI("ADAPT", "Shift started too late (%d ms in overlap). Increasing prefill for %s by 20mBar", (int)(timestamp - this->overlap_start_time), CLUTCH_NAMES[(int)to_apply-1]);
                     offset_cell_value(this->prefill_pressure_offset_map,  to_apply, this->cell_idx_prefill, 20.0);
                 }
-                ESP_LOGI("ADAPT", "Shift adapt result: Was harsh?: %d, Was too late?: %d", harsh_shifting, late_shifting);
+                ESP_LOGI("ADAPT", "Shift adapt result: Was too late?: %d", late_shifting);
             }
         }
         this->last_shift_progress = shift_progress_percent;

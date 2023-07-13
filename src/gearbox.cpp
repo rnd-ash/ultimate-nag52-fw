@@ -547,7 +547,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             
             if (current_stage == ShiftStage::Bleed) {
                 phase_targ_spc = 50;
-                phase_targ_mpc = wp_current_gear;
+                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure_on_clutch;
             } else if (current_stage == ShiftStage::Fill) {
                 bool was_adapting = prefill_adapt_flags == 0;
                 if (prefill_adapt_flags == 0) {
@@ -557,17 +557,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
                 phase_targ_spc = prefill_data.fill_pressure_on_clutch;
-                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch/2.0);
+                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure_on_clutch;
             } else if (current_stage == ShiftStage::Torque) { // Just for conformation
                 // Make MPC and SPC equal
-                phase_targ_mpc = wp_current_gear + (prefill_data.fill_pressure_on_clutch/2.0);
-                phase_targ_spc = prev_spc = MAX(prefill_data.fill_pressure_on_clutch/2.0, wp_current_gear / 2);
+                phase_targ_mpc = wp_current_gear + prefill_data.fill_pressure_on_clutch / 2.0;
+                phase_targ_spc = prev_spc = prefill_data.fill_pressure_on_clutch;
                 trq_mpc = phase_targ_mpc;
             } else if (current_stage == ShiftStage::Overlap) {
                 // TODO MPC behaviour should change depending on resistance of releasing clutch
-                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time*2.0) + (phase_targ_spc/2);
+                phase_targ_mpc = prev_mpc = linear_interp(trq_mpc, 500, phase_elapsed, chars.target_shift_time) + phase_targ_spc / 2.0;
                 // To adjust on the fly in realtime, we have to modify both target and prev
-                if (prefill_adapt_flags == 0) { // Adapt1ing (Not shifting yet!)
+                if (prefill_adapt_flags == 0) { // Adapting (Not shifting yet!)
                     this->shift_adapter->do_prefill_overlap_check(sensor_data.current_timestamp_ms, flaring, shift_progress_percentage);
                 }
                 float step_adder = scale_number(abs(sensor_data.static_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);

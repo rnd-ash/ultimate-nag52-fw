@@ -29,6 +29,9 @@ typedef struct {
     uint8_t pressure_increase_step;
     uint8_t adapt_pressure_step;
     LinearInterpSetting pressure_multiplier_output_rpm;
+    uint16_t sailing_mode_active_rpm;
+    uint16_t force_lock_min_output_rpm;
+    uint8_t locking_pedal_pos_max;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -57,6 +60,9 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
         .raw_min = 1500,
         .raw_max = 2500,
     },
+    .sailing_mode_active_rpm = 1500,
+    .force_lock_min_output_rpm = 2500,
+    .locking_pedal_pos_max = 15
 };
 
 #define SOL_SETTINGS_NVS_KEY "SOL_A0"

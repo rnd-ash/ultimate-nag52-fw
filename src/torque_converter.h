@@ -41,7 +41,7 @@ class TorqueConverter {
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
         StoredMap* tcc_learn_lockup_map;
-        void on_shift_starting(InternalTccState target_state);
+        void set_shift_target_state(InternalTccState target_state);
         void on_shift_ending(void);
     private:
         inline void reset_rpm_samples(SensorData* sensors);

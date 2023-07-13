@@ -804,10 +804,7 @@ void Gearbox::shift_thread()
         {
             // Last forward known gear
             // This way we better handle shifting from N->D at speed!
-            this->actual_gear = this->last_fwd_gear;
-            if (activate_y3) {
-                this->actual_gear = GearboxGear::First;
-            }
+            this->actual_gear = GearboxGear::Second;
         }
         else
         {

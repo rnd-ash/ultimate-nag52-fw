@@ -173,7 +173,6 @@ void input_manager(void*) {
     uint64_t now = esp_timer_get_time()/1000;
     bool last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
     bool pressed = false;
-    uint8_t prof_idx = 0;
     
     if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
         gearbox->set_profile(profile_from_auto_ty(last_mode ? ETS_CURRENT_SETTINGS.profile_idx_buttom : ETS_CURRENT_SETTINGS.profile_idx_top)); 
@@ -191,12 +190,12 @@ void input_manager(void*) {
             // EWM button
             bool down = egs_can_hal->get_profile_btn_press(now, 100);
             if (down && !pressed) {
-                // Pressed nutton, inc profile
-                prof_idx++;
-                if (prof_idx == NUM_PROFILES) {
-                    prof_idx = 0;
+                // Pressed button, inc profile
+                profile_id++;
+                if (profile_id == NUM_PROFILES) {
+                    profile_id = 0;
                 }
-                gearbox->set_profile(profiles[prof_idx]);
+                gearbox->set_profile(profiles[profile_id]);
             }
             pressed = down;
         } // Else - No profile button to process

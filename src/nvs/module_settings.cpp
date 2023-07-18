@@ -1,5 +1,6 @@
 #include "module_settings.h"
 #include "eeprom_impl.h"
+#include "tcu_alloc.h"
 
 TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS = TCC_DEFAULT_SETTINGS;
 SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS = SOL_DEFAULT_SETTINGS;
@@ -37,9 +38,9 @@ ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
 
 #define READ_SETTINGS_TO_BUFFER(pfx, buffer_len_dest, buffer_dest) \
     const pfx##_MODULE_SETTINGS* ptr = &pfx##_CURRENT_SETTINGS; \
-    uint8_t* dest = (uint8_t*)heap_caps_malloc(sizeof(pfx##_MODULE_SETTINGS)+1, MALLOC_CAP_SPIRAM); \
+    uint8_t* dest = (uint8_t*)TCU_HEAP_ALLOC(sizeof(pfx##_MODULE_SETTINGS)+1); \
     if (nullptr == ptr || nullptr == dest) { \
-        delete[] dest; \
+        TCU_HEAP_FREE(dest); \
         return ESP_ERR_NO_MEM; \
     } else { \
         dest[0] = pfx##_MODULE_SETTINGS_SCN_ID; \

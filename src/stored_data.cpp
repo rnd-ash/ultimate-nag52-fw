@@ -1,5 +1,5 @@
 #include "stored_data.h"
-#include "esp_heap_caps.h"
+#include "tcu_alloc.h"
 #include "nvs/eeprom_config.h"
 
 esp_err_t StoredData::init_status(void) 
@@ -34,13 +34,13 @@ const char *StoredData::get_data_name(void)
 int16_t *StoredData::get_current_eeprom_data(void)
 {
     bool succesful_allocation = false;
-    int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(this->data_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(this->data_element_count * sizeof(int16_t)));
     if (nullptr != dest)
     {
         succesful_allocation = true;
         if (EEPROM::read_nvs_map_data(this->data_name, dest, this->default_data, this->data_element_count) != ESP_OK)
         {
-            heap_caps_free(dest);
+            TCU_HEAP_FREE(dest);
             succesful_allocation = false;            
         }
     }

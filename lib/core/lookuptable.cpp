@@ -1,5 +1,5 @@
 #include "lookuptable.h"
-#include "../hal/hardwareabstractionlayer.h"
+#include "tcu_alloc.h"
 #include <string.h>
 #include "tcu_maths.h"
 
@@ -16,7 +16,7 @@ LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, c
 {
     dataSize = _dataSize;
     xHeaderSize = _xHeaderSize;
-    data = static_cast<int16_t*>(MALLOC(dataSize * sizeof(int16_t)));
+    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {
@@ -26,7 +26,7 @@ LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, c
 
 LookupTable::~LookupTable(void)
 {
-    FREE(data);
+    TCU_HEAP_FREE(data);
 }
 
 bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
@@ -34,9 +34,9 @@ bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
     bool result = false;
     dataSize = _dataSize;
     if(allocation_successful) {
-        FREE(data);
+        TCU_HEAP_FREE(data);
     }
-    data = static_cast<int16_t*>(heap_caps_malloc(dataSize * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {

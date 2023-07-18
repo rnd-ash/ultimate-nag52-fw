@@ -1,5 +1,5 @@
 #include "endpoint.h"
-
+#include "tcu_alloc.h"
 
 const static char HEX_DEF[17] = "0123456789ABCDEF";
 const static size_t UART_MSG_SIZE = 6 + (2 * DIAG_CAN_MAX_SIZE);
@@ -14,8 +14,8 @@ UsbEndpoint::UsbEndpoint() : AbstractEndpoint()
     this->status = uart_driver_install(0, UART_MSG_SIZE / 2u, UART_MSG_SIZE / 2u, 0, nullptr, 0);
     if (this->status == ESP_OK)
     {
-        this->read_buffer = static_cast<char *>(heap_caps_malloc(UART_MSG_SIZE, MALLOC_CAP_SPIRAM));
-        this->write_buffer = static_cast<char *>(heap_caps_malloc(UART_MSG_SIZE, MALLOC_CAP_SPIRAM));
+        this->read_buffer = static_cast<char *>(TCU_HEAP_ALLOC(UART_MSG_SIZE));
+        this->write_buffer = static_cast<char *>(TCU_HEAP_ALLOC(UART_MSG_SIZE));
         if (nullptr != this->read_buffer && nullptr != this->write_buffer)
         {
             uart_flush(0);

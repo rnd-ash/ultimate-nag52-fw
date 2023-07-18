@@ -1,6 +1,6 @@
 #include "stored_map.h"
 #include "nvs/eeprom_config.h"
-#include "esp_heap_caps.h"
+#include "tcu_alloc.h"
 #include "esp_check.h"
 
 StoredMap::StoredMap(const char *eeprom_key_name,
@@ -19,7 +19,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
     this->default_map = default_map;
     if ((x_size * y_size) == data_element_count)
     {
-        int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(data_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+        int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(data_element_count * sizeof(int16_t)));
         if (nullptr != dest)
         {
             this->init_state = EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_map, data_element_count);
@@ -43,7 +43,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
             ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
             this->init_state = ESP_ERR_NO_MEM;
         }
-        heap_caps_free(dest);
+        TCU_HEAP_FREE(dest);
     }
     else
     {
@@ -104,7 +104,7 @@ esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_si
     bool mem_is_allocated = this->is_allocated();
     if (mem_is_allocated)
     {
-        int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(expected_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+        int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(expected_size * sizeof(int16_t)));
         if (dest != nullptr)
         {
             ret = EEPROM::read_nvs_map_data(key_name, dest, this->default_map, expected_size);
@@ -120,7 +120,7 @@ esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_si
             ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
             ret = ESP_ERR_NO_MEM;
         }
-        heap_caps_free(dest);
+        TCU_HEAP_FREE(dest);
     }
     else
     {
@@ -148,13 +148,13 @@ const char *StoredMap::get_map_name(void)
 int16_t *StoredMap::get_current_eeprom_map_data(void)
 {
     bool succesful_allocation = false;
-    int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(this->data_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+    int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(this->data_element_count * sizeof(int16_t)));
     if (nullptr != dest)
     {
         succesful_allocation = true;
         if (EEPROM::read_nvs_map_data(this->data_name, dest, this->default_map, this->data_element_count) != ESP_OK)
         {
-            heap_caps_free(dest);
+            TCU_HEAP_FREE(dest);
             succesful_allocation = false;            
         }
     }

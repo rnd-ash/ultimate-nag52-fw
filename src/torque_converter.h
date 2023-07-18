@@ -10,12 +10,13 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 #include "nvs/module_settings.h"
+#include "moving_average.h"
 
 enum class InternalTccState {
-    None,
-    Open,
-    Slipping,
-    Closed
+    None = 0,
+    Open = 1,
+    Slipping = 2,
+    Closed = 3
 };
 
 class TorqueConverter {
@@ -53,6 +54,8 @@ class TorqueConverter {
         InternalTccState shift_req_tcc_state = InternalTccState::Open;
         bool pending_changes = false;
         uint64_t last_adapt_check = 0;
+        uint64_t last_slip_add_time = 0;
+        MovingAverage* slip_average = nullptr;
 };
 
 #endif

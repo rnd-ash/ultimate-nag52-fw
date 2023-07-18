@@ -9,29 +9,6 @@
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
 
-template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
-    T readings[MAX_SIZE];
-    uint8_t sample_id;
-    uint64_t sum;
-
-    MovingAverage(void) {
-        this->sample_id = 0;
-        this->sum = 0;
-        memset(this->readings, 0x00, sizeof(this->readings));
-    }
-
-    void add_to_sample(T reading) {
-        this->sum -= this->readings[this->sample_id];
-        this->readings[this->sample_id] = reading;
-        this->sum += reading;
-        this->sample_id = (this->sample_id+1) % MAX_SIZE;
-    }
-
-    T get_average(void) {
-        return (float)sum / (float)MAX_SIZE;
-    }
-};
-
 enum class ShiftStage {
     Bleed = 1,
     Fill = 2,
@@ -89,8 +66,6 @@ struct SensorData{
     int16_t min_torque;
     /// Driver requested torque
     int16_t driver_requested_torque;
-    /// Torque converter slip RPM (Calculated)
-    int16_t tcc_slip_rpm;
     /// Last time the gearbox changed gear (in milliseconds)
     uint64_t last_shift_time;
     /// Current clock time in milliseconds

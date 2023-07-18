@@ -58,7 +58,6 @@ Gearbox::Gearbox()
         .max_torque = 0,
         .min_torque = 0,
         .driver_requested_torque = 0,
-        .tcc_slip_rpm = 0,
         .last_shift_time = 0,
         .current_timestamp_ms = (uint64_t)(esp_timer_get_time() / 1000),
         .is_braking = false,
@@ -1190,7 +1189,6 @@ void Gearbox::controller_loop()
 
                 if (is_fwd_gear(this->target_gear))
                     {
-                        this->sensor_data.tcc_slip_rpm = sensor_data.engine_rpm - sensor_data.input_rpm;
                         if (this->tcc != nullptr)
                         {
                             this->tcc->update(this->actual_gear, this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data, this->shifting);

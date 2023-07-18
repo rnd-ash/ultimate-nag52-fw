@@ -22,6 +22,10 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         //data[i] = tcc_learn_default_data[i];
         ESP_LOGI("TCC", "Adapt value for gear %d - %d mBar", i+1, data[i]);
     }
+    this->slip_average = new MovingAverage(20); // 2 Seconds moving window (Every 100ms)
+    if (!this->slip_average->init_ok()) {
+        delete this->slip_average;
+    }
 }
 
 inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
@@ -42,11 +46,9 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
     // Too much slip
     int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
     int16_t curr_v = modify[(uint8_t)(g)-1];
-    if (abs(curr_v-new_pressure) > 20) {
-        ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)g, curr_v, new_pressure);
-        modify[(uint8_t)(g)-1] = (int16_t)new_pressure;
-        this->pending_changes = true;
-    }
+    ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)g, curr_v, new_pressure);
+    modify[(uint8_t)(g)-1] = (int16_t)new_pressure;
+    this->pending_changes = true;
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
@@ -130,51 +132,62 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->current_tcc_state = this->target_tcc_state;        
     }
 
-    if (TCC_CURRENT_SETTINGS.adapt_enable) {
-        bool adapt_conditions_met = false;
-        if (this->target_tcc_state >= InternalTccState::Slipping && this->current_tcc_state >= InternalTccState::Slipping && !is_shifting) {
-            // Try adapting when slipping is the current, and target state
-            bool should_lock = this->target_tcc_state == InternalTccState::Closed && this->current_tcc_state == InternalTccState::Closed;
-            if ((sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt)) {
-                adapt_conditions_met = true;
-                if (sensors->current_timestamp_ms - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
-                    // Do the adaptation!
-
-                    // 1. Create a min and max linear line between our max bounds
-                    //    Such that the area in between min and max are the 'OK' slip region
-                    int max_slip_targ = scale_number(
-                        sensors->static_torque,
-                        TCC_CURRENT_SETTINGS.max_slip_min_adapt_trq,
-                        TCC_CURRENT_SETTINGS.max_slip_max_adapt_trq,
-                        TCC_CURRENT_SETTINGS.min_torque_adapt,
-                        TCC_CURRENT_SETTINGS.max_torque_adapt
-                    );
-                    int min_slip_targ = scale_number(
-                        sensors->static_torque,
-                        TCC_CURRENT_SETTINGS.min_slip_min_adapt_trq,
-                        TCC_CURRENT_SETTINGS.min_slip_max_adapt_trq,
-                        TCC_CURRENT_SETTINGS.min_torque_adapt,
-                        TCC_CURRENT_SETTINGS.max_torque_adapt
-                    );
-                    float new_p = 0;
-                    ESP_LOGI("TCC", "Slip %d, Min %d, Max %d", sensors->tcc_slip_rpm, min_slip_targ, max_slip_targ);
-                    if (sensors->tcc_slip_rpm > max_slip_targ) {
-                        // Too much clutch slip - Increase pressure
-                        new_p = this->tcc_pressure_target+TCC_CURRENT_SETTINGS.adapt_pressure_step;
-                    } else if (sensors->tcc_slip_rpm < min_slip_targ && !should_lock) {
-                        // Too little clutch slip - Reduce pressure
-                        new_p = this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step;
-                    }
-                    if (new_p != 0) {
-                        adjust_map_cell(curr_gear, new_p);
-                        this->tcc_pressure_target = this->tcc_pressure_current = new_p;
-                        this->last_adapt_check = sensors->current_timestamp_ms;
-                    }
-                }
-                // Check if torque is within range (Should be low torque or coasting)
+    if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
+        bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping;
+        bool in_adapt_torque_range = sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt;
+        //ESP_LOGI("TCC", "%d %d %d (%d %d)", adapt_state, in_adapt_torque_range, is_shifting, (int)this->target_tcc_state, (int)this->current_tcc_state);
+        bool adapt_check = false;
+        if ((!adapt_state || is_shifting || !in_adapt_torque_range) && !this->slip_average->reset_done()) {
+            ESP_LOGI("TCC", "Resetting sample data");
+            this->slip_average->reset();
+        }
+        if (adapt_state && !is_shifting && in_adapt_torque_range) {
+            adapt_check = true;
+            if (sensors->current_timestamp_ms - last_slip_add_time > 100) {
+                last_slip_add_time = sensors->current_timestamp_ms;
+                this->slip_average->add_sample((int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm);
             }
         }
-        if (!adapt_conditions_met) {
+        if (adapt_check && this->slip_average->has_full_samples()) {
+            // Try adapting when slipping is the current, and target state
+            bool should_lock = this->target_tcc_state == InternalTccState::Closed && this->current_tcc_state == InternalTccState::Closed;
+            if (sensors->current_timestamp_ms - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
+                int slip_avg = this->slip_average->get_average();
+                int slip_now = (int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm;
+                // Do the adaptation!
+                // 1. Create a min and max linear line between our max bounds
+                //    Such that the area in between min and max are the 'OK' slip region
+                int max_slip_targ = scale_number(
+                    sensors->static_torque,
+                    TCC_CURRENT_SETTINGS.max_slip_min_adapt_trq,
+                    TCC_CURRENT_SETTINGS.max_slip_max_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_torque_adapt,
+                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                );
+                int min_slip_targ = scale_number(
+                    sensors->static_torque,
+                    TCC_CURRENT_SETTINGS.min_slip_min_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_slip_max_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_torque_adapt,
+                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                );
+                float new_p = 0;
+                ESP_LOGI("TCC", "Slip avg %d, Slip now %d, Min %d, Max %d", slip_avg, slip_now, min_slip_targ, max_slip_targ);
+                if (slip_avg > max_slip_targ) {
+                    // Too much clutch slip - Increase pressure
+                    new_p = this->tcc_pressure_target+TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                } else if (slip_avg < min_slip_targ && !should_lock) {
+                    // Too little clutch slip - Reduce pressure
+                    new_p = this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                }
+                if (new_p != 0) {
+                    adjust_map_cell(curr_gear, new_p);
+                    this->tcc_pressure_target = this->tcc_pressure_current = new_p;
+                }
+                this->last_adapt_check = sensors->current_timestamp_ms;
+            }
+        }
+        if (!adapt_check) {
             // Set the last adapt timestamp if not adapted due to wrong conditions
             // This allows for adapting to only happen after a cooldown, when things are settled
             this->last_adapt_check = sensors->current_timestamp_ms;

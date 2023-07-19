@@ -56,7 +56,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     // Decider 
     InternalTccState targ = InternalTccState::Open;
-
+    bool force_lock = false;
     // See if we should be enabled in gear
     if (
         (cmp_gear == GearboxGear::First && !TCC_CURRENT_SETTINGS.enable_d1) ||
@@ -80,6 +80,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                         sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
                     ) {
                         targ = InternalTccState::Closed;
+                        force_lock = sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm;
                     }
                 }
             }
@@ -88,7 +89,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     }
     if (is_shifting && this->shift_req_tcc_state != InternalTccState::None) {
-        targ = MIN(this->target_tcc_state, this->shift_req_tcc_state);
+        targ = MIN(targ, this->shift_req_tcc_state);
     }
 
     this->target_tcc_state = targ;
@@ -107,6 +108,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
         } else if (this->target_tcc_state == InternalTccState::Slipping || this->target_tcc_state == InternalTccState::Closed) {
             this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0); // Slip at max torque
+            if (sensors->static_torque > TCC_CURRENT_SETTINGS.max_torque_adapt) {
+                this->tcc_pressure_target *= scale_number(sensors->static_torque, 1.0, 1.5, TCC_CURRENT_SETTINGS.max_torque_adapt, TCC_CURRENT_SETTINGS.max_torque_adapt*2);
+            }
             if (this->target_tcc_state == InternalTccState::Closed) { // Locked
                 if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
                     this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
@@ -124,7 +128,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (is_shifting) { // If shifting, don't ramp, immedietly change. The shifting of the transmission will dampen this
             this->tcc_pressure_current = this->tcc_pressure_target;
         } else {
-            this->tcc_pressure_current = MIN(this->tcc_pressure_current+TCC_CURRENT_SETTINGS.pressure_increase_step, this->tcc_pressure_target);
+            // If state is going to lock, we increase it slower
+            uint16_t step = TCC_CURRENT_SETTINGS.pressure_increase_step;
+            if (this->target_tcc_state == InternalTccState::Closed) {
+                step /= 2.0;
+            }
+            this->tcc_pressure_current = MIN(this->tcc_pressure_current+step, this->tcc_pressure_target);
         }
     }
 
@@ -133,7 +142,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
 
     if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
-        bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping;
+        bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping && !force_lock;
         bool in_adapt_torque_range = sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt;
         //ESP_LOGI("TCC", "%d %d %d (%d %d)", adapt_state, in_adapt_torque_range, is_shifting, (int)this->target_tcc_state, (int)this->current_tcc_state);
         bool adapt_check = false;
@@ -172,7 +181,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     TCC_CURRENT_SETTINGS.max_torque_adapt
                 );
                 float new_p = 0;
-                ESP_LOGI("TCC", "Slip avg %d, Slip now %d, Min %d, Max %d", slip_avg, slip_now, min_slip_targ, max_slip_targ);
                 if (slip_avg > max_slip_targ) {
                     // Too much clutch slip - Increase pressure
                     new_p = this->tcc_pressure_target+TCC_CURRENT_SETTINGS.adapt_pressure_step;

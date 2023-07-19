@@ -89,7 +89,7 @@ void PressureManager::controller_loop() {
             if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 5 && this->t_gear == 4)) {
                 this->commanded_spc_pressure /= 1.9;
                 max_spc /= 1.9;
-            } 
+            }
             // K1 is controlled by Modulating pressure
             else if ((this->c_gear == 2 && this->t_gear == 1) || (this->c_gear == 4 && this->t_gear == 5)) {
                 this->commanded_mpc_pressure = MAX(this->commanded_mpc_pressure / 1.9, 500);

@@ -37,44 +37,45 @@ typedef enum {
 #define CELL_ID_10_PST_TRQ 1
 #define CELL_ID_25_PST_TRQ 2
 
+typedef struct {
+    uint16_t start_mpc;
+    uint16_t end_mpc;
+} AdaptOverlapData;
+
+typedef struct {
+    int16_t pressure_offset;
+    int16_t timing_offset;
+} AdaptPrefillData;
+
 class ShiftAdaptationSystem  {
 public:
     ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr);
     
-    uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change, int16_t* dest_trq_limit);
-    uint32_t check_prefill_adapt_conditions_shift(SensorData* sensors, EgsBaseCan* can);
+    uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change);
 
-    uint32_t prefill_adapt_step(int shift_progress, SensorData* sensors);
+    void record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel);
+    void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
-    void get_adapted_prefeill_data(ProfileGearChange change);
+    void record_early_flare();
+    void record_late_flare();
+    AdaptOverlapData get_overlap_data();
 
-    bool prefill_adapt_step();
-    void on_overlap_start(uint64_t timestamp, uint64_t expected_shift_time, int shift_progress_percent);
-    void do_prefill_overlap_check(uint64_t timestamp, bool flaring, int shift_progress_percent);
-
-    void notify_early_shift(Clutch to_apply);
-
-    int16_t get_prefill_pressure_offset(int16_t trq_nm, Clutch to_apply);
+    AdaptPrefillData get_prefill_adapt_data(Clutch to_apply);
 
     esp_err_t reset(void);
     esp_err_t save(void);
 
-    void debug_print_offset_array();
+    void debug_print_prefill_data();
 
 private:
-    bool offset_cell_value(StoredMap* map, Clutch clutch, uint8_t load_cell_idx, int16_t offset);
-    uint8_t cell_idx_prefill;
-    int16_t requested_trq;
+    bool set_prefill_cell_offset(StoredMap* dest, Clutch clutch, int16_t offset, int16_t pos_lim, int16_t neg_lim);
     GearboxConfiguration* gb_cfg;
     uint8_t pre_shift_pedal_pos;
+
     StoredMap* prefill_pressure_offset_map;
     StoredMap* prefill_time_offset_map;
-    uint64_t last_overlap_check = 0;
-    uint64_t expected_shift_time = 0;
-    uint64_t overlap_start_time = 0;
+
     Clutch to_apply;
-    bool flare_notified = false;
-    int last_shift_progress = 0;
 };
 
 

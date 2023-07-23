@@ -349,16 +349,12 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
 
-const int16_t ADAPT_PREFILL_PRESSURE_MAP[] = {
+const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
 //  K1 K2 K3 B1 B2    
-    0, 0, 0, 0, 0, // 0%
-    0, 0, 0, 0, 0, // 10%
-    0, 0, 0, 0, 0  // 25% 
+    0, 0, 0, 0, 0,
 };
 
-const int16_t ADAPT_PREFILL_TIMING_MAP[] = {
+const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
 //  K1 K2 K3 B1 B2   
-    0, 0, 0, 0, 0, // 0%
-    0, 0, 0, 0, 0, // 10%
-    0, 0, 0, 0, 0  // 25%
+    0, 0, 0, 0, 0,
 };

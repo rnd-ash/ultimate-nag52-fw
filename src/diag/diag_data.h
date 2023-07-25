@@ -101,7 +101,8 @@ typedef struct {
     uint16_t engine_rpm;
     uint16_t fuel_rate;
     uint16_t torque_req_amount;
-    TorqueRequest torque_req_type;
+    TorqueRequestControlType torque_req_ctrl_type;
+    TorqueRequestBounds torque_req_bounds;
     // Temps (All offset by +40C)
     int16_t e_iat_temp;
     int16_t e_oil_temp;

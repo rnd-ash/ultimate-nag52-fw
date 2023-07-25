@@ -93,7 +93,7 @@ class Egs52Can: public EgsBaseCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request, float amount_nm) override;
+        void set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter
@@ -129,7 +129,6 @@ class Egs52Can: public EgsBaseCan {
         bool toggle = false;
         uint8_t cvn_counter = 0;
         uint16_t fake_rpm = 0;
-        TorqueRequest current_req = TorqueRequest::None;
 };
 
 #endif // EGS52_CAN_H

@@ -138,7 +138,7 @@ void HfmCan::set_shifter_position(ShifterPosition pos) {
 void HfmCan::set_gearbox_ok(bool is_ok) {
 }
 
-void HfmCan::set_torque_request(TorqueRequest request, float amount_nm) {
+void HfmCan::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
 }
 
 void HfmCan::set_error_check_status(SystemStatusCheck ssc) {

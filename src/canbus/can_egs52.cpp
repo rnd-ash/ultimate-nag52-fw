@@ -540,62 +540,34 @@ void Egs52Can::set_garage_shift_state(bool enable) {
     gs218.KS = enable;
 }
 
-void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
-    bool dyn0 = request != TorqueRequest::None; // Markes torque request active
-    bool dyn1 = false;
-    bool min = false;
-    bool max = false;
-    uint16_t trq = 0;
-    if (request != TorqueRequest::None) {
-        trq = (amount_nm + 500) * 4;
+void Egs52Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
+    if (control_type == TorqueRequestControlType::None) {
+        gs218.DYN0_AMR_EGS = false;
+        gs218.DYN1_EGS = false;
+    } else if (control_type == TorqueRequestControlType::FastAsPossible) {
+        gs218.DYN0_AMR_EGS = true;
+        gs218.DYN1_EGS = false;
+    } else { // Normal speed
+        gs218.DYN0_AMR_EGS = true;
+        gs218.DYN1_EGS = false;
+    }
+    if (control_type != TorqueRequestControlType::None) {
+        gs218.M_EGS = (amount_nm + 500) * 4;
+        if (limit_type == TorqueRequestBounds::LessThan) {
+            gs218.MMIN_EGS = true;
+            gs218.MMAX_EGS = false;
+        } else if (limit_type == TorqueRequestBounds::MoreThan) {
+            gs218.MMIN_EGS = false;
+            gs218.MMAX_EGS = true;
+        } else {
+            gs218.MMIN_EGS = true;
+            gs218.MMAX_EGS = true;
+        }
     } else {
-        trq = 0;
+        gs218.MMIN_EGS = false;
+        gs218.MMAX_EGS = false;
+        gs218.M_EGS = 0;
     }
-    // Type of request bit
-    switch(request) {
-        case TorqueRequest::Exact:
-        case TorqueRequest::ExactFast:
-            min = true;
-            max = true;
-            break;
-        case TorqueRequest::LessThan:
-        case TorqueRequest::LessThanFast:
-            min = true;
-            max = false;
-            break;
-        case TorqueRequest::MoreThan:
-        case TorqueRequest::MoreThanFast:
-            min = false;
-            max = true;
-            break;
-        case TorqueRequest::None:
-        default:
-            min = false;
-            max = false;
-            break;
-    }
-    // Request engage type bit
-    switch(request) {
-        case TorqueRequest::Exact:
-        case TorqueRequest::LessThan:
-        case TorqueRequest::MoreThan:
-            dyn1 = false;
-            break;
-        case TorqueRequest::ExactFast:
-        case TorqueRequest::LessThanFast:
-        case TorqueRequest::MoreThanFast:
-            dyn1 = true;
-            break;
-        case TorqueRequest::None:
-        default:
-            dyn1 = false;
-            break;
-    }
-    gs218.M_EGS = trq;
-    gs218.DYN0_AMR_EGS = dyn0;
-    gs218.DYN1_EGS = dyn1;
-    gs218.MMAX_EGS = max;
-    gs218.MMIN_EGS = min;
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {

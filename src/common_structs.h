@@ -84,7 +84,8 @@ struct SensorData{
 
 struct OutputData {
     float torque_req_amount;
-    TorqueRequest torque_req_type;
+    TorqueRequestControlType ctrl_type;
+    TorqueRequestBounds bounds;
 };
 
 /**

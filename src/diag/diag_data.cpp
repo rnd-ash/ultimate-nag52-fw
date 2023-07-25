@@ -123,8 +123,9 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.shifter_position = can_layer->get_shifter_position(now, 250);
     ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
-    ret.torque_req_type = gearbox->output_data.torque_req_type;
-    ret.torque_req_amount = ret.torque_req_type == TorqueRequest::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
+    ret.torque_req_ctrl_type = gearbox->output_data.ctrl_type;
+    ret.torque_req_bounds = gearbox->output_data.bounds;
+    ret.torque_req_amount = ret.torque_req_ctrl_type == TorqueRequestControlType::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
     // Temps
     ret.e_coolant_temp = egs_can_hal->get_engine_coolant_temp(now, 250);
     ret.e_iat_temp = egs_can_hal->get_engine_iat_temp(now, 250);

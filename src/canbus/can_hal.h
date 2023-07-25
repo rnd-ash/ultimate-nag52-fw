@@ -45,22 +45,24 @@ enum class EngineType: uint8_t {
     Unknown = 0xFF
 };
 
-/// @brief Torque request type
-enum class TorqueRequest: uint8_t {
-    /// @brief No torque request
-    None,
-    /// @brief Make less than specified amount
-    LessThan,
-    /// @brief Make more than specified amount
-    MoreThan,
-    /// @brief Make exactly specified amount
-    Exact,
-    /// @brief Make less than specified amount - Fast reaction
-    LessThanFast,
-    /// @brief Make more than specified amount - Fast reaction
-    MoreThanFast,
-    /// @brief Make exactly specified amount - Fast reaction
-    ExactFast
+/// @brief Torque request control type
+enum class TorqueRequestControlType: uint8_t {
+    /// @brief No torque request ([TorqueRequestBounds] is ignored)
+    None = 0,
+    /// @brief Let the engine naturally reduce torque (Usually done via spark retarding or air reduction)
+    NormalSpeed = 1,
+    /// @brief As fast as possible (Usually done via fuel cut)
+    FastAsPossible = 2,
+};
+
+/// @brief Torque request intervention bounds
+enum class TorqueRequestBounds: uint8_t {
+    /// @brief Engine makes torque less or equal to whats asked by EGS
+    LessThan = 0,
+    /// @brief Engine makes torque more or equal to whats asked by EGS
+    MoreThan = 1,
+    /// @brief Engine tries to make exactly what EGS specifies
+    Exact = 2,
 };
 
 /// @brief Gearbox gears for 722.6 gearbox
@@ -343,7 +345,7 @@ class EgsBaseCan {
         // Sets gearbox is OK
         virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request, float amount_nm){};
+        virtual void set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm){};
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 

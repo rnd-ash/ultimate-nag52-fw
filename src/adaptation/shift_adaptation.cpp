@@ -99,7 +99,6 @@ void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time
             // Too quick
             ESP_LOGW("ADAPT", "Shifting velocity too quick");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, -5.0, 200, -200.0);
-
         } else if (vel.on_clutch_vel > -20) {
             ESP_LOGW("ADAPT", "Shifting velocity too slow");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, +5.0, 200, -200.0);

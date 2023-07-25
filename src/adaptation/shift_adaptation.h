@@ -6,11 +6,6 @@
 #include "common_structs.h"
 #include "esp_err.h"
 
-// Adaptation inputs:
-// 1. Clutch to apply (To prefill)
-
-// 0%, 10%, 25%, 50%
-
 typedef struct {
     uint16_t override_shift_torque;
 } AdaptShiftRequest;
@@ -33,9 +28,9 @@ typedef enum {
     INPUT_TRQ_TOO_HIGH = 1 << 12,
 } AdaptCancelFlag;
 
-#define CELL_ID_NEG_TRQ 0
-#define CELL_ID_10_PST_TRQ 1
-#define CELL_ID_25_PST_TRQ 2
+// Torque phase constants (CANNOT BE MODIFIED)
+#define TORQUE_PHASE_SPC_RAMP_TIME 100 // SPC goes from pad to RAMP
+#define TORQUE_PHASE_MPC_RAMP_TIME 100 // MPC goes from WP to release
 
 typedef struct {
     uint16_t start_mpc;

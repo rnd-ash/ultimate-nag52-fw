@@ -403,6 +403,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int target_c_on = pre_cs.on_clutch_speed / MAX(100, chars.target_shift_time);
         bool overlap_record_start_done = false;
         bool overlap_record_end_done = false;
+        bool flare_notified = false;
         bool recordable_shift = true;
         bool skip_prefill_bleed = sensor_data.static_torque > gearboxConfig.max_torque/2 || (!is_upshift && sensor_data.static_torque < 0);
         int torque_reduction_max_at =
@@ -434,6 +435,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                 if (cs.off_clutch_speed < 0 || cs.on_clutch_speed < 0) {
                     flaring = true;
+                    if (prefill_adapt_flags == 0 && !flare_notified) {
+                        this->shift_adapter->record_flare(current_stage, phase_elapsed);
+                    }
                 } else {
                     flaring = false;
                 }
@@ -513,7 +517,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     phase_x_ramp_time = 0;
                     spc_delta = 0;
-                    phase_targ_spc = prev_spc = prefill_data.fill_pressure_on_clutch;
                 }
             }
             
@@ -535,7 +538,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
                 // Bleed phase of prefill.
-                if (phase_elapsed > prefill_data.fill_time) {
+                if (phase_elapsed <= 50) {
+                    phase_targ_spc = prev_spc = prefill_data.fill_pressure_on_clutch*1.5;
+                } else if (phase_elapsed > prefill_data.fill_time) {
                     if (torque_reduction_max_at) {
                         skip_phase = true; // To skip without bleed
                     } else {
@@ -558,7 +563,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // 2. Ensure initial RPM delta occurs in THIS phase
                 //    * Occurs earlier - Reduce the prefill time
                 //    * Occurs later - Increase prefill time AND pressure
-                phase_targ_mpc = 400;
+                phase_targ_mpc = prev_mpc = 400;
                 phase_targ_spc = prefill_data.fill_pressure_on_clutch + 50;
                 if (shift_progress_percentage > 5 || shifting_velocity.on_clutch_vel < -20) {
                     skip_phase = true; // Skip once this has finished
@@ -611,7 +616,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             // Shift reporting
             if (recordable_shift && prefill_adapt_flags == 0) {
-                if (!overlap_record_start_done && shift_progress_percentage > 5) {
+                if (!overlap_record_start_done && (shift_progress_percentage > 5 || shifting_velocity.on_clutch_vel < -20)) {
                     this->shift_adapter->record_shift_start(current_stage, phase_elapsed, current_mpc, current_spc, shifting_velocity);
                     overlap_record_start_done = true;
                 }

@@ -56,8 +56,7 @@ public:
     void record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel);
     void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
-    void record_early_flare();
-    void record_late_flare();
+    void record_flare(ShiftStage when, uint64_t elapsed);
     AdaptOverlapData get_overlap_data();
 
     AdaptPrefillData get_prefill_adapt_data(Clutch to_apply);
@@ -76,6 +75,10 @@ private:
     StoredMap* prefill_time_offset_map;
 
     Clutch to_apply;
+
+    bool flared = false;
+    ShiftStage flare_location = ShiftStage::Bleed;
+    uint64_t flare_time = 0;
 };
 
 

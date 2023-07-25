@@ -144,13 +144,14 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
         bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping && !force_lock;
         bool in_adapt_torque_range = sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt;
+        bool in_temp_range = sensors->atf_temp >= ADP_CURRENT_SETTINGS.min_atf_temp && sensors->atf_temp < ADP_CURRENT_SETTINGS.max_atf_temp;
         //ESP_LOGI("TCC", "%d %d %d (%d %d)", adapt_state, in_adapt_torque_range, is_shifting, (int)this->target_tcc_state, (int)this->current_tcc_state);
         bool adapt_check = false;
         if ((!adapt_state || is_shifting || !in_adapt_torque_range) && !this->slip_average->reset_done()) {
             ESP_LOGI("TCC", "Resetting sample data");
             this->slip_average->reset();
         }
-        if (adapt_state && !is_shifting && in_adapt_torque_range) {
+        if (adapt_state && !is_shifting && in_adapt_torque_range && in_temp_range) {
             adapt_check = true;
             if (sensors->current_timestamp_ms - last_slip_add_time > 100) {
                 last_slip_add_time = sensors->current_timestamp_ms;

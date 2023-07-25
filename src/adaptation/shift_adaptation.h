@@ -29,8 +29,7 @@ typedef enum {
 } AdaptCancelFlag;
 
 // Torque phase constants (CANNOT BE MODIFIED)
-#define TORQUE_PHASE_SPC_RAMP_TIME 100 // SPC goes from pad to RAMP
-#define TORQUE_PHASE_MPC_RAMP_TIME 100 // MPC goes from WP to release
+#define TORQUE_PHASE_TIME 200 // MPC ramp to off
 
 typedef struct {
     uint16_t start_mpc;

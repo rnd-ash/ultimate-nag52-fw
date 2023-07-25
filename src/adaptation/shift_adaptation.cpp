@@ -76,7 +76,7 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply) 
 
 void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel) {
     // Too early, reduce filling time
-    if (c_stage < ShiftStage::Torque && time_into_phase < 100) {
+    if (c_stage < ShiftStage::Torque && time_into_phase < TORQUE_PHASE_TIME/2) {
         ESP_LOGE("ADAPT", "Shift started too early!");
         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
     } else if (c_stage >= ShiftStage::Overlap && time_into_phase > 100) {

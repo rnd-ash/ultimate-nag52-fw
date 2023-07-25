@@ -86,13 +86,9 @@ void PressureManager::controller_loop() {
         if (0 != this->ss_1_2_open_time) {
             // 1-2 circuit is open (Correct pressure for K1)
             // K1 is controlled by Shift pressure
-            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 5 && this->t_gear == 4)) {
+            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
                 this->commanded_spc_pressure /= 1.9;
                 max_spc /= 1.9;
-            }
-            // K1 is controlled by Modulating pressure
-            else if ((this->c_gear == 2 && this->t_gear == 1) || (this->c_gear == 4 && this->t_gear == 5)) {
-                this->commanded_mpc_pressure = MAX(this->commanded_mpc_pressure / 1.9, 500);
             }
         }
         if (this->commanded_spc_pressure >= 7700) {

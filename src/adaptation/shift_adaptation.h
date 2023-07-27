@@ -6,6 +6,8 @@
 #include "common_structs.h"
 #include "esp_err.h"
 
+extern const char* CLUTCH_NAMES[5];
+
 typedef struct {
     uint16_t override_shift_torque;
 } AdaptShiftRequest;

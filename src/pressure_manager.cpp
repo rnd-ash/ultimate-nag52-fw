@@ -109,6 +109,16 @@ void PressureManager::controller_loop() {
         if (0 != ss_3_4_open_time && now - ss_3_4_open_time > PRM_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
             sol_y4->write_pwm_12_bit(1024, true);
         }
+#define SS_RECOVERY_TIME 1500
+        if (this->init_ss_recovery) {
+            uint64_t e = sensor_data->current_timestamp_ms - last_ss_on_time;
+            this->commanded_mpc_pressure *= scale_number(e, 1.5, 1.0, 0, SS_RECOVERY_TIME);
+
+            if (e > SS_RECOVERY_TIME) {
+                this->init_ss_recovery = false;
+            }
+        }
+
         if (p_last_spc != this->commanded_spc_pressure) {
             p_last_spc = this->commanded_spc_pressure;
             if (this->commanded_spc_pressure >= 7700) {
@@ -278,6 +288,8 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
     }
     // Firstly, check if new value is 0 (Close the solenoid!)
     if (!enable) {
+        this->init_ss_recovery = true;
+        this->last_ss_on_time = this->sensor_data->current_timestamp_ms;
         manipulated->write_pwm_12_bit(0, false);
     } else if (0 == *dest_timestamp) { // Check if current value is 0, if so, write full PWM
         manipulated->write_pwm_12_bit(4096, true);

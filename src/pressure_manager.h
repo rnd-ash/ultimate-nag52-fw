@@ -145,6 +145,9 @@ private:
     uint64_t ss_3_4_open_time = 0;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
+
+    bool init_ss_recovery = false;
+    uint64_t last_ss_on_time = 0;
 };
 
 extern PressureManager* pressure_manager;

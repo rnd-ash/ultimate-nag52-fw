@@ -213,16 +213,18 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
-		/** engine drag torque **/
+		/** engine min torque **/
 		uint8_t MIN_TORQUE: 8;
-		/** engine drag torque **/
+		/** engine max torque **/
 		uint8_t MAX_TORQUE: 8;
 		/** engine drag torque **/
-		uint8_t STA_TORQUE: 8;
+		uint8_t DRG_TORQUE: 8;
 		/** engine indicated torque **/
 		uint8_t IND_TORQUE: 8;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING1__: 32;
+		/** factor of max torque  **/
+		uint8_t MAX_TRQ_FACTOR: 8;
+		/** BITFIELD PADDING. DO NOT CHANGE **/
+		uint32_t __PADDING1__: 24;
 	} __attribute__((packed));
 	/** Gets CAN ID of MS_310_EGS51 **/
 	uint32_t get_canid(){ return MS_310_EGS51_CAN_ID; }

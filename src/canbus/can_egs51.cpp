@@ -128,10 +128,10 @@ uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
     }
 }
 
-int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.IND_TORQUE*3;
+        return (int)ms310.IND_TORQUE*3 - (int)(ms310.DRG_TORQUE*3);
     } else {
         return INT_MAX;
     }
@@ -139,13 +139,14 @@ int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
 }
 
 int Egs51Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+    // Don't think EGS51 supports this so just run with static torque for now
     return this->get_static_engine_torque(now, expire_time_ms);
 }
 
-int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.MAX_TORQUE*3;
+        return (float)(ms310.MAX_TORQUE*3) * ((float)(ms310.MAX_TRQ_FACTOR * 0.0078));
     } else {
         return INT_MAX;
     }

@@ -74,9 +74,9 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply) 
     return ret;
 }
 
-void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel) {
+void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_fill_time) {
     // Too early, reduce filling time
-    if (c_stage < ShiftStage::Torque && time_into_phase < TORQUE_PHASE_TIME/2) {
+    if (c_stage < ShiftStage::Fill && time_into_phase < target_fill_time - 50) {
         ESP_LOGE("ADAPT", "Shift started too early!");
         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
     } else if (c_stage >= ShiftStage::Overlap && time_into_phase > 100) {
@@ -95,11 +95,11 @@ void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time
         }
     } else {
         ESP_LOGI("ADAPT", "Vel on: %d ,Vel off: %d!", vel.on_clutch_vel, vel.off_clutch_vel);
-        if (vel.on_clutch_vel < -50) {
+        if (vel.on_clutch_vel > 100) {
             // Too quick
             ESP_LOGW("ADAPT", "Shifting velocity too quick");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, -5.0, 200, -200.0);
-        } else if (vel.on_clutch_vel > -20) {
+        } else if (vel.on_clutch_vel < 25) {
             ESP_LOGW("ADAPT", "Shifting velocity too slow");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, +5.0, 200, -200.0);
         } else {

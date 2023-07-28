@@ -30,9 +30,6 @@ typedef enum {
     INPUT_TRQ_TOO_HIGH = 1 << 12,
 } AdaptCancelFlag;
 
-// Torque phase constants (CANNOT BE MODIFIED)
-#define TORQUE_PHASE_TIME 200 // MPC ramp to off
-
 typedef struct {
     uint16_t start_mpc;
     uint16_t end_mpc;
@@ -49,7 +46,7 @@ public:
     
     uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change);
 
-    void record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel);
+    void record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_fill_time);
     void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
     void record_flare(ShiftStage when, uint64_t elapsed);

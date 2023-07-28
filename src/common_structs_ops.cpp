@@ -5,8 +5,6 @@ ShiftStage next_shift_stage(ShiftStage now) {
         case ShiftStage::Bleed:
             return ShiftStage::Fill;
         case ShiftStage::Fill:
-            return ShiftStage::Torque;
-        case ShiftStage::Torque:
             return ShiftStage::Overlap;
         case ShiftStage::Overlap:
         case ShiftStage::MaxPressure:

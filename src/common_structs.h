@@ -12,9 +12,8 @@ typedef float rpm_modifier_map[9];
 enum class ShiftStage {
     Bleed = 1,
     Fill = 2,
-    Torque = 3,
-    Overlap = 4,
-    MaxPressure = 5
+    Overlap = 3,
+    MaxPressure = 4
 };
 
 enum class Clutch {

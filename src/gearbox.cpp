@@ -613,7 +613,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Shift reporting
             if (recordable_shift && prefill_adapt_flags == 0) {
                 if (!overlap_record_start_done && delta_rpm > 100 && now_cs.off_clutch_speed > 0) {
-                    this->shift_adapter->record_shift_start(current_stage, phase_elapsed, current_mpc, current_spc, shifting_velocity, prefill_data.fill_time);
+                    this->shift_adapter->record_shift_start(current_stage, phase_elapsed, current_mpc, current_spc, shifting_velocity, prefill_3_time_start, prefill_data.fill_time);
                     overlap_record_start_done = true;
                 }
                 if (sr.detect_shift_start_ts == 0  && shifting_velocity.on_clutch_vel < -20) {

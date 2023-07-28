@@ -74,33 +74,29 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply) 
     return ret;
 }
 
-void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_fill_time) {
+void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_min_fill_done, uint16_t target_max_fill_done) {
     // Too early, reduce filling time
-    if (c_stage < ShiftStage::Fill || (c_stage == ShiftStage::Fill && time_into_phase < target_fill_time - 100)) {
+    bool check_velocity = true;
+    if (c_stage == ShiftStage::Fill && time_into_phase < target_min_fill_done) {
         ESP_LOGE("ADAPT", "Shift started too early!");
         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
 
-    } else if (c_stage >= ShiftStage::Overlap && time_into_phase > 100) {
+    } else if (c_stage >= ShiftStage::Overlap) {
+        check_velocity = false;
         ESP_LOGE("ADAPT", "Shift started too late!");
         if (this->flared) {
             // There was a flare, TODO - handle MPC padding on the releasing clutch
             ESP_LOGE("ADAPT", "Shift flared prior to overlap, ignoring adaptation");
         } else {
-            // Too late, increase BOTH the time and pressure map by 10, then we can reduce the pressure
-            // depending on engagement speed
-
-            // Do this clamp to make adapt time increase faster
-            int time_increase = MIN(MAX((time_into_phase - 100) / 4.0, 10), 50.0);
-            this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, time_increase, 200, -100.0);
-            this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, +10.0, 200, -200.0);
+            this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, +10.0, 200, -100.0);
         }
-    } else {
+    }
+    if (check_velocity) {
         ESP_LOGI("ADAPT", "Vel on: %d ,Vel off: %d!", vel.on_clutch_vel, vel.off_clutch_vel);
         if (vel.on_clutch_vel > 100) {
             // Too quick
             ESP_LOGW("ADAPT", "Shifting velocity too quick");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, -5.0, 200, -200.0);
-            this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
         } else if (vel.on_clutch_vel < 25) {
             ESP_LOGW("ADAPT", "Shifting velocity too slow");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, +5.0, 200, -200.0);

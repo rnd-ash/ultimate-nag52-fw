@@ -13,7 +13,7 @@ ShiftStage next_shift_stage(ShiftStage now) {
     }
 }
 
-const Clutch get_clutch_to_apply(ProfileGearChange change) {
+Clutch get_clutch_to_apply(ProfileGearChange change) {
     switch(change) {
         case ProfileGearChange::ONE_TWO:
         case ProfileGearChange::FIVE_FOUR:
@@ -32,7 +32,7 @@ const Clutch get_clutch_to_apply(ProfileGearChange change) {
     }
 }
 
-const Clutch get_clutch_to_release(ProfileGearChange change) {
+Clutch get_clutch_to_release(ProfileGearChange change) {
     switch(change) {
         case ProfileGearChange::ONE_TWO:
         case ProfileGearChange::FIVE_FOUR:

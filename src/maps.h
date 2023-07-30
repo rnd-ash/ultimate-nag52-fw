@@ -185,12 +185,9 @@ extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[PREFILL_ADAPT_PREFILL_DATA_MAP_SIZE];
 #define MAP_NAME_PREFILL_ADAPT_PREFILL_TIMING "ADP_P_T2" // Adapt prefill timing
 extern const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[PREFILL_ADAPT_PREFILL_DATA_MAP_SIZE];
-/*
-================================================================================
 
-   TORQUE TABLES
-
-================================================================================
+/**
+ * torque tables
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --

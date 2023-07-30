@@ -15,11 +15,11 @@ class LookupHeader {
         /// @brief frees the allocated memory
         ~LookupHeader(void);
 
-        /// @brief Sets the indices idx_min and idx_max in between the value is found in headers. idx_min and idx_max are identical, if value is an element of headers.
-        /// @param value the value to be searched in the sorted list of headers
-        /// @param idx_min the index of the element in headers, which is smaller than or equal to value
-        /// @param idx_max the index of the element in headers, which is greater than or equal to value
-        void set_indices(const float value, uint16_t* idx_min, uint16_t* idx_max);
+        // /// @brief Sets the indices idx_min and idx_max in between the value is found in headers. idx_min and idx_max are identical, if value is an element of headers.
+        // /// @param value the value to be searched in the sorted list of headers
+        // /// @param idx_min the index of the element in headers, which is smaller than or equal to value
+        // /// @param idx_max the index of the element in headers, which is greater than or equal to value
+        // void set_indices(const float value, uint16_t* idx_min, uint16_t* idx_max);
 
         int16_t get_value(const uint16_t index);
         uint16_t get_size(void);

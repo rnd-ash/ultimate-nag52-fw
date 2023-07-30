@@ -56,13 +56,28 @@ float LookupTable::get_value(float xValue)
     uint16_t    idx_max;
     
     // part 1 - identification of the indices for x-value
-    xHeader->set_indices(xValue, &idx_min, &idx_max);
-
+    search_value(xValue, xHeader->get_data(), xHeaderSize, &idx_min, &idx_max);
+    
     // part 2: do the interpolation
     int16_t x1 = xHeader->get_value(idx_min);
     int16_t x2 = xHeader->get_value(idx_max);
     
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
+}
+
+float LookupTable::get_header_interpolated(const float value)
+{
+    uint16_t    idvalue_min;
+    uint16_t    idvalue_max;
+
+    // part 1 - identification of the indices for x-value
+    search_value(value, data, dataSize, &idvalue_min, &idvalue_max);
+
+    // part 2: do the interpolation
+    const float value1 = (float)xHeader->get_value(idvalue_min);
+    const float value2 = (float)xHeader->get_value(idvalue_max);
+    
+    return value1 + progress_between_targets(value, data[idvalue_min], data[idvalue_max]) * (value2 - value1);
 }
 
 int16_t* LookupTable::get_current_data(void) {

@@ -237,25 +237,8 @@ const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
    /* K1    K2    K3    B1    B2 */
-     800,  900,  900,  900,  800
+    1200, 1400, 1300, 1200, 1400
 };
-
-const int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
-    /* Clutch                    */
-   /* K1    K2    K3    B1    B2 */
-     800,  900,  900,  900,  800
-};
-
-const int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE] = {
-   /* Engine torque (0-100%) of 330Nm or 580Nm */
-   /*0%,  10%   20%   30%   40%   50%   60%    70%   80%   90%  100%  */ // NOTE this map does not exceed 100%. Torque is restricted instead
-     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K1
-     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // K2
-     100,  200,  300,  400,  500,  700,  900, 1100, 1300, 1500, 1700, // K3 <- 3-4 flare
-     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B1
-     100,  200,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, // B2
-};
-
 
 const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
@@ -366,18 +349,14 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
 
-const int16_t ADAPT_PREFILL_PRESSURE_MAP[] = {
+const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
 //  K1 K2 K3 B1 B2    
-    0, 0, 0, 0, 0, // 0%
-    0, 0, 0, 0, 0, // 10%
-    0, 0, 0, 0, 0  // 25% 
+    0, 0, 0, 0, 0,
 };
 
-const int16_t ADAPT_PREFILL_TIMING_MAP[] = {
+const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
 //  K1 K2 K3 B1 B2   
-    0, 0, 0, 0, 0, // 0%
-    0, 0, 0, 0, 0, // 10%
-    0, 0, 0, 0, 0  // 25%
+    0, 0, 0, 0, 0,
 };
 
 const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE] = "ENGINE_TORQUE_MAX";
@@ -388,14 +367,4 @@ const int16_t ENGINE_TORQUE_MAP[] = { // Value = maximum torque at rpm
     // initial values are taken from E 320 (M104 E32 in 124)
     /*              0 rpm	250 rpm	500 rpm	750 rpm	1000 rpm	1250 rpm	1500 rpm	1750 rpm	2000 rpm	2250 rpm	2500 rpm	2750 rpm	3000 rpm	3250 rpm	3500 rpm	3750 rpm	4000 rpm	4250 rpm	4500 rpm	4750 rpm	5000 rpm	5250 rpm	5500 rpm	5750 rpm	6000 rpm	6250 rpm	6500 rpm	6750 rpm	7000 rpm	7250 rpm	7500 rpm	7750 rpm	8000 rpm */
     /* in Nm */     0,	    61,	    121,	182,	242,	    251,	    259,	    268,	    276,	    280,	    284,	    288,	    292,	    299,	    306,	    310,	    309,    	308,    	304,    	300,    	296,    	290,    	282,    	266,    	250,    	235,    	219,	    205,	    190,	    176,	    161,	    147,	    132
-};
-
-const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
-//  K1 K2 K3 B1 B2    
-    0, 0, 0, 0, 0,
-};
-
-const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
-//  K1 K2 K3 B1 B2   
-    0, 0, 0, 0, 0,
 };

@@ -163,7 +163,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             bool should_lock = this->target_tcc_state == InternalTccState::Closed && this->current_tcc_state == InternalTccState::Closed;
             if (sensors->current_timestamp_ms - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
                 int slip_avg = this->slip_average->get_average();
-                int slip_now = (int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm;
+                // int slip_now = (int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm;
                 // Do the adaptation!
                 // 1. Create a min and max linear line between our max bounds
                 //    Such that the area in between min and max are the 'OK' slip region

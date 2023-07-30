@@ -10,7 +10,7 @@ HfmCan::HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan
     ESP_LOGI("ClassicEGS", "SETUP CALLED");
     if(ShifterStyle::TRRS != VEHICLE_CONFIG.shifter_style){
         // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
-        ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to (500kbit/s)! Set shifter to TRRS instead!");                        
+        ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");                        
     }
     this->start_enable = true;
 }
@@ -356,7 +356,7 @@ void HfmCan::set_gearbox_ok(bool is_ok) {
     // TODO: should ground the connector to the Hfm-ECU
 }
 
-void HfmCan::set_torque_request(TorqueRequest request, float amount_nm) {
+void HfmCan::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm)  {
     // nothing is sent on Hfm-CAN
 }
 

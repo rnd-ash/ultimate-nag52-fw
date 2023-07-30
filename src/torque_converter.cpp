@@ -145,12 +145,13 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping && !force_lock;
         bool in_adapt_torque_range = sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt;
         bool in_temp_range = sensors->atf_temp >= ADP_CURRENT_SETTINGS.min_atf_temp && sensors->atf_temp <= ADP_CURRENT_SETTINGS.max_atf_temp;
+        bool loaded = sensors->static_torque >= sensors->driver_requested_torque; // Only adapt when engine is loaded
         //ESP_LOGI("TCC", "%d %d %d (%d %d)", adapt_state, in_adapt_torque_range, is_shifting, (int)this->target_tcc_state, (int)this->current_tcc_state);
         bool adapt_check = false;
         if ((!adapt_state || is_shifting || !in_adapt_torque_range) && !this->slip_average->reset_done()) {
             this->slip_average->reset();
         }
-        if (adapt_state && !is_shifting && in_adapt_torque_range && in_temp_range) {
+        if (adapt_state && !is_shifting && in_adapt_torque_range && in_temp_range && loaded && sensors->engine_rpm < TCC_CURRENT_SETTINGS.tcc_stall_speed) {
             adapt_check = true;
             if (sensors->current_timestamp_ms - last_slip_add_time > 100) {
                 last_slip_add_time = sensors->current_timestamp_ms;
@@ -186,7 +187,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     new_p = this->tcc_pressure_target+TCC_CURRENT_SETTINGS.adapt_pressure_step;
                 } else if (slip_avg < min_slip_targ && !should_lock) {
                     // Too little clutch slip - Reduce pressure
-                    new_p = this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                    // DO NOT ADJUST BELOW PREFILL PRESSURE.
+                    if (this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step > TCC_CURRENT_SETTINGS.prefill_pressure) {
+                        new_p = this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                    }
                 }
                 if (new_p != 0) {
                     adjust_map_cell(curr_gear, new_p);

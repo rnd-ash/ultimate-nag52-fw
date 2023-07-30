@@ -1156,7 +1156,7 @@ void Gearbox::controller_loop()
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
                         // Second gear shift defaults to OK as we can safely start in second (For C/W mode)
-                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > TCC_CURRENT_SETTINGS.min_locking_rpm + 100)
+                        if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > 900)
                         {
                             this->target_gear = next;
                         }

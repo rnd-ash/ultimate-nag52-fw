@@ -74,14 +74,22 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply) 
     return ret;
 }
 
-void ShiftAdaptationSystem::record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_min_fill_done, uint16_t target_max_fill_done) {
+void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm) {
     // Too early, reduce filling time
+    // Velocities are calculated every 100ms
+    int start_time_offset = ((float)delta_rpm/(float)vel.on_clutch_vel)*100.0;
+    int shift_start_time_absolute = (int)time_into_shift - start_time_offset;
+    ESP_LOGI("ADAPT", "Estimating shift started -%d ms ago at %d ms", start_time_offset, shift_start_time_absolute);
     bool check_velocity = true;
-    if (c_stage == ShiftStage::Fill && time_into_phase < target_min_fill_done) {
+
+
+
+
+    if (shift_start_time_absolute < overlap_start_ts - 100) { // Too early in fill phase
         ESP_LOGE("ADAPT", "Shift started too early!");
         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
 
-    } else if (c_stage >= ShiftStage::Overlap) {
+    } else if (shift_start_time_absolute > overlap_start_ts + 200) {
         check_velocity = false;
         ESP_LOGE("ADAPT", "Shift started too late!");
         if (this->flared) {

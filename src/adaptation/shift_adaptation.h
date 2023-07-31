@@ -46,7 +46,7 @@ public:
     
     uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change);
 
-    void record_shift_start(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t target_min_fill_done, uint16_t target_max_fill_done);
+    void record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm);
     void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
     void record_flare(ShiftStage when, uint64_t elapsed);

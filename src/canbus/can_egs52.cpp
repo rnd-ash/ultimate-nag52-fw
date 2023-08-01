@@ -3,9 +3,18 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "../shifter/shifter_ewm.h"
+#include "../shifter/shifter_trrs.h"
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
-    shifter = new ShifterEwm(&(this->can_init_status), &ewm_ecu);
+    switch (VEHICLE_CONFIG.shifter_style)
+    {
+    case (uint8_t)ShifterStyle::TRRS:
+        this->shifter = new ShifterTrrs(&(this->can_init_status), this->name, &this->start_enable_trrs);
+        break;
+    default:
+        this->shifter = new ShifterEwm(&(this->can_init_status), &this->ewm_ecu);
+        break;
+    }
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -37,6 +46,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
+    this->start_enable_trrs = true;
 }
 
 WheelData Egs52Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
@@ -494,7 +504,8 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 }
 
 void Egs52Can::set_safe_start(bool can_start) {
-    this->gs218.ALF = can_start;   
+    this->gs218.ALF = can_start;
+    this->start_enable_trrs = can_start;
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {

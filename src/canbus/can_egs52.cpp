@@ -302,7 +302,15 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
 }
 
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
-    return (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);    
+    bool ret = false;
+    switch (VEHICLE_CONFIG.shifter_style) {
+        case (uint8_t)ShifterStyle::EWM:
+            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);
+            break;
+        default:
+            break;
+    }
+    return ret; 
 }
 
 bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {

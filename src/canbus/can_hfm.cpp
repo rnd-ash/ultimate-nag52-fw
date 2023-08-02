@@ -8,7 +8,7 @@
 
 HfmCan::HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("ClassicEGS", "SETUP CALLED");
-    if(ShifterStyle::TRRS != VEHICLE_CONFIG.shifter_style){
+    if(ShifterStyle::TRRS != (ShifterStyle)VEHICLE_CONFIG.shifter_style){
         // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
         ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");                        
     }
@@ -393,7 +393,7 @@ void HfmCan::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t time
 }
 
 void HfmCan::on_rx_done(uint64_t now_ts) {
-    if(ShifterStyle::TRRS == VEHICLE_CONFIG.shifter_style) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
         (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

@@ -186,7 +186,7 @@ void input_manager(void*) {
             ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
             // Switch based
             if (prof_now != last_mode) {
-                prof_now = last_mode;
+                last_mode = prof_now;
                 if (prof_now != ProfileSwitchPos::SNV) {
                     gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
                 }

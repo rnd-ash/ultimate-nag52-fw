@@ -44,7 +44,11 @@ class TorqueConverter {
         StoredMap* tcc_learn_lockup_map;
         void set_shift_target_state(InternalTccState target_state);
         void on_shift_ending(void);
+
+        void diag_toggle_tcc_sol(bool en);
+
     private:
+        bool tcc_solenoid_enabled = true;
         inline void reset_rpm_samples(SensorData* sensors);
         float tcc_pressure_target = 0;
         float tcc_pressure_current = 0;

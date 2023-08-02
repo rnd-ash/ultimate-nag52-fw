@@ -802,6 +802,32 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
         return;
     }
+
+    if (arg_len == 0) {
+        make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+
+    // EGS emulation
+    if (args[0] == ROUTINE_EGS_ID_TCC_SOL_TOGGLE) {
+        // Should have 1 more byte
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            uint8_t resp[1] = {ROUTINE_EGS_ID_TCC_SOL_TOGGLE};
+            if (args[1] == 0x00 || args[1] == 0x01) { // Long term off or short term off
+                gearbox_ptr->tcc->diag_toggle_tcc_sol(false);
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else if (args[1] == 0x02) { // Back on
+                gearbox_ptr->tcc->diag_toggle_tcc_sol(true);
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else {
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            }
+        }
+        return;
+    }
+
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
             bool pl = false;

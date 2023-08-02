@@ -42,6 +42,11 @@ void TorqueConverter::on_shift_ending(void) {
     this->shift_req_tcc_state = InternalTccState::None;
 }
 
+void TorqueConverter::diag_toggle_tcc_sol(bool en) {
+    ESP_LOGI("TCC", "Diag request to set TCC control to %d", en);
+    this->tcc_solenoid_enabled = en;
+}
+
 void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
     // Too much slip
     int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
@@ -52,6 +57,11 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
+    if (!this->tcc_solenoid_enabled) {
+        pm->set_target_tcc_pressure(0);
+        return;
+    }
+    
     GearboxGear cmp_gear = curr_gear;
 
     // Decider 

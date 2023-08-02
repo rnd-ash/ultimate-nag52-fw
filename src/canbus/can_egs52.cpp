@@ -313,13 +313,8 @@ bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return ret; 
 }
 
-bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
-    EWM_230_EGS52 ewm230;
-    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
-        return ewm230.W_S;
-    } else {
-        return false;
-    }
+ProfileSwitchPos Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
 }
 
 uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
@@ -814,5 +809,12 @@ void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
     } else if (this->ewm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->misc_ecu.import_frames(data, id, timestamp)) {
     } else if (this->ezs_ecu.import_frames(data, id, timestamp)) {
+    }
+}
+
+
+void Egs52Can::on_rx_done(uint64_t now_ts) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
+        (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

@@ -53,6 +53,7 @@ class Egs51Can: public EgsBaseCan {
         // Returns true if engine is cranking
          bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
+        ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
         // 
          bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
 

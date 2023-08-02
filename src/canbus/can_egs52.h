@@ -63,7 +63,7 @@ class Egs52Can: public EgsBaseCan {
         // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
-        bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
+        ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
         bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
         bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
         bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
@@ -111,6 +111,7 @@ class Egs52Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
+        void on_rx_done(uint64_t now_ts) override;
     private:
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;

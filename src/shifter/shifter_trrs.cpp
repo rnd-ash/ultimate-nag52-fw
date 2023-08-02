@@ -170,17 +170,13 @@ void ShifterTrrs::update_shifter_position(const uint64_t now)
 		{
 			ESP_LOGE("LS", "Could not send I2C: %s", esp_err_to_name(e));
 		}
-		/*
-		req[0] = 0x03;
-		req[1] = 0x00;
-		uint8_t resp_tmp[2] = {0,0};
-		e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, resp_tmp, 2, 5);
-		if (e != ESP_OK) {
-			// Error, SNV
-			ESP_LOGE("LS", "Could not query I2C: %s", esp_err_to_name(e));
-		} else {
-			ESP_LOGI("LS", "I: %02X %02X", resp_tmp[0], resp_tmp[1]);
-		}
-		*/
 	}
+}
+ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) {
+	ProfileSwitchPos result = ProfileSwitchPos::SNV;
+	if ((now - last_i2c_query_time) < expire_time_ms) {
+		bool top = (i2c_rx_bytes[0] & BIT(1)) != 0;
+		result = top ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+	}
+	return result;
 }

@@ -110,13 +110,6 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
-struct ShiftPhaseTiming {
-    /// Ramp down from current pressure to new pressure
-    uint16_t ramp_time;
-    /// Hold time at requested pressure
-    uint16_t hold_time;
-};
-
 /**
  * Shift circuit
 */
@@ -135,15 +128,6 @@ struct ShiftData{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
- 
-    /** 
-     * Bleed phase
-     * Shift solenoid has not opened yet
-     * This reduces the line pressure of the SPC line so that
-     * there is not a spike in pressure when Shift solenoid opens
-     */
-    ShiftPhaseTiming bleed_data;
-    uint16_t bleed_pressure;
 };
 
 #define RAT_1_IDX 0
@@ -176,49 +160,8 @@ struct GearboxConfiguration{
     GearRatioInfo bounds[7];
 };
 
-struct PressureMgrData{
-    pressure_map spc_1_2;
-    pressure_map mpc_1_2;
-
-    pressure_map spc_2_3;
-    pressure_map mpc_2_3;
-
-    pressure_map spc_3_4;
-    pressure_map mpc_3_4;
-
-    pressure_map spc_4_5;
-    pressure_map mpc_4_5;
-
-    pressure_map spc_5_4;
-    pressure_map mpc_5_4;
-
-    pressure_map spc_4_3;
-    pressure_map mpc_4_3;
-
-    pressure_map spc_3_2;
-    pressure_map mpc_3_2;
-
-    pressure_map spc_2_1;
-    pressure_map mpc_2_1;
-
-    pressure_map working_mpc_p;
-    pressure_map working_mpc_r;
-    pressure_map working_mpc_1;
-    pressure_map working_mpc_2;
-    pressure_map working_mpc_3;
-    pressure_map working_mpc_4;
-    pressure_map working_mpc_5;
-
-    rpm_modifier_map ramp_speed_multiplier;
-} ;
-
 struct ShiftCharacteristics{
     uint16_t target_shift_time;
-} ;
-
-struct TccLockupBounds{
-    int max_slip_rpm;
-    int min_slip_rpm;
 };
 
 struct   __attribute__ ((packed)) ShiftReportSegment {

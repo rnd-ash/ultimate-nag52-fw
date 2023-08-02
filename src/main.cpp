@@ -171,20 +171,25 @@ void input_manager(void*) {
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
     uint64_t now = esp_timer_get_time()/1000;
-    bool last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
+    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
     bool pressed = false;
     
     if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
-        gearbox->set_profile(profile_from_auto_ty(last_mode ? ETS_CURRENT_SETTINGS.profile_idx_buttom : ETS_CURRENT_SETTINGS.profile_idx_top)); 
+        gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom));
+        if (last_mode != ProfileSwitchPos::SNV) {
+            gearbox->set_profile(profile_from_auto_ty(last_mode == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+        }
     }
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
         if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
-            bool prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
+            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
             // Switch based
             if (prof_now != last_mode) {
-                prof_now = last_mode;
-                gearbox->set_profile(profile_from_auto_ty(last_mode ? ETS_CURRENT_SETTINGS.profile_idx_buttom : ETS_CURRENT_SETTINGS.profile_idx_top)); 
+                last_mode = prof_now;
+                if (prof_now != ProfileSwitchPos::SNV) {
+                    gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+                }
             }
         } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {
             // EWM button

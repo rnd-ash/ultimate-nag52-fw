@@ -3,9 +3,18 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "../shifter/shifter_ewm.h"
+#include "../shifter/shifter_trrs.h"
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
-    shifter = new ShifterEwm(&(this->can_init_status), &ewm_ecu);
+    switch (VEHICLE_CONFIG.shifter_style)
+    {
+    case (uint8_t)ShifterStyle::TRRS:
+        this->shifter = new ShifterTrrs(&(this->can_init_status), this->name, &this->start_enable_trrs);
+        break;
+    default:
+        this->shifter = new ShifterEwm(&(this->can_init_status), &this->ewm_ecu);
+        break;
+    }
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -37,6 +46,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
+    this->start_enable_trrs = true;
 }
 
 WheelData Egs52Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
@@ -292,16 +302,19 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
 }
 
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
-    return (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);    
+    bool ret = false;
+    switch (VEHICLE_CONFIG.shifter_style) {
+        case (uint8_t)ShifterStyle::EWM:
+            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);
+            break;
+        default:
+            break;
+    }
+    return ret; 
 }
 
-bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
-    EWM_230_EGS52 ewm230;
-    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
-        return ewm230.W_S;
-    } else {
-        return false;
-    }
+ProfileSwitchPos Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
 }
 
 uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
@@ -494,7 +507,8 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 }
 
 void Egs52Can::set_safe_start(bool can_start) {
-    this->gs218.ALF = can_start;   
+    this->gs218.ALF = can_start;
+    this->start_enable_trrs = can_start;
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
@@ -795,5 +809,12 @@ void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
     } else if (this->ewm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->misc_ecu.import_frames(data, id, timestamp)) {
     } else if (this->ezs_ecu.import_frames(data, id, timestamp)) {
+    }
+}
+
+
+void Egs52Can::on_rx_done(uint64_t now_ts) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
+        (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

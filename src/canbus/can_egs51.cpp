@@ -221,6 +221,10 @@ bool Egs51Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
+ProfileSwitchPos Egs51Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
+}
+
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
     
 }
@@ -410,7 +414,7 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
 }
 
 void Egs51Can::on_rx_done(uint64_t now_ts) {
-    if(ShifterStyle::TRRS == VEHICLE_CONFIG.shifter_style) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
         (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

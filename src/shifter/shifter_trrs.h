@@ -29,6 +29,7 @@ class ShifterTrrs : public Shifter
 public:
     ShifterTrrs(esp_err_t *can_init_status, const char *name, bool *start_enable);
     ShifterPosition get_shifter_position(const uint64_t now, const uint64_t expire_time_ms) override;
+    ProfileSwitchPos get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) override;
     void update_shifter_position(const uint64_t now);
 
 private:

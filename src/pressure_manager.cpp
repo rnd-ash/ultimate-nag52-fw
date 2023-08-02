@@ -217,9 +217,6 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
     }
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;
-    sd.bleed_data.ramp_time = 0;
-    sd.bleed_data.hold_time = 100;
-    sd.bleed_pressure = 500;
     return sd;
 }
 

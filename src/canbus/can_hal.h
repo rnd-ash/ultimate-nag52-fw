@@ -285,8 +285,8 @@ class EgsBaseCan {
             return false;
         }
         // 1 = S, 0 = W/C
-        virtual bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
-            return false;
+        virtual ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+            return ProfileSwitchPos::SNV;
         }
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
             return false;

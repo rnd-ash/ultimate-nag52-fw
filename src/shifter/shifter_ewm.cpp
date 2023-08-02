@@ -52,15 +52,15 @@ bool ShifterEwm::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms)
 	EWM_230_EGS52 ewm;
     if (this->_ewm->get_EWM_230(now, expire_time_ms, &ewm)) {
         result = ewm.FPT;
-        if (result) {
-            if (!state) {
-                esp_toggle = !esp_toggle;
-            }
-            state = true;
-        }
-        else {
-            state = false;
-        }
     }
     return result;
+}
+
+ProfileSwitchPos ShifterEwm::get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) {
+	ProfileSwitchPos result = ProfileSwitchPos::SNV;
+	EWM_230_EGS52 ewm;
+    if (this->_ewm->get_EWM_230(now, expire_time_ms, &ewm)) {
+		result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+	}
+	return result;
 }

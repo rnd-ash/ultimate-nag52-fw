@@ -78,24 +78,25 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 void PressureManager::controller_loop() {
     uint16_t p_last_spc = 0;
     uint16_t p_last_mpc = 0;
-    int rpm;
+    uint16_t spc_now = 0;
+    uint16_t mpc_now = 0;
     while(1) {
-        this->commanded_spc_pressure = this->req_spc_clutch_pressure;
-        this->commanded_mpc_pressure = this->req_mpc_clutch_pressure * scale_number(sensor_data->engine_rpm, 1.0, 0.75, 1000, 6000);
+        spc_now = this->req_spc_clutch_pressure;
+        mpc_now = this->req_mpc_clutch_pressure;
         int max_spc = 7700;
         if (0 != this->ss_1_2_open_time) {
             // 1-2 circuit is open (Correct pressure for K1)
             // K1 is controlled by Shift pressure
             if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                this->commanded_spc_pressure /= 1.9;
+                spc_now /= 1.9;
                 max_spc /= 1.9;
             }
         }
-        if (this->commanded_spc_pressure >= 7700) {
-            this->commanded_spc_pressure = 7700;
+        if (spc_now >= 7700) {
+            spc_now = 7700;
         }
-        if (this->commanded_mpc_pressure >= 7700) {
-            this->commanded_mpc_pressure = 7700;
+        if (spc_now >= 7700) {
+            spc_now = 7700;
         }
         // Deal with shift valves
         uint64_t now = this->sensor_data->current_timestamp_ms;
@@ -109,32 +110,25 @@ void PressureManager::controller_loop() {
         if (0 != ss_3_4_open_time && now - ss_3_4_open_time > PRM_CURRENT_SETTINGS.shift_solenoid_pwm_reduction_time) {
             sol_y4->write_pwm_12_bit(1024, true);
         }
-#define SS_RECOVERY_TIME 1500
-        if (this->init_ss_recovery) {
-            uint64_t e = sensor_data->current_timestamp_ms - last_ss_on_time;
-            this->commanded_mpc_pressure *= scale_number(e, 1.5, 1.0, 0, SS_RECOVERY_TIME);
 
-            if (e > SS_RECOVERY_TIME) {
-                this->init_ss_recovery = false;
-            }
-        }
-
-        if (p_last_spc != this->commanded_spc_pressure) {
-            p_last_spc = this->commanded_spc_pressure;
-            if (this->commanded_spc_pressure >= 7700) {
+        if (p_last_spc != spc_now) {
+            p_last_spc = spc_now;
+            if (spc_now >= 7700) {
                 spc_cc->set_target_current(0);
             } else {
-                spc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_spc_pressure));
+                spc_cc->set_target_current(this->get_p_solenoid_current(spc_now));
             }
         }
-        if (p_last_mpc != this->commanded_mpc_pressure) {
-            p_last_mpc = this->commanded_mpc_pressure;
-            if (this->commanded_mpc_pressure >= 7700) {
+        if (p_last_mpc != mpc_now) {
+            p_last_mpc = mpc_now;
+            if (mpc_now >= 7700) {
                 mpc_cc->set_target_current(0);
             } else {
-                mpc_cc->set_target_current(this->get_p_solenoid_current(this->commanded_mpc_pressure));
+                mpc_cc->set_target_current(this->get_p_solenoid_current(mpc_now));
             }
         }
+        this->commanded_spc_pressure = spc_now;
+        this->commanded_mpc_pressure = mpc_now;
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
 }
@@ -349,8 +343,6 @@ uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
             break;
     }
     pressure_from_trq = 0;
-
-
     return MAX(min_pressure, pressure_from_trq);
 }
 

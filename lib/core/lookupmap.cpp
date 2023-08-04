@@ -46,3 +46,25 @@ void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
     *size = yHeaderSize;
     *headers = yHeader->get_data();
 }
+
+float LookupMap::get_x_header_interpolated(const float value, const int16_t y)
+{
+    // isolate the row
+    int16_t row[xHeader->get_size()];
+    for (uint16_t i = 0; i < xHeader->get_size(); i++)
+    {
+        row[i] = data[i*yHeaderSize];
+    }
+    
+    uint16_t    idvalue_min;
+    uint16_t    idvalue_max;
+
+    // part 1 - identification of the indices for x-value
+    search_value(value, row, xHeader->get_size(), &idvalue_min, &idvalue_max);
+
+    // part 2: do the interpolation
+    const float value1 = (float)xHeader->get_value(idvalue_min);
+    const float value2 = (float)xHeader->get_value(idvalue_max);
+    
+    return value1 + progress_between_targets(value, row[idvalue_min], row[idvalue_max]) * (value2 - value1);
+}

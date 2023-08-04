@@ -10,6 +10,7 @@ class LookupMap : public LookupTable {
 
         float get_value(const float xValue, const float yValue);
         void get_y_headers(uint16_t *size, int16_t **headers);
+        float get_x_header_interpolated(const float value, const int16_t y);
 
     protected:
         LookupHeader* yHeader;

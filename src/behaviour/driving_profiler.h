@@ -44,6 +44,7 @@ class DrivingProfile {
     private:
         unsigned long last_update_ms = 0;
         DrivingData data;
+        SensorData last_sensors;
         MovingAverageData<uint16_t> rpm_samples;
         MovingAverageData<int> speed_samples;
         MovingAverageData<int> pedal_samples;

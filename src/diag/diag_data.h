@@ -34,9 +34,12 @@
 #define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
 #define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
 
+#define RLI_CLUTCH_SPEEDS   0x30
+#define RLI_CLUTCH_VELOCITY 0x31
+
+#define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
-
 // Gearbox sensor struct
 typedef struct {
     uint16_t n2_rpm; // Raw N2 RPM
@@ -74,9 +77,13 @@ typedef struct {
     uint16_t spc_pwm;
     uint16_t mpc_pwm;
     uint16_t tcc_pwm;
-    uint16_t spc_pressure;
-    uint16_t mpc_pressure;
-    uint16_t tcc_pressure;
+    uint8_t ss_flag;
+    uint16_t spc_sol_pressure;
+    uint16_t mpc_sol_pressure;
+    uint16_t spc_clutch_pressure;
+    uint16_t mpc_clutch_pressure;
+    uint16_t tcc_clutch_pressure;
+    uint16_t line_pressure;
 }  __attribute__ ((packed)) DATA_PRESSURES;
 
 // Solenoid command struct
@@ -94,7 +101,12 @@ typedef struct {
     uint16_t engine_rpm;
     uint16_t fuel_rate;
     uint16_t torque_req_amount;
-    TorqueRequest torque_req_type;
+    TorqueRequestControlType torque_req_ctrl_type;
+    TorqueRequestBounds torque_req_bounds;
+    // Temps (All offset by +40C)
+    int16_t e_iat_temp;
+    int16_t e_oil_temp;
+    int16_t e_coolant_temp;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
 /// System usage stats 
@@ -139,6 +151,12 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
 DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
+
+// Read and write TCU Module settings
+
+// MUST DEALLOCATE buffer!
+kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer);
+kwp_result_t set_module_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer);
 
 // Read and write SCN config
 TCM_CORE_CONFIG get_tcm_config(void);

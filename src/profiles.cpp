@@ -1,5 +1,4 @@
 #include "profiles.h"
-#include <gearbox_config.h>
 #include "adv_opts.h"
 #include "tcu_maths.h"
 #include "gearbox.h"
@@ -157,13 +156,6 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
     }
 }
 
-TccLockupBounds AgilityProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(70, sensors->static_torque),
-        .min_slip_rpm = (int)MAX(10, sensors->static_torque*0.25)
-    };
-}
-
 ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "COMFORT", 
@@ -229,13 +221,6 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
     }
 }
 
-TccLockupBounds ComfortProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = 50,
-        .min_slip_rpm = 10
-    };
-}
-
 WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "WINTER", 
@@ -290,13 +275,6 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
     return manual->should_downshift(current_gear, sensors);
 }
 
-// Minimum lockup
-TccLockupBounds WinterProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(100, sensors->static_torque*1.5),
-        .min_slip_rpm = (int)MAX(50, sensors->static_torque)
-    };
-}
 
 StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
@@ -359,13 +337,6 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     }
 }
 
-TccLockupBounds StandardProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(50, sensors->static_torque),
-        .min_slip_rpm = (int)MAX(1, sensors->static_torque/2)
-    };
-}
-
 GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGear actual) {
     switch (target) {
         case GearboxGear::Park:
@@ -416,18 +387,11 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) {
         return false;
-    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < MIN_WORKING_RPM && sensors->pedal_pos == 0) {
+    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm && sensors->pedal_pos == 0) {
         return true;
     } else {
         return false;
     }
-}
-
-TccLockupBounds ManualProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = (int)MAX(30, sensors->static_torque/2),
-        .min_slip_rpm = (int)MAX(0, sensors->static_torque/4)
-    };
 }
 
 
@@ -460,21 +424,6 @@ bool RaceProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) 
 bool RaceProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     return manual->should_downshift(current_gear, sensors);
 }
-
-TccLockupBounds RaceProfile::get_tcc_lockup_bounds(SensorData* sensors, GearboxGear curr_gear) {
-    return TccLockupBounds {
-        .max_slip_rpm = 50,
-        .min_slip_rpm = 10
-    };
-}
-
-/*
-AgilityProfile* agility = new AgilityProfile();
-ComfortProfile* comfort = new ComfortProfile();
-WinterProfile* winter = new WinterProfile();
-ManualProfile* manual = new ManualProfile();
-StandardProfile* standard = new StandardProfile();
-*/
 
 /* Now initialized in main.cpp */
 AgilityProfile* agility = nullptr;

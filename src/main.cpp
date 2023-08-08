@@ -6,17 +6,18 @@
 #include <freertos/task.h>
 #include "speaker.h"
 #include "sensors.h"
-#include <gearbox_config.h>
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
 #include "solenoids/constant_current.h"
+#include "nvs/module_settings.h"
 
 // CAN LAYERS
 #include "canbus/can_egs51.h"
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
+#include "canbus/can_hfm.h"
 #include "board_config.h"
 
 Kwp2000_server* diag_server;
@@ -55,6 +56,8 @@ SPEAKER_POST_CODE setup_tcm() {
             if (EEPROM::init_eeprom() != ESP_OK) {
                 ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             } else {
+                // Read our configuration (This is allowed to fail as the default opts are always set by default)
+                ModuleConfiguration::load_all_settings();
                 switch (VEHICLE_CONFIG.egs_can_type) {
                     case 1:
                         egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer
@@ -64,6 +67,9 @@ SPEAKER_POST_CODE setup_tcm() {
                         break;
                     case 3:
                         egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
+                        break;
+                    case 4:
+                        egs_can_hal = new HfmCan("HFM", 20, 125000); // HFM CAN Abstraction layer
                         break;
                     default:
                         // Unknown (Fallback to basic CAN)
@@ -143,40 +149,63 @@ void err_beep_loop(void* a) {
     }
 }
 
+AbstractProfile* profile_from_auto_ty(AutoProfile prof) {
+    AbstractProfile* p = standard;
+    switch(prof) {
+        case AutoProfile::Sport:
+            p = standard;
+            break;
+        case AutoProfile::Agility:
+            p = agility;
+            break;
+        case AutoProfile::Winter:
+        case AutoProfile::Comfort:
+        default:
+            return comfort;
+    }
+    return p;
+}
+
 void input_manager(void*) {
-    bool pressed = false;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
-    bool last_switch_pos = egs_can_hal->get_shifter_ws_mode(esp_timer_get_time()/1000, 100);
+
+    uint64_t now = esp_timer_get_time()/1000;
+    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
+    bool pressed = false;
+    
+    if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
+        gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom));
+        if (last_mode != ProfileSwitchPos::SNV) {
+            gearbox->set_profile(profile_from_auto_ty(last_mode == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+        }
+    }
     while(1) {
         uint64_t now = esp_timer_get_time()/1000;
-        bool down = egs_can_hal->get_profile_btn_press(now, 100);
-        if (down) {
-            pressed = true;
-        } else { // Released
-            if (pressed) {
-                pressed = false; // Released, do thing now
-                if (egs_can_hal->get_shifter_position(now, 1000) == ShifterPosition::PLUS) {
-                    gearbox->inc_subprofile();
-                } else {
-                    profile_id++;
-                    if (profile_id == NUM_PROFILES) {
-                        profile_id = 0;
-                    }
-                    gearbox->set_profile(profiles[profile_id]);  
+        if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
+            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
+            // Switch based
+            if (prof_now != last_mode) {
+                last_mode = prof_now;
+                if (prof_now != ProfileSwitchPos::SNV) {
+                    gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
                 }
             }
-        }
-        // Check for W/S toggle - Reuse down variable
-        down = egs_can_hal->get_shifter_ws_mode(now, 100);
-        if (last_switch_pos != down) {
-            profile_id++;
-            if (profile_id == NUM_PROFILES) {
-                profile_id = 0;
+        } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {
+            // EWM button
+            bool down = egs_can_hal->get_profile_btn_press(now, 100);
+            if (down && !pressed) {
+                // Pressed button, inc profile
+                profile_id++;
+                if (profile_id == NUM_PROFILES) {
+                    profile_id = 0;
+                }
+                gearbox->set_profile(profiles[profile_id]);
             }
-            gearbox->set_profile(profiles[profile_id]); 
-            last_switch_pos = down;
-        }
+            pressed = down;
+        } // Else - No profile button to process
+
+
         PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
         if (last_pos != paddle) { // Same position, ignore
             if (last_pos != PaddlePosition::None) {
@@ -235,6 +264,7 @@ extern "C" void app_main(void)
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 4096, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));

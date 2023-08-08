@@ -1,7 +1,6 @@
 #include "can_egs51.h"
 
 #include "driver/twai.h"
-#include "gearbox_config.h"
 #include "driver/i2c.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
@@ -129,10 +128,10 @@ uint8_t Egs51Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) { // TO
     }
 }
 
-int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.IND_TORQUE*3;
+        return (int)ms310.IND_TORQUE*3 - (int)(ms310.DRG_TORQUE*3);
     } else {
         return INT_MAX;
     }
@@ -140,13 +139,14 @@ int Egs51Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
 }
 
 int Egs51Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+    // Don't think EGS51 supports this so just run with static torque for now
     return this->get_static_engine_torque(now, expire_time_ms);
 }
 
-int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs51Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
-        return (int)ms310.MAX_TORQUE*3;
+        return (float)(ms310.MAX_TORQUE*3) * ((float)(ms310.MAX_TRQ_FACTOR * 0.0078));
     } else {
         return INT_MAX;
     }
@@ -169,20 +169,35 @@ PaddlePosition Egs51Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 
 int16_t Egs51Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_608_EGS51 ms608;
+    int16_t res = INT16_MAX;
     if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
-        return ms608.T_MOT - 40;
-    } else {
-        return UINT16_MAX;
+        if (ms608.T_MOT != UINT8_MAX) {
+            res = ms608.T_MOT - 40;
+        }
     }
+    return res;
 }
 
-int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
+int16_t Egs51Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_308_EGS51 ms308;
+    int16_t res = INT16_MAX;
     if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
-        return ms308.T_OEL - 40;
-    } else {
-        return UINT16_MAX;
+        if (ms308.T_OEL != UINT8_MAX) {
+            res = ms308.T_OEL - 40;
+        }
     }
+    return res;
+}
+
+int16_t Egs51Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+    MS_608_EGS51 ms608;
+    int16_t res = INT16_MAX;
+    if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
+        if (ms608.T_LUFT != UINT8_MAX) {
+            res = ms608.T_LUFT - 40;
+        }
+    }
+    return res;
 }
 
 uint16_t Egs51Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
@@ -206,7 +221,11 @@ bool Egs51Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
-void Egs51Can::set_clutch_status(ClutchStatus status) {
+ProfileSwitchPos Egs51Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
+}
+
+void Egs51Can::set_clutch_status(TccClutchStatus status) {
     
 }
 
@@ -304,14 +323,14 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
 void Egs51Can::set_gearbox_ok(bool is_ok) {
 }
 
-void Egs51Can::set_torque_request(TorqueRequest request, float amount_nm) {
-    if (request == TorqueRequest::None) {
+void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
+    if (control_type == TorqueRequestControlType::None) {
         this->gs218.TORQUE_REQ_EN = false;
         this->gs218.TORQUE_REQ = 0xFE;
     } else {
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
-        this->gs218.TORQUE_REQ = amount_nm/2;
+        this->gs218.TORQUE_REQ = amount_nm/3;
     }
 }
 
@@ -395,7 +414,7 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
 }
 
 void Egs51Can::on_rx_done(uint64_t now_ts) {
-    if(ShifterStyle::TRRS == VEHICLE_CONFIG.shifter_style) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
         (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

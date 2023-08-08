@@ -1,19 +1,13 @@
-#ifndef EGS52_CAN_H
-#define EGS52_CAN_H
+#ifndef HFM_CAN_H
+#define HFM_CAN_H
 
 #include "can_hal.h"
-#include "../../egs52_ecus/src/ANY_ECU52.h"
-#include "../../egs52_ecus/src/ESP_SBC.h"
-#include "../../egs52_ecus/src/EWM.h"
-#include "../../egs52_ecus/src/GS.h"
-#include "../../egs52_ecus/src/MS.h"
-#include "../../egs52_ecus/src/EZS.h"
-#include "../../egs52_ecus/src/KOMBI.h"
-#include "../shifter/shifter.h"
+#include "../../lib/hfm/src/HFM.h"
+#include "shifter/shifter.h"
 
-class Egs52Can: public EgsBaseCan {
+class HfmCan: public EgsBaseCan {
     public:
-        explicit Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        explicit HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -44,14 +38,13 @@ class Egs52Can: public EgsBaseCan {
          int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
          int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
-         uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine coolant temperature
          int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine oil temperature
          int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) override;
-        // Gets engine charge air temperature
+         // Gets engine charge air temperature
         int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine RPM
          uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
@@ -59,16 +52,7 @@ class Egs52Can: public EgsBaseCan {
          bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
          bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         // 
-        bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
-        // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
-        uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
-        TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
-        ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
-        bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
-        bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
-        bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
-        int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
-        int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
 
         /**
          * Setters
@@ -86,7 +70,7 @@ class Egs52Can: public EgsBaseCan {
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit
         void set_is_all_wheel_drive(bool is_4wd) override;
-        // Sets wheel torque
+        // Sets wheel torqu
         void set_wheel_torque(uint16_t t) override;
         // Sets shifter position message
         void set_shifter_position(ShifterPosition pos) override;
@@ -105,32 +89,13 @@ class Egs52Can: public EgsBaseCan {
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
-        void set_abort_shift(bool is_aborting) override;
-        void set_fake_engine_rpm(uint16_t rpm) override;
-        void set_garage_shift_state(bool enable) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
         void on_rx_done(uint64_t now_ts) override;
     private:
-        GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
-        GearboxMessage curr_message = GearboxMessage::None;
-        // CAN Frames to Tx
-        GS_218_EGS52 gs218 = {0};
-        GS_418_EGS52 gs418 = {0};
-        GS_338_EGS52 gs338 = {0};
-        // ECU Data to Rx to
-        ECU_EZS ezs_ecu = ECU_EZS();
-        ECU_ESP_SBC esp_ecu = ECU_ESP_SBC();
-        ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
-        ECU_EWM ewm_ecu = ECU_EWM();
-        ECU_MS ecu_ms = ECU_MS();
-        Shifter *shifter;
-        bool time_to_toggle = false;
-        bool toggle = false;
-        uint8_t cvn_counter = 0;
-        uint16_t fake_rpm = 0;
-        bool start_enable_trrs = false;
+        ECU_HFM hfm_ecu = ECU_HFM();
+        Shifter *shifter;      
 };
 
-#endif // EGS52_CAN_H
+#endif // HFM_CAN_H

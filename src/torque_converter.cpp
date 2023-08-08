@@ -1,16 +1,14 @@
 #include "torque_converter.h"
 #include "solenoids/solenoids.h"
 #include "tcu_maths.h"
+#include "nvs/eeprom_impl.h"
 
 // 1400 mBar ~= locking (C200CDI)
 // 1700 mBar ~= locking (E55 AMG)
 
-static const uint16_t TCC_ADAPT_CONSIDERED_LOCK = 50; 
-static const uint16_t TCC_PREFILL = 500u; // mBar
 const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
 const int16_t tcc_learn_y_headers[1] = {1};
-const int16_t tcc_learn_default_data[5] = {900, 900, 900, 900, 900};
-const uint16_t TCC_MIN_LOCKING_RPM = 1100;
+const int16_t tcc_learn_default_data[5] = {1500, 1500, 1500, 1500, 1500};
 
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 
@@ -24,11 +22,10 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         //data[i] = tcc_learn_default_data[i];
         ESP_LOGI("TCC", "Adapt value for gear %d - %d mBar", i+1, data[i]);
     }
-    // range of adaptation is 1/10 - 1/3 of the rating of the gearbox
-    // W5A330 - 33Nm - 55Nm
-    // W5A580 - 58Nm - 96Nm
-    this->high_torque_adapt_limit = max_gb_rating / 6;
-    this->low_torque_adapt_limit = max_gb_rating / 10;
+    this->slip_average = new MovingAverage(20); // 2 Seconds moving window (Every 100ms)
+    if (!this->slip_average->init_ok()) {
+        delete this->slip_average;
+    }
 }
 
 inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
@@ -37,153 +34,218 @@ inline void TorqueConverter::reset_rpm_samples(SensorData* sensors) {
         //this->rpm_samples = 1;
 }
 
+void TorqueConverter::set_shift_target_state(InternalTccState target_state) {
+    this->shift_req_tcc_state = target_state;
+}
+
+void TorqueConverter::on_shift_ending(void) {
+    this->shift_req_tcc_state = InternalTccState::None;
+}
+
+void TorqueConverter::diag_toggle_tcc_sol(bool en) {
+    ESP_LOGI("TCC", "Diag request to set TCC control to %d", en);
+    this->tcc_solenoid_enabled = en;
+}
+
 void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
     // Too much slip
     int16_t* modify = this->tcc_learn_lockup_map->get_current_data();
     int16_t curr_v = modify[(uint8_t)(g)-1];
-    if (abs(curr_v-new_pressure) > 20) {
-        ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)g, curr_v, new_pressure);
-        modify[(uint8_t)(g)-1] = (int16_t)new_pressure;
-        this->pending_changes = true;
-    }
+    ESP_LOGI("TCC", "Adjusting TCC adaptation for gear %d. Was %d mBar, now %d mBar", (uint8_t)g, curr_v, new_pressure);
+    modify[(uint8_t)(g)-1] = (int16_t)new_pressure;
+    this->pending_changes = true;
 }
 
-void TorqueConverter::update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    uint32_t input_rpm = sensors->input_rpm;
-    int trq = MAX(sensors->static_torque, sensors->driver_requested_torque);
-    if (input_rpm <= TCC_MIN_LOCKING_RPM) {
-        if (this->last_idle_timestamp == 0) {
-            this->last_idle_timestamp = sensors->current_timestamp_ms;
-        }
-    } else {
-        this->last_idle_timestamp = 0;
+void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
+    if (!this->tcc_solenoid_enabled) {
+        pm->set_target_tcc_pressure(0);
+        return;
     }
-    if (input_rpm <= TCC_MIN_LOCKING_RPM && sensors->current_timestamp_ms - this->last_idle_timestamp > 100) { // RPM too low (More than 100ms under the RPM target)!
-        last_adj_time = sensors->current_timestamp_ms;
-        if (!this->was_idle) {
-            // Input has fallen below locking RPM (Slowing down). Do our once-actions here
-            this->was_idle = true;
-            this->initial_ramp_done = false;
-            this->strike_count = 0;
-            this->adapt_lock_count = 0;
-            this->state = ClutchStatus::Open;
-        } else {
-            // Input is still lower than locking RPM
-        }
-        if (sensors->engine_rpm > 900) {
-            this->base_tcc_pressure = TCC_PREFILL;
-        } else {
-            this->base_tcc_pressure = 0;
-        }
-        this->curr_tcc_pressure = this->base_tcc_pressure;
-        this->reset_rpm_samples(sensors);
+    
+    GearboxGear cmp_gear = curr_gear;
+
+    // Decider 
+    InternalTccState targ = InternalTccState::Open;
+    bool force_lock = false;
+    // See if we should be enabled in gear
+    if (
+        (cmp_gear == GearboxGear::First && !TCC_CURRENT_SETTINGS.enable_d1) ||
+        (cmp_gear == GearboxGear::Second && !TCC_CURRENT_SETTINGS.enable_d2) ||
+        (cmp_gear == GearboxGear::Third && !TCC_CURRENT_SETTINGS.enable_d3) ||
+        (cmp_gear == GearboxGear::Fourth && !TCC_CURRENT_SETTINGS.enable_d4) ||
+        (cmp_gear == GearboxGear::Fifth && !TCC_CURRENT_SETTINGS.enable_d5)
+    ) {
+        targ = InternalTccState::Open;
     } else {
-        // We can lock now!
-        if (this->was_idle) {
-            was_shifting = false;
-            // We were too low, but now we can lock! (RPM increasing)
-            this->was_idle = false;
-            if (this->tcc_learn_lockup_map != nullptr) {
-                this->curr_tcc_target = this->tcc_learn_lockup_map->get_value((float)curr_gear, 1.0);
-                ESP_LOGI("TCC", "Learn cell value is %lu mBar", curr_tcc_target);
-                this->initial_ramp_done = false;
-                this->base_tcc_pressure = MAX(0, this->curr_tcc_target-300);
-                this->curr_tcc_pressure = MAX(0, this->curr_tcc_target-300);
+        // See if we should slip or close
+        if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
+            if (sensors->pedal_pos == 0 && sensors->output_rpm >= TCC_CURRENT_SETTINGS.sailing_mode_active_rpm) {
+                targ = InternalTccState::Open; // Gliding mode
             } else {
-                this->initial_ramp_done = true;
-                this->base_tcc_pressure = TCC_PREFILL;
-                this->curr_tcc_pressure = TCC_PREFILL;
+                targ = InternalTccState::Slipping;
+                if (this->current_tcc_state >= InternalTccState::Slipping) {
+                    // Check if we should FULLY lock
+                    if (
+                        (sensors->pedal_pos != 0 && ((sensors->pedal_pos*100)/255) < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
+                        sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
+                    ) {
+                        targ = InternalTccState::Closed;
+                        force_lock = sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm;
+                    }
+                }
             }
-            last_adj_time = sensors->current_timestamp_ms;
-            this->reset_rpm_samples(sensors);
         } else {
-            // We are just driving, TCC is free to lockup
-            if (!initial_ramp_done) {
-                if (is_shifting) {
-                    this->base_tcc_pressure = this->curr_tcc_target;
-                    initial_ramp_done = true;
-                } else {
-                    // We are in stage of ramping TCC pressure up to initial lock phase as learned by TCC
-                    float ramp = scale_number(abs(sensors->tcc_slip_rpm), 1, 5, 100, 1000);
-                    int delta = MIN(ramp+1, this->base_tcc_pressure - this->curr_tcc_target);
-                    if (delta > ramp) {
-                        this->base_tcc_pressure += delta;
-                    } else {
-                        this->base_tcc_pressure = this->curr_tcc_target;
-                        initial_ramp_done = true;
-                    }
+            targ = InternalTccState::Open;
+        }
+    }
+    if (is_shifting && this->shift_req_tcc_state != InternalTccState::None) {
+        targ = MIN(targ, this->shift_req_tcc_state);
+    }
+
+    this->target_tcc_state = targ;
+    if (sensors->input_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm) {
+        // RPM too low for slipping, see if we can prefill
+        if (sensors->input_rpm != 0 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
+            this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
+        } else {
+            this->tcc_pressure_target = 0;
+        }
+        this->current_tcc_state = InternalTccState::Open;
+        this->target_tcc_state = InternalTccState::Open;
+    } else {
+        // Safe to lock or slip
+        if (this->target_tcc_state == InternalTccState::Open) {
+            this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
+        } else if (this->target_tcc_state == InternalTccState::Slipping || this->target_tcc_state == InternalTccState::Closed) {
+            this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0); // Slip at max torque
+            if (sensors->static_torque > TCC_CURRENT_SETTINGS.max_torque_adapt) {
+                this->tcc_pressure_target *= scale_number(sensors->static_torque, 1.0, 1.5, TCC_CURRENT_SETTINGS.max_torque_adapt, TCC_CURRENT_SETTINGS.max_torque_adapt*2);
+            }
+            if (this->target_tcc_state == InternalTccState::Closed) { // Locked
+                if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
+                    this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * scale_number(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
                 }
-                this->curr_tcc_pressure = this->base_tcc_pressure;
-                last_adj_time = sensors->current_timestamp_ms;
-                this->reset_rpm_samples(sensors);
-            } else {
-                bool learning = false;
-                if (sensors->current_timestamp_ms - last_adj_time > TCC_ADJ_INTERVAL_MS) { // Allowed to adjust
-                    last_adj_time = sensors->current_timestamp_ms;
-                    // Learning phase / dynamic phase
-                    if (!is_shifting && this->tcc_learn_lockup_map != nullptr) {
-                        // Learning phase check
-                        // Requires:
-                        // * torque in bounds
-                        // * Engine RPM - Less than TCC stall speed
-                        if (trq >= this->low_torque_adapt_limit && trq <= this->high_torque_adapt_limit && sensors->engine_rpm < 2500) {
-                            if (sensors->tcc_slip_rpm > 0 && sensors->tcc_slip_rpm < TCC_ADAPT_CONSIDERED_LOCK) {
-                                adapt_lock_count++;
-                            } else {
-                                learning = true;
-                                this->base_tcc_pressure += 10;
-                            }
-                        } else {
-                            adapt_lock_count = 0;
-                        }
-                        if (adapt_lock_count == 2000/TCC_ADJ_INTERVAL_MS) { // ~= 2 seconds
-                            this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
-                        }
-                    }
-                    this->curr_tcc_pressure = this->base_tcc_pressure;
-                    bool adj = false;
-                    if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) > 100 && sensors->pedal_pos == 0) {
-                        this->base_tcc_pressure += 10;
-                        adj = true;
-                    } else if (sensors->static_torque < 0 && abs(sensors->tcc_slip_rpm) < 20) {
-                        this->base_tcc_pressure -= 10;
-                        adj = true;
-                    }
-                    if (adj) {
-                        this->adjust_map_cell(curr_gear, this->base_tcc_pressure);
-                    }
-                }
-                // Dynamic TCC pressure increase based on torque
-                this->curr_tcc_pressure = this->base_tcc_pressure;
-                if (!learning) {
-                    if (trq > high_torque_adapt_limit) {
-                        int torque_delta = trq - high_torque_adapt_limit;
-                        this->curr_tcc_pressure += (1.5*torque_delta); // 2mBar per Nm
-                    } else if (sensors->static_torque < 40) {
-                        if (this->curr_tcc_pressure > TCC_PREFILL) {
-                            this->curr_tcc_pressure -= scale_number(sensors->static_torque, 100, 50, -40, 40);
-                        }
-                    }
-                }
-                if (sensors->output_rpm > 1500 && this->curr_tcc_pressure > TCC_PREFILL) {
-                    this->curr_tcc_pressure = (uint32_t)(float)this->curr_tcc_pressure * ((float)scale_number(sensors->output_rpm, 100, 125, 1500, 2500)/100.0);
-                }
+                this->tcc_pressure_target *= 1.25;
             }
         }
     }
-    if (this->base_tcc_pressure > 1800) {
-        this->base_tcc_pressure = 1800;
+
+    // State reduction or same state, Immedate pressure change
+    if (this->target_tcc_state < current_tcc_state || this->target_tcc_state == current_tcc_state) {
+        this->tcc_pressure_current = this->tcc_pressure_target;
+    } else { // State increase, ramp up pressure
+        // Ramp up
+        if (is_shifting) { // If shifting, don't ramp, immedietly change. The shifting of the transmission will dampen this
+            this->tcc_pressure_current = this->tcc_pressure_target;
+        } else {
+            // If state is going to lock, we increase it slower
+            uint16_t step = TCC_CURRENT_SETTINGS.pressure_increase_step;
+            if (this->target_tcc_state == InternalTccState::Closed) {
+                step /= 2.0;
+            }
+            this->tcc_pressure_current = MIN(this->tcc_pressure_current+step, this->tcc_pressure_target);
+        }
     }
-    if (this->curr_tcc_pressure > 7000) {
-        this->curr_tcc_pressure = 7000;
+
+    if (this->tcc_pressure_target == this->tcc_pressure_current) {
+        this->current_tcc_state = this->target_tcc_state;        
     }
-    pm->set_target_tcc_pressure(this->curr_tcc_pressure);
+
+    if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
+        bool adapt_state = this->target_tcc_state == this->current_tcc_state && this->current_tcc_state >= InternalTccState::Slipping && !force_lock;
+        bool in_adapt_torque_range = sensors->static_torque >= TCC_CURRENT_SETTINGS.min_torque_adapt && sensors->static_torque <= TCC_CURRENT_SETTINGS.max_torque_adapt;
+        bool in_temp_range = sensors->atf_temp >= ADP_CURRENT_SETTINGS.min_atf_temp && sensors->atf_temp <= ADP_CURRENT_SETTINGS.max_atf_temp;
+        bool loaded = sensors->static_torque >= sensors->driver_requested_torque; // Only adapt when engine is loaded
+        //ESP_LOGI("TCC", "%d %d %d (%d %d)", adapt_state, in_adapt_torque_range, is_shifting, (int)this->target_tcc_state, (int)this->current_tcc_state);
+        bool adapt_check = false;
+        if ((!adapt_state || is_shifting || !in_adapt_torque_range) && !this->slip_average->reset_done()) {
+            this->slip_average->reset();
+        }
+        if (adapt_state && !is_shifting && in_adapt_torque_range && in_temp_range && loaded && sensors->engine_rpm < TCC_CURRENT_SETTINGS.tcc_stall_speed) {
+            adapt_check = true;
+            if (sensors->current_timestamp_ms - last_slip_add_time > 100) {
+                last_slip_add_time = sensors->current_timestamp_ms;
+                this->slip_average->add_sample((int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm);
+            }
+        }
+        if (adapt_check && this->slip_average->has_full_samples()) {
+            // Try adapting when slipping is the current, and target state
+            bool should_lock = this->target_tcc_state == InternalTccState::Closed && this->current_tcc_state == InternalTccState::Closed;
+            if (sensors->current_timestamp_ms - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
+                int slip_avg = this->slip_average->get_average();
+                int slip_now = (int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm;
+                // Do the adaptation!
+                // 1. Create a min and max linear line between our max bounds
+                //    Such that the area in between min and max are the 'OK' slip region
+                int max_slip_targ = scale_number(
+                    sensors->static_torque,
+                    TCC_CURRENT_SETTINGS.max_slip_min_adapt_trq,
+                    TCC_CURRENT_SETTINGS.max_slip_max_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_torque_adapt,
+                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                );
+                int min_slip_targ = scale_number(
+                    sensors->static_torque,
+                    TCC_CURRENT_SETTINGS.min_slip_min_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_slip_max_adapt_trq,
+                    TCC_CURRENT_SETTINGS.min_torque_adapt,
+                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                );
+                float new_p = 0;
+                if (slip_avg > max_slip_targ) {
+                    // Too much clutch slip - Increase pressure
+                    new_p = this->tcc_pressure_target+TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                } else if (slip_avg < min_slip_targ && !should_lock) {
+                    // Too little clutch slip - Reduce pressure
+                    // DO NOT ADJUST BELOW PREFILL PRESSURE.
+                    if (this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step > TCC_CURRENT_SETTINGS.prefill_pressure) {
+                        new_p = this->tcc_pressure_target-TCC_CURRENT_SETTINGS.adapt_pressure_step;
+                    }
+                }
+                if (new_p != 0) {
+                    adjust_map_cell(curr_gear, new_p);
+                    this->tcc_pressure_target = this->tcc_pressure_current = new_p;
+                }
+                this->last_adapt_check = sensors->current_timestamp_ms;
+            }
+        }
+        if (!adapt_check) {
+            // Set the last adapt timestamp if not adapted due to wrong conditions
+            // This allows for adapting to only happen after a cooldown, when things are settled
+            this->last_adapt_check = sensors->current_timestamp_ms;
+        }
+    }
+    pm->set_target_tcc_pressure(this->tcc_pressure_current);
 }
 
-ClutchStatus TorqueConverter::get_clutch_state(void) {
-    return this->state;
-}
-
-void TorqueConverter::on_shift_start(int targ_g) {
-    this->curr_tcc_target = targ_g;
+TccClutchStatus TorqueConverter::get_clutch_state(void) {
+    TccClutchStatus ret = TccClutchStatus::Open;
+    InternalTccState cmp = this->target_tcc_state;
+    // Reduction or equal state (EG: Closed -> Slipping)
+    // Just return the target state
+    if (this->current_tcc_state >= cmp) {
+        switch (this->current_tcc_state) {
+            case InternalTccState::Closed:
+                ret = TccClutchStatus::Closed;
+                break;
+            case InternalTccState::Slipping:
+                ret = TccClutchStatus::Slipping;
+                break;
+            case InternalTccState::Open: // Already set
+            default:
+                break;
+        }
+    } 
+    // Increasing state (EG: Open -> Slipping)
+    else {
+        if (this->current_tcc_state == InternalTccState::Open && this->target_tcc_state == InternalTccState::Slipping) {
+            ret = TccClutchStatus::OpenToSlipping;
+        } else if (this->current_tcc_state == InternalTccState::Slipping && this->target_tcc_state == InternalTccState::Closed) {
+            ret = TccClutchStatus::SlippingToClosed;
+        } else {
+            // Open -> Closed (Return slipping as then TCC will be slipping which then results in slipping -> Closed)
+            ret = TccClutchStatus::OpenToSlipping;
+        }
+    }
+    return ret;
 }

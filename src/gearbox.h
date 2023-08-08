@@ -11,76 +11,19 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "common_structs.h"
-#include <gearbox_config.h>
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
 #include "adaptation/shift_report.h"
 #include "models/input_torque.hpp"
-
-// TODO Auto-set these based on CAN data about engine type
-// 4000 is safe for now as it stops us over-revving diesel!
-static const int MIN_WORKING_RPM = 1000;
-
-static const uint16_t ATF_TEMP_SAMPLES = 20;
-struct TempSampleData {
-    int samples[ATF_TEMP_SAMPLES];
-    uint64_t total;
-    uint8_t sample_id;
-};
-
-#define MAX_LIMIT_1 0.10 //10% drift
-#define MAX_LIMIT_2 0.10 //10% drift
-#define MAX_LIMIT_3 0.09 // 9% drift
-#define MAX_LIMIT_4 0.08 // 8% drift
-#define MAX_LIMIT_5 0.05 // 5% drift
-
-#define MAX_LIMIT_R1 0.10 //10% drift
-#define MAX_LIMIT_R2 0.10 //10% drift
-
-const static GearRatioLimit GEAR_RATIO_LIMITS_SMALL[7] {
-    GearRatioLimit { .max = RAT_1_SMALL*(1.0+MAX_LIMIT_1), .min = RAT_1_SMALL*(1.0-MAX_LIMIT_1) }, // 1
-    GearRatioLimit { .max = RAT_2_SMALL*(1.0+MAX_LIMIT_2), .min = RAT_2_SMALL*(1.0-MAX_LIMIT_2) }, // 2
-    GearRatioLimit { .max = RAT_3_SMALL*(1.0+MAX_LIMIT_3), .min = RAT_3_SMALL*(1.0-MAX_LIMIT_3) }, // 3
-    GearRatioLimit { .max = RAT_4_SMALL*(1.0+MAX_LIMIT_4), .min = RAT_4_SMALL*(1.0-MAX_LIMIT_4) }, // 4
-    GearRatioLimit { .max = RAT_5_SMALL*(1.0+MAX_LIMIT_5), .min = RAT_5_SMALL*(1.0-MAX_LIMIT_5) }, // 5
-    GearRatioLimit { .max = RAT_R1_SMALL*(1.0-MAX_LIMIT_R1), .min = RAT_R1_SMALL*(1.0+MAX_LIMIT_R1) }, // R1
-    GearRatioLimit { .max = RAT_R2_SMALL*(1.0-MAX_LIMIT_R2), .min = RAT_R2_SMALL*(1.0+MAX_LIMIT_R2) }, // R2
-};
-
-const static GearRatioLimit GEAR_RATIO_LIMITS_LARGE[7] {
-    GearRatioLimit { .max = RAT_1_LARGE*(1.0+MAX_LIMIT_1), .min = RAT_1_LARGE*(1.0-MAX_LIMIT_1) }, // 1
-    GearRatioLimit { .max = RAT_2_LARGE*(1.0+MAX_LIMIT_2), .min = RAT_2_LARGE*(1.0-MAX_LIMIT_2) }, // 2
-    GearRatioLimit { .max = RAT_3_LARGE*(1.0+MAX_LIMIT_3), .min = RAT_3_LARGE*(1.0-MAX_LIMIT_3) }, // 3
-    GearRatioLimit { .max = RAT_4_LARGE*(1.0+MAX_LIMIT_4), .min = RAT_4_LARGE*(1.0-MAX_LIMIT_4) }, // 4
-    GearRatioLimit { .max = RAT_5_LARGE*(1.0+MAX_LIMIT_5), .min = RAT_5_LARGE*(1.0-MAX_LIMIT_5) }, // 5
-    GearRatioLimit { .max = RAT_R1_LARGE*(1.0-MAX_LIMIT_R1), .min = RAT_R1_LARGE*(1.0+MAX_LIMIT_R1) }, // R1
-    GearRatioLimit { .max = RAT_R2_LARGE*(1.0-MAX_LIMIT_R2), .min = RAT_R2_LARGE*(1.0+MAX_LIMIT_R2) }, // R2
-};
-
-const static FwdRatios RATIOS_LARGE {
-    RAT_1_LARGE,
-    RAT_2_LARGE,
-    RAT_3_LARGE,
-    RAT_4_LARGE,
-    RAT_5_LARGE,
-    RAT_R1_LARGE,
-    RAT_R2_LARGE
-};  
-
-const static FwdRatios RATIOS_SMALL {
-    RAT_1_SMALL,
-    RAT_2_SMALL,
-    RAT_3_SMALL,
-    RAT_4_SMALL,
-    RAT_5_SMALL,
-    RAT_R1_SMALL,
-    RAT_R2_SMALL
-};
+#include "adaptation/shift_adaptation.h"
+#include "models/clutch_speed.hpp"
 
 class Gearbox {
 public:
     Gearbox(void);
+    // Diag test
+    ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
     void inc_subprofile(void);
     esp_err_t start_controller(void);
@@ -93,7 +36,7 @@ public:
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
-    static uint16_t redline_rpm;
+    uint16_t redline_rpm;
     ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
@@ -101,10 +44,11 @@ public:
     bool isShifting(void) { return this->shifting; }
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
+    ShiftClutchVelocity shifting_velocity = {0,0};
 private:
     ShiftReportSegment collect_report_segment(uint64_t start_time);
-    void set_torque_request(TorqueRequest type, float amount);
-    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile, bool is_upshift);
+    void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
+    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -131,6 +75,8 @@ private:
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
+    bool is_upshift = false;
+    bool fwd_gear_shift = false;
     float tcc_percent = 0.F;
     uint8_t est_gear_idx = 0;
     uint16_t curr_hold_pressure = 0;
@@ -140,12 +86,11 @@ private:
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
-    TempSampleData temp_data;
     bool diag_stop_control = false;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
+    ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
-    bool asleep = false;
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
@@ -154,8 +99,13 @@ private:
     float shadow_ratio_n2 = 0;
     float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
-    Solenoid* last_shift_solenoid = nullptr;
     InputTorqueModel* itm;
+    GearboxGear restrict_target = GearboxGear::Fifth;
+    GearboxGear last_motion_gear = GearboxGear::Second;
+    ShiftAdaptationSystem* shift_adapter = nullptr;
+    int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
+    MovingAverage* output_avg_filter;
+
 };
 
 extern Gearbox* gearbox;

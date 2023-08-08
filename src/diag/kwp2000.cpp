@@ -8,6 +8,8 @@
 #include "solenoids/constant_current.h"
 #include "map_editor.h"
 #include "esp_mac.h"
+#include "models/clutch_speed.hpp"
+#include "tcu_alloc.h"
 
 typedef struct {
     uint8_t day;
@@ -232,17 +234,50 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
     return 0;
 }
 
+void Kwp2000_server::start_response_timer(uint8_t sid) {
+    this->response_pending_sid = sid;
+    this->cmd_recv_time = esp_timer_get_time() / 1000;
+    this->response_pending = true;
+}
+
+void Kwp2000_server::end_response_timer() {
+    this->response_pending = false;
+}
+
+DiagMessage response_pending_msg = {
+    .id = KWP_ECU_TX_ID,
+    .data_size = 3,
+    .data = {0x7F, 0x00, NRC_RESPONSE_PENDING}
+};
+
+void Kwp2000_server::response_timer_loop() {
+    ESP_LOGI("KWP2000", "Timer started");
+    while(1) {
+        if (this->response_pending && ((esp_timer_get_time()/1000) - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
+            ESP_LOGI("KWP2000", "Sending ResponsePending");
+            response_pending_msg.data[1] = this->response_pending_sid;
+            // Send 0x78 (Response pending)
+            if (this->diag_on_usb) {
+                this->usb_diag_endpoint->send_data(&response_pending_msg);
+            } else {
+                this->can_endpoint->send_data(&response_pending_msg);
+            }
+            this->cmd_recv_time = esp_timer_get_time()/1000;
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+}
+
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
     while(1) {
         uint64_t timestamp = esp_timer_get_time()/1000;
         bool read_msg = false;
-        bool endpoint_was_usb = false;
         if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
-            endpoint_was_usb = true;
+            this->diag_on_usb = true;
             read_msg = true;
         } else if (this->can_endpoint->init_state() == ESP_OK && this->can_endpoint->read_data(&this->rx_msg)) {
-            endpoint_was_usb = false;
+            this->diag_on_usb = false;
             read_msg = true;
         }
         if (read_msg) {
@@ -254,6 +289,7 @@ void Kwp2000_server::server_loop() {
             // New message! process it
             uint8_t* args_ptr = &rx_msg.data[1];
             uint16_t args_size = rx_msg.data_size - 1;
+            start_response_timer(rx_msg.data[0]);
             switch(rx_msg.data[0]) { // SID byte
                 case SID_START_DIAGNOSTIC_SESSION:
                     this->process_start_diag_session(args_ptr, args_size);
@@ -313,8 +349,9 @@ void Kwp2000_server::server_loop() {
                     break;
             }
         }
+        end_response_timer();
         if (this->send_resp) {
-            if (endpoint_was_usb) {
+            if (this->diag_on_usb) {
                 this->usb_diag_endpoint->send_data(&tx_msg);
             } else if (this->can_endpoint != nullptr) {
                 this->can_endpoint->send_data(&tx_msg);
@@ -490,7 +527,7 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (arg_len != 1 && args[0] != RLI_MAP_EDITOR) {
+    if (arg_len != 1 && (args[0] != RLI_MAP_EDITOR && args[0] != RLI_SETTINGS_EDIT)) {
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
@@ -543,9 +580,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
         }
         if (ret == 0) { // OK
-            uint8_t* buf = static_cast<uint8_t*>(heap_caps_malloc(2+read_bytes_size, MALLOC_CAP_SPIRAM));
+            uint8_t* buf = static_cast<uint8_t*>(TCU_HEAP_ALLOC(2+read_bytes_size));
             if (buf == nullptr) {
-                free(buffer); // DELETE MapEditor allocation
+                TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
                 make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 return;
             }
@@ -554,7 +591,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             memcpy(&buf[2], buffer, read_bytes_size);
             make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
             delete[] buf;
-            free(buffer); // DELETE MapEditor allocation
+            TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
             return;
         } else {
             make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
@@ -578,6 +615,12 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_DMA_DUMP) {
         DATA_DMA_BUFFER r = dump_i2s_dma();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_DMA_DUMP, (uint8_t*)&r, sizeof(DATA_DMA_BUFFER));
+    } else if (args[0] == RLI_CLUTCH_SPEEDS) {
+        ClutchSpeeds r = gearbox->diag_get_clutch_speeds();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_SPEEDS, (uint8_t*)&r, sizeof(ClutchSpeeds));
+    } else if (args[0] == RLI_CLUTCH_VELOCITY) {
+        ShiftClutchVelocity r = gearbox->shifting_velocity;
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_VELOCITY, (uint8_t*)&r, sizeof(ShiftClutchVelocity));
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));
@@ -599,6 +642,21 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
         PARTITION_INFO r = get_next_sw_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_SETTINGS_EDIT) {
+        // [RLI, MODULE ID]
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            uint8_t* buffer;
+            uint16_t read_len;
+            kwp_result_t res = get_module_settings(args[1], &read_len, &buffer);
+            if (NRC_OK == res) {
+                make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SETTINGS_EDIT, buffer, read_len);
+                delete[] buffer; // Remember to deallocate!
+            } else {
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, res);
+            }
+        }
     }
     else {
         // EGS52 emulation
@@ -744,6 +802,32 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
         return;
     }
+
+    if (arg_len == 0) {
+        make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+
+    // EGS emulation
+    if (args[0] == ROUTINE_EGS_ID_TCC_SOL_TOGGLE) {
+        // Should have 1 more byte
+        if (arg_len != 2) {
+            make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            uint8_t resp[1] = {ROUTINE_EGS_ID_TCC_SOL_TOGGLE};
+            if (args[1] == 0x00 || args[1] == 0x01) { // Long term off or short term off
+                gearbox_ptr->tcc->diag_toggle_tcc_sol(false);
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else if (args[1] == 0x02) { // Back on
+                gearbox_ptr->tcc->diag_toggle_tcc_sol(true);
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
+            } else {
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            }
+        }
+        return;
+    }
+
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
             bool pl = false;
@@ -773,12 +857,14 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
-            if (this->gearbox_ptr->pressure_mgr->diag_reset_adaptation()) {
-                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
-            } else {
-                // Can only fail if adapt manager is nullptr (Not ready)
-                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-            }
+            // TODO - Re-add with new adaptation system
+            make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            //if (this->gearbox_ptr->pressure_mgr->diag_reset_adaptation()) {
+            //    make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            //} else {
+            //    // Can only fail if adapt manager is nullptr (Not ready)
+            //    make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            //}
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
@@ -821,7 +907,7 @@ void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_
 void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     // Valid session only
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
-        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        make_diag_neg_msg(SID_REQ_DOWNLOAD, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
     if (this->flash_handler != nullptr) {
@@ -836,7 +922,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
 void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
     // Valid session only
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_REPROGRAMMING) {
-        make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        make_diag_neg_msg(SID_REQ_UPLOAD, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
     if (this->flash_handler != nullptr) {
@@ -951,6 +1037,18 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                     make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 }
             }
+        } else if (args[0] == RLI_SETTINGS_EDIT) {
+            // [RLI, MODULE ID,...]
+            if (arg_len < 3) {
+                make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            } else {
+                kwp_result_t res = set_module_settings(args[1], arg_len-2, &args[2]);
+                if (res == NRC_OK) {
+                    make_diag_pos_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, RLI_SETTINGS_EDIT, nullptr, 0);
+                } else {
+                    make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, res);
+                }
+            }
         } else {
             make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
         }
@@ -961,6 +1059,7 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
 
 }
+
 void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {
     if (arg_len != 1) { // Must only have 1 arg
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);

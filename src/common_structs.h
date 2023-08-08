@@ -9,28 +9,33 @@
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
 
-template<typename T, uint8_t MAX_SIZE> struct MovingAverage {
-    T readings[MAX_SIZE];
-    uint8_t sample_id;
-    uint64_t sum;
-
-    MovingAverage(void) {
-        this->sample_id = 0;
-        this->sum = 0;
-        memset(this->readings, 0x00, sizeof(this->readings));
-    }
-
-    void add_to_sample(T reading) {
-        this->sum -= this->readings[this->sample_id];
-        this->readings[this->sample_id] = reading;
-        this->sum += reading;
-        this->sample_id = (this->sample_id+1) % MAX_SIZE;
-    }
-
-    T get_average(void) {
-        return (float)sum / (float)MAX_SIZE;
-    }
+enum class ShiftStage {
+    Bleed = 1,
+    Fill = 2,
+    Overlap = 3,
+    MaxPressure = 4
 };
+
+enum class Clutch {
+    K1 = 1,
+    K2 = 2,
+    K3 = 3,
+    B1 = 4,
+    B2 = 5,
+    B3 = 6 // Reverse ONLY
+};
+
+
+typedef struct ShiftClutchData {
+    int16_t on_clutch_speed;
+    int16_t off_clutch_speed;
+    int16_t rear_sun_speed;
+};
+
+typedef struct ShiftClutchVelocity {
+    int16_t on_clutch_vel;
+    int16_t off_clutch_vel;
+} __attribute__ ((packed));
 
 /**
  * @brief Gearbox sensor data
@@ -60,8 +65,6 @@ struct SensorData{
     int16_t min_torque;
     /// Driver requested torque
     int16_t driver_requested_torque;
-    /// Torque converter slip RPM (Calculated)
-    int16_t tcc_slip_rpm;
     /// Last time the gearbox changed gear (in milliseconds)
     uint64_t last_shift_time;
     /// Current clock time in milliseconds
@@ -80,7 +83,8 @@ struct SensorData{
 
 struct OutputData {
     float torque_req_amount;
-    TorqueRequest torque_req_type;
+    TorqueRequestControlType ctrl_type;
+    TorqueRequestBounds bounds;
 };
 
 /**
@@ -106,31 +110,14 @@ enum class ProfileGearChange {
     TWO_ONE,
 };
 
-struct ShiftPhase{
-    /// Ramp down from current pressure to new pressure
-    uint16_t ramp_time;
-    /// Hold time at requested pressure
-    uint16_t hold_time;
-    /// Requested pressure for shift pressure
-    /// This value is interpreted differently based on the value of `spc_offset_mode`.
-    /// 
-    /// If `spc_offset_mode` is true, then spc_pressure is interpreted as an offset to the value of `mpc_pressure`.
-    ///
-    /// If `spc_offset_mode` is false, then spc_pressure is interpreted as a fixed static value. 
-    int16_t spc_pressure;
-    /// Requested pressure for modulating (Working) pressure
-    /// This value is interpreted differently based on the value of `mpc_offset_mode`.
-    /// 
-    /// If `mpc_offset_mode` is true, then mpc_pressure is interpreted as an offset to the current working pressure.
-    /// The working pressure is calculated dynamically based on the current application state of the clutches in the gearbox
-    /// and the load on the input shaft of the gearbox
-    ///
-    /// If `mpc_offset_mode` is false, then mpc_pressure is interpreted as a fixed static value. 
-    int16_t mpc_pressure;
-    /// If true, spc_pressure is interpreted as an offset to mpc_pressure
-    bool spc_offset_mode;
-    /// If true, mpc_pressure is interpreted as an offset to working pressure
-    bool mpc_offset_mode;
+/**
+ * Shift circuit
+*/
+enum class ShiftCircuit {
+    None = 0,
+    sc_1_2 = 1 << 0,
+    sc_2_3 = 1 << 1,
+    sc_3_4 = 1 << 2
 };
 
 /**
@@ -138,111 +125,43 @@ struct ShiftPhase{
  * 
  */
 struct ShiftData{
-    Solenoid* shift_solenoid;
-    float torque_down_amount;
+    ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
- 
-    /** 
-     * Bleed phase
-     * Shift solenoid has not opened yet
-     * This reduces the line pressure of the SPC line so that
-     * there is not a spike in pressure when Shift solenoid opens
-     */
-    ShiftPhase bleed_data;
-
-    /** 
-     * Fill phase
-     * Clutches are moved into 0 tolerance position
-     * This phase uses adaptation data
-     * 
-     * AFTER THIS PHASE, SHIFT CANNOT BE ABORTED!
-     */
-    ShiftPhase fill_data;
-
-    /** 
-     * Shift torque phase 
-     * Just before overlap, engine torque is reduced to aid shifting
-     */
-    ShiftPhase torque_data;
-
-    /** 
-     * Shift overlap phase
-     * New clutches are moved into place and old once released
-     * SPC now controls new clutches, MPC is relaxed.
-     * 
-     * Duration and pressure during the overlap phase
-     * affects shift feeling
-     * 
-     * Duration: Longer = slower gear change
-     * SPC Ramp: Bigger = firmer shift
-     */
-    ShiftPhase overlap_data;
-
-    /** 
-     * Shift complete max pressure phase 
-     * New clutches are locked into place
-     */
-    ShiftPhase max_pressure_data;
 };
 
-struct GearRatioLimit{
-    float max;
-    float min;
+#define RAT_1_IDX 0
+#define RAT_2_IDX 1
+#define RAT_3_IDX 2
+#define RAT_4_IDX 3
+#define RAT_5_IDX 4
+#define RAT_R1_IDX 5
+#define RAT_R2_IDX 6
+
+struct GearRatioInfo {
+    float ratio_max_drift;
+    float ratio;
+    float ratio_min_drift;
+    float power_loss;
 };
-
-
-typedef const float FwdRatios[7];
 
 struct GearboxConfiguration{
     uint16_t max_torque;
-    const GearRatioLimit* bounds;
-    const float* ratios; // 1-5 and R1+R2
-} ;
-
-struct PressureMgrData{
-    pressure_map spc_1_2;
-    pressure_map mpc_1_2;
-
-    pressure_map spc_2_3;
-    pressure_map mpc_2_3;
-
-    pressure_map spc_3_4;
-    pressure_map mpc_3_4;
-
-    pressure_map spc_4_5;
-    pressure_map mpc_4_5;
-
-    pressure_map spc_5_4;
-    pressure_map mpc_5_4;
-
-    pressure_map spc_4_3;
-    pressure_map mpc_4_3;
-
-    pressure_map spc_3_2;
-    pressure_map mpc_3_2;
-
-    pressure_map spc_2_1;
-    pressure_map mpc_2_1;
-
-    pressure_map working_mpc_p;
-    pressure_map working_mpc_r;
-    pressure_map working_mpc_1;
-    pressure_map working_mpc_2;
-    pressure_map working_mpc_3;
-    pressure_map working_mpc_4;
-    pressure_map working_mpc_5;
-
-    rpm_modifier_map ramp_speed_multiplier;
-} ;
+    /**
+     * At index
+     * 0 - 1st
+     * 1 - 2nd
+     * 2 - 3rd
+     * 3 - 4th
+     * 4 - 5th
+     * 5 - R1
+     * 6 - R2
+    */
+    GearRatioInfo bounds[7];
+};
 
 struct ShiftCharacteristics{
     uint16_t target_shift_time;
-} ;
-
-struct TccLockupBounds{
-    int max_slip_rpm;
-    int min_slip_rpm;
 };
 
 struct   __attribute__ ((packed)) ShiftReportSegment {

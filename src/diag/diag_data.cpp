@@ -6,6 +6,7 @@
 #include <tcu_maths.h>
 #include "kwp2000.h"
 #include "esp_core_dump.h"
+#include "../nvs/module_settings.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -59,34 +60,29 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     ret.y3_pwm = sol_y3->get_pwm_compensated();
     ret.y4_pwm = sol_y4->get_pwm_compensated();
     ret.y5_pwm = sol_y5->get_pwm_compensated();
-
-    if (gb_ptr->pressure_mgr != nullptr) {
-        ret.targ_mpc_current = gb_ptr->pressure_mgr->get_targ_mpc_current();
-        ret.targ_spc_current = gb_ptr->pressure_mgr->get_targ_spc_current();
-    } else {
-        ret.targ_mpc_current = 0xFFFF;
-        ret.targ_spc_current = 0xFFFF;
-    }
+    ret.targ_mpc_current = mpc_cc->get_current_target();
+    ret.targ_spc_current = spc_cc->get_current_target();
+    
     return ret;
 }
 
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     DATA_PRESSURES ret = {};
+    memset(&ret, 0xFF, sizeof(ret));
     if (gb_ptr == nullptr) {
-        memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
-    if (gb_ptr->pressure_mgr == nullptr) {
-        ret.mpc_pressure = 0xFFFF;
-        ret.spc_pressure = 0xFFFF;
-        ret.tcc_pressure = 0xFFFF;
-    } else {
-        ret.mpc_pressure = gb_ptr->pressure_mgr->get_targ_mpc_pressure();
-        ret.spc_pressure = gb_ptr->pressure_mgr->get_targ_spc_pressure();
-        ret.tcc_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
+    if (nullptr != gb_ptr->pressure_mgr) {
+        ret.mpc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_mpc_clutch_pressure();
+        ret.spc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_spc_clutch_pressure();
+        ret.tcc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
+        ret.line_pressure = gb_ptr->pressure_mgr->get_targ_line_pressure();
+        ret.mpc_sol_pressure = gb_ptr->pressure_mgr->get_targ_mpc_solenoid_pressure();
+        ret.spc_sol_pressure = gb_ptr->pressure_mgr->get_targ_spc_solenoid_pressure();
+        ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
     }
     return ret;
 }
@@ -127,8 +123,13 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.shifter_position = can_layer->get_shifter_position(now, 250);
     ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
-    ret.torque_req_type = gearbox->output_data.torque_req_type;
-    ret.torque_req_amount = ret.torque_req_type == TorqueRequest::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
+    ret.torque_req_ctrl_type = gearbox->output_data.ctrl_type;
+    ret.torque_req_bounds = gearbox->output_data.bounds;
+    ret.torque_req_amount = ret.torque_req_ctrl_type == TorqueRequestControlType::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
+    // Temps
+    ret.e_coolant_temp = egs_can_hal->get_engine_coolant_temp(now, 250);
+    ret.e_iat_temp = egs_can_hal->get_engine_iat_temp(now, 250);
+    ret.e_oil_temp = egs_can_hal->get_engine_oil_temp(now, 250);
     return ret;
 }
 
@@ -155,8 +156,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
         return ret;
     }
 
-    ret.spc_pressure = g->pressure_mgr->get_targ_spc_pressure();
-    ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_pressure();
+    ret.spc_pressure = g->pressure_mgr->get_targ_spc_solenoid_pressure();
+    ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_solenoid_pressure();
     ret.tcc_pressure = g->pressure_mgr->get_targ_tcc_pressure();
     // Hack. As we can guarantee only one solenoid will be on, we can do a fast bitwise OR on all 3 to get the application state
     ret.ss_pos = (sol_y3->get_pwm_raw() | sol_y4->get_pwm_raw() | sol_y5->get_pwm_raw()) >> 8;
@@ -267,4 +268,16 @@ PARTITION_INFO get_next_sw_info(void) {
 
 const esp_app_desc_t* get_image_header(void) {
     return esp_ota_get_app_description();
+}
+
+kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
+    return ModuleConfiguration::read_settings(module_id, buffer_len, buffer);
+}
+
+kwp_result_t set_module_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer) {
+    if (buffer_len == 1 && buffer[0] == 0x00) {
+        return ModuleConfiguration::reset_settings(module_id);
+    } else {
+        return ModuleConfiguration::write_settings(module_id, buffer_len, buffer);
+    }
 }

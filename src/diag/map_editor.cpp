@@ -7,6 +7,7 @@
 #include "profiles.h"
 #include "pressure_manager.h"
 #include "gearbox.h"
+#include "tcu_alloc.h"
 
 StoredMap* get_map(uint8_t map_id) {
     switch(map_id) {
@@ -32,8 +33,6 @@ StoredMap* get_map(uint8_t map_id) {
             return pressure_manager->get_fill_time_map();
         case FILL_PRESSURE_MAP_ID:
             return pressure_manager->get_fill_pressure_map();
-        case FILL_PRESSURE_MPC_ADDER_MAP_ID:
-            return pressure_manager->get_fill_pressure_mpc_adder_map();
         case A_UPTIME_MAP_ID:
             return agility->get_upshift_time_map();
         case A_DNTIME_MAP_ID:
@@ -71,8 +70,8 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
     CHECK_MAP(map_id)
     // Map valid
     uint16_t size = ptr->get_map_element_count();
-    uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc((size*sizeof(int16_t)), MALLOC_CAP_SPIRAM));
-    if (b == nullptr) {
+    uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC((size*sizeof(int16_t))));
+    if (nullptr == b) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_UN52_NO_MEM;
     }
@@ -83,9 +82,9 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
     } else if (read_type == MAP_READ_TYPE_STO) {
         int16_t* eeprom_data = ptr->get_current_eeprom_map_data();
         memcpy(b, eeprom_data, size*sizeof(int16_t));
-        free(eeprom_data);
+        TCU_HEAP_FREE(eeprom_data);
     } else {
-        free(buffer);
+        TCU_HEAP_FREE(buffer);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;
@@ -109,8 +108,8 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     k_size = strlen(k_ptr);
     // 6 bytes for size data
     uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));
-    uint8_t* b = static_cast<uint8_t*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM));
-    if (b == nullptr) {
+    uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC(size));
+    if (nullptr == b) {
         return NRC_UN52_NO_MEM;
     }
     b[1] = x_size >> 8;

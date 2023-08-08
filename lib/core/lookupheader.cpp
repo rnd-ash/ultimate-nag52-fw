@@ -1,11 +1,11 @@
 #include "lookupheader.h"
-#include "../hal/hardwareabstractionlayer.h"
+#include "tcu_alloc.h"
 #include <string.h>
 
 LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
 {
     size = _size;
-    header = static_cast<int16_t*>(MALLOC(size * sizeof(int16_t)));
+    header = static_cast<int16_t*>(TCU_HEAP_ALLOC(size * sizeof(int16_t)));
     allocation_successful = (nullptr != header);
     if(allocation_successful){
         (void)memcpy(header, _header, size*sizeof(int16_t));
@@ -15,7 +15,7 @@ LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
 LookupHeader::~LookupHeader(void)
 {
     if(allocation_successful){
-        FREE(header);
+        TCU_HEAP_FREE(header);
     }
 }
 

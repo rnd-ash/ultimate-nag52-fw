@@ -45,22 +45,24 @@ enum class EngineType: uint8_t {
     Unknown = 0xFF
 };
 
-/// @brief Torque request type
-enum class TorqueRequest: uint8_t {
-    /// @brief No torque request
-    None,
-    /// @brief Make less than specified amount
-    LessThan,
-    /// @brief Make more than specified amount
-    MoreThan,
-    /// @brief Make exactly specified amount
-    Exact,
-    /// @brief Make less than specified amount - Fast reaction
-    LessThanFast,
-    /// @brief Make more than specified amount - Fast reaction
-    MoreThanFast,
-    /// @brief Make exactly specified amount - Fast reaction
-    ExactFast
+/// @brief Torque request control type
+enum class TorqueRequestControlType: uint8_t {
+    /// @brief No torque request ([TorqueRequestBounds] is ignored)
+    None = 0,
+    /// @brief Let the engine naturally reduce torque (Usually done via spark retarding or air reduction)
+    NormalSpeed = 1,
+    /// @brief As fast as possible (Usually done via fuel cut)
+    FastAsPossible = 2,
+};
+
+/// @brief Torque request intervention bounds
+enum class TorqueRequestBounds: uint8_t {
+    /// @brief Engine makes torque less or equal to whats asked by EGS
+    LessThan = 0,
+    /// @brief Engine makes torque more or equal to whats asked by EGS
+    MoreThan = 1,
+    /// @brief Engine tries to make exactly what EGS specifies
+    Exact = 2,
 };
 
 /// @brief Gearbox gears for 722.6 gearbox
@@ -95,9 +97,11 @@ enum class PaddlePosition: uint8_t {
     SNV = 0xFF
 };
 
-enum class ClutchStatus: uint8_t {
+enum class TccClutchStatus: uint8_t {
     Open,
+    OpenToSlipping,
     Slipping,
+    SlippingToClosed,
     Closed
 };
 
@@ -265,6 +269,10 @@ class EgsBaseCan {
         virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
             return INT16_MAX;
         }
+        // Gets engine charge air temperature
+        virtual int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+            return INT16_MAX;
+        }
         // Gets engine RPM
         virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
             return UINT16_MAX;
@@ -277,8 +285,8 @@ class EgsBaseCan {
             return false;
         }
         // 1 = S, 0 = W/C
-        virtual bool get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
-            return false;
+        virtual ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+            return ProfileSwitchPos::SNV;
         }
         virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
             return false;
@@ -289,12 +297,35 @@ class EgsBaseCan {
         virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
             return TransferCaseState::SNA;
         }
+        virtual bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }   
 
+        // Checks if ESP torque intervention is active (AKA Stability assist)
+        virtual bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+
+        // Checks if cruise control is active
+        virtual bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+            return false;
+        }
+
+        // Gets the torque demand from the cruise control system
+        virtual int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+            return INT_MAX;
+        }
+
+        // Gets the torque demand from the ESP system
+        virtual int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+            return INT_MAX;
+        }
+        
         /**
          * Setters
          */
         // Set the gearbox clutch position on CAN
-        virtual void set_clutch_status(ClutchStatus status){};
+        virtual void set_clutch_status(TccClutchStatus status){};
         // Set the actual gear of the gearbox
         virtual void set_actual_gear(GearboxGear actual){};
         // Set the target gear of the gearbox
@@ -314,7 +345,7 @@ class EgsBaseCan {
         // Sets gearbox is OK
         virtual void set_gearbox_ok(bool is_ok){};
         // Sets torque request toggle
-        virtual void set_torque_request(TorqueRequest request, float amount_nm){};
+        virtual void set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm){};
         // Sets torque loss of torque converter
         virtual void set_turbine_torque_loss(uint16_t loss_nm){};
         // Sets torque multiplier factor from Engine all the way to wheels 

@@ -45,7 +45,7 @@ bool CanEndpoint::send_to_twai(DiagCanMessage msg) {
     return twai_transmit(&this->tx_can, 5) == ESP_OK;
 }
 
-void CanEndpoint::send_data(DiagMessage* msg) {
+void CanEndpoint::send_data(const DiagMessage* msg) {
     this->tmp.curr_pos = 0;
     this->tmp.max_pos = msg->data_size;
     memcpy(this->tmp.data, msg->data, msg->data_size);

@@ -64,7 +64,26 @@ esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_wri
 //     return (e == ESP_OK);
 // }
 
-const char* LEGACY_EEPROM_KEYS[] = {"WORK_LARGE", "WORK_SMALL"};
+const char* LEGACY_EEPROM_KEYS[] = {
+    "WORK_LARGE", 
+    "WORK_SMALL", 
+    "TCC_A0", 
+    "TCC_A1",
+    "TCC_A2",
+    "SBS_A0",
+    "PRM_A0",
+    "FILL_PRESS_L", 
+    "FILL_PRESS_S",
+    "FILL_PRESS_L1", 
+    "FILL_PRESS_S1",
+    "FILL_MPC_ADDER",
+    "FILL_PRESS",
+    "ADP_A0",
+    "ADP_P_P",
+    "ADP_P_P0",
+    "ADP_P_P1",
+    "ADP_P_T"
+};
 
 esp_err_t EEPROM::init_eeprom() {
     // Called on startup
@@ -118,6 +137,7 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .input_sensor_pulses_per_rev = 1,
             .output_pulse_width_per_kmh = 1,
             .gen_mosfet_purpose = 0,
+            .engine_drag_torque = 400 // 40Nm
         };
         result = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
         if (result != ESP_OK) {

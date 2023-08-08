@@ -10,6 +10,7 @@ public:
     void toggle_state(bool enable);
     void update();
     float get_adjustment();
+    uint16_t get_current_target();
 private:
     float pwm_adjustment_percent = 1.0;
     uint16_t current_target;
@@ -19,7 +20,6 @@ private:
     const char *name;
     uint64_t last_change_time = 0;
 };
-
 
 extern ConstantCurrentDriver* mpc_cc;
 extern ConstantCurrentDriver* spc_cc;

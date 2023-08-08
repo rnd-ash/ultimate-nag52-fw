@@ -138,15 +138,9 @@ extern const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE];
 
 
 // -- Hold phase pressures --
-#define FILL_PRESSURE_MAP_SIZE 5 // 5 clutches
-#define MAP_NAME_FILL_PRESSURE_LARGE "FILL_PRESS_L"
-extern const int16_t LARGE_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
-#define MAP_NAME_FILL_PRESSURE_SMALL "FILL_PRESS_S"
-extern const int16_t SMALL_NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
-
-#define FILL_PRESSURE_ADDER_MAP_SIZE 55 // 5 clutches x 11 load points
-#define MAP_NAME_FILL_MPC_ADDER "FILL_MPC_ADDER"
-extern const int16_t FILL_MPC_ADDER_MAP[FILL_PRESSURE_ADDER_MAP_SIZE];
+#define FILL_PRESSURE_MAP_SIZE 5 // 6 clutches (Including B3 for reverse), 4 load points
+#define MAP_NAME_FILL_PRESSURE_LARGE "FILL_PRESS_1"
+extern const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
 
 // -- Target Shift time maps -- 
 
@@ -181,4 +175,14 @@ extern const int16_t R_UPSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 #define MAP_NAME_R_DOWNSHIFT_TIME "R_DNSHIFT_TIME"
 extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 
+/**
+ * Adaptation subsystem maps
+*/
+// 1 load points, 5 clutches
+#define PREFILL_ADAPT_PREFILL_DATA_MAP_SIZE 5
+
+#define MAP_NAME_PREFILL_ADAPT_PREFILL_PRESSURE "ADP_P_P2" // Adapt Prefill Pressure
+extern const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[PREFILL_ADAPT_PREFILL_DATA_MAP_SIZE];
+#define MAP_NAME_PREFILL_ADAPT_PREFILL_TIMING "ADP_P_T2" // Adapt prefill timing
+extern const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[PREFILL_ADAPT_PREFILL_DATA_MAP_SIZE];
 #endif

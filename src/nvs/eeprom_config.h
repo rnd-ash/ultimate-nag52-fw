@@ -29,10 +29,10 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t red_line_rpm_diesel;
     uint16_t red_line_rpm_petrol;
     uint8_t engine_type; // 0 for diesel, 1 for petrol
+    uint8_t egs_can_type;
     // 0 - EWM
     // 1 - TRRS
     // 2 - SLR
-    uint8_t egs_can_type;
     uint8_t shifter_style;
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;
@@ -43,6 +43,8 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t throttlevalve_maxopeningangle;
     // constant factor required to convert mdot and engine speed to the engine torque (in [m²/s²] * 1000)
     uint16_t c_eng;
+    // Engine drag torque (Nm/10)
+    uint16_t engine_drag_torque;
 };
 
 
@@ -71,9 +73,14 @@ namespace EEPROM {
     esp_err_t read_efuse_config(TCM_EFUSE_CONFIG* dest);
     esp_err_t write_efuse_config(TCM_EFUSE_CONFIG* dest);
 
-
     esp_err_t read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     esp_err_t write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
+    
+    template <typename T>
+    esp_err_t read_subsystem_settings(const char* key_name, T* dest, const T* default_settings);
+
+    template <typename T>
+    esp_err_t write_subsystem_settings(const char* key_name, const T* write);
 };
 
 #define NUM_GEARS 5

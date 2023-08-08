@@ -1,6 +1,6 @@
 #include "stored_table.h"
 #include "nvs/eeprom_config.h"
-#include "esp_heap_caps.h"
+#include "tcu_alloc.h"
 #include "esp_check.h"
 
 
@@ -13,7 +13,7 @@ StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_eleme
     this->default_data = default_data;
     if (x_element_count == data_element_count)
     {
-        int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(data_element_count * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+        int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(data_element_count * sizeof(int16_t)));
         if (nullptr != dest)
         {
             this->init_state = EEPROM::read_nvs_map_data(eeprom_key_name, dest, default_data, data_element_count);
@@ -37,7 +37,7 @@ StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_eleme
             ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
             this->init_state = ESP_ERR_NO_MEM;
         }
-        heap_caps_free(dest);
+        TCU_HEAP_FREE(dest);
     }
     else
     {
@@ -51,7 +51,7 @@ esp_err_t StoredTable::read_from_eeprom(const char *key_name, uint16_t expected_
     esp_err_t ret;
     if (this->is_allocated())
     {
-        int16_t *dest = static_cast<int16_t *>(heap_caps_malloc(expected_size * sizeof(int16_t), MALLOC_CAP_SPIRAM));
+        int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(expected_size * sizeof(int16_t)));
         if (dest != nullptr)
         {
             ret = EEPROM::read_nvs_map_data(key_name, dest, this->default_data, expected_size);
@@ -67,7 +67,7 @@ esp_err_t StoredTable::read_from_eeprom(const char *key_name, uint16_t expected_
             ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
             ret = ESP_ERR_NO_MEM;
         }
-        heap_caps_free(dest);
+        TCU_HEAP_FREE(dest);
     }
     else
     {

@@ -3,6 +3,7 @@
 #include "esp_flash.h"
 #include "esp_partition.h"
 #include "esp_log.h"
+#include "tcu_alloc.h"
 
 #define NVS_NAME_SS "SHIFT_STORE"
 
@@ -41,7 +42,7 @@ bool save_shift_report_to_partition(ShiftReportNvsGroup* src, uint32_t addr) {
 
 
 ShiftReporter::ShiftReporter(void) {
-    this->report_group = static_cast<ShiftReportNvsGroup*>(heap_caps_malloc(sizeof(ShiftReportNvsGroup), MALLOC_CAP_SPIRAM));
+    this->report_group = static_cast<ShiftReportNvsGroup*>(TCU_HEAP_ALLOC(sizeof(ShiftReportNvsGroup)));
     if (this->report_group == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SHIFT_REPORT", "Cannot allocate memory!");
         return;

@@ -1,12 +1,20 @@
 #include "can_egs52.h"
 #include "driver/twai.h"
-#include "gearbox_config.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "../shifter/shifter_ewm.h"
+#include "../shifter/shifter_trrs.h"
 
 Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
-    shifter = new ShifterEwm(&(this->can_init_status), &ewm_ecu);
+    switch (VEHICLE_CONFIG.shifter_style)
+    {
+    case (uint8_t)ShifterStyle::TRRS:
+        this->shifter = new ShifterTrrs(&(this->can_init_status), this->name, &this->start_enable_trrs);
+        break;
+    default:
+        this->shifter = new ShifterEwm(&(this->can_init_status), &this->ewm_ecu);
+        break;
+    }
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -38,6 +46,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
+    this->start_enable_trrs = true;
 }
 
 WheelData Egs52Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
@@ -184,7 +193,12 @@ int Egs52Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 int Egs52Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
     MS_312_EGS52 ms312;
     if (this->ecu_ms.get_MS_312(now, expire_time_ms, &ms312)) {
-        return ((int)ms312.M_MAX / 4) - 500;
+        float max = ((float)ms312.M_MAX / 4) - 500;
+        MS_210_EGS52 ms210;
+        if (this->ecu_ms.get_MS_210(now, expire_time_ms, &ms210)) {
+            max *= (float)(ms210.FMMOTMAX * 0.0078);
+        }
+        return (int)max;
     }
     return INT_MAX;
 }
@@ -229,20 +243,35 @@ PaddlePosition Egs52Can::get_paddle_position(uint64_t now, uint64_t expire_time_
 
 int16_t Egs52Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_608_EGS52 ms608;
+    int16_t res = INT16_MAX;
     if (ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
-        return ms608.T_MOT-40;
-    } else {
-        return INT16_MAX;
+        if (ms608.T_MOT != UINT8_MAX) {
+            res = ms608.T_MOT-40;
+        }
     }
+    return res;
 }
 
-int16_t Egs52Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
+int16_t Egs52Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
     MS_308_EGS52 ms308;
+    int16_t res = INT16_MAX;
     if (ecu_ms.get_MS_308(now, expire_time_ms, &ms308)) {
-        return ms308.T_OEL-40;
-    } else {
-        return INT16_MAX;
+        if (ms308.T_OEL != UINT8_MAX) {
+            res = ms308.T_OEL-40;
+        }
     }
+    return res;
+}
+
+int16_t Egs52Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+    MS_608_EGS52 ms608;
+    int16_t res = INT16_MAX;
+    if (ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+        if (ms608.T_LUFT != UINT8_MAX) {
+            res = ms608.T_LUFT-40;
+        }
+    }
+    return res;
 }
 
 uint16_t Egs52Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
@@ -273,16 +302,19 @@ bool Egs52Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
 }
 
 bool Egs52Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
-    return (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);    
+    bool ret = false;
+    switch (VEHICLE_CONFIG.shifter_style) {
+        case (uint8_t)ShifterStyle::EWM:
+            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);
+            break;
+        default:
+            break;
+    }
+    return ret; 
 }
 
-bool Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
-    EWM_230_EGS52 ewm230;
-    if (this->ewm_ecu.get_EWM_230(now, expire_time_ms, &ewm230)) {
-        return ewm230.W_S;
-    } else {
-        return false;
-    }
+ProfileSwitchPos Egs52Can::get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
 }
 
 uint16_t Egs52Can::get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
@@ -315,19 +347,64 @@ TransferCaseState Egs52Can::get_transfer_case_state(uint64_t now, uint64_t expir
     }
 }
 
-void Egs52Can::set_clutch_status(ClutchStatus status) {
+bool Egs52Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+    MS_212_EGS52 ms212;
+    if (this->ecu_ms.get_MS_212(now, expire_time_ms, &ms212)) {
+        return ms212.M_EGS_Q;
+    } else {
+        return false;
+    }
+}
+
+bool Egs52Can::esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = false;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = bs300.MMIN_ESP || bs300.MMAX_ESP;
+    }
+    return r;
+}
+
+bool Egs52Can::is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = false;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = bs300.DMMAX_ART || bs300.DMMIN_ART;
+    }
+    return r;
+}
+
+int Egs52Can::cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = INT_MAX;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = (bs300.DM_ART/4) - 500.0;
+    }
+    return r;
+}
+
+int Egs52Can::esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    BS_300_EGS52 bs300;
+    int r = INT_MAX;
+    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+        r = (bs300.M_ESP/4) - 500.0;
+    }
+    return r;
+}
+
+void Egs52Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
-        case ClutchStatus::Open:
+        case TccClutchStatus::Open:
             gs218.K_G_B = false;
             gs218.K_O_B = true;
             gs218.K_S_B = false;
             break;
-        case ClutchStatus::Slipping:
+        case TccClutchStatus::Slipping:
             gs218.K_G_B = false;
             gs218.K_O_B = false;
             gs218.K_S_B = true;
             break;
-        case ClutchStatus::Closed:
+        case TccClutchStatus::Closed:
             gs218.K_G_B = true;
             gs218.K_O_B = false;
             gs218.K_S_B = false;
@@ -430,7 +507,8 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 }
 
 void Egs52Can::set_safe_start(bool can_start) {
-    this->gs218.ALF = can_start;   
+    this->gs218.ALF = can_start;
+    this->start_enable_trrs = can_start;
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
@@ -481,62 +559,34 @@ void Egs52Can::set_garage_shift_state(bool enable) {
     gs218.KS = enable;
 }
 
-void Egs52Can::set_torque_request(TorqueRequest request, float amount_nm) {
-    bool dyn0 = request != TorqueRequest::None; // Markes torque request active
-    bool dyn1 = false;
-    bool min = false;
-    bool max = false;
-    uint16_t trq = 0;
-    if (request != TorqueRequest::None) {
-        trq = (amount_nm + 500) * 4;
+void Egs52Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
+    if (control_type == TorqueRequestControlType::None) {
+        gs218.DYN0_AMR_EGS = false;
+        gs218.DYN1_EGS = false;
+    } else if (control_type == TorqueRequestControlType::FastAsPossible) {
+        gs218.DYN0_AMR_EGS = true;
+        gs218.DYN1_EGS = false;
+    } else { // Normal speed
+        gs218.DYN0_AMR_EGS = true;
+        gs218.DYN1_EGS = false;
+    }
+    if (control_type != TorqueRequestControlType::None) {
+        gs218.M_EGS = (amount_nm + 500) * 4;
+        if (limit_type == TorqueRequestBounds::LessThan) {
+            gs218.MMIN_EGS = true;
+            gs218.MMAX_EGS = false;
+        } else if (limit_type == TorqueRequestBounds::MoreThan) {
+            gs218.MMIN_EGS = false;
+            gs218.MMAX_EGS = true;
+        } else {
+            gs218.MMIN_EGS = true;
+            gs218.MMAX_EGS = true;
+        }
     } else {
-        trq = 0;
+        gs218.MMIN_EGS = false;
+        gs218.MMAX_EGS = false;
+        gs218.M_EGS = 0;
     }
-    // Type of request bit
-    switch(request) {
-        case TorqueRequest::Exact:
-        case TorqueRequest::ExactFast:
-            min = true;
-            max = true;
-            break;
-        case TorqueRequest::LessThan:
-        case TorqueRequest::LessThanFast:
-            min = true;
-            max = false;
-            break;
-        case TorqueRequest::MoreThan:
-        case TorqueRequest::MoreThanFast:
-            min = false;
-            max = true;
-            break;
-        case TorqueRequest::None:
-        default:
-            min = false;
-            max = false;
-            break;
-    }
-    // Request engage type bit
-    switch(request) {
-        case TorqueRequest::Exact:
-        case TorqueRequest::LessThan:
-        case TorqueRequest::MoreThan:
-            dyn1 = false;
-            break;
-        case TorqueRequest::ExactFast:
-        case TorqueRequest::LessThanFast:
-        case TorqueRequest::MoreThanFast:
-            dyn1 = true;
-            break;
-        case TorqueRequest::None:
-        default:
-            dyn1 = false;
-            break;
-    }
-    gs218.M_EGS = trq;
-    gs218.DYN0_AMR_EGS = dyn0;
-    gs218.DYN1_EGS = dyn1;
-    gs218.MMAX_EGS = max;
-    gs218.MMIN_EGS = min;
 }
 
 void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
@@ -652,197 +702,12 @@ void Egs52Can::set_fake_engine_rpm(uint16_t rpm) {
 }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
-    /*
     this->curr_message = msg;
-    if (this->curr_profile_bit == GearboxProfile::Agility) {
-        switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::A);
-                break;
-            case GearboxMessage::ActuateParkingBreak:
-                gs418.FPC = GS_418h_FPC::A_MGFB_WT);
-                break;
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::A_MGN);
-                break;
-            case GearboxMessage::ActivateGear:
-                gs418.FPC = GS_418h_FPC::A_MGBB);
-                break;
-            case GearboxMessage::RequestGearAgain:
-                gs418.FPC = GS_418h_FPC::A_MGGEA);
-                break;
-            case GearboxMessage::InsertToNToStart:
-                gs418.FPC = GS_418h_FPC::A_MGZSN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::A_MGW);
-                break;
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Comfort) {
-        switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::C);
-                break;
-            case GearboxMessage::ActuateParkingBreak:
-                gs418.FPC = GS_418h_FPC::C_MGFB_WT);
-                break;
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::C_MGN);
-                break;
-            case GearboxMessage::ActivateGear:
-                gs418.FPC = GS_418h_FPC::C_MGBB);
-                break;
-            case GearboxMessage::RequestGearAgain:
-                gs418.FPC = GS_418h_FPC::C_MGGEA);
-                break;
-            case GearboxMessage::InsertToNToStart:
-                gs418.FPC = GS_418h_FPC::C_MGZSN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::C_MGW);
-                break;
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Winter) {
-         switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::W);
-                break;
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::W_MGN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::W_MGW);
-                break;
-            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'W'
-            case GearboxMessage::ActivateGear: // Unsupported in 'W'
-            case GearboxMessage::RequestGearAgain: // Unsupported in 'W'
-            case GearboxMessage::InsertToNToStart:// Unsupported in 'W'
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Failure) {
-         switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::F);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::F_MGW);
-                break;
-            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'F'
-            case GearboxMessage::ShiftLeverToN: // Unsupported in 'F'
-            case GearboxMessage::ActivateGear: // Unsupported in 'F'
-            case GearboxMessage::RequestGearAgain: // Unsupported in 'F'
-            case GearboxMessage::InsertToNToStart: // Unsupported in 'F'
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Standard) {
-        switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::S);
-                break;
-            case GearboxMessage::ActuateParkingBreak:
-                gs418.FPC = GS_418h_FPC::S_MGFB_WT);
-                break;
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::S_MGN);
-                break;
-            case GearboxMessage::ActivateGear:
-                gs418.FPC = GS_418h_FPC::S_MGBB);
-                break;
-            case GearboxMessage::RequestGearAgain:
-                gs418.FPC = GS_418h_FPC::S_MGGEA);
-                break;
-            case GearboxMessage::InsertToNToStart:
-                gs418.FPC = GS_418h_FPC::S_MGZSN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::S_MGW);
-                break;
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Manual) {
-        switch (msg) {
-            case GearboxMessage::None:
-                gs418.FPC = GS_418h_FPC::M);
-                break;
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::M_MGN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::M_MGW);
-                break;
-            case GearboxMessage::ActuateParkingBreak: // Unsupported in 'M'
-            case GearboxMessage::ActivateGear: // Unsupported in 'M'
-            case GearboxMessage::RequestGearAgain: // Unsupported in 'M'
-            case GearboxMessage::InsertToNToStart: // Unsupported in 'M'
-            default:
-                break;
-        }
-    } else if (this->curr_profile_bit ==  GearboxProfile::Underscore) {
-        switch (msg) {
-            case GearboxMessage::ShiftLeverToN:
-                gs418.FPC = GS_418h_FPC::__MGN);
-                break;
-            case GearboxMessage::Upshift:
-                gs418.FPC = GS_418h_FPC::HOCH);
-                break;
-            case GearboxMessage::Downshift:
-                gs418.FPC = GS_418h_FPC::RUNTER);
-                break;
-            case GearboxMessage::VisitWorkshop:
-                gs418.FPC = GS_418h_FPC::__MGW);
-                break;
-            case GearboxMessage::ActuateParkingBreak: // Unsupported in '_'
-            case GearboxMessage::ActivateGear: // Unsupported in '_'
-            case GearboxMessage::RequestGearAgain: // Unsupported in '_'
-            case GearboxMessage::InsertToNToStart: // Unsupported in '_'
-            default:
-                break;
-        }
+    if (msg == GearboxMessage::Upshift) {
+        gs418.FPC = 24;
+    } else if (msg == GearboxMessage::Downshift) {
+        gs418.FPC = 25;
     }
-    */
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
@@ -944,5 +809,12 @@ void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t ti
     } else if (this->ewm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->misc_ecu.import_frames(data, id, timestamp)) {
     } else if (this->ezs_ecu.import_frames(data, id, timestamp)) {
+    }
+}
+
+
+void Egs52Can::on_rx_done(uint64_t now_ts) {
+    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
+        (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
     }
 }

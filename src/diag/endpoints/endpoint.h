@@ -36,7 +36,7 @@ class AbstractEndpoint
 {
 public:
     AbstractEndpoint(void){};
-    virtual void send_data(DiagMessage *msg); // Blocking operation
+    virtual void send_data(const DiagMessage *msg); // Blocking operation
     virtual bool read_data(DiagMessage *dest);
     virtual esp_err_t init_state();
 };
@@ -49,7 +49,7 @@ class UsbEndpoint : public AbstractEndpoint
 {
 public:
     explicit UsbEndpoint();
-    void send_data(DiagMessage *msg) override;
+    void send_data(const DiagMessage *msg) override;
     bool read_data(DiagMessage *dest) override;
     esp_err_t init_state() override;
 
@@ -78,7 +78,7 @@ class CanEndpoint : public AbstractEndpoint
 {
 public:
     explicit CanEndpoint(EgsBaseCan *can_layer);
-    void send_data(DiagMessage *msg) override;
+    void send_data(const DiagMessage *msg) override;
     bool read_data(DiagMessage *dest) override;
     esp_err_t init_state() override;
     static void start_iso_tp(void *_this)

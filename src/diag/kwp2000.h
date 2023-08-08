@@ -8,7 +8,6 @@
 #include "kwp2000_defines.h"
 #include "gearbox.h"
 #include "canbus/can_hal.h"
-#include "gearbox_config.h"
 #include "perf_mon.h"
 #include "flasher.h"
 
@@ -34,16 +33,24 @@ class Kwp2000_server {
             static_cast<Kwp2000_server*>(_this)->server_loop();
         }
 
+        static void start_kwp_server_timer(void *_this) {
+            static_cast<Kwp2000_server*>(_this)->response_timer_loop();
+        }
+
         kwp_result_t convert_err_result(kwp_result_t in);
 
         void make_diag_neg_msg(uint8_t sid, kwp_result_t nrc);
         void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
         void make_diag_pos_msg(uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len);
+        void start_response_timer(uint8_t sid);
+        void end_response_timer();
         Gearbox* gearbox_ptr;
         EgsBaseCan* can_layer;
     private:
         [[noreturn]]
         void server_loop();
+        [[noreturn]]
+        void response_timer_loop();
         uint8_t session_mode;
         uint64_t next_tp_time;
         DiagMessage tx_msg;
@@ -56,6 +63,10 @@ class Kwp2000_server {
         uint8_t routine_result[255];
         uint8_t* running_routine_args;
         uint8_t routine_results_len = 0;
+        uint8_t response_pending_sid = 0;
+        bool diag_on_usb = false;
+        bool response_pending = false;
+        uint64_t cmd_recv_time = 0;
         bool send_resp;
         bool reboot_pending;
 

@@ -1,6 +1,5 @@
 #include "can_egs53.h"
 #include "driver/twai.h"
-#include "gearbox_config.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 
@@ -212,7 +211,15 @@ int Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
 }
 
 int Egs53Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
-    return this->get_static_engine_torque(now, expire_time_ms);
+    // Test - suspect this is based on the parsed pedal curve from the engine
+    // Take min trq and max trq, and take (pedal %) of that number, offset it from min torque
+    // For example
+    ENG_RS1_PT_EGS53 rs1_pt;
+    int trq = 0;
+    if (this->ecm_ecu.get_ENG_RS1_PT(now, expire_time_ms*1000, &rs1_pt)) {
+        return (rs1_pt.EngTrqSel_D_TTC / 4) - 500;
+    }
+    return trq;
 }
 
 int Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
@@ -232,23 +239,60 @@ int Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
 }
 
 PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
-    return PaddlePosition::None;
+    SBW_RQ_SCCM_EGS53 sbw_rq;
+    PaddlePosition ret = PaddlePosition::SNV;
+    if (this->ecm_ecu.get_SBW_RQ_SCCM(now, expire_time_ms*1000, &sbw_rq)) {
+        switch(sbw_rq.StW_Sw_Stat3) {
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::MINUS: // Minus
+                ret = PaddlePosition::Minus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::PLUS: // Plus
+                ret = PaddlePosition::Plus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::PLUS_MINUS: // Plus + Minus
+                ret = PaddlePosition::PlusAndMinus;
+                break;
+            case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::NPSD: // None
+                ret = PaddlePosition::None;
+                break;
+            default: // Other??
+                break;
+        }
+    }
+    return ret;
 }
 
 int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
-        return (ecm_a1.EngCoolTemp - 40);
+        if (ecm_a1.EngCoolTemp != UINT8_MAX) {
+            res = ecm_a1.EngCoolTemp - 40;
+        }
     }
-    return INT16_MAX; // UNDEFINED
+    return res;
 }
 
 int16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
     ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
-        return (ecm_a1.EngOilTemp - 40);
+        if (ecm_a1.EngOilTemp != UINT8_MAX) {
+            res = ecm_a1.EngOilTemp - 40;
+        }
     }
-    return INT16_MAX; // UNDEFINED
+    return res;
+}
+
+int16_t Egs53Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+    ECM_A1_EGS53 ecm_a1;
+    uint16_t res = INT16_MAX;
+    if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
+        if (ecm_a1.IntkAirTemp != UINT8_MAX) {
+            res = ecm_a1.IntkAirTemp - 40;
+        }
+    }
+    return res;
 }
 
 uint16_t Egs53Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
@@ -272,10 +316,40 @@ bool Egs53Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
 }
 
 bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
-    return false;
+    BRK_STAT_EGS53 brk;
+    bool ret = false;
+    if (this->ecm_ecu.get_BRK_STAT(now, expire_time_ms, &brk)) {
+        ret = brk.Brk_Stat == BRK_STAT_Brk_Stat_EGS53::BRAKING;
+    }
+    return ret;
 }
 
-void Egs53Can::set_clutch_status(ClutchStatus status) {
+bool Egs53Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+    ENG_RS1_PT_EGS53 engrs1;
+    bool ret = false;
+    if (this->ecm_ecu.get_ENG_RS1_PT(now, expire_time_ms, &engrs1)) {
+        ret = engrs1.EngTrq_Ack_ECM;
+    }
+    return ret;
+}
+
+bool Egs53Can::esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+    return false; // TODO
+}
+
+bool Egs53Can::is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+    return false; // TODO
+}
+
+int Egs53Can::cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    return INT_MAX; // TODO
+}
+
+int Egs53Can::esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+    return INT_MAX; // TODO
+}
+
+void Egs53Can::set_clutch_status(TccClutchStatus status) {
     
 }
 
@@ -417,8 +491,33 @@ void Egs53Can::set_gearbox_ok(bool is_ok) {
     this->tcm_a1.BasShftProg_Ok = is_ok;
 }
 
-void Egs53Can::set_torque_request(TorqueRequest request, float amount_nm) {
+void Egs53Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
+    if (control_type == TorqueRequestControlType::None) {
+        eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
+    } else if (control_type == TorqueRequestControlType::FastAsPossible) {
+        eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::FAST;
+    } else { // Normal speed
+        eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
+    }
 
+    if (control_type != TorqueRequestControlType::None) {
+        eng_rq1_tcm.EngTrq_Rq_TCM = (amount_nm + 500) * 4;
+        if (limit_type == TorqueRequestBounds::LessThan) {
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = false;
+        } else if (limit_type == TorqueRequestBounds::MoreThan) {
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = false;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+        } else {
+            eng_rq1_tcm.EngTrqMin_Rq_TCM = true;
+            eng_rq1_tcm.EngTrqMax_Rq_TCM = true;
+        }
+    } else {
+        // no intervention
+        eng_rq1_tcm.EngTrqMin_Rq_TCM = false;
+        eng_rq1_tcm.EngTrqMax_Rq_TCM = false;
+        eng_rq1_tcm.EngTrq_Rq_TCM = 0;
+    }
 }
 
 void Egs53Can::set_error_check_status(SystemStatusCheck ssc) {
@@ -430,8 +529,6 @@ void Egs53Can::set_turbine_torque_loss(uint16_t loss_nm) {
     
 }
 
-// uint8_t x = 0;
-unsigned long last_time = 0;
 void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
     switch (g) {
         case GearboxDisplayGear::One:
@@ -451,8 +548,8 @@ void Egs53Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
             : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D4;
             break;
         case GearboxDisplayGear::Five:
-            manual_mode ? this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::M1
-            : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D1;
+            manual_mode ? this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::M5
+            : this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::D5;
             break;
         case GearboxDisplayGear::P:
             this->tcm_disp_rq.TxDrvPosn_Disp_Rq_TCM = TCM_DISP_RQ_TxDrvPosn_Disp_Rq_TCM_EGS53::P;

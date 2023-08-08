@@ -9,8 +9,15 @@
 #include <string.h>
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
+#include "nvs/module_settings.h"
+#include "moving_average.h"
 
-
+enum class InternalTccState {
+    None = 0,
+    Open = 1,
+    Slipping = 2,
+    Closed = 3
+};
 
 class TorqueConverter {
     public:
@@ -25,9 +32,8 @@ class TorqueConverter {
          * @param sensors Sensor data used as input
          * @param shifting True if the car is currently transitioning to new gear
          */
-        void update(GearboxGear curr_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
-        ClutchStatus get_clutch_state(void);
-        void on_shift_start(int targ_g);
+        void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
+        TccClutchStatus get_clutch_state(void);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
                 this->tcc_learn_lockup_map->save_to_eeprom();
@@ -36,30 +42,24 @@ class TorqueConverter {
 
         void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
         StoredMap* tcc_learn_lockup_map;
+        void set_shift_target_state(InternalTccState target_state);
+        void on_shift_ending(void);
+
+        void diag_toggle_tcc_sol(bool en);
+
     private:
+        bool tcc_solenoid_enabled = true;
         inline void reset_rpm_samples(SensorData* sensors);
-        bool neg_torque_zone = false;
-        uint16_t adapt_lock_count = 0;
-        uint16_t low_torque_adapt_limit = 0;
-        uint16_t high_torque_adapt_limit = 0;
-        uint16_t strike_count = 0;
-        bool initial_ramp_done = false;
-        uint32_t curr_tcc_target = 0;
-        uint32_t curr_tcc_pressure = 0;
-        uint32_t base_tcc_pressure = 0;
-        bool inhibit_increase = false;
-        bool was_idle = false;
-        bool prefilling = false;
+        float tcc_pressure_target = 0;
+        float tcc_pressure_current = 0;
         uint64_t prefill_start_time = 0;
-        ClutchStatus state = ClutchStatus::Open;
-        uint64_t last_inc_time = 0;
-        bool is_temp_pressure = false;
-        uint16_t tmp_pressure = 0;
-        uint64_t last_adj_time = 0;
+        InternalTccState current_tcc_state = InternalTccState::Open;
+        InternalTccState target_tcc_state = InternalTccState::Open;
+        InternalTccState shift_req_tcc_state = InternalTccState::Open;
         bool pending_changes = false;
-        bool was_shifting = false;
-        uint8_t tmp_lookup_gear = 0xFF;
-        uint64_t last_idle_timestamp = 0;
+        uint64_t last_adapt_check = 0;
+        uint64_t last_slip_add_time = 0;
+        MovingAverage* slip_average = nullptr;
 };
 
 #endif

@@ -1,8 +1,6 @@
 #ifndef __EGS53_CAN_H_
 #define __EGS53_CAN_H_
 
-
-#include <gearbox_config.h>
 #include "can_hal.h"
 #include "../../egs53_ecus/src/TCM.h"
 #include "../../egs53_ecus/src/TSLM.h"
@@ -49,6 +47,8 @@ class Egs53Can: public EgsBaseCan {
          int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine oil temperature
          int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) override;
+         // Gets engine charge air temperature
+        int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) override;
         // Gets engine RPM
          uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
         // Returns true if engine is cranking
@@ -56,12 +56,17 @@ class Egs53Can: public EgsBaseCan {
         // 
         bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
         bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
+        bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
+        bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
+        bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
+        int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
+        int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
         /**
          * Setters
          */
 
         // Set the gearbox clutch position on CAN
-        void set_clutch_status(ClutchStatus status) override;
+        void set_clutch_status(TccClutchStatus status) override;
         // Set the actual gear of the gearbox
         void set_actual_gear(GearboxGear actual) override;
         // Set the target gear of the gearbox
@@ -81,7 +86,7 @@ class Egs53Can: public EgsBaseCan {
         // Sets gearbox is OK
         void set_gearbox_ok(bool is_ok) override;
         // Sets torque request toggle
-        void set_torque_request(TorqueRequest request, float amount_nm) override;
+        void set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) override;
         // Sets the status of system error check
         void set_error_check_status(SystemStatusCheck ssc) override;
         // Sets torque loss of torque converter

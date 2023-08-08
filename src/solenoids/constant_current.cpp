@@ -2,9 +2,7 @@
 #include "esp_log.h"
 #include "math.h"
 #include "gearbox.h"
-
-#define REFERENCE_RESISTANCE 5.3 // 
-#define REFERENCE_TEMP 25 // Celcius
+#include "../nvs/module_settings.h"
 
 ConstantCurrentDriver::ConstantCurrentDriver(Solenoid* target, const char *name) {
     this->solenoid = target;
@@ -31,6 +29,10 @@ float ConstantCurrentDriver::get_adjustment() {
     return this->pwm_adjustment_percent;
 }
 
+uint16_t ConstantCurrentDriver::get_current_target() {
+    return this->current_target;
+}
+
 void ConstantCurrentDriver::update() {
     if (!this->is_cc_mode) {
         this->last_off_time = esp_timer_get_time()/1000;
@@ -42,13 +44,12 @@ void ConstantCurrentDriver::update() {
         pwm = 0;
         this->last_off_time = now;
     } else {
-
-        float calc_resistance = REFERENCE_RESISTANCE;
+        float calc_resistance = SOL_CURRENT_SETTINGS.cc_reference_resistance;
         if (gearbox != nullptr) {
-            calc_resistance = (float)REFERENCE_RESISTANCE+(((float)REFERENCE_RESISTANCE*(gearbox->sensor_data.atf_temp-REFERENCE_TEMP)*0.393)/100.0);
+            calc_resistance = SOL_CURRENT_SETTINGS.cc_reference_resistance+((SOL_CURRENT_SETTINGS.cc_reference_resistance*(gearbox->sensor_data.atf_temp-SOL_CURRENT_SETTINGS.cc_reference_temp)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/100.0);
         }
         // Assume 12.0V and target resistance, errors will be compensated by solenoid API and this error
-        float req_pwm = (4096.0*((float)this->current_target/((float)12000.0/calc_resistance)))*(1.0+this->pwm_adjustment_percent);
+        float req_pwm = (4096.0*((float)this->current_target/((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid/calc_resistance)))*(1.0+this->pwm_adjustment_percent);
         pwm = req_pwm;
         // Calc PWM before we look at previous error
 
@@ -59,18 +60,18 @@ void ConstantCurrentDriver::update() {
         if (0u == actual_current){ //(now-this->last_change_time) < 50) {
             error = 0;
         } else {
-            error = (float)(this->current_target-actual_current)/(12000.0F/calc_resistance);
-            error *= this->current_target/((float)12000.0/calc_resistance);
+            error = (float)(this->current_target-actual_current)/((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid/calc_resistance);
+            error *= this->current_target/((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid/calc_resistance);
         }
         //ESP_LOGI("CC", "SOL %s, E %.2f, ADJ %.2f", this->name, error, this->pwm_adjustment_percent);
         if (abs(this->current_target-actual_current) > 10 && error != 0) {
             this->pwm_adjustment_percent += (error);
             this->last_change_time = now;
         }
-        if(this->pwm_adjustment_percent > 2) {
-            this->pwm_adjustment_percent = 2;
-        } else if (this->pwm_adjustment_percent < -2) {
-            this->pwm_adjustment_percent = -2;
+        if(this->pwm_adjustment_percent > SOL_CURRENT_SETTINGS.cc_max_adjust_per_step) {
+            this->pwm_adjustment_percent = SOL_CURRENT_SETTINGS.cc_max_adjust_per_step;
+        } else if (this->pwm_adjustment_percent < -SOL_CURRENT_SETTINGS.cc_max_adjust_per_step) {
+            this->pwm_adjustment_percent = -SOL_CURRENT_SETTINGS.cc_max_adjust_per_step;
         }
         //ESP_LOGI("CC","%s: ADJ %.2f, REQ: %d, READ %d, PWM %d", this->name, this->pwm_adjustment_percent, this->current_target, actual_current, pwm);
     }

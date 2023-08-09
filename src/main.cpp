@@ -160,6 +160,12 @@ AbstractProfile* profile_from_auto_ty(AutoProfile prof) {
             break;
         case AutoProfile::Winter:
         case AutoProfile::Comfort:
+        case AutoProfile::Manual:
+            p = manual;
+            break;
+        case AutoProfile::Race:
+            p = race;
+            break;
         default:
             return comfort;
     }

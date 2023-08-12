@@ -1,7 +1,6 @@
 #include "diag_data.h"
 #include "sensors.h"
 #include "solenoids/solenoids.h"
-#include "solenoids/constant_current.h"
 #include "perf_mon.h"
 #include <tcu_maths.h>
 #include "kwp2000.h"
@@ -46,22 +45,22 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
         return ret;
     }
 
-    ret.mpc_current = sol_mpc->get_current_avg(); //sol_mpc->get_current_estimate();
-    ret.spc_current = sol_spc->get_current_avg();//sol_spc->get_current_estimate();
-    ret.tcc_current = sol_tcc->get_current_avg();//sol_tcc->get_current_estimate();
-    ret.y3_current = sol_y3->get_current_avg();//sol_y3->get_current_estimate();
-    ret.y4_current = sol_y4->get_current_avg();//sol_y4->get_current_estimate();
-    ret.y5_current = sol_y5->get_current_avg();//sol_y5->get_current_estimate();
-    ret.adjustment_mpc = (mpc_cc->get_adjustment()+1)*1000;
-    ret.adjustment_spc = (spc_cc->get_adjustment()+1)*1000;
+    ret.mpc_current = sol_mpc->get_current(); //sol_mpc->get_current_estimate();
+    ret.spc_current = sol_spc->get_current();//sol_spc->get_current_estimate();
+    ret.tcc_current = sol_tcc->get_current();//sol_tcc->get_current_estimate();
+    ret.y3_current = sol_y3->get_current();//sol_y3->get_current_estimate();
+    ret.y4_current = sol_y4->get_current();//sol_y4->get_current_estimate();
+    ret.y5_current = sol_y5->get_current();//sol_y5->get_current_estimate();
+    ret.adjustment_mpc = sol_mpc->get_trim()*1000;
+    ret.adjustment_spc = sol_spc->get_trim()*1000;
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
     ret.y3_pwm = sol_y3->get_pwm_compensated();
     ret.y4_pwm = sol_y4->get_pwm_compensated();
     ret.y5_pwm = sol_y5->get_pwm_compensated();
-    ret.targ_mpc_current = mpc_cc->get_current_target();
-    ret.targ_spc_current = spc_cc->get_current_target();
+    ret.targ_mpc_current = sol_mpc->get_current_target();
+    ret.targ_spc_current = sol_spc->get_current_target();
     
     return ret;
 }
@@ -90,7 +89,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;
-    dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
+    dma.adc_reading = 0;
     return dma;
 }
 

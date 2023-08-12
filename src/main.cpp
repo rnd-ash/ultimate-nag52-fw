@@ -10,7 +10,6 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
-#include "solenoids/constant_current.h"
 #include "nvs/module_settings.h"
 
 // CAN LAYERS
@@ -92,8 +91,6 @@ SPEAKER_POST_CODE setup_tcm() {
         }
     }
     if (ret == SPEAKER_POST_CODE::INIT_OK) {
-        CurrentDriver::init_current_driver();
-
         standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
         comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
         winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);

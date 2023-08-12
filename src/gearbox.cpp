@@ -1200,9 +1200,9 @@ void Gearbox::controller_loop()
         }
         else if (!shifting)
         {
-            mpc_cc->set_target_current(0);
-            spc_cc->set_target_current(0);
-            sol_tcc->write_pwm_12_bit(0);
+            sol_mpc->set_current_target(0);
+            sol_spc->set_current_target(0);
+            sol_tcc->set_duty(0);
             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);

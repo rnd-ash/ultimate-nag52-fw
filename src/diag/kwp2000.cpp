@@ -5,11 +5,11 @@
 #include "diag_data.h"
 #include "egs_emulation.h"
 #include "kwp_utils.h"
-#include "solenoids/constant_current.h"
 #include "map_editor.h"
 #include "esp_mac.h"
 #include "models/clutch_speed.hpp"
 #include "tcu_alloc.h"
+#include "solenoids/solenoids.h"
 
 typedef struct {
     uint8_t day;
@@ -1154,50 +1154,48 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[2] = (atf >> 8) & 0xFF;
 
     this->gearbox_ptr->diag_inhibit_control();
-    mpc_cc->toggle_state(false);
-    spc_cc->toggle_state(false);
     vTaskDelay(50);
-    sol_mpc->write_pwm_12_bit(0);
-    sol_spc->write_pwm_12_bit(0);
-    sol_tcc->write_pwm_12_bit(0);
-    sol_y3->write_pwm_12_bit(0);
-    sol_y4->write_pwm_12_bit(0);
-    sol_y5->write_pwm_12_bit(0);
+    sol_mpc->set_current_target(0);
+    sol_spc->set_current_target(0);
+    sol_tcc->set_duty(0);
+    sol_y3->off();
+    sol_y4->off();
+    sol_y5->off();
     vTaskDelay(250);
 
-    uint16_t curr = sol_mpc->get_current_avg();
+    uint16_t curr = sol_mpc->get_current();
     this->routine_result[3] = curr & 0xFF;
     this->routine_result[4] = (curr >> 8) & 0xFF;
 
-    curr = sol_spc->get_current_avg();
+    curr = sol_spc->get_current();
     this->routine_result[5] = curr & 0xFF;
     this->routine_result[6] = (curr >> 8) & 0xFF;
 
-    curr = sol_tcc->get_current_avg();
+    curr = sol_tcc->get_current();
     this->routine_result[7] = curr & 0xFF;
     this->routine_result[8] = (curr >> 8) & 0xFF;
 
-    curr = sol_y3->get_current_avg();
+    curr = sol_y3->get_current();
     this->routine_result[9] = curr & 0xFF;
     this->routine_result[10] = (curr >> 8) & 0xFF;
 
-    curr = sol_y4->get_current_avg();
+    curr = sol_y4->get_current();
     this->routine_result[11] = curr & 0xFF;
     this->routine_result[12] = (curr >> 8) & 0xFF;
 
-    curr = sol_y5->get_current_avg();
+    curr = sol_y5->get_current();
     this->routine_result[13] = curr & 0xFF;
     this->routine_result[14] = (curr >> 8) & 0xFF;
 
     const int NUM_CURRENT_SAMPLES = 10;
     float total_batt = 0;
     float total_curr = 0;
-    sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
+    sol_mpc->set_current_target(1200); // 1. MPC solenoid
     vTaskDelay(100);
     total_batt = 0;
     total_curr = 0;
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_mpc->get_current_avg();
+        total_curr += sol_mpc->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1207,15 +1205,15 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[16] = (batt >> 8) & 0xFF;
     this->routine_result[17] = curr & 0xFF;
     this->routine_result[18] = (curr >> 8) & 0xFF;
-    sol_mpc->write_pwm_12_bit(0);
+    sol_mpc->set_current_target(0);
     vTaskDelay(250);
 
-    sol_spc->write_pwm_12_bit(4096); // 2. SPC solenoid
+    sol_spc->set_current_target(1200); // 2. SPC solenoid
     total_batt = 0;
     total_curr = 0;
     vTaskDelay(100);
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_spc->get_current_avg();
+        total_curr += sol_spc->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1225,15 +1223,15 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[20] = (batt >> 8) & 0xFF;
     this->routine_result[21] = curr & 0xFF;
     this->routine_result[22] = (curr >> 8) & 0xFF;
-    sol_spc->write_pwm_12_bit(0);
+    sol_spc->set_current_target(0);
     vTaskDelay(250);
 
-    sol_tcc->write_pwm_12_bit(4096); // 3. TCC solenoid
+    sol_tcc->set_duty(4096); // 3. TCC solenoid
     total_batt = 0;
     total_curr = 0;
     vTaskDelay(100);
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_tcc->get_current_avg();
+        total_curr += sol_tcc->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1243,14 +1241,14 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[24] = (batt >> 8) & 0xFF;
     this->routine_result[25] = curr & 0xFF;
     this->routine_result[26] = (curr >> 8) & 0xFF;
-    sol_tcc->write_pwm_12_bit(0);
+    sol_tcc->set_duty(0);
     vTaskDelay(250);
-    sol_y3->write_pwm_12_bit(4096); // 4. Y3 Solenoid
+    sol_y3->on(); // 4. Y3 Solenoid
     vTaskDelay(100);
     total_batt = 0;
     total_curr = 0;
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y3->get_current_avg();
+        total_curr += sol_y3->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1260,15 +1258,15 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[28] = (batt >> 8) & 0xFF;
     this->routine_result[29] = curr & 0xFF;
     this->routine_result[30] = (curr >> 8) & 0xFF;
-    sol_y3->write_pwm_12_bit(0);
+    sol_y3->off();
     vTaskDelay(250);
 
-    sol_y4->write_pwm_12_bit(4096); // 5. Y4 Solenoid
+    sol_y4->on(); // 5. Y4 Solenoid
     total_batt = 0;
     total_curr = 0;
     vTaskDelay(100);
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y4->get_current_avg();
+        total_curr += sol_y4->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1278,15 +1276,15 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[32] = (batt >> 8) & 0xFF;
     this->routine_result[33] = curr & 0xFF;
     this->routine_result[34] = (curr >> 8) & 0xFF;
-    sol_y4->write_pwm_12_bit(0);
+    sol_y4->off();
     vTaskDelay(250);
 
-    sol_y5->write_pwm_12_bit(4096); // 6. Y5 Solenoid
+    sol_y5->on(); // 6. Y5 Solenoid
     total_batt = 0;
     total_curr = 0;
     vTaskDelay(100);
     for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y5->get_current_avg();
+        total_curr += sol_y5->get_current();
         total_batt += Solenoids::get_solenoid_voltage();
         vTaskDelay(10);
     }
@@ -1296,11 +1294,9 @@ void Kwp2000_server::run_solenoid_test() {
     this->routine_result[36] = (batt >> 8) & 0xFF;
     this->routine_result[37] = curr & 0xFF;
     this->routine_result[38] = (curr >> 8) & 0xFF;
-    sol_y5->write_pwm_12_bit(0);
+    sol_y5->off();
     
     this->routine_running = false;
-    mpc_cc->toggle_state(true);
-    spc_cc->toggle_state(true);
     this->gearbox_ptr->diag_regain_control();
     vTaskDelete(nullptr);
 }

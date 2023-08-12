@@ -942,6 +942,10 @@ void Gearbox::controller_loop()
             continue;
         }
 
+        // Set sensors Motor temperature (Always ran)
+        int16_t coolant_temp = egs_can_hal->get_engine_coolant_temp(now, 50);
+        Sensors::set_motor_temperature(coolant_temp);
+
         bool can_read_input = this->calc_input_rpm(&sensor_data.input_rpm);
         uint16_t o = 0;
         bool can_read_output = this->calc_output_rpm(&o, now);

@@ -23,6 +23,8 @@ typedef struct {
 float linear_interp(float start_value, float end_value, uint16_t current_elapsed, uint16_t interp_duration);
 
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
+// Faster version of [scale_number], mainly used for ISRs where float cannot be used
+int scale_number_int(int raw, int new_min, int new_max, int raw_min, int raw_max);
 float scale_number(float raw, LinearInterpSetting* settings);
 
 float progress_between_targets(float current, float start, float end);

@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <type_traits>
 #include "tcu_alloc.h"
+#include "tcu_maths.h"
+#include <string.h>
 
 class MovingAverage {
 public:

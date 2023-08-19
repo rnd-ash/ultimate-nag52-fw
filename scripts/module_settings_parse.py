@@ -67,6 +67,7 @@ class Variable:
     
     def to_yml_block(self) -> {}:
         d = {}
+        d["Name"] = self.name
         d["Description"] = self.desc
         d["Unit"] = self.unit
         d["DataType"] = self.data_type
@@ -119,13 +120,15 @@ class SettingStructure:
     
     def to_yml_block(self) -> {}:
         d = {}
+        d["Name"] = self.name
+        d["Description"] = self.desc
         offset = 0
-        params={}
+        params=[]
         for var in self.variables:
             res = var.to_yml_block()
             res["OffsetBytes"] = offset
             offset += res["LengthBytes"]
-            params[var.get_name()] = res
+            params.append(res)
         d["Params"] = params
         return d
     
@@ -133,7 +136,6 @@ class SettingStructure:
         d = self.to_yml_block()
         d["SCN_ID"] = self.__scn_id__
         d["EEPROM_KEY"] = self.eeprom_name
-        d["Description"] = self.desc
         return d
 
     def get_variable_index(self, name: str) -> int:
@@ -323,26 +325,29 @@ output_md.write(output_markdown)
 # YML gen
 dict={}
 
-e_list = {}
+e_list = []
 for enum in enums:
     maps={}
+    e = {}
+    e["Name"] = enum.get_name();
     for x in enum.mappings:
         maps[x[1]] = x[0]
-    e_list[enum.get_name()] = maps
+    e["Mappings"] = maps
+    e_list.append(e)
 dict["Enums"] = e_list
 
 
-i_struct_list = {}
+i_struct_list = []
 
 for struct in i_structs:
-    i_struct_list[struct.get_name()] = struct.to_yml_block()
+    i_struct_list.append(struct.to_yml_block())
 
 dict["IStructs"] = i_struct_list
 
-settings_list = {}
+settings_list = []
 
 for struct in settings:
-    settings_list[struct.get_name()] = struct.to_setting_yml_block()
+    settings_list.append(struct.to_setting_yml_block())
 
 dict["Settings"] = settings_list
 

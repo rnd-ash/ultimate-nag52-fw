@@ -60,7 +60,10 @@ class Variable:
     
     def to_markdown_line(self) -> str:
         d = self.desc.replace("\n", " ").strip();
-        return "|{}|{}|{}|{}|\n".format(self.name, d, self.data_type, self.unit)
+        u = self.unit
+        if not self.unit:
+            u = "-"
+        return "|{}|{}|{}|{}|\n".format(self.name, d, self.data_type, u)
     
     def to_yml_block(self) -> {}:
         d = {}

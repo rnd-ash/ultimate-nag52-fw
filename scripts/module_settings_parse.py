@@ -93,7 +93,6 @@ class Variable:
 
 class SettingStructure:
     def __init__(self, name, vars, key_name, desc):
-        print("INIT CALLED FOR "+name)
         self.name = name
         self.__scn_id__ = 0
         self.eeprom_name = key_name
@@ -108,7 +107,6 @@ class SettingStructure:
     
     def set_scn_id(self, id: int):
         self.__scn_id__ = id
-        print(self.__scn_id__)
     
     def get_length(self):
         i = 0
@@ -236,7 +234,7 @@ for line in f_in[2:]:
         elif "SCN_ID" in line:
             setting_def = line.split("#define ")[1].split("_")[0]
             id = int(line.split(" ")[2], 16)
-            settings[find_setting_idx(name)].set_scn_id(id)
+            settings[find_setting_idx(setting_def)].set_scn_id(id)
         else:
             raise Exception("Invalid line '{}'".format(line))
         

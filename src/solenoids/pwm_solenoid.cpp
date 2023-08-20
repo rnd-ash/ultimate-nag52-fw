@@ -9,6 +9,9 @@
 
 uint16_t voltage = 12000;
 uint16_t min_adc_v_reading = 0;
+uint16_t min_adc_raw_reading = 0;
+
+adc_cali_handle_t adc1_cal = nullptr;
 
 const ledc_timer_t SOLENOID_TIMER = ledc_timer_t::LEDC_TIMER_0;
 
@@ -42,7 +45,7 @@ PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t ch
     // Set PWM channel configuration
     ESP_GOTO_ON_ERROR(ledc_channel_config(&channel_cfg), set_err, "SOLENOID", "Failed to set LEDC channel for solenoid %s", name);
 
-    this->current_avg_samples = new MovingAverage(current_samples);
+    this->current_avg_samples = new MovingAverage(current_samples, true);
     if (!this->current_avg_samples->init_ok()) {
         ESP_LOGW("SOLENOID", "Sol %s moving average buffer failed to allocate", name);
     }
@@ -55,6 +58,7 @@ uint16_t PwmSolenoid::get_current() const {
     uint16_t ret = this->adc_now_read;
     if (nullptr != this->current_avg_samples) {
         ret = this->current_avg_samples->get_average();
+        adc_cali_raw_to_voltage(adc1_cal, ret, (int*)&ret);
     }
     return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
@@ -84,4 +88,31 @@ adc_channel_t PwmSolenoid::get_adc_channel() const {
 esp_err_t PwmSolenoid::init_ok() const
 {
     return this->ready;
+}
+
+uint16_t PwmSolenoid::get_ledc_pwm() {
+    return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel);
+}
+
+
+esp_err_t SolenoidSetup::init_adc() {
+    const adc_cali_line_fitting_config_t cali = {
+        .unit_id = ADC_UNIT_1,
+        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
+        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
+    };
+    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc1_cal), "SOLENOID", "Failed to create ADC cal");
+    // Set the minimum ADC Reading in mV
+    ESP_RETURN_ON_ERROR(adc_cali_raw_to_voltage(adc1_cal, 0, (int*)&min_adc_v_reading), "SOLENOID", "Failed to get ADC min value");
+    int test = 0;
+    for (uint16_t i = 0; i < 1024; i++) {
+        adc_cali_raw_to_voltage(adc1_cal, i, &test);
+        if (test > min_adc_v_reading) {
+            min_adc_raw_reading = test-1;
+            break;
+        }
+    }
+    ESP_LOGI("SOLENOIDS", "Raw min for ADC1 is %d - %d", min_adc_raw_reading, min_adc_v_reading);
+    return ESP_OK;
 }

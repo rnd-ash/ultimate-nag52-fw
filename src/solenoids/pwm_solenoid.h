@@ -15,6 +15,7 @@
 
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
+extern uint16_t min_adc_raw_reading;
 
 extern const ledc_timer_t SOLENOID_TIMER;
 extern const ledc_timer_config_t SOLENOID_TIMER_CFG;
@@ -56,6 +57,8 @@ public:
      */
     uint16_t get_pwm_compensated() const;
 
+    uint16_t get_ledc_pwm();
+
     /**
      * @brief Gets the current consumed by the solenoid at the previous I2S sample
      */
@@ -92,5 +95,9 @@ protected:
     // For avg current
     uint16_t adc_now_read = 0;
 };
+
+namespace SolenoidSetup {
+    esp_err_t init_adc();
+}
 
 #endif

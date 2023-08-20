@@ -180,15 +180,7 @@ void Solenoids::boot_solenoid_test(void*) {
 
 esp_err_t Solenoids::init_all_solenoids()
 {
-    const adc_cali_line_fitting_config_t cali = {
-        .unit_id = ADC_UNIT_1,
-        .atten = adc_atten_t::ADC_ATTEN_DB_11,
-        .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
-        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
-    };
-    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc1_cal), "SOLENOID", "Failed to create ADC cal");
-    // Set the minimum ADC Reading in mV
-    ESP_RETURN_ON_ERROR(adc_cali_raw_to_voltage(adc1_cal, 0, (int*)&min_adc_v_reading), "SOLENOID", "Failed to get ADC min value");
+    SolenoidSetup::init_adc();
     // Read calibration for ADC1
     sol_y3 = new OnOffSolenoid("Y3", pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 500, 500, 5);
     sol_y4 = new OnOffSolenoid("Y4", pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 500, 500, 5);

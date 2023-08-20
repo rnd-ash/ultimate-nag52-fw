@@ -5,8 +5,9 @@
 const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
 const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
 const uint16_t INRUSH_TIME_US = 2500;
-const uint16_t INRUSH_PWM = 4090;
+const uint16_t INRUSH_PWM = 4096;
 const uint16_t HOLD_PWM = 1300;
+
 
 
 static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
@@ -32,7 +33,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pi
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = (1 * 1000 * 1000),
         .flags = {
-            .intr_shared = 1
+            .intr_shared = 0
         }
     };
 

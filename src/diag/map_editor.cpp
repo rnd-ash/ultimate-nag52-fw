@@ -82,9 +82,9 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
     } else if (read_type == MAP_READ_TYPE_STO) {
         int16_t* eeprom_data = ptr->get_current_eeprom_map_data();
         memcpy(b, eeprom_data, size*sizeof(int16_t));
-        TCU_HEAP_FREE(eeprom_data);
+        TCU_FREE(eeprom_data);
     } else {
-        TCU_HEAP_FREE(buffer);
+        TCU_FREE(buffer);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;

@@ -582,7 +582,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         if (ret == 0) { // OK
             uint8_t* buf = static_cast<uint8_t*>(TCU_HEAP_ALLOC(2+read_bytes_size));
             if (buf == nullptr) {
-                TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
+                TCU_FREE(buffer); // DELETE MapEditor allocation
                 make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 return;
             }
@@ -591,7 +591,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             memcpy(&buf[2], buffer, read_bytes_size);
             make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
             delete[] buf;
-            TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
+            TCU_FREE(buffer); // DELETE MapEditor allocation
             return;
         } else {
             make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);

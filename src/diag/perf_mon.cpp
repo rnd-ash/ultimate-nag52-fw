@@ -53,7 +53,10 @@ esp_err_t init_perfmon(void)
         gptimer_config_t timer_config = {
             .clk_src = GPTIMER_CLK_SRC_DEFAULT,
             .direction = GPTIMER_COUNT_UP,
-            .resolution_hz = 1 * 1000 * 1000 // 1 tick = 1ms
+            .resolution_hz = 1 * 1000 * 1000, // 1 tick = 1ms
+            .flags = {
+                .intr_shared = 0
+            }
         };
         ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer), "PERFMON", "Failed to create new GPTIMER");
 

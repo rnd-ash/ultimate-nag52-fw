@@ -40,7 +40,7 @@ int16_t *StoredData::get_current_eeprom_data(void)
         succesful_allocation = true;
         if (EEPROM::read_nvs_map_data(this->data_name, dest, this->default_data, this->data_element_count) != ESP_OK)
         {
-            TCU_HEAP_FREE(dest);
+            TCU_FREE(dest);
             succesful_allocation = false;            
         }
     }

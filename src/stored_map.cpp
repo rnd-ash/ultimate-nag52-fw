@@ -43,7 +43,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
             ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
             this->init_state = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {
@@ -120,7 +120,7 @@ esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_si
             ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
             ret = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {
@@ -154,7 +154,7 @@ int16_t *StoredMap::get_current_eeprom_map_data(void)
         succesful_allocation = true;
         if (EEPROM::read_nvs_map_data(this->data_name, dest, this->default_map, this->data_element_count) != ESP_OK)
         {
-            TCU_HEAP_FREE(dest);
+            TCU_FREE(dest);
             succesful_allocation = false;            
         }
     }

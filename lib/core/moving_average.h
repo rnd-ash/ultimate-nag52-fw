@@ -9,8 +9,12 @@
 
 class MovingAverage {
 public:
-    MovingAverage(uint8_t sample_count_max) {
-        this->samples = (int32_t*)TCU_HEAP_ALLOC(sample_count_max * sizeof(int32_t));
+    MovingAverage(uint8_t sample_count_max, bool allocate_iram = false) {
+        if (allocate_iram) {
+            this->samples = (int32_t*)TCU_IRAM_ALLOC(sample_count_max * sizeof(int32_t));
+        } else {
+            this->samples = (int32_t*)TCU_HEAP_ALLOC(sample_count_max * sizeof(int32_t));
+        }
         this->max_samples = sample_count_max;
         this->reset();
     }
@@ -24,7 +28,11 @@ public:
         }
     }
     int32_t get_average() {
-        return this->total / MIN(this->num_samples, this->max_samples);
+        if (this->total == 0) {
+            return 0;
+        } else {
+            return this->total / MIN(this->num_samples, this->max_samples);
+        }
     }
 
     void reset() {

@@ -37,7 +37,7 @@ StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_eleme
             ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
             this->init_state = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {
@@ -67,7 +67,7 @@ esp_err_t StoredTable::read_from_eeprom(const char *key_name, uint16_t expected_
             ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
             ret = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {

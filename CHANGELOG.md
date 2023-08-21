@@ -1,6 +1,10 @@
 
 # Dev (Unreleased)
 
+# 21/08/23
+* EGS51 - Repair wonky torque requests
+* Shift reporter - Remove warning about invalid report on flash - Since shift reporter is not being used - we can ignore it.
+
 # 08/08/23
 
 ## Added

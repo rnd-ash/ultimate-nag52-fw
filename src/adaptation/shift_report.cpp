@@ -24,7 +24,7 @@ bool load_shift_report_from_partition(ShiftReportNvsGroup* dest, uint32_t addr) 
     }
     uint16_t raw_crc = calc_shift_report_group_crc(dest);
     if (dest->crc != raw_crc) {
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT_REPORT", "Load from SPIFFS was invalid, resetting. CRC was %08X, wanted CRC: %08X", dest->crc, raw_crc);
+        //ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFT_REPORT", "Load from SPIFFS was invalid, resetting. CRC was %08X, wanted CRC: %08X", dest->crc, raw_crc);
         memset(dest, 0x00, sizeof(ShiftReportNvsGroup)); // Blank it if invalid!
         return false;
     }

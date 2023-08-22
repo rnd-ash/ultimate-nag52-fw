@@ -24,6 +24,9 @@ namespace Solenoids {
 
     bool init_routine_completed(void);
 
+    void notify_diag_test_start();
+    void notify_diag_test_end();
+
     // bool startup_test_ok();
 }
 

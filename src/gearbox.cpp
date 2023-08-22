@@ -8,13 +8,6 @@
 
 #define SBS SBS_CURRENT_SETTINGS
 
-#define max(a, b)           \
-    ({                      \
-        typeof(a) _a = (a); \
-        typeof(b) _b = (b); \
-        _a > _b ? _a : _b;  \
-    })
-
 // ONLY FOR FORWARD GEARS!
 int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gear, const GearboxConfiguration* gb_config)
 {

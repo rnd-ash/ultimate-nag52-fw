@@ -11,6 +11,7 @@ public:
     void on();
     void off();
     bool is_on();
+
 private:
     uint32_t on_time_ms;
     uint32_t target_on_time;

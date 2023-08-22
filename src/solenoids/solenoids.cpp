@@ -104,7 +104,22 @@ void read_solenoids_i2s(void*) {
     }
 }
 
+bool write_pwm = false;
 
+void Solenoids::notify_diag_test_start() {
+    sol_mpc->set_current_target(0);
+    sol_spc->set_current_target(0);
+    sol_tcc->set_duty(0);
+    sol_y3->off();
+    sol_y4->off();
+    sol_y5->off();
+    vTaskDelay(5);
+    write_pwm = false;
+}
+
+void Solenoids::notify_diag_test_end() {
+    write_pwm = true;
+}
 
 void update_solenoids(void*) {
     int16_t atf_temp = 25;
@@ -121,14 +136,14 @@ void update_solenoids(void*) {
         } else {
             vref_compensation = 1.0;
         }
-
-        sol_mpc->__write_pwm(vref_compensation, temp_compensation);
-        sol_spc->__write_pwm(vref_compensation, temp_compensation);
-        sol_tcc->__write_pwm(vref_compensation, temp_compensation);
-        sol_y3->__write_pwm(vref_compensation, temp_compensation);
-        sol_y4->__write_pwm(vref_compensation, temp_compensation);
-        sol_y5->__write_pwm(vref_compensation, temp_compensation);
-
+        if (write_pwm) {
+            sol_mpc->__write_pwm(vref_compensation, temp_compensation);
+            sol_spc->__write_pwm(vref_compensation, temp_compensation);
+            sol_tcc->__write_pwm(vref_compensation, temp_compensation);
+            sol_y3->__write_pwm(vref_compensation, temp_compensation);
+            sol_y4->__write_pwm(vref_compensation, temp_compensation);
+            sol_y5->__write_pwm(vref_compensation, temp_compensation);
+        }
         vTaskDelay(1); // Max we can do at 1000hz
     }
 }

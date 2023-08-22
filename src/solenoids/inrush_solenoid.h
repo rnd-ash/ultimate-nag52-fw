@@ -10,6 +10,8 @@ public:
     void __write_pwm(float vref_compensation, float temperature_factor);
     uint32_t on_timer_interrupt();
     void set_duty(uint16_t duty);
+    void pre_current_test() override;
+    void post_current_test() override;
 private:
     uint32_t period_duration_us = 0;
     // 0 - Inrush

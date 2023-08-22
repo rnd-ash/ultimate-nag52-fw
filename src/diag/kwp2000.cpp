@@ -1139,163 +1139,46 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
     }
 }
 
+typedef struct {
+    uint8_t lid;
+    int16_t atf_temp;
+    uint16_t off_test[6];
+    SolenoidTestReading on_readings[6];
+} __attribute__((packed)) SolRtRes;
+
+static_assert(sizeof(SolRtRes) == 1+2+6*6);
 
 void Kwp2000_server::run_solenoid_test() {
     vTaskDelay(50);
-    this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
+    this->routine_results_len = 1 + sizeof(SolRtRes); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
     // Routine results format
-    int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
-    // uint16_t batt = Solenoids::get_solenoid_voltage();
-    uint16_t batt;
-    this->routine_result[1] = atf & 0xFF;
-    this->routine_result[2] = (atf >> 8) & 0xFF;
+
+    SolRtRes res{};
+    res.lid = this->routine_id;
+    res.atf_temp = this->gearbox_ptr->sensor_data.atf_temp;
 
     this->gearbox_ptr->diag_inhibit_control();
-    vTaskDelay(50);
-    sol_mpc->set_current_target(0);
-    sol_spc->set_current_target(0);
-    sol_tcc->set_duty(0);
-    sol_y3->off();
-    sol_y4->off();
-    sol_y5->off();
-    vTaskDelay(250);
+    Solenoids::notify_diag_test_start();
 
-    uint16_t curr = sol_mpc->get_current();
-    this->routine_result[3] = curr & 0xFF;
-    this->routine_result[4] = (curr >> 8) & 0xFF;
-
-    curr = sol_spc->get_current();
-    this->routine_result[5] = curr & 0xFF;
-    this->routine_result[6] = (curr >> 8) & 0xFF;
-
-    curr = sol_tcc->get_current();
-    this->routine_result[7] = curr & 0xFF;
-    this->routine_result[8] = (curr >> 8) & 0xFF;
-
-    curr = sol_y3->get_current();
-    this->routine_result[9] = curr & 0xFF;
-    this->routine_result[10] = (curr >> 8) & 0xFF;
-
-    curr = sol_y4->get_current();
-    this->routine_result[11] = curr & 0xFF;
-    this->routine_result[12] = (curr >> 8) & 0xFF;
-
-    curr = sol_y5->get_current();
-    this->routine_result[13] = curr & 0xFF;
-    this->routine_result[14] = (curr >> 8) & 0xFF;
-
-    const int NUM_CURRENT_SAMPLES = 10;
-    float total_batt = 0;
-    float total_curr = 0;
-    sol_mpc->set_current_target(1200); // 1. MPC solenoid
-    vTaskDelay(100);
-    total_batt = 0;
-    total_curr = 0;
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_mpc->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
+    PwmSolenoid* order[6] = {sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
+    for (uint8_t i = 0; i < 6; i++) {
+        uint16_t current = order[i]->get_current();
+        // place in result
+        res.off_test[i] = current;
     }
-    curr = (uint16_t)(total_curr / (float)NUM_CURRENT_SAMPLES);
-    batt = (uint16_t)(total_batt / (float)NUM_CURRENT_SAMPLES);
-    this->routine_result[15] = batt & 0xFF;
-    this->routine_result[16] = (batt >> 8) & 0xFF;
-    this->routine_result[17] = curr & 0xFF;
-    this->routine_result[18] = (curr >> 8) & 0xFF;
-    sol_mpc->set_current_target(0);
-    vTaskDelay(250);
-
-    sol_spc->set_current_target(1200); // 2. SPC solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_spc->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
+    // Now do on tests
+    for (uint8_t i = 0; i < 6; i++) {
+        order[i]->pre_current_test();
+        SolenoidTestReading t = order[i]->get_full_on_current_reading();
+        order[i]->post_current_test();
+        // place in result
+        res.on_readings[i] = t;
     }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[19] = batt & 0xFF;
-    this->routine_result[20] = (batt >> 8) & 0xFF;
-    this->routine_result[21] = curr & 0xFF;
-    this->routine_result[22] = (curr >> 8) & 0xFF;
-    sol_spc->set_current_target(0);
-    vTaskDelay(250);
-
-    sol_tcc->set_duty(4096); // 3. TCC solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_tcc->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[23] = batt & 0xFF;
-    this->routine_result[24] = (batt >> 8) & 0xFF;
-    this->routine_result[25] = curr & 0xFF;
-    this->routine_result[26] = (curr >> 8) & 0xFF;
-    sol_tcc->set_duty(0);
-    vTaskDelay(250);
-    sol_y3->on(); // 4. Y3 Solenoid
-    vTaskDelay(100);
-    total_batt = 0;
-    total_curr = 0;
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y3->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[27] = batt & 0xFF;
-    this->routine_result[28] = (batt >> 8) & 0xFF;
-    this->routine_result[29] = curr & 0xFF;
-    this->routine_result[30] = (curr >> 8) & 0xFF;
-    sol_y3->off();
-    vTaskDelay(250);
-
-    sol_y4->on(); // 5. Y4 Solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y4->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[31] = batt & 0xFF;
-    this->routine_result[32] = (batt >> 8) & 0xFF;
-    this->routine_result[33] = curr & 0xFF;
-    this->routine_result[34] = (curr >> 8) & 0xFF;
-    sol_y4->off();
-    vTaskDelay(250);
-
-    sol_y5->on(); // 6. Y5 Solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y5->get_current();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[35] = batt & 0xFF;
-    this->routine_result[36] = (batt >> 8) & 0xFF;
-    this->routine_result[37] = curr & 0xFF;
-    this->routine_result[38] = (curr >> 8) & 0xFF;
-    sol_y5->off();
-    
     this->routine_running = false;
+    Solenoids::notify_diag_test_end();
     this->gearbox_ptr->diag_regain_control();
+    memcpy(this->routine_result, &res, sizeof(SolRtRes));
     vTaskDelete(nullptr);
 }

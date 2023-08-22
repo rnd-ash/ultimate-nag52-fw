@@ -18,6 +18,11 @@ extern uint16_t min_adc_raw_reading;
 extern const ledc_timer_t SOLENOID_TIMER;
 extern const ledc_timer_config_t SOLENOID_TIMER_CFG;
 
+typedef struct {
+    uint16_t avg_voltage;
+    uint16_t avg_current;
+} __attribute__((packed)) SolenoidTestReading;
+
 class PwmSolenoid
 {
 public:
@@ -78,6 +83,10 @@ public:
 
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_adc_reading(uint16_t c, bool valid);
+
+    virtual void pre_current_test(){};
+    virtual void post_current_test(){};
+    SolenoidTestReading get_full_on_current_reading();
 
     // -- These functions are only accessed by sw_fader class! -- //
 protected:

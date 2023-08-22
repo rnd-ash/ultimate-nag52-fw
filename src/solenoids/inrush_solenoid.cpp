@@ -66,6 +66,14 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pi
     }
 }
 
+void InrushControlSolenoid::pre_current_test() {
+    gptimer_stop(this->timer);
+}
+
+void InrushControlSolenoid::post_current_test() {
+    gptimer_start(this->timer);
+}
+
 uint32_t InrushControlSolenoid::on_timer_interrupt() {
     uint32_t ret;
     uint16_t write_pwm;

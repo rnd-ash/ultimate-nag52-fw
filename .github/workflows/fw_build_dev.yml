@@ -76,5 +76,5 @@ jobs:
         files: |
           UNIFIED_FW/MODULE_SETTINGS.md
           UNIFIED_FW/MODULE_SETTINGS.yml
-          UNIFIED_FW/firmware.elf
-          UNIFIED_FW/firmware.bin
+          UNIFIED_FW/.pio/build/unified/firmware.elf
+          UNIFIED_FW/.pio/build/unified/firmware.bin

@@ -1,5 +1,6 @@
 #ifndef UNIT_TEST
 
+
 #include "clock.hpp"
 
 #include "solenoids/solenoids.h"
@@ -274,5 +275,26 @@ extern "C" void app_main(void)
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
     }
 }
+
+
+
+/*
+
+TEST MAIN FUNCTION FOR CALIBRATING IDLE TICK COUNT
+
+#include "diag/perf_mon.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+extern "C" void app_main(void)
+{
+    //init_clock();
+    PerfMon::init_perfmon();
+    while(true) {
+        PerfMon::update_sample();
+        vTaskDelay(1000);
+    }
+}
+*/
 
 #endif // UNIT_TEST

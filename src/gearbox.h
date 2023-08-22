@@ -45,6 +45,7 @@ public:
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
     ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
@@ -102,7 +103,6 @@ private:
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    ShiftAdaptationSystem* shift_adapter = nullptr;
     int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
     MovingAverage* output_avg_filter;
 

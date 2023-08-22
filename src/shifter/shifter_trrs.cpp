@@ -41,7 +41,7 @@ ShifterTrrs::ShifterTrrs(esp_err_t *can_init_status, const char *name, bool *sta
 			.scl_pullup_en = GPIO_PULLUP_ENABLE,
 		};
 		conf.master.clk_speed = 100000u;
-		*can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
+		*can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_SHARED);
 		if (ESP_OK == *can_init_status)
 		{
 			*can_init_status = i2c_param_config(I2C_NUM_0, &conf);

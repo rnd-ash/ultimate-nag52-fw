@@ -33,7 +33,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pi
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = (1 * 1000 * 1000),
         .flags = {
-            .intr_shared = 0
+            .intr_shared = 1
         }
     };
 

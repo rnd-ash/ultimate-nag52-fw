@@ -16,13 +16,12 @@ OnOffSolenoid *sol_y3 = nullptr;
 OnOffSolenoid *sol_y4 = nullptr;
 OnOffSolenoid *sol_y5 = nullptr;
 
-adc_cali_handle_t adc1_cal = nullptr;
-
 ConstantCurrentSolenoid *sol_mpc = nullptr;
 ConstantCurrentSolenoid *sol_spc = nullptr;
 InrushControlSolenoid *sol_tcc = nullptr;
 
-#define I2S_DMA_BUF_LEN 2048
+// 6 channels * SOC_ADC_DIGI_DATA_BYTES_PER_CONV bytes per sample *  
+#define I2S_DMA_BUF_LEN 6 * 100 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
 
@@ -36,7 +35,7 @@ void read_solenoids_i2s(void*) {
     adc_continuous_new_handle(&c_cfg, &c_handle);
     adc_continuous_config_t dig_cfg = {
         .pattern_num = 6,
-        .sample_freq_hz = 1000 * 1000, // Each read is ~2ms of data
+        .sample_freq_hz = 6 * 1000 * 200, // 100 samples per solenoid per ms
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
@@ -50,30 +49,54 @@ void read_solenoids_i2s(void*) {
     dig_cfg.adc_pattern = adc_pattern;
     adc_continuous_config(c_handle, &dig_cfg);
     adc_continuous_start(c_handle);
+
     esp_err_t ret;
+
+
     uint32_t samples[adc_channel_t::ADC_CHANNEL_9]; // Indexes all ADC channels like this
     uint64_t totals[adc_channel_t::ADC_CHANNEL_9];
+    bool in_sample[adc_channel_t::ADC_CHANNEL_9];
+    uint32_t peak_entry_times[adc_channel_t::ADC_CHANNEL_9];
     uint32_t out_len = 0;
-    uint32_t channel_num = 0;
-    uint8_t idx = 0;
-    int v = 0;
+
+    PwmSolenoid* sol_order_by_adc_channel[adc_channel_t::ADC_CHANNEL_9] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    for (uint8_t i = 0; i < 6; i++) {
+        uint8_t idx = sol_order[i]->get_adc_channel();
+        sol_order_by_adc_channel[idx] = sol_order[i];
+    }
+
     while(true) {
-        memset(samples, 0, sizeof(samples));
-        memset(totals, 0, sizeof(totals));
+        uint32_t now = esp_timer_get_time()/1000;
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
         if (ret == ESP_OK) {
             for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
-                channel_num = p->type1.channel;
-                if (channel_num < SOC_ADC_CHANNEL_NUM(ADC_UNIT_1) && p->type1.data > 10) {
-                    totals[channel_num] += p->type1.data;
-                    samples[channel_num]++;
+                if (p->type1.data > 150) { // In peak or peak entry
+                    if (!in_sample[p->type1.channel]) {
+                        in_sample[p->type1.channel] = true; // Sample start
+                        peak_entry_times[p->type1.channel] = now;
+                    }
+                    samples[p->type1.channel]++;
+                    totals[p->type1.channel] += p->type1.data;
+                } else { // Peak exit
+                    if (in_sample[p->type1.channel]) {
+                        // Add sample
+                        in_sample[p->type1.channel] = false;
+                        sol_order_by_adc_channel[p->type1.channel]->__set_adc_reading(totals[p->type1.channel]/samples[p->type1.channel], samples[p->type1.channel] > 10);
+                        samples[p->type1.channel] = 0;
+                        totals[p->type1.channel] = 0;
+                    }
                 }
             }
-            for (int solenoid = 0; solenoid < 6; solenoid++) {
-                idx = (uint8_t)sol_order[solenoid]->get_adc_channel(); // Channel index
-                adc_cali_raw_to_voltage(adc1_cal, totals[idx] / (float)samples[idx], &v);
-                sol_order[solenoid]->__set_adc_reading((samples[idx] == 0) ? 0 :  v);
+            for (uint8_t i = 0; i < adc_channel_t::ADC_CHANNEL_9; i++) {
+                if (nullptr != sol_order_by_adc_channel[i]) {
+                    if (now - peak_entry_times[i] > 100 && in_sample[i]) {
+                        in_sample[i] = false;
+                        sol_order_by_adc_channel[i]->__set_adc_reading(totals[i]/samples[i], samples[i] > 10);
+                        samples[i] = 0;
+                        totals[i] = 0;
+                    }
+                }
             }
             first_read_complete = true;
         }

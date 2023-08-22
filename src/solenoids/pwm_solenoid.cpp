@@ -44,11 +44,6 @@ PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t ch
     ESP_GOTO_ON_ERROR(ledc_timer_config(&SOLENOID_TIMER_CFG), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
     // Set PWM channel configuration
     ESP_GOTO_ON_ERROR(ledc_channel_config(&channel_cfg), set_err, "SOLENOID", "Failed to set LEDC channel for solenoid %s", name);
-
-    this->current_avg_samples = new MovingAverage(current_samples, true);
-    if (!this->current_avg_samples->init_ok()) {
-        ESP_LOGW("SOLENOID", "Sol %s moving average buffer failed to allocate", name);
-    }
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", "Solenoid %s init OK!", name);
 set_err:
     this->ready = ret;
@@ -56,9 +51,10 @@ set_err:
 
 uint16_t PwmSolenoid::get_current() const {
     uint16_t ret = this->adc_now_read;
-    if (nullptr != this->current_avg_samples) {
-        ret = this->current_avg_samples->get_average();
+    if (ret > min_adc_raw_reading) {
         adc_cali_raw_to_voltage(adc1_cal, ret, (int*)&ret);
+    } else {
+        ret = 0;
     }
     return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
@@ -73,12 +69,10 @@ uint16_t PwmSolenoid::get_pwm_compensated() const
     return this->pwm;
 }
 
-void PwmSolenoid::__set_adc_reading(uint16_t c)
+void PwmSolenoid::__set_adc_reading(uint16_t c, bool valid)
 {
     this->adc_now_read = c;
-    if (nullptr != this->current_avg_samples) {
-        this->current_avg_samples->add_sample(c);
-    }
+    this->current_measure_accurate = valid;
 }
 
 adc_channel_t PwmSolenoid::get_adc_channel() const {

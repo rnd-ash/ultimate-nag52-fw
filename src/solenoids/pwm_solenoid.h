@@ -11,7 +11,6 @@
 #include "esp_err.h"
 #include "esp_timer.h"
 #include "tcu_maths.h"
-#include "moving_average.h"
 
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
@@ -79,11 +78,11 @@ public:
     esp_err_t init_ok() const;
 
     // Internal functions - Don't touch, handled by I2S thread!
-    void __set_adc_reading(uint16_t c);
+    void __set_adc_reading(uint16_t c, bool valid);
 
     // -- These functions are only accessed by sw_fader class! -- //
 protected:
-    MovingAverage* current_avg_samples;
+    bool current_measure_accurate = false;
     esp_err_t ready;
     const char *name;
     ledc_channel_t channel;

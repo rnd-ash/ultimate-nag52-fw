@@ -1,6 +1,7 @@
 #include "on_off_solenoid.h"
 #include "esp_check.h"
 #include "tcu_maths.h"
+#include "clock.hpp"
 
 OnOffSolenoid::OnOffSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint32_t on_time_ms, uint16_t hold_pwm, uint8_t current_samples)
 : PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples) {
@@ -13,7 +14,7 @@ void OnOffSolenoid::__write_pwm(float vref_compensation, float temperature_facto
     uint16_t calc_pwm = 0;
     if (this->state) {
         // Solenoid should be on!
-        if (this->holding || (esp_timer_get_time()/1000) - this->on_time_ms >= this->target_on_time) { // this->holding call short circuits, so we check this first before checking against clock!
+        if (this->holding || GET_CLOCK_TIME() - this->on_time_ms >= this->target_on_time) { // this->holding call short circuits, so we check this first before checking against clock!
             this->holding = true;
             calc_pwm = this->target_hold_pwm * vref_compensation;
         } else {
@@ -29,7 +30,7 @@ void OnOffSolenoid::__write_pwm(float vref_compensation, float temperature_facto
 
 void OnOffSolenoid::on() {
     if (!this->state) {
-        this->on_time_ms = esp_timer_get_time()/1000;
+        this->on_time_ms = GET_CLOCK_TIME();
         this->holding = false;
     }
     this->state = true;

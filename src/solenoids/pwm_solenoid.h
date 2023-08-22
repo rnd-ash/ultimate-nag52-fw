@@ -9,7 +9,6 @@
 #include "hal/adc_types.h"
 #include <esp_event.h>
 #include "esp_err.h"
-#include "esp_timer.h"
 #include "tcu_maths.h"
 
 extern uint16_t voltage;

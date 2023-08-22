@@ -76,7 +76,7 @@ ShifterTrrs::ShifterTrrs(esp_err_t *can_init_status, const char *name, bool *sta
 	}
 }
 
-ShifterPosition ShifterTrrs::get_shifter_position(const uint64_t now, const uint64_t expire_time_ms)
+ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t now, const uint32_t expire_time_ms)
 {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
 	if ((now - last_i2c_query_time) < expire_time_ms)
@@ -138,7 +138,7 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint64_t now, const uint
 	return ret;
 }
 
-void ShifterTrrs::update_shifter_position(const uint64_t now)
+void ShifterTrrs::update_shifter_position(const uint32_t now)
 {
 	if (50u < (now - this->last_i2c_query_time))
 	{
@@ -172,7 +172,7 @@ void ShifterTrrs::update_shifter_position(const uint64_t now)
 		}
 	}
 }
-ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) {
+ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint32_t now, const uint32_t expire_time_ms) {
 	ProfileSwitchPos result = ProfileSwitchPos::SNV;
 	if ((now - last_i2c_query_time) < expire_time_ms) {
 		bool top = (i2c_rx_bytes[0] & BIT(1)) != 0;

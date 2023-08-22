@@ -3,9 +3,8 @@
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
 #include <tcu_maths.h>
-#include "solenoids/constant_current.h"
 #include "speaker.h"
-#include "esp_timer.h"
+#include "clock.hpp"
 
 #define SBS SBS_CURRENT_SETTINGS
 
@@ -59,7 +58,7 @@ Gearbox::Gearbox()
         .min_torque = 0,
         .driver_requested_torque = 0,
         .last_shift_time = 0,
-        .current_timestamp_ms = (uint64_t)(esp_timer_get_time() / 1000),
+        .current_timestamp_ms = GET_CLOCK_TIME(),
         .is_braking = false,
         .d_output_rpm = 0,
         .gear_ratio = 0.0F,
@@ -335,7 +334,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         sr.profile = profile->get_profile_id();
         sr.change = req_lookup;
         sr.atf_temp_c = sensor_data.atf_temp;
-        uint64_t shift_start_time = sensor_data.current_timestamp_ms;
+        uint32_t shift_start_time = sensor_data.current_timestamp_ms;
         uint8_t overlap_report_size = 0;
         ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
         ShiftData sd = pressure_mgr->get_basic_shift_data(&this->gearboxConfig, req_lookup, chars);
@@ -641,7 +640,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->flaring = false;
         shifting_velocity = {0, 0};
         if (result) { // Only set gear on conformation!
-            ESP_LOGI("SHIFT", "SHIFT OK!");
             this->actual_gear = gear_from_idx(sd.targ_g);
         } else {
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
@@ -906,10 +904,10 @@ void Gearbox::controller_loop()
     bool lock_state = false;
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
-    uint64_t expire_check = esp_timer_get_time() + 100000; // 100ms
-    while (esp_timer_get_time() < expire_check)
+    uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
+    while (GET_CLOCK_TIME() < expire_check)
     {
-        this->shifter_pos = egs_can_hal->get_shifter_position(esp_timer_get_time() / 1000, 250);
+        this->shifter_pos = egs_can_hal->get_shifter_position(GET_CLOCK_TIME(), 250);
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
@@ -930,11 +928,11 @@ void Gearbox::controller_loop()
         vTaskDelay(5);
     }
 
-    uint64_t last_output_measure_time = esp_timer_get_time() / 1000;
+    uint32_t last_output_measure_time = GET_CLOCK_TIME();
     int old_output_rpm = this->sensor_data.output_rpm;
     while (1)
     {
-        uint64_t now = esp_timer_get_time() / 1000;
+        uint32_t now = GET_CLOCK_TIME();
         this->sensor_data.current_timestamp_ms = now;
         if (this->diag_stop_control)
         {

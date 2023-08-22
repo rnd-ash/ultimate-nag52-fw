@@ -1,5 +1,7 @@
 #ifndef UNIT_TEST
 
+#include "clock.hpp"
+
 #include "solenoids/solenoids.h"
 #include "esp_log.h"
 #include <freertos/FreeRTOS.h>
@@ -167,7 +169,7 @@ void input_manager(void*) {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
-    uint64_t now = esp_timer_get_time()/1000;
+    uint32_t now = GET_CLOCK_TIME();
     ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
     bool pressed = false;
     
@@ -178,7 +180,7 @@ void input_manager(void*) {
         }
     }
     while(1) {
-        uint64_t now = esp_timer_get_time()/1000;
+        now = GET_CLOCK_TIME();
         if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
             ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
             // Switch based
@@ -252,6 +254,7 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    init_clock();
     // Set all pointers
     gearbox = nullptr;
     egs_can_hal = nullptr;

@@ -6,6 +6,7 @@
 #include "kwp2000.h"
 #include "esp_core_dump.h"
 #include "../nvs/module_settings.h"
+#include "clock.hpp"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -99,7 +100,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
-    uint64_t now = esp_timer_get_time() / 1000;
+    uint32_t now = GET_CLOCK_TIME();
 
     WheelData t = gearbox->sensor_data.rl_wheel;
     ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
@@ -134,7 +135,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
 
 DATA_SYS_USAGE get_sys_usage(void) {
     DATA_SYS_USAGE ret = {};
-    CpuStats s = get_cpu_stats();
+    CpuStats s = PerfMon::get_cpu_stats();
     ret.core1_usage = s.load_core_1;
     ret.core2_usage = s.load_core_2;
     ret.num_tasks = uxTaskGetNumberOfTasks();
@@ -211,7 +212,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(esp_timer_get_time()/1000, 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(GET_CLOCK_TIME(), 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

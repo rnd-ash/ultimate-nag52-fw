@@ -10,6 +10,7 @@
 #include "models/clutch_speed.hpp"
 #include "tcu_alloc.h"
 #include "solenoids/solenoids.h"
+#include "clock.hpp"
 
 typedef struct {
     uint8_t day;
@@ -178,8 +179,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
 
         }
     }
-
-    init_perfmon();
+    PerfMon::init_perfmon();
 }
 
 kwp_result_t Kwp2000_server::convert_err_result(kwp_result_t in) {
@@ -205,8 +205,6 @@ Kwp2000_server::~Kwp2000_server() {
     if (this->flash_handler != nullptr) {
         delete this->flash_handler;
     }
-    // Remove timer interrupt for CPU stats
-    remove_perfmon();
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
@@ -236,7 +234,7 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 
 void Kwp2000_server::start_response_timer(uint8_t sid) {
     this->response_pending_sid = sid;
-    this->cmd_recv_time = esp_timer_get_time() / 1000;
+    this->cmd_recv_time = GET_CLOCK_TIME();
     this->response_pending = true;
 }
 
@@ -253,7 +251,7 @@ DiagMessage response_pending_msg = {
 void Kwp2000_server::response_timer_loop() {
     ESP_LOGI("KWP2000", "Timer started");
     while(1) {
-        if (this->response_pending && ((esp_timer_get_time()/1000) - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
+        if (this->response_pending && (GET_CLOCK_TIME() - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
             ESP_LOGI("KWP2000", "Sending ResponsePending");
             response_pending_msg.data[1] = this->response_pending_sid;
             // Send 0x78 (Response pending)
@@ -262,7 +260,7 @@ void Kwp2000_server::response_timer_loop() {
             } else {
                 this->can_endpoint->send_data(&response_pending_msg);
             }
-            this->cmd_recv_time = esp_timer_get_time()/1000;
+            this->cmd_recv_time = GET_CLOCK_TIME();
         }
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
@@ -271,7 +269,8 @@ void Kwp2000_server::response_timer_loop() {
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
     while(1) {
-        uint64_t timestamp = esp_timer_get_time()/1000;
+        PerfMon::update_sample();
+        uint32_t timestamp = GET_CLOCK_TIME();
         bool read_msg = false;
         if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
             this->diag_on_usb = true;
@@ -400,7 +399,7 @@ void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t ar
         case SESSION_EXTENDED:
         case SESSION_REPROGRAMMING:
         case SESSION_CUSTOM_UN52:
-            this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
+            this->next_tp_time = GET_CLOCK_TIME()+KWP_TP_TIMEOUT_MS;
             break;
         default:
             // Not supported session mode!
@@ -1067,9 +1066,9 @@ void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_le
     }
     if (args[0] == KWP_CMD_RESPONSE_REQUIRED) {
         make_diag_pos_msg(SID_TESTER_PRESENT, nullptr, 0);
-        this->next_tp_time = esp_timer_get_time()/1000 + KWP_TP_TIMEOUT_MS;
+        this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
     } else if (args[1] == KWP_CMD_NO_RESPONSE_REQUIRED) {
-        this->next_tp_time = esp_timer_get_time()/1000 + KWP_TP_TIMEOUT_MS;
+        this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
     } else {
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }

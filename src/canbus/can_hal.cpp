@@ -1,7 +1,7 @@
 #include "can_hal.h"
 #include "board_config.h"
 #include "esp_check.h"
-#include "esp_timer.h"
+#include "clock.hpp"
 
 EgsBaseCan* egs_can_hal = nullptr;
 
@@ -128,8 +128,9 @@ void EgsBaseCan::rx_task_loop() {
     twai_message_t rx;
     uint8_t i;
     uint64_t tmp;
+    uint32_t now;
     while(true) {
-        uint64_t now = esp_timer_get_time() / 1000;
+        now = GET_CLOCK_TIME();
         twai_get_status_info(&this->can_status);
         uint8_t f_count  = can_status.msgs_to_rx;
         if (f_count == 0) {

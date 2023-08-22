@@ -1,6 +1,7 @@
 #include "egs_emulation.h"
 #include "sensors.h"
 #include "../pressure_manager.h"
+#include "clock.hpp"
 
 inline uint16_t flip_uint16_t(uint16_t x) {
    return ((x & 0xff) << 8) | ((x & 0xff00) >> 8); 
@@ -14,7 +15,7 @@ RLI_30_DATA get_rli_30(EgsBaseCan* can_layer) {
 
 RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     RLI_31_DATA ret = {};
-    uint64_t now = esp_timer_get_time() / 1000;
+    uint32_t now = GET_CLOCK_TIME();
     RpmReading d;
     if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_pulse_count = flip_uint16_t(d.n2_raw);

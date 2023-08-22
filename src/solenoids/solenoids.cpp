@@ -11,6 +11,7 @@
 #include "esp_adc/adc_oneshot.h"
 #include "esp_check.h"
 #include "../nvs/module_settings.h"
+#include "clock.hpp"
 
 OnOffSolenoid *sol_y3 = nullptr;
 OnOffSolenoid *sol_y4 = nullptr;
@@ -54,7 +55,7 @@ void read_solenoids_i2s(void*) {
 
 
     uint32_t samples[adc_channel_t::ADC_CHANNEL_9]; // Indexes all ADC channels like this
-    uint64_t totals[adc_channel_t::ADC_CHANNEL_9];
+    uint32_t totals[adc_channel_t::ADC_CHANNEL_9];
     bool in_sample[adc_channel_t::ADC_CHANNEL_9];
     uint32_t peak_entry_times[adc_channel_t::ADC_CHANNEL_9];
     uint32_t out_len = 0;
@@ -66,7 +67,7 @@ void read_solenoids_i2s(void*) {
     }
 
     while(true) {
-        uint32_t now = esp_timer_get_time()/1000;
+        uint32_t now = GET_CLOCK_TIME();
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
         if (ret == ESP_OK) {
             for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {

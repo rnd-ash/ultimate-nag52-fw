@@ -138,10 +138,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (is_shifting) { // If shifting, don't ramp, immedietly change. The shifting of the transmission will dampen this
             this->tcc_pressure_current = this->tcc_pressure_target;
         } else {
-            // If state is going to lock, we increase it slower
+            // If state is going to lock, we increase it A LOT slower
             uint16_t step = TCC_CURRENT_SETTINGS.pressure_increase_step;
             if (this->target_tcc_state == InternalTccState::Closed) {
-                step /= 2.0;
+                step /= 10.0;
             }
             this->tcc_pressure_current = MIN(this->tcc_pressure_current+step, this->tcc_pressure_target);
         }

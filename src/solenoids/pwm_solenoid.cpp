@@ -79,7 +79,6 @@ SolenoidTestReading PwmSolenoid::get_full_on_current_reading() {
     ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, 0);
     ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
     vTaskDelay(100);
-    printf("Test res for %s is %lu and %lu\n", this->name, v_total/100, c_total/100);
     return SolenoidTestReading {
         .avg_voltage = (uint16_t)(v_total / NUM_SAMPLES),
         .avg_current = (uint16_t)(c_total / NUM_SAMPLES)

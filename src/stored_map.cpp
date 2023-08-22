@@ -57,7 +57,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
  * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
  * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
  */
-esp_err_t StoredMap::replace_data_content(int16_t *new_data, uint16_t content_len)
+esp_err_t StoredMap::replace_data_content(const int16_t *new_data, uint16_t content_len)
 {
     esp_err_t result = ESP_OK;
     if (content_len == (this->data_element_count))
@@ -81,14 +81,14 @@ esp_err_t StoredMap::reload_from_eeprom(void)
     return this->read_from_eeprom(this->data_name, this->data_element_count);
 }
 
-/**
- * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
- * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
- */
-// bool StoredTcuMap::reset_from_default_eeprom(void)
-// {
-//     return this->add_data(const_cast<int16_t *>(this->default_map), this->data_element_count);
-// }
+esp_err_t StoredMap::reset_from_flash(void) {
+    esp_err_t res = ESP_OK;
+    const int16_t* default_data = this->default_map;
+    if (ESP_OK == this->replace_data_content(default_data, this->dataSize) ) {
+        res = this->save_to_eeprom();
+    }
+    return res;
+}
 
 /**
  * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)

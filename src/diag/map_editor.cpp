@@ -144,14 +144,14 @@ kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     }
 }
 
-// uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
-//     CHECK_MAP(map_id)
-//     if (ptr->reload_from_eeprom() && ptr->save_to_eeprom()) {
-//         return 0;
-//     } else {
-//         return NRC_GENERAL_REJECT;
-//     }
-// }
+uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
+    CHECK_MAP(map_id)
+    if (ESP_OK == ptr->reset_from_flash()) {
+        return 0;
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
+}
 
 kwp_result_t MapEditor::undo_changes(uint8_t map_id) {
     CHECK_MAP(map_id)

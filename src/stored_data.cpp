@@ -7,15 +7,6 @@ esp_err_t StoredData::init_status(void)
     return init_state;
 }
 
-/**
- * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
- * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
- */
-// bool StoredData::reset_from_default_eeprom(void)
-// {
-//     return this->add_data(const_cast<int16_t *>(this->default_data), this->data_element_count);
-// }
-
 uint16_t StoredData::get_data_element_count(void)
 {
     return this->data_element_count;

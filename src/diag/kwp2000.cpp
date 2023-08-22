@@ -211,7 +211,6 @@ void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
     kwp_result_t nrc_convert = nrc;
     if (this->session_mode != SESSION_CUSTOM_UN52) {
         nrc_convert = this->convert_err_result(nrc);
-        ESP_LOGI("KWP2000", "Converting %s NRC to %s", kwp_nrc_to_name(nrc), kwp_nrc_to_name(nrc_convert));
     }
     global_make_diag_neg_msg(&this->tx_msg, sid, nrc_convert);
     this->send_resp = true;
@@ -856,14 +855,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
-            // TODO - Re-add with new adaptation system
-            make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
-            //if (this->gearbox_ptr->pressure_mgr->diag_reset_adaptation()) {
-            //    make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
-            //} else {
-            //    // Can only fail if adapt manager is nullptr (Not ready)
-            //    make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-            //}
+            esp_err_t res = this->gearbox_ptr->shift_adapter->reset();
+            if (ESP_OK == res) {
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            } else {
+                // Can only fail if adapt manager is nullptr (Not ready)
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
@@ -998,6 +996,9 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                     break;
                 case MAP_CMD_BURN:
                     ret = MapEditor::burn_to_eeprom(map_id);
+                    break;
+                case MAP_CMD_RESET_TO_FLASH:
+                    ret = MapEditor::reset_to_program_default(map_id);
                     break;
                 default:
                     ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;

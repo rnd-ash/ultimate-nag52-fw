@@ -12,6 +12,7 @@
 #include "driver/gptimer.h"
 #include "driver/pulse_cnt.h"
 #include "tcu_maths.h"
+#include "moving_average.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
@@ -45,15 +46,14 @@ adc_oneshot_chan_cfg_t adc2_chan_config = {
 adc_cali_handle_t adc2_cal = nullptr;
 
 // For RPM sensor debouncing / smoothing
+
 #define RPM_CHANGE_MAX 1000
-#define RPM_SAMPLES_DEBOUNCE 10
 #define RPM_TIMER_INTERVAL_MS 20
-uint32_t n3_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint32_t n3_total = 0;
-uint32_t n2_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint32_t n2_total = 0;
-uint32_t output_avgs[RPM_SAMPLES_DEBOUNCE] = {0,0,0,0,0,0,0,0,0,0};
-volatile uint32_t output_total = 0;
+
+MovingUnsignedAverage* n2_avg_buffer = nullptr;
+MovingUnsignedAverage* n3_avg_buffer = nullptr;
+MovingUnsignedAverage* out_avg_buffer = nullptr;
+
 uint8_t avg_n2_idx = 0;
 uint8_t avg_n3_idx = 0;
 uint8_t avg_out_idx = 0;
@@ -70,36 +70,25 @@ bool atf_using_motor_temp = false;
 float RATIO_2_1 = 1.61f;
 
 
-static esp_err_t IRAM_ATTR read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
-    esp_err_t res = pcnt_unit_get_count(unit, dest);
-    if (ESP_OK == res) {
-        pcnt_unit_clear_count(unit);
-    }
-    return res;
+inline static void read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
+    pcnt_unit_get_count(unit, dest);
+    pcnt_unit_clear_count(unit);
 }
 
 static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
     int pulses = 0;
     // N2 Sensor
-    if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses)) {
-        n2_total = n2_total - n2_avgs[avg_n2_idx];
-        n2_avgs[avg_n2_idx] = pulses;
-        n2_total = n2_total + pulses;
-        avg_n2_idx = (avg_n2_idx+1)%RPM_SAMPLES_DEBOUNCE;
-    }
+    read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
+    n2_avg_buffer->add_sample(pulses*50);
+
     // N3 Sensor
-    if (ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses)) {
-        n3_total = n3_total - n3_avgs[avg_n3_idx];
-        n3_avgs[avg_n3_idx] = pulses;
-        n3_total = n3_total + pulses;
-        avg_n3_idx = (avg_n3_idx+1)%RPM_SAMPLES_DEBOUNCE;
-    }
+    read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
+    n3_avg_buffer->add_sample(pulses*50);
+    
     // Output Sensor (If present)
-    if (output_rpm_ok && ESP_OK == read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses)) {
-        output_total = output_total - output_avgs[avg_out_idx];
-        output_avgs[avg_out_idx] = pulses;
-        output_total = output_total + pulses;
-        avg_out_idx = (avg_out_idx+1)%RPM_SAMPLES_DEBOUNCE;
+    if (output_rpm_ok) {
+        read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses);
+        out_avg_buffer->add_sample(pulses*50);
     }
     return true;
 }
@@ -157,10 +146,18 @@ static bool IRAM_ATTR on_atf_timer(gptimer_handle_t timer, const gptimer_alarm_e
 }
 
 const pcnt_glitch_filter_config_t glitch_filter = {
+    // for input RPM - 1RPM = 1/Sec
+    // ==> 10000RPM = 10000RPS
+    // => 
     .max_glitch_ns = 1000
 };
 
-esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE) {
+esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingUnsignedAverage** buffer) {
+    *buffer = new MovingUnsignedAverage((1000/RPM_TIMER_INTERVAL_MS)/4, true); // 250ms moving average
+    if (!(*buffer)->init_ok()) {
+        ESP_LOGE("SENSORS", "Failed to allocate moving average buffer for %s", name);
+        return ESP_ERR_NO_MEM;
+    }
     ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set %s Pin to Input", name);
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set %s Pin to pullup", name);
     ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Unit", name);
@@ -206,13 +203,13 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc2_cal), "SENSORS", "Failed to create line fitting ADC2 scheme");
     
     // Now configure PCNT to begin counting!
-    ESP_RETURN_ON_ERROR(configure_pcnt("N2", pcb_gpio_matrix->n2_pin, &PCNT_HANDLE_N2, &PCNT_C_HANDLE_N2), "SENSORS", "N2 PCNT Setup failed");
-    ESP_RETURN_ON_ERROR(configure_pcnt("N3", pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3), "SENSORS", "N3 PCNT Setup failed");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N2", pcb_gpio_matrix->n2_pin, &PCNT_HANDLE_N2, &PCNT_C_HANDLE_N2, &n2_avg_buffer), "SENSORS", "N2 PCNT Setup failed");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N3", pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3, &n3_avg_buffer), "SENSORS", "N3 PCNT Setup failed");
 
     // Enable output RPM reading if needed
     if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
         ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-        if (ESP_OK == configure_pcnt("OUTPUT", pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT)) {
+        if (ESP_OK == configure_pcnt("OUTPUT", pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT, &out_avg_buffer)) {
             output_rpm_ok = true;
         }
     }
@@ -274,8 +271,8 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 {
     esp_err_t res = ESP_OK;
 
-    dest->n2_raw = (n2_total*(50/2))/RPM_SAMPLES_DEBOUNCE; // /2 as we are counting both high and low edge, so we get 2x the number of pulses as teeth
-    dest->n3_raw = (n3_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
+    dest->n2_raw = n2_avg_buffer->get_average()/2; // /2 as we are counting both high and low edge, so we get 2x the number of pulses as teeth
+    dest->n3_raw = n3_avg_buffer->get_average()/2;
     
     float f2 = (float)dest->n2_raw;
     float f3 = (float)dest->n3_raw;
@@ -303,8 +300,8 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
         res = ESP_ERR_INVALID_STATE;
     } else {
         uint16_t rpm = 0;
-        uint64_t pulses_per_min = 60*(output_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
-        rpm = pulses_per_min / VEHICLE_CONFIG.input_sensor_pulses_per_rev;
+        //uint64_t pulses_per_min = 60*(output_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
+        //rpm = pulses_per_min / VEHICLE_CONFIG.input_sensor_pulses_per_rev;
         *dest = rpm;
     }
     return res;

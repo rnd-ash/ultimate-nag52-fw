@@ -1,5 +1,8 @@
 #ifndef UNIT_TEST
 
+
+#include "clock.hpp"
+
 #include "solenoids/solenoids.h"
 #include "esp_log.h"
 #include <freertos/FreeRTOS.h>
@@ -10,7 +13,6 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
-#include "solenoids/constant_current.h"
 #include "nvs/module_settings.h"
 
 // CAN LAYERS
@@ -92,8 +94,6 @@ SPEAKER_POST_CODE setup_tcm() {
         }
     }
     if (ret == SPEAKER_POST_CODE::INIT_OK) {
-        CurrentDriver::init_current_driver();
-
         standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
         comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
         winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
@@ -170,7 +170,7 @@ void input_manager(void*) {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
-    uint64_t now = esp_timer_get_time()/1000;
+    uint32_t now = GET_CLOCK_TIME();
     ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
     bool pressed = false;
     
@@ -181,7 +181,7 @@ void input_manager(void*) {
         }
     }
     while(1) {
-        uint64_t now = esp_timer_get_time()/1000;
+        now = GET_CLOCK_TIME();
         if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
             ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
             // Switch based
@@ -255,6 +255,7 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    init_clock();
     // Set all pointers
     gearbox = nullptr;
     egs_can_hal = nullptr;
@@ -274,5 +275,26 @@ extern "C" void app_main(void)
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
     }
 }
+
+
+
+/*
+
+TEST MAIN FUNCTION FOR CALIBRATING IDLE TICK COUNT
+
+#include "diag/perf_mon.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+extern "C" void app_main(void)
+{
+    //init_clock();
+    PerfMon::init_perfmon();
+    while(true) {
+        PerfMon::update_sample();
+        vTaskDelay(1000);
+    }
+}
+*/
 
 #endif // UNIT_TEST

@@ -276,7 +276,7 @@ class ECU:
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {"""
@@ -307,7 +307,7 @@ class ECU:
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_{0}(uint64_t now, uint64_t max_expire_time, {0}{2}* dest) const {{
+        bool get_{0}(uint32_t now, uint32_t max_expire_time, {0}{2}* dest) const {{
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[{1}] <= now && now - LAST_FRAME_TIMES[{1}] < max_expire_time) {{
                 dest->raw = FRAME_DATA[{1}];
@@ -318,7 +318,7 @@ class ECU:
             """.format(frame.name.strip().removesuffix("h"), idx, global_guard)
         tmp += "\n\tprivate:"
         tmp += "\n\t\tuint64_t FRAME_DATA[{0}];".format(num_frames)
-        tmp += "\n\t\tuint64_t LAST_FRAME_TIMES[{0}];".format(num_frames)
+        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}];".format(num_frames)
         tmp += "\n};"
 
         # Lastly append endif guard

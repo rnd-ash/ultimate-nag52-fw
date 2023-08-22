@@ -15,7 +15,7 @@ LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
 LookupHeader::~LookupHeader(void)
 {
     if(allocation_successful){
-        TCU_HEAP_FREE(header);
+        TCU_FREE(header);
     }
 }
 

@@ -29,6 +29,11 @@ float scale_number(float raw, float new_min, float new_max, float raw_min, float
     return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
 }
 
+int scale_number_int(int raw, int new_min, int new_max, int raw_min, int raw_max) {
+    int raw_limited = MAX(raw_min, MIN(raw, raw_max));
+    return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
+}
+
 float scale_number(float raw, LinearInterpSetting* settings) {
     return scale_number(raw, settings->new_min, settings->new_max, settings->raw_min, settings->raw_max);
 }

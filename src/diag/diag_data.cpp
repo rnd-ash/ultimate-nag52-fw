@@ -1,12 +1,12 @@
 #include "diag_data.h"
 #include "sensors.h"
 #include "solenoids/solenoids.h"
-#include "solenoids/constant_current.h"
 #include "perf_mon.h"
 #include <tcu_maths.h>
 #include "kwp2000.h"
 #include "esp_core_dump.h"
 #include "../nvs/module_settings.h"
+#include "clock.hpp"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -46,22 +46,22 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
         return ret;
     }
 
-    ret.mpc_current = sol_mpc->get_current_avg(); //sol_mpc->get_current_estimate();
-    ret.spc_current = sol_spc->get_current_avg();//sol_spc->get_current_estimate();
-    ret.tcc_current = sol_tcc->get_current_avg();//sol_tcc->get_current_estimate();
-    ret.y3_current = sol_y3->get_current_avg();//sol_y3->get_current_estimate();
-    ret.y4_current = sol_y4->get_current_avg();//sol_y4->get_current_estimate();
-    ret.y5_current = sol_y5->get_current_avg();//sol_y5->get_current_estimate();
-    ret.adjustment_mpc = (mpc_cc->get_adjustment()+1)*1000;
-    ret.adjustment_spc = (spc_cc->get_adjustment()+1)*1000;
+    ret.mpc_current = sol_mpc->get_current(); //sol_mpc->get_current_estimate();
+    ret.spc_current = sol_spc->get_current();//sol_spc->get_current_estimate();
+    ret.tcc_current = sol_tcc->get_current();//sol_tcc->get_current_estimate();
+    ret.y3_current = sol_y3->get_current();//sol_y3->get_current_estimate();
+    ret.y4_current = sol_y4->get_current();//sol_y4->get_current_estimate();
+    ret.y5_current = sol_y5->get_current();//sol_y5->get_current_estimate();
+    ret.adjustment_mpc = sol_mpc->get_trim()*1000;
+    ret.adjustment_spc = sol_spc->get_trim()*1000;
     ret.mpc_pwm = sol_mpc->get_pwm_compensated();
     ret.spc_pwm = sol_spc->get_pwm_compensated();
     ret.tcc_pwm = sol_tcc->get_pwm_compensated();
     ret.y3_pwm = sol_y3->get_pwm_compensated();
     ret.y4_pwm = sol_y4->get_pwm_compensated();
     ret.y5_pwm = sol_y5->get_pwm_compensated();
-    ret.targ_mpc_current = mpc_cc->get_current_target();
-    ret.targ_spc_current = spc_cc->get_current_target();
+    ret.targ_mpc_current = sol_mpc->get_current_target();
+    ret.targ_spc_current = sol_spc->get_current_target();
     
     return ret;
 }
@@ -90,7 +90,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;
-    dma.adc_reading = sol_spc->diag_get_adc_peak_raw();
+    dma.adc_reading = 0;
     return dma;
 }
 
@@ -100,7 +100,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
-    uint64_t now = esp_timer_get_time() / 1000;
+    uint32_t now = GET_CLOCK_TIME();
 
     WheelData t = gearbox->sensor_data.rl_wheel;
     ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
@@ -135,7 +135,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
 
 DATA_SYS_USAGE get_sys_usage(void) {
     DATA_SYS_USAGE ret = {};
-    CpuStats s = get_cpu_stats();
+    CpuStats s = PerfMon::get_cpu_stats();
     ret.core1_usage = s.load_core_1;
     ret.core2_usage = s.load_core_2;
     ret.num_tasks = uxTaskGetNumberOfTasks();
@@ -212,7 +212,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(esp_timer_get_time()/1000, 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(GET_CLOCK_TIME(), 250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

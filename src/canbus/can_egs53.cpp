@@ -28,7 +28,7 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->eng_rq2_tcm.TxShiftStyle = ENG_RQ2_TCM_TxShiftStyle_EGS53::MS; // Mechanical shifting (With EWM module)
 }
 
-WheelData Egs53Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {  // TODO
+WheelData Egs53Can::get_front_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {  // TODO
     WHL_STAT2_EGS53 whl_stat;
     if (this->ecm_ecu.get_WHL_STAT2(now, expire_time_ms*1000, &whl_stat)) {
         WheelDirection dir;
@@ -58,7 +58,7 @@ WheelData Egs53Can::get_front_right_wheel(uint64_t now, uint64_t expire_time_ms)
     }
 }
 
-WheelData Egs53Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) { // TODO
+WheelData Egs53Can::get_front_left_wheel(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     WHL_STAT2_EGS53 whl_stat;
     if (this->ecm_ecu.get_WHL_STAT2(now, expire_time_ms*1000, &whl_stat)) {
         WheelDirection dir;
@@ -88,7 +88,7 @@ WheelData Egs53Can::get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) 
     }
 }
 
-WheelData Egs53Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
+WheelData Egs53Can::get_rear_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
     if (this->ecm_ecu.get_WHL_STAT2(now, expire_time_ms*1000, &whl_stat)) {
         WheelDirection dir;
@@ -118,7 +118,7 @@ WheelData Egs53Can::get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) 
     }
 }
 
-WheelData Egs53Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
+WheelData Egs53Can::get_rear_left_wheel(const uint32_t now, const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
     if (this->ecm_ecu.get_WHL_STAT2(now, expire_time_ms*1000, &whl_stat)) {
         WheelDirection dir;
@@ -148,7 +148,7 @@ WheelData Egs53Can::get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs53Can::get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
+ShifterPosition Egs53Can::get_shifter_position(const uint32_t now, const uint32_t expire_time_ms) {
     SBW_RS_ISM_EGS53 tslm;
     if (this->tslm_ecu.get_SBW_RS_ISM(now, expire_time_ms*1000, &tslm)) {
         switch (tslm.TSL_Posn_ISM) {
@@ -178,15 +178,15 @@ ShifterPosition Egs53Can::get_shifter_position(uint64_t now, uint64_t expire_tim
     return ShifterPosition::SignalNotAvailable;
 }
 
-EngineType Egs53Can::get_engine_type(uint64_t now, uint64_t expire_time_ms) {
+EngineType Egs53Can::get_engine_type(const uint32_t now, const uint32_t expire_time_ms) {
     return EngineType::Unknown;
 }
 
-bool Egs53Can::get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) { // TODO
+bool Egs53Can::get_engine_is_limp(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs53Can::get_kickdown(uint64_t now, uint64_t expire_time_ms) { // TODO
+bool Egs53Can::get_kickdown(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     ENG_RS3_PT_EGS53 eng_rs3;
     if (this->ecm_ecu.get_ENG_RS3_PT(now, expire_time_ms*1000, &eng_rs3)) {
         return eng_rs3.KickDnSw_Psd;
@@ -194,7 +194,7 @@ bool Egs53Can::get_kickdown(uint64_t now, uint64_t expire_time_ms) { // TODO
     return false;
 }
 
-uint8_t Egs53Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) {
+uint8_t Egs53Can::get_pedal_value(const uint32_t now, const uint32_t expire_time_ms) {
     ENG_RS3_PT_EGS53 eng_rs3;
     if (this->ecm_ecu.get_ENG_RS3_PT(now, expire_time_ms*1000, &eng_rs3)) {
         return eng_rs3.AccelPdlPosn_Raw; // Use RAW position, not 'modified' value from ECM!
@@ -202,7 +202,7 @@ uint8_t Egs53Can::get_pedal_value(uint64_t now, uint64_t expire_time_ms) {
     return 0;
 }
 
-int Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_static_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     ENG_RS2_PT_EGS53 rs2_pt;
     if (this->ecm_ecu.get_ENG_RS2_PT(now, expire_time_ms*1000, &rs2_pt)) {
         return (rs2_pt.EngTrqStatic / 4) - 500;
@@ -210,7 +210,7 @@ int Egs53Can::get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) { 
     return 0;
 }
 
-int Egs53Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+int Egs53Can::get_driver_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
     // Test - suspect this is based on the parsed pedal curve from the engine
     // Take min trq and max trq, and take (pedal %) of that number, offset it from min torque
     // For example
@@ -222,7 +222,7 @@ int Egs53Can::get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return trq;
 }
 
-int Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_maximum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     ENG_RS2_PT_EGS53 rs2_pt;
     if (this->ecm_ecu.get_ENG_RS2_PT(now, expire_time_ms*1000, &rs2_pt)) {
         return (rs2_pt.EngTrqMaxETC / 4) - 500;
@@ -230,7 +230,7 @@ int Egs53Can::get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return 0;
 }
 
-int Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) { // TODO
+int Egs53Can::get_minimum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     ENG_RS2_PT_EGS53 rs2_pt;
     if (this->ecm_ecu.get_ENG_RS2_PT(now, expire_time_ms*1000, &rs2_pt)) {
         return (rs2_pt.EngTrqMinTTC / 4) - 500;
@@ -238,7 +238,7 @@ int Egs53Can::get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
     return 0;
 }
 
-PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
+PaddlePosition Egs53Can::get_paddle_position(const uint32_t now, const uint32_t expire_time_ms) {
     SBW_RQ_SCCM_EGS53 sbw_rq;
     PaddlePosition ret = PaddlePosition::SNV;
     if (this->ecm_ecu.get_SBW_RQ_SCCM(now, expire_time_ms*1000, &sbw_rq)) {
@@ -262,7 +262,7 @@ PaddlePosition Egs53Can::get_paddle_position(uint64_t now, uint64_t expire_time_
     return ret;
 }
 
-int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
+int16_t Egs53Can::get_engine_coolant_temp(const uint32_t now, const uint32_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
@@ -273,7 +273,7 @@ int16_t Egs53Can::get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms)
     return res;
 }
 
-int16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { // TODO
+int16_t Egs53Can::get_engine_oil_temp(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
@@ -284,7 +284,7 @@ int16_t Egs53Can::get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) { /
     return res;
 }
 
-int16_t Egs53Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+int16_t Egs53Can::get_engine_iat_temp(const uint32_t now, const uint32_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
     if (this->ecm_ecu.get_ECM_A1(now, expire_time_ms*1000, &ecm_a1)) {
@@ -295,7 +295,7 @@ int16_t Egs53Can::get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
     return res;
 }
 
-uint16_t Egs53Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
+uint16_t Egs53Can::get_engine_rpm(const uint32_t now, const uint32_t expire_time_ms) {
     ENG_RS3_PT_EGS53 eng_rs3;
     if (this->ecm_ecu.get_ENG_RS3_PT(now, expire_time_ms*1000, &eng_rs3)) {
         return eng_rs3.EngRPM;
@@ -303,11 +303,11 @@ uint16_t Egs53Can::get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
     return UINT16_MAX; // UNDEFINED
 }
 
-bool Egs53Can::get_is_starting(uint64_t now, uint64_t expire_time_ms) { // TODO
+bool Egs53Can::get_is_starting(const uint32_t now, const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs53Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
+bool Egs53Can::get_profile_btn_press(const uint32_t now, const uint32_t expire_time_ms) {
     SBW_RS_ISM_EGS53 tslm;
     if (this->tslm_ecu.get_SBW_RS_ISM(now, expire_time_ms*10000, &tslm)) {
         return tslm.TxDrvProgSw_Psd_V3;
@@ -315,7 +315,7 @@ bool Egs53Can::get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
     return false;
 }
 
-bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
+bool Egs53Can::get_is_brake_pressed(const uint32_t now, const uint32_t expire_time_ms) {
     BRK_STAT_EGS53 brk;
     bool ret = false;
     if (this->ecm_ecu.get_BRK_STAT(now, expire_time_ms, &brk)) {
@@ -324,7 +324,7 @@ bool Egs53Can::get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
     return ret;
 }
 
-bool Egs53Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+bool Egs53Can::engine_ack_torque_request(const uint32_t now, const uint32_t expire_time_ms) {
     ENG_RS1_PT_EGS53 engrs1;
     bool ret = false;
     if (this->ecm_ecu.get_ENG_RS1_PT(now, expire_time_ms, &engrs1)) {
@@ -333,19 +333,19 @@ bool Egs53Can::engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) 
     return ret;
 }
 
-bool Egs53Can::esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+bool Egs53Can::esp_torque_intervention_active(const uint32_t now, const uint32_t expire_time_ms) {
     return false; // TODO
 }
 
-bool Egs53Can::is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+bool Egs53Can::is_cruise_control_active(const uint32_t now, const uint32_t expire_time_ms) {
     return false; // TODO
 }
 
-int Egs53Can::cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+int Egs53Can::cruise_control_torque_demand(const uint32_t now, const uint32_t expire_time_ms) {
     return INT_MAX; // TODO
 }
 
-int Egs53Can::esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+int Egs53Can::esp_torque_demand(const uint32_t now, const uint32_t expire_time_ms) {
     return INT_MAX; // TODO
 }
 
@@ -714,7 +714,7 @@ void Egs53Can::tx_frames() {
     twai_transmit(&tx, 5);
 }
 
-void Egs53Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) {
+void Egs53Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {
     if(this->ecm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->fscm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->tslm_ecu.import_frames(data, id, timestamp)) {

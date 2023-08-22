@@ -36,11 +36,14 @@ ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
         return EEPROM::write_subsystem_settings(pfx##_SETTINGS_NVS_KEY, &pfx##_CURRENT_SETTINGS); \
     } \
 
-#define READ_SETTINGS_TO_BUFFER(pfx, buffer_len_dest, buffer_dest) \
+#define READ_SETTINGS_TO_BUFFER(pfx, buffer_len_dest, buffer_dest, use_default) \
     const pfx##_MODULE_SETTINGS* ptr = &pfx##_CURRENT_SETTINGS; \
+    if (use_default) { \
+        ptr = &pfx##_DEFAULT_SETTINGS; \
+    } \
     uint8_t* dest = (uint8_t*)TCU_HEAP_ALLOC(sizeof(pfx##_MODULE_SETTINGS)+1); \
     if (nullptr == ptr || nullptr == dest) { \
-        TCU_HEAP_FREE(dest); \
+        TCU_FREE(dest); \
         return ESP_ERR_NO_MEM; \
     } else { \
         dest[0] = pfx##_MODULE_SETTINGS_SCN_ID; \
@@ -91,20 +94,22 @@ esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
 }
 
 esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
-    if (module_id == TCC_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(TCC, buffer_len, buffer);
-    } else if (module_id == SOL_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(SOL, buffer_len, buffer);
-    } else if (module_id == SBS_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(SBS, buffer_len, buffer);
-    } else if (module_id == NAG_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(NAG, buffer_len, buffer);
-    } else if (module_id == PRM_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(PRM, buffer_len, buffer);
-    } else if (module_id == ADP_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(ADP, buffer_len, buffer);
-    } else if (module_id == ETS_MODULE_SETTINGS_SCN_ID) {
-        READ_SETTINGS_TO_BUFFER(ETS, buffer_len, buffer);
+    uint8_t mod_id = module_id & 0b1111111;
+    bool use_default = (mod_id & BIT(7)) != 0;
+    if (mod_id == TCC_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(TCC, buffer_len, buffer, use_default);
+    } else if (mod_id == SOL_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(SOL, buffer_len, buffer, use_default);
+    } else if (mod_id == SBS_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(SBS, buffer_len, buffer, use_default);
+    } else if (mod_id == NAG_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(NAG, buffer_len, buffer, use_default);
+    } else if (mod_id == PRM_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(PRM, buffer_len, buffer, use_default);
+    } else if (mod_id == ADP_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(ADP, buffer_len, buffer, use_default);
+    } else if (mod_id == ETS_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(ETS, buffer_len, buffer, use_default);
     } else {
         return ESP_ERR_INVALID_ARG;
     }

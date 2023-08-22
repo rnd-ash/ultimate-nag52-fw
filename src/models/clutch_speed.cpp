@@ -42,7 +42,7 @@ ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const uint16_t outp
         ret.off_clutch_speed = req == ProfileGearChange::THREE_FOUR ? vb2 : vk3;
         ret.rear_sun_speed = vb2;
     }
-    uint16_t thresh = input.calc_rpm / 25; // 4%
+    const uint16_t thresh = 25;
     if (ret.on_clutch_speed < thresh && ret.on_clutch_speed > -thresh) {
         ret.on_clutch_speed = 0;
     }
@@ -184,7 +184,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
             cs.b3 = input.calc_rpm;
         }
     }
-    uint16_t thresh = input.calc_rpm / 25; // 4%
+    const uint16_t thresh = 25; // 4%
     // Cleanup
     if (cs.k1 < thresh && cs.k1 > -thresh) {
         cs.k1 = 0;

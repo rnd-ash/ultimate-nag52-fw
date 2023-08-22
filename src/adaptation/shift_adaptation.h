@@ -36,7 +36,8 @@ typedef struct {
 } AdaptOverlapData;
 
 typedef struct {
-    int16_t pressure_offset;
+    int16_t pressure_offset_on_clutch;
+    int16_t pressure_offset_off_clutch;
     int16_t timing_offset;
 } AdaptPrefillData;
 
@@ -52,11 +53,11 @@ public:
     void record_flare(ShiftStage when, uint64_t elapsed);
     AdaptOverlapData get_overlap_data();
 
-    AdaptPrefillData get_prefill_adapt_data(Clutch to_apply);
+    AdaptPrefillData get_prefill_adapt_data(Clutch to_apply, Clutch to_release);
 
     esp_err_t reset(void);
     esp_err_t save(void);
-
+    
     void debug_print_prefill_data();
 
 private:

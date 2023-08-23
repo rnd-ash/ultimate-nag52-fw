@@ -2,6 +2,7 @@
 #include "board_config.h"
 #include "esp_check.h"
 #include "clock.hpp"
+#include "nvs/device_mode.h"
 
 EgsBaseCan* egs_can_hal = nullptr;
 
@@ -116,7 +117,7 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        if (this->send_messages) {
+        if (this->send_messages && !(CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
             this->tx_frames();
         }
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
@@ -138,20 +139,31 @@ void EgsBaseCan::rx_task_loop() {
         } else { // We have frames, read them
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                    if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
-                        // ISO-TP Diag endpoint
-                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
-                            // Send the frame
-                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
-                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                    if (0 != (CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
+                        // Logging mode
+                        char buf[35];
+                        int pos = sprintf(buf, "CF->0x%04X", (uint16_t)rx.identifier);
+                        for (uint8_t i = 0; i < rx.data_length_code; i++) {
+                            pos += sprintf(&buf[pos], "%02X", rx.data[i]);
+                        }
+                        buf[strlen(buf)] = '\n';
+                        printf(buf);
+                    } else {
+                        if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
+                            // ISO-TP Diag endpoint
+                            if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
+                                // Send the frame
+                                if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
+                                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                                }
                             }
+                        } else { // Normal message
+                            tmp = 0;
+                            for(i = 0; i < rx.data_length_code; i++) {
+                                tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                            }
+                            this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                         }
-                    } else { // Normal message
-                        tmp = 0;
-                        for(i = 0; i < rx.data_length_code; i++) {
-                            tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                        }
-                        this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                     }
                 }
             }

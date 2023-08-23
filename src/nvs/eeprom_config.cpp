@@ -6,6 +6,9 @@
 #include "efuse/efuse.h"
 #include "esp_efuse.h"
 #include "esp_check.h"
+#include "device_mode.h"
+
+uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
 esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
     size_t byte_count = map_element_count*sizeof(int16_t);
@@ -33,6 +36,34 @@ esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_wri
     esp_err_t e = nvs_set_blob(MAP_NVS_HANDLE, map_name, to_write, map_element_count*sizeof(int16_t));
     if (e != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting value for %s (%s)", map_name, esp_err_to_name(e));
+    } else {
+        e = nvs_commit(MAP_NVS_HANDLE);
+        if (e != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        }
+    }
+    return e;
+}
+
+uint16_t EEPROM::read_device_mode(void) {
+    uint16_t mode = 0;
+    esp_err_t e = nvs_get_u16(MAP_NVS_HANDLE, NVS_KEY_TCU_MODE, &mode);
+    if (ESP_OK != e) {
+        if (e == ESP_ERR_NVS_NOT_FOUND) {
+            mode |= DEVICE_MODE_NORMAL;
+            e = EEPROM::set_device_mode(mode);
+        } else {
+            ESP_LOGE("EEPROM", "Device mode get failed: %s, returning normal", esp_err_to_name(e));
+            mode |= DEVICE_MODE_NORMAL;
+        }
+    }
+    return mode;
+}
+
+esp_err_t EEPROM::set_device_mode(uint16_t mode) {
+    esp_err_t e = nvs_set_u16(MAP_NVS_HANDLE, NVS_KEY_TCU_MODE, mode);
+    if (ESP_OK != e) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting device mode to %08X: %s", mode, esp_err_to_name(e));
     } else {
         e = nvs_commit(MAP_NVS_HANDLE);
         if (e != ESP_OK) {

@@ -20,7 +20,9 @@
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
 #include "canbus/can_hfm.h"
+
 #include "board_config.h"
+#include "nvs/device_mode.h"
 
 Kwp2000_server* diag_server;
 
@@ -58,6 +60,9 @@ SPEAKER_POST_CODE setup_tcm() {
             if (EEPROM::init_eeprom() != ESP_OK) {
                 ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             } else {
+                // Read device mode!
+                CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
+                ESP_LOGI("INIT", "TCU mode on EEPROM is %08X", CURRENT_DEVICE_MODE);
                 // Read our configuration (This is allowed to fail as the default opts are always set by default)
                 ModuleConfiguration::load_all_settings();
                 switch (VEHICLE_CONFIG.egs_can_type) {

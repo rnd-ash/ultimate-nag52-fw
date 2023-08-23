@@ -7,9 +7,11 @@
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
-#define CHUNK_SIZE 1024 // 1024 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE_USB 4093 // 1024 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE_CAN 254
 
-static_assert(CHUNK_SIZE+2 <= DIAG_CAN_MAX_SIZE); // SID, CHUNK ID
+static_assert(CHUNK_SIZE_USB+2 <= DIAG_CAN_MAX_SIZE);
+static_assert(CHUNK_SIZE_CAN+2 <= DIAG_CAN_MAX_SIZE);
 
 #define FLASH_CHECK_STATUS_OK 0x00
 #define FLASH_CHECK_STATUS_INVALID 0x01
@@ -28,9 +30,9 @@ class Flasher {
     public:
         Flasher(EgsBaseCan *can_ref, Gearbox* gearbox);
         ~Flasher();
-        void on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest);
-        void on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest);
-        void on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
+        void on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can);
+        void on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can);
+        void on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can);
         void on_transfer_exit(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
         void on_request_verification(uint8_t* args, uint16_t arg_len, DiagMessage* dest);
     private:

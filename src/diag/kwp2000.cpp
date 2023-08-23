@@ -11,6 +11,7 @@
 #include "tcu_alloc.h"
 #include "solenoids/solenoids.h"
 #include "clock.hpp"
+#include "nvs/device_mode.h"
 
 typedef struct {
     uint8_t day;
@@ -768,27 +769,45 @@ void Kwp2000_server::process_dynamically_define_local_ident(uint8_t* args, uint1
 void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len) {
 
 }
+
+// INPUT OUTPUT CONTROL BY 'LOCAL' IDENTIFIER HANDLER (SID_IOCTL / SidInputOutputControlByLocalIdentifier)
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
+    // Session mode check - This service is only supported in Extended, Reprgramming or OEM dependent modes
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (arg_len == 2) {
-        // 0x10 (EGS mode), 0x01 (Report current state)
-        if (args[0] == 0x10 && args[1] == 0x01) { // Query EGS mode (DAS EGS51 and EGS52)
-            // We need to return this for DAS to be happy EGS is in 'production' mode
-            // resp[0] - 0x10 (EGS mode)
-            // resp[1..2] - 0x0001 - Normal, 0x0002 - Assembly mode, 0x0004 - Role mode, 0x0008 - Slave mode
-            uint8_t resp[3] = {0x10, 0x00, 0x02};
-            if (BOARD_CONFIG.board_ver == 0) {
-                resp[2] = 0x02; // Assembly mode if mode is unknown
-            }
-            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 3);
-            return;
+    if (args[0] == 0x10) { // Mode manipulation
+
+        // NOTE. The device mode responses have been swapped to Big Endian byte order
+        //       in order to retain compatibility with Mercedes' diagnostic tool,
+        //       as the OEM TCU is a Big Endian processor, where this TCU is Little Endian
+
+        if (arg_len == 2 && args[1] == 0x00) { // Return control back to ECU
+            CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
+            EEPROM::set_device_mode(DEVICE_MODE_NORMAL);
+            uint8_t resp[3] = {0x10, 0x00};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 2);
+        } else if (arg_len == 2 && args[1] == 0x01) { // Report current device mode
+            uint8_t resp[4] = {0x10, 0x01, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else if (arg_len == 4 && args[1] == 0x07) { // Just change device mode
+            uint16_t mode_req = (args[2] << 8) | args[3];
+            CURRENT_DEVICE_MODE = mode_req;
+            uint8_t resp[4] = {0x10, 0x07, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else if (arg_len == 4 && args[1] == 0x08) { // Change device mode and save to EEPROM!
+            uint16_t mode_req = (args[2] << 8) | args[3];
+            CURRENT_DEVICE_MODE = mode_req;
+            EEPROM::set_device_mode(mode_req);
+            uint8_t resp[4] = {0x10, 0x08, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else {
+            make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+    } else {
+        make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
-    make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    return;
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
@@ -912,7 +931,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     }
     // Make a new flash handler!
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg);
+    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
 
@@ -926,7 +945,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg);
+    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
 
@@ -941,7 +960,7 @@ void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
         return;
     } else {
         // Flasher will do the rest for us
-        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg);
+        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg, !this->diag_on_usb);
         this->send_resp = true;
     }
 }

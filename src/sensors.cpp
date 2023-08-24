@@ -59,12 +59,6 @@ uint8_t avg_n3_idx = 0;
 uint8_t avg_out_idx = 0;
 bool output_rpm_ok = false;
 
-esp_err_t atf_res = ESP_OK;
-esp_err_t motor_res = ESP_OK;
-int atf_temp = 25;
-int motor_temp = 25;
-bool atf_using_motor_temp = false;
-
 // Good enough for both boxes, but will be corrected as soon as the gearbox code boots up
 // to a more accurate value
 float RATIO_2_1 = 1.61f;
@@ -90,58 +84,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses);
         out_avg_buffer->add_sample(pulses*50);
     }
-    return true;
-}
-
-static bool IRAM_ATTR on_atf_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    esp_err_t res;
-    int voltage = 0;
-    int read = 0;
-    res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &read);
-    res = adc_cali_raw_to_voltage(adc2_cal, read, &voltage);
-    if (voltage >= 3000)
-    {
-        atf_using_motor_temp = true;
-        // Parking lock is on - Cannot read - Substitute motor temperature!
-        if (ESP_OK == motor_res) {
-            atf_temp = motor_temp;
-        }
-        res = motor_res;
-    } else {
-        res = ESP_OK;
-        atf_using_motor_temp = false;
-        int atf_calc_c = 0;
-        const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
-        if (voltage <= atf_temp_lookup[0].v)
-        {
-            atf_calc_c = (int16_t)(atf_temp_lookup[0].temp);
-        }
-        else if (voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
-        {
-            atf_calc_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp) / 10);
-        }
-        else
-        {
-            for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
-            {
-                // Found! Interpolate linearly to get a better estimate of ATF Temp
-                if (atf_temp_lookup[i].v <= voltage && atf_temp_lookup[i + 1].v >= voltage)
-                {
-                    atf_calc_c = scale_number_int(
-                        voltage, // Read voltage
-                        atf_temp_lookup[i].temp, // Min temp for this range
-                        atf_temp_lookup[i+1].temp, // Max temp for this range
-                        atf_temp_lookup[i].v, // Min voltage for this boundary
-                        atf_temp_lookup[i+1].v // Max voltage for this boundary
-                    )/10; // Convert from 1/10th C to C
-                    break;
-                }
-            }
-        }
-        read = atf_calc_c;
-    }
-    atf_temp = read;
-    atf_res = res;
     return true;
 }
 
@@ -215,7 +157,6 @@ esp_err_t Sensors::init_sensors(void){
     }
 
     gptimer_handle_t gptimer_pcnt = NULL;
-    gptimer_handle_t gptimer_atf = NULL;
 
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
@@ -226,7 +167,6 @@ esp_err_t Sensors::init_sensors(void){
         }
     };
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer_pcnt), "SENSORS", "Failed to create PCNT read timer");
-    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer_atf), "SENSORS", "Failed to create ATF read timer");
 
     const gptimer_alarm_config_t alarm_config_pcnt = {
         .alarm_count = (20 * 1000),
@@ -235,33 +175,17 @@ esp_err_t Sensors::init_sensors(void){
             .auto_reload_on_alarm = true,
         }
     };
-
-    const gptimer_alarm_config_t alarm_config_atf = {
-        .alarm_count = (1000 * 1000), // once per second
-        .reload_count = 0,
-        .flags = {
-            .auto_reload_on_alarm = true,
-        }
-    };
     ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer_pcnt, &alarm_config_pcnt), "SENSORS", "Failed to set PCNT Timer Alarm action");
-    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer_atf, &alarm_config_atf), "SENSORS", "Failed to set ATF Timer Alarm action");
 
     const gptimer_event_callbacks_t cbs_pcnt = {
         .on_alarm = on_rpm_timer
     };
 
-    const gptimer_event_callbacks_t cbs_atf = {
-        .on_alarm = on_atf_timer
-    };
-
     ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer_pcnt, &cbs_pcnt, nullptr), "SENSORS", "Failed to register PCNT timer callback");
-    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer_atf, &cbs_atf, nullptr), "SENSORS", "Failed to register ATF timer callback");
 
     ESP_RETURN_ON_ERROR(gptimer_enable(gptimer_pcnt), "SENSORS", "Failed to enable PCNT GPTIMER");
-    ESP_RETURN_ON_ERROR(gptimer_enable(gptimer_atf), "SENSORS", "Failed to enable ATF GPTIMER");
 
     ESP_RETURN_ON_ERROR(gptimer_start(gptimer_pcnt), "SENSORS", "Failed to start PCNT GPTIMER");
-    ESP_RETURN_ON_ERROR(gptimer_start(gptimer_atf), "SENSORS", "Failed to start ATF GPTIMER");
 
     return ESP_OK;
 }
@@ -323,15 +247,44 @@ esp_err_t Sensors::read_vbatt(uint16_t *dest){
 esp_err_t Sensors::read_atf_temp(int16_t *dest)
 {
     esp_err_t res;
-    float ATF_TEMP_CORR = BOARD_CONFIG.board_ver >= 2 ? 1.0 : 0.8;
-    if (atf_using_motor_temp) {
-        *dest = motor_temp;
-        res = motor_res;
+    int read = 0;
+    int voltage = 0;
+    res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &read);
+    res = adc_cali_raw_to_voltage(adc2_cal, read, &voltage);
+    if (voltage >= 3000)
+    {
+        res = ESP_ERR_INVALID_STATE;
     } else {
-        res = atf_res;
-        if (ESP_OK == res) {
-            *dest = (float)atf_temp * ATF_TEMP_CORR;
+        res = ESP_OK;
+        int atf_calc_c = 0;
+        const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
+        if (voltage <= atf_temp_lookup[0].v)
+        {
+            atf_calc_c = (int16_t)(atf_temp_lookup[0].temp);
         }
+        else if (voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
+        {
+            atf_calc_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp) / 10);
+        }
+        else
+        {
+            for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
+            {
+                // Found! Interpolate linearly to get a better estimate of ATF Temp
+                if (atf_temp_lookup[i].v <= voltage && atf_temp_lookup[i + 1].v >= voltage)
+                {
+                    atf_calc_c = scale_number_int(
+                        voltage, // Read voltage
+                        atf_temp_lookup[i].temp, // Min temp for this range
+                        atf_temp_lookup[i+1].temp, // Max temp for this range
+                        atf_temp_lookup[i].v, // Min voltage for this boundary
+                        atf_temp_lookup[i+1].v // Max voltage for this boundary
+                    )/10; // Convert from 1/10th C to C
+                    break;
+                }
+            }
+        }
+        *dest = atf_calc_c;
     }
     return res;
 }
@@ -348,10 +301,5 @@ esp_err_t Sensors::parking_lock_engaged(bool *dest)
 }
 
 void Sensors::set_motor_temperature(int16_t celcius) {
-    if (celcius == INT16_MAX) {
-        motor_res = ESP_ERR_INVALID_ARG;
-    } else {
-        motor_res = ESP_OK;
-        motor_temp = celcius;
-    }
+    
 }

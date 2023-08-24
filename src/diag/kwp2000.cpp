@@ -249,10 +249,8 @@ DiagMessage response_pending_msg = {
 };
 
 void Kwp2000_server::response_timer_loop() {
-    ESP_LOGI("KWP2000", "Timer started");
     while(1) {
         if (this->response_pending && (GET_CLOCK_TIME() - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
-            ESP_LOGI("KWP2000", "Sending ResponsePending");
             response_pending_msg.data[1] = this->response_pending_sid;
             // Send 0x78 (Response pending)
             if (this->diag_on_usb) {

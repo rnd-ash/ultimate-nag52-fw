@@ -106,7 +106,7 @@ bool EgsBaseCan::begin_tasks() {
     }
     if (this->tx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, &this->tx_task) != pdPASS) {
+        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 8192, this, 5, &this->tx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Tx task creation failed!");
             return false;
         }
@@ -117,7 +117,7 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        if (this->send_messages && !(CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
+        if (this->send_messages && DEVICE_MODE_CANLOGGER != (CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
             this->tx_frames();
         }
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);

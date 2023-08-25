@@ -22,7 +22,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
         return;
     }
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
-    gen_config.intr_flags = ESP_INTR_FLAG_SHARED;
+    gen_config.intr_flags = ESP_INTR_FLAG_IRAM;
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config{};
@@ -117,9 +117,11 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        if (this->send_messages && DEVICE_MODE_CANLOGGER != (CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
+        //ESP_LOGI("CAN", "%04X", CURRENT_DEVICE_MODE);
+        //if (this->send_messages){// && CHECK_MODE_BIT_ENABLED(DEVICE_MODE_T::CANLOGGER)) {
+            //ESP_LOGI("CAN", "Sending");
             this->tx_frames();
-        }
+        //}
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
@@ -139,7 +141,8 @@ void EgsBaseCan::rx_task_loop() {
         } else { // We have frames, read them
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                    if (0 != (CURRENT_DEVICE_MODE & DEVICE_MODE_CANLOGGER)) {
+                    /*
+                    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_T::CANLOGGER)) {
                         // Logging mode
                         char buf[35];
                         int pos = sprintf(buf, "CF->0x%04X", (uint16_t)rx.identifier);
@@ -149,6 +152,7 @@ void EgsBaseCan::rx_task_loop() {
                         buf[strlen(buf)] = '\n';
                         printf(buf);
                     } else {
+                    */
                         if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                             // ISO-TP Diag endpoint
                             if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
@@ -164,7 +168,7 @@ void EgsBaseCan::rx_task_loop() {
                             }
                             this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                         }
-                    }
+                    //}
                 }
             }
             vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here

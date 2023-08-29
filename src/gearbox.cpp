@@ -375,6 +375,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int overlap_phase_computed_time = 50 + 100 + prefill_data.fill_time;
         int torque_req_start_time = 50 + 100; // Start at prefill being
         int torque_req_max_time = 50 + 100 + prefill_data.fill_time + chars.target_shift_time;
+        float shift_overlap_dest_pressure = this->shift_adapter->get_overlap_end_shift_pressure(on_clutch, prefill_data.fill_pressure_on_clutch);
 
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
@@ -424,6 +425,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         int mpc_tension_adder = 0;
         int mpc_tension_now = 0;
+
         if (off_clutch_has_spring) {
             mpc_tension_adder = mpc_tension_now = 500;
         }
@@ -575,14 +577,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Bleed phase of prefill.
                 if (phase_elapsed < prefill_2_time_start) {
                     current_spc = prefill_data.fill_pressure_on_clutch*1.5;
-                    current_mpc = wp_current_gear + current_spc/2;//MAX(wp_pre_shift, wp_current_gear);
+                    //current_mpc = wp_current_gear + current_spc/2;//MAX(wp_pre_shift, wp_current_gear);
                 } else if (phase_elapsed < prefill_3_time_start) {
                     current_spc = scale_number(phase_elapsed, prefill_data.fill_pressure_on_clutch*1.5, prefill_data.fill_pressure_on_clutch, prefill_2_time_start, prefill_3_time_start);
-                    current_mpc = wp_current_gear + current_spc/2; //scale_number(phase_elapsed, MAX(wp_pre_shift, wp_current_gear), 400+prefill_data.fill_pressure_on_clutch, prefill_2_time_start, prefill_3_time_start);
+                    //current_mpc = wp_current_gear + current_spc/2; //scale_number(phase_elapsed, MAX(wp_pre_shift, wp_current_gear), 400+prefill_data.fill_pressure_on_clutch, prefill_2_time_start, prefill_3_time_start);
                 } else { // Phase 3
                     current_spc = prefill_data.fill_pressure_on_clutch;
-                    current_mpc = fill_end_mpc = wp_current_gear + current_spc/2;//fill_end_mpc = 400 + prefill_data.fill_pressure_on_clutch;
+                    //current_mpc = fill_end_mpc = wp_current_gear + current_spc/2;//fill_end_mpc = 400 + prefill_data.fill_pressure_on_clutch;
                 }
+                current_mpc = fill_end_mpc = wp_current_gear + current_spc;
             } else if (current_stage == ShiftStage::Overlap) {
                 // --MPC--
                 // Remain at 400mBar for releasing the old clutch
@@ -591,7 +594,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // --ADAPT--
                 // * TODO - Shift timing tuning
                 current_mpc = scale_number(phase_elapsed, fill_end_mpc, 400, 0, chars.target_shift_time/2);
-                mpc_tension_now = scale_number(phase_elapsed, mpc_tension_adder, 0, 0, chars.target_shift_time);
                 if (phase_elapsed > chars.target_shift_time) {
                     float step_adder = scale_number(abs(sensor_data.static_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);
                     step_adder *= scale_number(chars.target_shift_time, &SBS.spc_multi_overlap_shift_speed);
@@ -609,7 +611,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 current_mpc = scale_number(phase_elapsed, 400, wp_new_gear, 0, 250);
                 current_spc = scale_number(phase_elapsed, last_spc, MIN(last_spc*1.5, 7000), 0, 250);
             }
-            pressure_mgr->set_target_spc_and_mpc_pressure(current_mpc + mpc_tension_now, current_spc);
+            pressure_mgr->set_target_spc_and_mpc_pressure(current_mpc, current_spc);
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {

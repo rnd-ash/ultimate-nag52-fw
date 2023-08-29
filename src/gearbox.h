@@ -19,6 +19,12 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 
+struct PostShiftTorqueRamp {
+    bool enabled;
+    uint16_t start_nm;
+    uint16_t time_to_exit;
+};
+
 class Gearbox {
 public:
     Gearbox(void);

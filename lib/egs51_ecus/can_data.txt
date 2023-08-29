@@ -212,11 +212,14 @@ ECU MS51
 
 ECU GS51
 	FRAME GS_218h (0x00000218)
+		# Byte 1
 		SIGNAL TORQUE_REQ, OFFSET: 0, LEN: 8, DESC: Torque request value. 0xFE when inactive, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0.0)
+		# Byte 2
 		SIGNAL TORQUE_REQ_EN, OFFSET: 9, LEN: 1, DESC: Enable torque request, DATA TYPE BOOL
-		# 2nd byte 00100000 - TFT active 
-		# 2nd byte 00101010 - TFT inactive (In P/N)
-		
+		SIGNAL GARAGE_SHIFT, OFFSET: 11, LEN: 1, DESC: Garage shifting, DATA TYPE BOOL
+		SIGNAL NEUTRAL, OFFSET: 12, LEN: 1, DESC: Selector is in P or N, DATA TYPE BOOL
+		SIGNAL GEARBOX_OK, OFFSET: 14, LEN: 1, DESC: Gearbox is OK, DATA TYPE BOOL
+		# Byte 3
 		SIGNAL GZC, OFFSET: 16, LEN: 4, DESC: Target gear, DATA TYPE ENUM
 			ENUM G_N, RAW: 0, DESC: Destination "N"
 			ENUM G_D1, RAW: 1, DESC: Destination "1"
@@ -239,9 +242,14 @@ ECU GS51
 			ENUM G_R2, RAW: 7, DESC: Destination "R2"
 			ENUM G_P, RAW: 8, DESC: Destination "P"
 			ENUM G_SNV, RAW: 15, DESC: signal not available
-		# 4th byte 01001000 <- OFF
-		# 4th byte 01001010 <- ON
+		# 4th byte
 		SIGNAL KICKDOWN, OFFSET: 25, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
+		SIGNAL LIMP_MODE, OFFSET: 27, LEN: 1, DESC: Gearbox is in limp-home mode, DATA TYPE BOOL
+		SIGNAL GEARBOX_BIG, OFFSET: 28, LEN: 1, DESC: Gearbox is W5A580, DATA TYPE BOOL
+		SIGNAL TCC_SHUT, OFFSET: 29, LEN: 1, DESC: Torque converter shut, DATA TYPE BOOL
+		SIGNAL TCC_OPEN, OFFSET: 30, LEN: 1, DESC: Torque converter shut, DATA TYPE BOOL
+		SIGNAL TCC_SLIPPING, OFFSET: 31, LEN: 1, DESC: Torque converter shut, DATA TYPE BOOL
+		# 5th byte (Status - Don't care)
 		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 ECU EWM51
 	FRAME EWM_230h (0x00000230)

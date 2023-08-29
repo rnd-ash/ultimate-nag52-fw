@@ -226,7 +226,35 @@ ProfileSwitchPos Egs51Can::get_shifter_ws_mode(const uint32_t now, const uint32_
 }
 
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
-    
+    switch(status) {
+        case TccClutchStatus::Open:
+            gs218.TCC_SHUT = false;
+            gs218.TCC_OPEN = true;
+            gs218.TCC_SLIPPING = false;
+            break;
+        case TccClutchStatus::OpenToSlipping:
+            gs218.TCC_SHUT = false;
+            gs218.TCC_OPEN = true;
+            gs218.TCC_SLIPPING = true;
+            break;
+        case TccClutchStatus::Slipping:
+            gs218.TCC_SHUT = false;
+            gs218.TCC_OPEN = false;
+            gs218.TCC_SLIPPING = true;
+            break;
+        case TccClutchStatus::SlippingToClosed:
+            gs218.TCC_SHUT = true;
+            gs218.TCC_OPEN = false;
+            gs218.TCC_SLIPPING = true;
+            break;
+        case TccClutchStatus::Closed:
+            gs218.TCC_SHUT = true;
+            gs218.TCC_OPEN = false;
+            gs218.TCC_SLIPPING = false;
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs51Can::set_actual_gear(GearboxGear actual) {
@@ -318,9 +346,16 @@ void Egs51Can::set_wheel_torque(uint16_t t) {
 }
 
 void Egs51Can::set_shifter_position(ShifterPosition pos) {
+    if (ShifterPosition::N == pos || ShifterPosition::P == pos) {
+        this->gs218.NEUTRAL = true;
+    } else {
+        this->gs218.NEUTRAL = false;
+    }
 }
 
 void Egs51Can::set_gearbox_ok(bool is_ok) {
+    this->gs218.GEARBOX_OK = is_ok;
+    this->gs218.LIMP_MODE = !is_ok;
 }
 
 void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
@@ -332,6 +367,10 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         this->gs218.TORQUE_REQ_EN = true;
         this->gs218.TORQUE_REQ = amount_nm/3;
     }
+}
+
+void Egs51Can::set_garage_shift_state(bool enable) {
+    this->gs218.GARAGE_SHIFT = enable;
 }
 
 void Egs51Can::set_error_check_status(SystemStatusCheck ssc) {

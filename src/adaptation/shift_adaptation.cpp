@@ -120,11 +120,12 @@ void ShiftAdaptationSystem::record_flare(ShiftStage when, uint64_t elapsed){
     this->flare_time = elapsed;
 }
 
-AdaptOverlapData ShiftAdaptationSystem::get_overlap_data() {
-    return AdaptOverlapData {
-        .start_mpc = 0,
-        .end_mpc = 0
-    };
+uint16_t ShiftAdaptationSystem::get_overlap_end_shift_pressure(Clutch to_apply, uint16_t selected_prefill_pressure) {
+    uint16_t ret = selected_prefill_pressure*2;
+    if (nullptr != this->prefill_pressure_offset_map) {
+        ret = this->prefill_pressure_offset_map->get_value((float)to_apply, 1);
+    }
+    return ret;
 }
 
 uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change) {

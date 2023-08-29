@@ -31,11 +31,6 @@ typedef enum {
 } AdaptCancelFlag;
 
 typedef struct {
-    uint16_t start_mpc;
-    uint16_t end_mpc;
-} AdaptOverlapData;
-
-typedef struct {
     int16_t pressure_offset_on_clutch;
     int16_t pressure_offset_off_clutch;
     int16_t timing_offset;
@@ -51,7 +46,7 @@ public:
     void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
     void record_flare(ShiftStage when, uint64_t elapsed);
-    AdaptOverlapData get_overlap_data();
+    uint16_t get_overlap_end_shift_pressure(Clutch to_apply, uint16_t selected_prefill_pressure);
 
     AdaptPrefillData get_prefill_adapt_data(Clutch to_apply, Clutch to_release);
 

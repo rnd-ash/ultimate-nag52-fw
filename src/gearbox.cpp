@@ -493,7 +493,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         if (now_cs.off_clutch_speed > 100) {
                             // Ramp up
                             int trq = scale_number(now_cs.on_clutch_speed, sensor_data.driver_requested_torque, current_toque_lim, 0, pre_cs.on_clutch_speed);
-                            this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, trq);
+                            this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, trq);
                         } else {
                             // Continue ramping down (No shift yet)
                             int max_lim = prefill_torque_requested/2;
@@ -505,7 +505,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, t);
                         }
                     } else if (total_elapsed > torque_req_start_time) { // Ramp down
-                        prefill_torque_requested = calc_torque_limit(req_lookup, chars.target_shift_time);
                         int trq = scale_number(total_elapsed, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested, torque_req_start_time, torque_req_max_time);
                         current_toque_lim = trq;
                         this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, trq);

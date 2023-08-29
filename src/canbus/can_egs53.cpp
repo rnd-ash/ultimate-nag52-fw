@@ -496,6 +496,8 @@ void Egs53Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
     } else if (control_type == TorqueRequestControlType::FastAsPossible) {
         eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::FAST;
+    } else if (control_type == TorqueRequestControlType::BackToDemandTorque) {
+        eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::RATE_INC;
     } else { // Normal speed
         eng_rq1_tcm.IntrvntnMd_TCM = ENG_RQ1_TCM_IntrvntnMd_TCM_EGS53::MFC;
     }

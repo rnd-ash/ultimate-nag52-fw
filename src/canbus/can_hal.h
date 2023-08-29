@@ -53,6 +53,8 @@ enum class TorqueRequestControlType: uint8_t {
     NormalSpeed = 1,
     /// @brief As fast as possible (Usually done via fuel cut)
     FastAsPossible = 2,
+    /// @brief Special case to signal to the engine that we are ramping back up to allow it to adjust ignition angle faster (EGS52)
+    BackToDemandTorque = 3
 };
 
 /// @brief Torque request intervention bounds

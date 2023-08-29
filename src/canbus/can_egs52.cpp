@@ -399,8 +399,18 @@ void Egs52Can::set_clutch_status(TccClutchStatus status) {
             gs218.K_O_B = true;
             gs218.K_S_B = false;
             break;
+        case TccClutchStatus::OpenToSlipping:
+            gs218.K_G_B = false;
+            gs218.K_O_B = true;
+            gs218.K_S_B = true;
+            break;
         case TccClutchStatus::Slipping:
             gs218.K_G_B = false;
+            gs218.K_O_B = false;
+            gs218.K_S_B = true;
+            break;
+        case TccClutchStatus::SlippingToClosed:
+            gs218.K_G_B = true;
             gs218.K_O_B = false;
             gs218.K_S_B = true;
             break;
@@ -566,6 +576,9 @@ void Egs52Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
     } else if (control_type == TorqueRequestControlType::FastAsPossible) {
         gs218.DYN0_AMR_EGS = true;
         gs218.DYN1_EGS = false;
+    } else if (control_type == TorqueRequestControlType::BackToDemandTorque) {
+        gs218.DYN0_AMR_EGS = true;
+        gs218.DYN1_EGS = true;
     } else { // Normal speed
         gs218.DYN0_AMR_EGS = true;
         gs218.DYN1_EGS = false;
@@ -732,12 +745,9 @@ inline bool calc_torque_parity(uint16_t s) {
     return (p & 1) == 1;
 }
 
+
 void Egs52Can::tx_frames() {
     tx.data_length_code = 8; // Always
-    GS_338_EGS52 gs_338tx;
-    GS_218_EGS52 gs_218tx;
-    GS_418_EGS52 gs_418tx;
-
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_338tx = {gs338.raw};

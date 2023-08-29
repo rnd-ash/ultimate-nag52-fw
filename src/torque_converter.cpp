@@ -105,7 +105,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     this->target_tcc_state = targ;
     if (sensors->input_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm) {
         // RPM too low for slipping, see if we can prefill
-        if (sensors->input_rpm != 0 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
+        if (sensors->input_rpm > 50 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
             this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
         } else {
             this->tcc_pressure_target = 0;
@@ -148,7 +148,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
 
     if (this->tcc_pressure_target == this->tcc_pressure_current) {
-        this->current_tcc_state = this->target_tcc_state;        
+        this->current_tcc_state = this->target_tcc_state;
+        this->prev_state_tcc_pressure = this->tcc_pressure_current;   
     }
 
     if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
@@ -216,6 +217,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     }
     pm->set_target_tcc_pressure(this->tcc_pressure_current);
+}
+
+uint8_t TorqueConverter::progress_to_next_phase(void) {
+    uint8_t ret = 100;
+    return ret;
 }
 
 TccClutchStatus TorqueConverter::get_clutch_state(void) {

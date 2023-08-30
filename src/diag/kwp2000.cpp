@@ -25,7 +25,7 @@ uint8_t decToBcd(uint8_t val)
   return ( (val/10*16) + (val%10) );
 }
 
-uint8_t bcd_to_hex(char c) {
+const uint8_t bcd_to_hex(char c) {
     switch (c) {
         case '0':
             return 0x0;
@@ -62,7 +62,7 @@ uint8_t bcd_to_hex(char c) {
     }
 }
 
-ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
+const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
     switch (cfg->board_ver) {
         case 1:
             return ECU_Date {

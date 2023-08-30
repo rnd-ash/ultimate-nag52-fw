@@ -117,11 +117,9 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        //ESP_LOGI("CAN", "%04X", CURRENT_DEVICE_MODE);
-        //if (this->send_messages){// && CHECK_MODE_BIT_ENABLED(DEVICE_MODE_T::CANLOGGER)) {
-            //ESP_LOGI("CAN", "Sending");
+        if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
             this->tx_frames();
-        //}
+        }
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
     }
 }
@@ -141,18 +139,16 @@ void EgsBaseCan::rx_task_loop() {
         } else { // We have frames, read them
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                    /*
-                    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_T::CANLOGGER)) {
+                    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
                         // Logging mode
                         char buf[35];
-                        int pos = sprintf(buf, "CF->0x%04X", (uint16_t)rx.identifier);
+                        int pos = 0;
+                        pos += sprintf(buf + pos, "CF->0x%04X", (uint16_t)rx.identifier);
                         for (uint8_t i = 0; i < rx.data_length_code; i++) {
-                            pos += sprintf(&buf[pos], "%02X", rx.data[i]);
+                            pos += sprintf(buf + pos, "%02X", rx.data[i]);
                         }
-                        buf[strlen(buf)] = '\n';
-                        printf(buf);
+                        printf("%.*s\n", pos, buf);
                     } else {
-                    */
                         if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                             // ISO-TP Diag endpoint
                             if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
@@ -168,7 +164,7 @@ void EgsBaseCan::rx_task_loop() {
                             }
                             this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                         }
-                    //}
+                    }
                 }
             }
             vTaskDelay(2 / portTICK_PERIOD_MS); // Reset watchdog here

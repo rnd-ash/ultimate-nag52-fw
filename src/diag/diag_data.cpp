@@ -166,6 +166,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     ret.engine_rpm = g->sensor_data.engine_rpm;
     ret.output_rpm = g->sensor_data.output_rpm;
     ret.engine_torque = g->sensor_data.static_torque;
+    ret.input_torque = g->sensor_data.input_torque;
+    ret.req_engine_torque = g->output_data.ctrl_type == TorqueRequestControlType::None ? INT16_MAX : g->output_data.torque_req_amount;
     ret.atf_temp = g->sensor_data.atf_temp+40;
 
     if (g->isShifting()) {

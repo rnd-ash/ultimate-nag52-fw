@@ -492,9 +492,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     */
                     if (total_elapsed > torque_req_max_time || (now_cs.off_clutch_speed > 100 && total_elapsed > torque_req_start_time)) {
                         // Ramp back up based on shift progress
-                        if (now_cs.off_clutch_speed > 100) {
+                        if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed) { // Torque transfer completed
+                            if (torque_req_up_time == 0) {
+                                torque_req_up_time = total_elapsed;
+                            }
                             // Ramp up
-                            int trq = scale_number(now_cs.on_clutch_speed, sensor_data.driver_requested_torque, current_toque_lim, 0, pre_cs.on_clutch_speed);
+                            int trq = scale_number(total_elapsed, current_toque_lim, sensor_data.driver_requested_torque, torque_req_up_time, torque_req_up_time+300);
                             this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, trq);
                         } else {
                             // Continue ramping down (No shift yet)

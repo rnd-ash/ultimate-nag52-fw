@@ -400,7 +400,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         
         bool on_clutch_has_spring = (on_clutch == Clutch::K1) || (on_clutch == Clutch::K2) || (on_clutch == Clutch::K3);
         bool off_clutch_has_spring = (off_clutch == Clutch::K1) || (off_clutch == Clutch::K2) || (off_clutch == Clutch::K3);
-
+        uint32_t torque_req_up_time = 0;
         const char* c_name_on = CLUTCH_NAMES[(uint8_t)on_clutch-1];
         const char* c_name_off = CLUTCH_NAMES[(uint8_t)off_clutch-1];
 

@@ -356,9 +356,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
-        int trq_now = sensor_data.static_torque;
+        int trq_now = sensor_data.input_torque;
         float spc_delta = 0;
-        int start_nm = sensor_data.static_torque;
+        int start_nm = sensor_data.input_torque;
         int16_t prefill_torque_requested = INT16_MAX;
         uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup);
 
@@ -430,6 +430,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             mpc_tension_adder = mpc_tension_now = 500;
         }
         float current_toque_lim = prefill_torque_requested;
+        float pre_overlap_torque = 0;
         while(process_shift) {
             bool skip_phase = false;
             // Shifter moved mid shift!
@@ -589,6 +590,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     //current_mpc = fill_end_mpc = wp_current_gear + current_spc/2;//fill_end_mpc = 400 + prefill_data.fill_pressure_on_clutch;
                 }
                 current_mpc = fill_end_mpc = wp_current_gear + current_spc;
+                pre_overlap_torque = sensor_data.input_torque;
             } else if (current_stage == ShiftStage::Overlap) {
                 // --MPC--
                 // Remain at 400mBar for releasing the old clutch
@@ -603,9 +605,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_spc += step_adder;
                 } else { // Within shift time
                     float step_adder = prefill_data.fill_pressure_on_clutch / (chars.target_shift_time/SHIFT_DELAY_MS);
-                    if (now_cs.off_clutch_speed > 100) {
-                        step_adder *= scale_number(shifting_velocity.off_clutch_vel, target_c_on/2, target_c_on*2, 1.5, 0.75);
-                    }
+                    step_adder *= scale_number(pre_overlap_torque, 1, 2, 100, gearboxConfig.max_torque);
                     current_spc += step_adder;
                 }
             } else if (current_stage == ShiftStage::MaxPressure) {

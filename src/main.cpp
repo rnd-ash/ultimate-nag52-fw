@@ -176,7 +176,7 @@ void input_manager(void*) {
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
     uint32_t now = GET_CLOCK_TIME();
-    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
+    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(100);
     bool pressed = false;
     
     if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
@@ -188,7 +188,7 @@ void input_manager(void*) {
     while(1) {
         now = GET_CLOCK_TIME();
         if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
-            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
+            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(100);
             // Switch based
             if (prof_now != last_mode) {
                 last_mode = prof_now;
@@ -198,7 +198,7 @@ void input_manager(void*) {
             }
         } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {
             // EWM button
-            bool down = egs_can_hal->get_profile_btn_press(now, 100);
+            bool down = egs_can_hal->get_profile_btn_press(100);
             if (down && !pressed) {
                 // Pressed button, inc profile
                 profile_id++;
@@ -211,7 +211,7 @@ void input_manager(void*) {
         } // Else - No profile button to process
 
 
-        PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
+        PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
         if (last_pos != paddle) { // Same position, ignore
             if (last_pos != PaddlePosition::None) {
                 // Process last request of the user
@@ -223,7 +223,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position(now, 1000);
+        ShifterPosition spos = egs_can_hal->get_shifter_position(1000);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {

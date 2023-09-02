@@ -27,23 +27,23 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->gs218.bytes[3] = 0x64;
 }
 
-WheelData Egs51Can::get_front_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {  // TODO
+WheelData Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms) {  // TODO
     return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
-WheelData Egs51Can::get_front_left_wheel(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+WheelData Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
-WheelData Egs51Can::get_rear_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {
+WheelData Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
-    if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
+    if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.DRTGHR) {
             case BS_208h_DRTGHR_EGS51::FWD:
@@ -72,9 +72,9 @@ WheelData Egs51Can::get_rear_right_wheel(const uint32_t now, const uint32_t expi
     }
 }
 
-WheelData Egs51Can::get_rear_left_wheel(const uint32_t now, const uint32_t expire_time_ms) {
+WheelData Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
-    if (this->esp51.get_BS_208(now, expire_time_ms, &bs208)) {
+    if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.DRTGHL) {
             case BS_208h_DRTGHL_EGS51::FWD:
@@ -103,34 +103,34 @@ WheelData Egs51Can::get_rear_left_wheel(const uint32_t now, const uint32_t expir
     }
 }
 
-ShifterPosition Egs51Can::get_shifter_position(const uint32_t now, const uint32_t expire_time_ms) {
-    return shifter->get_shifter_position(now, expire_time_ms);
+ShifterPosition Egs51Can::get_shifter_position(const uint32_t expire_time_ms) {
+    return shifter->get_shifter_position(expire_time_ms);
 }
 
-EngineType Egs51Can::get_engine_type(const uint32_t now, const uint32_t expire_time_ms) {
+EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {
     return EngineType::Unknown;
 }
 
-bool Egs51Can::get_engine_is_limp(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs51Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs51Can::get_kickdown(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs51Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-uint8_t Egs51Can::get_pedal_value(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     MS_210_EGS51 ms210;
-    if (this->ms51.get_MS_210(now, expire_time_ms, &ms210)) {
+    if (this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
         return ms210.PW;
     } else {
         return 0xFF;
     }
 }
 
-int Egs51Can::get_static_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs51Can::get_static_engine_torque(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
         return ms310.IND_TORQUE*3;
     } else {
         return INT_MAX;
@@ -138,14 +138,14 @@ int Egs51Can::get_static_engine_torque(const uint32_t now, const uint32_t expire
     return INT_MAX;
 }
 
-int Egs51Can::get_driver_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs51Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     // Don't think EGS51 supports this so just run with static torque for now
-    return this->get_static_engine_torque(now, expire_time_ms);
+    return this->get_static_engine_torque(expire_time_ms);
 }
 
-int Egs51Can::get_maximum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs51Can::get_maximum_engine_torque(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
         return ms310.MAX_TORQUE*3;
     } else {
         return INT_MAX;
@@ -153,9 +153,9 @@ int Egs51Can::get_maximum_engine_torque(const uint32_t now, const uint32_t expir
     return INT_MAX;
 }
 
-int Egs51Can::get_minimum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs51Can::get_minimum_engine_torque(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(now, expire_time_ms, &ms310)) {
+    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
         return (int)ms310.MIN_TORQUE*3;
     } else {
         return INT_MAX;
@@ -163,14 +163,14 @@ int Egs51Can::get_minimum_engine_torque(const uint32_t now, const uint32_t expir
     return INT_MAX;
 }
 
-PaddlePosition Egs51Can::get_paddle_position(const uint32_t now, const uint32_t expire_time_ms) {
+PaddlePosition Egs51Can::get_paddle_position(const uint32_t expire_time_ms) {
     return PaddlePosition::SNV;
 }
 
-int16_t Egs51Can::get_engine_coolant_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs51Can::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     MS_608_EGS51 ms608;
     int16_t res = INT16_MAX;
-    if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (this->ms51.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         if (ms608.T_MOT != UINT8_MAX) {
             res = ms608.T_MOT - 40;
         }
@@ -178,10 +178,10 @@ int16_t Egs51Can::get_engine_coolant_temp(const uint32_t now, const uint32_t exp
     return res;
 }
 
-int16_t Egs51Can::get_engine_oil_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs51Can::get_engine_oil_temp(const uint32_t expire_time_ms) {
     MS_308_EGS51 ms308;
     int16_t res = INT16_MAX;
-    if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
+    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
         if (ms308.T_OEL != UINT8_MAX) {
             res = ms308.T_OEL - 40;
         }
@@ -189,10 +189,10 @@ int16_t Egs51Can::get_engine_oil_temp(const uint32_t now, const uint32_t expire_
     return res;
 }
 
-int16_t Egs51Can::get_engine_iat_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs51Can::get_engine_iat_temp(const uint32_t expire_time_ms) {
     MS_608_EGS51 ms608;
     int16_t res = INT16_MAX;
-    if (this->ms51.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (this->ms51.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         if (ms608.T_LUFT != UINT8_MAX) {
             res = ms608.T_LUFT - 40;
         }
@@ -200,29 +200,29 @@ int16_t Egs51Can::get_engine_iat_temp(const uint32_t now, const uint32_t expire_
     return res;
 }
 
-uint16_t Egs51Can::get_engine_rpm(const uint32_t now, const uint32_t expire_time_ms) {
+uint16_t Egs51Can::get_engine_rpm(const uint32_t expire_time_ms) {
     MS_308_EGS51 ms308;
-    if (this->ms51.get_MS_308(now, expire_time_ms, &ms308)) {
+    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
         return ms308.NMOT;
     } else {
         return UINT16_MAX;
     }
 }
 
-bool Egs51Can::get_is_starting(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs51Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs51Can::get_is_brake_pressed(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs51Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
     return false;
 }
 
-bool Egs51Can::get_profile_btn_press(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs51Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     return false;
 }
 
-ProfileSwitchPos Egs51Can::get_shifter_ws_mode(const uint32_t now, const uint32_t expire_time_ms) {
-    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
+ProfileSwitchPos Egs51Can::get_shifter_ws_mode(const uint32_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(expire_time_ms);
 }
 
 void Egs51Can::set_clutch_status(TccClutchStatus status) {

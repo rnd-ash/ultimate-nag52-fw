@@ -2,11 +2,11 @@
 
 ShifterEwm::ShifterEwm(esp_err_t *can_init_status, ECU_EWM *ewm): _ewm{ewm} { }
 
-ShifterPosition ShifterEwm::get_shifter_position(const uint32_t now, const uint32_t expire_time_ms)
+ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
 	EWM_230_EGS52 dest;
-	if (_ewm->get_EWM_230(now, expire_time_ms, &dest))
+	if (_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
 	{
 		switch (dest.WHC)
 		{
@@ -46,20 +46,20 @@ ShifterPosition ShifterEwm::get_shifter_position(const uint32_t now, const uint3
 	return ret;
 }
 
-bool ShifterEwm::get_profile_btn_press(const uint32_t now, const uint32_t expire_time_ms)
+bool ShifterEwm::get_profile_btn_press(const uint32_t expire_time_ms)
 {
 	bool result = false;
 	EWM_230_EGS52 ewm;
-    if (this->_ewm->get_EWM_230(now, expire_time_ms, &ewm)) {
+    if (this->_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
         result = ewm.FPT;
     }
     return result;
 }
 
-ProfileSwitchPos ShifterEwm::get_shifter_profile_switch_pos(const uint32_t now, const uint32_t expire_time_ms) {
+ProfileSwitchPos ShifterEwm::get_shifter_profile_switch_pos(const uint32_t expire_time_ms) {
 	ProfileSwitchPos result = ProfileSwitchPos::SNV;
 	EWM_230_EGS52 ewm;
-    if (this->_ewm->get_EWM_230(now, expire_time_ms, &ewm)) {
+    if (this->_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
 		result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
 	}
 	return result;

@@ -67,8 +67,6 @@ struct SensorData{
     int16_t driver_requested_torque;
     /// Last time the gearbox changed gear (in milliseconds)
     uint32_t last_shift_time;
-    /// Current clock time in milliseconds
-    uint32_t current_timestamp_ms;
     /// Is the brake pedal depressed?
     bool is_braking;
     /// Delta in output RPM, used for calculating if car is accelerating or slowing down

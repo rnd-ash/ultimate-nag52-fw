@@ -12,7 +12,7 @@ void InputTorqueModel::update(EgsBaseCan* can_hal, SensorData* measures, bool is
     } else {
         int motor_torque = measures->static_torque;
         int16_t input_torque = motor_torque;
-        uint8_t ac_loss = can_hal->get_ac_torque_loss(measures->current_timestamp_ms, 500);
+        uint8_t ac_loss = can_hal->get_ac_torque_loss(500);
         if (ac_loss != UINT8_MAX) {
             motor_torque -= ac_loss;
         }

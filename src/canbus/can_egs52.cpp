@@ -50,23 +50,23 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->start_enable_trrs = true;
 }
 
-WheelData Egs52Can::get_front_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {  // TODO
+WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms) {  // TODO
     return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
-WheelData Egs52Can::get_front_left_wheel(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+WheelData Egs52Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
 }
 
-WheelData Egs52Can::get_rear_right_wheel(const uint32_t now, const uint32_t expire_time_ms) {
+WheelData Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
-    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
+    if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.DRTGHR) {
             case BS_208h_DRTGHR_EGS52::FWD:
@@ -100,9 +100,9 @@ WheelData Egs52Can::get_rear_right_wheel(const uint32_t now, const uint32_t expi
     }
 }
 
-WheelData Egs52Can::get_rear_left_wheel(const uint32_t now, const uint32_t expire_time_ms) {
+WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
-    if (this->esp_ecu.get_BS_208(now, expire_time_ms, &bs208)) {
+    if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
         WheelDirection d = WheelDirection::SignalNotAvailable;
         switch(bs208.DRTGHL) {
             case BS_208h_DRTGHL_EGS52::FWD:
@@ -136,14 +136,14 @@ WheelData Egs52Can::get_rear_left_wheel(const uint32_t now, const uint32_t expir
     }
 }
 
-ShifterPosition Egs52Can::get_shifter_position(const uint32_t now, const uint32_t expire_time_ms) {
-    return shifter->get_shifter_position(now, expire_time_ms);    
+ShifterPosition Egs52Can::get_shifter_position(const uint32_t expire_time_ms) {
+    return shifter->get_shifter_position(expire_time_ms);    
 }
 
-EngineType Egs52Can::get_engine_type(const uint32_t now, const uint32_t expire_time_ms) {
+EngineType Egs52Can::get_engine_type(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     // This signal can be valid for up to 1000ms
-    if (this->ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         switch (ms608.get_FCOD_MOT()) {
             case MS_608h_FCOD_MOT_EGS52::OM611DE22LA100:
             case MS_608h_FCOD_MOT_EGS52::OM640DE20LA60:
@@ -157,46 +157,46 @@ EngineType Egs52Can::get_engine_type(const uint32_t now, const uint32_t expire_t
     }
 }
 
-bool Egs52Can::get_engine_is_limp(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs52Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs52Can::get_kickdown(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs52Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-uint8_t Egs52Can::get_pedal_value(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+uint8_t Egs52Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     MS_210_EGS52 ms210;
     // This signal can be valid for up to 1000ms
-    if (this->ecu_ms.get_MS_210(now, expire_time_ms, &ms210)) {
+    if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
         return ms210.PW;
     } else {
         return 0xFF;
     }
 }
 
-int Egs52Can::get_static_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+int Egs52Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
     MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(now, expire_time_ms, &ms312)) {
+    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
         return ((int)ms312.M_STA / 4) - 500;
     }
     return INT_MAX;
 }
 
-int Egs52Can::get_driver_engine_torque(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs52Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
-    if (this->ecu_ms.get_MS_212(now, expire_time_ms, &ms212)) {
+    if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
         return ((int)ms212.M_FV / 4) - 500;
     }
     return INT_MAX;
 }
 
-int Egs52Can::get_maximum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+int Egs52Can::get_maximum_engine_torque(const uint32_t expire_time_ms) { // TODO
     MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(now, expire_time_ms, &ms312)) {
+    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
         float max = ((float)ms312.M_MAX / 4) - 500;
         MS_210_EGS52 ms210;
-        if (this->ecu_ms.get_MS_210(now, expire_time_ms, &ms210)) {
+        if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
             max *= (float)(ms210.FMMOTMAX * 0.0078);
         }
         return (int)max;
@@ -204,17 +204,17 @@ int Egs52Can::get_maximum_engine_torque(const uint32_t now, const uint32_t expir
     return INT_MAX;
 }
 
-int Egs52Can::get_minimum_engine_torque(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+int Egs52Can::get_minimum_engine_torque(const uint32_t expire_time_ms) { // TODO
     MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(now, expire_time_ms, &ms312)) {
+    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
         return ((int)ms312.M_MIN / 4) - 500;
     }
     return INT_MAX;
 }
 
-uint8_t Egs52Can::get_ac_torque_loss(const uint32_t now, const uint32_t expire_time_ms) {
+uint8_t Egs52Can::get_ac_torque_loss(const uint32_t expire_time_ms) {
     KLA_410_EGS52 kl410;
-    if (this->ezs_ecu.get_KLA_410(now, expire_time_ms, &kl410)) {
+    if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
         uint8_t ret = kl410.M_KOMP;
         if (ret != UINT8_MAX) {
             ret /= 4;
@@ -224,9 +224,9 @@ uint8_t Egs52Can::get_ac_torque_loss(const uint32_t now, const uint32_t expire_t
     return UINT8_MAX;
 }
 
-PaddlePosition Egs52Can::get_paddle_position(const uint32_t now, const uint32_t expire_time_ms) {
+PaddlePosition Egs52Can::get_paddle_position(const uint32_t expire_time_ms) {
     SBW_232 sbw;
-    if (misc_ecu.get_SBW_232(now, expire_time_ms, &sbw)) { // 50ms timeout
+    if (misc_ecu.get_SBW_232(GET_CLOCK_TIME(), expire_time_ms, &sbw)) { // 50ms timeout
         switch (sbw.get_LRT_PM3()) {
             case SBW_232h_LRT_PM3::PLUS:
                 return PaddlePosition::Plus;
@@ -242,10 +242,10 @@ PaddlePosition Egs52Can::get_paddle_position(const uint32_t now, const uint32_t 
     }
 }
 
-int16_t Egs52Can::get_engine_coolant_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs52Can::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     int16_t res = INT16_MAX;
-    if (ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         if (ms608.T_MOT != UINT8_MAX) {
             res = ms608.T_MOT-40;
         }
@@ -253,10 +253,10 @@ int16_t Egs52Can::get_engine_coolant_temp(const uint32_t now, const uint32_t exp
     return res;
 }
 
-int16_t Egs52Can::get_engine_oil_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs52Can::get_engine_oil_temp(const uint32_t expire_time_ms) {
     MS_308_EGS52 ms308;
     int16_t res = INT16_MAX;
-    if (ecu_ms.get_MS_308(now, expire_time_ms, &ms308)) {
+    if (ecu_ms.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
         if (ms308.T_OEL != UINT8_MAX) {
             res = ms308.T_OEL-40;
         }
@@ -264,10 +264,10 @@ int16_t Egs52Can::get_engine_oil_temp(const uint32_t now, const uint32_t expire_
     return res;
 }
 
-int16_t Egs52Can::get_engine_iat_temp(const uint32_t now, const uint32_t expire_time_ms) {
+int16_t Egs52Can::get_engine_iat_temp(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     int16_t res = INT16_MAX;
-    if (ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         if (ms608.T_LUFT != UINT8_MAX) {
             res = ms608.T_LUFT-40;
         }
@@ -275,38 +275,38 @@ int16_t Egs52Can::get_engine_iat_temp(const uint32_t now, const uint32_t expire_
     return res;
 }
 
-uint16_t Egs52Can::get_engine_rpm(const uint32_t now, const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_engine_rpm(const uint32_t expire_time_ms) {
     MS_308_EGS52 ms308;
-    if (ecu_ms.get_MS_308(now, expire_time_ms, &ms308)) {
+    if (ecu_ms.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
         return ms308.NMOT;
     } else {
         return UINT16_MAX;
     }
 }
 
-bool Egs52Can::get_is_starting(const uint32_t now, const uint32_t expire_time_ms) { // TODO
+bool Egs52Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
     MS_308_EGS52 ms308;
-    if (ecu_ms.get_MS_308(now, expire_time_ms, &ms308)) {
+    if (ecu_ms.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
         return ms308.ANL_LFT;
     } else {
         return false;
     }
 }
 
-bool Egs52Can::get_is_brake_pressed(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs52Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
     BS_200_EGS52 bs200;
-    if (this->esp_ecu.get_BS_200(now, expire_time_ms, &bs200)) {
+    if (this->esp_ecu.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
         return bs200.BLS == BS_200h_BLS_EGS52::BREMSE_BET;
     } else {
         return false;
     }
 }
 
-bool Egs52Can::get_profile_btn_press(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs52Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     bool ret = false;
     switch (VEHICLE_CONFIG.shifter_style) {
         case (uint8_t)ShifterStyle::EWM:
-            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(now, expire_time_ms);
+            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(expire_time_ms);
             break;
         default:
             break;
@@ -314,22 +314,22 @@ bool Egs52Can::get_profile_btn_press(const uint32_t now, const uint32_t expire_t
     return ret; 
 }
 
-ProfileSwitchPos Egs52Can::get_shifter_ws_mode(const uint32_t now, const uint32_t expire_time_ms) {
-    return this->shifter->get_shifter_profile_switch_pos(now, expire_time_ms);
+ProfileSwitchPos Egs52Can::get_shifter_ws_mode(const uint32_t expire_time_ms) {
+    return this->shifter->get_shifter_profile_switch_pos(expire_time_ms);
 }
 
-uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t now, const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
-    if (this->ecu_ms.get_MS_608(now, expire_time_ms, &ms608)) {
+    if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
         return (uint16_t)((float)ms608.VB*0.85);
     } else {
         return 0;
     }
 }
 
-TransferCaseState Egs52Can::get_transfer_case_state(const uint32_t now, const uint32_t expire_time_ms) {
+TransferCaseState Egs52Can::get_transfer_case_state(const uint32_t expire_time_ms) {
     VG_428 vg428;
-    if (this->misc_ecu.get_VG_428(now, expire_time_ms, &vg428)) {
+    if (this->misc_ecu.get_VG_428(GET_CLOCK_TIME(), expire_time_ms, &vg428)) {
         switch (vg428.get_VG_GANG()) {
             case VG_428h_VG_GANG::HI:
                 return TransferCaseState::Hi;
@@ -348,46 +348,46 @@ TransferCaseState Egs52Can::get_transfer_case_state(const uint32_t now, const ui
     }
 }
 
-bool Egs52Can::engine_ack_torque_request(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs52Can::engine_ack_torque_request(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
-    if (this->ecu_ms.get_MS_212(now, expire_time_ms, &ms212)) {
+    if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
         return ms212.M_EGS_Q;
     } else {
         return false;
     }
 }
 
-bool Egs52Can::esp_torque_intervention_active(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs52Can::esp_torque_intervention_active(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = false;
-    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+    if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
         r = bs300.MMIN_ESP || bs300.MMAX_ESP;
     }
     return r;
 }
 
-bool Egs52Can::is_cruise_control_active(const uint32_t now, const uint32_t expire_time_ms) {
+bool Egs52Can::is_cruise_control_active(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = false;
-    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+    if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
         r = bs300.DMMAX_ART || bs300.DMMIN_ART;
     }
     return r;
 }
 
-int Egs52Can::cruise_control_torque_demand(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs52Can::cruise_control_torque_demand(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = INT_MAX;
-    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+    if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
         r = (bs300.DM_ART/4) - 500.0;
     }
     return r;
 }
 
-int Egs52Can::esp_torque_demand(const uint32_t now, const uint32_t expire_time_ms) {
+int Egs52Can::esp_torque_demand(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = INT_MAX;
-    if (this->esp_ecu.get_BS_300(now, expire_time_ms, &bs300)) {
+    if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
         r = (bs300.M_ESP/4) - 500.0;
     }
     return r;

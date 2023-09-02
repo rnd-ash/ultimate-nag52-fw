@@ -245,7 +245,6 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const
 
 void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
     OnOffSolenoid* manipulated = nullptr;
-    uint64_t v = enable ? this->sensor_data->current_timestamp_ms : 0; // 0 means NOT open
     if (ShiftCircuit::sc_1_2 == ss) {
         manipulated = sol_y3;
     } else if (ShiftCircuit::sc_2_3 == ss) {

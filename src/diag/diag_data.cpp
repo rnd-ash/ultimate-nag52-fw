@@ -107,8 +107,8 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     t = gearbox->sensor_data.rr_wheel;
     ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
 
-    ret.paddle_position = can_layer->get_paddle_position(now, 250);
-    ret.pedal_pos = can_layer->get_pedal_value(now, 250);
+    ret.paddle_position = can_layer->get_paddle_position(250);
+    ret.pedal_pos = can_layer->get_pedal_value(250);
 
     int torque = 0xFFFF;
     torque = gearbox->sensor_data.max_torque;
@@ -119,17 +119,17 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.driver_torque = (torque+500)*4;
     torque = gearbox->sensor_data.static_torque;
     ret.static_torque = (torque+500)*4;
-    ret.shift_button_pressed = can_layer->get_profile_btn_press(now, 250);
-    ret.shifter_position = can_layer->get_shifter_position(now, 250);
-    ret.engine_rpm = can_layer->get_engine_rpm(now, 250);
-    ret.fuel_rate = can_layer->get_fuel_flow_rate(now, 250);
+    ret.shift_button_pressed = can_layer->get_profile_btn_press(250);
+    ret.shifter_position = can_layer->get_shifter_position(250);
+    ret.engine_rpm = can_layer->get_engine_rpm(250);
+    ret.fuel_rate = can_layer->get_fuel_flow_rate(250);
     ret.torque_req_ctrl_type = gearbox->output_data.ctrl_type;
     ret.torque_req_bounds = gearbox->output_data.bounds;
     ret.torque_req_amount = ret.torque_req_ctrl_type == TorqueRequestControlType::None ? 0xFFFF : (gearbox->output_data.torque_req_amount+500)*4;
     // Temps
-    ret.e_coolant_temp = egs_can_hal->get_engine_coolant_temp(now, 250);
-    ret.e_iat_temp = egs_can_hal->get_engine_iat_temp(now, 250);
-    ret.e_oil_temp = egs_can_hal->get_engine_oil_temp(now, 250);
+    ret.e_coolant_temp = egs_can_hal->get_engine_coolant_temp(250);
+    ret.e_iat_temp = egs_can_hal->get_engine_iat_temp(250);
+    ret.e_oil_temp = egs_can_hal->get_engine_oil_temp(250);
     return ret;
 }
 
@@ -214,7 +214,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(GET_CLOCK_TIME(), 250);
+    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

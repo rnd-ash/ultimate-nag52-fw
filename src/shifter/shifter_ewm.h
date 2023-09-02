@@ -9,9 +9,9 @@ class ShifterEwm : public Shifter
 {
 public:
 	ShifterEwm(esp_err_t *can_init_status, ECU_EWM *ewm);
-	ShifterPosition get_shifter_position(const uint32_t now, const uint32_t expire_time_ms) override;
-	bool get_profile_btn_press(const uint32_t now, const uint32_t expire_time_ms);
-	ProfileSwitchPos get_shifter_profile_switch_pos(const uint32_t now, const uint32_t expire_time_ms) override;
+	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+	bool get_profile_btn_press(const uint32_t expire_time_ms);
+	ProfileSwitchPos get_shifter_profile_switch_pos(const uint32_t expire_time_ms) override;
 private:
 	ECU_EWM *_ewm;
 	bool state = false;

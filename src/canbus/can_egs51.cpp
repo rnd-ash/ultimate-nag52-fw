@@ -361,10 +361,12 @@ void Egs51Can::set_gearbox_ok(bool is_ok) {
 void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
     if (control_type == TorqueRequestControlType::None) {
         this->gs218.TORQUE_REQ_EN = false;
+        this->gs218.SE = false;
         this->gs218.TORQUE_REQ = 0xFE;
     } else {
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
+        this->gs218.SE = true;
         this->gs218.TORQUE_REQ = amount_nm/3;
     }
 }
@@ -392,55 +394,16 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
-/**
- * Parity calculation for torque numbers on GS218 and GS418
- * 
- * Each torque request member is a struct of 16 bits comprised of the following fields:
- * 1. Toggle bit (1 bit)
- * 2. Max request - bool (1 bit)
- * 3. Min request - bool (1 bit)
- * 4. Required torque - 13 bits
- */
-inline bool calc_torque_parity(uint16_t s) {
-    uint16_t p = s;
-    p ^= (p >> 1);
-    p ^= (p >> 2);
-    p ^= (p >> 4);
-    p ^= (p >> 8);
-    return (p & 1) == 1;
-}
-
-/**
- * @brief void tx_frames() override;
-        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
-        void on_rx_done(uint64_t now_ts) override;
- * 
- */
-
 void Egs51Can::tx_frames() {
-    tx.data_length_code = 8; // Always
+    tx.data_length_code = 6;
     GS_218_EGS51 gs_218tx;
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
-
-    // Firstly we have to deal with toggled bits!
-    // As toggle bits need to be toggled every 40ms,
-    // and egs52 Tx interval is 20ms,
-    // we can achieve this with 2 booleans
-    //gs_218tx.set_MTGL_EGS(toggle);
-    // Now do parity calculations
-    //gs_218tx.set_MPAR_EGS(calc_torque_parity(gs_218tx.raw >> 48));
-    if (time_to_toggle) {
-        toggle = !toggle;
-    }
-    time_to_toggle = !time_to_toggle;
-    
     // Now set CVN Counter (Increases every frame)
     gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;
     tx.identifier = GS_218_EGS51_CAN_ID;
-    tx.data_length_code = 6;
     to_bytes(gs_218tx.raw, tx.data);
     twai_transmit(&tx, 5);
 }

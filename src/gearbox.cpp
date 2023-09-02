@@ -490,7 +490,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, trq);
                     }
                     */
-                    if (total_elapsed > torque_req_max_time || (now_cs.off_clutch_speed > 100 && total_elapsed > torque_req_start_time)) {
+                    if (total_elapsed > torque_req_max_time) {
                         // Ramp back up based on shift progress
                         if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed) { // Torque transfer completed
                             if (torque_req_up_time == 0) {
@@ -499,13 +499,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             // Ramp up
                             int trq = scale_number(total_elapsed, current_toque_lim, sensor_data.driver_requested_torque, torque_req_up_time, torque_req_up_time+300);
                             this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, trq);
-                        } else {
+                        } else  { // No shift yet
                             // Continue ramping down (No shift yet)
-                            int max_lim = prefill_torque_requested/2;
-                            float t = current_toque_lim-(10.0/(float)(1000/SHIFT_DELAY_MS)); // 10Nm/sec reduction
-                            if (t < max_lim) {
-                                t = max_lim;
-                            }
+                            int t = scale_number(total_elapsed, MAX(sensor_data.driver_requested_torque, sensor_data.static_torque), prefill_torque_requested/2, torque_req_start_time, torque_req_max_time+(torque_req_max_time-torque_req_start_time));
                             current_toque_lim = t;
                             this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, t);
                         }
@@ -579,7 +575,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 // Bleed phase of prefill.
                 if (phase_elapsed < prefill_2_time_start) {
-                    current_spc = prefill_data.fill_pressure_on_clutch*1.5;
+                    current_spc = prefill_data.fill_pressure_on_clutch*2;
                     //current_mpc = wp_current_gear + current_spc/2;//MAX(wp_pre_shift, wp_current_gear);
                 } else if (phase_elapsed < prefill_3_time_start) {
                     current_spc = scale_number(phase_elapsed, prefill_data.fill_pressure_on_clutch*1.5, prefill_data.fill_pressure_on_clutch, prefill_2_time_start, prefill_3_time_start);
@@ -599,7 +595,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // * TODO - Shift timing tuning
                 current_mpc = scale_number(phase_elapsed, fill_end_mpc, 400, 0, chars.target_shift_time/2);
                 if (phase_elapsed > chars.target_shift_time) {
-                    float step_adder = scale_number(abs(sensor_data.static_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);
+                    float step_adder = scale_number(abs(sensor_data.input_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);
                     step_adder *= scale_number(chars.target_shift_time, &SBS.spc_multi_overlap_shift_speed);
                     current_spc += step_adder;
                 } else { // Within shift time

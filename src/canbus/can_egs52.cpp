@@ -26,6 +26,7 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->set_shifter_position(ShifterPosition::SignalNotAvailable);
     this->gs418.KD = false;
     this->gs418.SCHALT = false; // Auto is 0, manual is 1
+    this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
     gs218.CALID_CVN_AKT = true;
     gs218.G_G = true;
@@ -620,8 +621,8 @@ void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
 
 
 void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
-    if (loss_nm > 0xFF/4) {
-        loss_nm = 0xFF;
+    if (loss_nm > 0xFE/4) {
+        loss_nm = 0xFE; // 0xFF implies implausible
     }
     gs418.M_VERL = loss_nm*4;
 }

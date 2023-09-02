@@ -307,7 +307,7 @@ class ECU:
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_{0}(uint32_t now, uint32_t max_expire_time, {0}{2}* dest) const {{
+        bool get_{0}(const uint32_t now, const uint32_t max_expire_time, {0}{2}* dest) const {{
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[{1}] <= now && now - LAST_FRAME_TIMES[{1}] < max_expire_time) {{
                 dest->raw = FRAME_DATA[{1}];

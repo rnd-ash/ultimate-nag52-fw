@@ -244,6 +244,7 @@ ECU GS51
 			ENUM G_SNV, RAW: 15, DESC: signal not available
 		# 4th byte
 		SIGNAL KICKDOWN, OFFSET: 25, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
+		SIGNAL SE, OFFSET: 26, LEN: 1, DESC: Schaltungseinleitung, DATA TYPE BOOL
 		SIGNAL LIMP_MODE, OFFSET: 27, LEN: 1, DESC: Gearbox is in limp-home mode, DATA TYPE BOOL
 		SIGNAL GEARBOX_BIG, OFFSET: 28, LEN: 1, DESC: Gearbox is W5A580, DATA TYPE BOOL
 		SIGNAL TCC_SHUT, OFFSET: 29, LEN: 1, DESC: Torque converter shut, DATA TYPE BOOL

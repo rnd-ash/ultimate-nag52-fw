@@ -54,6 +54,7 @@ class Egs51Can: public EgsBaseCan {
          bool get_is_starting(const uint32_t expire_time_ms) override;
          bool get_profile_btn_press(const uint32_t expire_time_ms) override;
         ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) override;
+        uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
          bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
 

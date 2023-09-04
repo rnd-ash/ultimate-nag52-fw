@@ -225,6 +225,15 @@ ProfileSwitchPos Egs51Can::get_shifter_ws_mode(const uint32_t expire_time_ms) {
     return this->shifter->get_shifter_profile_switch_pos(expire_time_ms);
 }
 
+uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
+    MS_608_EGS51 ms608;
+    if (this->ms51.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
+        return (uint16_t)((float)ms608.VB*0.868);
+    } else {
+        return 0;
+    }
+}
+
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
         case TccClutchStatus::Open:

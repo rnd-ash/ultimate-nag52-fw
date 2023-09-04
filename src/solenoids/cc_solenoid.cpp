@@ -3,7 +3,7 @@
 #include "nvs/module_settings.h"
 
 ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples) {
+: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples, 10) {
     this->current_target = 0;
 }
 
@@ -27,13 +27,13 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         calc_pwm = req_pwm;
 
         // Learning correction on sampled current
-        if (c >= 5 && this->current_measure_accurate && this->current_target > 300) {
+        if (c >= 10 && this->current_measure_accurate && this->current_target > 300) {
             uint16_t read = this->get_current();
             float target_err_multi = ((float)this->current_target/(float)read);
             // 1.0 means perfect
             // < 1.0 means too high
             // > 1.0 means too low
-            if (target_err_multi < 0.98 || target_err_multi > 1.02) {
+            //if (target_err_multi < 0.98 || target_err_multi > 1.02) {
                 float err_2 = target_err_multi-this->internal_trim_factor;
                 if (err_2 > 0.005) {
                     err_2 = 0.005;
@@ -41,7 +41,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
                     err_2 = -0.005;
                 }
                 this->internal_trim_factor += err_2;
-            }
+            //}
             c = 0;
         }
     }

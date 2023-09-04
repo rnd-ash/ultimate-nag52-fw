@@ -36,7 +36,7 @@ void read_solenoids_i2s(void*) {
     adc_continuous_new_handle(&c_cfg, &c_handle);
     adc_continuous_config_t dig_cfg = {
         .pattern_num = 6,
-        .sample_freq_hz = 6 * 1000 * 200, // 100 samples per solenoid per ms
+        .sample_freq_hz = 6 * 1000 * 300, // 100 samples per solenoid per ms
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };

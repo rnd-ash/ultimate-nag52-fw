@@ -4,7 +4,7 @@
 #include "clock.hpp"
 
 OnOffSolenoid::OnOffSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint32_t on_time_ms, uint16_t hold_pwm, uint8_t current_samples)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples) {
+: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples, 1) {
     this->state = false;
     this->target_hold_pwm = hold_pwm;
     this->target_on_time = on_time_ms;

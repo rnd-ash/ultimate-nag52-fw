@@ -23,11 +23,12 @@ const ledc_timer_config_t SOLENOID_TIMER_CFG = {
     .clk_cfg = LEDC_AUTO_CLK
 };
 
-PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples)
+PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples, uint8_t avg_samples)
 {
     this->channel = channel;
     this->name = name;
     this->adc_channel = read_channel;
+    this->c_readings = new MovingUnsignedAverage(avg_samples);
     esp_err_t ret = ESP_OK;
 
 
@@ -50,7 +51,7 @@ set_err:
 }
 
 uint16_t PwmSolenoid::get_current() const {
-    uint16_t ret = this->adc_now_read;
+    uint32_t ret = this->c_readings->get_average();
     if (ret > min_adc_raw_reading) {
         adc_cali_raw_to_voltage(adc1_cal, ret, (int*)&ret);
     } else {
@@ -92,7 +93,7 @@ uint16_t PwmSolenoid::get_pwm_compensated() const
 
 void PwmSolenoid::__set_adc_reading(uint16_t c, bool valid)
 {
-    this->adc_now_read = c;
+    this->c_readings->add_sample(c);
     this->current_measure_accurate = valid;
 }
 

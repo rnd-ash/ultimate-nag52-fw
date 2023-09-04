@@ -10,6 +10,7 @@
 #include <esp_event.h>
 #include "esp_err.h"
 #include "tcu_maths.h"
+#include "moving_average.h"
 
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
@@ -36,7 +37,7 @@ public:
      * @param read_channel The ADC 1 Channel used for current sense feedback
      * @param current_samples The number of samples from I2S for current measuring. It is assumed that each sample is ~2ms snapshot
      */
-    PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples);
+    PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples, uint8_t avg_samples);
 
 
     const char* get_name() {
@@ -98,9 +99,7 @@ protected:
     adc_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
-
-    // For avg current
-    uint16_t adc_now_read = 0;
+    MovingUnsignedAverage* c_readings;
 };
 
 namespace SolenoidSetup {

@@ -53,6 +53,7 @@ public:
     ShiftClutchVelocity shifting_velocity = {0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
+    bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);

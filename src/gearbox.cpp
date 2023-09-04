@@ -152,6 +152,10 @@ Gearbox::Gearbox()
     this->output_avg_filter = new MovingAverage(10);
 }
 
+bool Gearbox::is_stationary() {
+    return this->sensor_data.input_rpm < 100 && this->sensor_data.output_rpm < 100;
+}
+
 void Gearbox::set_profile(AbstractProfile *prof)
 {
     if (prof != nullptr)
@@ -270,7 +274,6 @@ GearboxGear prev_gear(GearboxGear g)
 }
 
 #define SHIFT_DELAY_MS 10     // 10ms steps
-#define MIN_RATIO_CALC_RPM 200 // Min INPUT RPM for ratio calculations and RPM readings
 #define NUM_SCD_ENTRIES 100 / SHIFT_DELAY_MS // 100ms moving average window
 
 ClutchSpeeds Gearbox::diag_get_clutch_speeds() {
@@ -430,7 +433,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         }
         float current_toque_lim = prefill_torque_requested;
         float pre_overlap_torque = 0;
+        float overlap_spc_start_pressure = prefill_data.fill_pressure_on_clutch + 250;
         while(process_shift) {
+            bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
             // Shifter moved mid shift!
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
@@ -443,7 +448,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             bool coasting_shift = 0 > sensor_data.static_torque;
             int shift_speed_from_target = 1.0;
             // Shift reporting
-            if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) {
+            if (!stationary_shift) {
                 int input_rpm_old_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, this->actual_gear, &this->gearboxConfig);
                 delta_rpm = abs(sensor_data.input_rpm - input_rpm_old_gear);
                 now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(sensor_data.output_rpm, this->rpm_reading, req_lookup, this->gearboxConfig.bounds);
@@ -539,6 +544,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     spc_delta = 0;
+                    current_spc += (scale_number(sensor_data.pedal_pos, 0, prefill_data.fill_pressure_on_clutch/3, 0, 0xFF)); // Initial SPC bump
                     this->tcc->set_shift_target_state(InternalTccState::Slipping);
                 } else if (current_stage == ShiftStage::MaxPressure) {
                     if (!result) {
@@ -593,7 +599,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Ramp up to engage the new clutch at a steady pace
                 // --ADAPT--
                 // * TODO - Shift timing tuning
-                current_mpc = scale_number(phase_elapsed, fill_end_mpc, 400, 0, chars.target_shift_time/2);
+                if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed) {
+                    current_mpc = 400;
+                } else {
+                    current_mpc = scale_number(phase_elapsed, fill_end_mpc, 400, 0, chars.target_shift_time/2);
+                }
                 if (phase_elapsed > chars.target_shift_time) {
                     float step_adder = scale_number(abs(sensor_data.input_torque), SBS.spc_multi_overlap_zero_trq, SBS.spc_multi_overlap_max_trq, 0, gearboxConfig.max_torque);
                     step_adder *= scale_number(chars.target_shift_time, &SBS.spc_multi_overlap_shift_speed);
@@ -613,7 +623,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {
-                if (MIN_RATIO_CALC_RPM < sensor_data.input_rpm) { // Confirmed shift!
+                if (!stationary_shift) { // Confirmed shift!
                     if (detected_shift_done_clutch_progress) {
                         result = true;
                         skip_phase = true;
@@ -622,7 +632,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             this->shift_adapter->record_shift_end(current_stage, phase_elapsed, current_mpc, current_spc);
                         }
                     }
-                } else if (MIN_RATIO_CALC_RPM > sensor_data.input_rpm && phase_elapsed > 1000) {
+                } else if (stationary_shift && phase_elapsed > 1000) {
                     result = true;
                     skip_phase = true;
                 } else if (!coasting_shift && MAX(SBS.shift_timeout_pulling, phase_total_time*2) < phase_elapsed) { // TIMEOUT
@@ -991,14 +1001,15 @@ void Gearbox::controller_loop()
                 old_output_rpm = this->sensor_data.output_rpm;
                 last_output_measure_time = GET_CLOCK_TIME();
             }
-            if (this->sensor_data.output_rpm > 0 && this->sensor_data.input_rpm > 0)
+            bool stationary = this->is_stationary();
+            if (!stationary)
             {
                 // Store our ratio
                 this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
                 this->shadow_ratio_n2 = (float)this->rpm_reading.n2_raw / (float)this->sensor_data.output_rpm;
                 this->shadow_ratio_n3 = (float)this->rpm_reading.n3_raw / (float)this->sensor_data.output_rpm;
             }
-            if (!shifting && this->sensor_data.output_rpm > MIN_RATIO_CALC_RPM && this->sensor_data.input_rpm > MIN_RATIO_CALC_RPM)
+            if (!shifting && !stationary)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {
@@ -1037,7 +1048,7 @@ void Gearbox::controller_loop()
             can_read = false;
             gear_disagree_count = 0;
         }
-        if (can_read && this->sensor_data.output_rpm >= 100)
+        if (can_read && !this->is_stationary())
         {
             bool rev = !is_fwd_gear(this->target_gear);
             if (!this->calcGearFromRatio(rev))

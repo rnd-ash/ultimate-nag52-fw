@@ -4,6 +4,7 @@
 #include "maps.h"
 #include "common_structs_ops.h"
 #include "nvs/module_settings.h"
+#include "nvs/device_mode.h"
 
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
@@ -78,41 +79,46 @@ void PressureManager::controller_loop() {
     uint16_t spc_now = 0;
     uint16_t mpc_now = 0;
     while(1) {
-        spc_now = this->req_spc_clutch_pressure;
-        mpc_now = this->req_mpc_clutch_pressure;
-        int max_spc = 7700;
-        if (sol_y3->is_on()) {
-            // 1-2 circuit is open (Correct pressure for K1)
-            // K1 is controlled by Shift pressure
-            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                spc_now /= 1.9;
-                max_spc /= 1.9;
+        // Ignore
+        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+
+        } else {
+            spc_now = this->req_spc_clutch_pressure;
+            mpc_now = this->req_mpc_clutch_pressure;
+            int max_spc = 7700;
+            if (sol_y3->is_on()) {
+                // 1-2 circuit is open (Correct pressure for K1)
+                // K1 is controlled by Shift pressure
+                if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
+                    spc_now /= 1.9;
+                    max_spc /= 1.9;
+                }
             }
-        }
-        if (spc_now >= 7700) {
-            spc_now = 7700;
-        }
-        if (spc_now >= 7700) {
-            spc_now = 7700;
-        }
-        if (p_last_spc != spc_now) {
-            p_last_spc = spc_now;
             if (spc_now >= 7700) {
-                sol_spc->set_current_target(0);
-            } else {
-                sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
+                spc_now = 7700;
             }
-        }
-        if (p_last_mpc != mpc_now) {
-            p_last_mpc = mpc_now;
-            if (mpc_now >= 7700) {
-                sol_mpc->set_current_target(0);
-            } else {
-                sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
+            if (spc_now >= 7700) {
+                spc_now = 7700;
             }
+            if (p_last_spc != spc_now) {
+                p_last_spc = spc_now;
+                if (spc_now >= 7700) {
+                    sol_spc->set_current_target(0);
+                } else {
+                    sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
+                }
+            }
+            if (p_last_mpc != mpc_now) {
+                p_last_mpc = mpc_now;
+                if (mpc_now >= 7700) {
+                    sol_mpc->set_current_target(0);
+                } else {
+                    sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
+                }
+            }
+            this->commanded_spc_pressure = spc_now;
+            this->commanded_mpc_pressure = mpc_now;
         }
-        this->commanded_spc_pressure = spc_now;
-        this->commanded_mpc_pressure = mpc_now;
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
 }
@@ -244,6 +250,9 @@ uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const
 }
 
 void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
+    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+        return;
+    }
     OnOffSolenoid* manipulated = nullptr;
     if (ShiftCircuit::sc_1_2 == ss) {
         manipulated = sol_y3;

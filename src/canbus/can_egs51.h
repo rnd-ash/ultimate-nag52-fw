@@ -107,7 +107,7 @@ class Egs51Can: public EgsBaseCan {
         Shifter *shifter;
         bool start_enable = false;
         bool rp_lock_enage = false;
-        uint8_t cvn_counter = 0;        
+        uint8_t cvn_counter = 0;  
 };
 
 #endif // EGS52_CAN_H

@@ -117,7 +117,26 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
+        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+            // Only Tx slave frames
+            tx.data_length_code = 8;
+
+            uint64_t solenoid = solenoid_slave_resp.raw;
+            uint64_t sensors = sensors_slave_resp.raw;
+            uint64_t un52 = un52_slave_resp.raw;
+
+            tx.identifier = SOLENOID_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(solenoid, tx.data);
+            twai_transmit(&tx, 5);
+
+            tx.identifier = SENSOR_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(sensors, tx.data);
+            twai_transmit(&tx, 5);
+
+            tx.identifier = UN52_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(un52, tx.data);
+            twai_transmit(&tx, 5);
+        } else if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
             this->tx_frames();
         }
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
@@ -162,7 +181,13 @@ void EgsBaseCan::rx_task_loop() {
                             for(i = 0; i < rx.data_length_code; i++) {
                                 tmp |= (uint64_t)rx.data[i] << (8*(7-i));
                             }
-                            this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
+
+                            if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+                                // Slave mode handling
+                                this->egs_slave_mode_tester.import_frames(tmp, rx.identifier, now);
+                            } else {
+                                this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
+                            }
                         }
                     }
                 }

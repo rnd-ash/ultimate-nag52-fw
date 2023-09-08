@@ -5,6 +5,7 @@
 #include <tcu_maths.h>
 #include "speaker.h"
 #include "clock.hpp"
+#include "nvs/device_mode.h"
 
 #define SBS SBS_CURRENT_SETTINGS
 
@@ -973,6 +974,43 @@ void Gearbox::controller_loop()
     int old_output_rpm = this->sensor_data.output_rpm;
     while (1)
     {
+        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+            SOLENOID_CONTROL_EGS_SLAVE slave_rq = egs_can_hal->get_tester_req();
+            sol_mpc->set_current_target(__builtin_bswap16(slave_rq.MPC_REQ));
+            sol_spc->set_current_target(__builtin_bswap16(slave_rq.SPC_REQ));
+            sol_tcc->set_duty(slave_rq.TCC_REQ*16); // x16 to go from 8 bit (0-255) to 12bit (0-4096)
+
+            SENSOR_REPORT_EGS_SLAVE sensor_rpt;
+            RpmReading rpmreading;
+            int16_t atf = 0;
+            bool pll = false;
+            uint16_t batt =  0;
+            Sensors::read_vbatt(&batt);
+            Sensors::read_atf_temp(&atf);
+            Sensors::parking_lock_engaged(&pll);
+            Sensors::read_input_rpm(&rpmreading, false);
+            sensor_rpt.N2_RAW = __builtin_bswap16(rpmreading.n2_raw);
+            sensor_rpt.N3_RAW = __builtin_bswap16(rpmreading.n3_raw);
+            sensor_rpt.TFT = atf + 40;
+            sensor_rpt.VBATT = batt & 0xFF;
+
+            SOLENOID_REPORT_EGS_SLAVE sol_rpt;
+            sol_rpt.MPC_CURR = __builtin_bswap16(sol_mpc->get_current());
+            sol_rpt.SPC_CURR = __builtin_bswap16(sol_spc->get_current());
+            sol_rpt.TCC_PWM = (sol_tcc->get_pwm_raw()/16) & 0xFF;
+
+            UN52_REPORT_EGS_SLAVE un52_rpt;
+            un52_rpt.Y3_CURR = __builtin_bswap16(sol_y3->get_current());
+            un52_rpt.Y4_CURR = __builtin_bswap16(sol_y4->get_current());
+            un52_rpt.Y5_CURR = __builtin_bswap16(sol_y5->get_current());
+            un52_rpt.TCC_CURR = __builtin_bswap16(sol_tcc->get_current());
+
+            egs_can_hal->set_slave_mode_reports(sol_rpt, sensor_rpt, un52_rpt);
+
+            
+            vTaskDelay(20);
+            continue;
+        }
         if (this->diag_stop_control)
         {
             vTaskDelay(50);

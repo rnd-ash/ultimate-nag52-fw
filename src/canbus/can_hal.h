@@ -16,6 +16,9 @@
 #include "shifter/shifter.h"
 #include "clock.hpp"
 
+#include "../../slave_ecus/src/EGS_SLAVE.h"
+#include "../../slave_ecus/src/TESTER.h"
+
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
     Reverse, // Wheel going backwards
@@ -387,6 +390,22 @@ class EgsBaseCan {
             this->diag_rx_id = rx_id;
         }
 
+        SOLENOID_CONTROL_EGS_SLAVE get_tester_req() { // Never expires
+            SOLENOID_CONTROL_EGS_SLAVE dest = {0};
+            this->egs_slave_mode_tester.get_SOLENOID_CONTROL(GET_CLOCK_TIME(), UINT32_MAX, &dest);
+            return dest;
+        }
+
+        void set_slave_mode_reports(
+            SOLENOID_REPORT_EGS_SLAVE sol_rpt,
+            SENSOR_REPORT_EGS_SLAVE sensor_rpt,
+            UN52_REPORT_EGS_SLAVE un52_rpt
+        ) {
+            this->solenoid_slave_resp = sol_rpt;
+            this->sensors_slave_resp = sensor_rpt;
+            this->un52_slave_resp = un52_rpt;
+        }
+
     protected:
         const char* name;
         TaskHandle_t tx_task = nullptr;
@@ -424,6 +443,11 @@ class EgsBaseCan {
                 src >>= 8;
             }
         }
+
+        ECU_TESTER egs_slave_mode_tester;
+        SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
+        SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
+        UN52_REPORT_EGS_SLAVE un52_slave_resp;
 };
 
 extern EgsBaseCan* egs_can_hal;

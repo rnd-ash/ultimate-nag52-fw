@@ -1,7 +1,7 @@
 #include "egs_emulation.h"
 #include "sensors.h"
 #include "../pressure_manager.h"
-#include "solenoids/constant_current.h"
+#include "clock.hpp"
 
 inline uint16_t flip_uint16_t(uint16_t x) {
    return ((x & 0xff) << 8) | ((x & 0xff00) >> 8); 
@@ -15,7 +15,7 @@ RLI_30_DATA get_rli_30(EgsBaseCan* can_layer) {
 
 RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     RLI_31_DATA ret = {};
-    uint64_t now = esp_timer_get_time() / 1000;
+    uint32_t now = GET_CLOCK_TIME();
     RpmReading d;
     if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_pulse_count = flip_uint16_t(d.n2_raw);
@@ -29,35 +29,35 @@ RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     ret.vehicle_speed_rear_wheels = 0; // TODO
     ret.vehicle_speed_front_wheels = 0; // TODO
 
-    WheelData wd = can_layer->get_front_left_wheel(now, 300);
+    WheelData wd = can_layer->get_front_left_wheel(300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.front_left_wheel_speed = 0xFFFF;
     } else {
         ret.front_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
-    wd = can_layer->get_front_right_wheel(now, 300);
+    wd = can_layer->get_front_right_wheel(300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.front_right_wheel_speed = 0xFFFF;
     } else {
         ret.front_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
-    wd = can_layer->get_rear_left_wheel(now, 300);
+    wd = can_layer->get_rear_left_wheel(300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.rear_left_wheel_speed = 0xFFFF;
     } else {
         ret.rear_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
-    wd = can_layer->get_rear_right_wheel(now, 300);
+    wd = can_layer->get_rear_right_wheel(300);
     if (wd.current_dir == WheelDirection::SignalNotAvailable) {
         ret.rear_right_wheel_speed = 0xFFFF;
     } else {
         ret.rear_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
     }
 
-    ret.engine_speed = flip_uint16_t(can_layer->get_engine_rpm(now, 300));
+    ret.engine_speed = flip_uint16_t(can_layer->get_engine_rpm(300));
 
     return ret;
 }
@@ -74,10 +74,10 @@ RLI_33_DATA get_rli_33(EgsBaseCan* can_layer) {
 
     ret.mpc_pressure = flip_uint16_t(pressure_manager->get_targ_mpc_solenoid_pressure());
     ret.spc_pressure = flip_uint16_t(pressure_manager->get_targ_spc_solenoid_pressure());
-    ret.mpc_target_current = mpc_cc->get_current_target();
-    ret.spc_target_current = spc_cc->get_current_target();
-    ret.mpc_actual_current = flip_uint16_t(sol_mpc->get_current_avg());
-    ret.spc_actual_current = flip_uint16_t(sol_spc->get_current_avg());
+    ret.mpc_target_current = sol_mpc->get_current_target();
+    ret.spc_target_current = sol_spc->get_current_target();
+    ret.mpc_actual_current = flip_uint16_t(sol_mpc->get_current());
+    ret.spc_actual_current = flip_uint16_t(sol_spc->get_current());
     ret.tcc_pwm_255 = (uint8_t)(sol_tcc->get_pwm_raw() >> 4);
 
     bool _1245 = sol_y3->get_pwm_raw() > 10;

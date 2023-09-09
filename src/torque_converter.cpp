@@ -105,7 +105,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     this->target_tcc_state = targ;
     if (sensors->input_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm) {
         // RPM too low for slipping, see if we can prefill
-        if (sensors->input_rpm != 0 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
+        if (sensors->input_rpm > 50 && sensors->engine_rpm >= TCC_CURRENT_SETTINGS.prefill_min_engine_rpm) {
             this->tcc_pressure_target = TCC_CURRENT_SETTINGS.prefill_pressure;
         } else {
             this->tcc_pressure_target = 0;
@@ -138,17 +138,18 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (is_shifting) { // If shifting, don't ramp, immedietly change. The shifting of the transmission will dampen this
             this->tcc_pressure_current = this->tcc_pressure_target;
         } else {
-            // If state is going to lock, we increase it slower
+            // If state is going to lock, we increase it A LOT slower
             uint16_t step = TCC_CURRENT_SETTINGS.pressure_increase_step;
             if (this->target_tcc_state == InternalTccState::Closed) {
-                step /= 2.0;
+                step /= 10.0;
             }
             this->tcc_pressure_current = MIN(this->tcc_pressure_current+step, this->tcc_pressure_target);
         }
     }
 
     if (this->tcc_pressure_target == this->tcc_pressure_current) {
-        this->current_tcc_state = this->target_tcc_state;        
+        this->current_tcc_state = this->target_tcc_state;
+        this->prev_state_tcc_pressure = this->tcc_pressure_current;   
     }
 
     if (TCC_CURRENT_SETTINGS.adapt_enable && nullptr != this->slip_average) {
@@ -163,15 +164,15 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         if (adapt_state && !is_shifting && in_adapt_torque_range && in_temp_range && loaded && sensors->engine_rpm < TCC_CURRENT_SETTINGS.tcc_stall_speed) {
             adapt_check = true;
-            if (sensors->current_timestamp_ms - last_slip_add_time > 100) {
-                last_slip_add_time = sensors->current_timestamp_ms;
+            if (GET_CLOCK_TIME() - last_slip_add_time > 100) {
+                last_slip_add_time = GET_CLOCK_TIME();
                 this->slip_average->add_sample((int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm);
             }
         }
         if (adapt_check && this->slip_average->has_full_samples()) {
             // Try adapting when slipping is the current, and target state
             bool should_lock = this->target_tcc_state == InternalTccState::Closed && this->current_tcc_state == InternalTccState::Closed;
-            if (sensors->current_timestamp_ms - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
+            if (GET_CLOCK_TIME() - this->last_adapt_check > TCC_CURRENT_SETTINGS.adapt_test_interval_ms) {
                 int slip_avg = this->slip_average->get_average();
                 // int slip_now = (int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm;
                 // Do the adaptation!
@@ -206,16 +207,21 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     adjust_map_cell(curr_gear, new_p);
                     this->tcc_pressure_target = this->tcc_pressure_current = new_p;
                 }
-                this->last_adapt_check = sensors->current_timestamp_ms;
+                this->last_adapt_check = GET_CLOCK_TIME();
             }
         }
         if (!adapt_check) {
             // Set the last adapt timestamp if not adapted due to wrong conditions
             // This allows for adapting to only happen after a cooldown, when things are settled
-            this->last_adapt_check = sensors->current_timestamp_ms;
+            this->last_adapt_check = GET_CLOCK_TIME();
         }
     }
     pm->set_target_tcc_pressure(this->tcc_pressure_current);
+}
+
+uint8_t TorqueConverter::progress_to_next_phase(void) {
+    uint8_t ret = 100;
+    return ret;
 }
 
 TccClutchStatus TorqueConverter::get_clutch_state(void) {

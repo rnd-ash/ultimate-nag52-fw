@@ -14,6 +14,10 @@
 #include <string.h>
 #include "driver/twai.h"
 #include "shifter/shifter.h"
+#include "clock.hpp"
+
+#include "../../slave_ecus/src/EGS_SLAVE.h"
+#include "../../slave_ecus/src/TESTER.h"
 
 enum class WheelDirection: uint8_t {
     Forward, // Wheel going forwards
@@ -53,6 +57,8 @@ enum class TorqueRequestControlType: uint8_t {
     NormalSpeed = 1,
     /// @brief As fast as possible (Usually done via fuel cut)
     FastAsPossible = 2,
+    /// @brief Special case to signal to the engine that we are ramping back up to allow it to adjust ignition angle faster (EGS52)
+    BackToDemandTorque = 3
 };
 
 /// @brief Torque request intervention bounds
@@ -201,123 +207,123 @@ class EgsBaseCan {
          */
 
         // Get the front right wheel data
-        virtual WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms) {
+        virtual WheelData get_front_right_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
         // Get the front left wheel data
-        virtual WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) {
+        virtual WheelData get_front_left_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
         // Get the rear right wheel data
-        virtual WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) {
+        virtual WheelData get_rear_right_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
         // Get the rear left wheel data
-        virtual WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) {
+        virtual WheelData get_rear_left_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
         // Gets shifter position from shifter module
-        virtual ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) {
+        virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
         // Gets engine type
-        virtual EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) {
+        virtual EngineType get_engine_type(const uint32_t expire_time_ms) {
             return EngineType::Unknown;
         }
         // Returns true if engine is in limp mode
-        virtual bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool get_engine_is_limp(const uint32_t expire_time_ms) {
             return false;
         }
         // Returns true if pedal is kickdown 
-        virtual bool get_kickdown(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool get_kickdown(const uint32_t expire_time_ms) {
             return 0;
         }
         // Returns the pedal percentage. Range 0-250
-        virtual uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) {
+        virtual uint8_t get_pedal_value(const uint32_t expire_time_ms) {
             return 0;
         }
         // Gets the current 'static' torque produced by the engine
-        virtual int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+        virtual int get_static_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
         // Gets driver torque demand (Default torque)
-        virtual int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+        virtual int get_driver_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
         // Gets the maximum engine torque allowed at this moment by the engine map
-        virtual int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+        virtual int get_maximum_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
         // Gets the minimum engine torque allowed at this moment by the engine map
-        virtual int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) {
+        virtual int get_minimum_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
         // Gets the torque loss of the AC system
-        virtual uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) {
+        virtual uint8_t get_ac_torque_loss(const uint32_t expire_time_ms) {
             return UINT8_MAX;
         }
 
         // Gets the flappy paddle position
-        virtual PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) {
+        virtual PaddlePosition get_paddle_position(const uint32_t expire_time_ms) {
             return PaddlePosition::SNV;
         }
         // Gets engine coolant temperature
-        virtual int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) {
+        virtual int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
         // Gets engine oil temperature
-        virtual int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) {
+        virtual int16_t get_engine_oil_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
         // Gets engine charge air temperature
-        virtual int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) {
+        virtual int16_t get_engine_iat_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
         // Gets engine RPM
-        virtual uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) {
+        virtual uint16_t get_engine_rpm(const uint32_t expire_time_ms) {
             return UINT16_MAX;
         }
         // Returns true if engine is cranking
-        virtual bool get_is_starting(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool get_is_starting(const uint32_t expire_time_ms) {
             return false;
         }
-        virtual bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool get_profile_btn_press(const uint32_t expire_time_ms) {
             return false;
         }
         // 1 = S, 0 = W/C
-        virtual ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) {
+        virtual ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) {
             return ProfileSwitchPos::SNV;
         }
-        virtual bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool get_is_brake_pressed(const uint32_t expire_time_ms) {
             return false;
         }
-        virtual uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) {
+        virtual uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) {
             return 0;
         }
-        virtual TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) {
+        virtual TransferCaseState get_transfer_case_state(const uint32_t expire_time_ms) {
             return TransferCaseState::SNA;
         }
-        virtual bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool engine_ack_torque_request(const uint32_t expire_time_ms) {
             return false;
         }   
 
         // Checks if ESP torque intervention is active (AKA Stability assist)
-        virtual bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool esp_torque_intervention_active(const uint32_t expire_time_ms) {
             return false;
         }
 
         // Checks if cruise control is active
-        virtual bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) {
+        virtual bool is_cruise_control_active(const uint32_t expire_time_ms) {
             return false;
         }
 
         // Gets the torque demand from the cruise control system
-        virtual int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+        virtual int cruise_control_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
 
         // Gets the torque demand from the ESP system
-        virtual int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) {
+        virtual int esp_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
         
@@ -384,6 +390,22 @@ class EgsBaseCan {
             this->diag_rx_id = rx_id;
         }
 
+        SOLENOID_CONTROL_EGS_SLAVE get_tester_req() { // Never expires
+            SOLENOID_CONTROL_EGS_SLAVE dest = {0};
+            this->egs_slave_mode_tester.get_SOLENOID_CONTROL(GET_CLOCK_TIME(), UINT32_MAX, &dest);
+            return dest;
+        }
+
+        void set_slave_mode_reports(
+            SOLENOID_REPORT_EGS_SLAVE sol_rpt,
+            SENSOR_REPORT_EGS_SLAVE sensor_rpt,
+            UN52_REPORT_EGS_SLAVE un52_rpt
+        ) {
+            this->solenoid_slave_resp = sol_rpt;
+            this->sensors_slave_resp = sensor_rpt;
+            this->un52_slave_resp = un52_rpt;
+        }
+
     protected:
         const char* name;
         TaskHandle_t tx_task = nullptr;
@@ -406,8 +428,8 @@ class EgsBaseCan {
         }
 
         virtual void tx_frames(){};
-        virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) {};
-        virtual void on_rx_done(uint64_t now_ts){};
+        virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {};
+        virtual void on_rx_done(const uint32_t now_ts){};
 
         bool send_messages = true;
 
@@ -421,6 +443,11 @@ class EgsBaseCan {
                 src >>= 8;
             }
         }
+
+        ECU_TESTER egs_slave_mode_tester;
+        SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
+        SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
+        UN52_REPORT_EGS_SLAVE un52_slave_resp;
 };
 
 extern EgsBaseCan* egs_can_hal;

@@ -2,6 +2,7 @@
 #define SHIFTER_H
 
 #include <stdint.h>
+#include "clock.hpp"
 
 enum class ShifterStyle : uint8_t {
 	EWM = 0u,
@@ -35,8 +36,8 @@ enum class ShifterPosition : uint8_t {
 class Shifter
 {
 public:
-	virtual ShifterPosition get_shifter_position(const uint64_t now, const uint64_t expire_time_ms) = 0;
-    virtual ProfileSwitchPos get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) = 0;
+	virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) = 0;
+    virtual ProfileSwitchPos get_shifter_profile_switch_pos(const uint32_t expire_time_ms) = 0;
 };
 
 #endif // SHIFTER_H

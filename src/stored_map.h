@@ -23,7 +23,9 @@ class StoredMap : public LookupMap, public StoredData {
          * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
          * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
          */
-        esp_err_t replace_data_content(int16_t* new_data, uint16_t content_len);
+        esp_err_t replace_data_content(const int16_t* new_data, uint16_t content_len);
+
+        esp_err_t reset_from_flash() override;
 
         /**
          * @brief Reloads the previously saved map from EEPROM into the map (Undo function)

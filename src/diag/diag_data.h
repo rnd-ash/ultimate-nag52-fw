@@ -138,8 +138,9 @@ typedef struct {
     uint16_t input_rpm;
     uint16_t engine_rpm;
     uint16_t output_rpm;
-    uint16_t engine_torque;
-    uint16_t req_engine_torque;
+    int16_t engine_torque;
+    int16_t input_torque;
+    int16_t req_engine_torque;
     uint8_t atf_temp;
     uint8_t shift_idx;
 } __attribute__ ((packed)) SHIFT_LIVE_INFO;

@@ -574,7 +574,7 @@ class ECU_ANY_ECU {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {
@@ -626,7 +626,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ARCADE_A2(uint64_t now, uint64_t max_expire_time, ARCADE_A2_EGS52* dest) const {
+        bool get_ARCADE_A2(const uint32_t now, const uint32_t max_expire_time, ARCADE_A2_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
@@ -642,7 +642,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_MS_ANZ(uint64_t now, uint64_t max_expire_time, MS_ANZ_EGS52* dest) const {
+        bool get_MS_ANZ(const uint32_t now, const uint32_t max_expire_time, MS_ANZ_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
                 dest->raw = FRAME_DATA[1];
@@ -658,7 +658,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_SBW_232(uint64_t now, uint64_t max_expire_time, SBW_232_EGS52* dest) const {
+        bool get_SBW_232(const uint32_t now, const uint32_t max_expire_time, SBW_232_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[2] <= now && now - LAST_FRAME_TIMES[2] < max_expire_time) {
                 dest->raw = FRAME_DATA[2];
@@ -674,7 +674,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ART_250(uint64_t now, uint64_t max_expire_time, ART_250_EGS52* dest) const {
+        bool get_ART_250(const uint32_t now, const uint32_t max_expire_time, ART_250_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[3] <= now && now - LAST_FRAME_TIMES[3] < max_expire_time) {
                 dest->raw = FRAME_DATA[3];
@@ -690,7 +690,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_ART_258(uint64_t now, uint64_t max_expire_time, ART_258_EGS52* dest) const {
+        bool get_ART_258(const uint32_t now, const uint32_t max_expire_time, ART_258_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[4] <= now && now - LAST_FRAME_TIMES[4] < max_expire_time) {
                 dest->raw = FRAME_DATA[4];
@@ -706,7 +706,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_PSM_3B4(uint64_t now, uint64_t max_expire_time, PSM_3B4_EGS52* dest) const {
+        bool get_PSM_3B4(const uint32_t now, const uint32_t max_expire_time, PSM_3B4_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[5] <= now && now - LAST_FRAME_TIMES[5] < max_expire_time) {
                 dest->raw = FRAME_DATA[5];
@@ -722,7 +722,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_PSM_3B8(uint64_t now, uint64_t max_expire_time, PSM_3B8_EGS52* dest) const {
+        bool get_PSM_3B8(const uint32_t now, const uint32_t max_expire_time, PSM_3B8_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[6] <= now && now - LAST_FRAME_TIMES[6] < max_expire_time) {
                 dest->raw = FRAME_DATA[6];
@@ -738,7 +738,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_VG_428(uint64_t now, uint64_t max_expire_time, VG_428_EGS52* dest) const {
+        bool get_VG_428(const uint32_t now, const uint32_t max_expire_time, VG_428_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[7] <= now && now - LAST_FRAME_TIMES[7] < max_expire_time) {
                 dest->raw = FRAME_DATA[7];
@@ -754,7 +754,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_LWR_530(uint64_t now, uint64_t max_expire_time, LWR_530_EGS52* dest) const {
+        bool get_LWR_530(const uint32_t now, const uint32_t max_expire_time, LWR_530_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[8] <= now && now - LAST_FRAME_TIMES[8] < max_expire_time) {
                 dest->raw = FRAME_DATA[8];
@@ -770,7 +770,7 @@ class ECU_ANY_ECU {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_CONFIG_6FF(uint64_t now, uint64_t max_expire_time, CONFIG_6FF_EGS52* dest) const {
+        bool get_CONFIG_6FF(const uint32_t now, const uint32_t max_expire_time, CONFIG_6FF_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[9] <= now && now - LAST_FRAME_TIMES[9] < max_expire_time) {
                 dest->raw = FRAME_DATA[9];
@@ -781,6 +781,6 @@ class ECU_ANY_ECU {
             
 	private:
 		uint64_t FRAME_DATA[10];
-		uint64_t LAST_FRAME_TIMES[10];
+		uint32_t LAST_FRAME_TIMES[10];
 };
 #endif // __ECU_ANY_ECU_H_

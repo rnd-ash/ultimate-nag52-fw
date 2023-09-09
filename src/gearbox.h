@@ -19,6 +19,12 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 
+struct PostShiftTorqueRamp {
+    bool enabled;
+    uint16_t start_nm;
+    uint16_t time_to_exit;
+};
+
 class Gearbox {
 public:
     Gearbox(void);
@@ -45,7 +51,9 @@ public:
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
     ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
+    bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
@@ -57,7 +65,7 @@ private:
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool calc_input_rpm(uint16_t* dest);
-    bool calc_output_rpm(uint16_t* dest, uint64_t now);
+    bool calc_output_rpm(uint16_t* dest);
     [[noreturn]]
     void controller_loop(void);
 
@@ -102,7 +110,6 @@ private:
     InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    ShiftAdaptationSystem* shift_adapter = nullptr;
     int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
     MovingAverage* output_avg_filter;
 

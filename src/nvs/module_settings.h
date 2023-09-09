@@ -8,29 +8,95 @@
 // TCC Settings
 
 #define TCC_SETTINGS_NVS_KEY "TCC_A3"
+// Torque converter setting
 typedef struct {
+    // Enable adaptation for all gears
     bool adapt_enable;
+    // Enable torque converter in D1
     bool enable_d1;
+    // Enable torque converter in D2
     bool enable_d2;
+    // Enable torque converter in D3
     bool enable_d3;
+    // Enable torque converter in D4
     bool enable_d4;
+    // Enable torque converter in D5
     bool enable_d5;
+    // The pressure that is applied to the torque converter
+    // simply to start closing the distance between the clutch pack,
+    // without actually biting the clutch.
+    //
+    // UNIT: mBar
     uint16_t prefill_pressure;
+    // The minimum input shaft speed before the torque converter can
+    // being to slip or close
+    //
+    // UNIT: RPM
     uint16_t min_locking_rpm;
+    // When adapting, this is the time between checks to see how
+    // much additional or less pressure should be applied to the converter.
+    // Making this interval too quick can result in over adapting!
+    //
+    // UNIT: milliseconds
     uint16_t adapt_test_interval_ms;
+    // The stall speed of the torque converter. At this speed,
+    // no matter the state of the clutch, the fluid in the converter
+    // will trigger a soft lockup of the impellor and turbine.
+    //
+    // UNIT: RPM
     uint16_t tcc_stall_speed;
+    // The minimum torque limit for adaptation
+    //
+    // UNIT: Nm
     uint16_t min_torque_adapt;
+    // The maximum torque limit for adaptation
+    //
+    // UNIT: Nm
     uint16_t max_torque_adapt;
+    // The minimum engine speed for prefill to start
+    //
+    // UNIT: RPM
     uint16_t prefill_min_engine_rpm;
+    // Maximum slip allowed when at maximum adapting torque
+    // UNIT: RPM
     uint16_t max_slip_max_adapt_trq;
+    // Minimum slip allowed when at maximum adapting torque
+    // UNIT: RPM
     uint16_t min_slip_max_adapt_trq;
+    // Maximum slip allowed when at minimum adapting torque
+    // UNIT: RPM
     uint16_t max_slip_min_adapt_trq;
+    // Minimum slip allowed when at minimum adapting torque
+    // UNIT: RPM
     uint16_t min_slip_min_adapt_trq;
+    // If the adaptation algorithm detects it needs to increase or 
+    // decrease pressure. This is how much of a change it will perform
+    // in 1 adaptation cycle.
+    //
+    // UNIT: mBar
     uint8_t pressure_increase_step;
+
     uint8_t adapt_pressure_step;
+    // Pressure multiplier based on output speed
     LinearInterpSetting pressure_multiplier_output_rpm;
+    // The minimum output shaft speed for Sailing mode to occur.
+    // In sailing mode, when the accelerator input is 0%, the torque
+    // converter will fully unlock, in order to acheive the maximum
+    // possible coasting distance, for better fuel economy. Set this to 0
+    // to disable sailing mode. Note. This feature is inspired by the 9G tronic
+    //
+    // UNIT: RPM
     uint16_t sailing_mode_active_rpm;
+    // The minimum output shaft speed before the torque converter is forced
+    // to lockup regardless of pedal input. This is done to avoid slipping
+    // at high RPM, which causes massive heat buildup.
+    //
+    // UNIT: RPM
     uint16_t force_lock_min_output_rpm;
+    // The maximum pedal input when the output speed is below 
+    // force_lock_min_output_rpm to trigger a lock of the torque converter
+    //
+    // UNIT: %
     uint8_t locking_pedal_pos_max;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
@@ -67,13 +133,31 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
 
 #define SOL_SETTINGS_NVS_KEY "SOL_A0"
 
+// Solenoid subsystem settings
 typedef struct {
+    // Minimum battery voltage before performing 
+    // the solenoid boot up test on TCU start
+    //
+    // UNIT: mV
     uint16_t min_batt_power_on_test;
+    // If a solenoid is reading more than this current during the
+    // boot test, then it is assumed faulty
+    //
+    // UNIT: mA
     uint16_t current_threshold_error;
+    // Solenoid reference voltage. DO NOT TOUCH THIS. It is intended 
+    // for debugging ONLY!
+    //
+    // UNIT: mV
     uint16_t cc_vref_solenoid;
+    // The temperature coefficient of the solenoid wiring and coils.
+    // DO NOT TOUCH THIS. It is intended for debugging ONLY!
     float cc_temp_coefficient_wires;
+    // MPC and SPC solenoids reference resistance at cc_reference_temp
     float cc_reference_resistance;
+    // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
+    // The maximum jump the constant current driver can perform in 10ms
     float cc_max_adjust_per_step;
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
@@ -89,22 +173,52 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
 
 #define SBS_SETTINGS_NVS_KEY "SBS_A2"
 
+// Shift program basic settings
 typedef struct {
+    // Minimum end RPM for an upshift. Setting this too high
+    // might block shifting
+    // UNIT: RPM
     uint16_t min_upshift_end_rpm;
+    // DEBUG - Show an 'F' marker in the gear display when the TCU
+    // detects a flare condition
     bool f_shown_if_flare;
+    // DEBUG - Show '^' or 'v' in the gear display when the shift
+    // thread is active
     bool debug_show_up_down_arrows_in_r;
+    // Torque factor reduction based on input torque
     LinearInterpSetting torque_reduction_factor_input_torque;
+    // Torque factor reduction based on shift speed
     LinearInterpSetting torque_reduction_factor_shift_speed;
+    // When not moving, this is the time the gearbox holds the overlap
+    // phase and assumes the shift completes successfully.
+    // UNIT: milliseconds
     uint16_t stationary_shift_hold_time;
+    // Shift timeout when pulling
+    // UNIT: milliseconds
     uint16_t shift_timeout_pulling;
+    // Shift timeout when coasting
+    // UNIT: milliseconds
     uint16_t shift_timeout_coasting;
+    // DEBUG
     float smooth_shifting_spc_multi_too_slow;
+    // DEBUG
     float smooth_shifting_spc_multi_too_fast;
+    // Maximum torque reduction this far into the shift when upshifting
+    // UNIT: %
     uint16_t upshift_trq_max_reduction_at;
+    // Maximum torque reduction this far into the shift when downshifting
+    // UNIT: %
     uint16_t downshift_trq_max_reduction_at;
+    // SPC ramp multiplier based on target shift speed
     LinearInterpSetting spc_multi_overlap_shift_speed;
+    // SPC multiplier when at 0 gearbox torque
     float spc_multi_overlap_zero_trq;
+    // SPC multiplier when at maximum gearbox torque
     float spc_multi_overlap_max_trq;
+    // When garage shifting, this is the maximum time to wait
+    // for engine to drop its RPM when we ask it to before performing
+    // the garage shift
+    // UNIT: milliseconds
     uint16_t garage_shift_max_timeout_engine;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
@@ -145,32 +259,79 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
 #define NAG_SETTINGS_NVS_KEY "NAG_A0"
 
 typedef struct {
+    // Maximum input torque the gearbox can withstand
+    // UNIT: Nm
     uint16_t max_torque;
+    // Gear 1 ratio
     float ratio_1;
+    // Gear 2 ratio
     float ratio_2;
+    // Gear 3 ratio
     float ratio_3;
+    // Gear 4 ratio
     float ratio_4;
+    // Gear 5 ratio
     float ratio_5;
+    // Gear R1 ratio
     float ratio_r1;
+    // Gear R2 ratio
     float ratio_r2;
+    // Power loss in 1st gear
+    // UNIT: %
     uint8_t power_loss_1;
+    // Power loss in 2nd gear
+    // UNIT: %
     uint8_t power_loss_2;
+    // Power loss in 3rd gear
+    // UNIT: %
     uint8_t power_loss_3;
+    // Power loss in 4rd gear
+    // UNIT: %
     uint8_t power_loss_4;
+    // Power loss in 5th gear
+    // UNIT: %
     uint8_t power_loss_5;
+    // Power loss in R1 gear
+    // UNIT: %
     uint8_t power_loss_r1;
+    // Power loss in R2 gear
+    // UNIT: %
     uint8_t power_loss_r2;
 } __attribute__ ((packed)) NAG_SETTINGS;
 
+// Gearbox configuration
 typedef struct {
+    // Maximum allowed drift from the target ratio in 1st gear.
+    //
+    // UNIT: %
     uint8_t max_drift_1;
+    // Maximum allowed drift from the target ratio in 2nd gear.
+    //
+    // UNIT: %
     uint8_t max_drift_2;
+    // Maximum allowed drift from the target ratio in 3rd gear.
+    //
+    // UNIT: %
     uint8_t max_drift_3;
+    // Maximum allowed drift from the target ratio in 4tg gear.
+    //
+    // UNIT: %
     uint8_t max_drift_4;
+    // Maximum allowed drift from the target ratio in 5th gear.
+    //
+    // UNIT: %
     uint8_t max_drift_5;
+    // Maximum allowed drift from the target ratio in R1 gear.
+    //
+    // UNIT: %
     uint8_t max_drift_r1;
+    // Maximum allowed drift from the target ratio in R2 gear.
+    //
+    // UNIT: %
     uint8_t max_drift_r2;
+    // Small NAG settings
     NAG_SETTINGS small_nag;
+    // Large NAG settings
     NAG_SETTINGS large_nag;
 } __attribute__ ((packed)) NAG_MODULE_SETTINGS;
 
@@ -220,12 +381,26 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
 
 #define PRM_SETTINGS_NVS_KEY "PRM_A1"
 
+// Pressure manager settings
 typedef struct {
+    // Maximum Shift pressure with SPC solenoid off
+    // UNIT: mBar
     uint16_t max_spc_pressure;
+    // Maximum Modulating pressure with MPC solenoid off
+    // UNIT: mBar
     uint16_t max_mpc_pressure;
+    // Maximum line pressure
+    // UNIT: mBar
     uint16_t max_line_pressure;
+    // Engine RPM multiplier on line pressure
     LinearInterpSetting engine_rpm_pressure_multi;
+    // K1 clutch factor for 1-2 and 2-1 shifting
     float k1_pressure_multi;
+    // Time before shift solenoids are reduced PWM.
+    // Setting this too low can result in the shift circuit
+    // not activating!
+    //
+    // UNIT: milliseconds
     uint16_t shift_solenoid_pwm_reduction_time;
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
 
@@ -245,17 +420,41 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
 
 #define ADP_SETTINGS_NVS_KEY "ADP_A1"
 
+// Adaptation settings
 typedef struct {
+    // Minimum transmission oil temperature for adaptation
+    //
+    // UNIT: degrees C
     int16_t min_atf_temp;
+    // Maximum transmission oil temperature for adaptation
+    //
+    // UNIT: degrees C
     int16_t max_atf_temp;
+    // Minimum input speed for adaptation
+    //
+    // UNIT: RPM
     uint16_t min_input_rpm;
+    // Maximum input speed for adaptation
+    //
+    // UNIT: RPM
     uint16_t max_input_rpm;
+    // Adapt allowed for the K1 clutch
     bool prefill_adapt_k1;
+    // Adapt allowed for the K2 clutch
     bool prefill_adapt_k2;
+    // Adapt allowed for the K3 clutch
     bool prefill_adapt_k3;
+    // Adapt allowed for the B1 brake
     bool prefill_adapt_b1;
+    // Adapt allowed for the B1 brake
     bool prefill_adapt_b2;
+    // The max pressure delta (+/-) allowed for any adaptation cell
+    //
+    // UNIT: mBar
     uint16_t prefill_max_pressure_delta;
+    // The max time delta (+/-) allowed for any adaptation cell
+    //
+    // UNIT: milliseconds
     uint16_t prefill_max_time_delta;
     
 } __attribute__ ((packed)) ADP_MODULE_SETTINGS;
@@ -289,10 +488,18 @@ enum AutoProfile: uint8_t {
     Winter = 3
 };
 
+// Shifter settings
 typedef struct {
+    // TRRS shifter (Wired to the TCU) has a profile selector?
     bool trrs_has_profile_selector;
+    // The type of profile selection available on the CAN EWM
+    // shifter
     EwmSelectorType ewm_selector_type;
+    // When using a switch profile selector. This is the profile
+    // to use when in the top position
     AutoProfile profile_idx_top;
+    // When using a switch profile selector. This is the profile
+    // to use when in the bottom position
     AutoProfile profile_idx_buttom;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 

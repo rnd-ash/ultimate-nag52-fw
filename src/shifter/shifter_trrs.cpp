@@ -41,7 +41,7 @@ ShifterTrrs::ShifterTrrs(esp_err_t *can_init_status, const char *name, bool *sta
 			.scl_pullup_en = GPIO_PULLUP_ENABLE,
 		};
 		conf.master.clk_speed = 100000u;
-		*can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, 0);
+		*can_init_status = i2c_driver_install(I2C_NUM_0, i2c_mode_t::I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_SHARED);
 		if (ESP_OK == *can_init_status)
 		{
 			*can_init_status = i2c_param_config(I2C_NUM_0, &conf);
@@ -76,10 +76,10 @@ ShifterTrrs::ShifterTrrs(esp_err_t *can_init_status, const char *name, bool *sta
 	}
 }
 
-ShifterPosition ShifterTrrs::get_shifter_position(const uint64_t now, const uint64_t expire_time_ms)
+ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
-	if ((now - last_i2c_query_time) < expire_time_ms)
+	if ((GET_CLOCK_TIME() - last_i2c_query_time) < expire_time_ms)
 	{
 		// Data is valid time range!
 		uint8_t tmp = i2c_rx_bytes[0];
@@ -138,7 +138,7 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint64_t now, const uint
 	return ret;
 }
 
-void ShifterTrrs::update_shifter_position(const uint64_t now)
+void ShifterTrrs::update_shifter_position(const uint32_t now)
 {
 	if (50u < (now - this->last_i2c_query_time))
 	{
@@ -172,9 +172,9 @@ void ShifterTrrs::update_shifter_position(const uint64_t now)
 		}
 	}
 }
-ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) {
+ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint32_t expire_time_ms) {
 	ProfileSwitchPos result = ProfileSwitchPos::SNV;
-	if ((now - last_i2c_query_time) < expire_time_ms) {
+	if ((GET_CLOCK_TIME() - last_i2c_query_time) < expire_time_ms) {
 		bool top = (i2c_rx_bytes[0] & BIT(1)) != 0;
 		result = top ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
 	}

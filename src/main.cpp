@@ -1,5 +1,8 @@
 #ifndef UNIT_TEST
 
+
+#include "clock.hpp"
+
 #include "solenoids/solenoids.h"
 #include "esp_log.h"
 #include <freertos/FreeRTOS.h>
@@ -10,7 +13,6 @@
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
-#include "solenoids/constant_current.h"
 #include "nvs/module_settings.h"
 
 // CAN LAYERS
@@ -18,7 +20,9 @@
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
 #include "canbus/can_hfm.h"
+
 #include "board_config.h"
+#include "nvs/device_mode.h"
 
 Kwp2000_server* diag_server;
 
@@ -56,6 +60,9 @@ SPEAKER_POST_CODE setup_tcm() {
             if (EEPROM::init_eeprom() != ESP_OK) {
                 ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             } else {
+                // Read device mode!
+                CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
+                ESP_LOGI("INIT", "TCU mode on EEPROM is %08X", CURRENT_DEVICE_MODE);
                 // Read our configuration (This is allowed to fail as the default opts are always set by default)
                 ModuleConfiguration::load_all_settings();
                 switch (VEHICLE_CONFIG.egs_can_type) {
@@ -92,8 +99,6 @@ SPEAKER_POST_CODE setup_tcm() {
         }
     }
     if (ret == SPEAKER_POST_CODE::INIT_OK) {
-        CurrentDriver::init_current_driver();
-
         standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
         comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
         winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
@@ -170,8 +175,8 @@ void input_manager(void*) {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
-    uint64_t now = esp_timer_get_time()/1000;
-    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(now, 100);
+    uint32_t now = GET_CLOCK_TIME();
+    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(100);
     bool pressed = false;
     
     if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
@@ -181,9 +186,9 @@ void input_manager(void*) {
         }
     }
     while(1) {
-        uint64_t now = esp_timer_get_time()/1000;
+        now = GET_CLOCK_TIME();
         if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
-            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(now, 100);
+            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(100);
             // Switch based
             if (prof_now != last_mode) {
                 last_mode = prof_now;
@@ -193,7 +198,7 @@ void input_manager(void*) {
             }
         } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {
             // EWM button
-            bool down = egs_can_hal->get_profile_btn_press(now, 100);
+            bool down = egs_can_hal->get_profile_btn_press(100);
             if (down && !pressed) {
                 // Pressed button, inc profile
                 profile_id++;
@@ -206,7 +211,7 @@ void input_manager(void*) {
         } // Else - No profile button to process
 
 
-        PaddlePosition paddle = egs_can_hal->get_paddle_position(now, 100);
+        PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
         if (last_pos != paddle) { // Same position, ignore
             if (last_pos != PaddlePosition::None) {
                 // Process last request of the user
@@ -218,7 +223,7 @@ void input_manager(void*) {
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position(now, 1000);
+        ShifterPosition spos = egs_can_hal->get_shifter_position(1000);
         if (spos != slast_pos) { // Same position, ignore
             // Process last request of the user
             if (slast_pos == ShifterPosition::PLUS) {
@@ -255,6 +260,7 @@ const char* post_code_to_str(SPEAKER_POST_CODE s) {
 
 extern "C" void app_main(void)
 {
+    init_clock();
     // Set all pointers
     gearbox = nullptr;
     egs_can_hal = nullptr;
@@ -274,5 +280,26 @@ extern "C" void app_main(void)
         xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
     }
 }
+
+
+
+/*
+
+TEST MAIN FUNCTION FOR CALIBRATING IDLE TICK COUNT
+
+#include "diag/perf_mon.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+extern "C" void app_main(void)
+{
+    //init_clock();
+    PerfMon::init_perfmon();
+    while(true) {
+        PerfMon::update_sample();
+        vTaskDelay(1000);
+    }
+}
+*/
 
 #endif // UNIT_TEST

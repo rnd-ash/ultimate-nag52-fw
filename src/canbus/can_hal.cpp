@@ -1,7 +1,8 @@
 #include "can_hal.h"
 #include "board_config.h"
 #include "esp_check.h"
-#include "esp_timer.h"
+#include "clock.hpp"
+#include "nvs/device_mode.h"
 
 EgsBaseCan* egs_can_hal = nullptr;
 
@@ -21,7 +22,7 @@ EgsBaseCan::EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud) {
         return;
     }
     twai_general_config_t gen_config = TWAI_GENERAL_CONFIG_DEFAULT(pcb_gpio_matrix->can_tx_pin, pcb_gpio_matrix->can_rx_pin, TWAI_MODE_NORMAL);
-    gen_config.intr_flags = ESP_INTR_FLAG_IRAM; // Set TWAI interrupt to IRAM (Enabled in menuconfig)!
+    gen_config.intr_flags = ESP_INTR_FLAG_IRAM;
     gen_config.rx_queue_len = 32;
     gen_config.tx_queue_len = 32;
     twai_timing_config_t timing_config{};
@@ -105,7 +106,7 @@ bool EgsBaseCan::begin_tasks() {
     }
     if (this->tx_task == nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Starting CAN Tx task");
-        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 4096, this, 5, &this->tx_task) != pdPASS) {
+        if (xTaskCreate(this->start_tx_task_loop, "EGS_CAN_TX", 8192, this, 5, &this->tx_task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN Tx task creation failed!");
             return false;
         }
@@ -116,7 +117,26 @@ bool EgsBaseCan::begin_tasks() {
 [[noreturn]]
 void EgsBaseCan::tx_task_loop() {
     while(true) {
-        if (this->send_messages) {
+        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+            // Only Tx slave frames
+            tx.data_length_code = 8;
+
+            uint64_t solenoid = solenoid_slave_resp.raw;
+            uint64_t sensors = sensors_slave_resp.raw;
+            uint64_t un52 = un52_slave_resp.raw;
+
+            tx.identifier = SOLENOID_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(solenoid, tx.data);
+            twai_transmit(&tx, 5);
+
+            tx.identifier = SENSOR_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(sensors, tx.data);
+            twai_transmit(&tx, 5);
+
+            tx.identifier = UN52_REPORT_EGS_SLAVE_CAN_ID;
+            to_bytes(un52, tx.data);
+            twai_transmit(&tx, 5);
+        } else if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
             this->tx_frames();
         }
         vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS);
@@ -128,8 +148,9 @@ void EgsBaseCan::rx_task_loop() {
     twai_message_t rx;
     uint8_t i;
     uint64_t tmp;
+    uint32_t now;
     while(true) {
-        uint64_t now = esp_timer_get_time() / 1000;
+        now = GET_CLOCK_TIME();
         twai_get_status_info(&this->can_status);
         uint8_t f_count  = can_status.msgs_to_rx;
         if (f_count == 0) {
@@ -137,20 +158,37 @@ void EgsBaseCan::rx_task_loop() {
         } else { // We have frames, read them
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
                 if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                    if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
-                        // ISO-TP Diag endpoint
-                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
-                            // Send the frame
-                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
-                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
+                        // Logging mode
+                        char buf[35];
+                        int pos = 0;
+                        pos += sprintf(buf + pos, "CF->0x%04X", (uint16_t)rx.identifier);
+                        for (uint8_t i = 0; i < rx.data_length_code; i++) {
+                            pos += sprintf(buf + pos, "%02X", rx.data[i]);
+                        }
+                        printf("%.*s\n", pos, buf);
+                    } else {
+                        if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
+                            // ISO-TP Diag endpoint
+                            if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
+                                // Send the frame
+                                if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
+                                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                                }
+                            }
+                        } else { // Normal message
+                            tmp = 0;
+                            for(i = 0; i < rx.data_length_code; i++) {
+                                tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                            }
+
+                            if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+                                // Slave mode handling
+                                this->egs_slave_mode_tester.import_frames(tmp, rx.identifier, now);
+                            } else {
+                                this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                             }
                         }
-                    } else { // Normal message
-                        tmp = 0;
-                        for(i = 0; i < rx.data_length_code; i++) {
-                            tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                        }
-                        this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
                     }
                 }
             }

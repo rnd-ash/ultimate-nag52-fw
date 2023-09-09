@@ -5,11 +5,13 @@
 #include "diag_data.h"
 #include "egs_emulation.h"
 #include "kwp_utils.h"
-#include "solenoids/constant_current.h"
 #include "map_editor.h"
 #include "esp_mac.h"
 #include "models/clutch_speed.hpp"
 #include "tcu_alloc.h"
+#include "solenoids/solenoids.h"
+#include "clock.hpp"
+#include "nvs/device_mode.h"
 
 typedef struct {
     uint8_t day;
@@ -23,7 +25,7 @@ uint8_t decToBcd(uint8_t val)
   return ( (val/10*16) + (val%10) );
 }
 
-uint8_t bcd_to_hex(char c) {
+const uint8_t bcd_to_hex(char c) {
     switch (c) {
         case '0':
             return 0x0;
@@ -60,7 +62,7 @@ uint8_t bcd_to_hex(char c) {
     }
 }
 
-ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
+const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
     switch (cfg->board_ver) {
         case 1:
             return ECU_Date {
@@ -178,8 +180,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
 
         }
     }
-
-    init_perfmon();
+    PerfMon::init_perfmon();
 }
 
 kwp_result_t Kwp2000_server::convert_err_result(kwp_result_t in) {
@@ -205,15 +206,12 @@ Kwp2000_server::~Kwp2000_server() {
     if (this->flash_handler != nullptr) {
         delete this->flash_handler;
     }
-    // Remove timer interrupt for CPU stats
-    remove_perfmon();
 }
 
 void Kwp2000_server::make_diag_neg_msg(uint8_t sid, uint8_t nrc) {
     kwp_result_t nrc_convert = nrc;
     if (this->session_mode != SESSION_CUSTOM_UN52) {
         nrc_convert = this->convert_err_result(nrc);
-        ESP_LOGI("KWP2000", "Converting %s NRC to %s", kwp_nrc_to_name(nrc), kwp_nrc_to_name(nrc_convert));
     }
     global_make_diag_neg_msg(&this->tx_msg, sid, nrc_convert);
     this->send_resp = true;
@@ -236,7 +234,7 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 
 void Kwp2000_server::start_response_timer(uint8_t sid) {
     this->response_pending_sid = sid;
-    this->cmd_recv_time = esp_timer_get_time() / 1000;
+    this->cmd_recv_time = GET_CLOCK_TIME();
     this->response_pending = true;
 }
 
@@ -251,10 +249,8 @@ DiagMessage response_pending_msg = {
 };
 
 void Kwp2000_server::response_timer_loop() {
-    ESP_LOGI("KWP2000", "Timer started");
     while(1) {
-        if (this->response_pending && ((esp_timer_get_time()/1000) - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
-            ESP_LOGI("KWP2000", "Sending ResponsePending");
+        if (this->response_pending && (GET_CLOCK_TIME() - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
             response_pending_msg.data[1] = this->response_pending_sid;
             // Send 0x78 (Response pending)
             if (this->diag_on_usb) {
@@ -262,7 +258,7 @@ void Kwp2000_server::response_timer_loop() {
             } else {
                 this->can_endpoint->send_data(&response_pending_msg);
             }
-            this->cmd_recv_time = esp_timer_get_time()/1000;
+            this->cmd_recv_time = GET_CLOCK_TIME();
         }
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
@@ -271,7 +267,8 @@ void Kwp2000_server::response_timer_loop() {
 void Kwp2000_server::server_loop() {
     this->send_resp = false;
     while(1) {
-        uint64_t timestamp = esp_timer_get_time()/1000;
+        PerfMon::update_sample();
+        uint32_t timestamp = GET_CLOCK_TIME();
         bool read_msg = false;
         if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
             this->diag_on_usb = true;
@@ -400,7 +397,7 @@ void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t ar
         case SESSION_EXTENDED:
         case SESSION_REPROGRAMMING:
         case SESSION_CUSTOM_UN52:
-            this->next_tp_time = (esp_timer_get_time()/1000)+KWP_TP_TIMEOUT_MS;
+            this->next_tp_time = GET_CLOCK_TIME()+KWP_TP_TIMEOUT_MS;
             break;
         default:
             // Not supported session mode!
@@ -582,7 +579,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         if (ret == 0) { // OK
             uint8_t* buf = static_cast<uint8_t*>(TCU_HEAP_ALLOC(2+read_bytes_size));
             if (buf == nullptr) {
-                TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
+                TCU_FREE(buffer); // DELETE MapEditor allocation
                 make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
                 return;
             }
@@ -591,7 +588,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             memcpy(&buf[2], buffer, read_bytes_size);
             make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
             delete[] buf;
-            TCU_HEAP_FREE(buffer); // DELETE MapEditor allocation
+            TCU_FREE(buffer); // DELETE MapEditor allocation
             return;
         } else {
             make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, ret);
@@ -770,27 +767,45 @@ void Kwp2000_server::process_dynamically_define_local_ident(uint8_t* args, uint1
 void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len) {
 
 }
+
+// INPUT OUTPUT CONTROL BY 'LOCAL' IDENTIFIER HANDLER (SID_IOCTL / SidInputOutputControlByLocalIdentifier)
 void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
+    // Session mode check - This service is only supported in Extended, Reprgramming or OEM dependent modes
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (arg_len == 2) {
-        // 0x10 (EGS mode), 0x01 (Report current state)
-        if (args[0] == 0x10 && args[1] == 0x01) { // Query EGS mode (DAS EGS51 and EGS52)
-            // We need to return this for DAS to be happy EGS is in 'production' mode
-            // resp[0] - 0x10 (EGS mode)
-            // resp[1..2] - 0x0001 - Normal, 0x0002 - Assembly mode, 0x0004 - Role mode, 0x0008 - Slave mode
-            uint8_t resp[3] = {0x10, 0x00, 0x02};
-            if (BOARD_CONFIG.board_ver == 0) {
-                resp[2] = 0x02; // Assembly mode if mode is unknown
-            }
-            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 3);
-            return;
+    if (args[0] == 0x10) { // Mode manipulation
+
+        // NOTE. The device mode responses have been swapped to Big Endian byte order
+        //       in order to retain compatibility with Mercedes' diagnostic tool,
+        //       as the OEM TCU is a Big Endian processor, where this TCU is Little Endian
+
+        if (arg_len == 2 && args[1] == 0x00) { // Return control back to ECU
+            CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
+            EEPROM::set_device_mode(DEVICE_MODE_NORMAL);
+            uint8_t resp[3] = {0x10, 0x00};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 2);
+        } else if (arg_len == 2 && args[1] == 0x01) { // Report current device mode
+            uint8_t resp[4] = {0x10, 0x01, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else if (arg_len == 4 && args[1] == 0x07) { // Just change device mode
+            uint16_t mode_req = (args[2] << 8) | args[3];
+            CURRENT_DEVICE_MODE = mode_req;
+            uint8_t resp[4] = {0x10, 0x07, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else if (arg_len == 4 && args[1] == 0x08) { // Change device mode and save to EEPROM!
+            uint16_t mode_req = (args[2] << 8) | args[3];
+            CURRENT_DEVICE_MODE = mode_req;
+            EEPROM::set_device_mode(mode_req);
+            uint8_t resp[4] = {0x10, 0x08, (uint8_t)((CURRENT_DEVICE_MODE >> 8) & 0xFF), (uint8_t)(CURRENT_DEVICE_MODE & 0xFF)};
+            make_diag_pos_msg(SID_IOCTL_BY_LOCAL_IDENT, resp, 4);
+        } else {
+            make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
+    } else {
+        make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
     }
-    make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-    return;
 }
 void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
@@ -857,14 +872,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
-            // TODO - Re-add with new adaptation system
-            make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
-            //if (this->gearbox_ptr->pressure_mgr->diag_reset_adaptation()) {
-            //    make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
-            //} else {
-            //    // Can only fail if adapt manager is nullptr (Not ready)
-            //    make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-            //}
+            esp_err_t res = this->gearbox_ptr->shift_adapter->reset();
+            if (ESP_OK == res) {
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            } else {
+                // Can only fail if adapt manager is nullptr (Not ready)
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         }
@@ -915,7 +929,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
     }
     // Make a new flash handler!
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg);
+    this->flash_handler->on_request_download(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
 
@@ -929,7 +943,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
-    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg);
+    this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
 
@@ -944,7 +958,7 @@ void Kwp2000_server::process_transfer_data(uint8_t* args, uint16_t arg_len) {
         return;
     } else {
         // Flasher will do the rest for us
-        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg);
+        this->flash_handler->on_transfer_data(args, arg_len, &this->tx_msg, !this->diag_on_usb);
         this->send_resp = true;
     }
 }
@@ -999,6 +1013,9 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
                     break;
                 case MAP_CMD_BURN:
                     ret = MapEditor::burn_to_eeprom(map_id);
+                    break;
+                case MAP_CMD_RESET_TO_FLASH:
+                    ret = MapEditor::reset_to_program_default(map_id);
                     break;
                 default:
                     ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
@@ -1067,9 +1084,9 @@ void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_le
     }
     if (args[0] == KWP_CMD_RESPONSE_REQUIRED) {
         make_diag_pos_msg(SID_TESTER_PRESENT, nullptr, 0);
-        this->next_tp_time = esp_timer_get_time()/1000 + KWP_TP_TIMEOUT_MS;
+        this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
     } else if (args[1] == KWP_CMD_NO_RESPONSE_REQUIRED) {
-        this->next_tp_time = esp_timer_get_time()/1000 + KWP_TP_TIMEOUT_MS;
+        this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
     } else {
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
@@ -1140,167 +1157,46 @@ void Kwp2000_server::process_shift_mgr_op(uint8_t* args, uint16_t arg_len) {
     }
 }
 
+typedef struct {
+    uint8_t lid;
+    int16_t atf_temp;
+    uint16_t off_test[6];
+    SolenoidTestReading on_readings[6];
+} __attribute__((packed)) SolRtRes;
+
+static_assert(sizeof(SolRtRes) == 1+2+6*6);
 
 void Kwp2000_server::run_solenoid_test() {
     vTaskDelay(50);
-    this->routine_results_len = 1 + 2 + (6*6); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
+    this->routine_results_len = 1 + sizeof(SolRtRes); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
     this->routine_result[0] = this->routine_id;
     // Routine results format
-    int16_t atf = this->gearbox_ptr->sensor_data.atf_temp;
-    // uint16_t batt = Solenoids::get_solenoid_voltage();
-    uint16_t batt;
-    this->routine_result[1] = atf & 0xFF;
-    this->routine_result[2] = (atf >> 8) & 0xFF;
+
+    SolRtRes res{};
+    res.lid = this->routine_id;
+    res.atf_temp = this->gearbox_ptr->sensor_data.atf_temp;
 
     this->gearbox_ptr->diag_inhibit_control();
-    mpc_cc->toggle_state(false);
-    spc_cc->toggle_state(false);
-    vTaskDelay(50);
-    sol_mpc->write_pwm_12_bit(0);
-    sol_spc->write_pwm_12_bit(0);
-    sol_tcc->write_pwm_12_bit(0);
-    sol_y3->write_pwm_12_bit(0);
-    sol_y4->write_pwm_12_bit(0);
-    sol_y5->write_pwm_12_bit(0);
-    vTaskDelay(250);
+    Solenoids::notify_diag_test_start();
 
-    uint16_t curr = sol_mpc->get_current_avg();
-    this->routine_result[3] = curr & 0xFF;
-    this->routine_result[4] = (curr >> 8) & 0xFF;
-
-    curr = sol_spc->get_current_avg();
-    this->routine_result[5] = curr & 0xFF;
-    this->routine_result[6] = (curr >> 8) & 0xFF;
-
-    curr = sol_tcc->get_current_avg();
-    this->routine_result[7] = curr & 0xFF;
-    this->routine_result[8] = (curr >> 8) & 0xFF;
-
-    curr = sol_y3->get_current_avg();
-    this->routine_result[9] = curr & 0xFF;
-    this->routine_result[10] = (curr >> 8) & 0xFF;
-
-    curr = sol_y4->get_current_avg();
-    this->routine_result[11] = curr & 0xFF;
-    this->routine_result[12] = (curr >> 8) & 0xFF;
-
-    curr = sol_y5->get_current_avg();
-    this->routine_result[13] = curr & 0xFF;
-    this->routine_result[14] = (curr >> 8) & 0xFF;
-
-    const int NUM_CURRENT_SAMPLES = 10;
-    float total_batt = 0;
-    float total_curr = 0;
-    sol_mpc->write_pwm_12_bit(4096); // 1. MPC solenoid
-    vTaskDelay(100);
-    total_batt = 0;
-    total_curr = 0;
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_mpc->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
+    PwmSolenoid* order[6] = {sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
+    for (uint8_t i = 0; i < 6; i++) {
+        uint16_t current = order[i]->get_current();
+        // place in result
+        res.off_test[i] = current;
     }
-    curr = (uint16_t)(total_curr / (float)NUM_CURRENT_SAMPLES);
-    batt = (uint16_t)(total_batt / (float)NUM_CURRENT_SAMPLES);
-    this->routine_result[15] = batt & 0xFF;
-    this->routine_result[16] = (batt >> 8) & 0xFF;
-    this->routine_result[17] = curr & 0xFF;
-    this->routine_result[18] = (curr >> 8) & 0xFF;
-    sol_mpc->write_pwm_12_bit(0);
-    vTaskDelay(250);
-
-    sol_spc->write_pwm_12_bit(4096); // 2. SPC solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_spc->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
+    // Now do on tests
+    for (uint8_t i = 0; i < 6; i++) {
+        order[i]->pre_current_test();
+        SolenoidTestReading t = order[i]->get_full_on_current_reading();
+        order[i]->post_current_test();
+        // place in result
+        res.on_readings[i] = t;
     }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[19] = batt & 0xFF;
-    this->routine_result[20] = (batt >> 8) & 0xFF;
-    this->routine_result[21] = curr & 0xFF;
-    this->routine_result[22] = (curr >> 8) & 0xFF;
-    sol_spc->write_pwm_12_bit(0);
-    vTaskDelay(250);
-
-    sol_tcc->write_pwm_12_bit(4096); // 3. TCC solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_tcc->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[23] = batt & 0xFF;
-    this->routine_result[24] = (batt >> 8) & 0xFF;
-    this->routine_result[25] = curr & 0xFF;
-    this->routine_result[26] = (curr >> 8) & 0xFF;
-    sol_tcc->write_pwm_12_bit(0);
-    vTaskDelay(250);
-    sol_y3->write_pwm_12_bit(4096); // 4. Y3 Solenoid
-    vTaskDelay(100);
-    total_batt = 0;
-    total_curr = 0;
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y3->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[27] = batt & 0xFF;
-    this->routine_result[28] = (batt >> 8) & 0xFF;
-    this->routine_result[29] = curr & 0xFF;
-    this->routine_result[30] = (curr >> 8) & 0xFF;
-    sol_y3->write_pwm_12_bit(0);
-    vTaskDelay(250);
-
-    sol_y4->write_pwm_12_bit(4096); // 5. Y4 Solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y4->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[31] = batt & 0xFF;
-    this->routine_result[32] = (batt >> 8) & 0xFF;
-    this->routine_result[33] = curr & 0xFF;
-    this->routine_result[34] = (curr >> 8) & 0xFF;
-    sol_y4->write_pwm_12_bit(0);
-    vTaskDelay(250);
-
-    sol_y5->write_pwm_12_bit(4096); // 6. Y5 Solenoid
-    total_batt = 0;
-    total_curr = 0;
-    vTaskDelay(100);
-    for (int i = 0; i < NUM_CURRENT_SAMPLES; i++) {
-        total_curr += sol_y5->get_current_avg();
-        total_batt += Solenoids::get_solenoid_voltage();
-        vTaskDelay(10);
-    }
-    curr = total_curr / NUM_CURRENT_SAMPLES;
-    batt = total_batt / NUM_CURRENT_SAMPLES;
-    this->routine_result[35] = batt & 0xFF;
-    this->routine_result[36] = (batt >> 8) & 0xFF;
-    this->routine_result[37] = curr & 0xFF;
-    this->routine_result[38] = (curr >> 8) & 0xFF;
-    sol_y5->write_pwm_12_bit(0);
-    
     this->routine_running = false;
-    mpc_cc->toggle_state(true);
-    spc_cc->toggle_state(true);
+    Solenoids::notify_diag_test_end();
     this->gearbox_ptr->diag_regain_control();
+    memcpy(this->routine_result, &res, sizeof(SolRtRes));
     vTaskDelete(nullptr);
 }

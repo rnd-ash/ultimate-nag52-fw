@@ -1,13 +1,18 @@
 
 # Dev (Unreleased)
 
+# 21/08/23
+* EGS51 - Repair wonky torque requests
+* Shift reporter - Remove warning about invalid report on flash - Since shift reporter is not being used - we can ignore it.
+
+# 08/08/23
+
 ## Added
 * EGS53 - Add support for shift paddles
 * EEPROM Module settings interface
     * Allows for hot-modifying variables in the TCUs code base!
     * Wiki integration in the configuration app
 * Clutch speed and velocity algorithm - based on the calculations done for the gearbox model on the wiki [here](https://docs.ultimate-nag52.net/en/resources/7226_eq)
-
     * Calculate the speed of the engaging and releasing clutch during the gear changes
     * Allow the TCU to dynamically set the SPC ramp based on clutch progress to target speed
     * Add RLIs so you can monitor this in the config app
@@ -17,7 +22,7 @@
 * Remove the MPC filler adder map
 * Make MPC prefill pressure += SPC prefill pressure for better prefill quality
 * TCC opens up during shifting, like stock EGS to dampen the gear change for a smoother change - This will be configurable in a later update.
-* Finally, smoother N-D gear engagement, however **Shifting into reverse is STILL rough**
+* Finally, smoother N-D gear engagement, however **Shifting into N-R is STILL rough**
 * EGS53 - Fixed display showing 1st when in 5th gear
 * Modified Input speed calculation algorithm to not use a fixed multiplier when in 1st or 5th
 * Add settings to configure push button on shifter / TRRS
@@ -26,6 +31,9 @@
 * Update to PIO ESP Framework 6.3.2
 * Improve gear shifting smoothness
 * EGS53 - Correctly calculate driver demand torque
+* EGS52 - Support TRRS shifter (For Jeep)
+* Better functionality of the W/S switch (On TRRS and EWM)
+
 
 # 10/04/23
 

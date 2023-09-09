@@ -278,7 +278,7 @@ class ECU_GS {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {
@@ -309,7 +309,7 @@ class ECU_GS {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_GS_218(uint64_t now, uint64_t max_expire_time, GS_218_EGS52* dest) const {
+        bool get_GS_218(const uint32_t now, const uint32_t max_expire_time, GS_218_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
@@ -325,7 +325,7 @@ class ECU_GS {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_GS_338(uint64_t now, uint64_t max_expire_time, GS_338_EGS52* dest) const {
+        bool get_GS_338(const uint32_t now, const uint32_t max_expire_time, GS_338_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
                 dest->raw = FRAME_DATA[1];
@@ -341,7 +341,7 @@ class ECU_GS {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_GS_418(uint64_t now, uint64_t max_expire_time, GS_418_EGS52* dest) const {
+        bool get_GS_418(const uint32_t now, const uint32_t max_expire_time, GS_418_EGS52* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[2] <= now && now - LAST_FRAME_TIMES[2] < max_expire_time) {
                 dest->raw = FRAME_DATA[2];
@@ -352,6 +352,6 @@ class ECU_GS {
             
 	private:
 		uint64_t FRAME_DATA[3];
-		uint64_t LAST_FRAME_TIMES[3];
+		uint32_t LAST_FRAME_TIMES[3];
 };
 #endif // __ECU_GS_H_

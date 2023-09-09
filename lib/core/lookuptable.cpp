@@ -26,7 +26,7 @@ LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, c
 
 LookupTable::~LookupTable(void)
 {
-    TCU_HEAP_FREE(data);
+    TCU_FREE(data);
 }
 
 bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
@@ -34,7 +34,7 @@ bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
     bool result = false;
     dataSize = _dataSize;
     if(allocation_successful) {
-        TCU_HEAP_FREE(data);
+        TCU_FREE(data);
     }
     data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);

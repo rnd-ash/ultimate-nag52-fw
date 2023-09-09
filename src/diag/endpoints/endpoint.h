@@ -106,8 +106,8 @@ private:
     bool is_receiving;
     uint8_t rx_bs;
     uint8_t tx_pci = 0x20;
-    uint64_t last_rx_time;
-    uint64_t last_tx_time;
+    uint32_t last_rx_time;
+    uint32_t last_tx_time;
     uint8_t tx_bs = 8;
     uint8_t tx_stmin = 20;
     uint8_t frames_received = 0;

@@ -174,7 +174,7 @@ class ECU_FSCM {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {
@@ -202,7 +202,7 @@ class ECU_FSCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_FSCM_STAT(uint64_t now, uint64_t max_expire_time, FSCM_STAT_EGS53* dest) const {
+        bool get_FSCM_STAT(const uint32_t now, const uint32_t max_expire_time, FSCM_STAT_EGS53* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
@@ -218,7 +218,7 @@ class ECU_FSCM {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_NM_FSCM(uint64_t now, uint64_t max_expire_time, NM_FSCM_EGS53* dest) const {
+        bool get_NM_FSCM(const uint32_t now, const uint32_t max_expire_time, NM_FSCM_EGS53* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
                 dest->raw = FRAME_DATA[1];
@@ -229,6 +229,6 @@ class ECU_FSCM {
             
 	private:
 		uint64_t FRAME_DATA[2];
-		uint64_t LAST_FRAME_TIMES[2];
+		uint32_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_FSCM_H_

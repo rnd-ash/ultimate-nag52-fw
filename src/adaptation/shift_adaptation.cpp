@@ -61,15 +61,15 @@ bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {
     return ret;
 }
 
-AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply) {
+AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply, Clutch to_release) {
     AdaptPrefillData ret = {0, 0};
     if (nullptr != this->prefill_pressure_offset_map) {
-        ret.pressure_offset = this->prefill_pressure_offset_map->get_value((float)to_apply, 1);
+        ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)to_apply, 1);
+        ret.pressure_offset_off_clutch = this->prefill_pressure_offset_map->get_value((float)to_release, 1);
     }
     if (nullptr != this->prefill_time_offset_map) {
         ret.timing_offset = this->prefill_time_offset_map->get_value((float)to_apply, 1);
     }
-    ESP_LOGI("ADAPT", "Using prefill data of (%d mBar, %d ms) for %s", ret.pressure_offset, ret.timing_offset, CLUTCH_NAMES[(int)to_apply-1]);
     this->to_apply = to_apply;
     return ret;
 }
@@ -82,14 +82,10 @@ void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int ove
     ESP_LOGI("ADAPT", "Estimating shift started -%d ms ago at %d ms", start_time_offset, shift_start_time_absolute);
     bool check_velocity = true;
 
-
-
-
-    if (shift_start_time_absolute < overlap_start_ts - 100) { // Too early in fill phase
+    if (shift_start_time_absolute < overlap_start_ts) { // Too early in fill phase
         ESP_LOGE("ADAPT", "Shift started too early!");
         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->to_apply, -10.0, 200, -100.0);
-
-    } else if (shift_start_time_absolute > overlap_start_ts + 200) {
+    } else if (shift_start_time_absolute > overlap_start_ts + 250) {
         check_velocity = false;
         ESP_LOGE("ADAPT", "Shift started too late!");
         if (this->flared) {
@@ -101,11 +97,11 @@ void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int ove
     }
     if (check_velocity) {
         ESP_LOGI("ADAPT", "Vel on: %d ,Vel off: %d!", vel.on_clutch_vel, vel.off_clutch_vel);
-        if (vel.on_clutch_vel > 100) {
+        if (vel.on_clutch_vel > 50) {
             // Too quick
             ESP_LOGW("ADAPT", "Shifting velocity too quick");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, -5.0, 200, -200.0);
-        } else if (vel.on_clutch_vel < 25) {
+        } else if (vel.on_clutch_vel < 20) {
             ESP_LOGW("ADAPT", "Shifting velocity too slow");
             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->to_apply, +5.0, 200, -200.0);
         } else {
@@ -124,11 +120,12 @@ void ShiftAdaptationSystem::record_flare(ShiftStage when, uint64_t elapsed){
     this->flare_time = elapsed;
 }
 
-AdaptOverlapData ShiftAdaptationSystem::get_overlap_data() {
-    return AdaptOverlapData {
-        .start_mpc = 0,
-        .end_mpc = 0
-    };
+uint16_t ShiftAdaptationSystem::get_overlap_end_shift_pressure(Clutch to_apply, uint16_t selected_prefill_pressure) {
+    uint16_t ret = selected_prefill_pressure*2;
+    if (nullptr != this->prefill_pressure_offset_map) {
+        ret = this->prefill_pressure_offset_map->get_value((float)to_apply, 1);
+    }
+    return ret;
 }
 
 uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change) {
@@ -172,6 +169,8 @@ uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData*
 
 esp_err_t ShiftAdaptationSystem::reset(void)
 {
+    this->prefill_pressure_offset_map->reset_from_flash();
+    this->prefill_time_offset_map->reset_from_flash();
     return ESP_OK;
 }
 

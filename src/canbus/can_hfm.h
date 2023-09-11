@@ -113,7 +113,7 @@ class HfmCan: public EgsBaseCan {
 
         Shifter *shifter = new ShifterTrrs(&can_init_status, name, &start_enable);      
 
-        WheelData generateWheelData(uint64_t now, uint64_t expire_time_ms);
+        WheelData generateWheelData(const uint32_t expire_time_ms);
 };
 
 #endif // HFM_CAN_H

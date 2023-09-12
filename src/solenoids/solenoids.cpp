@@ -83,7 +83,7 @@ void read_solenoids_i2s(void*) {
                     if (in_sample[p->type1.channel]) {
                         // Add sample
                         in_sample[p->type1.channel] = false;
-                        sol_order_by_adc_channel[p->type1.channel]->__set_adc_reading(totals[p->type1.channel]/samples[p->type1.channel], samples[p->type1.channel] > 10);
+                        sol_order_by_adc_channel[p->type1.channel]->__set_adc_reading(totals[p->type1.channel]/samples[p->type1.channel]);
                         samples[p->type1.channel] = 0;
                         totals[p->type1.channel] = 0;
                     }
@@ -93,11 +93,11 @@ void read_solenoids_i2s(void*) {
                 if (nullptr != sol_order_by_adc_channel[i]) {
                     if (now - peak_entry_times[i] > 100 && in_sample[i]) {
                         in_sample[i] = false;
-                        sol_order_by_adc_channel[i]->__set_adc_reading(totals[i]/samples[i], samples[i] > 10);
+                        sol_order_by_adc_channel[i]->__set_adc_reading(totals[i]/samples[i]);
                         samples[i] = 0;
                         totals[i] = 0;
-                    } else if (now - peak_entry_times[i] > 1000 && !in_sample[i]) { // No sample detected
-                        sol_order_by_adc_channel[i]->__set_adc_reading(0, true);
+                    } else if (now - peak_entry_times[i] > 100 && !in_sample[i]) { // No sample detected
+                        sol_order_by_adc_channel[i]->__set_adc_reading(0);
                     }
                 }
             }
@@ -223,11 +223,11 @@ esp_err_t Solenoids::init_all_solenoids()
 {
     SolenoidSetup::init_adc();
     // Read calibration for ADC1
-    sol_y3 = new OnOffSolenoid("Y3", pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 500, 1024, 5);
-    sol_y4 = new OnOffSolenoid("Y4", pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 500, 1024, 5);
-    sol_y5 = new OnOffSolenoid("Y5", pcb_gpio_matrix->y5_pwm, ledc_channel_t::LEDC_CHANNEL_2, ADC_CHANNEL_7, 500, 1024, 5);
-    sol_mpc = new ConstantCurrentSolenoid("MPC", pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 5); 
-    sol_spc = new ConstantCurrentSolenoid("SPC", pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 5);
+    sol_y3 = new OnOffSolenoid("Y3", pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 500, 1024, 10);
+    sol_y4 = new OnOffSolenoid("Y4", pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 500, 1024, 10);
+    sol_y5 = new OnOffSolenoid("Y5", pcb_gpio_matrix->y5_pwm, ledc_channel_t::LEDC_CHANNEL_2, ADC_CHANNEL_7, 500, 1024, 10);
+    sol_mpc = new ConstantCurrentSolenoid("MPC", pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 10); 
+    sol_spc = new ConstantCurrentSolenoid("SPC", pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 10);
     // ~700mA for TCC solenoid when holding
     sol_tcc = new InrushControlSolenoid("TCC", pcb_gpio_matrix->tcc_pwm, ledc_channel_t::LEDC_CHANNEL_5, ADC_CHANNEL_5, 50, 700, 20);
     ESP_RETURN_ON_ERROR(sol_tcc->init_ok(), "SOLENOID", "TCC init not OK");

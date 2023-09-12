@@ -2,6 +2,7 @@
 #include "esp_check.h"
 #include "tcu_maths.h"
 
+// AT 12.0V
 const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
 const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
 const uint16_t INRUSH_TIME_US = 2500;
@@ -78,20 +79,23 @@ uint32_t InrushControlSolenoid::on_timer_interrupt() {
     uint32_t ret;
     uint16_t write_pwm;
     uint16_t req_pwm = this->pwm_raw;
+    
     if (this->phase_id == 2) { // Off -> Inrush
+        uint16_t min_start_pwm = INRUSH_START_PWM * 100 / this->vref_compensation;
+        uint16_t skip_pwm = INRUSH_SKIP_PWM * 100 / this->vref_compensation;
         // Reset
-        if (req_pwm <= INRUSH_START_PWM) { // Too low to activate solenoid
+        if (req_pwm <= min_start_pwm) { // Too low to activate solenoid
             this->phase_id = 2;
             write_pwm = 0;
             ret = this->period_duration_us;
-        } else if (req_pwm >= INRUSH_SKIP_PWM) { // High enough to skip inrush phase (Valve sticks open)
-            this->period_on_time = (this->period_duration_us*req_pwm)/4096;
+        } else if (req_pwm >= skip_pwm) { // High enough to skip inrush phase (Valve sticks open)
+            this->period_on_time = ((this->period_duration_us*req_pwm)*100/this->vref_compensation)/4096; // On for less time at higher voltages
             this->period_off_time = this->period_duration_us-this->period_on_time;
             write_pwm = this->calc_hold_pwm;
             ret = this->period_on_time;
             this->phase_id = 1;
         } else { // Inrush + On time
-            this->inrush_time = 2500;
+            this->inrush_time = (2500*100)/this->vref_compensation; // 2.5ms typical on time at 12V
             this->period_on_time = (this->period_duration_us*req_pwm)/4096;
             this->period_off_time = this->period_duration_us-this->period_on_time;
             if (this->inrush_time > this->period_on_time) {
@@ -129,6 +133,8 @@ uint32_t InrushControlSolenoid::on_timer_interrupt() {
 }
 
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
+    this->vref_compensation = vref_compensation * 100;
+    this->temp_compensation = temperature_factor * 100;
     this->calc_hold_pwm = (float)HOLD_PWM * vref_compensation;
 }
 

@@ -162,7 +162,7 @@ bool HfmCan::get_engine_is_limp(const uint32_t expire_time_ms) {
     return result;
 }
 
-bool HfmCan::get_kickdown(const uint32_t expire_time_ms) { // TODO
+bool HfmCan::get_kickdown(const uint32_t expire_time_ms) {
     // TODO: check if there is a difference to full throttle and kick down
     // TODO: since kick-down switch is directly connected to the TCU, it could make more sense to read that signal instead --> could be faster
     bool result = false;
@@ -173,32 +173,30 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms) { // TODO
     return result;
 }
 
-uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms) { // TODO
-    // TODO: convert from throttle valve-value
-    // TODO: requires the maximum possible throttle valve-value to calculate the relative position --> parameter in VEHICLE_CONFIG
+uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms) {
     uint8_t result = UINT8_MAX;
     HFM_210 hfm210;
     if(this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210)){
         if(!hfm210.DKI_UP_B){
             uint8_t dki = hfm210.DKI;
-            result = (250u < dki) ? 250u : dki;
+            if(VEHICLE_CONFIG.throttlevalve_maxopeningangle > dki) {
+                result = (uint8_t)(100.F * (((float)dki) / ((float)VEHICLE_CONFIG.throttlevalve_maxopeningangle)));
+            }
         }
     }
     return result;
 }
 
-int HfmCan::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
+int HfmCan::get_static_engine_torque(const uint32_t expire_time_ms) {
     int result = INT_MAX;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(GET_CLOCK_TIME(), expire_time_ms, &hfm308)){
         if(hfm308.HFM_UP_B){
             HFM_610 hfm610;
             if(this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610)){
-                // TODO: calculate using int-values
                 float mle = ((float)(hfm610.MLE)) * air_mass_factor;                
                 float nmot = ((float)(get_engine_rpm(expire_time_ms)));
                 // constant * mass air flow / engine speed
-                // TODO: convert c_eng, if need
                 result = (int)(VEHICLE_CONFIG.c_eng * mle / nmot);
             }    
         }
@@ -235,7 +233,7 @@ int HfmCan::get_driver_engine_torque(const uint32_t expire_time_ms) {
     return result;
 }
 
-int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms) { // TODO
+int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms) {
     int result = INT_MAX;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(GET_CLOCK_TIME(), expire_time_ms, &hfm308)){
@@ -293,7 +291,7 @@ uint16_t HfmCan::get_engine_rpm(const uint32_t expire_time_ms) {
     return result;
 }
 
-bool HfmCan::get_is_starting(const uint32_t expire_time_ms) { // TODO
+bool HfmCan::get_is_starting(const uint32_t expire_time_ms) {
     bool result =  false;
     HFM_308 hfm308;
     if(this->hfm_ecu.get_HFM_308(GET_CLOCK_TIME(), expire_time_ms, &hfm308)){

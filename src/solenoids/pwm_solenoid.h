@@ -83,7 +83,7 @@ public:
     esp_err_t init_ok() const;
 
     // Internal functions - Don't touch, handled by I2S thread!
-    void __set_adc_reading(uint16_t c, bool valid);
+    void __set_adc_reading(uint16_t c);
 
     virtual void pre_current_test(){};
     virtual void post_current_test(){};
@@ -91,7 +91,6 @@ public:
 
     // -- These functions are only accessed by sw_fader class! -- //
 protected:
-    bool current_measure_accurate = false;
     esp_err_t ready;
     const char *name;
     ledc_channel_t channel;

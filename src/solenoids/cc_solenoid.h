@@ -14,6 +14,9 @@ public:
 private:
     float internal_trim_factor = 1.0;
     uint16_t current_target = 0;
+    uint8_t counter = 0;
+    MovingUnsignedAverage* max_current_samples;
+    MovingUnsignedAverage* req_samples;
 };
 
 #endif

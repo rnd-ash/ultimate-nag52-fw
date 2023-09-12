@@ -14,6 +14,8 @@ public:
     void post_current_test() override;
 private:
     uint32_t period_duration_us = 0;
+    uint16_t vref_compensation = 100; // %
+    uint16_t temp_compensation = 100; // %
     // 0 - Inrush
     // 1 - Hold
     // 2 - Off

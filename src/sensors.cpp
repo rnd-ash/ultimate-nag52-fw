@@ -13,11 +13,12 @@
 #include "driver/pulse_cnt.h"
 #include "tcu_maths.h"
 #include "moving_average.h"
+#include "esp_timer.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
 
-const pcnt_unit_config_t RPM_UNIT_CFG = {
+const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
     .low_limit = INT16_MIN,
     .high_limit = INT16_MAX,
     .flags {
@@ -52,21 +53,26 @@ adc_cali_handle_t adc2_cal = nullptr;
 
 MovingUnsignedAverage* n2_avg_buffer = nullptr;
 MovingUnsignedAverage* n3_avg_buffer = nullptr;
-MovingUnsignedAverage* out_avg_buffer = nullptr;
+uint64_t output_last_rev_time = 0;
+uint64_t output_current_revolution_time = 1000;
 
-uint8_t avg_n2_idx = 0;
-uint8_t avg_n3_idx = 0;
-uint8_t avg_out_idx = 0;
 bool output_rpm_ok = false;
 
 // Good enough for both boxes, but will be corrected as soon as the gearbox code boots up
 // to a more accurate value
 float RATIO_2_1 = 1.61f;
 
-
 inline static void read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
     pcnt_unit_get_count(unit, dest);
     pcnt_unit_clear_count(unit);
+}
+
+static bool IRAM_ATTR output_pcnt_on_watchpoint(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
+    uint64_t now = esp_timer_get_time();
+    output_current_revolution_time = now - output_last_rev_time;
+    output_last_rev_time = now;
+    pcnt_unit_clear_count(unit);
+    return true;
 }
 
 static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
@@ -78,12 +84,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
     // N3 Sensor
     read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
     n3_avg_buffer->add_sample(pulses*50);
-    
-    // Output Sensor (If present)
-    if (output_rpm_ok) {
-        read_and_reset_pcnt(PCNT_HANDLE_OUTPUT, &pulses);
-        out_avg_buffer->add_sample(pulses*50);
-    }
     return true;
 }
 
@@ -116,7 +116,10 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
     };
     ESP_RETURN_ON_ERROR(pcnt_new_channel(*UNIT_HANDLE, &rpm_chan_config, CHANNEL_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Channel", name);
     ESP_RETURN_ON_ERROR(
-        pcnt_channel_set_edge_action(*CHANNEL_HANDLE, pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE, pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE),
+        pcnt_channel_set_edge_action(*CHANNEL_HANDLE, 
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE,
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE
+        ),
         "SENSORS",
         "Failed to set PCNT actions for %s PCNT",
         name
@@ -124,6 +127,49 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
     ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(*UNIT_HANDLE, &glitch_filter), "SENSORS", "Failed to set glitch filter for PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_enable(*UNIT_HANDLE), "SENSORS", "Failed to enable PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_start(*UNIT_HANDLE), "SENSORS", "Failed to start PCNT unit %s", name);
+    return ESP_OK;
+}
+
+esp_err_t configure_output_pcnt(gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE) {
+    ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set output Pin to Input");
+    ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set output Pin to pullup");
+    ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup output PCNT Unit");
+    const pcnt_chan_config_t rpm_chan_config = {
+        .edge_gpio_num = gpio,
+        .level_gpio_num = -1,
+        .flags {
+            .invert_edge_input = 0,
+            .invert_level_input = 0,
+            .virt_edge_io_level = 0,
+            .virt_level_io_level = 0,
+            .io_loop_back = 0,
+        }     
+    };
+    ESP_RETURN_ON_ERROR(pcnt_new_channel(*UNIT_HANDLE, &rpm_chan_config, CHANNEL_HANDLE), "SENSORS", "Failed to setup output PCNT Channel");
+    ESP_RETURN_ON_ERROR(
+        pcnt_channel_set_edge_action(*CHANNEL_HANDLE, 
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_HOLD,
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE
+        ),
+        "SENSORS",
+        "Failed to set PCNT actions for output PCNT"
+    );
+
+    const pcnt_glitch_filter_config_t output_glitch_filter = {
+        .max_glitch_ns = 5000
+    };
+
+
+    ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(*UNIT_HANDLE, &output_glitch_filter), "SENSORS", "Failed to set glitch filter for output PCNT unit");
+    ESP_RETURN_ON_ERROR(pcnt_unit_add_watch_point(*UNIT_HANDLE, VEHICLE_CONFIG.input_sensor_pulses_per_rev), "SENSORS", "Failed to set output watchpoint");
+    ESP_RETURN_ON_ERROR(pcnt_unit_clear_count(*UNIT_HANDLE), "SENSORS", "Failed to clear output PCNT");
+    pcnt_event_callbacks_t cbs = {
+        .on_reach = output_pcnt_on_watchpoint
+    };
+    
+    ESP_RETURN_ON_ERROR(pcnt_unit_register_event_callbacks(*UNIT_HANDLE, &cbs, nullptr), "SENSORS", "Failed to set output callback");
+    ESP_RETURN_ON_ERROR(pcnt_unit_enable(*UNIT_HANDLE), "SENSORS", "Failed to enable output PCNT unit");
+    ESP_RETURN_ON_ERROR(pcnt_unit_start(*UNIT_HANDLE), "SENSORS", "Failed to start output PCNT unit");
     return ESP_OK;
 }
 
@@ -151,7 +197,7 @@ esp_err_t Sensors::init_sensors(void){
     // Enable output RPM reading if needed
     if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
         ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-        if (ESP_OK == configure_pcnt("OUTPUT", pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT, &out_avg_buffer)) {
+        if (ESP_OK == configure_output_pcnt(pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT)) {
             output_rpm_ok = true;
         }
     }
@@ -223,10 +269,11 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
     if (output_rpm_ok == false) {
         res = ESP_ERR_INVALID_STATE;
     } else {
-        uint16_t rpm = 0;
-        //uint64_t pulses_per_min = 60*(output_total*(50/2))/RPM_SAMPLES_DEBOUNCE;
-        //rpm = pulses_per_min / VEHICLE_CONFIG.input_sensor_pulses_per_rev;
-        *dest = rpm;
+        if (esp_timer_get_time() - output_last_rev_time > 1000000 || output_current_revolution_time > 1000000) {
+            *dest = 0;
+        } else {
+            *dest = ((float)1000000/(float)output_current_revolution_time)*60.0;
+        }
     }
     return res;
 }

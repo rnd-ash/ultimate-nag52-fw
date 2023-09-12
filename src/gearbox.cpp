@@ -1462,7 +1462,7 @@ bool Gearbox::calc_output_rpm(uint16_t *dest)
 {
     bool result = true;
     if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
-        result = Sensors::read_output_rpm(dest);
+        result = (ESP_OK == Sensors::read_output_rpm(dest));
     } else {
         this->sensor_data.rl_wheel = egs_can_hal->get_rear_left_wheel(500);
         this->sensor_data.rr_wheel = egs_can_hal->get_rear_right_wheel(500);

@@ -35,7 +35,12 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     }
     ret.v_batt = Solenoids::get_solenoid_voltage();
     ret.calc_ratio = g->get_gear_ratio();
-    ret.output_rpm = g->sensor_data.output_rpm;
+    uint16_t res = 0;
+    if (ESP_OK == Sensors::read_output_rpm(&res)) {
+        ret.output_rpm = res;
+    } else {
+        ret.output_rpm = 0xFFFF;
+    }
     return ret;
 }
 

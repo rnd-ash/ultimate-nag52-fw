@@ -91,10 +91,9 @@ uint16_t PwmSolenoid::get_pwm_compensated() const
     return this->pwm;
 }
 
-void PwmSolenoid::__set_adc_reading(uint16_t c, bool valid)
+void PwmSolenoid::__set_adc_reading(uint16_t c)
 {
     this->c_readings->add_sample(c);
-    this->current_measure_accurate = valid;
 }
 
 adc_channel_t PwmSolenoid::get_adc_channel() const {

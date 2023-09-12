@@ -11,7 +11,7 @@ static bool IRAM_ATTR on_clock_timer_isr(gptimer_handle_t timer, const gptimer_a
     return true;
 }
 
-uint32_t GET_CLOCK_TIME() {
+uint32_t IRAM_ATTR GET_CLOCK_TIME() {
     return TIMESTAMP_NOW;
 }
 

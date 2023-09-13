@@ -350,11 +350,17 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 };
 
 const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
-//  K1 K2 K3 B1 B2    
-    0, 0, 0, 0, 0,
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+      0,   0,   0,   0,   0,   0,   0,   0
 };
 
 const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
-//  K1 K2 K3 B1 B2   
-    0, 0, 0, 0, 0,
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+    0,   0,   0,   0,   0,   0,   0,   0
+};
+
+// Values here are x100 (so 20 would be 0.2)
+const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[] = {
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+     20,  30,  40,  50,  50,  40,  30,  20
 };

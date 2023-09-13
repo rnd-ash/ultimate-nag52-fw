@@ -91,21 +91,21 @@ struct OutputData {
  */
 enum class ProfileGearChange {
     /// Gear 1 to gear 2
-    ONE_TWO,
+    ONE_TWO = 0,
     /// Gear 2 to gear 3
-    TWO_THREE,
+    TWO_THREE = 1,
     /// Gear 3 to gear 4
-    THREE_FOUR,
+    THREE_FOUR = 2,
     /// Gear 4 to gear 5
-    FOUR_FIVE,
+    FOUR_FIVE = 3,
     /// Gear 5 down to gear 4
-    FIVE_FOUR,
+    FIVE_FOUR = 4,
     /// Gear 4 down to gear 3
-    FOUR_THREE,
+    FOUR_THREE = 5,
     /// Gear 3 down to gear 2
-    THREE_TWO,
+    THREE_TWO = 6,
     /// Gear 2 down to gear 1
-    TWO_ONE,
+    TWO_ONE = 7,
 };
 
 /**

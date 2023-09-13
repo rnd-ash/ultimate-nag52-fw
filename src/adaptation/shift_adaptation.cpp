@@ -8,6 +8,7 @@
 #include "nvs/module_settings.h"
 #include "common_structs_ops.h"
 #include "maps.h"
+#include "nvs/all_keys.h"
 
 const char* CLUTCH_NAMES[5] = {
     "K1",

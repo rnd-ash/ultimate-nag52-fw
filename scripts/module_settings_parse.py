@@ -99,7 +99,6 @@ class SettingStructure:
     def __init__(self, name, vars, key_name, desc):
         self.name = name
         self.__scn_id__ = 0
-        self.eeprom_name = key_name
         self.variables = vars[:]
         self.desc = desc.strip()
 
@@ -135,7 +134,7 @@ class SettingStructure:
     def to_setting_yml_block(self) -> {}:
         d = self.to_yml_block()
         d["SCN_ID"] = self.__scn_id__
-        d["EEPROM_KEY"] = self.eeprom_name
+        d["EEPROM_KEY"] = ""
         return d
 
     def get_variable_index(self, name: str) -> int:
@@ -156,11 +155,9 @@ class SettingStructure:
 
 SCN Getter ID: `0x{:02X}`
 
-EEPROM key name: `{}`
-
 |Setting name|Description|Data Type|Unit|
 |:--|:--|:-:|:-:|
-""".format(self.name, self.__scn_id__, self.eeprom_name)
+""".format(self.name, self.__scn_id__)
         for v in self.variables:
             ret += v.to_markdown_line()
 
@@ -207,6 +204,7 @@ desc=""
 
 
 f_in = open("./src/nvs/module_settings.h").readlines()
+f_nvs_keys = open("./src/nvs/all_keys.h").readlines()
 
 vars=[]
 enum_maps=[]
@@ -233,10 +231,7 @@ for line in f_in[2:]:
 
     if line.startswith("#define"):
         # can only be a key
-        if "NVS_KEY" in line:
-            setting_def = line.split("#define ")[1].split("_")[0]
-            last_key_name = line.split(" \"")[1].removesuffix("\"\n")
-        elif "SCN_ID" in line:
+        if "SCN_ID" in line:
             setting_def = line.split("#define ")[1].split("_")[0]
             id = int(line.split(" ")[2], 16)
             settings[find_setting_idx(setting_def)].set_scn_id(id)

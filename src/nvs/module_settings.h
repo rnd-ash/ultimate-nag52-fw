@@ -5,9 +5,9 @@
 #include <tcu_maths.h>
 #include <esp_err.h>
 
+
 // TCC Settings
 
-#define TCC_SETTINGS_NVS_KEY "TCC_A3"
 // Torque converter setting
 typedef struct {
     // Enable adaptation for all gears
@@ -131,8 +131,6 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .locking_pedal_pos_max = 15
 };
 
-#define SOL_SETTINGS_NVS_KEY "SOL_A0"
-
 // Solenoid subsystem settings
 typedef struct {
     // Minimum battery voltage before performing 
@@ -170,8 +168,6 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_reference_temp = 25,
     .cc_max_adjust_per_step = 2,
 };
-
-#define SBS_SETTINGS_NVS_KEY "SBS_A2"
 
 // Shift program basic settings
 typedef struct {
@@ -256,7 +252,6 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .garage_shift_max_timeout_engine = 1000,
 };
 
-#define NAG_SETTINGS_NVS_KEY "NAG_A0"
 
 typedef struct {
     // Maximum input torque the gearbox can withstand
@@ -379,8 +374,6 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
     }
 };
 
-#define PRM_SETTINGS_NVS_KEY "PRM_A1"
-
 // Pressure manager settings
 typedef struct {
     // Maximum Shift pressure with SPC solenoid off
@@ -417,8 +410,6 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
     .k1_pressure_multi = 1.9,
     .shift_solenoid_pwm_reduction_time = 1000,
 };
-
-#define ADP_SETTINGS_NVS_KEY "ADP_A1"
 
 // Adaptation settings
 typedef struct {
@@ -472,8 +463,6 @@ const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .prefill_max_pressure_delta = 200,
     .prefill_max_time_delta = 200,
 };
-
-#define ETS_SETTINGS_NVS_KEY "ETS_A1"
 
 enum EwmSelectorType: uint8_t {
     None = 0,

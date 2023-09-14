@@ -34,7 +34,7 @@ int scale_number_int(int raw, int new_min, int new_max, int raw_min, int raw_max
     return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
 }
 
-float scale_number(float raw, LinearInterpSetting* settings) {
+float scale_number(float raw, const LinearInterpSetting* settings) {
     return scale_number(raw, settings->new_min, settings->new_max, settings->raw_min, settings->raw_max);
 }
 
@@ -52,7 +52,7 @@ float progress_between_targets(const float current, const float start, const flo
     return ((100.0F * (current - start)) / (end - start));
 }
 
-void search_value(const int16_t value, int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max)
+void search_value(const int16_t value, const int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max)
 {
 	// Set minimum index to the first element of the field.
     *idvalue_min = 0u;

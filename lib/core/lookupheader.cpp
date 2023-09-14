@@ -59,7 +59,7 @@ LookupHeader::~LookupHeader(void)
 //     }
 // }
 
-int16_t LookupHeader::get_value(const uint16_t index)
+int16_t LookupHeader::get_value(const uint16_t index) const
 {
     int16_t result = INT16_MAX;
     if(index <= size){
@@ -68,7 +68,7 @@ int16_t LookupHeader::get_value(const uint16_t index)
     return result;
 }
 
-uint16_t LookupHeader::get_size(void)
+uint16_t LookupHeader::get_size(void) const
 {
     return size;
 }

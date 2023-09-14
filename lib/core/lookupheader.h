@@ -21,8 +21,8 @@ class LookupHeader {
         // /// @param idx_max the index of the element in headers, which is greater than or equal to value
         // void set_indices(const float value, uint16_t* idx_min, uint16_t* idx_max);
 
-        int16_t get_value(const uint16_t index);
-        uint16_t get_size(void);
+        int16_t get_value(const uint16_t index) const;
+        uint16_t get_size(void) const;
         int16_t* get_data(void);
         
     private:

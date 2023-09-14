@@ -45,7 +45,7 @@ bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
     return result;
 }
 
-bool LookupTable::is_allocated(void)
+bool LookupTable::is_allocated(void) const
 {
     return allocation_successful;
 }
@@ -65,7 +65,7 @@ float LookupTable::get_value(float xValue)
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
 }
 
-float LookupTable::get_header_interpolated(const float value)
+float LookupTable::get_header_interpolated(const float value) const
 {
     uint16_t    idvalue_min;
     uint16_t    idvalue_max;

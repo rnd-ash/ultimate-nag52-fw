@@ -79,8 +79,22 @@ typedef struct {
     float current_sense_multi;
 } SensorFuncData;
 
+typedef enum {
+    PCA_NUM_NC = -1,
+    PCA_NUM_0 = 0,
+    PCA_NUM_1 = 1,
+    PCA_NUM_2 = 2,
+    PCA_NUM_3 = 3,
+    PCA_NUM_4 = 4,
+    PCA_NUM_5 = 5,
+    PCA_NUM_6 = 6,
+    PCA_NUM_7 = 7
+} pca_num_t;
+
 class BoardGpioMatrix {
 public:
+    SensorFuncData sensor_data;
+    
     gpio_num_t can_tx_pin;
     gpio_num_t can_rx_pin;
 
@@ -91,8 +105,6 @@ public:
     gpio_num_t n3_pin;
     gpio_num_t n2_pin;
     
-    gpio_num_t io_pin; // Only on 1.3 and newer
-
     gpio_num_t y3_sense;
     gpio_num_t y3_pwm;
 
@@ -111,10 +123,26 @@ public:
     gpio_num_t tcc_sense;
     gpio_num_t tcc_pwm;
 
-    gpio_num_t i2c_sda; // Only on 1.2 and newer
-    gpio_num_t i2c_scl; // Only on 1.2 and newer
+    // only on board versions 1.2 and newer
+    gpio_num_t i2c_sda; 
+    gpio_num_t i2c_scl;
 
-    SensorFuncData sensor_data;
+    // inputs
+    pca_num_t i2c_expander_trrs_a;
+    pca_num_t i2c_expander_trrs_b;
+    pca_num_t i2c_expander_trrs_c;
+    pca_num_t i2c_expander_trrs_d;
+    pca_num_t i2c_expander_brake_light_switch;
+    pca_num_t i2c_expander_program_button;
+    pca_num_t i2c_expander_kickdown_switch;
+
+    // outputs
+    pca_num_t i2c_expander_rp_solenoid_enabler;
+    pca_num_t i2c_expander_start_enabler;
+    pca_num_t i2c_expander_gearbox_protection_enabler;
+
+    // only on board versions 1.3 and newer
+    gpio_num_t io_pin;
 };
 
 /**

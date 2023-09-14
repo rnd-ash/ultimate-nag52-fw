@@ -108,7 +108,7 @@ void read_solenoids_i2s(void*) {
 
 bool write_pwm = true;
 
-void Solenoids::notify_diag_test_start() {
+void Solenoids::notify_diag_test_start(void) {
     sol_mpc->set_current_target(0);
     sol_spc->set_current_target(0);
     sol_tcc->set_duty(0);
@@ -119,24 +119,20 @@ void Solenoids::notify_diag_test_start() {
     write_pwm = false;
 }
 
-void Solenoids::notify_diag_test_end() {
+void Solenoids::notify_diag_test_end(void) {
     write_pwm = true;
 }
 
 void update_solenoids(void*) {
     int16_t atf_temp = 25;
-    float vref_compensation = 1.0;
-    float temp_compensation = 1.0;
     while(true) {
+        float vref_compensation = 1.0;
         if (ESP_OK == Sensors::read_vbatt(&voltage)) {
             vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
-        } else {
-            vref_compensation = 1.0;
         }
+        float temp_compensation = 1.0;
         if (ESP_OK == Sensors::read_atf_temp(&atf_temp)) {
             temp_compensation = ((atf_temp-SOL_CURRENT_SETTINGS.cc_reference_temp)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/100.0;
-        } else {
-            vref_compensation = 1.0;
         }
         if (write_pwm) {
             sol_mpc->__write_pwm(vref_compensation, temp_compensation);
@@ -159,7 +155,7 @@ bool routine = false;
 bool startup_ok = false;
 
 
-uint16_t Solenoids::get_solenoid_voltage() {
+uint16_t Solenoids::get_solenoid_voltage(void) {
     return voltage;
 }
 
@@ -219,7 +215,7 @@ void Solenoids::boot_solenoid_test(void*) {
     vTaskDelete(NULL);
 }
 
-esp_err_t Solenoids::init_all_solenoids()
+esp_err_t Solenoids::init_all_solenoids(void)
 {
     SolenoidSetup::init_adc();
     // Read calibration for ADC1

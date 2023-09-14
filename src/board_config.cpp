@@ -25,7 +25,7 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() {
     this->spc_pwm    = gpio_num_t::GPIO_NUM_12; // Shift pressure solenoid (PWM output)
     this->tcc_sense  = gpio_num_t::GPIO_NUM_33; // Torque converter solenoid(Current feedback)
     this->tcc_pwm    = gpio_num_t::GPIO_NUM_13; // Torque converter solenoid (PWM output)
-
+    
     #define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
     #define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
     this->sensor_data = SensorFuncData {
@@ -36,6 +36,20 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() {
         
 
     };
+
+    // I/O expander inputs
+    this->i2c_expander_trrs_a = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_trrs_b = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_trrs_c = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_trrs_d = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_brake_light_switch = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_program_button = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_kickdown_switch = pca_num_t::PCA_NUM_NC; // Not available on this board version
+
+    // I/O expander outputs
+    this->i2c_expander_rp_solenoid_enabler = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_start_enabler = pca_num_t::PCA_NUM_NC; // Not available on this board version
+    this->i2c_expander_gearbox_protection_enabler = pca_num_t::PCA_NUM_NC; // Not available on this board version
 }
 
 BoardV12GpioMatrix::BoardV12GpioMatrix() {
@@ -69,6 +83,20 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
         .atf_calibration_curve = atf_temp_lookup_V12,
         .current_sense_multi = 1.0,
     };
+
+    // I/O expander inputs
+    this->i2c_expander_trrs_a = pca_num_t::PCA_NUM_5; // TRRS A
+    this->i2c_expander_trrs_b = pca_num_t::PCA_NUM_6; // TRRS B
+    this->i2c_expander_trrs_c = pca_num_t::PCA_NUM_3; // TRRS C
+    this->i2c_expander_trrs_d = pca_num_t::PCA_NUM_4; // TRRS D
+    this->i2c_expander_brake_light_switch = pca_num_t::PCA_NUM_0; // brake light switch (BLS)
+    this->i2c_expander_program_button = pca_num_t::PCA_NUM_1; // driving program switch
+    this->i2c_expander_kickdown_switch = pca_num_t::PCA_NUM_2; // kickdown switch
+
+    // I/O expander outputs
+    this->i2c_expander_rp_solenoid_enabler = pca_num_t::PCA_NUM_0; // enabler for RP-solenoid at TRRS-shifter
+    this->i2c_expander_start_enabler = pca_num_t::PCA_NUM_1; // start enabler
+    this->i2c_expander_gearbox_protection_enabler = pca_num_t::PCA_NUM_NC; // gearbox protection activated (see GSA-bit)
 }
 
 BoardV13GpioMatrix::BoardV13GpioMatrix() {
@@ -101,6 +129,20 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
         .atf_calibration_curve = atf_temp_lookup_V12,
         .current_sense_multi = 1.0,
     };
+
+    // I/O expander inputs
+    this->i2c_expander_trrs_a = pca_num_t::PCA_NUM_5; // TRRS A
+    this->i2c_expander_trrs_b = pca_num_t::PCA_NUM_6; // TRRS B
+    this->i2c_expander_trrs_c = pca_num_t::PCA_NUM_4; // TRRS C
+    this->i2c_expander_trrs_d = pca_num_t::PCA_NUM_3; // TRRS D
+    this->i2c_expander_brake_light_switch = pca_num_t::PCA_NUM_0; // brake light switch (BLS)
+    this->i2c_expander_program_button = pca_num_t::PCA_NUM_1; // driving program switch
+    this->i2c_expander_kickdown_switch = pca_num_t::PCA_NUM_2; // kickdown switch
+
+    // I/O expander outputs
+    this->i2c_expander_rp_solenoid_enabler = pca_num_t::PCA_NUM_1;  // enabler for RP-solenoid at TRRS-shifter
+    this->i2c_expander_start_enabler = pca_num_t::PCA_NUM_0; // start enabler
+    this->i2c_expander_gearbox_protection_enabler = pca_num_t::PCA_NUM_2; // gearbox protection activated (GSA-bit)
 }
 
 BoardGpioMatrix* pcb_gpio_matrix = nullptr;

@@ -25,7 +25,7 @@ float linear_interp(float start_value, float end_value, uint16_t current_elapsed
 float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
 // Faster version of [scale_number], mainly used for ISRs where float cannot be used
 int scale_number_int(int raw, int new_min, int new_max, int raw_min, int raw_max);
-float scale_number(float raw, LinearInterpSetting* settings);
+float scale_number(float raw, const LinearInterpSetting* settings);
 
 float progress_between_targets(const float current, const float start, const float end);
 
@@ -44,6 +44,6 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 /// @param size The size of values.
 /// @param idvalue_min The index for the value smaller than the value to be searched for.
 /// @param idvalue_max The index for the value greater than the value to be searched for.
-void search_value(const int16_t value, int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
+void search_value(const int16_t value, const int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
 
 #endif // TCU_MATHS_H

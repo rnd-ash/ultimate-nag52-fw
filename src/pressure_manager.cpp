@@ -286,7 +286,7 @@ void PressureManager::set_target_spc_and_mpc_pressure(uint16_t mpc, uint16_t spc
     this->req_spc_clutch_pressure = spc;
 }
 
-void PressureManager::set_spc_p_max() {
+void PressureManager::set_spc_p_max(void) {
     this->req_spc_clutch_pressure = 7700;
 }
 

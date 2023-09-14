@@ -47,10 +47,10 @@ void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
     *headers = yHeader->get_data();
 }
 
-float LookupMap::get_x_header_interpolated(const float value, const int16_t y)
+float LookupMap::get_x_header_interpolated(const float value, const int16_t y) const
 {
     // isolate the row
-    int16_t row[xHeader->get_size()];
+    int16_t row[xHeader->get_size()] = {0};
     for (uint16_t i = 0; i < xHeader->get_size(); i++)
     {
         row[i] = data[i*yHeaderSize];

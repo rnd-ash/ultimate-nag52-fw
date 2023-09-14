@@ -62,7 +62,7 @@ bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {
 }
 
 AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(Clutch to_apply, Clutch to_release) {
-    AdaptPrefillData ret = {0, 0};
+    AdaptPrefillData ret = {0, 0, 0};
     if (nullptr != this->prefill_pressure_offset_map) {
         ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)to_apply, 1);
         ret.pressure_offset_off_clutch = this->prefill_pressure_offset_map->get_value((float)to_release, 1);

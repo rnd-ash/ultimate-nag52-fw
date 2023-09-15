@@ -32,8 +32,8 @@ typedef enum {
 
 typedef struct {
     int16_t pressure_offset_on_clutch;
-    int16_t pressure_offset_off_clutch;
     int16_t timing_offset;
+    uint16_t torque_lim;
 } AdaptPrefillData;
 
 class ShiftAdaptationSystem  {
@@ -46,9 +46,9 @@ public:
     void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
     void record_flare(ShiftStage when, uint64_t elapsed);
-    uint16_t get_overlap_end_shift_pressure(Clutch to_apply, uint16_t selected_prefill_pressure);
+    uint16_t get_overlap_end_shift_pressure(ProfileGearChange change, uint16_t selected_prefill_pressure);
 
-    AdaptPrefillData get_prefill_adapt_data(Clutch to_apply, Clutch to_release);
+    AdaptPrefillData get_prefill_adapt_data(ProfileGearChange change);
 
     esp_err_t reset(void);
     esp_err_t save(void);
@@ -56,14 +56,15 @@ public:
     void debug_print_prefill_data();
 
 private:
-    bool set_prefill_cell_offset(StoredMap* dest, Clutch clutch, int16_t offset, int16_t pos_lim, int16_t neg_lim);
+    bool set_prefill_cell_offset(StoredMap* dest, ProfileGearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim);
     GearboxConfiguration* gb_cfg;
     uint8_t pre_shift_pedal_pos;
 
     StoredMap* prefill_pressure_offset_map;
     StoredMap* prefill_time_offset_map;
+    StoredMap* prefill_adapt_torque_limit_map;
 
-    Clutch to_apply;
+    ProfileGearChange current_change;
 
     bool flared = false;
     ShiftStage flare_location = ShiftStage::Bleed;

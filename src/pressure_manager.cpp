@@ -5,7 +5,7 @@
 #include "common_structs_ops.h"
 #include "nvs/module_settings.h"
 #include "nvs/device_mode.h"
-
+#include "nvs/all_keys.h"
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
     this->req_tcc_clutch_pressure = 0;
@@ -20,7 +20,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure PWM map **/
     const int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
-    key_name = MAP_NAME_PCS_BROWN;
+    key_name = NVS_KEY_MAP_NAME_PCS_BROWN;
     default_data = BROWN_PCS_CURRENT_MAP;
     this->pressure_pwm_map = new StoredMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
     if (this->pressure_pwm_map->init_status() != ESP_OK) {
@@ -30,7 +30,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure PWM map (TCC) **/
     const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
     const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
-    key_name = MAP_NAME_TCC_PWM;
+    key_name = NVS_KEY_MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
@@ -41,10 +41,10 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
     const int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
     if (VEHICLE_CONFIG.is_large_nag) { // Large
-        key_name = MAP_NAME_FILL_TIME_LARGE;
+        key_name = NVS_KEY_MAP_NAME_FILL_TIME_LARGE;
         default_data = LARGE_NAG_FILL_TIME_MAP;
     } else { // Small
-        key_name = MAP_NAME_FILL_TIME_SMALL;
+        key_name = NVS_KEY_MAP_NAME_FILL_TIME_SMALL;
         default_data = SMALL_NAG_FILL_TIME_MAP;
     }
     hold2_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
@@ -55,7 +55,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure Hold 2 pressure map **/
     const int16_t hold2p_x_headers[1] = {1};
     const int16_t hold2p_y_headers[5] = {1,2,3,4,5};
-    key_name = MAP_NAME_FILL_PRESSURE_LARGE;
+    key_name = NVS_KEY_MAP_NAME_FILL_PRESSURE;
     default_data = NAG_FILL_PRESSURE_MAP;
     hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
     if (this->hold2_pressure_map->init_status() != ESP_OK) {
@@ -65,7 +65,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Working pressure map **/
     const int16_t wp_x_headers[16] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
     const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    key_name = MAP_NAME_WORKING_MPC;
+    key_name = NVS_KEY_MAP_NAME_WORKING_MPC;
     default_data = NAG_WORKING_MAP;
     this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 16, 7, default_data);
     if (this->mpc_working_pressure->init_status() != ESP_OK) {

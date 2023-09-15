@@ -1,6 +1,7 @@
 #include "module_settings.h"
 #include "eeprom_impl.h"
 #include "tcu_alloc.h"
+#include "all_keys.h"
 
 TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS = TCC_DEFAULT_SETTINGS;
 SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS = SOL_DEFAULT_SETTINGS;
@@ -20,11 +21,11 @@ ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
 // Settings variable type: xxx_MODULE_SETTINGS
 // Settings SCN KEY IDs  : xxx_MODULE_SETTINGS_SCN_ID
 #define READ_EEPROM_SETTING(pfx) \
-    EEPROM::read_subsystem_settings<pfx##_MODULE_SETTINGS>(pfx##_SETTINGS_NVS_KEY, &pfx##_CURRENT_SETTINGS, &pfx##_DEFAULT_SETTINGS)
+    EEPROM::read_subsystem_settings<pfx##_MODULE_SETTINGS>(NVS_KEY_##pfx##_SETTINGS, &pfx##_CURRENT_SETTINGS, &pfx##_DEFAULT_SETTINGS)
 
 #define RESET_EEPROM_SETINGS(pfx) \
         pfx##_CURRENT_SETTINGS = pfx##_DEFAULT_SETTINGS; \
-        return EEPROM::write_subsystem_settings(pfx##_SETTINGS_NVS_KEY, &pfx##_DEFAULT_SETTINGS); \
+        return EEPROM::write_subsystem_settings(NVS_KEY_##pfx##_SETTINGS, &pfx##_DEFAULT_SETTINGS); \
 
 // Checks and writes the buffer as the setting
 #define CHECK_AND_WRITE_SETTINGS(pfx, buffer_len, buffer) \
@@ -33,7 +34,7 @@ ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
     } else { \
         pfx##_MODULE_SETTINGS settings = *(pfx##_MODULE_SETTINGS*)buffer; \
         pfx##_CURRENT_SETTINGS = settings; \
-        return EEPROM::write_subsystem_settings(pfx##_SETTINGS_NVS_KEY, &pfx##_CURRENT_SETTINGS); \
+        return EEPROM::write_subsystem_settings(NVS_KEY_##pfx##_SETTINGS, &pfx##_CURRENT_SETTINGS); \
     } \
 
 #define READ_SETTINGS_TO_BUFFER(pfx, buffer_len_dest, buffer_dest, use_default) \

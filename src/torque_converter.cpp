@@ -2,6 +2,7 @@
 #include "solenoids/solenoids.h"
 #include "tcu_maths.h"
 #include "nvs/eeprom_impl.h"
+#include "nvs/all_keys.h"
 
 // 1400 mBar ~= locking (C200CDI)
 // 1700 mBar ~= locking (E55 AMG)
@@ -13,7 +14,7 @@ const int16_t tcc_learn_default_data[5] = {1500, 1500, 1500, 1500, 1500};
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
-    tcc_learn_lockup_map = new StoredMap("TCC_LOCK", 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
+    tcc_learn_lockup_map = new StoredMap(NVS_KEY_TCC_LEARN_LOCK_MAP, 5, tcc_learn_x_headers, tcc_learn_y_headers, 5, 1, tcc_learn_default_data);
     if (this->tcc_learn_lockup_map->init_status() != ESP_OK) {
         delete[] this->tcc_learn_lockup_map;
     }

@@ -9,14 +9,7 @@
 #include "nvs_flash.h"
 #include "esp_err.h"
 
-// #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
-
-// Core SCN config (Needed for a ton of important calculations!)
-static const char NVS_KEY_SCN_CONFIG[9] = "CORE_SCN";
-static const char NVS_KEY_TCU_MODE[9] = "DEV_MODE";
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
-static const char NVS_UCFG_KEY_PROFILE[13] = "LAST_PROFILE";
-static const char NVS_KEY_GEAR_ADAPTATION[16] = "GEAR_ADAPTATION";
 
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t is_large_nag;
@@ -81,6 +74,8 @@ namespace EEPROM {
     esp_err_t read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     esp_err_t write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
     
+    esp_err_t check_if_new_fw(bool* dest);
+
     template <typename T>
     esp_err_t read_subsystem_settings(const char* key_name, T* dest, const T* default_settings);
 

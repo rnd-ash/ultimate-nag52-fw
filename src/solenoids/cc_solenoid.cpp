@@ -25,7 +25,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         // vref_compensation is battery voltage compensation
         // Calculate maximum current through the wires given the current voltage and resistance of the wires
         float max_current = ((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance) / vref_compensation;
-        calc_pwm = (4096.0 * (this->current_target/max_current)) * (1.0+this->internal_trim_factor);
+        calc_pwm = MAX(0, (4096.0 * (this->current_target/max_current)) * (1.0+this->internal_trim_factor));
         this->max_current_samples->add_sample(max_current);
         this->req_samples->add_sample(this->current_target);
         // Learning correction on sampled current
@@ -36,7 +36,11 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
                 uint16_t req = this->req_samples->get_average();
                 float err = ((float)req-(float)read)/(float)max;
                 this->internal_trim_factor += (err/10.0);
-                this->counter = 0;
+                if (this->internal_trim_factor > 0.99) {
+                    this->internal_trim_factor = 0.99;
+                } else if (this->internal_trim_factor < -0.99) {
+                    this->internal_trim_factor = -0.99;
+                }
             }
         }
     }

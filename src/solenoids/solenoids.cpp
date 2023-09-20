@@ -36,7 +36,7 @@ void read_solenoids_i2s(void*) {
     adc_continuous_new_handle(&c_cfg, &c_handle);
     adc_continuous_config_t dig_cfg = {
         .pattern_num = 6,
-        .sample_freq_hz = 6 * 1000 * 300, // 100 samples per solenoid per ms
+        .sample_freq_hz = 6 * 1000 * 100, // 100 samples per solenoid per ms
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
@@ -72,7 +72,7 @@ void read_solenoids_i2s(void*) {
         if (ret == ESP_OK) {
             for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
-                if (p->type1.data > 150) { // In peak or peak entry
+                if (p->type1.data > 300) { // In peak or peak entry
                     if (!in_sample[p->type1.channel]) {
                         in_sample[p->type1.channel] = true; // Sample start
                         peak_entry_times[p->type1.channel] = now;
@@ -222,8 +222,8 @@ esp_err_t Solenoids::init_all_solenoids(void)
     sol_y3 = new OnOffSolenoid("Y3", pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 500, 1024, 10);
     sol_y4 = new OnOffSolenoid("Y4", pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 500, 1024, 10);
     sol_y5 = new OnOffSolenoid("Y5", pcb_gpio_matrix->y5_pwm, ledc_channel_t::LEDC_CHANNEL_2, ADC_CHANNEL_7, 500, 1024, 10);
-    sol_mpc = new ConstantCurrentSolenoid("MPC", pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 10); 
-    sol_spc = new ConstantCurrentSolenoid("SPC", pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 10);
+    sol_mpc = new ConstantCurrentSolenoid("MPC", pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 3); 
+    sol_spc = new ConstantCurrentSolenoid("SPC", pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 3);
     // ~700mA for TCC solenoid when holding
     sol_tcc = new InrushControlSolenoid("TCC", pcb_gpio_matrix->tcc_pwm, ledc_channel_t::LEDC_CHANNEL_5, ADC_CHANNEL_5, 50, 700, 20);
     ESP_RETURN_ON_ERROR(sol_tcc->init_ok(), "SOLENOID", "TCC init not OK");

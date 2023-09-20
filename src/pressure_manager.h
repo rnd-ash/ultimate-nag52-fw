@@ -17,7 +17,8 @@ typedef struct {
 
 typedef struct {
     uint16_t hold_time;
-    uint16_t ramp_time;
+    uint16_t ramp_time_1;
+    uint16_t ramp_time_2;
 } PressureStageTiming;
 
 class PressureManager {

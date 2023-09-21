@@ -354,8 +354,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         float phase_total_time = 50;
 
         // Current Y values
-        float current_mpc = 0;
-        float current_spc = 0;
+        float current_mod_clutch_pressure = 0;
+        float current_shift_clutch_pressure = 0;
+        float current_working_pressure = 0;
+
+        // Previous stage Y values (Set at end of stage)
+        float prev_mod_clutch_pressure = 0;
+        float prev_shift_clutch_pressure = 0;
+        float prev_working_pressure = 0;
 
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
@@ -398,13 +404,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         bool overlap_record_start_done = false;
         bool flare_notified = false;
         bool recordable_shift = true;
-        uint16_t last_spc = 0;
 
         int delta_rpm = 0;
         int wp_pre_shift = pressure_manager->find_working_mpc_pressure(this->actual_gear);
-        int fill_end_mpc = 0;
-        int overlap_end_mpc = 0;
-        int overlap_end_spc = 0;
+
+
         float pre_overlap_torque = 0;
         float overlap_spc_start_pressure = prefill_data.fill_pressure_on_clutch + 250;
         int rpm_to_overlap = 0;
@@ -533,6 +537,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Overlap phase self cancels as it has to monitor shift progress
             if (phase_elapsed >= phase_total_time && current_stage <= ShiftStage::Overlap) {
                 current_stage = next_shift_stage(current_stage);
+                prev_mod_clutch_pressure = current_mod_clutch_pressure;
+                prev_shift_clutch_pressure = current_shift_clutch_pressure;
+                prev_working_pressure = current_working_pressure;
                 // New stage
                 phase_elapsed = 0;
                 // One time phase initial code
@@ -553,7 +560,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     ESP_LOGI("SHIFT", "Max Pressure start");
                     maxp = pressure_manager->get_max_pressure_timing();
                     phase_total_time = maxp.hold_time + maxp.ramp_time_1 + maxp.ramp_time_2;
-                    last_spc = current_spc;
                 }
             } else if (phase_elapsed > phase_total_time && current_stage == ShiftStage::MaxPressure) {
                 process_shift = false;
@@ -565,8 +571,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Stays at working pressure
                 // --SPC--
                 // 50mBar to drain the 7bar stored in the SPC rail
-                current_spc = prefill_data.fill_pressure_on_clutch*1.5;
-                current_mpc = wp_current_gear + prefill_data.fill_pressure_off_clutch;
+                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*1.5;
+                current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
+                current_working_pressure = mpc_working;
             } else if (current_stage == ShiftStage::Fill) {
                 //--MPC--
                 // Stays at working pressure
@@ -580,14 +587,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             
                 if (phase_elapsed <= prefill_phase_1_duration) {
                     // Phase 1. Highest pressure
-                    current_spc = prefill_data.fill_pressure_on_clutch*2;
+                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*1.5;
                 } else if (phase_elapsed <= prefill_phase_1_duration + prefill_phase_2_duration) {
                     // Phase 2. Ramp down
-                    current_spc = scale_number(total_elapsed, prefill_data.fill_pressure_on_clutch*2, prefill_data.fill_pressure_on_clutch, prefill_phase_1_duration, prefill_phase_1_duration + prefill_phase_2_duration);
+                    current_shift_clutch_pressure = scale_number(total_elapsed, prefill_data.fill_pressure_on_clutch*1.5, prefill_data.fill_pressure_on_clutch, prefill_phase_1_duration, prefill_phase_1_duration + prefill_phase_2_duration);
                 } else { // Phase 3 (Hold at fill pressure)
-                    current_spc = prefill_data.fill_pressure_on_clutch;
+                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
                 }
-                fill_end_mpc = current_mpc = wp_current_gear + prefill_data.fill_pressure_off_clutch;
+                current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
+                current_working_pressure = mpc_working;
                 pre_overlap_torque = sensor_data.input_torque;
                 if (mpc_released && !prefill_protection_active && prefill_adapt_flags == 0x0000) {
                     // Do adapting for prefill
@@ -599,14 +607,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->tcc->on_shift_ending();
                 }
 
-                float overlap_ending_mpc =  scale_number(
-                    sensor_data.input_torque,
-                    MAX(400, wp_current_gear/2),
-                    wp_current_gear,
-                    100,
-                    gearboxConfig.max_torque
-                );
-
                 float overlap_ending_spc = MAX(scale_number(
                     sensor_data.input_torque,
                     prefill_data.fill_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,
@@ -615,14 +615,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     gearboxConfig.max_torque
                 ), prefill_data.fill_pressure_on_clutch);
 
-
-
-
-                current_mpc = scale_number(phase_elapsed, fill_end_mpc, overlap_ending_mpc, 0, chars.target_shift_time);
-                current_spc = scale_number(phase_elapsed, prefill_data.fill_pressure_on_clutch, overlap_ending_spc, 0, chars.target_shift_time);
-                overlap_end_mpc = current_mpc;
-                overlap_end_spc = current_spc;
-
+                current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, 0, 0, chars.target_shift_time/2);
+                current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time);
+                current_working_pressure = wp_current_gear;
 
 
                 // Apply new shifting element
@@ -630,17 +625,23 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 if (phase_elapsed < maxp.ramp_time_1) {
-                    current_spc = scale_number(phase_elapsed, overlap_end_spc, MIN(7000, overlap_end_spc*1.25), 0, maxp.ramp_time_1);
-                    current_mpc = overlap_end_mpc;
+                    current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, MIN(7000, prev_shift_clutch_pressure*1.25), 0, maxp.ramp_time_1);
+                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1);
                 } else if (phase_elapsed < maxp.ramp_time_2) {
-                    current_spc = scale_number(phase_elapsed, last_spc, 7000, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
-                    current_mpc = scale_number(phase_elapsed, overlap_end_mpc, wp_new_gear, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
+                    current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, 7000, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
+                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
                 } else {
-                    current_spc = 7000;
-                    current_mpc = wp_new_gear;
+                    // Hold phase. Mod at 0, Shift at full
+                    prev_shift_clutch_pressure = 7000;
+                    current_mod_clutch_pressure = 0;
                 }
+                // Merge working pressure slowly
+                current_working_pressure = scale_number(phase_elapsed, wp_current_gear, wp_new_gear, 0, maxp.ramp_time_1+maxp.ramp_time_2+maxp.hold_time);
             }
-            pressure_mgr->set_target_spc_and_mpc_pressure(current_mpc, current_spc);
+
+            pressure_mgr->set_target_working_pressure(current_working_pressure);
+            pressure_mgr->set_target_modulating_clutch_pressure(current_mod_clutch_pressure);
+            pressure_mgr->set_target_shift_clutch_pressure(current_shift_clutch_pressure);
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {
@@ -650,7 +651,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         skip_phase = true;
                         sr.detect_shift_end_ts = (uint16_t)(GET_CLOCK_TIME() - shift_start_time);
                         if (prefill_adapt_flags == 0) {
-                            this->shift_adapter->record_shift_end(current_stage, phase_elapsed, current_mpc, current_spc);
+                            this->shift_adapter->record_shift_end(current_stage, phase_elapsed, current_mod_clutch_pressure, current_shift_clutch_pressure);
                         }
                     }
                 } else if (stationary_shift && phase_elapsed > 1000) {
@@ -722,7 +723,7 @@ void Gearbox::shift_thread()
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target))
     { // N->P or P->N
-        this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
+        this->pressure_mgr->set_target_shift_clutch_pressure(this->mpc_working+100);
         this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
         //sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
@@ -754,9 +755,9 @@ void Gearbox::shift_thread()
             int step_mpc = 4;
             int step_spc = 2;
             if (!into_reverse) {
-                pressure_mgr->set_target_spc_pressure(spc);
+                pressure_mgr->set_target_shift_clutch_pressure(spc);
             }
-            pressure_mgr->set_target_mpc_pressure(mpc);
+            pressure_mgr->set_target_working_pressure(mpc);
             int elapsed_waiting_engine = 0;
             while(true) {
                 if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
@@ -798,8 +799,8 @@ void Gearbox::shift_thread()
                         mpc = t_mpc*3;
                     }
                 }
-                pressure_mgr->set_target_mpc_pressure(mpc);
-                pressure_mgr->set_target_spc_pressure(spc);
+                pressure_mgr->set_target_working_pressure(mpc);
+                pressure_mgr->set_target_shift_clutch_pressure(spc);
 
                 if (elapsed > 1500 && turbine <= 50+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
                     completed_ok = true;
@@ -813,7 +814,7 @@ void Gearbox::shift_thread()
                 ESP_LOGW("SHIFT", "Garage shift aborted");
                 curr_target = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
                 curr_actual = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
-                pressure_mgr->set_target_spc_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
+                pressure_mgr->set_target_shift_clutch_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             } else {
                 // Shut down the 3-4 SS
@@ -826,7 +827,7 @@ void Gearbox::shift_thread()
         else
         {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            pressure_mgr->set_target_spc_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
+            pressure_mgr->set_target_shift_clutch_pressure(pressure_manager->find_working_mpc_pressure(GearboxGear::Neutral)*1.5);
             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             //sol_y4->write_pwm_12_bit(1024); // Back to idle
         }
@@ -1125,12 +1126,12 @@ void Gearbox::controller_loop()
             { // If shifting then shift manager has control over MPC working
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
             }
-            this->pressure_mgr->set_target_mpc_pressure(this->mpc_working);
+            this->pressure_mgr->set_target_working_pressure(this->mpc_working);
         }
         if (Sensors::parking_lock_engaged(&lock_state) == ESP_OK)
         {
             if (lock_state) {
-                this->pressure_mgr->set_target_spc_pressure(this->mpc_working+100);
+                this->pressure_mgr->set_target_working_pressure(this->mpc_working+100);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
                 //sol_y4->write_pwm_12_bit(1024);
             }

@@ -9,10 +9,32 @@
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
 
+/**
+ * @brief Shifting state
+ */
 enum class ShiftStage {
+    /**
+     * @brief Hydralic bleed phase.
+     * In this phase, Shift pressure fluid is bled in order to not over pressurise the overlap valve
+     * The shift solenoid is not active
+    */
     Bleed = 1,
+    /**
+     * @brief Clutch filling phase.
+     * In this phase, the shift solenoid is engaged, and Shift pressure is ramped in order to clear
+     * the tolorance between the engaging clutch pack, without actually applying it.
+     */
     Fill = 2,
+    /**
+     * @brief Clutch overlap phase.
+     * In this phase, the engaging clutch's pressure is raised, whilst the disengaging clutch's pressure
+     * is reduced, causing (Via the overlap hydralic valve), the gearbox to transition clutch packs.
+     */
     Overlap = 3,
+    /**
+     * @brief Shift pressure is increased to its maximum via a ramp in order to lock the engaging clutch in place.
+     * Then, the shift solenoid turns off, completing the gear change.
+     */
     MaxPressure = 4
 };
 
@@ -22,7 +44,7 @@ enum class Clutch {
     K3 = 3,
     B1 = 4,
     B2 = 5,
-    B3 = 6 // Reverse ONLY
+    B3 = 6
 };
 
 
@@ -109,13 +131,33 @@ enum class ProfileGearChange {
 };
 
 /**
- * Shift circuit
+ * Shifting circuit definition for the 722.6
+ * 
+ * A shifting circuit acts like a Flip-Flop circuit. Activating the circuit causes
+ * the toggle between 2 clutches on the gearbox (Thus completing a gear change). Once the circuit
+ * is disengaged, the clutch state is untouched until the solenoid activates again, causing a toggle
+ * again.
 */
 enum class ShiftCircuit {
+    /**
+     * @brief No shift circuit (placeholder)
+     */
     None = 0,
+
+    /**
+     * @brief 1/2 and 4/5 shift circuit. This controls the toggling between the B1 and K1 clutches
+     */
     sc_1_2 = 1 << 0,
+
+    /**
+     * @brief 2/3 shift circuit. This controls the toggling between the K2 and K3 clutches
+     */
     sc_2_3 = 1 << 1,
-    sc_3_4 = 1 << 2
+
+    /**
+     * @brief 3/4 shift circuit. This controls the toggling between the B2 and K3 clutches
+     */
+    sc_3_4 = 1 << 2,
 };
 
 /**

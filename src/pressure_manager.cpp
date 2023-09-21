@@ -78,6 +78,7 @@ void PressureManager::controller_loop() {
     uint16_t p_last_mpc = 0;
     uint16_t spc_now = 0;
     uint16_t mpc_now = 0;
+    uint16_t working_now = 0;
     while(1) {
         // Ignore
         if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
@@ -85,6 +86,7 @@ void PressureManager::controller_loop() {
         } else {
             spc_now = this->req_spc_clutch_pressure;
             mpc_now = this->req_mpc_clutch_pressure;
+            working_now = this->req_working_pressure;
             int max_spc = 7700;
             if (sol_y3->is_on()) {
                 // 1-2 circuit is open (Correct pressure for K1)
@@ -92,13 +94,17 @@ void PressureManager::controller_loop() {
                 if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
                     spc_now /= 1.9;
                     max_spc /= 1.9;
+                    mpc_now /= 1.9;
                 }
             }
+
+            mpc_now += working_now; // MPC += working pressure
+
             if (spc_now >= 7700) {
                 spc_now = 7700;
             }
-            if (spc_now >= 7700) {
-                spc_now = 7700;
+            if (mpc_now >= 7700) {
+                mpc_now = 7700;
             }
             if (p_last_spc != spc_now) {
                 p_last_spc = spc_now;
@@ -269,22 +275,23 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
     // Firstly, check if new value is 0 (Close the solenoid!)
     if (!enable) {
         manipulated->off();
+        this->shift_circuit_flag &= ~(uint8_t)ss; //
     } else { // Check if current value is 0, if so, write full PWM
         manipulated->on();
+        this->shift_circuit_flag |= (uint8_t)ss; //
     }
 }
 
-void PressureManager::set_target_mpc_pressure(uint16_t targ) {
-    this->req_mpc_clutch_pressure = targ;
+void PressureManager::set_target_working_pressure(uint16_t targ) {
+    this->req_working_pressure = targ;
 }
 
-void PressureManager::set_target_spc_pressure(uint16_t targ) {
+void PressureManager::set_target_shift_clutch_pressure(uint16_t targ) {
     this->req_spc_clutch_pressure = targ;
 }
 
-void PressureManager::set_target_spc_and_mpc_pressure(uint16_t mpc, uint16_t spc) {
-    this->req_mpc_clutch_pressure = mpc;
-    this->req_spc_clutch_pressure = spc;
+void PressureManager::set_target_modulating_clutch_pressure(uint16_t targ) {
+    this->req_mpc_clutch_pressure = targ;
 }
 
 void PressureManager::set_spc_p_max() {
@@ -300,12 +307,12 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 }
 
 uint16_t PressureManager::get_targ_line_pressure(void) {
-    return 0; // Unimplemented this->req_line_pressure;
+    return this->req_working_pressure;
 }
 
 uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {
     uint16_t ret = 0;
-    if (sol_y3->is_on() || sol_y4->is_on() || sol_y5->is_on()) {
+    if (0 != this->shift_circuit_flag) {
         ret = this->req_mpc_clutch_pressure;
     }
     return ret;
@@ -335,7 +342,7 @@ uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
 uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {
     // 0 if no shift circuits are open
     uint16_t ret = 0;
-    if (sol_y3->is_on() || sol_y4->is_on() || sol_y5->is_on()) {
+    if (0 != this->shift_circuit_flag) {
         ret = this->req_spc_clutch_pressure;
     }
     return ret;
@@ -354,17 +361,7 @@ uint16_t PressureManager::get_targ_tcc_pressure(void) const {
 }
 
 uint8_t PressureManager::get_active_shift_circuits(void) const {
-    uint8_t flg = 0;
-    if (sol_y3->is_on()) {
-        flg |= (uint8_t)ShiftCircuit::sc_1_2;
-    }
-    if (sol_y5->is_on()) {
-        flg |= (uint8_t)ShiftCircuit::sc_2_3;
-    }
-    if (sol_y4->is_on()) {
-        flg |= (uint8_t)ShiftCircuit::sc_3_4;
-    }
-    return flg;
+    return this->shift_circuit_flag;
 }
 
 //uint16_t PressureManager::get_targ_line_pressure(){ return this->req_current_mpc; }

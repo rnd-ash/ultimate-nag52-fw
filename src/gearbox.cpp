@@ -510,19 +510,28 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
                 }
                 */
-               if (total_elapsed <= torque_req_start_time) {
-                    target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
-               } else if (total_elapsed <= torque_req_max_time) {
-                    int torque = scale_number(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time);
-                    current_torque_req = MIN(torque, current_torque_req);
-                    this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
-               } else { // Decreasing still, or increasing
-                    if (now_cs.off_clutch_speed > 100) {
-                        int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed);
-                        current_torque_req = MAX(torque, current_torque_req);
-                        this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
+
+                bool goto_torque_ramp = true;
+                if (sensor_data.static_torque < gearboxConfig.max_torque/3) { // Torque below bounds
+                    if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
+                        goto_torque_ramp = false;
                     }
-               }
+                }
+
+                if (goto_torque_ramp) {
+                    if (total_elapsed <= torque_req_max_time) {
+                        target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
+                        int torque = scale_number(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time);
+                        current_torque_req = MIN(torque, current_torque_req);
+                        this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
+                    } else { // Decreasing still, or increasing
+                        if (now_cs.off_clutch_speed > 100) {
+                            int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed);
+                            current_torque_req = MAX(torque, current_torque_req);
+                            this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
+                        }
+                    }
+                }
 
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress

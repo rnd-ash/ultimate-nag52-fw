@@ -576,7 +576,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             
             if (current_stage == ShiftStage::Bleed) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 2.0, 100, gearboxConfig.max_torque);
+                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
                 // --MPC--
                 // Stays at working pressure
                 // --SPC--
@@ -585,7 +585,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
                 current_working_pressure = mpc_working;
             } else if (current_stage == ShiftStage::Fill) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 2.0, 100, gearboxConfig.max_torque);
+                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
                 //--MPC--
                 // Stays at working pressure
                 //--SPC--

@@ -386,7 +386,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int prefill_phase_3_duration = prefill_data.fill_time; // Full fill time
         int total_prefill_phase_time = prefill_phase_1_duration + prefill_phase_2_duration + prefill_phase_3_duration;
         int torque_req_start_time = total_prefill_phase_time;
-        int torque_req_max_time = total_prefill_phase_time + chars.target_shift_time/2;
+        int torque_req_max_time = total_prefill_phase_time + (chars.target_shift_time/2) +200;
 
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
@@ -618,20 +618,23 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->tcc->on_shift_ending();
                 }
 
+                current_working_pressure = wp_current_gear;
                 float overlap_ending_spc = scale_number(
                     sensor_data.input_torque,
                     prefill_data.fill_pressure_on_clutch*2,
-                    wp_current_gear + prefill_data.fill_pressure_on_clutch,
+                    current_working_pressure + prefill_data.fill_pressure_on_clutch,
                     100,
                     gearboxConfig.max_torque
                 );
-
-                current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, 0, 0, chars.target_shift_time);
-                current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time);
-                current_working_pressure = wp_current_gear;
-
-
-                // Apply new shifting element
+                
+                if (phase_elapsed < 200) {
+                    // Merge point
+                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, prev_mod_clutch_pressure/2, 0, 200);
+                    current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, current_working_pressure+prev_mod_clutch_pressure/2, 0, 200);
+                } else {
+                    current_mod_clutch_pressure = scale_number(phase_elapsed-200, prev_mod_clutch_pressure/2, 0, 0, chars.target_shift_time);
+                    current_shift_clutch_pressure = MAX(scale_number(phase_elapsed-200, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time), current_shift_clutch_pressure);
+                }
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
@@ -647,7 +650,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_mod_clutch_pressure = 0;
                 }
                 // Merge working pressure slowly
-                current_working_pressure = scale_number(phase_elapsed, wp_current_gear, wp_new_gear, 0, maxp.ramp_time_1+maxp.ramp_time_2+maxp.hold_time);
+                current_working_pressure = scale_number(phase_elapsed, prev_working_pressure, wp_new_gear, 0, maxp.ramp_time_1+maxp.ramp_time_2+maxp.hold_time);
             }
 
             pressure_mgr->set_target_working_pressure(current_working_pressure);

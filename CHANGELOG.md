@@ -1,5 +1,23 @@
 
 # Dev (Unreleased)
+* Compute working pressure and compensation for `pcshift` and `pcmod` pressures
+* Add in prefill for off clutch when changing gears (**NO MORE 3-4 FLARE!**)
+* Control shift release and engage ramps for shift clutch and mod clutch pressures
+* Clean process on first boot after update
+* Brand new Solenoid API
+    * On/Off solenoid - On for specific period of time, then activate holding phase
+    * Inrush solenoid - On, Hold, Off for specific period (Torque converter solenoid)
+    * CC Solenoid - Constant current driver solenoid (Corrected every 2ms)
+    * Make output shaft sensor appear in config app if present
+* DIAG `FN_SALVE_MODE` emulation (Originally on EGS52) - Allows for controlling IO of the TCU on a test bench via CAN
+* DIAG `FN_CANLOGGER_MODE` - Allows for sniffing CANBUS on a vehicle (TCU does not send frames in this mode)
+* EGS51 - Add the following Getters and setters to CAN matrix:
+    1. Gear protection bit
+    2. Garage shift protection bit
+    3. Gearbox OK bit
+    4. Neutral active (For EGS51s that use CAN to disable start rather than grounding out pin 7)
+    5. TCC status bits
+* Torque requests - Add `BackToDriverDemand` torque request bit (EGS52/53). This allows the engine to know that torque will be increasing and it can roll back the ignition retarding (Results in a much smoother up ramp)
 
 # 21/08/23
 * EGS51 - Repair wonky torque requests

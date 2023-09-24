@@ -29,30 +29,38 @@ public:
         static_cast<PressureManager*>(_this)->controller_loop();
     }
 
+    /**
+     * @brief Toggle the state of a shift solenoid
+     * @param ss Shifting hydralic circuit to engage
+     * @param enable Set circuit state to on
+     */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
     /**
-     * @brief Set the target MPC pressure (Modulating pressure)
+     * @brief Set the target Working pressure of the gearbox. 
+     * This pressure affects the actively engaged clutches in any gear, 
+     * as well as hydralic elements in the valve body
      * 
-     * @param targ Target MPC pressure to achieve in mBar
+     * @param targ Target Working pressure to achieve in mBar
      */
-    void set_target_mpc_pressure(uint16_t targ);
+    void set_target_working_pressure(uint16_t targ);
 
     /**
-     * @brief Set the target SPC pressure (Shift pressure)
+     * @brief Set the target Shift pressure clutch pressure.
+     * Via means of the overlap valve, when a shift command solenoid is engaged,
+     * this pressure is sent to the engaging clutch in the gearbox
      * 
-     * @param targ Target SPC pressure to achieve in mBar
+     * @param targ Target pressure to achieve in mBar
      */
-    void set_target_spc_pressure(uint16_t targ);
+    void set_target_shift_clutch_pressure(uint16_t targ);
 
     /**
-     * @brief Set the both target SPC pressure (Shift pressure) and MPC pressure (Modulating pressure)
+     * @brief Set the target Modulating pressure clutch pressure.
+     * Via means of the overlap valve, when a shift command solenoid is engaged,
+     * this pressure is sent to the releasing clutch in the gearbox
      * 
-     * @param mpc Target MPC pressure to achieve in mBar
-     * @param spc Target SPC pressure to achieve in mBar
-     * 
-     * This function is faster to execute than calling `set_target_mpc_pressure` and `set_target_spc_pressure`
+     * @param targ Target pressure to achieve in mBar
      */
-    void set_target_spc_and_mpc_pressure(uint16_t mpc, uint16_t spc);
+    void set_target_modulating_clutch_pressure(uint16_t targ);
 
     /**
      * @brief Set the target TCC pressure (Torque converter)
@@ -60,11 +68,6 @@ public:
      * @param targ Target TCC pressure to achieve in mBar
      */
     void set_target_tcc_pressure(uint16_t targ);
-
-    /**
-     * @brief Sets the target for working line pressure (In gears)
-    */
-   void set_target_line_pressure(uint16_t targ);
 
    uint16_t get_off_clutch_hold_pressure(Clutch c);
 
@@ -118,6 +121,8 @@ private:
      */
     uint16_t get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const;
 
+    uint8_t shift_circuit_flag = 0;
+
     SensorData* sensor_data;
     // At the clutch
     uint16_t req_tcc_clutch_pressure;
@@ -126,7 +131,7 @@ private:
     // At the releasing clutch (When shifting)
     uint16_t req_mpc_clutch_pressure;
     // For all clutches
-    uint16_t req_line_pressure;
+    uint16_t req_working_pressure;
 
     // At SPC solenoid
     uint16_t commanded_spc_pressure;

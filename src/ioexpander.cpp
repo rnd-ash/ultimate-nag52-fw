@@ -33,6 +33,9 @@ IOExpander::IOExpander(void)
 					i2c_tx_bytes[0] = (uint8_t)PCAReg::CONFIG0;
 					i2c_tx_bytes[1] = 0xFF;
 					init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, i2c_tx_bytes, 2, 50);
+					i2c_tx_bytes[0] = (uint8_t)PCAReg::POLARITY0;
+					i2c_tx_bytes[1] = 0x0u;
+					init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, i2c_tx_bytes, 2, 50);
 					i2c_tx_bytes[0] = (uint8_t)PCAReg::OUTPUT1;
 					i2c_tx_bytes[1] = 0x0u;
 					if (ESP_OK != init_status)

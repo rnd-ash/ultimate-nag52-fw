@@ -557,6 +557,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     pressure_manager->set_shift_circuit(sd.shift_circuit, true);
                     phase_total_time = total_prefill_phase_time;
                 } else if (current_stage == ShiftStage::Overlap) {
+                    // Reduce filling pressure depending on torque output.
+                    // This provides a nice smooth shifting experience at lower torque,
+                    // wilst remaining firmer at quicker shifts
+                    prev_shift_clutch_pressure = scale_number(sensor_data.input_torque, 650, prefill_data.fill_pressure_on_clutch, 100, 200);
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     this->tcc->set_shift_target_state(InternalTccState::Open);

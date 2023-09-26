@@ -22,7 +22,7 @@ jobs:
       - name: Deploy docs
         uses: appleboy/scp-action@v0.1.4
         with:
-          local: "html"
+          source: "html"
           target: "/var/www/html/${{ env.GITHUB_REF_NAME }}"
           username: ${{ secrets.SSH_USER }}
           host: ${{ secrets.HOST }}

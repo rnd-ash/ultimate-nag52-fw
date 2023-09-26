@@ -28,7 +28,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.4
         with:
           source: "html/*"
-          target: "/var/www/html/fw/${{ env.BRANCH_NAME }}/"
+          target: "/var/www/html/fw/${{ env.BRANCH_NAME }}"
           username: ${{ secrets.USER }}
           host: ${{ secrets.HOST }}
           key: ${{ secrets.PRIVATE_KEY }}

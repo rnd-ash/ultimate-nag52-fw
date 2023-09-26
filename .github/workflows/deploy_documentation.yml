@@ -4,6 +4,9 @@ on:
   push:
     branches: ["dev", "main"]
 
+env:
+ BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
 jobs:
   deploy_docs:
     runs-on: ubuntu-latest
@@ -19,11 +22,13 @@ jobs:
         run: sudo apt-get install graphviz
       - name: Build documentation
         run: doxygen
+      - name: echo path
+        run: echo "/var/www/html/${{ env.BRANCH_NAME }}"
       - name: Deploy docs
         uses: appleboy/scp-action@v0.1.4
         with:
           source: "html"
-          target: "/var/www/html/${{ env.GITHUB_REF_NAME }}"
+          target: "/var/www/html/${{ env.BRANCH_NAME }}/"
           username: ${{ secrets.USER }}
           host: ${{ secrets.HOST }}
           key: ${{ secrets.PRIVATE_KEY }}

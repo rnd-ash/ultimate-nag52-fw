@@ -24,7 +24,7 @@ jobs:
         with:
           source: "html"
           target: "/var/www/html/${{ env.GITHUB_REF_NAME }}"
-          username: ${{ secrets.SSH_USER }}
+          username: ${{ secrets.USER }}
           host: ${{ secrets.HOST }}
           key: ${{ secrets.PRIVATE_KEY }}
           rm: true

@@ -24,7 +24,7 @@ jobs:
         with:
           local: html
           remote: /var/www/html/${{ env.BRANCH_NAME }}
-          host: ${{ secrets.SSH_USER }}
+          user: ${{ secrets.SSH_USER }}
           host: ${{ secrets.HOST }}
           privateKey: ${{ secrets.PRIVATE_KEY }}
           rmRemote: true

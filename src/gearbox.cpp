@@ -381,12 +381,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int torque_lim_ramp_shift = torque_lim_adapt/2;
 
         // Prefill phase time calculations
-        int prefill_phase_1_duration = 50; // At prefill pressue * 2
-        int prefill_phase_2_duration = 100; // Ramp down to prefill pressure
-        int prefill_phase_3_duration = prefill_data.fill_time; // Full fill time
-        int total_prefill_phase_time = prefill_phase_1_duration + prefill_phase_2_duration + prefill_phase_3_duration;
-        int torque_req_start_time = total_prefill_phase_time;
-        int torque_req_max_time = total_prefill_phase_time + (chars.target_shift_time/2) +200;
+        int torque_req_start_time = prefill_data.fill_time;
+        int torque_req_max_time = prefill_data.fill_time + (chars.target_shift_time/2);
 
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
@@ -555,7 +551,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (current_stage == ShiftStage::Fill) {
                     ESP_LOGI("SHIFT", "Fill start");
                     pressure_manager->set_shift_circuit(sd.shift_circuit, true);
-                    phase_total_time = total_prefill_phase_time;
+                    phase_total_time = prefill_data.fill_time;
                 } else if (current_stage == ShiftStage::Overlap) {
                     // Reduce filling pressure depending on torque output.
                     // This provides a nice smooth shifting experience at lower torque,
@@ -580,35 +576,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             
             if (current_stage == ShiftStage::Bleed) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
-                // --MPC--
-                // Stays at working pressure
-                // --SPC--
-                // 50mBar to drain the 7bar stored in the SPC rail
-                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*fill_factor_speed;
+                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
                 current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
                 current_working_pressure = mpc_working;
             } else if (current_stage == ShiftStage::Fill) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
-                //--MPC--
-                // Stays at working pressure
-                //--SPC--
-                // 1. Fill pressure for fill time
-                // 2. Half fill pressure for 100ms to dampen the torque phase
                 bool was_adapting = prefill_adapt_flags == 0;
                 if (was_adapting && prefill_adapt_flags != 0) {
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
-            
-                if (phase_elapsed <= prefill_phase_1_duration) {
-                    // Phase 1. Highest pressure
-                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*fill_factor_speed;
-                } else if (phase_elapsed <= prefill_phase_1_duration + prefill_phase_2_duration) {
-                    // Phase 2. Ramp down
-                    current_shift_clutch_pressure = scale_number(total_elapsed, prefill_data.fill_pressure_on_clutch*fill_factor_speed, prefill_data.fill_pressure_on_clutch, prefill_phase_1_duration, prefill_phase_1_duration + prefill_phase_2_duration);
-                } else { // Phase 3 (Hold at fill pressure)
-                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
-                }
+                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
                 current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
                 current_working_pressure = mpc_working;
                 pre_overlap_torque = sensor_data.input_torque;

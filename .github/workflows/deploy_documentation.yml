@@ -15,8 +15,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: "recursive"
+      - name: Apt update
+        run: sudo apt-get update
       - name: Install doxygen
-        run: sudo apt-get update && sudo apt-get install doxygen
+        run: sudo apt-get install doxygen
+      - name: Install graphviz
+        run: sudo apt-get install graphviz
       - name: Build documentation
         run: doxygen
       - name: Deploy docs
@@ -24,7 +28,7 @@ jobs:
         with:
           local: html
           remote: /var/www/html/${{ env.BRANCH_NAME }}
-          user: ${{ secrets.SSH_USER }}
+          username: ${{ secrets.SSH_USER }}
           host: ${{ secrets.HOST }}
           privateKey: ${{ secrets.PRIVATE_KEY }}
           rmRemote: true

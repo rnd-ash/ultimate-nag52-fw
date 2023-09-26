@@ -92,9 +92,8 @@ void PressureManager::controller_loop() {
                 // 1-2 circuit is open (Correct pressure for K1)
                 // K1 is controlled by Shift pressure
                 if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                    spc_now /= 1.9;
-                    max_spc /= 1.9;
-                    mpc_now /= 1.9;
+                    spc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
+                    mpc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
                 }
             }
 

@@ -3,7 +3,7 @@ name: Remote deploy code documentation
 on:
   push:
     branches: ["dev", "main"]
-    
+
 jobs:
   deploy_docs:
     runs-on: ubuntu-latest
@@ -20,12 +20,12 @@ jobs:
       - name: Build documentation
         run: doxygen
       - name: Deploy docs
-        uses: garygrossgarten/github-action-scp@release
+        uses: appleboy/scp-action@v0.1.4
         with:
-          local: html
-          remote: /var/www/html/${{ env.GITHUB_REF_NAME }}
+          local: "html"
+          target: "/var/www/html/${{ env.GITHUB_REF_NAME }}"
           username: ${{ secrets.SSH_USER }}
           host: ${{ secrets.HOST }}
-          privateKey: ${{ secrets.PRIVATE_KEY }}
-          rmRemote: true
+          key: ${{ secrets.PRIVATE_KEY }}
+          rm: true
 

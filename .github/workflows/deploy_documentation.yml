@@ -3,11 +3,7 @@ name: Remote deploy code documentation
 on:
   push:
     branches: ["dev", "main"]
-
-
-env:
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
-
+    
 jobs:
   deploy_docs:
     runs-on: ubuntu-latest
@@ -27,7 +23,7 @@ jobs:
         uses: garygrossgarten/github-action-scp@release
         with:
           local: html
-          remote: /var/www/html/${{ env.BRANCH_NAME }}
+          remote: /var/www/html/${{ env.GITHUB_REF_NAME }}
           username: ${{ secrets.SSH_USER }}
           host: ${{ secrets.HOST }}
           privateKey: ${{ secrets.PRIVATE_KEY }}

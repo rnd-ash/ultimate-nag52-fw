@@ -27,8 +27,8 @@ jobs:
       - name: Deploy docs
         uses: appleboy/scp-action@v0.1.4
         with:
-          source: "html"
-          target: "/var/www/html/${{ env.BRANCH_NAME }}/"
+          source: "html/*"
+          target: "/var/www/html/fw/${{ env.BRANCH_NAME }}/"
           username: ${{ secrets.USER }}
           host: ${{ secrets.HOST }}
           key: ${{ secrets.PRIVATE_KEY }}

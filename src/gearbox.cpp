@@ -406,7 +406,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
 
         float pre_overlap_torque = 0;
-        float overlap_spc_start_pressure = prefill_data.fill_pressure_on_clutch + 250;
         int rpm_to_overlap = 0;
         int target_reduction_torque = 0; // Calculated on start of overlap phase
 
@@ -417,6 +416,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         bool mpc_released = false;
         int current_torque_req = 0;
         int spc_delta = 0;
+        int trq_up_time = 0;
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
@@ -478,34 +478,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     torque_req_upper_torque = MIN(torque_lim_adapt, torque_req_upper_torque);
                 }
                 // for Max Pressure or overlap
-                /*
-                if (current_stage >= ShiftStage::Overlap) {
-                    if (current_torque_req == 0) {
-                        current_torque_req = torque_req_upper_torque;
-                    }
-                    if (now_cs.off_clutch_speed < 100) {
-                        // Not shifting
-                        this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque_req_upper_torque);
-                        if (torque_req_upper_torque > adapt_prefill.torque_lim) {
-                            torque_req_upper_torque--;
-                        }
-                    } else {
-                        // Shifting
-                        // Calculate overlap reduction based on shifting progress
-                        if (now_cs.on_clutch_speed > pre_cs.on_clutch_speed/2) {
-                            // Reduction phase
-                            int torque = scale_number(now_cs.on_clutch_speed, target_reduction_torque, torque_req_upper_torque, pre_cs.on_clutch_speed/2, pre_cs.on_clutch_speed);
-                            current_torque_req = MIN(torque, current_torque_req);
-                            intercect_rpm = now_cs.on_clutch_speed;
-                            this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, current_torque_req);
-                        } else {
-                            int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed/2);
-                            current_torque_req = MAX(torque, current_torque_req);
-                            this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
-                        }
-                    }
-                }
-                */
 
                 bool goto_torque_ramp = true;
                 if (sensor_data.static_torque < gearboxConfig.max_torque/3) { // Torque below bounds
@@ -522,7 +494,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
                     } else { // Decreasing still, or increasing
                         if (now_cs.off_clutch_speed > 100) {
-                            int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed);
+                            if (trq_up_time == 0) {
+                                trq_up_time = total_elapsed;
+                            }
+
+                            int torque = scale_number(total_elapsed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, trq_up_time, trq_up_time+300);
                             current_torque_req = MAX(torque, current_torque_req);
                             this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
                         }
@@ -557,6 +533,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     // This provides a nice smooth shifting experience at lower torque,
                     // wilst remaining firmer at quicker shifts
                     prev_shift_clutch_pressure = scale_number(sensor_data.input_torque, 650, prefill_data.fill_pressure_on_clutch, 100, 200);
+                    current_shift_clutch_pressure = prev_shift_clutch_pressure;
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     this->tcc->set_shift_target_state(InternalTccState::Open);

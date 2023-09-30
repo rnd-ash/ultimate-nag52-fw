@@ -180,10 +180,11 @@ void input_manager(void*) {
     bool pressed = false;
     
     if(ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == 1) {
-        gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom));
+        gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
         if (last_mode != ProfileSwitchPos::SNV) {
             gearbox->set_profile(profile_from_auto_ty(last_mode == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
         }
+        
     }
     while(1) {
         now = GET_CLOCK_TIME();
@@ -193,7 +194,15 @@ void input_manager(void*) {
             if (prof_now != last_mode) {
                 last_mode = prof_now;
                 if (prof_now != ProfileSwitchPos::SNV) {
-                    gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+                    if (ETS_CURRENT_SETTINGS.ewm_shifter_switch_cycles_profiles && ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch) {
+                        profile_id++;
+                        if (profile_id == NUM_PROFILES) {
+                            profile_id = 0;
+                        }
+                        gearbox->set_profile(profiles[profile_id]);
+                    } else {
+                        gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+                    }
                 }
             }
         } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button) {

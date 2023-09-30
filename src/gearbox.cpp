@@ -492,6 +492,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::EaseOut);
                         current_torque_req = MIN(torque, current_torque_req);
                         this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
+                        if (now_cs.off_clutch_speed > now_cs.on_clutch_speed) { // Switchover completed early!
+                            torque_req_max_time = total_elapsed;
+                            target_reduction_torque = target_reduction_torque;
+                        }
                     } else { // Decreasing still, or increasing
                         if (now_cs.off_clutch_speed > 100) {
                             if (trq_up_time == 0) {

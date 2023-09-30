@@ -57,6 +57,11 @@ struct __attribute__ ((packed)) TCM_EFUSE_CONFIG {
     uint8_t manufacture_year;
 };
 
+struct __attribute__ ((packed)) FLASH_NVS_SETTINGS_DESC {
+    uint8_t magic[4];
+    uint32_t key_cs;
+    uint32_t compressed_size;
+};
 
 namespace EEPROM {
     esp_err_t init_eeprom(void);

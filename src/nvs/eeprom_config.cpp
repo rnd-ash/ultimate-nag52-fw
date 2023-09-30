@@ -9,6 +9,7 @@
 #include "device_mode.h"
 #include "esp_app_desc.h"
 #include "all_keys.h"
+#include "esp_flash.h"
 
 uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
@@ -155,6 +156,37 @@ esp_err_t EEPROM::init_eeprom() {
                 }
                 nvs_release_iterator(it);
                 nvs_commit(config_handle);
+                FLASH_NVS_SETTINGS_DESC desc = {};
+                if (ESP_OK == esp_flash_read(esp_flash_default_chip, &desc, 0x330000, sizeof(FLASH_NVS_SETTINGS_DESC))) {
+                    if (
+                        desc.magic[0] == 0xDE &&
+                        desc.magic[1] == 0xAD &&
+                        desc.magic[2] == 0xBE &&
+                        desc.magic[3] == 0xEF
+                    ) {
+                        // Valid data stored, check cs
+                        // Also check flashed NVS config settings partition
+                        uint32_t key_cs = 0;
+                        for (int i = 0; i < ALL_NVS_KEYS_LEN; i++) {
+                            const char* key = *ALL_NVS_KEYS[i];
+                            int len = strlen(key);
+                            for (int l = 0; l < len; l++) {
+                                key_cs += l;
+                                key_cs += key[l];
+                            }
+                        }
+                        ESP_LOGI("EEPROM", "NVS CONFIG FLASH CHECK. CS OF KEYS: 0x%08X. CS OF FLASH: 0x%08X", (int)key_cs, (int)desc.key_cs);
+                        if (key_cs != desc.key_cs) {
+                            // Just erase 1 sector (Min), this way we avoid loads of writes, and config app will still be alerted
+                            esp_flash_erase_region(esp_flash_default_chip, 0x330000, 4096);
+                            ESP_LOGI("EEPROM", "Flash config desc erased");
+                        } else {
+                            ESP_LOGI("EEPROM", "NVS Flash config desc OK!");
+                        }
+                    } else {
+                        ESP_LOGI("EEPROM", "No NVS Config data found");
+                    }
+                }
             }
         }
         result = read_core_config(&VEHICLE_CONFIG);

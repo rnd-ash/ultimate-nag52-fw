@@ -206,97 +206,229 @@ class EgsBaseCan {
          * Getters
          */
 
-        // Get the front right wheel data
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the front right wheel speed
+         * @param expire_time_ms data expiration period
+         * @return front right wheel data
+         */
         virtual WheelData get_front_right_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Get the front left wheel data
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the front left wheel speed
+         * @param expire_time_ms data expiration period
+         * @return front left wheel data
+         */
         virtual WheelData get_front_left_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Get the rear right wheel data
+        
+        /**
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the rear right wheel speed
+         * @param expire_time_ms data expiration period
+         * @return rear right wheel data
+         */
         virtual WheelData get_rear_right_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Get the rear left wheel data
+        
+        /**
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the left right wheel speed
+         * @param expire_time_ms data expiration period
+         * @return rear right left data
+         */
         virtual WheelData get_rear_left_wheel(const uint32_t expire_time_ms) {
             return DEFAULT_SNV_WD;
         }
-        // Gets shifter position from shifter module
+        
+        /**
+         * @brief MANDITORY DATA - Returns the position of the gear selector
+         * @param expire_time_ms data expiration period
+         * @return returns the gear selector position
+         */
         virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
-        // Gets engine type
+        
+        /**
+         * @brief TBA - Returns the type of engine in the vehicle (Detected over CAN)
+         * @param expire_time_ms data expiration period
+         * @return Engine type (Diesel or Petrol)
+         */
         virtual EngineType get_engine_type(const uint32_t expire_time_ms) {
             return EngineType::Unknown;
         }
-        // Returns true if engine is in limp mode
+        
+        /**
+         * @brief TBA - Returns true if the engine is in limp mode
+         * @param expire_time_ms data expiration period
+         * @return If the engine is in limp mode
+         */
         virtual bool get_engine_is_limp(const uint32_t expire_time_ms) {
             return false;
         }
-        // Returns true if pedal is kickdown 
+        
+        /**
+         * @brief OPTIONAL DATA (For kickdown only) - Returns if the kickdown switch is actuated
+         * @param expire_time_ms data expiration period
+         * @return Returns true if the kickdown switch is being pressed, false if released
+         */
         virtual bool get_kickdown(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Returns the pedal percentage. Range 0-250
+        
+        /**
+         * @brief MANDITORY DATA - Returns the pedal position, on a scale of 0-250
+         * @param expire_time_ms data expiration period
+         * @return Pedal position (0 = 0%, 250 = 100%)
+         */
         virtual uint8_t get_pedal_value(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Gets the current 'static' torque produced by the engine
+        
+        /**
+         * @brief MANDITORY DATA - Returns the current output (Static) engine torque
+         * This function may return a negative number to indicate the engine is acting as a drag source 
+         * when coasting
+         * 
+         * @param expire_time_ms data expiration period
+         * @return Static engine torque in Nm (In Nm)
+         */
         virtual int get_static_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Gets driver torque demand (Default torque)
+        
+        /**
+         * @brief MANDITORY DATA - Returns the amount of torque the engine has been asked to make
+         * by the drivers pedal position
+         * 
+         * @param expire_time_ms data expiration period
+         * @return Driver requested engine output torque (In Nm)
+         */
         virtual int get_driver_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Gets the maximum engine torque allowed at this moment by the engine map
+        
+        /**
+         * @brief MANDITORY DATA - Returns the maximum engine output torque based on RPM
+         * @param expire_time_ms data expiration period
+         * @return Engine maximum possible production torque (In Nm)
+         */
         virtual int get_maximum_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Gets the minimum engine torque allowed at this moment by the engine map
+        
+        /**
+         * @brief MANDITORY DATA - Returns the minimum engine output torque based on RPM
+         * @param expire_time_ms data expiration period
+         * @return Engine minimum possible production torque (In Nm)
+         */
         virtual int get_minimum_engine_torque(const uint32_t expire_time_ms) {
             return 0;
         }
-        // Gets the torque loss of the AC system
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the drag torque imposed by the AC compressor on the engine
+         * @param expire_time_ms data expiration period
+         * @return AC torque loss (In Nm)
+         */
         virtual uint8_t get_ac_torque_loss(const uint32_t expire_time_ms) {
             return UINT8_MAX;
         }
 
-        // Gets the flappy paddle position
+        /**
+         * @brief OPTIONAL DATA - Returns the position of shift paddles (If fitted)
+         * @param expire_time_ms data expiration period
+         * @return Engine maximum possible production torque
+         */
         virtual PaddlePosition get_paddle_position(const uint32_t expire_time_ms) {
             return PaddlePosition::SNV;
         }
-        // Gets engine coolant temperature
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the engines coolant temperature in Celcius
+         * @param expire_time_ms data expiration period
+         * @return Engine coolant temperature (In Grad. C)
+         */
         virtual int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
-        // Gets engine oil temperature
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the engines oil temperature in Celcius
+         * @param expire_time_ms data expiration period
+         * @return Engine oil temperature (In Grad. C)
+         */
         virtual int16_t get_engine_oil_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
-        // Gets engine charge air temperature
+        
+        /**
+         * @brief OPTIONAL DATA - Returns the engines intake air temperature in Celcius
+         * @param expire_time_ms data expiration period
+         * @return Engine intake air temperature (In Grad. C)
+         */
         virtual int16_t get_engine_iat_temp(const uint32_t expire_time_ms) {
             return INT16_MAX;
         }
-        // Gets engine RPM
+       
+        /**
+         * @brief MANDITORY DATA - Returns the engines speed in RPM
+         * @param expire_time_ms data expiration period
+         * @return Engine speed (In RPM)
+         */
         virtual uint16_t get_engine_rpm(const uint32_t expire_time_ms) {
             return UINT16_MAX;
         }
-        // Returns true if engine is cranking
+        
+        /**
+         * @brief TBA - Returns true if the engine is cranking to start up
+         * @param expire_time_ms data expiration period
+         * @return True if engine is cranking, False is engine is off or running
+         */
         virtual bool get_is_starting(const uint32_t expire_time_ms) {
             return false;
         }
+
+        /**
+         * @brief OPTIONAL DATA - Returns true if the shifter profile button is pressed
+         * This is intended for only the handling of the EWM CAN based shifters.
+         * 
+         * @param expire_time_ms data expiration period
+         * @return True if the profile button is in the depressed position, or False if it is released
+         */
         virtual bool get_profile_btn_press(const uint32_t expire_time_ms) {
             return false;
         }
-        // 1 = S, 0 = W/C
+
+        /**
+         * @brief OPTIONAL DATA - Returns position of the W/S switches on the older TRRS shifter.
+         * 
+         * @param expire_time_ms data expiration period
+         * @return Profile button position.
+         */
         virtual ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) {
             return ProfileSwitchPos::SNV;
         }
+
+        /**
+         * @brief MANDITORY DATA - Returns if the brake pedal is being pressed
+         * 
+         * @param expire_time_ms data expiration period
+         * @return True if the brake pedal is pressed, false if the brake pedal is released
+         */
         virtual bool get_is_brake_pressed(const uint32_t expire_time_ms) {
             return false;
         }
+
+        /**
+         * @brief OPTIONAL DATA - Returns fuel consumption rate of the engine
+         * 
+         * @param expire_time_ms data expiration period
+         * @return Fuel consumption of the engine (In μL/250ms)
+         */
         virtual uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) {
             return 0;
         }

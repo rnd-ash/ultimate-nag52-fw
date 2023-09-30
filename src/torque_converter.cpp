@@ -120,11 +120,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         } else if (this->target_tcc_state == InternalTccState::Slipping || this->target_tcc_state == InternalTccState::Closed) {
             this->tcc_pressure_target = this->tcc_learn_lockup_map->get_value((float)cmp_gear, 1.0); // Slip at max torque
             if (sensors->static_torque > TCC_CURRENT_SETTINGS.max_torque_adapt) {
-                this->tcc_pressure_target *= interpolate_float(sensors->static_torque, 1.0, 1.5, TCC_CURRENT_SETTINGS.max_torque_adapt, TCC_CURRENT_SETTINGS.max_torque_adapt*2);
+                this->tcc_pressure_target *= interpolate_float(sensors->static_torque, 1.0, 1.5, TCC_CURRENT_SETTINGS.max_torque_adapt, TCC_CURRENT_SETTINGS.max_torque_adapt*2, InterpType::Linear);
             }
             if (this->target_tcc_state == InternalTccState::Closed) { // Locked
                 if (sensors->output_rpm > TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm.raw_min) {
-                    this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * interpolate_float(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm);
+                    this->tcc_pressure_target = (uint32_t)(float)this->tcc_pressure_target * interpolate_float(sensors->output_rpm, &TCC_CURRENT_SETTINGS.pressure_multiplier_output_rpm, InterpType::Linear);
                 }
                 this->tcc_pressure_target *= 1.25;
             }
@@ -184,14 +184,16 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     TCC_CURRENT_SETTINGS.max_slip_min_adapt_trq,
                     TCC_CURRENT_SETTINGS.max_slip_max_adapt_trq,
                     TCC_CURRENT_SETTINGS.min_torque_adapt,
-                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                    TCC_CURRENT_SETTINGS.max_torque_adapt,
+                    InterpType::Linear
                 );
                 int min_slip_targ = interpolate_float(
                     sensors->static_torque,
                     TCC_CURRENT_SETTINGS.min_slip_min_adapt_trq,
                     TCC_CURRENT_SETTINGS.min_slip_max_adapt_trq,
                     TCC_CURRENT_SETTINGS.min_torque_adapt,
-                    TCC_CURRENT_SETTINGS.max_torque_adapt
+                    TCC_CURRENT_SETTINGS.max_torque_adapt,
+                    InterpType::Linear
                 );
                 float new_p = 0;
                 if (slip_avg > max_slip_targ) {

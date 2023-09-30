@@ -228,7 +228,7 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
 
 PressureStageTiming PressureManager::get_max_pressure_timing() {
     return PressureStageTiming {
-        .hold_time = (uint16_t)scale_number(this->sensor_data->atf_temp, 1500, 100, -20, 30),
+        .hold_time = (uint16_t)interpolate_float(this->sensor_data->atf_temp, 1500, 100, -20, 30),
         .ramp_time_1 = 250,
         .ramp_time_2 = 250,
     };

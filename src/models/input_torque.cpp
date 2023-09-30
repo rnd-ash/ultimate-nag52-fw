@@ -25,7 +25,7 @@ void InputTorqueModel::update(EgsBaseCan* can_hal, SensorData* measures, bool is
 
             // engine RPM / 2.5 - 2.5x
             // engine RPM - 1.0
-            float multi = scale_number(measures->input_rpm, MAX_MULTIPLICATION, 1.0, ((float)measures->engine_rpm)-1000, (float)measures->engine_rpm);
+            float multi = interpolate_float(measures->input_rpm, MAX_MULTIPLICATION, 1.0, ((float)measures->engine_rpm)-1000, (float)measures->engine_rpm);
             //ESP_LOGI("_","MULTI %.2f - %d %d", multi, motor_torque, (int)(motor_torque * multi));
             input_torque = motor_torque * multi;
 
@@ -43,7 +43,7 @@ void InputTorqueModel::update(EgsBaseCan* can_hal, SensorData* measures, bool is
 
             // Now calculate input torque multiplication
             if (measures->input_rpm < MULTI_MULTIPLIER_END_RPM && input_torque > 0) {
-                float multi = scale_number(measures->input_rpm, INPUT_MULTIPLIER_STOPPED, 1.0, 0, MULTI_MULTIPLIER_END_RPM);
+                float multi = interpolate_float(measures->input_rpm, INPUT_MULTIPLIER_STOPPED, 1.0, 0, MULTI_MULTIPLIER_END_RPM);
                 input_torque *= multi;
             }
             */

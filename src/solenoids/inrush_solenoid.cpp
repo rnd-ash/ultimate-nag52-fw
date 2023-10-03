@@ -21,8 +21,8 @@ static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gp
     return true;
 }
 
-InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint8_t current_samples)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples, 1) {
+InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms)
+: PwmSolenoid(name, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->target_hold_current = target_hold_current_ma;
     this->period_duration_us = (1000 * 1000) / period_hz;
     if (ESP_OK != this->ready) {

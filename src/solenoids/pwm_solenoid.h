@@ -37,7 +37,7 @@ public:
      * @param read_channel The ADC 1 Channel used for current sense feedback
      * @param current_samples The number of samples from I2S for current measuring. It is assumed that each sample is ~2ms snapshot
      */
-    PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples, uint8_t avg_samples);
+    PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms);
 
 
     const char* get_name() {
@@ -82,6 +82,12 @@ public:
      */
     esp_err_t init_ok() const;
 
+    /**
+     * @brief Gets the time in milliseconds of a full PWM cycle
+     * @return PWM phase duration
+     */
+    uint16_t get_pwm_phase_time() const;
+
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_adc_reading(uint16_t c);
 
@@ -98,7 +104,8 @@ protected:
     adc_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
-    MovingUnsignedAverage* c_readings;
+    uint16_t current_reading = 0;
+    uint16_t pwm_phase_period_ms;
 };
 
 namespace SolenoidSetup {

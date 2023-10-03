@@ -1,4 +1,4 @@
-#ifndef SOLENOID_
+#ifndef SOLENOID_H
 #define SOLENOID_H
 
 #include <stdint.h>

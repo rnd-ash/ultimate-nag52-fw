@@ -112,16 +112,20 @@ void update_solenoids(void*) {
     int16_t atf_temp = 25;
     float vref_compensation = 1.0;
     float temp_compensation = 1.0;
+    uint8_t c = 0;
     while(true) {
-        if (ESP_OK == Sensors::read_vbatt(&voltage)) {
-            vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
-        } else {
-            vref_compensation = 1.0;
-        }
-        if (ESP_OK == Sensors::read_atf_temp(&atf_temp)) {
-            temp_compensation = ((atf_temp-SOL_CURRENT_SETTINGS.cc_reference_temp)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/100.0;
-        } else {
-            temp_compensation = 1.0;
+        if (c == 10) {
+            if (ESP_OK == Sensors::read_vbatt(&voltage)) {
+                vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
+            } else {
+                vref_compensation = 1.0;
+            }
+            if (ESP_OK == Sensors::read_atf_temp(&atf_temp)) {
+                temp_compensation = ((atf_temp-SOL_CURRENT_SETTINGS.cc_reference_temp)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/100.0;
+            } else {
+                temp_compensation = 1.0;
+            }
+            c = 0;
         }
         if (write_pwm) {
             sol_mpc->__write_pwm(vref_compensation, temp_compensation);
@@ -131,6 +135,7 @@ void update_solenoids(void*) {
             sol_y4->__write_pwm(vref_compensation, temp_compensation);
             sol_y5->__write_pwm(vref_compensation, temp_compensation);
         }
+        c++;
         vTaskDelay(1); // Max we can do at 1000hz
     }
 }

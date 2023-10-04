@@ -92,9 +92,8 @@ void PressureManager::controller_loop() {
                 // 1-2 circuit is open (Correct pressure for K1)
                 // K1 is controlled by Shift pressure
                 if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                    spc_now /= 1.9;
-                    max_spc /= 1.9;
-                    mpc_now /= 1.9;
+                    spc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
+                    mpc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
                 }
             }
 
@@ -229,7 +228,7 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
 
 PressureStageTiming PressureManager::get_max_pressure_timing() {
     return PressureStageTiming {
-        .hold_time = (uint16_t)scale_number(this->sensor_data->atf_temp, 1500, 100, -20, 30),
+        .hold_time = (uint16_t)interpolate_float(this->sensor_data->atf_temp, 1500, 100, -20, 30, InterpType::Linear),
         .ramp_time_1 = 250,
         .ramp_time_2 = 250,
     };

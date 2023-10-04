@@ -320,7 +320,7 @@ esp_err_t Sensors::read_atf_temp(int16_t *dest)
                 // Found! Interpolate linearly to get a better estimate of ATF Temp
                 if (atf_temp_lookup[i].v <= voltage && atf_temp_lookup[i + 1].v >= voltage)
                 {
-                    atf_calc_c = scale_number_int(
+                    atf_calc_c = interpolate_int(
                         voltage, // Read voltage
                         atf_temp_lookup[i].temp, // Min temp for this range
                         atf_temp_lookup[i+1].temp, // Max temp for this range

@@ -490,13 +490,23 @@ typedef struct {
     // When using a switch profile selector. This is the profile
     // to use when in the bottom position
     AutoProfile profile_idx_buttom;
+    // If you have a CAN based EWM shifter (+/- markings on it),
+    // but have a profile W/S switch rather than a profile button,
+    // you can enable this option to force cycling of ALL profiles,
+    // including manual ones, by toggling the switch.
+    //
+    // It is suggested to only enable this if you have a profile
+    // display on the instrument cluster, so you know if the car
+    // is in manual mode or not.
+    bool ewm_shifter_switch_cycles_profiles;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .trrs_has_profile_selector = true,
     .ewm_selector_type = EwmSelectorType::Button,
     .profile_idx_top = AutoProfile::Comfort,
-    .profile_idx_buttom = AutoProfile::Sport
+    .profile_idx_buttom = AutoProfile::Sport,
+    .ewm_shifter_switch_cycles_profiles = false,
 };
 
 // module settings

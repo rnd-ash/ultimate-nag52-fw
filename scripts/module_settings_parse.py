@@ -8,6 +8,8 @@ L_2_BYTES = ["uint16_t", "int16_t", "short"]
 L_4_BYTES = ["uint32_t", "int32_t", "float", "int"]
 L_8_BYTES = ["uint64_t", "int64_t", "long"]
 
+ALL_NVS_KEYS=[]
+
 enums = []
 i_structs=[]
 settings=[]
@@ -96,11 +98,15 @@ class Variable:
 
 
 class SettingStructure:
-    def __init__(self, name, vars, key_name, desc):
+    def __init__(self, name, vars, desc):
         self.name = name
         self.__scn_id__ = 0
         self.variables = vars[:]
         self.desc = desc.strip()
+        self.eeprom_key = ""
+        for (k, v) in ALL_NVS_KEYS:
+            if k.startswith(self.name) and len(self.name) == 3:
+                self.eeprom_key = v
 
     def add_variable(self, var: Variable):
         self.variables.push(var)
@@ -134,7 +140,7 @@ class SettingStructure:
     def to_setting_yml_block(self) -> {}:
         d = self.to_yml_block()
         d["SCN_ID"] = self.__scn_id__
-        d["EEPROM_KEY"] = ""
+        d["EEPROM_KEY"] = self.eeprom_key
         return d
 
     def get_variable_index(self, name: str) -> int:
@@ -154,10 +160,10 @@ class SettingStructure:
 ## Setting {}
 
 SCN Getter ID: `0x{:02X}`
-
+EEPROM KEY NAME: `{}`
 |Setting name|Description|Data Type|Unit|
 |:--|:--|:-:|:-:|
-""".format(self.name, self.__scn_id__)
+""".format(self.name, self.__scn_id__, self.eeprom_key)
         for v in self.variables:
             ret += v.to_markdown_line()
 
@@ -195,7 +201,6 @@ i_structs.append(
             lrmin,
             lrmax
         ],
-        "",
         ""
     )
 )
@@ -206,10 +211,17 @@ desc=""
 f_in = open("./src/nvs/module_settings.h").readlines()
 f_nvs_keys = open("./src/nvs/all_keys.h").readlines()
 
+for line in f_nvs_keys:
+    if line.strip().startswith("DO(") and line.endswith("\\\n"):
+        key_ty = line.split("DO(")[1].split(",")[0].strip()
+        key = line.split("\"")[1]
+        if key_ty.endswith("_SETTINGS"):
+            ALL_NVS_KEYS.append((key_ty, key))
+
+print(ALL_NVS_KEYS)
+
 vars=[]
 enum_maps=[]
-
-last_key_name=""
 in_structure_definition = False
 in_structure_default = False
 enum_name = ""
@@ -247,10 +259,10 @@ for line in f_in[2:]:
         in_structure_definition = False
         if line.endswith("MODULE_SETTINGS;\n"):
             name = line.split("((packed)) ")[1].split("_")[0]
-            settings.append(SettingStructure(name, vars, last_key_name, i_struct_desc))
+            settings.append(SettingStructure(name, vars, i_struct_desc))
         else: # Internal data structure
             name = line.split("((packed)) ")[1].split(";")[0]
-            i_structs.append(SettingStructure(name, vars, last_key_name, i_struct_desc))
+            i_structs.append(SettingStructure(name, vars, i_struct_desc))
         vars.clear()
         i_struct_desc = ""
     elif in_structure_definition:

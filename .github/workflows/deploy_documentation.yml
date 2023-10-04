@@ -1,0 +1,36 @@
+name: Remote deploy code documentation
+
+on:
+  push:
+    branches: ["dev", "main"]
+
+env:
+ BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+
+jobs:
+  deploy_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: Apt update
+        run: sudo apt-get update
+      - name: Install doxygen
+        run: sudo apt-get install doxygen
+      - name: Install graphviz
+        run: sudo apt-get install graphviz
+      - name: Build documentation
+        run: doxygen
+      - name: echo path
+        run: echo "/var/www/html/${{ env.BRANCH_NAME }}"
+      - name: Deploy docs
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          source: "html/*"
+          target: "/var/www/html/fw/${{ env.BRANCH_NAME }}"
+          username: ${{ secrets.USER }}
+          host: ${{ secrets.HOST }}
+          key: ${{ secrets.PRIVATE_KEY }}
+          rm: true
+

@@ -44,11 +44,11 @@ void test_scale(void) {
     int old_max = 50;
     int old_min = 10;
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(50, scale_number(30, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(50, interpolate_float(30, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
     // Should be clipped
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(0, scale_number(-10, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(0, interpolate_float(-10, new_min_large, new_max_large, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
 
-    UNITY_TEST_ASSERT_EQUAL_FLOAT(2, scale_number(30, new_min_small, new_max_small, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
+    UNITY_TEST_ASSERT_EQUAL_FLOAT(2, interpolate_float(30, new_min_small, new_max_small, old_min, old_max), TEST_LINE_NUM, "Scale invalid");
 } 
 
 

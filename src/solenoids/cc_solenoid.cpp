@@ -2,12 +2,10 @@
 #include "esp_log.h"
 #include "nvs/module_settings.h"
 
-ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, current_samples, 10) {
+ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
+: PwmSolenoid(name, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->current_target = 0;
     this->counter = 0;
-    this->max_current_samples = new MovingUnsignedAverage(current_samples);
-    this->req_samples = new MovingUnsignedAverage(current_samples);
 }
 
 void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
@@ -17,31 +15,31 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
     if (this->current_target == 0) {
         calc_pwm = 0;
         this->counter = 0;
-        this->max_current_samples->reset();
-        this->req_samples->reset();
     } else {
+        // Adapt first from previous current sample
+        uint16_t read = this->get_current();
+        if (this->prev_step_current_target >= 250) { // 250mA cut off
+            uint16_t max = this->prev_step_max;
+            float err = ((float)this->prev_step_current_target-(float)read)/(float)max;
+            this->internal_trim_factor += (err/10.0);
+            if (this->internal_trim_factor > 0.99) {
+                this->internal_trim_factor = 0.99;
+            } else if (this->internal_trim_factor < -0.99) {
+                this->internal_trim_factor = -0.99;
+            }
+        }
+
+
         // Calculated wire resistance (Static 1 Ohm for PCB)
         //float resistance = 1 + (SOL_CURRENT_SETTINGS.cc_reference_resistance + (SOL_CURRENT_SETTINGS.cc_reference_resistance*temperature_factor));
         // vref_compensation is battery voltage compensation
         // Calculate maximum current through the wires given the current voltage and resistance of the wires
+        this->prev_step_current_target = this->current_target;
         float max_current = ((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance) / vref_compensation;
-        calc_pwm = MAX(0, (4096.0 * (this->current_target/max_current)) * (1.0+this->internal_trim_factor));
-        this->max_current_samples->add_sample(max_current);
-        this->req_samples->add_sample(this->current_target);
-        // Learning correction on sampled current
-        if (this->current_target > 300) {
-            uint16_t read = this->get_current();
-            if (read > 300) {
-                uint16_t max = this->max_current_samples->get_average();
-                uint16_t req = this->req_samples->get_average();
-                float err = ((float)req-(float)read)/(float)max;
-                this->internal_trim_factor += (err/10.0);
-                if (this->internal_trim_factor > 0.99) {
-                    this->internal_trim_factor = 0.99;
-                } else if (this->internal_trim_factor < -0.99) {
-                    this->internal_trim_factor = -0.99;
-                }
-            }
+        this->prev_step_max = max_current;
+        calc_pwm = MAX(0, (4096.0 * (this->prev_step_current_target/max_current)) * (1.0+this->internal_trim_factor));
+        if (calc_pwm > 4096) {
+            calc_pwm = 4096;
         }
     }
     if (calc_pwm != this->pwm) {

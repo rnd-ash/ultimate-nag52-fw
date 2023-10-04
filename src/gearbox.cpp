@@ -305,8 +305,8 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
 
 int Gearbox::calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms) {
     float ped_trq = MAX(sensor_data.driver_requested_torque, sensor_data.static_torque);
-    float multi_reduction = scale_number(ped_trq, &SBS.torque_reduction_factor_input_torque);
-    multi_reduction *= scale_number(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed);
+    float multi_reduction = interpolate_float(ped_trq, &SBS.torque_reduction_factor_input_torque, InterpType::Linear);
+    multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
     int restricted = ped_trq - (ped_trq * multi_reduction);
     if (restricted > gearboxConfig.max_torque/4) {
         restricted = gearboxConfig.max_torque/4;
@@ -381,12 +381,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int torque_lim_ramp_shift = torque_lim_adapt/2;
 
         // Prefill phase time calculations
-        int prefill_phase_1_duration = 50; // At prefill pressue * 2
-        int prefill_phase_2_duration = 100; // Ramp down to prefill pressure
-        int prefill_phase_3_duration = prefill_data.fill_time; // Full fill time
-        int total_prefill_phase_time = prefill_phase_1_duration + prefill_phase_2_duration + prefill_phase_3_duration;
-        int torque_req_start_time = total_prefill_phase_time;
-        int torque_req_max_time = total_prefill_phase_time + (chars.target_shift_time/2) +200;
+        int torque_req_start_time = prefill_data.fill_time;
+        int torque_req_max_time = prefill_data.fill_time + (chars.target_shift_time/2);
 
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
@@ -410,7 +406,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
 
         float pre_overlap_torque = 0;
-        float overlap_spc_start_pressure = prefill_data.fill_pressure_on_clutch + 250;
         int rpm_to_overlap = 0;
         int target_reduction_torque = 0; // Calculated on start of overlap phase
 
@@ -421,6 +416,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         bool mpc_released = false;
         int current_torque_req = 0;
         int spc_delta = 0;
+        int trq_up_time = 0;
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
@@ -482,34 +478,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     torque_req_upper_torque = MIN(torque_lim_adapt, torque_req_upper_torque);
                 }
                 // for Max Pressure or overlap
-                /*
-                if (current_stage >= ShiftStage::Overlap) {
-                    if (current_torque_req == 0) {
-                        current_torque_req = torque_req_upper_torque;
-                    }
-                    if (now_cs.off_clutch_speed < 100) {
-                        // Not shifting
-                        this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque_req_upper_torque);
-                        if (torque_req_upper_torque > adapt_prefill.torque_lim) {
-                            torque_req_upper_torque--;
-                        }
-                    } else {
-                        // Shifting
-                        // Calculate overlap reduction based on shifting progress
-                        if (now_cs.on_clutch_speed > pre_cs.on_clutch_speed/2) {
-                            // Reduction phase
-                            int torque = scale_number(now_cs.on_clutch_speed, target_reduction_torque, torque_req_upper_torque, pre_cs.on_clutch_speed/2, pre_cs.on_clutch_speed);
-                            current_torque_req = MIN(torque, current_torque_req);
-                            intercect_rpm = now_cs.on_clutch_speed;
-                            this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, current_torque_req);
-                        } else {
-                            int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed/2);
-                            current_torque_req = MAX(torque, current_torque_req);
-                            this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
-                        }
-                    }
-                }
-                */
 
                 bool goto_torque_ramp = true;
                 if (sensor_data.static_torque < gearboxConfig.max_torque/3) { // Torque below bounds
@@ -521,12 +489,20 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (goto_torque_ramp) {
                     if (total_elapsed <= torque_req_max_time) {
                         target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
-                        int torque = scale_number(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time);
+                        int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::EaseOut);
                         current_torque_req = MIN(torque, current_torque_req);
                         this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
+                        if (now_cs.off_clutch_speed > now_cs.on_clutch_speed) { // Switchover completed early!
+                            torque_req_max_time = total_elapsed;
+                            target_reduction_torque = target_reduction_torque;
+                        }
                     } else { // Decreasing still, or increasing
                         if (now_cs.off_clutch_speed > 100) {
-                            int torque = scale_number(now_cs.on_clutch_speed, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), target_reduction_torque, 0, pre_cs.on_clutch_speed);
+                            if (trq_up_time == 0) {
+                                trq_up_time = total_elapsed;
+                            }
+
+                            int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::EaseIn);
                             current_torque_req = MAX(torque, current_torque_req);
                             this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
                         }
@@ -555,8 +531,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (current_stage == ShiftStage::Fill) {
                     ESP_LOGI("SHIFT", "Fill start");
                     pressure_manager->set_shift_circuit(sd.shift_circuit, true);
-                    phase_total_time = total_prefill_phase_time;
+                    phase_total_time = prefill_data.fill_time;
                 } else if (current_stage == ShiftStage::Overlap) {
+                    // Reduce filling pressure depending on torque output.
+                    // This provides a nice smooth shifting experience at lower torque,
+                    // wilst remaining firmer at quicker shifts
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     this->tcc->set_shift_target_state(InternalTccState::Open);
@@ -576,35 +555,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             
             if (current_stage == ShiftStage::Bleed) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
-                // --MPC--
-                // Stays at working pressure
-                // --SPC--
-                // 50mBar to drain the 7bar stored in the SPC rail
-                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*fill_factor_speed;
+                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
                 current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
                 current_working_pressure = mpc_working;
             } else if (current_stage == ShiftStage::Fill) {
-                float fill_factor_speed = scale_number(sensor_data.input_torque, 1.0, 1.5, 100, gearboxConfig.max_torque);
-                //--MPC--
-                // Stays at working pressure
-                //--SPC--
-                // 1. Fill pressure for fill time
-                // 2. Half fill pressure for 100ms to dampen the torque phase
                 bool was_adapting = prefill_adapt_flags == 0;
                 if (was_adapting && prefill_adapt_flags != 0) {
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
-            
-                if (phase_elapsed <= prefill_phase_1_duration) {
-                    // Phase 1. Highest pressure
-                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch*fill_factor_speed;
-                } else if (phase_elapsed <= prefill_phase_1_duration + prefill_phase_2_duration) {
-                    // Phase 2. Ramp down
-                    current_shift_clutch_pressure = scale_number(total_elapsed, prefill_data.fill_pressure_on_clutch*fill_factor_speed, prefill_data.fill_pressure_on_clutch, prefill_phase_1_duration, prefill_phase_1_duration + prefill_phase_2_duration);
-                } else { // Phase 3 (Hold at fill pressure)
-                    current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
-                }
+                current_shift_clutch_pressure = prefill_data.fill_pressure_on_clutch;
                 current_mod_clutch_pressure = prefill_data.fill_pressure_off_clutch;
                 current_working_pressure = mpc_working;
                 pre_overlap_torque = sensor_data.input_torque;
@@ -619,38 +578,32 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
 
                 current_working_pressure = wp_current_gear;
-                float overlap_ending_spc = scale_number(
-                    sensor_data.input_torque,
-                    prefill_data.fill_pressure_on_clutch*2,
-                    current_working_pressure + prefill_data.fill_pressure_on_clutch,
-                    100,
-                    gearboxConfig.max_torque
-                );
                 
-                if (phase_elapsed < 200) {
-                    // Merge point
-                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, prev_mod_clutch_pressure/2, 0, 200);
-                    current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, current_working_pressure+prev_mod_clutch_pressure/2, 0, 200);
+                current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure/2, 0, 0, chars.target_shift_time/2, InterpType::EaseOut);
+                // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
+                if (phase_elapsed < chars.target_shift_time) {
+                    float overlap_ending_spc = current_working_pressure + (prefill_data.fill_pressure_on_clutch);
+                    current_shift_clutch_pressure = interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear);
                 } else {
-                    current_mod_clutch_pressure = scale_number(phase_elapsed-200, prev_mod_clutch_pressure/2, 0, 0, chars.target_shift_time);
-                    current_shift_clutch_pressure = MAX(scale_number(phase_elapsed-200, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time), current_shift_clutch_pressure);
+                    float overlap_ending_spc = current_working_pressure + (prefill_data.fill_pressure_on_clutch);
+                    current_shift_clutch_pressure = interpolate_float(phase_elapsed, overlap_ending_spc, overlap_ending_spc*2, 0, chars.target_shift_time*2, InterpType::Linear);
                 }
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 if (phase_elapsed < maxp.ramp_time_1) {
-                    current_shift_clutch_pressure = scale_number(phase_elapsed, prev_shift_clutch_pressure, MIN(7000, prev_shift_clutch_pressure*1.25), 0, maxp.ramp_time_1);
-                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1);
+                    current_shift_clutch_pressure = interpolate_float(phase_elapsed, prev_shift_clutch_pressure, MIN(7000, prev_shift_clutch_pressure*1.25), 0, maxp.ramp_time_1, InterpType::Linear);
+                    current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1, InterpType::Linear);
                 } else if (phase_elapsed < maxp.ramp_time_2) {
-                    current_shift_clutch_pressure = scale_number(phase_elapsed, MIN(7000, prev_shift_clutch_pressure*1.25), 7000, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
-                    current_mod_clutch_pressure = scale_number(phase_elapsed, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2);
+                    current_shift_clutch_pressure = interpolate_float(phase_elapsed, MIN(7000, prev_shift_clutch_pressure*1.25), 7000, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2, InterpType::EaseOut);
+                    current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure/2, 0, maxp.ramp_time_1, maxp.ramp_time_1+maxp.ramp_time_2, InterpType::EaseOut);
                 } else {
                     // Hold phase. Mod at 0, Shift at full
                     prev_shift_clutch_pressure = 7000;
                     current_mod_clutch_pressure = 0;
                 }
                 // Merge working pressure slowly
-                current_working_pressure = scale_number(phase_elapsed, prev_working_pressure, wp_new_gear, 0, maxp.ramp_time_1+maxp.ramp_time_2+maxp.hold_time);
+                current_working_pressure = interpolate_float(phase_elapsed, prev_working_pressure, wp_new_gear, 0, maxp.ramp_time_1+maxp.ramp_time_2+maxp.hold_time, InterpType::Linear);
             }
 
             pressure_mgr->set_target_working_pressure(current_working_pressure);

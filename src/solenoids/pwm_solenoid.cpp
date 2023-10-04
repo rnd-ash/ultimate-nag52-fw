@@ -8,9 +8,6 @@
 #include "esp_check.h"
 
 uint16_t voltage = 12000;
-uint16_t min_adc_v_reading = 0;
-uint16_t min_adc_raw_reading = 0;
-
 adc_cali_handle_t adc1_cal = nullptr;
 
 const ledc_timer_t SOLENOID_TIMER = ledc_timer_t::LEDC_TIMER_0;
@@ -23,12 +20,12 @@ const ledc_timer_config_t SOLENOID_TIMER_CFG = {
     .clk_cfg = LEDC_AUTO_CLK
 };
 
-PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint8_t current_samples, uint8_t avg_samples)
+PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
 {
     this->channel = channel;
     this->name = name;
     this->adc_channel = read_channel;
-    this->c_readings = new MovingUnsignedAverage(avg_samples);
+    this->pwm_phase_period_ms = phase_duration_ms;
     esp_err_t ret = ESP_OK;
 
 
@@ -51,11 +48,10 @@ set_err:
 }
 
 uint16_t PwmSolenoid::get_current() const {
-    uint32_t ret = this->c_readings->get_average();
-    if (ret > min_adc_raw_reading) {
-        adc_cali_raw_to_voltage(adc1_cal, ret, (int*)&ret);
-    } else {
-        ret = 0;
+    uint32_t raw = this->current_reading;
+    uint16_t ret = 0;
+    if (0 != raw) {
+        adc_cali_raw_to_voltage(adc1_cal, raw, (int*)&ret);
     }
     return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
@@ -93,7 +89,7 @@ uint16_t PwmSolenoid::get_pwm_compensated() const
 
 void PwmSolenoid::__set_adc_reading(uint16_t c)
 {
-    this->c_readings->add_sample(c);
+    this->current_reading = c;
 }
 
 adc_channel_t PwmSolenoid::get_adc_channel() const {
@@ -109,6 +105,10 @@ uint16_t PwmSolenoid::get_ledc_pwm() {
     return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel);
 }
 
+uint16_t PwmSolenoid::get_pwm_phase_time() const {
+    return this->pwm_phase_period_ms;
+}
+
 
 esp_err_t SolenoidSetup::init_adc() {
     const adc_cali_line_fitting_config_t cali = {
@@ -118,16 +118,5 @@ esp_err_t SolenoidSetup::init_adc() {
         .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
     };
     ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc1_cal), "SOLENOID", "Failed to create ADC cal");
-    // Set the minimum ADC Reading in mV
-    ESP_RETURN_ON_ERROR(adc_cali_raw_to_voltage(adc1_cal, 0, (int*)&min_adc_v_reading), "SOLENOID", "Failed to get ADC min value");
-    int test = 0;
-    for (uint16_t i = 0; i < 1024; i++) {
-        adc_cali_raw_to_voltage(adc1_cal, i, &test);
-        if (test > min_adc_v_reading) {
-            min_adc_raw_reading = test-1;
-            break;
-        }
-    }
-    ESP_LOGI("SOLENOIDS", "Raw min for ADC1 is %d - %d", min_adc_raw_reading, min_adc_v_reading);
     return ESP_OK;
 }

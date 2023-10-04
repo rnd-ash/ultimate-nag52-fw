@@ -85,7 +85,7 @@ SPEAKER_POST_CODE setup_tcm() {
                         break;
                 }
             }
-            if (!egs_can_hal->begin_tasks()) {
+            if (!egs_can_hal->begin_task()) {
                 ret = SPEAKER_POST_CODE::CAN_FAIL;
             } else {
                 if (Sensors::init_sensors() != ESP_OK) {

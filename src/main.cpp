@@ -275,11 +275,11 @@ extern "C" void app_main(void)
     egs_can_hal = nullptr;
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
-    xTaskCreate(err_beep_loop, "PCSPKR", 2048, reinterpret_cast<void*>(s), 2, nullptr);
+    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
-    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 32*1024, diag_server, 5, nullptr, 0);
-    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 4096, diag_server, 5, nullptr, 0);
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 1024, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK) {
         while(true) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));

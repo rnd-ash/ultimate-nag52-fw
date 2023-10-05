@@ -104,7 +104,7 @@ void Solenoids::notify_diag_test_start() {
     write_pwm = false;
 }
 
-void Solenoids::notify_diag_test_end() {
+void Solenoids::notify_diag_test_end(void) {
     write_pwm = true;
 }
 
@@ -144,7 +144,7 @@ bool routine = false;
 bool startup_ok = false;
 
 
-uint16_t Solenoids::get_solenoid_voltage() {
+uint16_t Solenoids::get_solenoid_voltage(void) {
     return voltage;
 }
 

@@ -82,6 +82,14 @@ void read_solenoids_i2s(void*) {
                     } else {
                         sol_order_by_adc_channel[channel_idx]->__set_adc_reading(0);
                     }
+
+                    // Important step for CC solenoids
+                    if (sol_order_by_adc_channel[channel_idx] == sol_mpc) {
+                        sol_mpc->set_target_current_when_reading();
+                    } else if (sol_order_by_adc_channel[channel_idx] == sol_spc) {
+                        sol_spc->set_target_current_when_reading();
+                    }
+
                     totals[channel_idx] = 0;
                     peak_samples[channel_idx] = 0;
                     total_count[channel_idx] = 0;

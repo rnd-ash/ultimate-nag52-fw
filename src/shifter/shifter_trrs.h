@@ -3,14 +3,16 @@
 
 #include "shifter.h"
 #include "esp_err.h"
+#include "../board_config.h"
+#include "programselector/programselectorswitchtrrs.h"
 
 class ShifterTrrs : public Shifter
 {
 public:
-    explicit ShifterTrrs(esp_err_t *can_init_status);
-    ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
-    ProfileSwitchPos get_shifter_profile_switch_pos(const uint32_t expire_time_ms) override;
-    void set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed);
+    ShifterTrrs(TCM_CORE_CONFIG* vehicle_config, BoardGpioMatrix *board, AbstractProfile* profiles);
+    ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;    
+    AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
+    
 private:
     const ShifterPosition TRRS_SHIFTER_TABLE[16] = {
         ShifterPosition::SignalNotAvailable,    // 0b0000
@@ -31,7 +33,11 @@ private:
         ShifterPosition::SignalNotAvailable     // 0b1111
     };
 
+    void set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed);
+
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
+    BoardGpioMatrix* board;
+    ProgramSelectorSwitchTRRS* programselector;
 };
 
 #endif // SHIFTER_TRRS_H

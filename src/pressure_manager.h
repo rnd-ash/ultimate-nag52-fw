@@ -131,14 +131,14 @@ private:
     // At the releasing clutch (When shifting)
     uint16_t req_mpc_clutch_pressure;
     // For all clutches
-    uint16_t req_working_pressure;
+    uint16_t req_working_pressure = 0u;
 
     // At SPC solenoid
-    uint16_t commanded_spc_pressure;
+    uint16_t commanded_spc_pressure = 0u;
     // At MPC solenoid
-    uint16_t commanded_mpc_pressure;
+    uint16_t commanded_mpc_pressure = 0u;
     // Shift circuit currently open
-    ShiftCircuit currently_open_circuit;
+    ShiftCircuit currently_open_circuit = ShiftCircuit::None;
 
     StoredMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;

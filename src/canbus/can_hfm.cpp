@@ -6,17 +6,18 @@
 #include "tcu_maths.h"
 #include "ioexpander.h"
 
-HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud)
-{
+HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : EgsBaseCan(name, tx_time_ms, 125000u, shifter)
+{    
     ESP_LOGI("ClassicEGS", "SETUP CALLED");
     if (ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style)
-    {
-        this->start_enable = true;
+    {        this->start_enable = true;
+        can_init_status = ESP_OK;
     }
-    else {
-                // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
+    else
+    {
+        can_init_status = ESP_ERR_INVALID_ARG;
+        // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
         ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");
-
     }
 }
 
@@ -98,11 +99,6 @@ WheelData HfmCan::get_rear_left_wheel(const uint32_t expire_time_ms)
     return generateWheelData(expire_time_ms);
 }
 
-ShifterPosition HfmCan::get_shifter_position(const uint32_t expire_time_ms)
-{
-    return shifter->get_shifter_position(expire_time_ms);
-}
-
 EngineType HfmCan::get_engine_type(const uint32_t expire_time_ms)
 {
     // M104 & M111 are always petrol; this function can be used to avoid wrong usage of the CAN-layer
@@ -180,9 +176,6 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
 {
     // TODO: check if there is a difference to full throttle and kick down
     bool result = false;
-    if(ioexpander->is_data_valid(expire_time_ms)){
-        result = ioexpander->get_kickdown();
-    }
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
@@ -279,17 +272,6 @@ int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms)
     return result;
 }
 
-int HfmCan::get_minimum_engine_torque(const uint32_t expire_time_ms)
-{
-    // Always 0, since Hfm-ECUs do not calculate inertia
-    return 0;
-}
-
-PaddlePosition HfmCan::get_paddle_position(const uint32_t expire_time_ms)
-{
-    return PaddlePosition::SNV;
-}
-
 int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
 {
     int16_t result = INT16_MAX;
@@ -352,40 +334,15 @@ bool HfmCan::get_is_starting(const uint32_t expire_time_ms)
 bool HfmCan::get_is_brake_pressed(const uint32_t expire_time_ms)
 {
     bool result = false;
-    if(ioexpander->is_data_valid(expire_time_ms)){
-        ioexpander->get_brake_light_switch();
-    }    
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        result |= hfm210.BLS_B;
+        result = hfm210.BLS_B;
     }
     return result;
-}
-
-ProfileSwitchPos HfmCan::get_shifter_ws_mode(const uint32_t expire_time_ms)
-{
-    return ioexpander->get_program_switch();
 }
 
 void HfmCan::on_rx_frame(uint32_t id, uint8_t dlc, uint64_t data, const uint32_t timestamp)
 {
     this->hfm_ecu.import_frames(data, id, timestamp);
-}
-
-void HfmCan::on_rx_done(const uint32_t now_ts)
-{
-    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
-        const uint32_t expire_time_ms = 50;
-        float vVeh = 0.0F;
-        ShifterPosition pos = shifter->get_shifter_position(expire_time_ms);
-        bool is_brake_pressed = get_is_brake_pressed(expire_time_ms);
-        WheelData front_left = get_front_left_wheel(expire_time_ms);
-        WheelData front_right = get_front_right_wheel(expire_time_ms);
-        if ((WheelDirection::Forward == front_left.current_dir) && (WheelDirection::Forward == front_right.current_dir)){
-            vVeh = ((float)(((front_left.double_rpm + front_right.double_rpm) >> 2) * ((int)VEHICLE_CONFIG.wheel_circumference) * 6)) / 100000.F;
-        }
-        (static_cast<ShifterTrrs*>(shifter))->set_rp_solenoid(vVeh, pos, is_brake_pressed);
-    }
-
 }

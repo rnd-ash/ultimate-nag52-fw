@@ -5,7 +5,7 @@
 
 uint8_t crcTable[256]; // For CRC only
 
-Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud){
+Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter){
     // Create CRC table
     for (int i = 0; i < 0x100; i++) {
             uint8_t _crc = i;
@@ -28,8 +28,9 @@ Egs53Can::Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->eng_rq2_tcm.TxShiftStyle = ENG_RQ2_TCM_TxShiftStyle_EGS53::MS; // Mechanical shifting (With EWM module)
 }
 
-WheelData Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms) {  // TODO
-    WHL_STAT2_EGS53 whl_stat;
+WheelData Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{ // TODO
+	WHL_STAT2_EGS53 whl_stat;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
         WheelDirection dir;
         switch(whl_stat.WhlDir_FR_Stat) {

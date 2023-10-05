@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <tcu_maths.h>
 #include <esp_err.h>
-
+#include "profiles.h"
 
 // TCC Settings
 
@@ -470,13 +470,6 @@ enum EwmSelectorType: uint8_t {
     Switch = 2
 };
 
-enum AutoProfile: uint8_t {
-    Sport = 0,
-    Comfort = 1,
-    Agility = 2,
-    Winter = 3
-};
-
 // Shifter settings
 typedef struct {
     // TRRS shifter (Wired to the TCU) has a profile selector?
@@ -486,10 +479,10 @@ typedef struct {
     EwmSelectorType ewm_selector_type;
     // When using a switch profile selector. This is the profile
     // to use when in the top position
-    AutoProfile profile_idx_top;
+    GearboxProfile profile_idx_top;
     // When using a switch profile selector. This is the profile
     // to use when in the bottom position
-    AutoProfile profile_idx_buttom;
+    GearboxProfile profile_idx_bottom;
     // If you have a CAN based EWM shifter (+/- markings on it),
     // but have a profile W/S switch rather than a profile button,
     // you can enable this option to force cycling of ALL profiles,
@@ -504,8 +497,8 @@ typedef struct {
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .trrs_has_profile_selector = true,
     .ewm_selector_type = EwmSelectorType::Button,
-    .profile_idx_top = AutoProfile::Comfort,
-    .profile_idx_buttom = AutoProfile::Sport,
+    .profile_idx_top = GearboxProfile::Comfort,
+    .profile_idx_bottom = GearboxProfile::Agility,
     .ewm_shifter_switch_cycles_profiles = false,
 };
 

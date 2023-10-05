@@ -36,7 +36,7 @@ int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gea
     return calculated;
 }
 
-Gearbox::Gearbox()
+Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
 {
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
@@ -159,8 +159,9 @@ bool Gearbox::is_stationary() {
 
 void Gearbox::set_profile(AbstractProfile *prof)
 {
-    if (prof != nullptr)
-    { // Only change if not nullptr!
+    if ((nullptr != prof) && ((nullptr == current_profile) || (prof->get_profile() != current_profile->get_profile())))
+    {
+        // Only change if not nullptr!
         portENTER_CRITICAL(&this->profile_mutex);
         this->current_profile = prof;
         portEXIT_CRITICAL(&this->profile_mutex);
@@ -277,8 +278,9 @@ GearboxGear prev_gear(GearboxGear g)
 #define SHIFT_DELAY_MS 10     // 10ms steps
 #define NUM_SCD_ENTRIES 100 / SHIFT_DELAY_MS // 100ms moving average window
 
-ClutchSpeeds Gearbox::diag_get_clutch_speeds() {
-    return ClutchSpeedModel::get_clutch_speeds_debug(
+ClutchSpeeds Gearbox::diag_get_clutch_speeds()
+{
+	return ClutchSpeedModel::get_clutch_speeds_debug(
         sensor_data.output_rpm,
         this->rpm_reading,
         this->last_motion_gear,

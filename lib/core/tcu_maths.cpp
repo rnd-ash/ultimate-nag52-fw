@@ -24,7 +24,7 @@ float interpolate_float(float raw, float new_min, float new_max, float raw_min, 
         // Function based interpolation
         float input_percentage = progress_between_targets(raw_limited, raw_min, raw_max);
         float input_percentage_as_int = (int16_t)input_percentage;
-        float ret = new_min;
+        float ret;
         if (input_percentage_as_int <= 0)
         {
             ret = new_min;
@@ -55,7 +55,7 @@ float scale_number(float raw, const LinearInterpSetting* settings) {
     return scale_number(raw, settings->new_min, settings->new_max, settings->raw_min, settings->raw_max);
 }
 
-float interpolate_float(float raw, LinearInterpSetting* settings, InterpType interp_type) {
+float interpolate_float(float raw, const LinearInterpSetting* settings, InterpType interp_type) {
     return interpolate_float(raw, settings->new_min, settings->new_max, settings->raw_min, settings->raw_max, interp_type);
 }
 

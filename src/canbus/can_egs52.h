@@ -13,7 +13,7 @@
 
 class Egs52Can: public EgsBaseCan {
     public:
-        explicit Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
 
         /**
          * Getters
@@ -27,8 +27,8 @@ class Egs52Can: public EgsBaseCan {
         WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
-        // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+        // Gets the shifter position
+        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;        
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -63,7 +63,6 @@ class Egs52Can: public EgsBaseCan {
         // TerminalStatus get_terminal_15(const uint32_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         TransferCaseState get_transfer_case_state(const uint32_t expire_time_ms) override;
-        ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) override;
         bool engine_ack_torque_request(const uint32_t expire_time_ms) override;
         bool esp_torque_intervention_active(const uint32_t expire_time_ms) override;
         bool is_cruise_control_active(const uint32_t expire_time_ms) override;
@@ -111,7 +110,6 @@ class Egs52Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
-        void on_rx_done(const uint32_t now_ts) override;
     private:
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
@@ -125,7 +123,6 @@ class Egs52Can: public EgsBaseCan {
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        Shifter *shifter;
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;

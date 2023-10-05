@@ -93,6 +93,12 @@ void Speaker::post(SPEAKER_POST_CODE code) {
             this->send_note(500, 300, 500);
             this->send_note(500, 150, 200);
             break;
+        case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            this->send_note(500, 300, 500);
+            this->send_note(500, 150, 200);
+            break;            
         default:
             break;
     }

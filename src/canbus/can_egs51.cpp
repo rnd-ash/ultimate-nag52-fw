@@ -4,32 +4,21 @@
 #include "driver/i2c.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
-
-#include "shifter/shifter_ewm.h"
 #include "shifter/shifter_trrs.h"
-#include "ioexpander.h"
+#include "shifter/shifter_ewm.h"
 
-Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
+Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
+{
     ESP_LOGI("EGS51", "SETUP CALLED");
-
-    switch (VEHICLE_CONFIG.shifter_style)
-    {
-    case (uint8_t)ShifterStyle::TRRS:
-        shifter = new ShifterTrrs(&(this->can_init_status));
-        break;
-    default:
-        shifter = new ShifterEwm(&(this->can_init_status), &ewm);
-        break;
-    }
-    ioexpander->set_start(true);
     this->gs218.TORQUE_REQ = 0xFE;
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
 }
 
-WheelData Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms) {  // TODO
-    return WheelData {
+WheelData Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{ // TODO
+	return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
@@ -104,10 +93,6 @@ WheelData Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs51Can::get_shifter_position(const uint32_t expire_time_ms) {
-    return shifter->get_shifter_position(expire_time_ms);
-}
-
 EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {
     return EngineType::Unknown;
 }
@@ -145,23 +130,21 @@ int Egs51Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
 }
 
 int Egs51Can::get_maximum_engine_torque(const uint32_t expire_time_ms) {
+    int result = INT_MAX;
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        return ms310.MAX_TORQUE*3;
-    } else {
-        return INT_MAX;
+        result = ms310.MAX_TORQUE*3;
     }
-    return INT_MAX;
+    return result;
 }
 
 int Egs51Can::get_minimum_engine_torque(const uint32_t expire_time_ms) {
+    int result = INT_MAX;
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        return (int)ms310.MIN_TORQUE*3;
-    } else {
-        return INT_MAX;
+        result = (int)ms310.MIN_TORQUE*3;
     }
-    return INT_MAX;
+    return result;
 }
 
 PaddlePosition Egs51Can::get_paddle_position(const uint32_t expire_time_ms) {
@@ -220,10 +203,6 @@ bool Egs51Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
 
 bool Egs51Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     return false;
-}
-
-ProfileSwitchPos Egs51Can::get_shifter_ws_mode(const uint32_t expire_time_ms) {
-    return this->shifter->get_shifter_profile_switch_pos(expire_time_ms);
 }
 
 uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
@@ -339,10 +318,6 @@ void Egs51Can::set_target_gear(GearboxGear target) {
     }
 }
 
-void Egs51Can::set_safe_start(bool can_start) {
-    ioexpander->set_start(can_start);
-}
-
 void Egs51Can::set_gearbox_temperature(uint16_t temp) {
 }
 
@@ -423,21 +398,4 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint3
     } else if (this->esp51.import_frames(data, id, timestamp)) {
     } else if (this->ewm.import_frames(data, id, timestamp)) {
     }
-}
-
-void Egs51Can::on_rx_done(const uint32_t now_ts)
-{
-    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
-        const uint32_t expire_time_ms = 50;
-        float vVeh = 0.0F;
-        ShifterPosition pos = shifter->get_shifter_position(expire_time_ms);
-        bool is_brake_pressed = get_is_brake_pressed(expire_time_ms);
-        WheelData front_left = get_front_left_wheel(expire_time_ms);
-        WheelData front_right = get_front_right_wheel(expire_time_ms);
-        if ((WheelDirection::Forward == front_left.current_dir) && (WheelDirection::Forward == front_right.current_dir)){
-            vVeh = ((float)(((front_left.double_rpm + front_right.double_rpm) >> 2) * ((int)VEHICLE_CONFIG.wheel_circumference) * 6)) / 100000.F;
-        }
-        (static_cast<ShifterTrrs*>(shifter))->set_rp_solenoid(vVeh, pos, is_brake_pressed);
-    }
-
 }

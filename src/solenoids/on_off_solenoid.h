@@ -13,7 +13,7 @@ public:
     bool is_on();
 
 private:
-    uint32_t on_time_ms;
+    uint32_t on_time_ms = 0u;
     uint32_t target_on_time;
     uint16_t target_hold_pwm;
     bool state = false;

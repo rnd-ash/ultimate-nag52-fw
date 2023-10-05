@@ -105,8 +105,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
-    uint32_t now = GET_CLOCK_TIME();
-
+    
     WheelData t = gearbox->sensor_data.rl_wheel;
     ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
     t = gearbox->sensor_data.rr_wheel;

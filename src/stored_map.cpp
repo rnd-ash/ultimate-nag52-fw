@@ -73,14 +73,6 @@ esp_err_t StoredMap::replace_data_content(const int16_t *new_data, uint16_t cont
     return result;
 }
 
-/**
- * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
- */
-esp_err_t StoredMap::reload_from_eeprom(void)
-{
-    return this->read_from_eeprom(this->data_name, this->data_element_count);
-}
-
 esp_err_t StoredMap::reset_from_flash(void) {
     esp_err_t res = ESP_OK;
     const int16_t* default_data = this->default_map;

@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "driver/i2c.h"
 #include "clock.hpp"
+#include "board_config.h"
 
 IOExpander::IOExpander(void)
 {
@@ -125,43 +126,39 @@ inline void IOExpander::set_value(const bool value, const pca_num_t bit, uint8_t
 
 uint8_t IOExpander::get_trrs(void)
 {
-	uint8_t result = get_bool_value(pcb_gpio_matrix->i2c_expander_trrs_a, i2c_rx_bytes);
-	result |= (get_bool_value(pcb_gpio_matrix->i2c_expander_trrs_b, i2c_rx_bytes) << 1);
-	result |= (get_bool_value(pcb_gpio_matrix->i2c_expander_trrs_c, i2c_rx_bytes) << 2);
-	result |= (get_bool_value(pcb_gpio_matrix->i2c_expander_trrs_d, i2c_rx_bytes) << 3);
+	uint8_t result = get_bool_value(i2c_expander_trrs_a, i2c_rx_bytes);
+	result |= (get_bool_value(i2c_expander_trrs_b, i2c_rx_bytes) << 1);
+	result |= (get_bool_value(i2c_expander_trrs_c, i2c_rx_bytes) << 2);
+	result |= (get_bool_value(i2c_expander_trrs_d, i2c_rx_bytes) << 3);
 	return result;
 }
 
 bool IOExpander::get_kickdown(void)
 {
-	return get_bool_value(pcb_gpio_matrix->i2c_expander_kickdown_switch, i2c_rx_bytes);
+	return get_bool_value(i2c_expander_kickdown_switch, i2c_rx_bytes);
 }
 
-ProfileSwitchPos IOExpander::get_program_switch(void)
+bool IOExpander::is_program_switch_pressed(void)
 {
-	bool tmp = get_bool_value(pcb_gpio_matrix->i2c_expander_program_button, i2c_rx_bytes);
-	ProfileSwitchPos result = tmp ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
-	return result;
+	return get_bool_value(i2c_expander_program_button, i2c_rx_bytes);
 }
 
-bool IOExpander::get_brake_light_switch(void)
+bool IOExpander::is_brake_light_switch_pressed(void)
 {
-	return get_bool_value(pcb_gpio_matrix->i2c_expander_brake_light_switch, i2c_rx_bytes);
+	return get_bool_value(i2c_expander_brake_light_switch, i2c_rx_bytes);
 }
 
 void IOExpander::set_rp_solenoid(const bool rp_solenoid_enabled)
 {
-	set_value(rp_solenoid_enabled, pcb_gpio_matrix->i2c_expander_rp_solenoid_enabler, i2c_tx_bytes);
+	set_value(rp_solenoid_enabled, i2c_expander_rp_solenoid_enabler, i2c_tx_bytes);
 }
 
 void IOExpander::set_start(const bool start_enabled)
 {
-	set_value(start_enabled, pcb_gpio_matrix->i2c_expander_start_enabler, i2c_tx_bytes);
+	set_value(start_enabled, i2c_expander_start_enabler, i2c_tx_bytes);
 }
 
 void IOExpander::set_gearbox_protection(const bool gearbox_protection_enabled)
 {
-	set_value(gearbox_protection_enabled, pcb_gpio_matrix->i2c_expander_gearbox_protection_enabler, i2c_tx_bytes);
+	set_value(gearbox_protection_enabled, i2c_expander_gearbox_protection_enabler, i2c_tx_bytes);
 }
-
-IOExpander *ioexpander = nullptr;

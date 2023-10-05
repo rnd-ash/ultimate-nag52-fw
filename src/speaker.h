@@ -8,12 +8,13 @@
 
 enum class SPEAKER_POST_CODE {
     INIT_OK, // short short
-    EEPROM_FAIL, // long long long long
-    CAN_FAIL, // long long short long
-    SOLENOID_FAIL, // long short long long
-    SENSOR_FAIL, // long short short short
-    CONTROLLER_FAIL, // long short short long
-    EFUSE_NOT_SET, // Long long long short
+    EEPROM_FAIL,            // long long long long
+    CAN_FAIL,               // long long short long
+    SOLENOID_FAIL,          // long short long long
+    SENSOR_FAIL,            // long short short short
+    CONTROLLER_FAIL,        // long short short long
+    EFUSE_NOT_SET,          // Long long long short
+    CONFIGURATION_MISMATCH, // long short long short
 };
 
 class Speaker {

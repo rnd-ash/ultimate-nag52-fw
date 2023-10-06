@@ -22,7 +22,7 @@ ConstantCurrentSolenoid *sol_spc = nullptr;
 InrushControlSolenoid *sol_tcc = nullptr;
 
 // 6 channels * SOC_ADC_DIGI_DATA_BYTES_PER_CONV bytes per sample *  
-#define I2S_DMA_BUF_LEN 6 * 100 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV
+#define I2S_DMA_BUF_LEN 6 * 100 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 4
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
 
@@ -54,7 +54,7 @@ void read_solenoids_i2s(void*) {
     esp_err_t ret;
 
     PwmSolenoid* sol_order_by_adc_channel[adc_channel_t::ADC_CHANNEL_9] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-    uint32_t totals[ADC_BITWIDTH_9];
+    uint64_t totals[ADC_BITWIDTH_9];
     uint16_t peak_samples[ADC_BITWIDTH_9];
     uint16_t total_count[ADC_CHANNEL_9];
     for (uint8_t i = 0; i < 6; i++) {
@@ -76,7 +76,7 @@ void read_solenoids_i2s(void*) {
                     totals[channel_idx] += p->type1.data;
                 }
                 total_count[channel_idx] += 1;
-                if (total_count[channel_idx] == 100*sol_order_by_adc_channel[channel_idx]->get_pwm_phase_time()) {
+                if (total_count[channel_idx] == 200*sol_order_by_adc_channel[channel_idx]->get_pwm_phase_time()) { // over 4ms
                     if (peak_samples[channel_idx] >= sol_order_by_adc_channel[channel_idx]->get_pwm_phase_time()) {
                         sol_order_by_adc_channel[channel_idx]->__set_adc_reading((float)totals[channel_idx]/(float)peak_samples[channel_idx]);
                     } else {
@@ -95,7 +95,7 @@ void read_solenoids_i2s(void*) {
                     total_count[channel_idx] = 0;
                 }
             }
-        } 
+        }
     }
 }
 
@@ -117,23 +117,17 @@ void Solenoids::notify_diag_test_end() {
 }
 
 void update_solenoids(void*) {
-    int16_t atf_temp = 25;
+    int16_t atf_temp = 250;
     float vref_compensation = 1.0;
     float temp_compensation = 1.0;
-    uint8_t c = 0;
     while(true) {
-        if (c == 10) {
-            if (ESP_OK == Sensors::read_vbatt(&voltage)) {
-                vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
-            } else {
-                vref_compensation = 1.0;
-            }
-            if (ESP_OK == Sensors::read_atf_temp(&atf_temp)) {
-                temp_compensation = ((atf_temp-SOL_CURRENT_SETTINGS.cc_reference_temp)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/100.0;
-            } else {
-                temp_compensation = 1.0;
-            }
-            c = 0;
+        if (ESP_OK == Sensors::read_vbatt(&voltage)) {
+            vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
+        } else {
+            vref_compensation = 1.0;
+        }
+        if (ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
+            temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
         }
         if (write_pwm) {
             sol_mpc->__write_pwm(vref_compensation, temp_compensation);
@@ -143,7 +137,6 @@ void update_solenoids(void*) {
             sol_y4->__write_pwm(vref_compensation, temp_compensation);
             sol_y5->__write_pwm(vref_compensation, temp_compensation);
         }
-        c++;
         vTaskDelay(1); // Max we can do at 1000hz
     }
 }
@@ -235,7 +228,7 @@ esp_err_t Solenoids::init_all_solenoids()
     ESP_RETURN_ON_ERROR(sol_y4->init_ok(), "SOLENOID", "Y4 init not OK");
     ESP_RETURN_ON_ERROR(sol_y5->init_ok(), "SOLENOID", "Y5 init not OK");
     xTaskCreate(update_solenoids, "LEDC-Update", 8192, nullptr, 10, nullptr);
-    xTaskCreate(read_solenoids_i2s, "I2S-Reader", 8192*2, nullptr, 3, nullptr);
+    xTaskCreatePinnedToCore(read_solenoids_i2s, "I2S-Reader", 2048, nullptr, 3, nullptr, 1);
     //xTaskCreate(Solenoids::boot_solenoid_test, "Solenoid-Test", 8192, nullptr, 3, nullptr);
     return ESP_OK;
 }

@@ -51,13 +51,13 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         // RMS trim factor
         calc_pwm += calc_pwm * (this->internal_trim_factor * (max_current/this->current_target));
 
-        if (delta_as_percent < -0.1) {
-            // Fast decrease for a split second so that current drops sharply
-            calc_pwm /= interpolate_float(delta_as_percent, 10, 1, -0.5, -0.1, InterpType::Linear);
-        } else if (delta_as_percent > 0.1) {
-            // Fast increase for a split second so that current ramps up sharply
-            calc_pwm *= interpolate_float(delta_as_percent, 1, 1.25, 0.1, 0.5, InterpType::Linear);
-        }
+        //if (delta_as_percent < -0.1) {
+        //    // Fast decrease for a split second so that current drops sharply
+        //    calc_pwm /= interpolate_float(delta_as_percent, 10, 1, -0.5, -0.1, InterpType::Linear);
+        //} else if (delta_as_percent > 0.1) {
+        //    // Fast increase for a split second so that current ramps up sharply
+        //    calc_pwm *= interpolate_float(delta_as_percent, 1, 1.25, 0.1, 0.5, InterpType::Linear);
+        //}
 
         if (calc_pwm > 4096) {
             calc_pwm = 4096;

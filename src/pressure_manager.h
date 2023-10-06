@@ -69,7 +69,7 @@ public:
      */
     void set_target_tcc_pressure(uint16_t targ);
 
-   uint16_t get_off_clutch_hold_pressure(Clutch c);
+   uint16_t get_spring_pressure(Clutch c);
 
     uint16_t get_targ_line_pressure(void);
     uint16_t get_targ_mpc_clutch_pressure(void) const;
@@ -148,6 +148,7 @@ private:
     uint16_t gb_max_torque;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
+    uint16_t max_pressure = 0;
 
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;

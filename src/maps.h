@@ -100,8 +100,10 @@ extern const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE];
 
 #define PCS_CURRENT_MAP_SIZE 8*4
 
-extern const int16_t BROWN_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE];
-extern const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE];
+extern const int16_t PCS_CURRENT_MAP_X_VARIANT0[8];
+extern const int16_t PCS_CURRENT_MAP_X_VARIANT1[8];
+extern const int16_t PCS_CURRENT_MAP_VARIANT0[PCS_CURRENT_MAP_SIZE];
+extern const int16_t PCS_CURRENT_MAP_VARIANT1[PCS_CURRENT_MAP_SIZE];
 
 
 // -- Hold phase pressures --

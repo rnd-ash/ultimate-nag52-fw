@@ -18,17 +18,18 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t* default_data;
 
     /** Pressure PWM map **/
-    const int16_t pwm_x_headers[8] = {0, 50, 600, 1000, 2350, 5600, 6600, 7700};
+    const int16_t* pwm_x_headers = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_X_VARIANT0 : PCS_CURRENT_MAP_X_VARIANT1;
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
-    key_name = NVS_KEY_MAP_NAME_PCS_BROWN;
-    default_data = BROWN_PCS_CURRENT_MAP;
+    this->max_pressure = pwm_x_headers[7];
+    key_name = NVS_KEY_MAP_NAME_PCS;
+    default_data = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_VARIANT0 : PCS_CURRENT_MAP_VARIANT1;
     this->pressure_pwm_map = new StoredMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
     if (this->pressure_pwm_map->init_status() != ESP_OK) {
         delete[] this->pressure_pwm_map;
     }
 
     /** Pressure PWM map (TCC) **/
-    const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
+    const int16_t pwm_tcc_x_headers[7] = {0, 400, 800, 1000, 1500, 2000, 3000};
     const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
     key_name = NVS_KEY_MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;
@@ -130,7 +131,7 @@ void PressureManager::controller_loop() {
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     if (this->mpc_working_pressure == nullptr) {
-        return 7000; // Failsafe!
+        return this->max_pressure; // Failsafe!
     }
 
     uint8_t gear_idx = 0;
@@ -291,12 +292,12 @@ void PressureManager::set_target_modulating_clutch_pressure(uint16_t targ) {
 }
 
 void PressureManager::set_spc_p_max() {
-    this->req_spc_clutch_pressure = 7700;
+    this->req_spc_clutch_pressure = this->max_pressure;
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
-    if (targ > 15000) {
-        targ = 15000;
+    if (targ > 3000) {
+        targ = 3000;
     }
     this->req_tcc_clutch_pressure = targ;
     sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->req_tcc_clutch_pressure));
@@ -314,25 +315,29 @@ uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {
     return ret;
 }
 
-uint16_t PressureManager::get_off_clutch_hold_pressure(Clutch c) {
-    uint16_t min_pressure = 0;
-    uint16_t pressure_from_trq;
+uint16_t PressureManager::get_spring_pressure(Clutch c) {
+    uint16_t spring_pressure = 1000;
 
     switch(c) {
         case Clutch::K1:
+            spring_pressure = 1270;
             break;
         case Clutch::K2:
+            spring_pressure = 846;
             break;
         case Clutch::K3:
+            spring_pressure = VEHICLE_CONFIG.is_large_nag ? 1646 : 1205;
             break;
         case Clutch::B1:
+            spring_pressure = 1139;
             break;
         case Clutch::B2:
+            spring_pressure = 1289;
+            break;
         default:
             break;
     }
-    pressure_from_trq = 0;
-    return MAX(min_pressure, pressure_from_trq);
+    return spring_pressure;
 }
 
 uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {

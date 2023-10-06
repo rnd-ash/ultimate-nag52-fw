@@ -17,17 +17,12 @@ typedef struct {
 
 typedef struct {
     uint16_t hold_time;
-    uint16_t ramp_time_1;
-    uint16_t ramp_time_2;
+    uint16_t ramp_time;
 } PressureStageTiming;
 
 class PressureManager {
 
 public:
-    [[noreturn]]
-    static void start_pm_internal(void *_this) {
-        static_cast<PressureManager*>(_this)->controller_loop();
-    }
 
     /**
      * @brief Toggle the state of a shift solenoid
@@ -95,8 +90,8 @@ public:
      * @return ShiftData 
      */
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
-
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
+    void update_pressures();
 
     PrefillData make_fill_data(ProfileGearChange change);
     PressureStageTiming get_max_pressure_timing();
@@ -106,8 +101,6 @@ public:
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
 private:
-
-    void controller_loop();
 
      /**
      * Returns the estimated PWM to send to either SPC or MPC solenoid
@@ -152,6 +145,13 @@ private:
 
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
+
+
+    uint16_t p_last_spc = 0;
+    uint16_t p_last_mpc = 0;
+    uint16_t spc_now = 0;
+    uint16_t mpc_now = 0;
+    uint16_t working_now = 0;
 };
 
 extern PressureManager* pressure_manager;

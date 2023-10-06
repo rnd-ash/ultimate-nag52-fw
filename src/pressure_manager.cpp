@@ -74,58 +74,50 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 }
 
-void PressureManager::controller_loop() {
-    uint16_t p_last_spc = 0;
-    uint16_t p_last_mpc = 0;
-    uint16_t spc_now = 0;
-    uint16_t mpc_now = 0;
-    uint16_t working_now = 0;
-    while(1) {
-        // Ignore
-        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+void PressureManager::update_pressures() {
+    // Ignore
+    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
-        } else {
-            spc_now = this->req_spc_clutch_pressure;
-            mpc_now = this->req_mpc_clutch_pressure;
-            working_now = this->req_working_pressure;
-            int max_spc = 7700;
-            if (sol_y3->is_on()) {
-                // 1-2 circuit is open (Correct pressure for K1)
-                // K1 is controlled by Shift pressure
-                if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                    spc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
-                    mpc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
-                }
+    } else {
+        spc_now = this->req_spc_clutch_pressure;
+        mpc_now = this->req_mpc_clutch_pressure;
+        working_now = this->req_working_pressure;
+        int max_spc = this->max_pressure;
+        if (sol_y3->is_on()) {
+            // 1-2 circuit is open (Correct pressure for K1)
+            // K1 is controlled by Shift pressure
+            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
+                spc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
+                mpc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
             }
-
-            mpc_now += working_now; // MPC += working pressure
-
-            if (spc_now >= 7700) {
-                spc_now = 7700;
-            }
-            if (mpc_now >= 7700) {
-                mpc_now = 7700;
-            }
-            if (p_last_spc != spc_now) {
-                p_last_spc = spc_now;
-                if (spc_now >= 7700) {
-                    sol_spc->set_current_target(0);
-                } else {
-                    sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
-                }
-            }
-            if (p_last_mpc != mpc_now) {
-                p_last_mpc = mpc_now;
-                if (mpc_now >= 7700) {
-                    sol_mpc->set_current_target(0);
-                } else {
-                    sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
-                }
-            }
-            this->commanded_spc_pressure = spc_now;
-            this->commanded_mpc_pressure = mpc_now;
         }
-        vTaskDelay(10/portTICK_PERIOD_MS);
+
+        mpc_now += working_now; // MPC += working pressure
+
+        if (spc_now >= this->max_pressure) {
+            spc_now = this->max_pressure;
+        }
+        if (mpc_now >= this->max_pressure) {
+            mpc_now = this->max_pressure;
+        }
+        if (p_last_spc != spc_now) {
+            p_last_spc = spc_now;
+            if (spc_now >= this->max_pressure) {
+                sol_spc->set_current_target(0);
+            } else {
+                sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
+            }
+        }
+        if (p_last_mpc != mpc_now) {
+            p_last_mpc = mpc_now;
+            if (mpc_now >= this->max_pressure) {
+                sol_mpc->set_current_target(0);
+            } else {
+                sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
+            }
+        }
+        this->commanded_spc_pressure = spc_now;
+        this->commanded_mpc_pressure = mpc_now;
     }
 }
 
@@ -229,9 +221,8 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
 
 PressureStageTiming PressureManager::get_max_pressure_timing() {
     return PressureStageTiming {
-        .hold_time = (uint16_t)interpolate_float(this->sensor_data->atf_temp, 1500, 100, -20, 30, InterpType::Linear),
-        .ramp_time_1 = 250,
-        .ramp_time_2 = 250,
+        .hold_time = (uint16_t)interpolate_float(this->sensor_data->atf_temp, 1500, 200, -20, 30, InterpType::Linear),
+        .ramp_time = 400,
     };
 }
 

@@ -170,7 +170,6 @@ void Gearbox::set_profile(AbstractProfile *prof)
 esp_err_t Gearbox::start_controller()
 {
     xTaskCreatePinnedToCore(Gearbox::start_controller_internal, "GEARBOX", 32768, static_cast<void *>(this), 10, nullptr, 1);
-    xTaskCreatePinnedToCore(PressureManager::start_pm_internal, "PM", 8192, static_cast<void *>(this->pressure_mgr), 10, nullptr, 1);
     return ESP_OK;
 }
 
@@ -1418,7 +1417,8 @@ void Gearbox::controller_loop()
             }
         }
         portEXIT_CRITICAL(&this->profile_mutex);
-        vTaskDelay(20 / portTICK_PERIOD_MS); // 50 updates/sec!
+        pressure_mgr->update_pressures();
+        vTaskDelay(10 / portTICK_PERIOD_MS); // 100 updates/sec!
     }
 }
 

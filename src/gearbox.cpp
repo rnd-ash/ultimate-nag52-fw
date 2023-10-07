@@ -720,6 +720,13 @@ void Gearbox::shift_thread()
             // N/P -> R/D
             // Defaults (Start in 2nd)
             egs_can_hal->set_garage_shift_state(true);
+            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
+            pressure_mgr->set_spc_p_max();
+            vTaskDelay(50);
+            pressure_mgr->set_target_working_pressure(1000);
+            int elapsed = 0;
+            bool completed_ok = false;
+            /*
             // Default for D
             int mpc = 1500;
             int spc = 600;
@@ -728,7 +735,7 @@ void Gearbox::shift_thread()
                 spc = 400;
                 this->pressure_mgr->set_spc_p_max();
             }
-            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+            //this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             bool completed_ok = false;
             this->shifting_velocity = {0,0};
             int old_turbine_speed = this->rpm_reading.calc_rpm;
@@ -738,13 +745,15 @@ void Gearbox::shift_thread()
             if (!into_reverse) {
                 pressure_mgr->set_target_shift_clutch_pressure(spc);
             }
-            pressure_mgr->set_target_working_pressure(mpc);
+            pressure_mgr->set_target_working_pressure(400);
             int elapsed_waiting_engine = 0;
+            */
             while(true) {
                 if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
                     completed_ok = false;
                     break;
                 }
+                /*
                 if (sensor_data.engine_rpm > 1000) {
                     elapsed_waiting_engine += 10;
                     if (elapsed_waiting_engine == SBS.garage_shift_max_timeout_engine) {
@@ -782,14 +791,20 @@ void Gearbox::shift_thread()
                 }
                 pressure_mgr->set_target_working_pressure(mpc);
                 pressure_mgr->set_target_shift_clutch_pressure(spc);
-
+                */
+                int turbine = this->rpm_reading.calc_rpm;
                 if (elapsed > 1500 && turbine <= 50+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
                     completed_ok = true;
+                    break;
+                }
+                if (elapsed > 2500) {
+                    completed_ok = false;
                     break;
                 }
                 vTaskDelay(10);
                 elapsed += 10;
             }
+            
             this->shifting_velocity = {0,0};
             if (!completed_ok) {
                 ESP_LOGW("SHIFT", "Garage shift aborted");

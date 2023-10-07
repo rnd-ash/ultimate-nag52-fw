@@ -592,6 +592,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (limit_line_pressure) {
                     current_working_pressure = MIN(current_shift_clutch_pressure - 100, wp_current_gear);
                 }
+                if (req_lookup == ProfileGearChange::THREE_TWO) {
+                    current_working_pressure = interpolate_float(phase_elapsed, wp_current_gear, 500, 0, chars.target_shift_time, InterpType::Linear);
+                }
                 
                 current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure, 0, 0, chars.target_shift_time, InterpType::Linear);
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)

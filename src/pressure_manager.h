@@ -145,13 +145,6 @@ private:
 
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
-
-
-    uint16_t p_last_spc = 0;
-    uint16_t p_last_mpc = 0;
-    uint16_t spc_now = 0;
-    uint16_t mpc_now = 0;
-    uint16_t working_now = 0;
 };
 
 extern PressureManager* pressure_manager;

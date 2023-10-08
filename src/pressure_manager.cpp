@@ -79,10 +79,9 @@ void PressureManager::update_pressures() {
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
-        spc_now = this->req_spc_clutch_pressure;
-        mpc_now = this->req_mpc_clutch_pressure;
-        working_now = this->req_working_pressure;
-        int max_spc = this->max_pressure;
+        int16_t spc_now = this->req_spc_clutch_pressure;
+        int16_t mpc_now = this->req_mpc_clutch_pressure;
+        int16_t working_now = this->req_working_pressure;
         if (sol_y3->is_on()) {
             // 1-2 circuit is open (Correct pressure for K1)
             // K1 is controlled by Shift pressure
@@ -96,25 +95,19 @@ void PressureManager::update_pressures() {
 
         if (spc_now >= this->max_pressure) {
             spc_now = this->max_pressure;
+            sol_spc->set_current_target(0);
+        } else {
+            sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
         }
+
         if (mpc_now >= this->max_pressure) {
             mpc_now = this->max_pressure;
-        }
-        if (p_last_spc != spc_now) {
-            p_last_spc = spc_now;
-            if (spc_now >= this->max_pressure) {
-                sol_spc->set_current_target(0);
-            } else {
-                sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
+            sol_mpc->set_current_target(0);
+        } else {
+            if (mpc_now < 500) {
+                mpc_now = 500; // Protect from running neutral
             }
-        }
-        if (p_last_mpc != mpc_now) {
-            p_last_mpc = mpc_now;
-            if (mpc_now >= this->max_pressure) {
-                sol_mpc->set_current_target(0);
-            } else {
-                sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
-            }
+            sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
         }
         this->commanded_spc_pressure = spc_now;
         this->commanded_mpc_pressure = mpc_now;
@@ -155,7 +148,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
             break;
     }
 
-    float trq_percent = (float)(sensor_data->input_torque*100.0)/(float)this->gb_max_torque;
+    float trq_percent = (float)(abs(sensor_data->input_torque)*100.0)/(float)this->gb_max_torque;
     return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
 }
 

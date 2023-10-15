@@ -36,7 +36,10 @@ PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t ch
         .intr_type = LEDC_INTR_DISABLE, // Disable fade interrupt
         .timer_sel = SOLENOID_TIMER,
         .duty = 0,
-        .hpoint = 0
+        .hpoint = 0,
+        .flags = {
+            .output_invert = 0u
+        }
     };
     // Set the timer configuration
     ESP_GOTO_ON_ERROR(ledc_timer_config(&SOLENOID_TIMER_CFG), set_err, "SOLENOID", "Solenoid %s timer init failed", name);

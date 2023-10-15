@@ -107,19 +107,19 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .enable_d3 = true,
     .enable_d4 = true,
     .enable_d5 = true,
-    .prefill_pressure = 500,
+    .prefill_pressure = 50,
     .min_locking_rpm = 1100,
     .adapt_test_interval_ms = 1000,
     .tcc_stall_speed = 2500,
     .min_torque_adapt = 30,
     .max_torque_adapt = 200,
-    .prefill_min_engine_rpm = 500,
+    .prefill_min_engine_rpm = 1000,
     .max_slip_max_adapt_trq = 200,
     .min_slip_max_adapt_trq = 100,
     .max_slip_min_adapt_trq = 60,
     .min_slip_min_adapt_trq = 30,
-    .pressure_increase_step = 100,
-    .adapt_pressure_step = 20,
+    .pressure_increase_step = 10,
+    .adapt_pressure_step = 10,
     .pressure_multiplier_output_rpm = {
         .new_min = 1.00,
         .new_max = 1.25,
@@ -155,8 +155,7 @@ typedef struct {
     float cc_reference_resistance;
     // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
-    // The maximum jump the constant current driver can perform in 10ms
-    float cc_max_adjust_per_step;
+    
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
 const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
@@ -166,7 +165,7 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_temp_coefficient_wires = 0.393,
     .cc_reference_resistance = 5.3,
     .cc_reference_temp = 25,
-    .cc_max_adjust_per_step = 2,
+    //.cc_max_adjust_per_step = 2,
 };
 
 // Shift program basic settings
@@ -374,6 +373,14 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
     }
 };
 
+// Hydralic lookup map
+enum HydralicVariant: uint8_t {
+    // 0 - 7700 mBar
+    Variant0 = 0,
+    // 0 - 9700mBar
+    Variant1 = 1
+};
+
 // Pressure manager settings
 typedef struct {
     // Maximum Shift pressure with SPC solenoid off
@@ -395,7 +402,14 @@ typedef struct {
     //
     // UNIT: milliseconds
     uint16_t shift_solenoid_pwm_reduction_time;
+    // Hydralic pressure lookup table
+    //
+    // IMPORTANT. After rebooting the TCU, go to map editor, PCS current map, and reset to TCU default for this to take effect!
+    HydralicVariant hydralic_variant;
+
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
+
+
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
     .max_spc_pressure = 7000,
@@ -409,6 +423,7 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
     },
     .k1_pressure_multi = 1.9,
     .shift_solenoid_pwm_reduction_time = 1000,
+    .hydralic_variant = HydralicVariant::Variant0
 };
 
 // Adaptation settings

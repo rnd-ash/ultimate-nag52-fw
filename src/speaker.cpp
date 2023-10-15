@@ -23,7 +23,10 @@ Speaker::Speaker(gpio_num_t pin) {
         .intr_type = LEDC_INTR_DISABLE, // Disable fade interrupt
         .timer_sel = LEDC_TIMER_3,
         .duty = 0,
-        .hpoint = 0
+        .hpoint = 0,
+        .flags = {
+            .output_invert = 0u
+        }
     };
 
     ledc_channel_config(&channel_cfg);

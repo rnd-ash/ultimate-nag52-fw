@@ -74,6 +74,19 @@ namespace Sensors {
      * ESP_ERR_INVALID_STATE - Parking lock engaged
      */
     esp_err_t read_atf_temp(int16_t* dest);
+
+    /**
+     * @brief Reads the ATF temp from the TFT sensor in 1/10th degrees C.
+     * NOTE: If parking lock is engaged, then motor coolant temperature provided
+     * by the CAN layer is instead used. This makes the most sense as motor coolant
+     * and transmission oil run in the same cooler.
+     * 
+     * @param dest ATF temperature in degrees C, multiplied by 10 (EG: 12C => 120)
+     * @return ESP_OK - ATF temp reading OK
+     * ESP_ERR_INVALID_STATE - Parking lock engaged
+     */
+    esp_err_t read_atf_temp_fine(int16_t* dest);
+
     esp_err_t parking_lock_engaged(bool* dest);
     void set_motor_temperature(int16_t celcius);
 }

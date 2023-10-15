@@ -26,7 +26,7 @@ class EgsBaseCan {
     public:
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
         ~EgsBaseCan();        
-        bool begin_tasks();
+        bool begin_task();
         esp_err_t init_state() const;
 
         /**
@@ -354,23 +354,17 @@ class EgsBaseCan {
 
     protected:
         const char* name;
-        TaskHandle_t tx_task = nullptr;
-        TaskHandle_t rx_task = nullptr;
+        TaskHandle_t task = nullptr;
         uint8_t tx_time_ms = 0;
-
+        uint32_t last_tx_time = 0;
         uint16_t diag_tx_id = 0;
         uint16_t diag_rx_id = 0;
 
         [[noreturn]]
-        void tx_task_loop(void);
-        [[noreturn]]
-        void rx_task_loop(void);
+        void task_loop(void);
 
-        static void start_rx_task_loop(void *_this) {
-            static_cast<EgsBaseCan*>(_this)->rx_task_loop();
-        }
-        static void start_tx_task_loop(void *_this) {
-            static_cast<EgsBaseCan*>(_this)->tx_task_loop();
+        static void start_task_loop(void *_this) {
+            static_cast<EgsBaseCan*>(_this)->task_loop();
         }
 
         virtual void tx_frames(){};

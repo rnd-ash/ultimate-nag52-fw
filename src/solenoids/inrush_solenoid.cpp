@@ -16,6 +16,10 @@ static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gp
     uint32_t next_alarm_in = solenoid->on_timer_interrupt();
     gptimer_alarm_config_t alarm_config = {
         .alarm_count = edata->alarm_value + next_alarm_in,
+        .reload_count = 0u,
+        .flags = {
+            .auto_reload_on_alarm = 0u
+        }
     };
     gptimer_set_alarm_action(timer, &alarm_config);
     return true;
@@ -41,7 +45,11 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, gpio_num_t pwm_pi
     this->ready = gptimer_new_timer(&timer_config, &this->timer);
     if (ESP_OK == ready) {
         const gptimer_alarm_config_t alarm_config = {
-            .alarm_count = 0,
+            .alarm_count = 0u,
+            .reload_count = 0u,
+            .flags = {
+                .auto_reload_on_alarm = 0u
+            }
         };
         this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
         if (ESP_OK == ready) {

@@ -14,6 +14,7 @@
 #include "tcu_maths.h"
 #include "moving_average.h"
 #include "esp_timer.h"
+#include "esp_private/adc_private.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
@@ -38,6 +39,7 @@ pcnt_channel_handle_t PCNT_C_HANDLE_OUTPUT;
 adc_oneshot_unit_handle_t adc2_handle;
 adc_oneshot_unit_init_cfg_t init_adc2 = {
     .unit_id = ADC_UNIT_2,
+    .clk_src = soc_periph_adc_rtc_clk_src_t::ADC_RTC_CLK_SRC_DEFAULT,
     .ulp_mode = adc_ulp_mode_t::ADC_ULP_MODE_DISABLE
 };
 adc_oneshot_chan_cfg_t adc2_chan_config = {
@@ -53,6 +55,8 @@ adc_cali_handle_t adc2_cal = nullptr;
 
 MovingUnsignedAverage* n2_avg_buffer = nullptr;
 MovingUnsignedAverage* n3_avg_buffer = nullptr;
+MovingAverage* tft_avg_buffer = nullptr;
+MovingUnsignedAverage* batt_avg_buffer = nullptr;
 uint64_t output_last_rev_time = 0;
 uint64_t output_current_revolution_time = 1000;
 
@@ -75,15 +79,82 @@ static bool IRAM_ATTR output_pcnt_on_watchpoint(pcnt_unit_handle_t unit, const p
     return true;
 }
 
-static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    int pulses = 0;
-    // N2 Sensor
-    read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
-    n2_avg_buffer->add_sample(pulses*50);
+int batt_adc_res = 0;
+int tft_adc_res = 0;
 
-    // N3 Sensor
-    read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
-    n3_avg_buffer->add_sample(pulses*50);
+esp_err_t pl_res = ESP_OK;
+bool parking_lock = false;
+esp_err_t vbatt_res = ESP_OK;
+uint16_t vbatt = 12000; // 12.0V
+esp_err_t tft_res = ESP_OK;
+int16_t tft = 25; // 25.0C
+
+uint8_t sensor_counter = 0;
+int adc_voltage;
+
+static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
+    if (sensor_counter == 4) {
+        int pulses = 0;
+        // N2 Sensor
+        read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
+        n2_avg_buffer->add_sample(pulses*50);
+
+        // N3 Sensor
+        read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
+        n3_avg_buffer->add_sample(pulses*50);
+        sensor_counter = 0;
+    }
+    adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &tft_adc_res);
+    adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &batt_adc_res);
+
+    adc_cali_raw_to_voltage(adc2_cal, batt_adc_res, &adc_voltage);
+    // Vin = Vout(R1+R2)/R2
+    adc_voltage *= 5.54; // 5.54 = (100+22)/22
+    batt_avg_buffer->add_sample(adc_voltage);
+    vbatt = batt_avg_buffer->get_average();
+
+
+    if (tft_adc_res > 3000) {
+        parking_lock = true;
+        tft_res = ESP_ERR_INVALID_STATE;
+    } else {
+        parking_lock = false;
+        tft_res = ESP_OK;
+        adc_cali_raw_to_voltage(adc2_cal, tft_adc_res, &adc_voltage);
+        const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
+        int atf_calc_c = 0;
+        if (adc_voltage <= atf_temp_lookup[0].v)
+        {
+            atf_calc_c = (int16_t)(atf_temp_lookup[0].temp);
+        }
+        else if (adc_voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
+        {
+            atf_calc_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp) / 10);
+        }
+        else
+        {
+            for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
+            {
+                // Found! Interpolate linearly to get a better estimate of ATF Temp
+                if (atf_temp_lookup[i].v <= adc_voltage && atf_temp_lookup[i + 1].v >= adc_voltage)
+                {
+                    atf_calc_c = interpolate_int(
+                        adc_voltage, // Read voltage
+                        atf_temp_lookup[i].temp, // Min temp for this range
+                        atf_temp_lookup[i+1].temp, // Max temp for this range
+                        atf_temp_lookup[i].v, // Min voltage for this boundary
+                        atf_temp_lookup[i+1].v // Max voltage for this boundary
+                    );
+                    break;
+                }
+            }
+        }
+        tft_avg_buffer->add_sample(atf_calc_c);
+        tft = tft_avg_buffer->get_average();
+    }
+
+
+    sensor_counter += 1;
     return true;
 }
 
@@ -177,6 +248,10 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_VBATT to Input!");
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
 
+    // Set moving average buffers
+    tft_avg_buffer = new MovingAverage(10, true);
+    batt_avg_buffer = new MovingUnsignedAverage(10, true);
+
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
@@ -215,7 +290,7 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer_pcnt), "SENSORS", "Failed to create PCNT read timer");
 
     const gptimer_alarm_config_t alarm_config_pcnt = {
-        .alarm_count = (20 * 1000),
+        .alarm_count = (5 * 1000),
         .reload_count = 0,
         .flags = {
             .auto_reload_on_alarm = true,
@@ -232,7 +307,7 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gptimer_enable(gptimer_pcnt), "SENSORS", "Failed to enable PCNT GPTIMER");
 
     ESP_RETURN_ON_ERROR(gptimer_start(gptimer_pcnt), "SENSORS", "Failed to start PCNT GPTIMER");
-
+    ESP_LOGI("SENSORS", "Init complete");
     return ESP_OK;
 }
 
@@ -279,72 +354,35 @@ esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
 }
 
 esp_err_t Sensors::read_vbatt(uint16_t *dest){
-    int v = 0;
-    int read = 0;
-    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &read);
-    res = adc_cali_raw_to_voltage(adc2_cal, read, &v);
-    if (res == ESP_OK) {
-        // Vin = Vout(R1+R2)/R2
-        *dest = v * 5.54; // 5.54 = (100+22)/22
+    if (vbatt_res == ESP_OK) {
+        *dest = vbatt;
     }
-    return res;
+    return vbatt_res;
 }
 
 // Returns ATF temp in *C
 esp_err_t Sensors::read_atf_temp(int16_t *dest)
 {
-    esp_err_t res;
-    int read = 0;
-    int voltage = 0;
-    res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &read);
-    res = adc_cali_raw_to_voltage(adc2_cal, read, &voltage);
-    if (voltage >= 3000)
-    {
-        res = ESP_ERR_INVALID_STATE;
-    } else {
-        res = ESP_OK;
-        int atf_calc_c = 0;
-        const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
-        if (voltage <= atf_temp_lookup[0].v)
-        {
-            atf_calc_c = (int16_t)(atf_temp_lookup[0].temp);
-        }
-        else if (voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
-        {
-            atf_calc_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp) / 10);
-        }
-        else
-        {
-            for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
-            {
-                // Found! Interpolate linearly to get a better estimate of ATF Temp
-                if (atf_temp_lookup[i].v <= voltage && atf_temp_lookup[i + 1].v >= voltage)
-                {
-                    atf_calc_c = interpolate_int(
-                        voltage, // Read voltage
-                        atf_temp_lookup[i].temp, // Min temp for this range
-                        atf_temp_lookup[i+1].temp, // Max temp for this range
-                        atf_temp_lookup[i].v, // Min voltage for this boundary
-                        atf_temp_lookup[i+1].v // Max voltage for this boundary
-                    )/10; // Convert from 1/10th C to C
-                    break;
-                }
-            }
-        }
-        *dest = atf_calc_c;
+    if (tft_res == ESP_OK) {
+        *dest = tft/10;
     }
-    return res;
+    return tft_res;
+}
+
+esp_err_t Sensors::read_atf_temp_fine(int16_t *dest)
+{
+    if (tft_res == ESP_OK) {
+        *dest = tft;
+    }
+    return tft_res;
 }
 
 esp_err_t Sensors::parking_lock_engaged(bool *dest)
 {
-    int raw;
-    esp_err_t res = adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &raw);
-    if (res == ESP_OK)
-    {
-        *dest = raw >= 3000;
+    if (pl_res == ESP_OK) {
+        *dest = parking_lock;
     }
-    return res;
+    return ESP_OK;
 }
 
 void Sensors::set_motor_temperature(int16_t celcius) {

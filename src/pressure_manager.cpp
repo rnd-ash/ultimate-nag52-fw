@@ -44,7 +44,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->pressure_pwm_map = new LookupMap(pwm_x_headers, 8, pwm_y_headers, 4, default_data, 8*4);
 
     /** Pressure PWM map (TCC) **/
-    const int16_t pwm_tcc_x_headers[7] = {0, 400, 800, 1000, 1500, 2000, 3000};
+    const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
     const int16_t pwm_tcc_y_headers[5] = {0, 30, 60, 90, 120}; 
     key_name = NVS_KEY_MAP_NAME_TCC_PWM;
     default_data = TCC_PWM_MAP;

@@ -10,6 +10,7 @@ NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS = NAG_DEFAULT_SETTINGS;
 PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS = PRM_DEFAULT_SETTINGS;
 ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS = ADP_DEFAULT_SETTINGS;
 ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
+HYD_MODULE_SETTINGS HYD_CURRENT_SETTINGS = HYD_DEFAULT_SETTINGS;
 
 // These macro will fail should the naming convension of the settings not be correct
 // so it enforces the following rule:
@@ -63,6 +64,7 @@ esp_err_t ModuleConfiguration::load_all_settings() {
     READ_EEPROM_SETTING(PRM); // Pressure manager Settings
     READ_EEPROM_SETTING(ADP); // Adaptation settings
     READ_EEPROM_SETTING(ETS); // Electronic gear selector settings
+    READ_EEPROM_SETTING(HYD);
     return res;
 }
 
@@ -89,6 +91,9 @@ esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
         case ETS_MODULE_SETTINGS_SCN_ID:
             RESET_EEPROM_SETINGS(ETS);
             break;
+        case HYD_MODULE_SETTINGS_SCN_ID:
+            RESET_EEPROM_SETINGS(HYD);
+            break;
         default:
             return ESP_ERR_INVALID_ARG;
     }
@@ -111,6 +116,8 @@ esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer
         READ_SETTINGS_TO_BUFFER(ADP, buffer_len, buffer, use_default);
     } else if (mod_id == ETS_MODULE_SETTINGS_SCN_ID) {
         READ_SETTINGS_TO_BUFFER(ETS, buffer_len, buffer, use_default);
+    } else if (mod_id == HYD_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(HYD, buffer_len, buffer, use_default);
     } else {
         return ESP_ERR_INVALID_ARG;
     }
@@ -131,6 +138,8 @@ esp_err_t ModuleConfiguration::write_settings(uint8_t module_id, uint16_t buffer
         CHECK_AND_WRITE_SETTINGS(ADP, buffer_len, buffer)
     } else if (module_id == ETS_MODULE_SETTINGS_SCN_ID) {
         CHECK_AND_WRITE_SETTINGS(ETS, buffer_len, buffer)
+    } else if (module_id == HYD_MODULE_SETTINGS_SCN_ID) {
+        CHECK_AND_WRITE_SETTINGS(HYD, buffer_len, buffer)
     }
     return ESP_ERR_INVALID_ARG;
 }

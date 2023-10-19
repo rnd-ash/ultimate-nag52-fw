@@ -8,9 +8,6 @@
 #include "nvs/all_keys.h"
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
-    this->req_tcc_clutch_pressure = 0;
-    this->req_mpc_clutch_pressure = 0;
-    this->req_spc_clutch_pressure = 0;
     this->gb_max_torque = max_torque;
 
     // For loading maps
@@ -20,13 +17,16 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure PWM map **/
     const int16_t* pwm_x_headers = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_X_VARIANT0 : PCS_CURRENT_MAP_X_VARIANT1;
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
-    this->max_pressure = pwm_x_headers[7];
-    key_name = NVS_KEY_MAP_NAME_PCS;
+    this->solenoid_max_pressure = pwm_x_headers[7];
     default_data = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_VARIANT0 : PCS_CURRENT_MAP_VARIANT1;
-    this->pressure_pwm_map = new StoredMap(key_name, PCS_CURRENT_MAP_SIZE, pwm_x_headers, pwm_y_headers, 8, 4, default_data);
-    if (this->pressure_pwm_map->init_status() != ESP_OK) {
-        delete[] this->pressure_pwm_map;
+
+    // Set pointer to valve body settings
+    if (PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant1) {
+        this->valve_body_settings = &HYD_CURRENT_SETTINGS.type2;
+    } else {
+        this->valve_body_settings = &HYD_CURRENT_SETTINGS.type1;
     }
+    this->pressure_pwm_map = new LookupMap(pwm_x_headers, 8, pwm_y_headers, 4, default_data, 8*4);
 
     /** Pressure PWM map (TCC) **/
     const int16_t pwm_tcc_x_headers[7] = {0, 400, 800, 1000, 1500, 2000, 3000};
@@ -74,49 +74,100 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 }
 
-void PressureManager::update_pressures() {
+void PressureManager::update_pressures(GearboxGear current_gear) {
     // Ignore
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
-        int16_t spc_now = this->req_spc_clutch_pressure;
-        int16_t mpc_now = this->req_mpc_clutch_pressure;
-        int16_t working_now = this->req_working_pressure;
-        if (sol_y3->is_on()) {
-            // 1-2 circuit is open (Correct pressure for K1)
-            // K1 is controlled by Shift pressure
-            if ((this->c_gear == 1 && this->t_gear == 2) || (this->c_gear == 2 && this->t_gear == 1)) {
-                spc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
-                mpc_now /= PRM_CURRENT_SETTINGS.k1_pressure_multi;
-            }
+        uint16_t spc_in = this->target_shift_pressure;
+        uint16_t mpc_in = this->target_modulating_pressure;
+
+        uint16_t max_spc = this->solenoid_max_pressure;
+        uint16_t max_mpc = this->solenoid_max_pressure + valve_body_settings->lp_regulator_force_mbar;
+
+        uint16_t extra_pressure = 0;
+        float k1_multi = 1.0;
+        if (0 != this->shift_circuit_flag) { // A shift circuit is active
+            // Add spring pressure if shift circuit is open
+            //if (spc_in > valve_body_settings->shift_regulator_force_mbar) {
+            //    spc_in -= valve_body_settings->shift_regulator_force_mbar;
+            //} else {
+            //    spc_in = 0; // Cannot achieve target pressure as spring is working on regulator
+            //}
+            
+            if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
+
+                spc_in /= valve_body_settings->shift_circuit_factor_1_2;
+                extra_pressure = interpolate_int(
+                    sensor_data->engine_rpm, 
+                    0,
+                    valve_body_settings->inlet_pressure_offset_mbar_first_gear,
+                    valve_body_settings->pressure_correction_pump_speed_min,
+                    valve_body_settings->pressure_correction_pump_speed_max
+                );
+                k1_multi = valve_body_settings->k1_engaged_factor;
+            } 
+        } else {
+            extra_pressure = interpolate_int(
+                sensor_data->engine_rpm, 
+                0, 
+                valve_body_settings->inlet_pressure_offset_mbar_other_gears,
+                valve_body_settings->pressure_correction_pump_speed_min,
+                valve_body_settings->pressure_correction_pump_speed_max
+            );
         }
 
-        mpc_now += working_now; // MPC += working pressure
+        float pressure_multiplier = valve_body_settings->multiplier_all_gears;
+        if (current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) {
+            pressure_multiplier = valve_body_settings->multiplier_in_1st_gear;
+        }
 
-        if (spc_now >= this->max_pressure) {
-            spc_now = this->max_pressure;
+        uint16_t shift_pressure_reduction = spc_in * k1_multi;
+
+        mpc_in = pressure_multiplier * (mpc_in + valve_body_settings->lp_regulator_force_mbar);
+        this->calc_working_pressure = mpc_in + extra_pressure - shift_pressure_reduction;
+
+        // Calculate solenoid inlet pressure
+
+        this->calc_inlet_pressure = interpolate_float(
+            this->calc_working_pressure,
+            &valve_body_settings->working_pressure_compensation,
+            InterpType::Linear
+        );
+
+        float inlet_factor = (0.03 * (valve_body_settings->working_pressure_compensation.new_max - this->calc_inlet_pressure)) / 1000.0;
+        // Constant 1000mBar
+        this->corrected_mpc_pressure = mpc_in + (inlet_factor * (mpc_in + 1000));
+
+        if (this->corrected_mpc_pressure < 500) { // Prevent reduction too far!
+            this->corrected_mpc_pressure = 500;
+        }
+
+        if (spc_in < this->calc_inlet_pressure) {
+            this->corrected_spc_pressure = spc_in + (inlet_factor * (spc_in + 1000));
+        } else {
+            this->corrected_spc_pressure = this->solenoid_max_pressure;
+        }
+        //printf("%.3f %d %d\n", inlet_factor, this->target_modulating_pressure, this->target_shift_pressure);
+
+        // Now actuate solenoids
+        if (this->corrected_spc_pressure >= this->solenoid_max_pressure) {
             sol_spc->set_current_target(0);
         } else {
-            sol_spc->set_current_target(this->get_p_solenoid_current(spc_now));
+            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp));
         }
 
-        if (mpc_now >= this->max_pressure) {
-            mpc_now = this->max_pressure;
+        if (this->corrected_mpc_pressure >= this->solenoid_max_pressure) {
             sol_mpc->set_current_target(0);
         } else {
-            if (mpc_now < 500) {
-                mpc_now = 500; // Protect from running neutral
-            }
-            sol_mpc->set_current_target(this->get_p_solenoid_current(mpc_now));
+            sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp));
         }
-        this->commanded_spc_pressure = spc_now;
-        this->commanded_mpc_pressure = mpc_now;
     }
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     if (this->mpc_working_pressure == nullptr) {
-        return this->max_pressure; // Failsafe!
+        return this->solenoid_max_pressure; // Failsafe!
     }
 
     uint8_t gear_idx = 0;
@@ -265,40 +316,24 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
     }
 }
 
-void PressureManager::set_target_working_pressure(uint16_t targ) {
-    this->req_working_pressure = targ;
-}
-
 void PressureManager::set_target_shift_clutch_pressure(uint16_t targ) {
-    this->req_spc_clutch_pressure = targ;
+    this->target_shift_pressure = targ;
 }
 
-void PressureManager::set_target_modulating_clutch_pressure(uint16_t targ) {
-    this->req_mpc_clutch_pressure = targ;
+void PressureManager::set_target_modulating_pressure(uint16_t targ) {
+    this->target_modulating_pressure = targ;
 }
 
 void PressureManager::set_spc_p_max() {
-    this->req_spc_clutch_pressure = this->max_pressure;
+    this->target_shift_pressure = this->solenoid_max_pressure;
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     if (targ > 3000) {
         targ = 3000;
     }
-    this->req_tcc_clutch_pressure = targ;
-    sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->req_tcc_clutch_pressure));
-}
-
-uint16_t PressureManager::get_targ_line_pressure(void) {
-    return this->req_working_pressure;
-}
-
-uint16_t PressureManager::get_targ_mpc_clutch_pressure(void) const {
-    uint16_t ret = 0;
-    if (0 != this->shift_circuit_flag) {
-        ret = this->req_mpc_clutch_pressure;
-    }
-    return ret;
+    this->target_tcc_pressure = targ;
+    sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
 }
 
 uint16_t PressureManager::get_spring_pressure(Clutch c) {
@@ -326,34 +361,38 @@ uint16_t PressureManager::get_spring_pressure(Clutch c) {
     return spring_pressure;
 }
 
-uint16_t PressureManager::get_targ_spc_clutch_pressure(void) const {
-    // 0 if no shift circuits are open
-    uint16_t ret = 0;
-    if (0 != this->shift_circuit_flag) {
-        ret = this->req_spc_clutch_pressure;
-    }
-    return ret;
+uint16_t PressureManager::get_calc_line_pressure(void) const {
+    return this->calc_working_pressure;
 }
 
-uint16_t PressureManager::get_targ_mpc_solenoid_pressure(void) const {
-    return this->commanded_mpc_pressure;
+uint16_t PressureManager::get_calc_inlet_pressure(void) const {
+    return this->calc_inlet_pressure;
 }
 
-uint16_t PressureManager::get_targ_spc_solenoid_pressure(void) const {
-    return this->commanded_spc_pressure;
+uint16_t PressureManager::get_input_shift_pressure(void) const {
+    return this->target_shift_pressure;
+}
+
+uint16_t PressureManager::get_input_modulating_pressure(void) const {
+    return this->target_modulating_pressure;
+}
+
+uint16_t PressureManager::get_corrected_spc_pressure(void) const {
+        return this->corrected_spc_pressure;
+}
+
+uint16_t PressureManager::get_corrected_modulating_pressure(void) const {
+    return this->corrected_mpc_pressure;
 }
 
 uint16_t PressureManager::get_targ_tcc_pressure(void) const {
-    return this->req_tcc_clutch_pressure;
+    return this->target_tcc_pressure;
 }
 
 uint8_t PressureManager::get_active_shift_circuits(void) const {
     return this->shift_circuit_flag;
 }
 
-//uint16_t PressureManager::get_targ_line_pressure(){ return this->req_current_mpc; }
-
-StoredMap* PressureManager::get_pcs_map() { return this->pressure_pwm_map; }
 StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
 StoredMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
 StoredMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }

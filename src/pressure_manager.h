@@ -8,6 +8,7 @@
 #include "nvs/eeprom_config.h"
 #include "stored_map.h"
 #include "sensors.h"
+#include "nvs/module_settings.h"
 
 typedef struct {
     uint16_t fill_time;
@@ -30,14 +31,15 @@ public:
      * @param enable Set circuit state to on
      */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
+
     /**
-     * @brief Set the target Working pressure of the gearbox. 
+     * @brief Set the target modulating pressure of the gearbox. 
      * This pressure affects the actively engaged clutches in any gear, 
      * as well as hydralic elements in the valve body
      * 
      * @param targ Target Working pressure to achieve in mBar
      */
-    void set_target_working_pressure(uint16_t targ);
+    void set_target_modulating_pressure(uint16_t targ);
 
     /**
      * @brief Set the target Shift pressure clutch pressure.
@@ -49,29 +51,22 @@ public:
     void set_target_shift_clutch_pressure(uint16_t targ);
 
     /**
-     * @brief Set the target Modulating pressure clutch pressure.
-     * Via means of the overlap valve, when a shift command solenoid is engaged,
-     * this pressure is sent to the releasing clutch in the gearbox
-     * 
-     * @param targ Target pressure to achieve in mBar
-     */
-    void set_target_modulating_clutch_pressure(uint16_t targ);
-
-    /**
      * @brief Set the target TCC pressure (Torque converter)
      * 
      * @param targ Target TCC pressure to achieve in mBar
      */
     void set_target_tcc_pressure(uint16_t targ);
 
-   uint16_t get_spring_pressure(Clutch c);
+    uint16_t get_spring_pressure(Clutch c);
 
-    uint16_t get_targ_line_pressure(void);
-    uint16_t get_targ_mpc_clutch_pressure(void) const;
-    uint16_t get_targ_spc_clutch_pressure(void) const;
-    uint16_t get_targ_mpc_solenoid_pressure(void) const;
-    uint16_t get_targ_spc_solenoid_pressure(void) const;
+    uint16_t get_calc_line_pressure(void) const;
+    uint16_t get_calc_inlet_pressure(void) const;
+    uint16_t get_input_shift_pressure(void) const;
+    uint16_t get_input_modulating_pressure(void) const;
+    uint16_t get_corrected_spc_pressure(void) const;
+    uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
+
     uint8_t get_active_shift_circuits(void) const;
 
     /**
@@ -91,11 +86,10 @@ public:
      */
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
-    void update_pressures();
+    void update_pressures(GearboxGear current_gear);
 
     PrefillData make_fill_data(ProfileGearChange change);
     PressureStageTiming get_max_pressure_timing();
-    StoredMap* get_pcs_map(void);
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_working_map(void);
     StoredMap* get_fill_time_map(void);
@@ -117,23 +111,23 @@ private:
     uint8_t shift_circuit_flag = 0;
 
     SensorData* sensor_data;
-    // At the clutch
-    uint16_t req_tcc_clutch_pressure;
-    // At the engaging clutch (When shifting)
-    uint16_t req_spc_clutch_pressure;
-    // At the releasing clutch (When shifting)
-    uint16_t req_mpc_clutch_pressure;
-    // For all clutches
-    uint16_t req_working_pressure;
+    
+    // Shift pressure
+    uint16_t target_shift_pressure = 0;
+    // Modulating pressure
+    uint16_t target_modulating_pressure = 0;
+    // TCC pressure
+    uint16_t target_tcc_pressure = 0;
+    uint16_t corrected_spc_pressure = 0;
+    uint16_t corrected_mpc_pressure = 0;
 
-    // At SPC solenoid
-    uint16_t commanded_spc_pressure;
-    // At MPC solenoid
-    uint16_t commanded_mpc_pressure;
+    uint16_t calc_working_pressure = 0;
+    uint16_t calc_inlet_pressure = 0;
+
     // Shift circuit currently open
     ShiftCircuit currently_open_circuit;
 
-    StoredMap* pressure_pwm_map;
+    LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* mpc_working_pressure;
     StoredMap* hold2_time_map;
@@ -141,10 +135,12 @@ private:
     uint16_t gb_max_torque;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
-    uint16_t max_pressure = 0;
+    uint16_t solenoid_max_pressure = 0;
 
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
+
+    VBY_SETTINGS* valve_body_settings;
 };
 
 extern PressureManager* pressure_manager;

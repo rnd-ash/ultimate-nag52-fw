@@ -77,16 +77,14 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     if (gb_ptr == nullptr) {
         return ret;
     }
-    ret.mpc_pwm = sol_mpc->get_pwm_compensated();
-    ret.spc_pwm = sol_spc->get_pwm_compensated();
-    ret.tcc_pwm = sol_tcc->get_pwm_compensated();
     if (nullptr != gb_ptr->pressure_mgr) {
-        ret.mpc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_mpc_clutch_pressure();
-        ret.spc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_spc_clutch_pressure();
-        ret.tcc_clutch_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
-        ret.line_pressure = gb_ptr->pressure_mgr->get_targ_line_pressure();
-        ret.mpc_sol_pressure = gb_ptr->pressure_mgr->get_targ_mpc_solenoid_pressure();
-        ret.spc_sol_pressure = gb_ptr->pressure_mgr->get_targ_spc_solenoid_pressure();
+        ret.shift_req_pressure = gb_ptr->pressure_mgr->get_input_shift_pressure();
+        ret.modulating_req_pressure = gb_ptr->pressure_mgr->get_input_modulating_pressure();
+        ret.working_pressure = gb_ptr->pressure_mgr->get_calc_line_pressure();
+        ret.inlet_pressure = gb_ptr->pressure_mgr->get_calc_inlet_pressure();
+        ret.corrected_spc_pressure = gb_ptr->pressure_mgr->get_corrected_spc_pressure();
+        ret.corrected_mpc_pressure = gb_ptr->pressure_mgr->get_corrected_modulating_pressure();
+        ret.tcc_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
         ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
     }
     return ret;
@@ -161,8 +159,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
         return ret;
     }
 
-    ret.spc_pressure = g->pressure_mgr->get_targ_spc_solenoid_pressure();
-    ret.mpc_pressure = g->pressure_mgr->get_targ_mpc_solenoid_pressure();
+    ret.spc_pressure = g->pressure_mgr->get_corrected_spc_pressure();
+    ret.mpc_pressure = g->pressure_mgr->get_corrected_modulating_pressure();
     ret.tcc_pressure = g->pressure_mgr->get_targ_tcc_pressure();
     // Hack. As we can guarantee only one solenoid will be on, we can do a fast bitwise OR on all 3 to get the application state
     ret.ss_pos = (sol_y3->get_pwm_raw() | sol_y4->get_pwm_raw() | sol_y5->get_pwm_raw()) >> 8;

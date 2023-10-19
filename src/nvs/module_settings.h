@@ -251,6 +251,99 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .garage_shift_max_timeout_engine = 1000,
 };
 
+/// Hydralic valve body settings
+typedef struct {
+    // Pressure multiplier in 1st gear
+    // This compensates for the fact that Shift pressure
+    // is acting on the main pressure regulator in 1st gear
+    float multiplier_in_1st_gear;
+    float multiplier_all_gears;
+    // Main pressure regulator spring pressure
+    uint16_t lp_regulator_force_mbar;
+    // Shift pressure regulator spring pressure
+    uint16_t shift_regulator_force_mbar;
+    // Shift circuit shift pressure multiplier for 1-2/2-1
+    float shift_circuit_factor_1_2;
+    // Shift circuit shift pressure multiplier for 2-3/3-2
+    float shift_circuit_factor_2_3;
+    // Shift circuit shift pressure multiplier for 3-4/4-3
+    float shift_circuit_factor_3_4;
+    // Shift circuit shift pressure multiplier for 4-5/4-5
+    float shift_circuit_factor_4_5;
+    // Solenoid inlet pressure offset vs working pressure (1st gear)
+    uint16_t inlet_pressure_offset_mbar_first_gear;
+    // Solenoid inlet pressure offset vs working pressure
+    uint16_t inlet_pressure_offset_mbar_other_gears;
+    // Inlet pressure correction algorithm pump speed minimum
+    uint16_t pressure_correction_pump_speed_max;
+    // Inlet pressure correction algorithm pump speed maximum
+    uint16_t pressure_correction_pump_speed_min;
+    // Working pressure vs inlet pressure correction
+    LinearInterpSetting working_pressure_compensation;
+    // Factor for shift pressure when the K1 clutch is engaged
+    float k1_engaged_factor;
+} __attribute__ ((packed)) VBY_SETTINGS;
+
+// Hydralic configuration
+// It is unknown at this moment if the settings here
+// simply attain to small/large NAG, but it does NOT
+// correlate with brown/blue solenoids.
+typedef struct {
+    // Valve body settings type 1
+    // Type 1 valve bodys have solenoid pressure
+    // from 0-7700mBar
+    VBY_SETTINGS type1;
+    // Valve body settings type 2
+    // Type 2 valve bodys have solenoid pressure
+    // from 0-9700mBar
+    VBY_SETTINGS type2;
+} __attribute__ ((packed)) HYD_MODULE_SETTINGS;
+
+const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
+    .type1 = {
+        .multiplier_in_1st_gear = 2.320,
+        .multiplier_all_gears = 1.689,
+        .lp_regulator_force_mbar = 1926,
+        .shift_regulator_force_mbar = 601,
+        .shift_circuit_factor_1_2 = 1.993,
+        .shift_circuit_factor_2_3 = 1.000,
+        .shift_circuit_factor_3_4 = 1.000,
+        .shift_circuit_factor_4_5 = 1.000,
+        .inlet_pressure_offset_mbar_first_gear = 1500,
+        .inlet_pressure_offset_mbar_other_gears = 1000,
+        .pressure_correction_pump_speed_max = 1000,
+        .pressure_correction_pump_speed_min = 4000,
+        .working_pressure_compensation = {
+            .new_min = 4000,
+            .new_max = 10000,
+            .raw_min = 4000,
+            .raw_max = 10000,
+        },
+        .k1_engaged_factor = 1.993
+    },
+    .type2 = {
+        .multiplier_in_1st_gear = 2.320,
+        .multiplier_all_gears = 1.689,
+        .lp_regulator_force_mbar = 1926,
+        .shift_regulator_force_mbar = 601,
+        .shift_circuit_factor_1_2 = 1.993,
+        .shift_circuit_factor_2_3 = 1.000,
+        .shift_circuit_factor_3_4 = 1.000,
+        .shift_circuit_factor_4_5 = 1.000,
+        .inlet_pressure_offset_mbar_first_gear = 1500,
+        .inlet_pressure_offset_mbar_other_gears = 1000,
+        .pressure_correction_pump_speed_max = 1000,
+        .pressure_correction_pump_speed_min = 4000,
+        .working_pressure_compensation = {
+            .new_min = 4000,
+            .new_max = 10000,
+            .raw_min = 4000,
+            .raw_max = 10000,
+        },
+        .k1_engaged_factor = 1.993
+    }
+};
+
 
 typedef struct {
     // Maximum input torque the gearbox can withstand
@@ -532,6 +625,7 @@ extern NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS;
 extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
+extern HYD_MODULE_SETTINGS HYD_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -541,6 +635,7 @@ extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 #define PRM_MODULE_SETTINGS_SCN_ID 0x05
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
+#define HYD_MODULE_SETTINGS_SCN_ID 0x08
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

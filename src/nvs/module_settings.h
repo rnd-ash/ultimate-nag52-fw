@@ -264,12 +264,6 @@ typedef struct {
     uint16_t shift_regulator_force_mbar;
     // Shift circuit shift pressure multiplier for 1-2/2-1
     float shift_circuit_factor_1_2;
-    // Shift circuit shift pressure multiplier for 2-3/3-2
-    float shift_circuit_factor_2_3;
-    // Shift circuit shift pressure multiplier for 3-4/4-3
-    float shift_circuit_factor_3_4;
-    // Shift circuit shift pressure multiplier for 4-5/4-5
-    float shift_circuit_factor_4_5;
     // Solenoid inlet pressure offset vs working pressure (1st gear)
     uint16_t inlet_pressure_offset_mbar_first_gear;
     // Solenoid inlet pressure offset vs working pressure
@@ -305,34 +299,28 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
     .type0 = {
         .multiplier_in_1st_gear = 2.320,
         .multiplier_all_gears = 1.689,
-        .lp_regulator_force_mbar = 1926,
+        .lp_regulator_force_mbar = 1828,
         .shift_regulator_force_mbar = 601,
         .shift_circuit_factor_1_2 = 1.993,
-        .shift_circuit_factor_2_3 = 1.000,
-        .shift_circuit_factor_3_4 = 1.000,
-        .shift_circuit_factor_4_5 = 1.000,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
         .pressure_correction_pump_speed_max = 1000,
         .pressure_correction_pump_speed_min = 4000,
         .working_pressure_compensation = {
-            .new_min = 4000,
-            .new_max = 10000,
-            .raw_min = 4000,
-            .raw_max = 10000,
+            .new_min = 2690,
+            .new_max = 8330,
+            .raw_min = 3180,
+            .raw_max = 8820,
         },
         .k1_engaged_factor = 1.993,
         .minimum_mpc_pressure = 500
     },
     .type1 = {
-        .multiplier_in_1st_gear = 2.320,
-        .multiplier_all_gears = 1.689,
+        .multiplier_in_1st_gear = 1.954,
+        .multiplier_all_gears = 1.567,
         .lp_regulator_force_mbar = 1926,
         .shift_regulator_force_mbar = 601,
         .shift_circuit_factor_1_2 = 1.993,
-        .shift_circuit_factor_2_3 = 1.000,
-        .shift_circuit_factor_3_4 = 1.000,
-        .shift_circuit_factor_4_5 = 1.000,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
         .pressure_correction_pump_speed_max = 1000,

@@ -217,25 +217,6 @@ const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
     0,   926, 1525, 1835, 2383,  2932,  4095, // 120C
 };
 
-const int16_t PCS_CURRENT_MAP_X_VARIANT0[8] = {0, 50, 600, 1000, 2350, 4500, 6600, 7700};
-const int16_t PCS_CURRENT_MAP_VARIANT0[PCS_CURRENT_MAP_SIZE] = { // values are in mA
-    /*      mBar                                    */
-    /* 0    50    600  1000  2350  5600  6600  7700 */
-    1300, 1100, 1085,  954,  700,  450,  350, 200, // -25C
-    1277, 1077,  925,  830,  675,  415,  320,   0, //  20C
-    1200, 1000,  835,  780,  650,  400,  288,   0, //  60C
-    1175,  975,  795,  745,  625,  370,  260,   0  // 150C
-};
-
-const int16_t PCS_CURRENT_MAP_X_VARIANT1[8] = {0, 100, 1300, 1800, 3250, 7100, 8200, 9700};
-const int16_t PCS_CURRENT_MAP_VARIANT1[PCS_CURRENT_MAP_SIZE] = {
-    /*                0   100  1300  1800  3250  7100  8200  9700 <- mBar */
-    /* -25C */     1255, 1155,  945,  880,  710,  410,  320, 150,
-    /*  20C */     1155, 1055,  860,  810,  685,  395,  300,   0,
-    /*  60C */     1010,  990,  805,  765,  660,  385,  275,   0,
-    /* 150C */     1075,  965,  770,  730,  620,  345,  235,   0
-};
-
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
    /* K1    K2    K3    B1    B2 */

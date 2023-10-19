@@ -1,6 +1,21 @@
 
 # Dev (Unreleased)
-* Compute working pressure and compensation for `pcshift` and `pcmod` pressures
+
+## Bugs
+* N->R and N->D engagement is harsh
+* 1-2 and 2-1 is harsh
+
+## IMPORTANT - 19/10/23 and newer FW
+This firmware contains initial EGS52 calibration data. You will need to select the correct settings for your car in the configuration app under
+`TCU Program settings -> CAL`
+You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
+
+* Add support for EGS52 calibration data (See above)
+* Add reverse-engineered EGS52 pressure control algorithm!
+    * Computes working and solenoid inlet pressure
+    * Corrects output MPC and SPC pressure accordingly
+    * Computes clutch friction coeffients for optimal MPC working pressure (This means MPC working map no longer exists)
+    * Adds EGS maps for clutch spring resistance
 * Add in prefill for off clutch when changing gears (**NO MORE 3-4 FLARE!**)
 * Control shift release and engage ramps for shift clutch and mod clutch pressures
 * Clean process on first boot after update

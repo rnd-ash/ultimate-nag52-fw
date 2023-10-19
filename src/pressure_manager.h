@@ -9,6 +9,7 @@
 #include "stored_map.h"
 #include "sensors.h"
 #include "nvs/module_settings.h"
+#include "lookuptable.h"
 
 typedef struct {
     uint16_t fill_time;
@@ -57,6 +58,8 @@ public:
      */
     void set_target_tcc_pressure(uint16_t targ);
 
+    uint16_t get_max_solenoid_pressure();
+
     uint16_t get_spring_pressure(Clutch c);
 
     uint16_t get_calc_line_pressure(void) const;
@@ -66,6 +69,10 @@ public:
     uint16_t get_corrected_spc_pressure(void) const;
     uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
+
+    uint16_t calc_working_pressure(GearboxGear current_gear);
+    uint16_t calc_input_pressure(uint16_t working_pressure);
+    float calc_inlet_factor(uint16_t inlet_pressure);
 
     uint8_t get_active_shift_circuits(void) const;
 
@@ -86,12 +93,12 @@ public:
      */
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
+    uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch);
     void update_pressures(GearboxGear current_gear);
 
     PrefillData make_fill_data(ProfileGearChange change);
     PressureStageTiming get_max_pressure_timing();
     StoredMap* get_tcc_pwm_map(void);
-    StoredMap* get_working_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
 private:
@@ -121,15 +128,16 @@ private:
     uint16_t corrected_spc_pressure = 0;
     uint16_t corrected_mpc_pressure = 0;
 
-    uint16_t calc_working_pressure = 0;
-    uint16_t calc_inlet_pressure = 0;
+    uint16_t calculated_working_pressure = 0;
+    uint16_t calculated_inlet_pressure = 0;
 
     // Shift circuit currently open
     ShiftCircuit currently_open_circuit;
-
+    const int16_t* clutch_friction_coefficient_map;
+    const int16_t* clutch_spring_release_map;
+    const uint8_t* heaviest_loaded_clutch_idx_map;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
-    StoredMap* mpc_working_pressure;
     StoredMap* hold2_time_map;
     StoredMap* hold2_pressure_map;
     uint16_t gb_max_torque;

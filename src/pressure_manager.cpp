@@ -6,6 +6,10 @@
 #include "nvs/module_settings.h"
 #include "nvs/device_mode.h"
 #include "nvs/all_keys.h"
+
+const int16_t friction_coefficient_0c = 185;
+const int16_t friction_coefficient_80C = 140;
+
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
     this->gb_max_torque = max_torque;
@@ -14,17 +18,28 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const char* key_name;
     const int16_t* default_data;
 
+    const uint8_t hydralic_idx = CAL_CURRENT_SETTINGS.hydralic_set == HydralicCalibration::HydralicSet1 ? 1 : 0;
+
     /** Pressure PWM map **/
-    const int16_t* pwm_x_headers = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_X_VARIANT0 : PCS_CURRENT_MAP_X_VARIANT1;
+    const int16_t* pwm_x_headers = HYDRALIC_PCS_MAP_X_HEADER[hydralic_idx];
     const int16_t pwm_y_headers[4] = {-25, 20, 60, 150};
     this->solenoid_max_pressure = pwm_x_headers[7];
-    default_data = PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant0 ? PCS_CURRENT_MAP_VARIANT0 : PCS_CURRENT_MAP_VARIANT1;
+    default_data = HYDRALIC_PCS_MAP[hydralic_idx];
+
+    /** Clutch friction data map */
+    // heaviest loaded clutch index lookup
+    this->heaviest_loaded_clutch_idx_map = VEHICLE_CONFIG.is_large_nag ? STRONGEST_LOADED_CLUTCH_LARGE_NAG : STRONGEST_LOADED_CLUTCH_SMALL_NAG;
+
+    // Friction lookup table
+    this->clutch_friction_coefficient_map = CLUTCH_FRICTION_MAP[(uint8_t)CAL_CURRENT_SETTINGS.clutch_friction_set];
+    this->clutch_spring_release_map = CLUTCH_RELEASE_SPRING_MAP[(uint8_t)CAL_CURRENT_SETTINGS.clutch_release_spring_set];
+
 
     // Set pointer to valve body settings
-    if (PRM_CURRENT_SETTINGS.hydralic_variant == HydralicVariant::Variant1) {
-        this->valve_body_settings = &HYD_CURRENT_SETTINGS.type2;
-    } else {
+    if (CAL_CURRENT_SETTINGS.hydralic_set == HydralicCalibration::HydralicSet1) {
         this->valve_body_settings = &HYD_CURRENT_SETTINGS.type1;
+    } else {
+        this->valve_body_settings = &HYD_CURRENT_SETTINGS.type0;
     }
     this->pressure_pwm_map = new LookupMap(pwm_x_headers, 8, pwm_y_headers, 4, default_data, 8*4);
 
@@ -63,15 +78,49 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         delete[] this->hold2_pressure_map;
     }
 
-    /** Working pressure map **/
-    const int16_t wp_x_headers[16] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150};
-    const int16_t wp_y_headers[7] = {0, 1, 2, 3, 4, 5, 6};
-    key_name = NVS_KEY_MAP_NAME_WORKING_MPC;
-    default_data = NAG_WORKING_MAP;
-    this->mpc_working_pressure = new StoredMap(key_name, WORKING_PRESSURE_MAP_SIZE, wp_x_headers, wp_y_headers, 16, 7, default_data);
-    if (this->mpc_working_pressure->init_status() != ESP_OK) {
-        delete[] this->mpc_working_pressure;
+    // Init MPC and SPC req pressures
+    this->target_shift_pressure = this->solenoid_max_pressure;
+    this->target_modulating_pressure = this->solenoid_max_pressure;
+    this->target_tcc_pressure = 0;
+}
+
+uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear) {
+    float fac = valve_body_settings->multiplier_all_gears;
+    if (current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) {
+        fac = valve_body_settings->multiplier_in_1st_gear;
     }
+    uint16_t regulator_pressure = this->target_modulating_pressure + valve_body_settings->lp_regulator_force_mbar;
+    
+    uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
+    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
+        p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
+    }
+
+
+    uint16_t extra_pressure = interpolate_float(
+        sensor_data->engine_rpm, 
+        0,
+        p_adder,
+        valve_body_settings->pressure_correction_pump_speed_min,
+        valve_body_settings->pressure_correction_pump_speed_max,
+        InterpType::Linear
+    );
+    float k1_factor = this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 ? valve_body_settings->k1_engaged_factor : 0;
+    float spc_reduction = this->target_shift_pressure * k1_factor;
+
+    return (fac * regulator_pressure) + extra_pressure - spc_reduction;
+}
+
+uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
+    return interpolate_float(
+        (float)working_pressure,
+        &valve_body_settings->working_pressure_compensation,
+        InterpType::Linear
+    );
+}
+
+float PressureManager::calc_inlet_factor(uint16_t inlet_pressure) {
+    return 0.03 * ((float)valve_body_settings->working_pressure_compensation.new_max - (float)inlet_pressure) / 1000.0;
 }
 
 void PressureManager::update_pressures(GearboxGear current_gear) {
@@ -82,82 +131,33 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         uint16_t spc_in = this->target_shift_pressure;
         uint16_t mpc_in = this->target_modulating_pressure;
 
-        uint16_t max_spc = this->solenoid_max_pressure;
-        uint16_t max_mpc = this->solenoid_max_pressure + valve_body_settings->lp_regulator_force_mbar;
+        uint16_t wp = this->calc_working_pressure(current_gear);
+        uint16_t pump = this->calc_input_pressure(wp);
 
-        uint16_t extra_pressure = 0;
-        float k1_multi = 1.0;
-        if (0 != this->shift_circuit_flag) { // A shift circuit is active
-            // Add spring pressure if shift circuit is open
-            //if (spc_in > valve_body_settings->shift_regulator_force_mbar) {
-            //    spc_in -= valve_body_settings->shift_regulator_force_mbar;
-            //} else {
-            //    spc_in = 0; // Cannot achieve target pressure as spring is working on regulator
-            //}
-            
-            if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
+        this->calculated_inlet_pressure = pump;
+        this->calculated_working_pressure = wp;
 
-                spc_in /= valve_body_settings->shift_circuit_factor_1_2;
-                extra_pressure = interpolate_int(
-                    sensor_data->engine_rpm, 
-                    0,
-                    valve_body_settings->inlet_pressure_offset_mbar_first_gear,
-                    valve_body_settings->pressure_correction_pump_speed_min,
-                    valve_body_settings->pressure_correction_pump_speed_max
-                );
-                k1_multi = valve_body_settings->k1_engaged_factor;
-            } 
-        } else {
-            extra_pressure = interpolate_int(
-                sensor_data->engine_rpm, 
-                0, 
-                valve_body_settings->inlet_pressure_offset_mbar_other_gears,
-                valve_body_settings->pressure_correction_pump_speed_min,
-                valve_body_settings->pressure_correction_pump_speed_max
-            );
-        }
+        float factor = this->calc_inlet_factor(pump);
+        
+        this->corrected_mpc_pressure = 
+            mpc_in + (factor * (mpc_in + 1000.0));
 
-        float pressure_multiplier = valve_body_settings->multiplier_all_gears;
-        if (current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) {
-            pressure_multiplier = valve_body_settings->multiplier_in_1st_gear;
-        }
-
-        uint16_t shift_pressure_reduction = spc_in * k1_multi;
-
-        mpc_in = pressure_multiplier * (mpc_in + valve_body_settings->lp_regulator_force_mbar);
-        this->calc_working_pressure = mpc_in + extra_pressure - shift_pressure_reduction;
-
-        // Calculate solenoid inlet pressure
-
-        this->calc_inlet_pressure = interpolate_float(
-            this->calc_working_pressure,
-            &valve_body_settings->working_pressure_compensation,
-            InterpType::Linear
-        );
-
-        float inlet_factor = (0.03 * (valve_body_settings->working_pressure_compensation.new_max - this->calc_inlet_pressure)) / 1000.0;
-        // Constant 1000mBar
-        this->corrected_mpc_pressure = mpc_in + (inlet_factor * (mpc_in + 1000));
-
-        if (this->corrected_mpc_pressure < 500) { // Prevent reduction too far!
-            this->corrected_mpc_pressure = 500;
-        }
-
-        if (spc_in < this->calc_inlet_pressure) {
-            this->corrected_spc_pressure = spc_in + (inlet_factor * (spc_in + 1000));
-        } else {
+        if (spc_in > pump) {
             this->corrected_spc_pressure = this->solenoid_max_pressure;
+        } else {
+            this->corrected_spc_pressure = spc_in + (factor * (spc_in + 1000.0));
         }
-        //printf("%.3f %d %d\n", inlet_factor, this->target_modulating_pressure, this->target_shift_pressure);
 
         // Now actuate solenoids
         if (this->corrected_spc_pressure >= this->solenoid_max_pressure) {
+            this->corrected_spc_pressure = this->solenoid_max_pressure;
             sol_spc->set_current_target(0);
         } else {
             sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp));
         }
 
         if (this->corrected_mpc_pressure >= this->solenoid_max_pressure) {
+            this->corrected_mpc_pressure = this->solenoid_max_pressure;
             sol_mpc->set_current_target(0);
         } else {
             sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp));
@@ -165,42 +165,66 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     }
 }
 
-uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
-    if (this->mpc_working_pressure == nullptr) {
-        return this->solenoid_max_pressure; // Failsafe!
-    }
-
+uint8_t gear_to_idx_lookup(GearboxGear g) {
     uint8_t gear_idx = 0;
-    switch(curr_g) {
+    switch(g) {
         case GearboxGear::First:
-            gear_idx = 2;
+            gear_idx = 1;
             break;
         case GearboxGear::Second:
-            gear_idx = 3;
+            gear_idx = 2;
             break;
         case GearboxGear::Third:
-            gear_idx = 4;
+            gear_idx = 3;
             break;
         case GearboxGear::Fourth:
-            gear_idx = 5;
+            gear_idx = 4;
             break;
         case GearboxGear::Fifth:
-            gear_idx = 6;
+            gear_idx = 5;
             break;
         case GearboxGear::Reverse_First:
+            gear_idx = 6;
+            break;
         case GearboxGear::Reverse_Second:
-            gear_idx = 1;
+            gear_idx = 7;
             break;
         case GearboxGear::Park:
         case GearboxGear::Neutral:
         case GearboxGear::SignalNotAvailable:
-        default: // Already set
+        default:
             gear_idx = 0;
             break;
     }
+    return gear_idx;
+}
 
-    float trq_percent = (float)(abs(sensor_data->input_torque)*100.0)/(float)this->gb_max_torque;
-    return this->mpc_working_pressure->get_value(trq_percent, gear_idx);
+uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch) {
+    uint16_t ret = this->solenoid_max_pressure;
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    float friction_coefficient = interpolate_float(
+        sensor_data->atf_temp, 
+        friction_coefficient_0c,
+        friction_coefficient_80C,
+        0,
+        80,
+        InterpType::Linear
+    );
+    float friction_val = this->clutch_friction_coefficient_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / friction_coefficient) * abs(sensor_data->input_torque);
+    if (calc < this->valve_body_settings->minimum_mpc_pressure) {
+        calc = this->valve_body_settings->minimum_mpc_pressure;
+    } else if (calc > this->solenoid_max_pressure) {
+        calc = this->solenoid_max_pressure;
+    }
+    ret = calc;
+    return ret;
+}
+
+uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
+    uint8_t gear_idx = gear_to_idx_lookup(curr_g);
+    Clutch heaviest_loaded_clutch = (Clutch)heaviest_loaded_clutch_idx_map[gear_idx];
+    return find_working_pressure_for_clutch(curr_g, heaviest_loaded_clutch);
 }
 
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
@@ -337,36 +361,15 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
 }
 
 uint16_t PressureManager::get_spring_pressure(Clutch c) {
-    uint16_t spring_pressure = 1000;
-
-    switch(c) {
-        case Clutch::K1:
-            spring_pressure = 1270;
-            break;
-        case Clutch::K2:
-            spring_pressure = 846;
-            break;
-        case Clutch::K3:
-            spring_pressure = VEHICLE_CONFIG.is_large_nag ? 1646 : 1205;
-            break;
-        case Clutch::B1:
-            spring_pressure = 1139;
-            break;
-        case Clutch::B2:
-            spring_pressure = 1289;
-            break;
-        default:
-            break;
-    }
-    return spring_pressure;
+    return this->clutch_spring_release_map[(uint8_t)c];
 }
 
 uint16_t PressureManager::get_calc_line_pressure(void) const {
-    return this->calc_working_pressure;
+    return this->calculated_working_pressure;
 }
 
 uint16_t PressureManager::get_calc_inlet_pressure(void) const {
-    return this->calc_inlet_pressure;
+    return this->calculated_inlet_pressure;
 }
 
 uint16_t PressureManager::get_input_shift_pressure(void) const {
@@ -393,8 +396,11 @@ uint8_t PressureManager::get_active_shift_circuits(void) const {
     return this->shift_circuit_flag;
 }
 
+uint16_t PressureManager::get_max_solenoid_pressure() {
+    return this->solenoid_max_pressure;
+}
+
 StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
-StoredMap* PressureManager::get_working_map() { return this->mpc_working_pressure; }
 StoredMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
 StoredMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
 

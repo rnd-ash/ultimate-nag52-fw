@@ -158,6 +158,11 @@ enum class ShiftCircuit {
      * @brief 3/4 shift circuit. This controls the toggling between the B2 and K3 clutches
      */
     sc_3_4 = 1 << 2,
+
+    /**
+     * @brief 4/5 shift circuit. This controls the toggling between the B1 and K1 clutches
+     */
+    sc_4_5 = 1 << 3,
 };
 
 /**

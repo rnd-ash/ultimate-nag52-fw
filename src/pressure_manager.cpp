@@ -169,11 +169,11 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
             break;
         case ProfileGearChange::FOUR_FIVE:
             sd.targ_g = 5; sd.curr_g = 4;
-            sd.shift_circuit = ShiftCircuit::sc_1_2;
+            sd.shift_circuit = ShiftCircuit::sc_4_5;
             break;
         case ProfileGearChange::FIVE_FOUR:
             sd.targ_g = 4; sd.curr_g = 5;
-            sd.shift_circuit = ShiftCircuit::sc_1_2;
+            sd.shift_circuit = ShiftCircuit::sc_4_5;
             break;
         case ProfileGearChange::FOUR_THREE:
             sd.targ_g = 3; sd.curr_g = 4;
@@ -248,6 +248,8 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
         manipulated = sol_y5;
     } else if (ShiftCircuit::sc_3_4 == ss) { // 3-4
         manipulated = sol_y4;
+    } else if (ShiftCircuit::sc_4_5 == ss) {
+        manipulated = sol_y3;
     } else { // No shift circuit (placeholder)
         this->t_gear = 0;
         this->c_gear = 0;

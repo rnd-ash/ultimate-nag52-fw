@@ -39,12 +39,12 @@ enum class ShiftStage {
 };
 
 enum class Clutch {
-    K1 = 1,
-    K2 = 2,
-    K3 = 3,
-    B1 = 4,
-    B2 = 5,
-    B3 = 6
+    K1 = 0,
+    K2 = 1,
+    K3 = 2,
+    B1 = 3,
+    B2 = 4,
+    B3 = 5
 };
 
 

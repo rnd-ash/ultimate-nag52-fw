@@ -40,7 +40,16 @@ public:
      * 
      * @param targ Target Working pressure to achieve in mBar
      */
-    void set_target_modulating_pressure(uint16_t targ);
+    void set_target_modulating_working_pressure(uint16_t targ);
+    
+    /**
+     * @brief Set the target modulating pressure of the gearbox. 
+     * This pressure affects the actively engaged clutches in any gear, 
+     * as well as hydralic elements in the valve body
+     * 
+     * @param targ Target Working pressure to achieve in mBar
+     */
+    void set_target_modulating_releasing_pressure(uint16_t targ);
 
     /**
      * @brief Set the target Shift pressure clutch pressure.
@@ -69,10 +78,6 @@ public:
     uint16_t get_corrected_spc_pressure(void) const;
     uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
-
-    uint16_t calc_working_pressure(GearboxGear current_gear);
-    uint16_t calc_input_pressure(uint16_t working_pressure);
-    float calc_inlet_factor(uint16_t inlet_pressure);
 
     uint8_t get_active_shift_circuits(void) const;
 
@@ -103,6 +108,10 @@ public:
     StoredMap* get_fill_pressure_map(void);
 private:
 
+    uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);
+    uint16_t calc_input_pressure(uint16_t working_pressure);
+    float calc_inlet_factor(uint16_t inlet_pressure);
+
      /**
      * Returns the estimated PWM to send to either SPC or MPC solenoid
      * Based on the requested pressure that is needed withint either pressure rail.
@@ -121,8 +130,10 @@ private:
     
     // Shift pressure
     uint16_t target_shift_pressure = 0;
-    // Modulating pressure
+    // Modulating pressure (For maintaing gear)
     uint16_t target_modulating_pressure = 0;
+    // Modulating pressure (For releasing old clutch in a shift)
+    uint16_t target_modulating_clutch_pressure = 0;
     // TCC pressure
     uint16_t target_tcc_pressure = 0;
     uint16_t corrected_spc_pressure = 0;

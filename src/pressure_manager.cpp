@@ -84,12 +84,12 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->target_tcc_pressure = 0;
 }
 
-uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear) {
+uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc) {
     float fac = valve_body_settings->multiplier_all_gears;
-    if (current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) {
+    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) && shift_circuit_flag == 0) {
         fac = valve_body_settings->multiplier_in_1st_gear;
     }
-    uint16_t regulator_pressure = this->target_modulating_pressure + valve_body_settings->lp_regulator_force_mbar;
+    uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
     if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
@@ -106,7 +106,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear) {
         InterpType::Linear
     );
     float k1_factor = this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 ? valve_body_settings->k1_engaged_factor : 0;
-    float spc_reduction = this->target_shift_pressure * k1_factor;
+    float spc_reduction = in_spc * k1_factor;
 
     return (fac * regulator_pressure) + extra_pressure - spc_reduction;
 }
@@ -130,8 +130,16 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     } else {
         uint16_t spc_in = this->target_shift_pressure;
         uint16_t mpc_in = this->target_modulating_pressure;
+        uint16_t mpcc_in = this->target_modulating_clutch_pressure;
 
-        uint16_t wp = this->calc_working_pressure(current_gear);
+        // Shift solenoid 1-2 active, reduce SPC and mpcc influence
+        if ((uint8_t)ShiftCircuit::sc_1_2 == this->shift_circuit_flag) {
+            spc_in /= valve_body_settings->shift_circuit_factor_1_2;
+            mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
+        }
+        mpc_in += mpcc_in;
+
+        uint16_t wp = this->calc_working_pressure(current_gear, mpc_in, spc_in);
         uint16_t pump = this->calc_input_pressure(wp);
 
         this->calculated_inlet_pressure = pump;
@@ -344,8 +352,12 @@ void PressureManager::set_target_shift_clutch_pressure(uint16_t targ) {
     this->target_shift_pressure = targ;
 }
 
-void PressureManager::set_target_modulating_pressure(uint16_t targ) {
+void PressureManager::set_target_modulating_working_pressure(uint16_t targ) {
     this->target_modulating_pressure = targ;
+}
+
+void PressureManager::set_target_modulating_releasing_pressure(uint16_t targ) {
+    this->target_modulating_clutch_pressure = targ;
 }
 
 void PressureManager::set_spc_p_max() {
@@ -377,7 +389,7 @@ uint16_t PressureManager::get_input_shift_pressure(void) const {
 }
 
 uint16_t PressureManager::get_input_modulating_pressure(void) const {
-    return this->target_modulating_pressure;
+    return this->target_modulating_pressure + this->target_modulating_clutch_pressure;
 }
 
 uint16_t PressureManager::get_corrected_spc_pressure(void) const {

@@ -424,7 +424,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         Clutch applying = get_clutch_to_apply(req_lookup);
         Clutch releasing = get_clutch_to_apply(req_lookup);
         
-        
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -675,6 +674,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         pressure_manager->set_spc_p_max();
         pressure_mgr->set_target_modulating_releasing_pressure(0);
         pressure_manager->set_shift_circuit(sd.shift_circuit, false);
+        pressure_manager->notify_shift_end();
         this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
         this->abort_shift = false;
         this->sensor_data.last_shift_time = GET_CLOCK_TIME();

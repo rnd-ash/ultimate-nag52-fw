@@ -96,6 +96,7 @@ public:
      * @param curr_mpc Current MPC working pressure at the time of shift
      * @return ShiftData 
      */
+    void notify_shift_end();
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch);

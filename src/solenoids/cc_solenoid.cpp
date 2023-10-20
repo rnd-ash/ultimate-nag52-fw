@@ -33,7 +33,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         // can respond within the time window
         if (this->current_target_at_report_time >= 250 && abs(current_delta) <= 100) { // 250mA cut off
             // Large enough error, adapt!
-            if (abs(this->current_target_at_report_time - read) > 5) {
+            if (abs(this->current_target_at_report_time - read) > 10) {
                 float err = (((float)this->current_target_at_report_time-(float)read)/max_current);
                 // Don't over correct for error when current delta is high, so we can scale the error correction
                 this->internal_trim_factor += err/interpolate_int(abs(current_delta), 20, 1000, 0, 100);

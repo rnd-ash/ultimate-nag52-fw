@@ -595,8 +595,19 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 //float div = interpolate_float(sensor_data.pedal_pos, 1.0, 0.25, 10, 250, InterpType::Linear);
                 current_mod_clutch_pressure = interpolate_float(phase_elapsed, spring_pressure_off_clutch, 0, 0, chars.target_shift_time, InterpType::Linear);
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
-                float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
-                current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
+                //float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
+                //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
+                float end_spc = interpolate_float(
+                    phase_elapsed,
+                    prev_shift_clutch_pressure,
+                    wp_new_clutch + spring_pressure_on_clutch,
+                    0,
+                    phase_elapsed,
+                    InterpType::Linear
+                );
+                current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, end_spc);
+
+            
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);

@@ -800,7 +800,7 @@ void Gearbox::shift_thread()
         else
         {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            float prefill = pressure_manager->find_working_pressure_for_clutch(GearboxGear::Reverse_Second, Clutch::B3);
+            float prefill = pressure_manager->find_working_pressure_for_clutch(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque));
             pressure_mgr->set_target_shift_clutch_pressure(prefill/2);
             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             //sol_y4->write_pwm_12_bit(1024); // Back to idle
@@ -1105,7 +1105,7 @@ void Gearbox::controller_loop()
         if (Sensors::parking_lock_engaged(&lock_state) == ESP_OK)
         {
             if (lock_state) {
-                float prefill = pressure_manager->find_working_pressure_for_clutch(GearboxGear::Reverse_Second, Clutch::B3);
+                float prefill = pressure_manager->find_working_pressure_for_clutch(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque));
                 this->pressure_mgr->set_target_modulating_working_pressure(this->mpc_working);
                 this->pressure_mgr->set_target_modulating_working_pressure(prefill/2);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);

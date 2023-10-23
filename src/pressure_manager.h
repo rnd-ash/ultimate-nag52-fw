@@ -99,7 +99,7 @@ public:
     void notify_shift_end();
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
-    uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch);
+    uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
     void update_pressures(GearboxGear current_gear);
 
     PrefillData make_fill_data(ProfileGearChange change);

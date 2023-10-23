@@ -206,7 +206,7 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
-uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch) {
+uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
     uint16_t ret = this->solenoid_max_pressure;
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float friction_coefficient = interpolate_float(
@@ -218,7 +218,7 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
         InterpType::Linear
     );
     float friction_val = this->clutch_friction_coefficient_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / friction_coefficient) * abs(sensor_data->input_torque);
+    float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
     if (calc < this->valve_body_settings->minimum_mpc_pressure) {
         calc = this->valve_body_settings->minimum_mpc_pressure;
     } else if (calc > this->solenoid_max_pressure) {
@@ -231,7 +231,7 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
     Clutch heaviest_loaded_clutch = (Clutch)heaviest_loaded_clutch_idx_map[gear_idx];
-    return find_working_pressure_for_clutch(curr_g, heaviest_loaded_clutch);
+    return find_working_pressure_for_clutch(curr_g, heaviest_loaded_clutch, abs(sensor_data->input_torque));
 }
 
 void PressureManager::notify_shift_end() {

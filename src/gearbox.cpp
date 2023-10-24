@@ -766,13 +766,13 @@ void Gearbox::shift_thread()
                     float b3_spring = pressure_manager->get_spring_pressure(Clutch::B3);
                     pressure_mgr->set_target_shift_clutch_pressure(working*div);
                     pressure_mgr->set_target_modulating_working_pressure(working+b3_spring);
-                    div = MIN(div+0.015, 1.0);
+                    div = MIN(div+0.015, 2.0);
                 } else {
                     float working = pressure_manager->find_working_mpc_pressure(GearboxGear::Second);
                     float b2_spring = pressure_manager->get_spring_pressure(Clutch::B2);
                     pressure_mgr->set_target_modulating_working_pressure(working+b2_spring);
                     pressure_mgr->set_target_shift_clutch_pressure(working*div);
-                    div = MIN(div+0.015, 1.0);
+                    div = MIN(div+0.015, 2.0);
                 }
                 this->pressure_mgr->update_pressures(this->actual_gear);
 

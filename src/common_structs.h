@@ -48,13 +48,13 @@ enum class Clutch {
 };
 
 
-typedef struct ShiftClutchData {
+struct ShiftClutchData {
     int16_t on_clutch_speed;
     int16_t off_clutch_speed;
     int16_t rear_sun_speed;
 };
 
-typedef struct ShiftClutchVelocity {
+struct ShiftClutchVelocity {
     int16_t on_clutch_vel;
     int16_t off_clutch_vel;
 } __attribute__ ((packed));

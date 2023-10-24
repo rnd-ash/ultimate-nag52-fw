@@ -84,7 +84,7 @@ public:
     /**
      * Force SPC solenoid to turn off
     */
-    void set_spc_p_max();
+    void set_spc_p_max(void);
 
     PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
 

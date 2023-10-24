@@ -35,7 +35,7 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     // maximum opening angle of the throttle valve (in [°] to be more universal)
     uint8_t throttlevalve_maxopeningangle;
     // constant factor required to convert mdot and engine speed to the engine torque (in [m²/s²] * 1000)
-    uint16_t c_eng;
+    float c_eng;
     // Engine drag torque (Nm/10)
     uint16_t engine_drag_torque;
 };

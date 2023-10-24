@@ -1,7 +1,6 @@
 
-#ifndef __SPEAKER_H_
-#define __SPEAKER_H_
-
+#ifndef SPEAKER_H
+#define SPEAKER_H
 
 #include "driver/gpio.h"
 #include "dtcs.h"
@@ -28,4 +27,4 @@ class Speaker {
 
 extern Speaker* spkr;
 
-#endif // __SPEAKER_H_
+#endif // SPEAKER_H

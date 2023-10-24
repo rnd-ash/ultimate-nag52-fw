@@ -7,6 +7,7 @@
 
 #include "shifter/shifter_ewm.h"
 #include "shifter/shifter_trrs.h"
+#include "ioexpander.h"
 
 Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     ESP_LOGI("EGS51", "SETUP CALLED");
@@ -14,13 +15,13 @@ Egs51Can::Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     switch (VEHICLE_CONFIG.shifter_style)
     {
     case (uint8_t)ShifterStyle::TRRS:
-        shifter = new ShifterTrrs(&(this->can_init_status), this->name, &start_enable);
+        shifter = new ShifterTrrs(&(this->can_init_status));
         break;
     default:
         shifter = new ShifterEwm(&(this->can_init_status), &ewm);
         break;
     }
-    this->start_enable = true;
+    ioexpander->set_start(true);
     this->gs218.TORQUE_REQ = 0xFE;
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
@@ -339,7 +340,7 @@ void Egs51Can::set_target_gear(GearboxGear target) {
 }
 
 void Egs51Can::set_safe_start(bool can_start) {
-    this->start_enable = can_start;
+    ioexpander->set_start(can_start);
 }
 
 void Egs51Can::set_gearbox_temperature(uint16_t temp) {
@@ -424,8 +425,19 @@ void Egs51Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint3
     }
 }
 
-void Egs51Can::on_rx_done(const uint32_t now_ts) {
+void Egs51Can::on_rx_done(const uint32_t now_ts)
+{
     if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
-        (static_cast<ShifterTrrs*>(shifter))->update_shifter_position(now_ts);
+        const uint32_t expire_time_ms = 50;
+        float vVeh = 0.0F;
+        ShifterPosition pos = shifter->get_shifter_position(expire_time_ms);
+        bool is_brake_pressed = get_is_brake_pressed(expire_time_ms);
+        WheelData front_left = get_front_left_wheel(expire_time_ms);
+        WheelData front_right = get_front_right_wheel(expire_time_ms);
+        if ((WheelDirection::Forward == front_left.current_dir) && (WheelDirection::Forward == front_right.current_dir)){
+            vVeh = ((float)(((front_left.double_rpm + front_right.double_rpm) >> 2) * ((int)VEHICLE_CONFIG.wheel_circumference) * 6)) / 100000.F;
+        }
+        (static_cast<ShifterTrrs*>(shifter))->set_rp_solenoid(vVeh, pos, is_brake_pressed);
     }
+
 }

@@ -347,3 +347,13 @@ const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[] = {
 //  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
      20,  30,  40,  50,  50,  40,  30,  20
 };
+
+const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE] = "ENGINE_TORQUE_MAX";
+const int16_t ENGINE_TORQUE_HEADERS_MAP[] = {
+    /* rpm */    0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000
+};
+const int16_t ENGINE_TORQUE_MAP[] = { // Value = maximum torque at rpm
+    // initial values are taken from E 320 (M104 E32 in 124)
+    /*              0 rpm	250 rpm	500 rpm	750 rpm	1000 rpm	1250 rpm	1500 rpm	1750 rpm	2000 rpm	2250 rpm	2500 rpm	2750 rpm	3000 rpm	3250 rpm	3500 rpm	3750 rpm	4000 rpm	4250 rpm	4500 rpm	4750 rpm	5000 rpm	5250 rpm	5500 rpm	5750 rpm	6000 rpm	6250 rpm	6500 rpm	6750 rpm	7000 rpm	7250 rpm	7500 rpm	7750 rpm	8000 rpm */
+    /* in Nm */     0,	    61,	    121,	182,	242,	    251,	    259,	    268,	    276,	    280,	    284,	    288,	    292,	    299,	    306,	    310,	    309,    	308,    	304,    	300,    	296,    	290,    	282,    	266,    	250,    	235,    	219,	    205,	    190,	    176,	    161,	    147,	    132
+};

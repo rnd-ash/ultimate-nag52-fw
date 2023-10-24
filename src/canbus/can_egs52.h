@@ -130,7 +130,6 @@ class Egs52Can: public EgsBaseCan {
         bool toggle = false;
         uint8_t cvn_counter = 0;
         uint16_t fake_rpm = 0;
-        bool start_enable_trrs = false;
         GS_338_EGS52 gs_338tx;
         GS_218_EGS52 gs_218tx;
         GS_418_EGS52 gs_418tx;

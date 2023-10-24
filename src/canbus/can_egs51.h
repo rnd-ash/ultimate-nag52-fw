@@ -97,7 +97,7 @@ class Egs51Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;
-        void on_rx_done(uint32_t now_ts) override;
+        void on_rx_done(const uint32_t now_ts) override;
     private:
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
@@ -105,9 +105,7 @@ class Egs51Can: public EgsBaseCan {
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         Shifter *shifter;
-        bool start_enable = false;
-        bool rp_lock_enage = false;
         uint8_t cvn_counter = 0;  
 };
 
-#endif // EGS52_CAN_H
+#endif // EGS51_CAN_H

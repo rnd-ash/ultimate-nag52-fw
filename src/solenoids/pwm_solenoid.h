@@ -40,7 +40,7 @@ public:
     PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms);
 
 
-    const char* get_name() {
+    const char* get_name(void) {
         return this->name;
     }
 
@@ -49,7 +49,7 @@ public:
      * 
      * @return The raw PWM duty that was requested
      */
-    uint16_t get_pwm_raw();
+    uint16_t get_pwm_raw(void);
 
     /**
      * @brief returns the actual PWM that is being written to the solenoid
@@ -59,20 +59,20 @@ public:
      * 
      * @return The current PWM being written to the solenoid
      */
-    uint16_t get_pwm_compensated() const;
+    uint16_t get_pwm_compensated(void) const;
 
-    uint16_t get_ledc_pwm();
+    uint16_t get_ledc_pwm(void);
 
     /**
      * @brief Gets the current consumed by the solenoid at the previous I2S sample
      */
-    uint16_t get_current() const;
+    uint16_t get_current(void) const;
 
     /**
      * @brief returns the ADC1 channel being used to read
      * the current of the solenoid
      */
-    adc_channel_t get_adc_channel() const;
+    adc_channel_t get_adc_channel(void) const;
 
     /**
      * @brief Returns if the solenoid initialized OK
@@ -80,7 +80,7 @@ public:
      * @return true LEDC / Timer initialized OK, and no short-circuit present within the solenoid circuit
      * @return false Something went wrong trying to intialize the solenoid
      */
-    esp_err_t init_ok() const;
+    esp_err_t init_ok(void) const;
 
     /**
      * @brief Gets the time in milliseconds of a full PWM cycle
@@ -91,9 +91,9 @@ public:
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_adc_reading(uint16_t c);
 
-    virtual void pre_current_test(){};
-    virtual void post_current_test(){};
-    SolenoidTestReading get_full_on_current_reading();
+    virtual void pre_current_test(void){};
+    virtual void post_current_test(void){};
+    SolenoidTestReading get_full_on_current_reading(void);
 
     // -- These functions are only accessed by sw_fader class! -- //
 protected:
@@ -109,7 +109,7 @@ protected:
 };
 
 namespace SolenoidSetup {
-    esp_err_t init_adc();
+    esp_err_t init_adc(void);
 }
 
 #endif

@@ -107,6 +107,10 @@ typedef struct {
 } __attribute__ ((packed)) LinearInterpSetting;
 
 
+float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max);
+float scale_number(float raw, const LinearInterpSetting* settings);
+// Faster version of [scale_number], mainly used for ISRs where float cannot be used
+int scale_number_int(int raw, int new_min, int new_max, int raw_min, int raw_max);
 float interpolate_float(float raw, float new_min, float new_max, float raw_min, float raw_max, InterpType interp_type);
 
 /**
@@ -124,6 +128,7 @@ int interpolate_int(int raw, int new_min, int new_max, int raw_min, int raw_max)
 float interpolate_float(float raw, LinearInterpSetting* settings, InterpType interp_type);
 
 float progress_between_targets(float current, float start, float end);
+float progress_between_targets(const float current, const float start, const float end);
 
 /// @brief Calulates interpolated value between given values of function f_1 and f_2 for given value x.
 /// @param f_1 the first function value
@@ -133,5 +138,13 @@ float progress_between_targets(float current, float start, float end);
 /// @param x the x-value to calculate the interpolated function value for
 /// @return the interpolated function value
 float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x);
+
+/// @brief Searches for a given value in values. idvalue_min and idvalue_max will be set to the indices between the value is found. This fuction assumes, that values has an ascending order.
+/// @param value The value to be searched for.
+/// @param values The array with the values to be searched within.
+/// @param size The size of values.
+/// @param idvalue_min The index for the value smaller than the value to be searched for.
+/// @param idvalue_max The index for the value greater than the value to be searched for.
+void search_value(const int16_t value, const int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
 
 #endif // TCU_MATHS_H

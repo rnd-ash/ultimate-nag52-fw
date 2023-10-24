@@ -167,6 +167,9 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         } else {
             sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp));
         }
+        
+        int tcc_corrected = this->target_tcc_pressure * ((float)valve_body_settings->working_pressure_compensation.new_min / (float)pump);
+        sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(tcc_corrected));
     }
 }
 
@@ -372,7 +375,8 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
         targ = 15000;
     }
     this->target_tcc_pressure = targ;
-    sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
+    int tcc_corrected = this->target_tcc_pressure * ((float)valve_body_settings->working_pressure_compensation.new_min / (float)this->calculated_inlet_pressure);
+    sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(tcc_corrected));
 }
 
 uint16_t PressureManager::get_spring_pressure(Clutch c) {

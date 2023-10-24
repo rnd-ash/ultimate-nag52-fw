@@ -9,7 +9,7 @@
 
 class MovingAverage {
 public:
-    MovingAverage(uint8_t sample_count_max, bool allocate_iram = false) {
+    MovingAverage(uint16_t sample_count_max, bool allocate_iram = false) {
         if (allocate_iram) {
             this->samples = (int32_t*)TCU_IRAM_ALLOC(sample_count_max * sizeof(int32_t));
         } else {
@@ -66,7 +66,7 @@ private:
 
 class MovingUnsignedAverage {
 public:
-    MovingUnsignedAverage(uint8_t sample_count_max, bool allocate_iram = false) {
+    MovingUnsignedAverage(uint16_t sample_count_max, bool allocate_iram = false) {
         if (allocate_iram) {
             this->samples = (uint32_t*)TCU_IRAM_ALLOC(sample_count_max * sizeof(uint32_t));
         } else {
@@ -123,7 +123,7 @@ private:
 
 class MovingFloatAverage {
 public:
-    MovingFloatAverage(uint8_t sample_count_max) {
+    MovingFloatAverage(uint16_t sample_count_max) {
         this->samples = (float*)TCU_HEAP_ALLOC(sample_count_max * sizeof(float));
         this->max_samples = sample_count_max;
         this->reset();

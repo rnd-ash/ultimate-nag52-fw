@@ -113,16 +113,16 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .tcc_stall_speed = 2500,
     .min_torque_adapt = 30,
     .max_torque_adapt = 200,
-    .prefill_min_engine_rpm = 500,
+    .prefill_min_engine_rpm = 1000,
     .max_slip_max_adapt_trq = 200,
     .min_slip_max_adapt_trq = 100,
     .max_slip_min_adapt_trq = 60,
     .min_slip_min_adapt_trq = 30,
-    .pressure_increase_step = 100,
+    .pressure_increase_step = 50,
     .adapt_pressure_step = 20,
     .pressure_multiplier_output_rpm = {
         .new_min = 1.00,
-        .new_max = 1.25,
+        .new_max = 1.5,
         .raw_min = 1500,
         .raw_max = 2500,
     },
@@ -155,8 +155,7 @@ typedef struct {
     float cc_reference_resistance;
     // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
-    // The maximum jump the constant current driver can perform in 10ms
-    float cc_max_adjust_per_step;
+    
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
 const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
@@ -166,7 +165,7 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_temp_coefficient_wires = 0.393,
     .cc_reference_resistance = 5.3,
     .cc_reference_temp = 25,
-    .cc_max_adjust_per_step = 2,
+    //.cc_max_adjust_per_step = 2,
 };
 
 // Shift program basic settings
@@ -250,6 +249,91 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .spc_multi_overlap_zero_trq = 2.0,
     .spc_multi_overlap_max_trq = 30.0,
     .garage_shift_max_timeout_engine = 1000,
+};
+
+/// Hydralic valve body settings
+typedef struct {
+    // Pressure multiplier in 1st gear
+    // This compensates for the fact that Shift pressure
+    // is acting on the main pressure regulator in 1st gear
+    float multiplier_in_1st_gear;
+    float multiplier_all_gears;
+    // Main pressure regulator spring pressure
+    uint16_t lp_regulator_force_mbar;
+    // Shift pressure regulator spring pressure
+    uint16_t shift_regulator_force_mbar;
+    // Shift circuit shift pressure multiplier for 1-2/2-1
+    float shift_circuit_factor_1_2;
+    // Solenoid inlet pressure offset vs working pressure (1st gear)
+    uint16_t inlet_pressure_offset_mbar_first_gear;
+    // Solenoid inlet pressure offset vs working pressure
+    uint16_t inlet_pressure_offset_mbar_other_gears;
+    // Inlet pressure correction algorithm pump speed minimum
+    uint16_t pressure_correction_pump_speed_max;
+    // Inlet pressure correction algorithm pump speed maximum
+    uint16_t pressure_correction_pump_speed_min;
+    // Working pressure vs inlet pressure correction
+    LinearInterpSetting working_pressure_compensation;
+    // Factor for shift pressure when the K1 clutch is engaged
+    float k1_engaged_factor;
+    // Minimum MPC pressure
+    uint16_t minimum_mpc_pressure;
+} __attribute__ ((packed)) VBY_SETTINGS;
+
+// Hydralic configuration
+// It is unknown at this moment if the settings here
+// simply attain to small/large NAG, but it does NOT
+// correlate with brown/blue solenoids.
+typedef struct {
+    // Valve body settings type 1
+    // Type 1 valve bodys have solenoid pressure
+    // from 0-7700mBar
+    VBY_SETTINGS type0;
+    // Valve body settings type 2
+    // Type 2 valve bodys have solenoid pressure
+    // from 0-9700mBar
+    VBY_SETTINGS type1;
+} __attribute__ ((packed)) HYD_MODULE_SETTINGS;
+
+const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
+    .type0 = {
+        .multiplier_in_1st_gear = 2.320,
+        .multiplier_all_gears = 1.689,
+        .lp_regulator_force_mbar = 1828,
+        .shift_regulator_force_mbar = 601,
+        .shift_circuit_factor_1_2 = 1.993,
+        .inlet_pressure_offset_mbar_first_gear = 1500,
+        .inlet_pressure_offset_mbar_other_gears = 1000,
+        .pressure_correction_pump_speed_max = 1000,
+        .pressure_correction_pump_speed_min = 4000,
+        .working_pressure_compensation = {
+            .new_min = 2690,
+            .new_max = 8330,
+            .raw_min = 3180,
+            .raw_max = 8820,
+        },
+        .k1_engaged_factor = 1.993,
+        .minimum_mpc_pressure = 500
+    },
+    .type1 = {
+        .multiplier_in_1st_gear = 1.954,
+        .multiplier_all_gears = 1.567,
+        .lp_regulator_force_mbar = 1926,
+        .shift_regulator_force_mbar = 601,
+        .shift_circuit_factor_1_2 = 1.993,
+        .inlet_pressure_offset_mbar_first_gear = 1500,
+        .inlet_pressure_offset_mbar_other_gears = 1000,
+        .pressure_correction_pump_speed_max = 1000,
+        .pressure_correction_pump_speed_min = 4000,
+        .working_pressure_compensation = {
+            .new_min = 4000,
+            .new_max = 10000,
+            .raw_min = 4000,
+            .raw_max = 10000,
+        },
+        .k1_engaged_factor = 1.993,
+        .minimum_mpc_pressure = 1500
+    }
 };
 
 
@@ -371,7 +455,7 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
         .power_loss_5 = 10,
         .power_loss_r1 = 10,
         .power_loss_r2 = 10,
-    }
+    },
 };
 
 // Pressure manager settings
@@ -396,6 +480,8 @@ typedef struct {
     // UNIT: milliseconds
     uint16_t shift_solenoid_pwm_reduction_time;
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
+
+
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
     .max_spc_pressure = 7000,
@@ -509,6 +595,51 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .ewm_shifter_switch_cycles_profiles = false,
 };
 
+
+// Hydralic calibration
+enum HydralicCalibration: uint8_t {
+    // 0-7700 mBar
+    HydralicSet0 = 0,
+    // 0-9700 mBar
+    HydralicSet1 = 1
+};
+
+enum NagClutchCalibrationLookup: uint8_t {
+    // Set 0 (Small NAG). Max torque 420/500Nm
+    ClutchSet0 = 0,
+    // Set 1 (Small NAG). Max torque 300/370Nm
+    ClutchSet1 = 1,
+    // Set 2 (Large NAG). Max torque 460/580Nm
+    ClutchSet2 = 2,
+    // Set 3 (Large NAG). Max torque 460/580Nm
+    ClutchSet3 = 3,
+    // Set 4 (Large NAG). Max torque 580/730Nm
+    ClutchSet4 = 4,
+};
+
+enum NagSpringCalibrationLookup: uint8_t {
+    // Set 0 (Default)
+    SpringSet0 = 0,
+    // Set 1 (Stronger K3 release spring)
+    SpringSet1 = 1,
+};
+
+// EGS52 calibration lookup
+typedef struct {
+    // Hydralic calibration
+    HydralicCalibration hydralic_set;
+    // Clutch friction capabilities calibration
+    NagClutchCalibrationLookup clutch_friction_set;
+    // Clutch release spring calibration
+    NagSpringCalibrationLookup clutch_release_spring_set;
+} __attribute__ ((packed)) CAL_MODULE_SETTINGS;
+
+const CAL_MODULE_SETTINGS CAL_DEFAULT_SETTINGS = {
+    .hydralic_set = HydralicCalibration::HydralicSet0,
+    .clutch_friction_set = NagClutchCalibrationLookup::ClutchSet0,
+    .clutch_release_spring_set = NagSpringCalibrationLookup::SpringSet0
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
@@ -517,6 +648,8 @@ extern NAG_MODULE_SETTINGS NAG_CURRENT_SETTINGS;
 extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
+extern HYD_MODULE_SETTINGS HYD_CURRENT_SETTINGS;
+extern CAL_MODULE_SETTINGS CAL_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -526,6 +659,8 @@ extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 #define PRM_MODULE_SETTINGS_SCN_ID 0x05
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
+#define HYD_MODULE_SETTINGS_SCN_ID 0x08
+#define CAL_MODULE_SETTINGS_SCN_ID 0x09
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

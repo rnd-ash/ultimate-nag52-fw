@@ -174,7 +174,7 @@ void CanEndpoint::iso_tp_server_loop() {
         if (is_receiving || is_sending) { // Rx
             vTaskDelay(2);
         } else { // Idle
-             vTaskDelay(25);
+            vTaskDelay(25);
         }
     }
 }

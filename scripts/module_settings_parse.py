@@ -27,17 +27,17 @@ output_md = open("MODULE_SETTINGS.md", "w")
 output_yml = open("MODULE_SETTINGS.yml", "w")
 
 class Enum:
-    def __init__(self, name: str, mappings: [(str, int)]) -> None:
+    def __init__(self, name: str, mappings: [(str, str, int)]) -> None:
         self.name = name;
         self.mappings = mappings[:]
     
     def get_name(self) -> str:
         return self.name
     
-    def get_key_value(self, key: str) -> int:
+    def get_key_value(self, key: str) -> (int, str):
         for i in range(0, len(self.mappings)):
             if self.mappings[i][0] == key:
-                return self.mappings[i][1]
+                return (self.mappings[i][2], self.mappings[i][1])
         raise KeyError(key)
 
 
@@ -299,7 +299,7 @@ for line in f_in[2:]:
         pass
     elif enum_name != "":
         x = line.strip().split("=");
-        enum_maps.append((x[0].strip(), int(x[1].strip().removesuffix(","))))
+        enum_maps.append((x[0].strip(), desc, int(x[1].strip().removesuffix(","))))
 
     # Reset description at the END
     if not line.strip().startswith("//"):
@@ -316,11 +316,11 @@ for setting in settings:
 output_markdown += "# Enumerations\n"
 for e in enums:
     output_markdown += "## {}\n".format(e.name)
-    output_markdown += """|Name|Raw value|
-|:-:|:-:|
+    output_markdown += """|Name|Desc|Raw value|
+|:-:|:-:|:-:|
 """
     for mapping in e.mappings:
-        output_markdown += "|{}|{}|\n".format(mapping[0], mapping[1])
+        output_markdown += "|{}|{}|{}|\n".format(mapping[0], mapping[1], mapping[2])
 
 
 output_markdown += "# Data descriptions for internal structures"
@@ -338,7 +338,7 @@ for enum in enums:
     e = {}
     e["Name"] = enum.get_name();
     for x in enum.mappings:
-        maps[x[1]] = x[0]
+        maps[x[2]] = {"Name":x[0], "Desc":x[1]}
     e["Mappings"] = maps
     e_list.append(e)
 dict["Enums"] = e_list

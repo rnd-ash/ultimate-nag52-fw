@@ -23,10 +23,6 @@ StoredMap* get_map(uint8_t map_id) {
             return comfort->get_downshift_map();
         case S_DOWNSHIFT_MAP_ID:
             return standard->get_downshift_map();
-        case WORKING_PRESSURE_MAP_ID:
-            return pressure_manager->get_working_map();
-        case PCS_CURRENT_MAP_ID:
-            return pressure_manager->get_pcs_map();
         case TCC_PWM_MAP_ID:
             return pressure_manager->get_tcc_pwm_map();
         case FILL_TIME_MAP_ID:

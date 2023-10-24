@@ -605,15 +605,27 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
                 //float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
                 //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
-                float end_spc = interpolate_float(
-                    phase_elapsed,
-                    prev_shift_clutch_pressure,
-                    wp_new_clutch + spring_pressure_on_clutch,
-                    0,
-                    chars.target_shift_time,
-                    InterpType::Linear
-                );
-                current_shift_clutch_pressure = end_spc;
+                if (phase_elapsed < chars.target_shift_time) {
+                    float end_spc = interpolate_float(
+                        phase_elapsed,
+                        prev_shift_clutch_pressure,
+                        prev_shift_clutch_pressure + prefill_data.fill_pressure_on_clutch,
+                        0,
+                        chars.target_shift_time,
+                        InterpType::Linear
+                    );
+                    current_shift_clutch_pressure = end_spc;
+                } else {
+                    float end_spc = interpolate_float(
+                        phase_elapsed - chars.target_shift_time,
+                        prev_shift_clutch_pressure + prefill_data.fill_pressure_on_clutch,
+                        prev_shift_clutch_pressure + spring_pressure_on_clutch + wp_new_clutch,
+                        0,
+                        chars.target_shift_time,
+                        InterpType::Linear
+                    );
+                    current_shift_clutch_pressure = end_spc;
+                }
 
             
             } else if (current_stage == ShiftStage::MaxPressure) {

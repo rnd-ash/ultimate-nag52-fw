@@ -608,9 +608,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 float end_spc = interpolate_float(
                     phase_elapsed,
                     prev_shift_clutch_pressure,
-                    wp_new_clutch + spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,
+                    wp_new_clutch + spring_pressure_on_clutch,
                     0,
-                    phase_total_time,
+                    chars.target_shift_time,
                     InterpType::Linear
                 );
                 current_shift_clutch_pressure = end_spc;

@@ -368,8 +368,8 @@ void PressureManager::set_spc_p_max() {
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
-    if (targ > 3000) {
-        targ = 3000;
+    if (targ > 15000) {
+        targ = 15000;
     }
     this->target_tcc_pressure = targ;
     sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));

@@ -21,7 +21,6 @@
 #include "canbus/can_hfm.h"
 
 #include "board_config.h"
-#include "ioexpander.h"
 #include "nvs/device_mode.h"
 
 // shifter modules

@@ -2,7 +2,7 @@
 #include "programselector/programselectorbutton.h"
 #include "programselector/programselectorswitchewm.h"
 
-ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile *profiles)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile *profiles)
 {
 	this->vehicle_config = vehicle_config;
 	switch (shifter_settings->ewm_selector_type)

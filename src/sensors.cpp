@@ -282,7 +282,7 @@ esp_err_t Sensors::init_sensors(void){
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = (1 * 1000 * 1000),
+        .resolution_hz = 1000000u,
         .flags = {
             .intr_shared = 1
         }

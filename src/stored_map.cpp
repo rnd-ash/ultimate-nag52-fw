@@ -16,6 +16,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
                                                                 default_map,
                                                                 data_element_count)
 {
+    this->default_data = {0u};
     this->default_map = default_map;
     if ((x_size * y_size) == data_element_count)
     {

@@ -103,8 +103,10 @@ SPEAKER_POST_CODE setup_tcm()
                     shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix, reinterpret_cast<AbstractProfile *>(profiles));
                     break;
                 case (uint8_t)ShifterStyle::SLR:
+                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS, reinterpret_cast<AbstractProfile *>(profiles));
                     break;
                 default:
+                    // possibly
                     break;
                 }
                 if (nullptr != shifter)

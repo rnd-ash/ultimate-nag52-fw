@@ -58,7 +58,7 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    if (!this->tcc_solenoid_enabled) {
+    if (!this->tcc_solenoid_enabled || is_shifting) {
         pm->set_target_tcc_pressure(0);
         return;
     }

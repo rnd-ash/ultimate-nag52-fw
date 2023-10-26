@@ -42,6 +42,28 @@ enum class ProfileSwitchPos : uint8_t {
 };
 
 /**
+ * @brief SLR profile knob position
+ */
+enum class SLRProfileWheel : uint8_t {
+    /**
+     * @brief Right (S)
+     */
+    Right = 0u,
+    /**
+     * @brief Center (M)
+     */
+    Center = 1u,
+    /**
+     * @brief Left (C)
+     */
+    Left = 2u,
+    /**
+     * @brief Could not determine position
+     */
+    SNV = UINT8_MAX,
+};
+
+/**
  * @brief Gear selector position
  */
 enum class ShifterPosition : uint8_t {

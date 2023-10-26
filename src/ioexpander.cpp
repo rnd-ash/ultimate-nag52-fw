@@ -164,4 +164,9 @@ void IOExpander::set_gearbox_protection(const bool gearbox_protection_enabled)
 	set_value(gearbox_protection_enabled, pcb_gpio_matrix->i2c_expander_gearbox_protection_enabler, i2c_tx_bytes);
 }
 
+void IOExpander::debug_get_registers(uint8_t* ll, uint8_t* hb) {
+	*ll = this->i2c_rx_bytes[0];
+	*hb = this->i2c_rx_bytes[1];
+}
+
 IOExpander *ioexpander = nullptr;

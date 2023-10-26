@@ -204,14 +204,30 @@ AbstractProfile *profile_from_auto_ty(AutoProfile prof)
 
 void input_manager(void *)
 {
+    SLRProfileWheel last_wheel_pos = SLRProfileWheel::SNV;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
     ioexpander->read_from_ioexpander();
     ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(100);
     bool pressed = false;
-
-    if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
+    // SLR handling first (Unique selection)
+    if (VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::SLR) {
+        last_wheel_pos = egs_can_hal->get_slr_profile_wheel_pos(500);
+        switch (last_wheel_pos) {
+            case SLRProfileWheel::Center:
+                gearbox->set_profile(manual);
+                break;
+            case SLRProfileWheel::Left:
+                gearbox->set_profile(comfort);
+                break;
+            case SLRProfileWheel::Right:
+                gearbox->set_profile(race);
+                break;
+            default:
+                break;
+        }
+    } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
     {
         gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
         if (last_mode != ProfileSwitchPos::SNV)
@@ -223,7 +239,25 @@ void input_manager(void *)
     while (1)
     {
         ioexpander->read_from_ioexpander();
-        if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
+        if (VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::SLR) {
+            SLRProfileWheel p = egs_can_hal->get_slr_profile_wheel_pos(500);
+            if (p != last_wheel_pos) {
+                switch (p) {
+                    case SLRProfileWheel::Center:
+                        gearbox->set_profile(manual);
+                        break;
+                    case SLRProfileWheel::Left:
+                        gearbox->set_profile(comfort);
+                        break;
+                    case SLRProfileWheel::Right:
+                        gearbox->set_profile(race);
+                        break;
+                    default:
+                        break;
+                }
+                last_wheel_pos = p;
+            }
+        } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
         {
             // Switch based
             ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(100);

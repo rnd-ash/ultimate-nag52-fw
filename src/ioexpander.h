@@ -20,6 +20,7 @@ public:
 	void set_rp_solenoid(const bool rp_solenoid_enabled);
 	void set_start(const bool start_enabled);
 	void set_gearbox_protection(const bool gearbox_protection_enabled);
+	void debug_get_registers(uint8_t* ll, uint8_t* hb);
 private:
     const uint8_t IO_ADDR = 0x20u;
 	const char* name = "IOEXPANDER";

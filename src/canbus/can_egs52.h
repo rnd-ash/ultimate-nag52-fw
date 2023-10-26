@@ -70,6 +70,8 @@ class Egs52Can: public EgsBaseCan {
         int cruise_control_torque_demand(const uint32_t expire_time_ms) override;
         int esp_torque_demand(const uint32_t expire_time_ms) override;
 
+        SLRProfileWheel get_slr_profile_wheel_pos(const uint32_t expire_time_ms) override;
+
         /**
          * Setters
          */

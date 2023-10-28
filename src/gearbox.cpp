@@ -667,7 +667,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             pressure_mgr->set_target_modulating_working_pressure(current_working_pressure);
             pressure_mgr->set_target_modulating_releasing_pressure(current_mod_clutch_pressure);
             pressure_mgr->set_target_shift_clutch_pressure(current_shift_clutch_pressure);
-            pressure_mgr->update_pressures(this->actual_gear);
+            pressure_mgr->update_pressures(current_stage == ShiftStage::MaxPressure ? this->target_gear : this->actual_gear);
 
             // Timeout checking (Only in overlap)
             if (ShiftStage::Overlap == current_stage) {

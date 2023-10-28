@@ -82,7 +82,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t fill_lp_x_headers[1] = {1};
     const int16_t fill_lp_y_headers[5] = {1,2,3,4,5};
     key_name = NVS_KEY_MAP_NAME_FILL_LOW_PRESSURE;
-    default_data = NAG_FILL_PRESSURE_MAP;
+    default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
     if (this->fill_low_pressure_map->init_status() != ESP_OK) {
         delete[] this->fill_low_pressure_map;

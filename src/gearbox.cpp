@@ -654,7 +654,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 if (phase_elapsed < maxp.ramp_time) {
                     current_shift_clutch_pressure = interpolate_float(phase_elapsed, prev_shift_clutch_pressure, pressure_manager->get_max_solenoid_pressure(), 0, maxp.ramp_time, InterpType::Linear);
-                    current_mod_clutch_pressure = 0;
+                    current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure, 0, 0, maxp.ramp_time, InterpType::Linear);;
                 } else {
                     // Hold phase. Mod at 0, Shift at full
                     prev_shift_clutch_pressure = pressure_manager->get_max_solenoid_pressure();

@@ -558,7 +558,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     // wilst remaining firmer at quicker shifts
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
-                    prev_shift_clutch_pressure = spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch;
+                    //prev_shift_clutch_pressure = spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch;
                     // To return spring pressure to start overlap!
                 } else if (current_stage == ShiftStage::MaxPressure) {
                     if (!result) {
@@ -605,7 +605,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 current_mod_clutch_pressure = spring_pressure_off_clutch;
                 current_working_pressure = MAX(wp_old_clutch, prefill_data.fill_pressure_off_clutch);
                 pre_overlap_torque = sensor_data.input_torque;
-                if (can_exit_fill_early && sensor_data.input_torque > gearboxConfig.max_torque/2) {
+                if (can_exit_fill_early && sensor_data.input_torque > gearboxConfig.max_torque/3) {
                     skip_phase = true;
                 }
                 
@@ -640,9 +640,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     float end_spc = interpolate_float(
                         phase_elapsed - chars.target_shift_time,
                         prev_shift_clutch_pressure + wp_new_clutch,
-                        prev_shift_clutch_pressure + prefill_data.fill_pressure_on_clutch + wp_new_clutch,
+                        prev_shift_clutch_pressure + (wp_new_clutch*4),
                         0,
-                        chars.target_shift_time,
+                        chars.target_shift_time*2,
                         InterpType::Linear
                     );
                     current_shift_clutch_pressure = end_spc;
@@ -788,6 +788,7 @@ void Gearbox::shift_thread()
             int elapsed = 0;
             bool completed_ok = false;
             float div = 0.5;
+            int rpm_before_shift = sensor_data.input_rpm;
             while(true) {
                 if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
                     completed_ok = false;
@@ -814,7 +815,7 @@ void Gearbox::shift_thread()
                     completed_ok = true;
                     break;
                 }
-                if (elapsed > 2500) {
+                if (elapsed > 2500 && sensor_data.engine_rpm - sensor_data.input_rpm < 200) {
                     completed_ok = false;
                     break;
                 }

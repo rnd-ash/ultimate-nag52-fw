@@ -306,9 +306,9 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
         Clutch to_release = get_clutch_to_release(change);
         return PrefillData {
             .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
-            .fill_pressure_on_clutch = (uint16_t)fill_time_map->get_value(1, (uint8_t)to_apply),
+            .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_apply),
             .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)to_apply),
-            .fill_pressure_off_clutch = (uint16_t)fill_time_map->get_value(1, (uint8_t)to_release)
+            .fill_pressure_off_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_release)
         };
     }
 }

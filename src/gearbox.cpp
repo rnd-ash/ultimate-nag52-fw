@@ -557,7 +557,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     // This provides a nice smooth shifting experience at lower torque,
                     // wilst remaining firmer at quicker shifts
                     ESP_LOGI("SHIFT", "Overlap start");
-                    phase_total_time = (chars.target_shift_time*2)+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
+                    phase_total_time = chars.target_shift_time+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
                     //prev_shift_clutch_pressure = spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch;
                     // To return spring pressure to start overlap!
                 } else if (current_stage == ShiftStage::MaxPressure) {
@@ -577,7 +577,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             
             if (current_stage == ShiftStage::Bleed) {
                 float end_spc = prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch;
-                current_shift_clutch_pressure = interpolate_float(phase_elapsed, pressure_manager->get_max_solenoid_pressure(), end_spc, 0, phase_total_time, InterpType::Linear);
+                current_shift_clutch_pressure = interpolate_float(phase_elapsed, pressure_manager->get_max_solenoid_pressure(), end_spc, 0, 100, InterpType::Linear);
                 current_mod_clutch_pressure = end_spc; // To add to working pressure for maximum filling effect
                 current_working_pressure = wp_old_clutch;
             } else if (current_stage == ShiftStage::Fill) {
@@ -602,8 +602,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_shift_clutch_pressure = spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch;
                     can_exit_fill_early = true;
                 }
-                current_mod_clutch_pressure = spring_pressure_off_clutch;
-                current_working_pressure = MAX(wp_old_clutch, prefill_data.fill_pressure_off_clutch);
+                current_mod_clutch_pressure = spring_pressure_off_clutch + prefill_data.fill_pressure_off_clutch;
+                current_working_pressure = wp_old_clutch;
                 pre_overlap_torque = sensor_data.input_torque;
                 if (can_exit_fill_early && sensor_data.input_torque > gearboxConfig.max_torque/3) {
                     skip_phase = true;
@@ -622,7 +622,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 //float div = interpolate_float(sensor_data.pedal_pos, 1.0, 0.25, 10, 250, InterpType::Linear);
 
                 //float sportiness = interpolate_float(sensor_data.driver_requested_torque, 1.0, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
-                current_mod_clutch_pressure = interpolate_float(phase_elapsed, prev_mod_clutch_pressure, 0, 0, chars.target_shift_time, InterpType::Linear);
+                current_mod_clutch_pressure = interpolate_float(phase_elapsed, spring_pressure_off_clutch, 0, 0, chars.target_shift_time/2, InterpType::Linear);
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
                 //float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
                 //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
@@ -630,7 +630,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     float end_spc = interpolate_float(
                         phase_elapsed,
                         prev_shift_clutch_pressure,
-                        prev_shift_clutch_pressure + wp_new_clutch,
+                        spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch + wp_new_clutch,
                         0,
                         chars.target_shift_time,
                         InterpType::Linear
@@ -640,7 +640,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     float end_spc = interpolate_float(
                         phase_elapsed - chars.target_shift_time,
                         prev_shift_clutch_pressure + wp_new_clutch,
-                        prev_shift_clutch_pressure + (wp_new_clutch*4),
+                        spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch + (wp_new_clutch*4),
                         0,
                         chars.target_shift_time*2,
                         InterpType::Linear

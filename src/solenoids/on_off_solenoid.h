@@ -11,6 +11,7 @@ public:
     void on();
     void off();
     bool is_on();
+    bool is_max_on();
 
 private:
     uint32_t on_time_ms;

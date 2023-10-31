@@ -21,11 +21,8 @@ void OnOffSolenoid::__write_pwm(float vref_compensation, float temperature_facto
             calc_pwm = 0xFFFF;
         }
     }
-    if (calc_pwm != this->pwm) {
-        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, calc_pwm);
-        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
-        this->pwm = calc_pwm;
-    }
+    ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, calc_pwm);
+    ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
 }
 
 void OnOffSolenoid::on() {
@@ -37,10 +34,15 @@ void OnOffSolenoid::on() {
 }
 
 void OnOffSolenoid::off() {
+    this->on_time_ms = 0;
     this->state = false;
     this->holding = false;
 }
 
 bool OnOffSolenoid::is_on() {
     return this->state;
+}
+
+bool OnOffSolenoid::is_max_on() {
+    return this->state && !this->holding;
 }

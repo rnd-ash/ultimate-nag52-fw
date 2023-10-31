@@ -2,6 +2,8 @@
 #include "esp_log.h"
 #include "nvs/module_settings.h"
 
+float mpc_sol_trim_factor = 0.0;
+
 ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
 : PwmSolenoid(name, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->current_target = 0;
@@ -9,7 +11,7 @@ ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pw
     this->current_target_idx = 0;
 }
 
-void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
+void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
     // Adjust PWM based on current feedback
     // Only do this every 4 steps (Every 4ms)
     
@@ -31,9 +33,9 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
 
         // 250mA sense cuttoff (To avoid noise), and only when current step delta is low such that the solenoid
         // can respond within the time window
-        if (this->current_target_at_report_time >= 250 && abs(current_delta) <= 100  && c >= 4) { // 250mA cut off
+        if (!stop_compensation && this->current_target_at_report_time >= 250 && abs(current_delta) <= 100  && c >= 4) { // 250mA cut off
             // Large enough error, adapt!
-            if (abs(this->current_target_at_report_time - read) > 5) {
+            if (abs(this->current_target_at_report_time - read) > 10) {
                 float err = (((float)this->current_target_at_report_time-(float)read)/max_current);
                 // Don't over correct for error when current delta is high, so we can scale the error correction
                 this->internal_trim_factor += err/interpolate_int(abs(current_delta), 20, 1000, 0, 100);
@@ -77,6 +79,7 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
         target_ma = 1500;
     }
     this->current_target = target_ma;
+    this->c = 0;
 }
 
 uint16_t ConstantCurrentSolenoid::get_current_target() {

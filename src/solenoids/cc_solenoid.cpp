@@ -4,8 +4,8 @@
 
 float mpc_sol_trim_factor = 0.0;
 
-ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms, bool is_mpc)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, phase_duration_ms) {
+ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms, bool is_mpc)
+: PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->current_target = 0;
     memset(&this->old_current_targets, 0x00, sizeof(this->old_current_targets));
     this->current_target_idx = 0;

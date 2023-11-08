@@ -10,17 +10,7 @@
 uint16_t voltage = 12000;
 adc_cali_handle_t adc1_cal = nullptr;
 
-const ledc_timer_t SOLENOID_TIMER = ledc_timer_t::LEDC_TIMER_0;
-
-const ledc_timer_config_t SOLENOID_TIMER_CFG = {
-    .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
-    .duty_resolution = LEDC_TIMER_12_BIT,
-    .timer_num = SOLENOID_TIMER,
-    .freq_hz = 1000,
-    .clk_cfg = LEDC_AUTO_CLK
-};
-
-PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
+PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
 {
     this->channel = channel;
     this->name = name;
@@ -34,10 +24,19 @@ PwmSolenoid::PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t ch
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE,
         .channel = channel,
         .intr_type = LEDC_INTR_DISABLE, // Disable fade interrupt
-        .timer_sel = SOLENOID_TIMER,
+        .timer_sel = ledc_timer,
         .duty = 0,
         .hpoint = 0
     };
+
+    ledc_timer_config_t SOLENOID_TIMER_CFG = {
+        .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
+        .duty_resolution = LEDC_TIMER_12_BIT,
+        .timer_num = ledc_timer,
+        .freq_hz = 1000,
+        .clk_cfg = LEDC_AUTO_CLK
+    };
+
     // Set the timer configuration
     ESP_GOTO_ON_ERROR(ledc_timer_config(&SOLENOID_TIMER_CFG), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
     // Set PWM channel configuration

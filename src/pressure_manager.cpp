@@ -105,7 +105,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
     if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
-        k1_factor = 1.0;//valve_body_settings->k1_engaged_factor;
+        k1_factor = valve_body_settings->k1_engaged_factor;
     }
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, 
@@ -143,7 +143,7 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         // Shift solenoid 1-2 active, reduce SPC and mpc(clutch release) influence
         if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
             spc_in /= valve_body_settings->shift_circuit_factor_1_2;
-            mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
+        //    mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
         }
         mpc_in += mpcc_in;
 

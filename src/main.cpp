@@ -60,9 +60,9 @@ SPEAKER_POST_CODE setup_tcm()
             spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
             ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
         }
-        ioexpander = new IOExpander();
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
+            ioexpander = new IOExpander();
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (EEPROM::init_eeprom() != ESP_OK)
             {

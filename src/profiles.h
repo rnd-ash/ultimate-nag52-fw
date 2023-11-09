@@ -145,6 +145,11 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
     uint8_t get_profile_id() override { return PROFILE_ID_STANDARD; }
+private:
+    void update(SensorData *sd);
+    int32_t accel_delta_factor = 0;
+    SensorData last_sensors = {};
+    uint32_t last_check = 0;
 };
 
 class ManualProfile : public AbstractProfile {

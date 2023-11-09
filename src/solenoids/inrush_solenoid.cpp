@@ -120,9 +120,7 @@ uint32_t InrushControlSolenoid::on_timer_interrupt() {
 }
 
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
-    this->vref_compensation = vref_compensation * 100;
-    this->temp_compensation = temperature_factor * 100;
-    this->calc_hold_pwm = (float)HOLD_PWM * vref_compensation;
+    this->calc_hold_pwm = (float)(HOLD_PWM) * vref_compensation;
     this->inrush_time = 20000.0 * vref_compensation;
 }
 

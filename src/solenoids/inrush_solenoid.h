@@ -14,14 +14,11 @@ public:
     void post_current_test() override;
 private:
     uint32_t period_duration_us = 0;
-    uint16_t vref_compensation = 100; // %
-    uint16_t temp_compensation = 100; // %
     // 0 - Inrush
     // 1 - Hold
     // 2 - Off
     uint8_t phase_id = 2; // So we start at 0 again
     uint32_t period_on_time = 0;
-    uint32_t period_off_time = 0;
     uint16_t target_hold_current = 0;
     uint16_t calc_hold_pwm = 1024;
     uint32_t inrush_time = 20000; // at 12V and 25C

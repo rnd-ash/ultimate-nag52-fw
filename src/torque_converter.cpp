@@ -9,7 +9,7 @@
 
 const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
 const int16_t tcc_learn_y_headers[1] = {1};
-const int16_t tcc_learn_default_data[5] = {200, 200, 200, 200, 200};
+const int16_t tcc_learn_default_data[5] = {1500, 1500, 1500, 1500, 1500};
 
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 

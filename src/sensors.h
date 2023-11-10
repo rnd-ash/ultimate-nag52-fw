@@ -64,6 +64,17 @@ namespace Sensors {
     esp_err_t read_vbatt(uint16_t* dest);
 
     /**
+     * @brief Reads the Solenoid power supply voltage pin in mV
+     * NOTE: On board prior to V1.4, this will simply redirect to `Sensors::read_vbatt`
+     * whilst on 1.4 PCB, it will read the voltage from a point near the solenoid supply line
+     * 
+     * @param dest Destination pointer to store the voltage in mV
+     * @return true 
+     * @return false 
+     */
+    esp_err_t read_vsol(uint16_t* dest);
+
+    /**
      * @brief Reads the ATF temp from the TFT sensor in degrees C.
      * NOTE: If parking lock is engaged, then motor coolant temperature provided
      * by the CAN layer is instead used. This makes the most sense as motor coolant

@@ -103,7 +103,13 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         n3_avg_buffer->add_sample(pulses*50);
         sensor_counter = 0;
     }
-    adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &tft_adc_res);
+
+    bool has_external_adc_tft = (bool)user_data;
+    if (has_external_adc_tft) {
+        // TODO - Read external ADC
+    } else {
+        adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &tft_adc_res);
+    }
     adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &batt_adc_res);
 
     adc_cali_raw_to_voltage(adc2_cal, batt_adc_res, &adc_voltage);
@@ -245,7 +251,9 @@ esp_err_t configure_output_pcnt(gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE
 
 esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_VBATT to Input!");
-    ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
+    if (!pcb_gpio_matrix->has_external_adc_tft_vsol) {
+        ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");   
+    }
 
     // Set moving average buffers
     tft_avg_buffer = new MovingAverage(10, true);
@@ -253,7 +261,9 @@ esp_err_t Sensors::init_sensors(void){
 
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
-    ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
+    if (!pcb_gpio_matrix->has_external_adc_tft_vsol) {
+        ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
+    }
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for VBATT channel");
     // Characterise ADC2       
     const adc_cali_line_fitting_config_t cali = {
@@ -301,7 +311,7 @@ esp_err_t Sensors::init_sensors(void){
         .on_alarm = on_rpm_timer
     };
 
-    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer_pcnt, &cbs_pcnt, nullptr), "SENSORS", "Failed to register PCNT timer callback");
+    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer_pcnt, &cbs_pcnt, (void*)pcb_gpio_matrix->has_external_adc_tft_vsol), "SENSORS", "Failed to register PCNT timer callback");
 
     ESP_RETURN_ON_ERROR(gptimer_enable(gptimer_pcnt), "SENSORS", "Failed to enable PCNT GPTIMER");
 
@@ -357,6 +367,15 @@ esp_err_t Sensors::read_vbatt(uint16_t *dest){
         *dest = vbatt;
     }
     return vbatt_res;
+}
+
+esp_err_t Sensors::read_vsol(uint16_t* dest) {
+    if (pcb_gpio_matrix->has_external_adc_tft_vsol) {
+        // TODO Read from external ADC
+        return ESP_OK;
+    } else {
+        return Sensors::read_vbatt(dest);
+    }
 }
 
 // Returns ATF temp in *C

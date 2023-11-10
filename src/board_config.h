@@ -88,7 +88,7 @@ typedef enum {
     PCA_NUM_4 = 4,
     PCA_NUM_5 = 5,
     PCA_NUM_6 = 6,
-    PCA_NUM_7 = 7
+    PCA_NUM_7 = 7,
 } pca_num_t;
 
 class BoardGpioMatrix {
@@ -122,6 +122,7 @@ public:
 
     gpio_num_t tcc_sense;
     gpio_num_t tcc_pwm;
+    gpio_num_t tcc_zener;
 
     // only on board versions 1.2 and newer
     gpio_num_t i2c_sda; 
@@ -135,14 +136,21 @@ public:
     pca_num_t i2c_expander_brake_light_switch;
     pca_num_t i2c_expander_program_button;
     pca_num_t i2c_expander_kickdown_switch;
+    pca_num_t i2c_expander_solenoid_power_overload;
 
     // outputs
     pca_num_t i2c_expander_rp_solenoid_enabler;
     pca_num_t i2c_expander_start_enabler;
     pca_num_t i2c_expander_gearbox_protection_enabler;
+    pca_num_t i2c_expander_solenoid_power_cutoff;
 
     // only on board versions 1.3 and newer
     gpio_num_t io_pin;
+
+    // Only on board version 1.4 and newer
+    // (NOTE: TFT Sensor will be marked as NC)
+    bool has_external_adc_tft_vsol;
+    uint8_t external_adc_addr;
 };
 
 /**
@@ -167,11 +175,18 @@ public:
 
 /**
  * @brief GPIO Matrix for the Gen 2 production PCB (V1.3 29/11/22)
- * NOTE: This PCB is in development, so its matrix can change
  */
 class BoardV13GpioMatrix: public BoardGpioMatrix {
 public:
     BoardV13GpioMatrix(void);
+};
+
+/**
+ * @brief GPIO Matrix for the 1.4 PCB (HGS OR EGS enclosure) (V1.4 10/11/23)
+ */
+class BoardV14GpioMatrix: public BoardGpioMatrix {
+public:
+    BoardV14GpioMatrix(void);
 };
 
 

@@ -53,6 +53,9 @@ SPEAKER_POST_CODE setup_tcm()
         case 3:
             pcb_gpio_matrix = new BoardV13GpioMatrix();
             break;
+        case 4:
+            pcb_gpio_matrix = new BoardV14GpioMatrix();
+            break;
         default:
             pcb_gpio_matrix = nullptr;
             egs_can_hal = nullptr;

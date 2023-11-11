@@ -15,8 +15,6 @@
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
 extern uint16_t min_adc_raw_reading;
-
-extern const ledc_timer_t SOLENOID_TIMER;
 extern const ledc_timer_config_t SOLENOID_TIMER_CFG;
 
 typedef struct {
@@ -37,7 +35,7 @@ public:
      * @param read_channel The ADC 1 Channel used for current sense feedback
      * @param current_samples The number of samples from I2S for current measuring. It is assumed that each sample is ~2ms snapshot
      */
-    PwmSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms);
+    PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms);
 
 
     const char* get_name(void) {

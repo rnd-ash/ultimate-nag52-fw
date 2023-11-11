@@ -2,14 +2,17 @@
 #include "esp_log.h"
 #include "nvs/module_settings.h"
 
-ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
-: PwmSolenoid(name, pwm_pin, channel, read_channel, phase_duration_ms) {
+float mpc_sol_trim_factor = 0.0;
+
+ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms, bool is_mpc)
+: PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->current_target = 0;
     memset(&this->old_current_targets, 0x00, sizeof(this->old_current_targets));
     this->current_target_idx = 0;
+    this->use_global_cc = !is_mpc;
 }
 
-void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
+void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
     // Adjust PWM based on current feedback
     // Only do this every 4 steps (Every 4ms)
     
@@ -21,6 +24,9 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
     uint16_t calc_pwm = this->pwm;
     if (this->current_target == 0) {
         calc_pwm = 0;
+        if (use_global_cc) {
+            this->internal_trim_factor = mpc_sol_trim_factor;
+        }
     } else {
         // Adapt first from previous current sample
         float max_current = ((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance) / vref_compensation;
@@ -31,7 +37,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
 
         // 250mA sense cuttoff (To avoid noise), and only when current step delta is low such that the solenoid
         // can respond within the time window
-        if (this->current_target_at_report_time >= 250 && abs(current_delta) <= 100) { // 250mA cut off
+        if (!stop_compensation && this->current_target_at_report_time >= 250 && abs(current_delta) <= 100  && c >= 4) { // 250mA cut off
             // Large enough error, adapt!
             if (abs(this->current_target_at_report_time - read) > 10) {
                 float err = (((float)this->current_target_at_report_time-(float)read)/max_current);
@@ -45,6 +51,10 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
             }
             // Remove old current reading (ADC thread will refresh this value)
             this->current_target_at_report_time = 0;
+            c = 0;
+        }
+        if (!use_global_cc) {
+            mpc_sol_trim_factor = this->internal_trim_factor;
         }
         
         calc_pwm = MAX(0, (4096.0 * (this->current_target/max_current)));
@@ -58,7 +68,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         //    // Fast increase for a split second so that current ramps up sharply
         //    calc_pwm *= interpolate_float(delta_as_percent, 1, 1.25, 0.1, 0.5, InterpType::Linear);
         //}
-
+        this->c++;
         if (calc_pwm > 4096) {
             calc_pwm = 4096;
         }
@@ -76,6 +86,7 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
         target_ma = 1500;
     }
     this->current_target = target_ma;
+    this->c = 0;
 }
 
 uint16_t ConstantCurrentSolenoid::get_current_target() {

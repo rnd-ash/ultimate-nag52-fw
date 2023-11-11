@@ -339,11 +339,33 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 }
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    this->update(sensors);
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        if (sensors->is_braking) { can_upshift = false; } // Disable when breaking
+        if (this->accel_delta_factor > 100 && sensors->pedal_pos > 64) {
+            can_upshift = false;
+        }
+
+
+        return can_upshift;
     } else {
         return false;
+    }
+}
+
+void StandardProfile::update(SensorData* sensors) {
+    // Every 250ms we check sensor inputs
+    if (GET_CLOCK_TIME() - this->last_check > 250) {
+        this->last_check = GET_CLOCK_TIME();
+        if (sensors->pedal_pos - last_sensors.pedal_pos > 64) { // More than a 25% jump in pedal in 250ms
+            accel_delta_factor += (sensors->pedal_pos - last_sensors.pedal_pos) * 10;
+        }
+        last_sensors = *sensors;
+    }
+    if (this->accel_delta_factor > 0) {
+        this->accel_delta_factor-=5;
     }
 }
 

@@ -53,9 +53,9 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         delete[] this->tcc_pwm_map;
     }
 
-    /** Pressure Hold 2 time map **/
-    const int16_t hold2_x_headers[4] = {-20, 5, 25, 60};
-    const int16_t hold2_y_headers[5] = {1,2,3,4,5}; 
+    /** Pressure fill time map **/
+    const int16_t fill_t_x_headers[4] = {-20, 5, 25, 60};
+    const int16_t fill_t_y_headers[5] = {1,2,3,4,5}; 
     if (VEHICLE_CONFIG.is_large_nag) { // Large
         key_name = NVS_KEY_MAP_NAME_FILL_TIME_LARGE;
         default_data = LARGE_NAG_FILL_TIME_MAP;
@@ -63,19 +63,29 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         key_name = NVS_KEY_MAP_NAME_FILL_TIME_SMALL;
         default_data = SMALL_NAG_FILL_TIME_MAP;
     }
-    hold2_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, hold2_x_headers, hold2_y_headers, 4, 5, default_data);
-    if (this->hold2_time_map->init_status() != ESP_OK) {
-        delete[] this->hold2_time_map;
+    fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
+    if (this->fill_time_map->init_status() != ESP_OK) {
+        delete[] this->fill_time_map;
     }
 
-    /** Pressure Hold 2 pressure map **/
-    const int16_t hold2p_x_headers[1] = {1};
-    const int16_t hold2p_y_headers[5] = {1,2,3,4,5};
+    /** Pressure fill pressure map **/
+    const int16_t fill_p_x_headers[1] = {1};
+    const int16_t fill_p_y_headers[6] = {1,2,3,4,5,6};
     key_name = NVS_KEY_MAP_NAME_FILL_PRESSURE;
     default_data = NAG_FILL_PRESSURE_MAP;
-    hold2_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, hold2p_x_headers, hold2p_y_headers, 1, 5, default_data);
-    if (this->hold2_pressure_map->init_status() != ESP_OK) {
-        delete[] this->hold2_pressure_map;
+    fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
+    if (this->fill_pressure_map->init_status() != ESP_OK) {
+        delete[] this->fill_pressure_map;
+    }
+
+    /** Pressure fill pressure map **/
+    const int16_t fill_lp_x_headers[1] = {1};
+    const int16_t fill_lp_y_headers[5] = {1,2,3,4,5};
+    key_name = NVS_KEY_MAP_NAME_FILL_LOW_PRESSURE;
+    default_data = NAG_FILL_LOW_PRESSURE_MAP;
+    fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
+    if (this->fill_low_pressure_map->init_status() != ESP_OK) {
+        delete[] this->fill_low_pressure_map;
     }
 
     // Init MPC and SPC req pressures
@@ -93,7 +103,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
+    if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
         k1_factor = valve_body_settings->k1_engaged_factor;
     }
@@ -131,9 +141,9 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         uint16_t mpcc_in = this->target_modulating_clutch_pressure;
 
         // Shift solenoid 1-2 active, reduce SPC and mpc(clutch release) influence
-        if ((uint8_t)ShiftCircuit::sc_1_2 == this->shift_circuit_flag || (c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
+        if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
             spc_in /= valve_body_settings->shift_circuit_factor_1_2;
-            mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
+        //    mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
         }
         mpc_in += mpcc_in;
 
@@ -284,19 +294,21 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
 
 
 PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
-    if (nullptr == this->hold2_time_map) {
+    if (nullptr == this->fill_time_map) {
         return PrefillData {
             .fill_time = 500,
             .fill_pressure_on_clutch = 1500,
+            .low_fill_pressure_on_clutch = 700,
             .fill_pressure_off_clutch = 1500,
         };
     } else {
         Clutch to_apply = get_clutch_to_apply(change);
         Clutch to_release = get_clutch_to_release(change);
         return PrefillData {
-            .fill_time = (uint16_t)hold2_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
-            .fill_pressure_on_clutch = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_apply),
-            .fill_pressure_off_clutch = (uint16_t)hold2_pressure_map->get_value(1, (uint8_t)to_release)
+            .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
+            .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_apply),
+            .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)to_apply),
+            .fill_pressure_off_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_release)
         };
     }
 }
@@ -420,7 +432,7 @@ uint16_t PressureManager::get_max_solenoid_pressure() {
 }
 
 StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
-StoredMap* PressureManager::get_fill_time_map() { return this->hold2_time_map; }
-StoredMap* PressureManager::get_fill_pressure_map() { return  this->hold2_pressure_map; }
+StoredMap* PressureManager::get_fill_time_map() { return this->fill_time_map; }
+StoredMap* PressureManager::get_fill_pressure_map() { return  this->fill_pressure_map; }
 
 PressureManager* pressure_manager = nullptr;

@@ -82,6 +82,7 @@ SPEAKER_POST_CODE setup_tcm()
         }
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
+            ioexpander = new IOExpander();
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {
@@ -215,14 +216,95 @@ void err_beep_loop(void *a)
 
 void input_manager(void *)
 {
-    const uint32_t expire_time_ms = 100u;
+    SLRProfileWheel last_wheel_pos = SLRProfileWheel::SNV;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
 
+    ioexpander->read_from_ioexpander();
+    ProfileSwitchPos last_mode = egs_can_hal->get_shifter_ws_mode(100);
+    bool pressed = false;
+    // SLR handling first (Unique selection)
+    if (VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::SLR) {
+        last_wheel_pos = egs_can_hal->get_slr_profile_wheel_pos(500);
+        switch (last_wheel_pos) {
+            case SLRProfileWheel::Center:
+                gearbox->set_profile(manual);
+                break;
+            case SLRProfileWheel::Left:
+                gearbox->set_profile(comfort);
+                break;
+            case SLRProfileWheel::Right:
+                gearbox->set_profile(race);
+                break;
+            default:
+                break;
+        }
+    } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
+    {
+        gearbox->set_profile(profile_from_auto_ty(ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+        if (last_mode != ProfileSwitchPos::SNV)
+        {
+            gearbox->set_profile(profile_from_auto_ty(last_mode == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom));
+        }
+        
+    }
     while (1)
     {
-        pcb_gpio_matrix->read_input_signals();
-        gearbox->set_profile(shifter->get_profile(expire_time_ms));
+        ioexpander->read_from_ioexpander();
+        if (VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::SLR) {
+            SLRProfileWheel p = egs_can_hal->get_slr_profile_wheel_pos(500);
+            if (p != last_wheel_pos) {
+                switch (p) {
+                    case SLRProfileWheel::Center:
+                        gearbox->set_profile(manual);
+                        break;
+                    case SLRProfileWheel::Left:
+                        gearbox->set_profile(comfort);
+                        break;
+                    case SLRProfileWheel::Right:
+                        gearbox->set_profile(race);
+                        break;
+                    default:
+                        break;
+                }
+                last_wheel_pos = p;
+            }
+        } else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch || VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::TRRS)
+        {
+            // Switch based
+            ProfileSwitchPos prof_now = egs_can_hal->get_shifter_ws_mode(100);
+            if (prof_now != last_mode)
+            {
+                last_mode = prof_now;
+                if (prof_now != ProfileSwitchPos::SNV) {
+                    if (ETS_CURRENT_SETTINGS.ewm_shifter_switch_cycles_profiles && ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Switch) {
+                        profile_id++;
+                        if (profile_id == NUM_PROFILES) {
+                            profile_id = 0;
+                        }
+                        gearbox->set_profile(profiles[profile_id]);
+                    } else {
+                        gearbox->set_profile(profile_from_auto_ty(prof_now == ProfileSwitchPos::Top ? ETS_CURRENT_SETTINGS.profile_idx_top : ETS_CURRENT_SETTINGS.profile_idx_buttom)); 
+                    }
+                }
+            }
+        }
+        else if (ETS_CURRENT_SETTINGS.ewm_selector_type == EwmSelectorType::Button)
+        {
+            // EWM button
+            bool down = egs_can_hal->get_profile_btn_press(100);
+            if (down && !pressed)
+            {
+                // Pressed button, inc profile
+                profile_id++;
+                if (profile_id == NUM_PROFILES)
+                {
+                    profile_id = 0;
+                }
+                gearbox->set_profile(profiles[profile_id]);
+            }
+            pressed = down;
+        } // Else - No profile button to process
         PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
         if (last_pos != paddle)
         { // Same position, ignore

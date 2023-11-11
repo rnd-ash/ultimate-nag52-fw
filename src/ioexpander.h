@@ -46,6 +46,7 @@ public:
     pca_num_t i2c_expander_rp_solenoid_enabler			= PCA_NUM_NC;
     pca_num_t i2c_expander_start_enabler				= PCA_NUM_NC;
     pca_num_t i2c_expander_gearbox_protection_enabler	= PCA_NUM_NC;
+	void debug_get_registers(uint8_t* ll, uint8_t* hb);
 private:
     const uint8_t IO_ADDR = 0x20u;
 	const char* name = "IOEXPANDER";

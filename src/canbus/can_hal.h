@@ -272,6 +272,10 @@ class EgsBaseCan {
             return INT_MAX;
         }
 
+        virtual SLRProfileWheel get_slr_profile_wheel_pos(const uint32_t expire_time_ms) {
+            return SLRProfileWheel::SNV;
+        }
+        
         /**
          * Setters
          */

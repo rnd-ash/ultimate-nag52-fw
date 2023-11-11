@@ -114,12 +114,6 @@ extern const int16_t HYDRALIC_PCS_MAP_X_HEADER[NUM_HYDRALIC_CALIBRATIONS][8];
 
  */
 
-// -- MPC working pressure --
-
-#define WORKING_PRESSURE_MAP_SIZE 16*7 // 16 positions (0-150%), 7 gears (P/N, R1/R2, 1, 2, 3, 4, 5)
-
-extern const int16_t NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE];
-
 // -- FILL TIME --
 
 #define FILL_TIME_MAP_SIZE 5*4 // 4 temp positions, 5 clutch groups
@@ -135,9 +129,13 @@ extern const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE];
 
 
 // -- Hold phase pressures --
-#define FILL_PRESSURE_MAP_SIZE 5 // 6 clutches (Including B3 for reverse), 4 load points
+#define FILL_PRESSURE_MAP_SIZE 6 // 6 clutches (Including B3 for reverse), 4 load points
 
 extern const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
+
+#define LOW_FILL_PRESSURE_MAP_SIZE 5 // Only for forward clutches (K1, K2, K3, B1, B2)
+
+extern const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE];
 
 // -- Target Shift time maps -- 
 

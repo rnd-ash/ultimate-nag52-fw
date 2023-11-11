@@ -45,9 +45,10 @@ ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const uint16_t outp
     if (ret.on_clutch_speed < thresh && ret.on_clutch_speed > -thresh) {
         ret.on_clutch_speed = 0;
     }
-    if (ret.off_clutch_speed < thresh && ret.off_clutch_speed > -thresh) {
-        ret.off_clutch_speed = 0;
-    }
+    // Off clutch does not get filtered so we can see as SOON as it starts to lift off
+    //if (ret.off_clutch_speed < thresh && ret.off_clutch_speed > -thresh) {
+    //    ret.off_clutch_speed = 0;
+    //}
     return ret;
 }
 
@@ -186,6 +187,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
             }
         }
     }
+    /*
     const uint16_t thresh = 25; // 4%
     // Cleanup
     if (cs.k1 < thresh && cs.k1 > -thresh) {
@@ -206,5 +208,6 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
     if (cs.b3 < thresh && cs.b3 > -thresh) {
         cs.b3 = 0;
     }
+    */
     return cs;
 }

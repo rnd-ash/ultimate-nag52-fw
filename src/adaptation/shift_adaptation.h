@@ -8,9 +8,9 @@
 
 extern const char* CLUTCH_NAMES[5];
 
-typedef struct {
+struct AdaptShiftRequest{
     uint16_t override_shift_torque;
-} AdaptShiftRequest;
+} ;
 
 // Flags for adapt cancelled 
 typedef enum {
@@ -30,15 +30,15 @@ typedef enum {
     INPUT_TRQ_TOO_HIGH = 1 << 12,
 } AdaptCancelFlag;
 
-typedef struct {
+struct AdaptPrefillData{
     int16_t pressure_offset_on_clutch;
     int16_t timing_offset;
     uint16_t torque_lim;
-} AdaptPrefillData;
+} ;
 
 class ShiftAdaptationSystem  {
 public:
-    ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr);
+    explicit ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr);
     
     uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change);
 
@@ -58,7 +58,7 @@ public:
 private:
     bool set_prefill_cell_offset(StoredMap* dest, ProfileGearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim);
     GearboxConfiguration* gb_cfg;
-    uint8_t pre_shift_pedal_pos;
+    uint8_t pre_shift_pedal_pos = 0u;
 
     StoredMap* prefill_pressure_offset_map;
     StoredMap* prefill_time_offset_map;

@@ -12,7 +12,7 @@
 /// @brief The CAN-layer supports classic Mercedes-Benz cars from the early 1990's (e.g. 124, 202, 129, 140, 210) with a 125kbit/s CAN for HFM coming partially with M104 (L6) and M111 (L4). It does not support the 500kbit/s CAN coming with the M119 (V8) in cars of the same era.
 class HfmCan: public EgsBaseCan {
     public:
-        explicit HfmCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        HfmCan(const char* name, uint8_t tx_time_ms, ShifterTrrs* shifter);
 
         /**
          * Getters
@@ -26,8 +26,6 @@ class HfmCan: public EgsBaseCan {
         WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
-        // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -41,10 +39,6 @@ class HfmCan: public EgsBaseCan {
          int get_driver_engine_torque(const uint32_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
          int get_maximum_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the minimum engine torque allowed at this moment by the engine map
-         int get_minimum_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the flappy paddle position
-         PaddlePosition get_paddle_position(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
          int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
         // Gets engine oil temperature
@@ -56,14 +50,12 @@ class HfmCan: public EgsBaseCan {
         // Returns true if engine is cranking
         bool get_is_starting(const uint32_t expire_time_ms) override;
 
-        ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
 
 
     protected:
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
-        void on_rx_done(const uint32_t now_ts) override;
 
     private:
         // precalculated cosine values; from 0° till 89.25° in steps of 0.35° as per CAN-definition
@@ -77,8 +69,6 @@ class HfmCan: public EgsBaseCan {
         bool start_enable = false;
 
         StoredTable *enginemaxtorque = new StoredTable(MAP_NAME_ENGINE_TORQUE_MAX, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
-
-        Shifter *shifter = new ShifterTrrs(&can_init_status);      
 
         WheelData generateWheelData(const uint32_t expire_time_ms) const;
 };

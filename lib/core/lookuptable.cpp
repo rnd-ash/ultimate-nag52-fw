@@ -29,7 +29,7 @@ LookupTable::~LookupTable(void)
     TCU_FREE(data);
 }
 
-bool LookupTable::set_data(int16_t* _data, uint16_t _dataSize)
+bool LookupTable::set_data(const int16_t* _data, uint16_t _dataSize)
 {
     bool result = false;
     dataSize = _dataSize;

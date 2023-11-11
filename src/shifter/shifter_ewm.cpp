@@ -1,66 +1,51 @@
 #include "shifter_ewm.h"
+#include "programselector/programselectorbutton.h"
+#include "programselector/programselectorswitchewm.h"
 
-ShifterEwm::ShifterEwm(esp_err_t *can_init_status, ECU_EWM *ewm): _ewm{ewm} { }
-
-ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile *profiles)
 {
-	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
-	EWM_230_EGS52 dest;
-	if (_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
+	this->vehicle_config = vehicle_config;
+	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
 	{
-		switch (dest.WHC)
+		switch (shifter_settings->ewm_selector_type)
 		{
-		case EWM_230h_WHC_EGS52::D:
-			ret = ShifterPosition::D;
+		case EwmSelectorType::Switch:
+			programselector = new ProgramSelectorSwitchEWM(profiles);
 			break;
-		case EWM_230h_WHC_EGS52::N:
-			ret = ShifterPosition::N;
-			break;
-		case EWM_230h_WHC_EGS52::R:
-			ret = ShifterPosition::R;
-			break;
-		case EWM_230h_WHC_EGS52::P:
-			ret = ShifterPosition::P;
-			break;
-		case EWM_230h_WHC_EGS52::PLUS:
-			ret = ShifterPosition::PLUS;
-			break;
-		case EWM_230h_WHC_EGS52::MINUS:
-			ret = ShifterPosition::MINUS;
-			break;
-		case EWM_230h_WHC_EGS52::N_ZW_D:
-			ret = ShifterPosition::N_D;
-			break;
-		case EWM_230h_WHC_EGS52::R_ZW_N:
-			ret = ShifterPosition::R_N;
-			break;
-		case EWM_230h_WHC_EGS52::P_ZW_R:
-			ret = ShifterPosition::P_R;
-			break;
-		case EWM_230h_WHC_EGS52::SNV:
+		case EwmSelectorType::Button:
+			programselector = new ProgramSelectorButton(vehicle_config, profiles);
 			break;
 		default:
+			programselector = nullptr;
 			break;
 		}
 	}
-	return ret;
+	else
+	{
+		// TODO: implement ProgramSelectorSLR;
+		// programselector = new ProgramSelectorSLR(profiles);
+	}
 }
 
-bool ShifterEwm::get_profile_btn_press(const uint32_t expire_time_ms)
+ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
-	bool result = false;
-	EWM_230_EGS52 ewm;
-    if (this->_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
-        result = ewm.FPT;
-    }
-    return result;
+	return spos;
 }
 
-ProfileSwitchPos ShifterEwm::get_shifter_profile_switch_pos(const uint32_t expire_time_ms) {
-	ProfileSwitchPos result = ProfileSwitchPos::SNV;
-	EWM_230_EGS52 ewm;
-    if (this->_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
-		result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
+{
+	AbstractProfile *result = nullptr;
+	if (nullptr != programselector)
+	{
+		result = programselector->get_profile(expire_time_ms);
 	}
 	return result;
+}
+
+void ShifterEwm::set_program_button_pressed(const bool is_pressed)
+{
+	if (nullptr != programselector)
+	{
+		(reinterpret_cast<ProgramSelectorEWM *>(programselector))->set_button_pressed(is_pressed);
+	}
 }

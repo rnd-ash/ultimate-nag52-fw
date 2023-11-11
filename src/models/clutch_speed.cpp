@@ -60,7 +60,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
     const GearboxGear target,
     const GearRatioInfo* ratios
 ) {
-    ClutchSpeeds cs = {0,0,0,0,0};
+    ClutchSpeeds cs = {0,0,0,0,0,0};
     // Neutral handling
     if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral || actual == GearboxGear::Park || target == GearboxGear::Park) {
         GearboxGear t_gear = last_motion_gear;

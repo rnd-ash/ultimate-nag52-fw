@@ -13,192 +13,19 @@
 #include <freertos/queue.h>
 #include <string.h>
 #include "driver/twai.h"
-#include "shifter/shifter.h"
 #include "clock.hpp"
 
 #include "../../slave_ecus/src/EGS_SLAVE.h"
 #include "../../slave_ecus/src/TESTER.h"
+#include "can_defines.h"
 
-enum class WheelDirection: uint8_t {
-    Forward, // Wheel going forwards
-    Reverse, // Wheel going backwards
-    Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvailable = 0xFF // SNV
-};
-
-struct WheelData {
-    int double_rpm; // 2x real RPM (Better accuracy)
-    WheelDirection current_dir; // Wheel direction
-};
-
-enum class SystemStatusCheck: uint8_t {
-    /// @brief Waiting for check to complete
-    Waiting,
-    /// @brief Error check OK
-    OK,
-    /// @brief Error check failed
-    Error
-};
-
-enum class EngineType: uint8_t {
-    /// @brief Diesel engine
-    Diesel,
-    /// @brief Petrol engine
-    Petrol,
-    /// @brief Unknown engine type
-    Unknown = 0xFF
-};
-
-/// @brief Torque request control type
-enum class TorqueRequestControlType: uint8_t {
-    /// @brief No torque request ([TorqueRequestBounds] is ignored)
-    None = 0,
-    /// @brief Let the engine naturally reduce torque (Usually done via spark retarding or air reduction)
-    NormalSpeed = 1,
-    /// @brief As fast as possible (Usually done via fuel cut)
-    FastAsPossible = 2,
-    /// @brief Special case to signal to the engine that we are ramping back up to allow it to adjust ignition angle faster (EGS52)
-    BackToDemandTorque = 3
-};
-
-/// @brief Torque request intervention bounds
-enum class TorqueRequestBounds: uint8_t {
-    /// @brief Engine makes torque less or equal to whats asked by EGS
-    LessThan = 0,
-    /// @brief Engine makes torque more or equal to whats asked by EGS
-    MoreThan = 1,
-    /// @brief Engine tries to make exactly what EGS specifies
-    Exact = 2,
-};
-
-/// @brief Gearbox gears for 722.6 gearbox
-enum class GearboxGear: uint8_t {
-    /// @brief Gear D1
-    First = 1,
-    /// @brief Gear D2
-    Second = 2,
-    /// @brief Gear D3
-    Third = 3,
-    /// @brief Gear D4
-    Fourth = 4,
-    /// @brief Gear D5
-    Fifth = 5,
-    /// @brief  Park
-    Park = 8,
-    /// @brief Neutral
-    Neutral = 9,
-    /// @brief Gear R1
-    Reverse_First = 10,
-    /// @brief Gear R2
-    Reverse_Second = 11,
-    /// @brief  Implausible or signal not available
-    SignalNotAvailable = 0xFF
-};
-
-enum class PaddlePosition: uint8_t {
-    None,
-    Plus,
-    Minus,
-    PlusAndMinus,
-    SNV = 0xFF
-};
-
-enum class TccClutchStatus: uint8_t {
-    Open,
-    OpenToSlipping,
-    Slipping,
-    SlippingToClosed,
-    Closed
-};
-
-enum class TransferCaseState: uint8_t {
-    Hi, // High range
-    Low, // Low range
-    Neither, // Neutral
-    Switching, // Switching in progress
-    SNA = 0xFF, // Error
-};
- 
-enum class GearboxProfile: uint8_t {
-    // Comfort (C)
-    Comfort,
-    // Manual (M)
-    Manual,
-    // Agility (A)
-    Agility,
-    // Standard (S)
-    Standard,
-    // Winter (W)
-    Winter,
-    // Failure (F)
-    Failure,
-    // Race (R)
-    Race,
-    Individual,
-    // Reserved for 'no profile' (_)
-    Underscore
-};
-
-enum class SolenoidName: uint8_t {
-    Y3,
-    Y4,
-    Y5,
-    SPC,
-    MPC,
-    TCC
-};
-
-enum class GearboxDisplayGear: uint8_t {
-    P,
-    R,
-    N,
-    D,
-    A,
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Failure,
-    SNA = 0xFF,
-};
-
-enum class GearboxMessage: uint8_t {
-    // No message
-    None,
-    // "Activate gearbox, parking brake!" with warning tone
-    ActuateParkingBreak,
-    // "Gearbox, shift lever according to N!"
-    ShiftLeverToN,
-    // "Activate gear, brake!"
-    ActivateGear,
-    // "Request gearbox, gear again!"
-    RequestGearAgain,
-    // "Transmission, Insert to Start N!"
-    InsertToNToStart,
-    // '^' indicator 
-    Upshift,
-    // 'v' indicator
-    Downshift,
-    // "Gearbox, visit workshop!"
-    VisitWorkshop
-};
-
-enum class TerminalStatus {
-    On,
-    Off,
-    SNA
-};
-
-const WheelData DEFAULT_SNV_WD {
-    .double_rpm = 0,
-    .current_dir = WheelDirection::SignalNotAvailable
-};
+#include "../shifter/shifter.h"
+#include "../profiles.h"
 
 class EgsBaseCan {
     public:
-        EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
-        ~EgsBaseCan();
+        EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        ~EgsBaseCan();        
         bool begin_task();
         esp_err_t init_state() const;
 
@@ -243,15 +70,11 @@ class EgsBaseCan {
             return DEFAULT_SNV_WD;
         }
         
-        /**
-         * @brief MANDITORY DATA - Returns the position of the gear selector
-         * @param expire_time_ms data expiration period
-         * @return returns the gear selector position
-         */
+
         virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
             return ShifterPosition::SignalNotAvailable;
         }
-        
+
         /**
          * @brief TBA - Returns the type of engine in the vehicle (Detected over CAN)
          * @param expire_time_ms data expiration period
@@ -404,16 +227,6 @@ class EgsBaseCan {
         }
 
         /**
-         * @brief OPTIONAL DATA - Returns position of the W/S switches on the older TRRS shifter.
-         * 
-         * @param expire_time_ms data expiration period
-         * @return Profile button position.
-         */
-        virtual ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) {
-            return ProfileSwitchPos::SNV;
-        }
-
-        /**
          * @brief MANDITORY DATA - Returns if the brake pedal is being pressed
          * 
          * @param expire_time_ms data expiration period
@@ -458,6 +271,7 @@ class EgsBaseCan {
         virtual int esp_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
+
         virtual SLRProfileWheel get_slr_profile_wheel_pos(const uint32_t expire_time_ms) {
             return SLRProfileWheel::SNV;
         }
@@ -507,8 +321,7 @@ class EgsBaseCan {
         // This is needed so the engine limits itself to 1K RPM, in order
         // to prevent any damage to the box!
         virtual void set_garage_shift_state(bool enable){};
-
-
+        
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {
             this->send_messages = true;
@@ -541,6 +354,8 @@ class EgsBaseCan {
             this->un52_slave_resp = un52_rpt;
         }
 
+
+
     protected:
         const char* name;
         TaskHandle_t task = nullptr;
@@ -558,7 +373,7 @@ class EgsBaseCan {
 
         virtual void tx_frames(){};
         virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {};
-        virtual void on_rx_done(const uint32_t now_ts){};
+        virtual void on_rx_done(const uint32_t now_ts);
 
         bool send_messages = true;
 
@@ -577,6 +392,8 @@ class EgsBaseCan {
         SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
         SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
         UN52_REPORT_EGS_SLAVE un52_slave_resp;
+
+        Shifter* shifter;
 };
 
 extern EgsBaseCan* egs_can_hal;

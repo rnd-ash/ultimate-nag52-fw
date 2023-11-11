@@ -18,6 +18,7 @@
 #include "models/input_torque.hpp"
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
+#include "shifter/shifter.h"
 
 struct PostShiftTorqueRamp {
     bool enabled;
@@ -27,7 +28,7 @@ struct PostShiftTorqueRamp {
 
 class Gearbox {
 public:
-    Gearbox(void);
+    explicit Gearbox(Shifter* shifter);
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
@@ -95,6 +96,7 @@ private:
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
     bool diag_stop_control = false;
+    Shifter* shifter = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;

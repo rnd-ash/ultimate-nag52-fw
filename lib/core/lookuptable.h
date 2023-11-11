@@ -11,7 +11,7 @@ class LookupTable{
         LookupTable(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _data, const uint16_t _dataSize);
         ~LookupTable(void);
 
-        bool set_data(int16_t* _data, uint16_t _dataSize);
+        bool set_data(const int16_t* _data, uint16_t _dataSize);
         bool is_allocated(void) const;
         float get_value(float xValue);
         /// @brief This functions generates a corresponding header-value based on the parameter. This function does only work on tables with increasing x-values.

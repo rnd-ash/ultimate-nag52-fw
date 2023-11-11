@@ -26,7 +26,10 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
         .intr_type = LEDC_INTR_DISABLE, // Disable fade interrupt
         .timer_sel = ledc_timer,
         .duty = 0,
-        .hpoint = 0
+        .hpoint = 0,
+        .flags = {
+            .output_invert = 0u
+        }
     };
 
     ledc_timer_config_t SOLENOID_TIMER_CFG = {

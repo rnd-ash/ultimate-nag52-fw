@@ -1,17 +1,20 @@
 #include "shifter_trrs.h"
-#include "ioexpander.h"
+#include "../profiles.h"
+#include "nvs/module_settings.h"
+#include "programselector/programselectorswitchtrrs.h"
 
-ShifterTrrs::ShifterTrrs(esp_err_t *can_init_status)
+ShifterTrrs::ShifterTrrs(TCM_CORE_CONFIG *vehicle_config, BoardGpioMatrix *board, AbstractProfile *profiles): board(board)
 {
-	*can_init_status = ioexpander->init_state();
+	this->vehicle_config = vehicle_config;
+	this->programselector = new ProgramSelectorSwitchTRRS(board, profiles);
 }
 
 ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition result = ShifterPosition::SignalNotAvailable;
-	if (ioexpander->is_data_valid(expire_time_ms))
+	if (board->is_data_valid(expire_time_ms))
 	{
-		uint8_t trrs = ioexpander->get_trrs();
+		uint8_t trrs = board->get_trrs();
 		if (16u > trrs)
 		{
 			if (0u < trrs)
@@ -21,6 +24,7 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 			}
 			else
 			{
+				// TODO: check direction of the shift
 				// intermediate position, now work out which one
 				switch (this->last_valid_position)
 				{
@@ -43,21 +47,25 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 			}
 		}
 	}
+	// update starter lock solenoid
 	bool start_enable = (ShifterPosition::P == result || ShifterPosition::N == result);
-	ioexpander->set_start(start_enable);
-	return result;
-}
+	board->set_start(start_enable);
 
-ProfileSwitchPos ShifterTrrs::get_shifter_profile_switch_pos(const uint32_t expire_time_ms) {
-	ProfileSwitchPos result = ProfileSwitchPos::SNV;
-	if(ioexpander->is_data_valid(expire_time_ms)){
-		result = ioexpander->get_program_switch();
-	}
+	// update reverse/parking lock solenoid
+	// TODO: add logic for using either brake signal or CAN-signal for is_brake_pressed
+	set_rp_solenoid(vVeh, result, is_brake_pressed);
+
+	// return resulting shifter position
 	return result;
 }
 
 void ShifterTrrs::set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed)
 {
 	bool should_rp_solenoid_be_activated = (ShifterPosition::N == pos) && ((2.5F < vVeh) || is_brake_pressed);
-	ioexpander->set_rp_solenoid(should_rp_solenoid_be_activated);
+	board->set_rp_solenoid(should_rp_solenoid_be_activated);
+}
+
+AbstractProfile *ShifterTrrs::get_profile(const uint32_t expire_time_ms)
+{
+	return programselector->get_profile(expire_time_ms);
 }

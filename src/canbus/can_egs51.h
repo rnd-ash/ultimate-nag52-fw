@@ -9,7 +9,7 @@
 
 class Egs51Can: public EgsBaseCan {
     public:
-        explicit Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
 
         /**
          * Getters
@@ -23,8 +23,8 @@ class Egs51Can: public EgsBaseCan {
         WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
-        // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+        // // Gets the shifter position
+        // ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;        
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -51,9 +51,8 @@ class Egs51Can: public EgsBaseCan {
         // Gets engine RPM
          uint16_t get_engine_rpm(const uint32_t expire_time_ms) override;
         // Returns true if engine is cranking
-         bool get_is_starting(const uint32_t expire_time_ms) override;
-         bool get_profile_btn_press(const uint32_t expire_time_ms) override;
-        ProfileSwitchPos get_shifter_ws_mode(const uint32_t expire_time_ms) override;
+        bool get_is_starting(const uint32_t expire_time_ms) override;
+        bool get_profile_btn_press(const uint32_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
          bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
@@ -66,8 +65,8 @@ class Egs51Can: public EgsBaseCan {
         void set_actual_gear(GearboxGear actual) override;
         // Set the target gear of the gearbox
         void set_target_gear(GearboxGear target) override;
-        // Sets the status bit indicating the car is safe to start
-        void set_safe_start(bool can_start) override;
+        // // Sets the status bit indicating the car is safe to start
+        // void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
         void set_gearbox_temperature(uint16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
@@ -97,15 +96,13 @@ class Egs51Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;
-        void on_rx_done(const uint32_t now_ts) override;
     private:
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
-        Shifter *shifter;
-        uint8_t cvn_counter = 0;  
+        uint8_t cvn_counter = 0; 
 };
 
 #endif // EGS51_CAN_H

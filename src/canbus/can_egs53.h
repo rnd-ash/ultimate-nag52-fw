@@ -7,10 +7,11 @@
 #include "../../egs53_ecus/src/FSCM.h"
 #include "../../egs53_ecus/src/ECM.h"
 #include "../../egs53_ecus/src/ANY_ECU.h"
+#include "../shifter/shifter.h"
 
 class Egs53Can: public EgsBaseCan {
     public:
-        explicit Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
 
         /**
          * Getters
@@ -24,7 +25,7 @@ class Egs53Can: public EgsBaseCan {
         WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
-        // Gets shifter position from EWM module
+        // Gets the shifter position
         ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
@@ -118,6 +119,5 @@ class Egs53Can: public EgsBaseCan {
 
         uint8_t counter = 0;
         uint8_t cvn_counter = 0;
-
 };
 #endif

@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 #include "solenoids/solenoids.h"
-#include "canbus/can_hal.h"
+#include "canbus/can_defines.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];

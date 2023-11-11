@@ -28,11 +28,6 @@ class StoredMap : public LookupMap, public StoredData {
         esp_err_t reset_from_flash() override;
 
         /**
-         * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
-         */
-        esp_err_t reload_from_eeprom(void);
-
-        /**
          * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
          */
         esp_err_t save_to_eeprom(void) override;

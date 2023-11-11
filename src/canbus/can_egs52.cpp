@@ -7,7 +7,7 @@
 #include "../shifter/shifter_slr.h"
 #include "ioexpander.h"
 
-Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
+Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {
     switch (VEHICLE_CONFIG.shifter_style)
     {
     case (uint8_t)ShifterStyle::TRRS:
@@ -56,8 +56,9 @@ Egs52Can::Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
 }
 
-WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms) {  // TODO
-    return WheelData {
+WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{ // TODO
+	return WheelData {
         .double_rpm = 0,
         .current_dir = WheelDirection::SignalNotAvailable
     };
@@ -143,7 +144,46 @@ WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
 }
 
 ShifterPosition Egs52Can::get_shifter_position(const uint32_t expire_time_ms) {
-    return shifter->get_shifter_position(expire_time_ms);    
+	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
+	EWM_230_EGS52 dest;
+	if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
+	{
+		switch (dest.WHC)
+		{
+		case EWM_230h_WHC_EGS52::D:
+			ret = ShifterPosition::D;
+			break;
+		case EWM_230h_WHC_EGS52::N:
+			ret = ShifterPosition::N;
+			break;
+		case EWM_230h_WHC_EGS52::R:
+			ret = ShifterPosition::R;
+			break;
+		case EWM_230h_WHC_EGS52::P:
+			ret = ShifterPosition::P;
+			break;
+		case EWM_230h_WHC_EGS52::PLUS:
+			ret = ShifterPosition::PLUS;
+			break;
+		case EWM_230h_WHC_EGS52::MINUS:
+			ret = ShifterPosition::MINUS;
+			break;
+		case EWM_230h_WHC_EGS52::N_ZW_D:
+			ret = ShifterPosition::N_D;
+			break;
+		case EWM_230h_WHC_EGS52::R_ZW_N:
+			ret = ShifterPosition::R_N;
+			break;
+		case EWM_230h_WHC_EGS52::P_ZW_R:
+			ret = ShifterPosition::P_R;
+			break;
+		case EWM_230h_WHC_EGS52::SNV:
+			break;
+		default:
+			break;
+		}
+	}
+	return ret;
 }
 
 EngineType Egs52Can::get_engine_type(const uint32_t expire_time_ms) {
@@ -318,19 +358,12 @@ SLRProfileWheel Egs52Can::get_slr_profile_wheel_pos(const uint32_t expire_time_m
 }
 
 bool Egs52Can::get_profile_btn_press(const uint32_t expire_time_ms) {
-    bool ret = false;
-    switch (VEHICLE_CONFIG.shifter_style) {
-        case (uint8_t)ShifterStyle::EWM:
-            ret = (static_cast<ShifterEwm*>(shifter))->get_profile_btn_press(expire_time_ms);
-            break;
-        default:
-            break;
+	bool result = false;
+	EWM_230_EGS52 ewm;
+    if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
+        result = ewm.FPT;
     }
-    return ret; 
-}
-
-ProfileSwitchPos Egs52Can::get_shifter_ws_mode(const uint32_t expire_time_ms) {
-    return this->shifter->get_shifter_profile_switch_pos(expire_time_ms);
+    return result;
 }
 
 uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
@@ -534,7 +567,7 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
-    ioexpander->set_start(can_start);
+    // ioexpander->set_start(can_start);
 }
 
 void Egs52Can::set_gearbox_temperature(uint16_t temp) {
@@ -836,21 +869,4 @@ void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint3
     } else if (this->misc_ecu.import_frames(data, id, timestamp)) {
     } else if (this->ezs_ecu.import_frames(data, id, timestamp)) {
     }
-}
-
-void Egs52Can::on_rx_done(const uint32_t now_ts)
-{
-    if(ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style) {
-        const uint32_t expire_time_ms = 50;
-        float vVeh = 0.0F;
-        ShifterPosition pos = shifter->get_shifter_position(expire_time_ms);
-        bool is_brake_pressed = get_is_brake_pressed(expire_time_ms);
-        WheelData front_left = get_front_left_wheel(expire_time_ms);
-        WheelData front_right = get_front_right_wheel(expire_time_ms);
-        if ((WheelDirection::Forward == front_left.current_dir) && (WheelDirection::Forward == front_right.current_dir)){
-            vVeh = ((float)(((front_left.double_rpm + front_right.double_rpm) >> 2) * ((int)VEHICLE_CONFIG.wheel_circumference) * 6)) / 100000.F;
-        }
-        (static_cast<ShifterTrrs*>(shifter))->set_rp_solenoid(vVeh, pos, is_brake_pressed);
-    }
-
 }

@@ -67,6 +67,25 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
+// AbstractProfile* AbstractProfile::profile_from_auto_ty(AutoProfile prof)
+// {
+//     AbstractProfile *p = standard;
+//     switch (prof)
+//     {
+//     case AutoProfile::Sport:
+//         p = standard;
+//         break;
+//     case AutoProfile::Agility:
+//         p = agility;
+//         break;
+//     case AutoProfile::Winter:
+//     case AutoProfile::Comfort:
+//     default:
+//         return comfort;
+//     }
+//     return p;
+// }
+
 ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {

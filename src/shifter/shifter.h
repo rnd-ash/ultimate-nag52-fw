@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include "clock.hpp"
+#include "programselector/programselector.h"
+#include "../nvs/eeprom_config.h"
 
 /**
  * @brief Gear shifter style
@@ -23,23 +25,6 @@ enum class ShifterStyle : uint8_t {
 	SLR = 2u,
 };
 
-/**
- * @brief TRRS profile switch position
- */
-enum class ProfileSwitchPos : uint8_t {
-    /**
-     * @brief Top position (S)
-     */
-    Top = 0u,
-    /**
-     * @brief Bottom position (C or W)
-     */
-    Bottom = 1u,
-    /**
-     * @brief Could not determine position
-     */
-    SNV = UINT8_MAX,
-};
 
 /**
  * @brief SLR profile knob position
@@ -148,16 +133,17 @@ public:
 	 */
 	virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) = 0;
 
-    /**
-	 * @brief Gets the position of the W/S switch on the shifter.
-     * NOTE: This function exists for both TRRS and EWM shifter types as it was originally
-     * designed for TRRS only, but Chrysler EWM ECUs actually have a W/S Switch bit on CAN,
-     * so therefore, this function applies to both shifter types.
-     * 
-	 * @param expire_time_ms data expiration period
-	 * @return Current profile switch position
-	 */
-    virtual ProfileSwitchPos get_shifter_profile_switch_pos(const uint32_t expire_time_ms) = 0;
+    virtual AbstractProfile* get_profile(const uint32_t expire_time_ms) = 0;
+
+    void set_shifter_position(ShifterPosition spos);
+    void set_brake_is_pressed(bool is_pressed);
+    void set_vehicle_speed(WheelData front_left, WheelData front_right);
+    
+protected:
+    TCM_CORE_CONFIG *vehicle_config;    
+    ShifterPosition spos = ShifterPosition::SignalNotAvailable;
+    bool is_brake_pressed = false;
+    float vVeh = 0.0F;
 };
 
 #endif // SHIFTER_H

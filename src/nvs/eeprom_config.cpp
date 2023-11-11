@@ -53,7 +53,7 @@ esp_err_t EEPROM::check_if_new_fw(bool* dest) {
         res = nvs_set_blob(MAP_NVS_HANDLE, NVS_KEY_LAST_FW, now->app_elf_sha256, 32);
         *dest = true;
     }
-    return ESP_OK;
+    return res;
 }
 
 esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count) {

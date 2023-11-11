@@ -21,25 +21,44 @@
 #include "canbus/can_hfm.h"
 
 #include "board_config.h"
-#include "ioexpander.h"
 #include "nvs/device_mode.h"
+
+// shifter modules
+#include "shifter/shifter.h"
+#include "shifter/shifter_ewm.h"
+#include "shifter/shifter_trrs.h"
 
 Kwp2000_server *diag_server;
 
 uint8_t profile_id = 0;
-#define NUM_PROFILES 6 // A, C, W, M, S, R
+
 AbstractProfile *profiles[NUM_PROFILES];
 
 Speaker *spkr2 = nullptr;
 
+Shifter *shifter = nullptr;
+
+void init_driving_profiles(bool is_diesel)
+{
+    standard = new StandardProfile(is_diesel);
+    comfort = new ComfortProfile(is_diesel);
+    winter = new WinterProfile(is_diesel);
+    agility = new AgilityProfile(is_diesel);
+    manual = new ManualProfile(is_diesel);
+    race = new RaceProfile(is_diesel);
+
+    profiles[GearboxProfile::Standard] = standard;
+    profiles[GearboxProfile::Comfort] = comfort;
+    profiles[GearboxProfile::Winter] = winter;
+    profiles[GearboxProfile::Agility] = agility;
+    profiles[GearboxProfile::Manual] = manual;
+    profiles[GearboxProfile::Race] = race;
+}
+
 SPEAKER_POST_CODE setup_tcm()
 {
     SPEAKER_POST_CODE ret = SPEAKER_POST_CODE::INIT_OK; // OK by default
-    if (EEPROM::read_efuse_config(&BOARD_CONFIG) != ESP_OK)
-    {
-        ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
-    }
-    else
+    if (ESP_OK == EEPROM::read_efuse_config(&BOARD_CONFIG))
     {
         // First thing to do, Configure the GPIO Pin matrix!
         switch (BOARD_CONFIG.board_ver)
@@ -59,94 +78,106 @@ SPEAKER_POST_CODE setup_tcm()
             spkr = new Speaker(gpio_num_t::GPIO_NUM_4);  // Assume legacy when this fails!
             spkr2 = new Speaker(gpio_num_t::GPIO_NUM_0); // For new PCBs
             ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
+            break;
         }
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
             ioexpander = new IOExpander();
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
-            if (EEPROM::init_eeprom() != ESP_OK)
-            {
-                ret = SPEAKER_POST_CODE::EEPROM_FAIL;
-            }
-            else
+            if (ESP_OK == EEPROM::init_eeprom())
             {
                 // Read device mode!
                 CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
                 ESP_LOGI("INIT", "TCU mode on EEPROM is %08X", CURRENT_DEVICE_MODE);
                 // Read our configuration (This is allowed to fail as the default opts are always set by default)
                 ModuleConfiguration::load_all_settings();
-                switch (VEHICLE_CONFIG.egs_can_type)
+                // init driving profiles
+                init_driving_profiles(0 == VEHICLE_CONFIG.engine_type);
+
+                // init the shifter module
+                switch (VEHICLE_CONFIG.shifter_style)
                 {
-                case 1:
-                    egs_can_hal = new Egs51Can("EGS51", 20, 500000); // EGS51 CAN Abstraction layer
+                case (uint8_t)ShifterStyle::EWM:
+                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS, reinterpret_cast<AbstractProfile *>(profiles));
                     break;
-                case 2:
-                    egs_can_hal = new Egs52Can("EGS52", 20, 500000); // EGS52 CAN Abstraction layer
+                case (uint8_t)ShifterStyle::TRRS:
+                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix, reinterpret_cast<AbstractProfile *>(profiles));
                     break;
-                case 3:
-                    egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
-                    break;
-                case 4:
-                    egs_can_hal = new HfmCan("HFM", 20, 125000); // HFM CAN Abstraction layer
+                case (uint8_t)ShifterStyle::SLR:
+                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS, reinterpret_cast<AbstractProfile *>(profiles));
                     break;
                 default:
-                    // Unknown (Fallback to basic CAN)
-                    ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
-                    egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000);
+                    // possibly
                     break;
                 }
-            }
-            if (!egs_can_hal->begin_task()) {
-                ret = SPEAKER_POST_CODE::CAN_FAIL;
-            }
-            else
-            {
-                if (Sensors::init_sensors() != ESP_OK)
+                if (nullptr != shifter)
                 {
-                    ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                    // init the CAN module
+                    switch (VEHICLE_CONFIG.egs_can_type)
+                    {
+                    case 1:
+                        egs_can_hal = new Egs51Can("EGS51", 20, 500000, shifter); // EGS51 CAN Abstraction layer
+                        break;
+                    case 2:
+                        egs_can_hal = new Egs52Can("EGS52", 20, 500000, shifter); // EGS52 CAN Abstraction layer
+                        break;
+                    case 3:
+                        egs_can_hal = new Egs53Can("EGS53", 20, 500000, shifter); // EGS53 CAN Abstraction layer
+                        break;
+                    case 4:
+                        egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
+                        break;
+                    default:
+                        // Unknown (Fallback to basic CAN)
+                        ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
+                        egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000, shifter);
+                        break;
+                    }
+                    if (egs_can_hal->begin_task())
+                    {
+                        if (ESP_OK == Sensors::init_sensors())
+                        {
+                            if (ESP_OK == Solenoids::init_all_solenoids())
+                            {
+                                gearbox = new Gearbox(shifter);
+                                if (ESP_OK == gearbox->start_controller())
+                                {
+                                    gearbox->set_profile(shifter->get_profile(50u));
+                                }
+                                else
+                                {
+                                    ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                }
+                            }
+                            else
+                            {
+                                ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
+                            }
+                        }
+                        else
+                        {
+                            ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                        }
+                    }
+                    else
+                    {
+                        ret = SPEAKER_POST_CODE::CAN_FAIL;
+                    }
                 }
                 else
                 {
-                    if (Solenoids::init_all_solenoids() != ESP_OK)
-                    {
-                        ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
-                    }
+                    ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
                 }
+            }
+            else
+            {
+                ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             }
         }
     }
-    if (ret == SPEAKER_POST_CODE::INIT_OK)
+    else
     {
-        standard = new StandardProfile(VEHICLE_CONFIG.engine_type == 0);
-        comfort = new ComfortProfile(VEHICLE_CONFIG.engine_type == 0);
-        winter = new WinterProfile(VEHICLE_CONFIG.engine_type == 0);
-        agility = new AgilityProfile(VEHICLE_CONFIG.engine_type == 0);
-        manual = new ManualProfile(VEHICLE_CONFIG.engine_type == 0);
-        race = new RaceProfile(VEHICLE_CONFIG.engine_type == 0);
-
-        profiles[0] = standard;
-        profiles[1] = comfort;
-        profiles[2] = winter;
-        profiles[3] = agility;
-        profiles[4] = manual;
-        profiles[5] = race;
-
-        // Read profile ID on startup based on TCM config
-        profile_id = VEHICLE_CONFIG.default_profile;
-        if (profile_id > 4)
-        {
-            profile_id = 0;
-        }
-
-        gearbox = new Gearbox();
-        if (gearbox->start_controller() != ESP_OK)
-        {
-            ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
-        }
-        else
-        {
-            gearbox->set_profile(profiles[profile_id]);
-        }
+        ret = SPEAKER_POST_CODE::EFUSE_NOT_SET;
     }
     return ret;
 }
@@ -181,25 +212,6 @@ void err_beep_loop(void *a)
         }
         vTaskDelete(NULL);
     }
-}
-
-AbstractProfile *profile_from_auto_ty(AutoProfile prof)
-{
-    AbstractProfile *p = standard;
-    switch (prof)
-    {
-    case AutoProfile::Sport:
-        p = standard;
-        break;
-    case AutoProfile::Agility:
-        p = agility;
-        break;
-    case AutoProfile::Winter:
-    case AutoProfile::Comfort:
-    default:
-        return comfort;
-    }
-    return p;
 }
 
 void input_manager(void *)
@@ -293,7 +305,6 @@ void input_manager(void *)
             }
             pressed = down;
         } // Else - No profile button to process
-
         PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
         if (last_pos != paddle)
         { // Same position, ignore
@@ -311,7 +322,7 @@ void input_manager(void *)
             }
             last_pos = paddle;
         }
-        ShifterPosition spos = egs_can_hal->get_shifter_position(1000);
+        ShifterPosition spos = shifter->get_shifter_position(1000);
         if (spos != slast_pos)
         { // Same position, ignore
             // Process last request of the user
@@ -325,7 +336,7 @@ void input_manager(void *)
             }
             slast_pos = spos;
         }
-        ioexpander->write_to_ioexpander();
+        pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }
@@ -348,6 +359,8 @@ const char *post_code_to_str(SPEAKER_POST_CODE s)
         return "SOLENOID_INIT_FAIL";
     case SPEAKER_POST_CODE::EFUSE_NOT_SET:
         return "EFUSE_CONFIG_NOT_SET";
+    case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
+        return "CONFIGURATION_MISMATCH";
     default:
         return nullptr;
     }
@@ -361,15 +374,16 @@ extern "C" void app_main(void)
     gearbox = nullptr;
     egs_can_hal = nullptr;
     pressure_manager = nullptr;
-    ioexpander = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 1024, diag_server, 5, nullptr, 0);
-    if (s != SPEAKER_POST_CODE::INIT_OK) {
-        while(true) {
+    if (s != SPEAKER_POST_CODE::INIT_OK)
+    {
+        while (true)
+        {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }

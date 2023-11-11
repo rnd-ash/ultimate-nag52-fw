@@ -31,7 +31,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         // Adapt first from previous current sample
         float max_current = ((float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance) / vref_compensation;
 
-        float delta_as_percent = (float)current_delta / (float)max_current;
+        // float delta_as_percent = (float)current_delta / (float)max_current;
 
         uint16_t read = this->get_current();
 

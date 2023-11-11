@@ -16,6 +16,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
                                                                 default_map,
                                                                 data_element_count)
 {
+    this->default_data = {0u};
     this->default_map = default_map;
     if ((x_size * y_size) == data_element_count)
     {
@@ -71,14 +72,6 @@ esp_err_t StoredMap::replace_data_content(const int16_t *new_data, uint16_t cont
         result = ESP_ERR_NVS_INVALID_LENGTH;
     }
     return result;
-}
-
-/**
- * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
- */
-esp_err_t StoredMap::reload_from_eeprom(void)
-{
-    return this->read_from_eeprom(this->data_name, this->data_element_count);
 }
 
 esp_err_t StoredMap::reset_from_flash(void) {

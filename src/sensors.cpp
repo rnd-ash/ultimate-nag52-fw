@@ -39,6 +39,7 @@ pcnt_channel_handle_t PCNT_C_HANDLE_OUTPUT;
 adc_oneshot_unit_handle_t adc2_handle;
 adc_oneshot_unit_init_cfg_t init_adc2 = {
     .unit_id = ADC_UNIT_2,
+    .clk_src = soc_periph_adc_rtc_clk_src_t::ADC_RTC_CLK_SRC_DEFAULT,
     .ulp_mode = adc_ulp_mode_t::ADC_ULP_MODE_DISABLE
 };
 adc_oneshot_chan_cfg_t adc2_chan_config = {
@@ -281,7 +282,7 @@ esp_err_t Sensors::init_sensors(void){
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = (1 * 1000 * 1000),
+        .resolution_hz = 1000000u,
         .flags = {
             .intr_shared = 1
         }

@@ -473,3 +473,21 @@ WinterProfile* winter = nullptr;
 ManualProfile* manual = nullptr;
 StandardProfile* standard = nullptr;
 RaceProfile* race = nullptr;
+
+AbstractProfile *profiles[NUM_PROFILES] = {};
+
+void Profiles::init_profiles(bool is_diesel) {
+    standard = new StandardProfile(is_diesel);
+    comfort = new ComfortProfile(is_diesel);
+    winter = new WinterProfile(is_diesel);
+    agility = new AgilityProfile(is_diesel);
+    manual = new ManualProfile(is_diesel);
+    race = new RaceProfile(is_diesel);
+
+    profiles[GearboxProfile::Standard] = standard;
+    profiles[GearboxProfile::Comfort] = comfort;
+    profiles[GearboxProfile::Winter] = winter;
+    profiles[GearboxProfile::Agility] = agility;
+    profiles[GearboxProfile::Manual] = manual;
+    profiles[GearboxProfile::Race] = race;
+}

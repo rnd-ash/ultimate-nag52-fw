@@ -1,8 +1,9 @@
 #include "shifter_ewm.h"
 #include "programselector/programselectorbutton.h"
 #include "programselector/programselectorswitchewm.h"
+#include "programselector/programselectorSLR.h"
 
-ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile *profiles)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile **profiles)
 {
 	this->vehicle_config = vehicle_config;
 	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
@@ -22,8 +23,7 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTING
 	}
 	else
 	{
-		// TODO: implement ProgramSelectorSLR;
-		// programselector = new ProgramSelectorSLR(profiles);
+		programselector = new ProgramSelectorSLR(pcb_gpio_matrix);
 	}
 }
 

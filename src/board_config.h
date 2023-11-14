@@ -156,7 +156,7 @@ public:
 	void set_start(const bool start_enabled) override;
 	void set_gearbox_protection(const bool gearbox_protection_enabled) override;
 protected:
-    IOExpander* ioexpander = new IOExpander();
+    IOExpander* ioexpander = nullptr;
 };
 
 /**

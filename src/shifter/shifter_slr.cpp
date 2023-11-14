@@ -51,7 +51,7 @@ ShifterPosition ShifterSlr::get_shifter_position(const uint32_t expire_time_ms)
 	return ret;
 }
 
-SLRProfileWheel ShifterSlr::get_profile_rotator_pos(const uint32_t expire_time_ms) {
+AbstractProfile* ShifterSlr::get_profile(const uint32_t expire_time_ms) {
 
 	// Profile rotate switch is connected to pins
 	// 3  (PCB PRG)
@@ -61,31 +61,22 @@ SLRProfileWheel ShifterSlr::get_profile_rotator_pos(const uint32_t expire_time_m
 	// 25 (PCB TRRS_A)
 	uint8_t reg[2];
 	ioexpander->debug_get_registers(&reg[0], &reg[1]);
-	SLRProfileWheel pos = SLRProfileWheel::SNV;
+	AbstractProfile* ret = nullptr;
 
 	switch (reg[0]) {
 		case 0x24:
-			pos = SLRProfileWheel::Right;
+			ret = standard; // Right side
 			break;
 		case 0x26:
-			pos = SLRProfileWheel::Center;
+			ret = manual; // Center
 			break;
 		case 0x46:
-			pos = SLRProfileWheel::Left;
+			ret = comfort; // Left side
 			break;
 		default:
 			break;
 	}
 	
 	//ESP_LOGI("SLR", "DBG: %02X %02X", reg[0], reg[1]);
-	return pos;
-}
-
-ProfileSwitchPos ShifterSlr::get_shifter_profile_switch_pos(const uint32_t expire_time_ms) {
-	ProfileSwitchPos result = ProfileSwitchPos::SNV;
-	EWM_230_EGS52 ewm;
-    if (this->_ewm->get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
-		result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
-	}
-	return result;
+	return ret;
 }

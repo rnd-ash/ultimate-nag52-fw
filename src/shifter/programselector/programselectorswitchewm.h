@@ -6,7 +6,7 @@
 
 class ProgramSelectorSwitchEWM : public ProgramSelectorSwitch, ProgramSelectorEWM {
 public:
-	explicit ProgramSelectorSwitchEWM(AbstractProfile* profiles);
+	explicit ProgramSelectorSwitchEWM(AbstractProfile** profiles);
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
 };
 #endif // PROGRAMSELECTORSWITCHEWM_H

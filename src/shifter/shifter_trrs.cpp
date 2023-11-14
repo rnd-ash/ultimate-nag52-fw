@@ -3,7 +3,7 @@
 #include "nvs/module_settings.h"
 #include "programselector/programselectorswitchtrrs.h"
 
-ShifterTrrs::ShifterTrrs(TCM_CORE_CONFIG *vehicle_config, BoardGpioMatrix *board, AbstractProfile *profiles): board(board)
+ShifterTrrs::ShifterTrrs(TCM_CORE_CONFIG *vehicle_config, BoardGpioMatrix *board, AbstractProfile **profiles): board(board)
 {
 	this->vehicle_config = vehicle_config;
 	this->programselector = new ProgramSelectorSwitchTRRS(board, profiles);

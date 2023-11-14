@@ -4,7 +4,7 @@
 #include "clock.hpp"
 #include "board_config.h"
 
-IOExpander::IOExpander(void)
+IOExpander::IOExpander()
 {
 	if ((gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_sda) && (gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_scl))
 	{

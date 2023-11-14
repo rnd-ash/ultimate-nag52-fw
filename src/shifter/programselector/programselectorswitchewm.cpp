@@ -2,7 +2,7 @@
 #include "../../clock.hpp"
 #include "../../nvs/module_settings.h"
 
-ProgramSelectorSwitchEWM::ProgramSelectorSwitchEWM(AbstractProfile *profiles)
+ProgramSelectorSwitchEWM::ProgramSelectorSwitchEWM(AbstractProfile **profiles)
 {
 	this->profiles = profiles;
 }
@@ -18,7 +18,7 @@ AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_tim
 		{
 			profile = ETS_CURRENT_SETTINGS.profile_idx_bottom;
 		}
-		result = &profiles[profile];
+		result = profiles[profile];
 	}
 	return result;
 }

@@ -8,20 +8,6 @@
 #include "ioexpander.h"
 
 Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {
-    switch (VEHICLE_CONFIG.shifter_style)
-    {
-    case (uint8_t)ShifterStyle::TRRS:
-        this->shifter = new ShifterTrrs(&(this->can_init_status));
-        ioexpander->set_start(true);
-        break;
-    case (uint8_t)ShifterStyle::SLR:
-        this->shifter = new ShifterSlr(&(this->can_init_status), &this->ewm_ecu);
-        ioexpander->set_start(true);
-        break;
-    default:
-        this->shifter = new ShifterEwm(&(this->can_init_status), &this->ewm_ecu);
-        break;
-    }
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -346,15 +332,6 @@ bool Egs52Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
     } else {
         return false;
     }
-}
-
-SLRProfileWheel Egs52Can::get_slr_profile_wheel_pos(const uint32_t expire_time_ms) {
-    SLRProfileWheel ret = SLRProfileWheel::SNV;
-    if (VEHICLE_CONFIG.shifter_style == (uint8_t)ShifterStyle::SLR) {
-        ret = (static_cast<ShifterSlr*>(shifter))->get_profile_rotator_pos(expire_time_ms);
-    }
-    return ret;
-
 }
 
 bool Egs52Can::get_profile_btn_press(const uint32_t expire_time_ms) {

@@ -1,7 +1,7 @@
 #include "programselectorswitchtrrs.h"
 #include "../../nvs/module_settings.h"
 
-ProgramSelectorSwitchTRRS::ProgramSelectorSwitchTRRS(BoardGpioMatrix *board, AbstractProfile *profiles): board(board) {
+ProgramSelectorSwitchTRRS::ProgramSelectorSwitchTRRS(BoardGpioMatrix *board, AbstractProfile **profiles): board(board) {
 	this->profiles = profiles;
 }
 
@@ -10,7 +10,7 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 	AbstractProfile *result = nullptr;
 	if (nullptr != profiles)
 	{
-		result = &profiles[GearboxProfile::Underscore];
+		result = profiles[GearboxProfile::Underscore];
 		if ((nullptr != board) && board->is_data_valid(expire_time_ms))
 		{
 			ProfileSwitchPos profileswitchpos;
@@ -21,7 +21,7 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 			{
 				profile = ETS_CURRENT_SETTINGS.profile_idx_bottom;
 			}
-			result = &profiles[profile];
+			result = profiles[profile];
 		}
 	}
 	return result;

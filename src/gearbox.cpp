@@ -159,7 +159,7 @@ bool Gearbox::is_stationary() {
 
 void Gearbox::set_profile(AbstractProfile *prof)
 {
-    if ((nullptr != prof) && ((nullptr == current_profile) || (prof->get_profile() != current_profile->get_profile())))
+    if ((nullptr != prof) && ((nullptr == current_profile) || (prof != current_profile)))
     {
         // Only change if not nullptr!
         portENTER_CRITICAL(&this->profile_mutex);

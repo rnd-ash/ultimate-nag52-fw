@@ -1,9 +1,8 @@
 #include "programselectorbutton.h"
 
 
-ProgramSelectorButton::ProgramSelectorButton(TCM_CORE_CONFIG *vehicle_config, AbstractProfile **profiles): vehicle_config(vehicle_config)
+ProgramSelectorButton::ProgramSelectorButton(TCM_CORE_CONFIG *vehicle_config): vehicle_config(vehicle_config)
 {
-	this->profiles = profiles;
 	// Read profile ID on startup based on TCM config
 	profile_id = VEHICLE_CONFIG.default_profile;
 	if (profile_id > 4)

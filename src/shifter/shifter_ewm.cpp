@@ -3,7 +3,7 @@
 #include "programselector/programselectorswitchewm.h"
 #include "programselector/programselectorSLR.h"
 
-ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile **profiles)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings)
 {
 	this->vehicle_config = vehicle_config;
 	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
@@ -11,10 +11,10 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shi
 		switch (shifter_settings->ewm_selector_type)
 		{
 		case EwmSelectorType::Switch:
-			programselector = new ProgramSelectorSwitchEWM(profiles);
+			programselector = new ProgramSelectorSwitchEWM();
 			break;
 		case EwmSelectorType::Button:
-			programselector = new ProgramSelectorButton(vehicle_config, profiles);
+			programselector = new ProgramSelectorButton(vehicle_config);
 			break;
 		default:
 			programselector = nullptr;
@@ -46,6 +46,6 @@ void ShifterEwm::set_program_button_pressed(const bool is_pressed)
 {
 	if (nullptr != programselector)
 	{
-		(reinterpret_cast<ProgramSelectorEWM *>(programselector))->set_button_pressed(is_pressed);
+		(reinterpret_cast<ProgramSelectorButton *>(programselector))->set_button_pressed(is_pressed);
 	}
 }

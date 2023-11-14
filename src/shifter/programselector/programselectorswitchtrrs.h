@@ -6,7 +6,7 @@
 
 class ProgramSelectorSwitchTRRS : public ProgramSelectorSwitch{
 public:
-	ProgramSelectorSwitchTRRS(BoardGpioMatrix* board, AbstractProfile** profiles);
+	ProgramSelectorSwitchTRRS(BoardGpioMatrix* board);
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
 private:
 	BoardGpioMatrix* board;

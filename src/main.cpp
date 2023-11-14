@@ -63,7 +63,6 @@ SPEAKER_POST_CODE setup_tcm()
         }
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
-            ioexpander = new IOExpander();
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {

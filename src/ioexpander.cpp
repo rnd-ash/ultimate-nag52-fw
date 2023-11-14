@@ -4,15 +4,15 @@
 #include "clock.hpp"
 #include "board_config.h"
 
-IOExpander::IOExpander()
+IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 {
-	if ((gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_sda) && (gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_scl))
+	if ((gpio_num_t::GPIO_NUM_NC != sda) && (gpio_num_t::GPIO_NUM_NC != scl))
 	{
 		// init I/O expander module
 		i2c_config_t conf = {
 			.mode = I2C_MODE_MASTER,
-			.sda_io_num = pcb_gpio_matrix->i2c_sda,
-			.scl_io_num = pcb_gpio_matrix->i2c_scl,
+			.sda_io_num = sda,
+			.scl_io_num = scl,
 			.sda_pullup_en = GPIO_PULLUP_ENABLE,
 			.scl_pullup_en = GPIO_PULLUP_ENABLE,
 			.master = {

@@ -155,8 +155,6 @@ public:
 	void set_rp_solenoid(const bool rp_solenoid_enabled) override;
 	void set_start(const bool start_enabled) override;
 	void set_gearbox_protection(const bool gearbox_protection_enabled) override;
-protected:
-    IOExpander* ioexpander = nullptr;
 };
 
 /**

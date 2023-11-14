@@ -19,7 +19,7 @@ typedef enum {
 
 class IOExpander {
 public:
-	IOExpander();
+	IOExpander(gpio_num_t sda, gpio_num_t scl);
 
 	esp_err_t init_state(void) const;
 	void read_from_ioexpander(void);
@@ -74,5 +74,4 @@ private:
 };
 
 extern IOExpander* ioexpander;
-
 #endif

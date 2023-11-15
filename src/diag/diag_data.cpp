@@ -271,7 +271,7 @@ PARTITION_INFO get_next_sw_info(void) {
 }
 
 const esp_app_desc_t* get_image_header(void) {
-    return esp_ota_get_app_description();
+    return esp_app_get_description();
 }
 
 kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {

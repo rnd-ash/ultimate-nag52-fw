@@ -47,6 +47,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .output_rpm = 0,
         .pedal_pos = 0,
         .atf_temp = 0,
+        .input_torque = 0,
         .static_torque = 0,
         .max_torque = 0,
         .min_torque = 0,
@@ -347,8 +348,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         ShiftStage current_stage = ShiftStage::Bleed;
         bool process_shift = true;
         sr.start_reading = this->collect_report_segment(shift_start_time);
-        float d_trq = 0;
-        float clamped_trq = 0;
 
         // For all the stages, we only need these numbers for interpolation
         // calculate prefill data now, as we need this to set MPC offset
@@ -447,7 +446,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             
             // Grab ratio informations
             bool coasting_shift = 0 > sensor_data.static_torque;
-            int intercect_rpm  = 0;
             // Shift reporting
             if (!stationary_shift) {
                 int input_rpm_old_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, a_gear, &this->gearboxConfig);
@@ -638,7 +636,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
                 //float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
                 //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
-                float wp_multiplier = interpolate_float(sensor_data.pedal_pos, 0.5, 1.0, 25, 128, InterpType::Linear);
+                //float wp_multiplier = interpolate_float(sensor_data.pedal_pos, 0.5, 1.0, 25, 128, InterpType::Linear);
                 float spc = spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch;
                 float spc_adder;
                 if (phase_elapsed < chars.target_shift_time) {

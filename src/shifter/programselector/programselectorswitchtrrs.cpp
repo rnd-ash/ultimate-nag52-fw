@@ -21,3 +21,7 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 	}
 	return result;
 }
+
+ProgramSelectorType ProgramSelectorSwitchTRRS::get_type() const {
+	return ProgramSelectorType::TRRS;
+}

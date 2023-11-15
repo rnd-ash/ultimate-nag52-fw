@@ -3,6 +3,32 @@
 
 #include "../../profiles.h"
 
+enum class ProgramSelectorType {
+	SLR,
+	EWMButton,
+	EWMSwitch,
+	TRRS
+};
+
+/**
+ * @brief used for TRRS profile switch and EWM profile switch position
+ */
+enum class ProfileSwitchPos : uint8_t
+{
+    /**
+     * @brief Top position (S)
+     */
+    Top = 0u,
+    /**
+     * @brief Bottom position (C or W)
+     */
+    Bottom = 1u,
+    /**
+     * @brief Could not determine position
+     */
+    SNV = UINT8_MAX,
+};
+
 class ProgramSelector {
 public:
 	/**
@@ -12,6 +38,11 @@ public:
 	 * switch position could not be determined, in which case, we do not switch profiles.
 	 */
 	virtual AbstractProfile* get_profile(const uint32_t expire_time_ms);
+	/**
+	 * @brief For identification
+	 * @return 
+	 */
+	virtual ProgramSelectorType get_type() const;
 protected:
 	uint8_t profile_id = 0u;	
 };

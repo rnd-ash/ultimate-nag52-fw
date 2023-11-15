@@ -204,7 +204,7 @@ void EgsBaseCan::on_rx_done(const uint32_t now_ts)
     case (uint8_t)ShifterStyle::EWM:
     {
         ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
-        shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts));
+        shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
         break;
     }
     case (uint8_t)ShifterStyle::TRRS:

@@ -1,5 +1,5 @@
 #include "shifter_ewm.h"
-#include "programselector/programselectorbutton.h"
+#include "programselector/programselectorbuttonewm.h"
 #include "programselector/programselectorswitchewm.h"
 #include "programselector/programselectorSLR.h"
 
@@ -14,7 +14,7 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shi
 			programselector = new ProgramSelectorSwitchEWM();
 			break;
 		case EwmSelectorType::Button:
-			programselector = new ProgramSelectorButton(vehicle_config);
+			programselector = new ProgramSelectorButtonEwm(vehicle_config);
 			break;
 		default:
 			programselector = nullptr;
@@ -42,10 +42,19 @@ AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
 	return result;
 }
 
-void ShifterEwm::set_program_button_pressed(const bool is_pressed)
+void ShifterEwm::set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos)
 {
 	if (nullptr != programselector)
 	{
-		(reinterpret_cast<ProgramSelectorButton *>(programselector))->set_button_pressed(is_pressed);
+		switch (programselector->get_type()) {
+			case ProgramSelectorType::EWMButton:
+				(reinterpret_cast<ProgramSelectorButtonEwm *>(programselector))->set_button_pressed(is_pressed);
+				break;
+			case ProgramSelectorType::EWMSwitch:
+				(reinterpret_cast<ProgramSelectorSwitchEWM *>(programselector))->set_profile_switch_pos(pos);
+				break;
+			default:
+				break;
+		}
 	}
 }

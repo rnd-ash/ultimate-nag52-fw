@@ -32,3 +32,7 @@ AbstractProfile *ProgramSelectorSLR::get_profile(const uint32_t expire_time_ms)
 	}
 	return result;
 }
+
+ProgramSelectorType ProgramSelectorSLR::get_type() const {
+	return ProgramSelectorType::SLR;
+}

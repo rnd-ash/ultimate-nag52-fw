@@ -20,6 +20,7 @@
 #include "can_defines.h"
 
 #include "../shifter/shifter.h"
+#include "../shifter/programselector/programselector.h"
 #include "../profiles.h"
 
 class EgsBaseCan {
@@ -224,6 +225,17 @@ class EgsBaseCan {
          */
         virtual bool get_profile_btn_press(const uint32_t expire_time_ms) {
             return false;
+        }
+
+        /**
+         * @brief OPTIONAL DATA - Returns true if the shifter profile switch is in the top most position
+         * This is intended for only the handling of the EWM CAN based shifters.
+         * 
+         * @param expire_time_ms data expiration period
+         * @return True if the profile switch is in the top position
+         */
+        virtual ProfileSwitchPos get_profile_switch_pos(const uint32_t expire_time_ms) {
+            return ProfileSwitchPos::SNV;
         }
 
         /**

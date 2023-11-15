@@ -1,7 +1,7 @@
-#include "programselectorbutton.h"
+#include "programselectorbuttonewm.h"
 
 
-ProgramSelectorButton::ProgramSelectorButton(TCM_CORE_CONFIG *vehicle_config): vehicle_config(vehicle_config)
+ProgramSelectorButtonEwm::ProgramSelectorButtonEwm(TCM_CORE_CONFIG *vehicle_config): vehicle_config(vehicle_config)
 {
 	// Read profile ID on startup based on TCM config
 	profile_id = VEHICLE_CONFIG.default_profile;
@@ -11,7 +11,7 @@ ProgramSelectorButton::ProgramSelectorButton(TCM_CORE_CONFIG *vehicle_config): v
 	}
 }
 
-void ProgramSelectorButton::set_button_pressed(const bool is_pressed)
+void ProgramSelectorButtonEwm::set_button_pressed(const bool is_pressed)
 {
 	if(is_pressed && (is_pressed != is_pressed_last_call)) {
 		// button is pressed and was not pressed before
@@ -25,7 +25,11 @@ void ProgramSelectorButton::set_button_pressed(const bool is_pressed)
 	is_pressed_last_call = is_pressed;
 }
 
-AbstractProfile *ProgramSelectorButton::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorButtonEwm::get_profile(const uint32_t expire_time_ms)
 {
 	return profiles[profile_id];
+}
+
+ProgramSelectorType ProgramSelectorButtonEwm::get_type() const {
+	return ProgramSelectorType::EWMButton;
 }

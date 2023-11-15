@@ -26,6 +26,7 @@ enum class ShifterStyle : uint8_t {
 };
 
 
+
 /**
  * @brief SLR profile knob position
  */

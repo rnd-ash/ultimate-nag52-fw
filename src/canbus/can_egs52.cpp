@@ -4,7 +4,6 @@
 #include "nvs/eeprom_config.h"
 #include "../shifter/shifter_ewm.h"
 #include "../shifter/shifter_trrs.h"
-#include "../shifter/shifter_slr.h"
 #include "ioexpander.h"
 
 Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {

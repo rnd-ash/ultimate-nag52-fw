@@ -133,16 +133,12 @@ public:
 	 * @return Current gear selector position
 	 */
 	virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) = 0;
-
     virtual AbstractProfile* get_profile(const uint32_t expire_time_ms) = 0;
-
-    void set_shifter_position(ShifterPosition spos);
     void set_brake_is_pressed(bool is_pressed);
     void set_vehicle_speed(WheelData front_left, WheelData front_right);
     
 protected:
     TCM_CORE_CONFIG *vehicle_config;    
-    ShifterPosition spos = ShifterPosition::SignalNotAvailable;
     bool is_brake_pressed = false;
     float vVeh = 0.0F;
 };

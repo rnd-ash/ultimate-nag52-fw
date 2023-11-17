@@ -27,9 +27,14 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shi
 	}
 }
 
+
 ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
-	return spos;
+	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
+	if (nullptr != egs_can_hal) {
+		pos = egs_can_hal->get_shifter_position(expire_time_ms);
+	}
+	return pos;
 }
 
 AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)

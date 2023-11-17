@@ -5,6 +5,7 @@
 #include "esp_err.h"
 #include "../nvs/module_settings.h"
 #include "programselector/programselector.h"
+#include "../../egs52_ecus/src/EWM.h"
 
 class ShifterEwm : public Shifter
 {

@@ -78,13 +78,11 @@ SPEAKER_POST_CODE setup_tcm()
                 switch (VEHICLE_CONFIG.shifter_style)
                 {
                 case (uint8_t)ShifterStyle::EWM:
+                case (uint8_t)ShifterStyle::SLR:
                     shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                     break;
                 case (uint8_t)ShifterStyle::TRRS:
                     shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
-                    break;
-                case (uint8_t)ShifterStyle::SLR:
-                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                     break;
                 default:
                     // possibly

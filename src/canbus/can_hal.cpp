@@ -211,7 +211,6 @@ void EgsBaseCan::on_rx_done(const uint32_t now_ts)
     {
         ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
         shiftertrrs->set_brake_is_pressed(get_is_brake_pressed(now_ts));
-        shiftertrrs->set_shifter_position(get_shifter_position(now_ts));
         shiftertrrs->set_vehicle_speed(get_front_left_wheel(now_ts), get_front_right_wheel(now_ts));
         break;
     }

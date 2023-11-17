@@ -115,6 +115,13 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
         valve_body_settings->pressure_correction_pump_speed_max,
         InterpType::Linear
     );
+
+    if (in_spc > this->valve_body_settings->shift_regulator_force_mbar) {
+        in_spc = 0;
+    } else {
+        in_spc -= this->valve_body_settings->shift_regulator_force_mbar;
+    }
+
     float spc_reduction = in_spc * k1_factor;
     return (fac * regulator_pressure) + extra_pressure - spc_reduction;
 }
@@ -143,8 +150,8 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         // Shift solenoid 1-2 active, reduce SPC and mpc(clutch release) influence
         if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
             spc_in /= valve_body_settings->shift_circuit_factor_1_2;
-        //    mpcc_in /= valve_body_settings->shift_circuit_factor_1_2;
         }
+
         mpc_in += mpcc_in;
 
         uint16_t wp = this->calc_working_pressure(current_gear, mpc_in, spc_in);

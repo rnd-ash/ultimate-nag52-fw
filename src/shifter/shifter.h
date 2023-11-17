@@ -25,8 +25,6 @@ enum class ShifterStyle : uint8_t {
 	SLR = 2u,
 };
 
-
-
 /**
  * @brief SLR profile knob position
  */
@@ -134,6 +132,7 @@ public:
 	 */
 	virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) = 0;
     virtual AbstractProfile* get_profile(const uint32_t expire_time_ms) = 0;
+    virtual DiagProfileInputState diag_get_profile_input() = 0;
     void set_brake_is_pressed(bool is_pressed);
     void set_vehicle_speed(WheelData front_left, WheelData front_right);
     

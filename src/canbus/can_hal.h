@@ -73,7 +73,7 @@ class EgsBaseCan {
         
 
         virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            return ShifterPosition::SignalNotAvailable;
+            return shifter->get_shifter_position(expire_time_ms);
         }
 
         /**
@@ -362,7 +362,7 @@ class EgsBaseCan {
             this->un52_slave_resp = un52_rpt;
         }
 
-
+        Shifter* shifter;
 
     protected:
         const char* name;
@@ -400,8 +400,6 @@ class EgsBaseCan {
         SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
         SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
         UN52_REPORT_EGS_SLAVE un52_slave_resp;
-
-        Shifter* shifter;
 };
 
 extern EgsBaseCan* egs_can_hal;

@@ -29,6 +29,25 @@ enum class ProfileSwitchPos : uint8_t
     SNV = UINT8_MAX,
 };
 
+/**
+ * @brief For diagnostics only, an enum with all possible profile input states
+ * This is used for capturing raw inputs on the shifter
+ */
+enum class DiagProfileInputState: uint8_t {
+	None = 0,
+	SwitchTop = 1,
+	SwitchBottom = 2,
+	ButtonPressed = 3,
+	ButtonReleased = 4,
+	SLRLeft = 5,
+	SLRMiddle = 6,
+	SLRRight = 7,
+	/**
+	 * @brief Could not be determined (Comm error)
+	 */
+	SNV = UINT8_MAX
+};
+
 class ProgramSelector {
 public:
 	/**
@@ -43,6 +62,10 @@ public:
 	 * @return 
 	 */
 	virtual ProgramSelectorType get_type() const;
+
+	virtual DiagProfileInputState get_input_raw() const {
+		return DiagProfileInputState::None;
+	};
 protected:
 	uint8_t profile_id = 0u;	
 };

@@ -33,6 +33,26 @@ AbstractProfile *ProgramSelectorSLR::get_profile(const uint32_t expire_time_ms)
 	return result;
 }
 
+DiagProfileInputState ProgramSelectorSLR::get_input_raw() const {
+	DiagProfileInputState pos = DiagProfileInputState::SNV;
+	uint8_t reg[2];
+	ioexpander->debug_get_registers(&reg[0], &reg[1]);
+	switch (reg[0]) {
+		case 0x24:
+			pos = DiagProfileInputState::SLRRight;
+			break;
+		case 0x26:
+			pos = DiagProfileInputState::SLRMiddle;
+			break;
+		case 0x46:
+			pos = DiagProfileInputState::SLRLeft;
+			break;
+		default:
+			break;
+	}
+	return pos;
+}
+
 ProgramSelectorType ProgramSelectorSLR::get_type() const {
 	return ProgramSelectorType::SLR;
 }

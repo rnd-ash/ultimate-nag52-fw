@@ -27,6 +27,15 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shi
 	}
 }
 
+DiagProfileInputState ShifterEwm::diag_get_profile_input() {
+	// None rather than SNV (SNV means valid configuration, but no communication)
+	// None implied not configured / no program selector
+	DiagProfileInputState ret = DiagProfileInputState::None;
+	if (nullptr != this->programselector) {
+		ret = this->programselector->get_input_raw();
+	}
+	return ret;
+}
 
 ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {

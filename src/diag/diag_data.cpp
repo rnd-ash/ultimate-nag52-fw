@@ -121,7 +121,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.driver_torque = (torque+500)*4;
     torque = gearbox->sensor_data.static_torque;
     ret.static_torque = (torque+500)*4;
-    ret.shift_button_pressed = can_layer->get_profile_btn_press(250);
+    ret.profile_input_raw = can_layer->shifter->diag_get_profile_input();
     ret.shifter_position = can_layer->get_shifter_position(250);
     ret.engine_rpm = can_layer->get_engine_rpm(250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(250);

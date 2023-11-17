@@ -33,3 +33,13 @@ AbstractProfile *ProgramSelectorButtonEwm::get_profile(const uint32_t expire_tim
 ProgramSelectorType ProgramSelectorButtonEwm::get_type() const {
 	return ProgramSelectorType::EWMButton;
 }
+
+DiagProfileInputState ProgramSelectorButtonEwm::get_input_raw() const {
+	DiagProfileInputState pos = DiagProfileInputState::SNV;
+	if (this->is_pressed_last_call) {
+		pos = DiagProfileInputState::ButtonPressed;
+	} else {
+		pos = DiagProfileInputState::ButtonReleased;
+	}
+	return pos;
+}

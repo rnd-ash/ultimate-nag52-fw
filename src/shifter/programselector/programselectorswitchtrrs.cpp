@@ -22,6 +22,14 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 	return result;
 }
 
+DiagProfileInputState ProgramSelectorSwitchTRRS::get_input_raw() const {
+	DiagProfileInputState pos = DiagProfileInputState::SNV;
+	if ((nullptr != board) && board->is_data_valid(500)) {
+		pos = board->is_program_switch_pressed() ? DiagProfileInputState::SwitchTop : DiagProfileInputState::SwitchBottom;
+	}
+	return pos;
+}
+
 ProgramSelectorType ProgramSelectorSwitchTRRS::get_type() const {
 	return ProgramSelectorType::TRRS;
 }

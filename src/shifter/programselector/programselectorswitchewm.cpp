@@ -22,6 +22,22 @@ AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_tim
 	return result;
 }
 
+DiagProfileInputState ProgramSelectorSwitchEWM::get_input_raw() const {
+	DiagProfileInputState pos = DiagProfileInputState::SNV;
+	switch (this->pos) {
+		case ProfileSwitchPos::Top:
+			pos = DiagProfileInputState::SwitchTop;
+			break;
+		case ProfileSwitchPos::Bottom:
+			pos = DiagProfileInputState::SwitchBottom;
+			break;
+		case ProfileSwitchPos::SNV:
+		default:
+			break;
+	}
+	return pos;
+}
+
 ProgramSelectorType ProgramSelectorSwitchEWM::get_type() const {
 	return ProgramSelectorType::EWMSwitch;
 }

@@ -25,7 +25,7 @@ uint8_t decToBcd(uint8_t val)
   return ( (val/10*16) + (val%10) );
 }
 
-const uint8_t bcd_to_hex(char c) {
+uint8_t bcd_to_hex(char c) {
     switch (c) {
         case '0':
             return 0x0;

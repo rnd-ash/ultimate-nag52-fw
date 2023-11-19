@@ -1,8 +1,9 @@
 #include "shifter_ewm.h"
-#include "programselector/programselectorbutton.h"
+#include "programselector/programselectorbuttonewm.h"
 #include "programselector/programselectorswitchewm.h"
+#include "programselector/programselectorSLR.h"
 
-ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings, AbstractProfile *profiles)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings)
 {
 	this->vehicle_config = vehicle_config;
 	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
@@ -10,10 +11,10 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTING
 		switch (shifter_settings->ewm_selector_type)
 		{
 		case EwmSelectorType::Switch:
-			programselector = new ProgramSelectorSwitchEWM(profiles);
+			programselector = new ProgramSelectorSwitchEWM();
 			break;
 		case EwmSelectorType::Button:
-			programselector = new ProgramSelectorButton(vehicle_config, profiles);
+			programselector = new ProgramSelectorButtonEwm(vehicle_config);
 			break;
 		default:
 			programselector = nullptr;
@@ -22,14 +23,27 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTING
 	}
 	else
 	{
-		// TODO: implement ProgramSelectorSLR;
-		// programselector = new ProgramSelectorSLR(profiles);
+		programselector = new ProgramSelectorSLR(pcb_gpio_matrix);
 	}
+}
+
+DiagProfileInputState ShifterEwm::diag_get_profile_input() {
+	// None rather than SNV (SNV means valid configuration, but no communication)
+	// None implied not configured / no program selector
+	DiagProfileInputState ret = DiagProfileInputState::None;
+	if (nullptr != this->programselector) {
+		ret = this->programselector->get_input_raw();
+	}
+	return ret;
 }
 
 ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
-	return spos;
+	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
+	if (nullptr != egs_can_hal) {
+		pos = egs_can_hal->get_shifter_position(expire_time_ms);
+	}
+	return pos;
 }
 
 AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
@@ -42,10 +56,19 @@ AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
 	return result;
 }
 
-void ShifterEwm::set_program_button_pressed(const bool is_pressed)
+void ShifterEwm::set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos)
 {
 	if (nullptr != programselector)
 	{
-		(reinterpret_cast<ProgramSelectorEWM *>(programselector))->set_button_pressed(is_pressed);
+		switch (programselector->get_type()) {
+			case ProgramSelectorType::EWMButton:
+				(reinterpret_cast<ProgramSelectorButtonEwm *>(programselector))->set_button_pressed(is_pressed);
+				break;
+			case ProgramSelectorType::EWMSwitch:
+				(reinterpret_cast<ProgramSelectorSwitchEWM *>(programselector))->set_profile_switch_pos(pos);
+				break;
+			default:
+				break;
+		}
 	}
 }

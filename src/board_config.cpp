@@ -69,6 +69,7 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
         .atf_calibration_curve = atf_temp_lookup_V12,
         .current_sense_multi = 1.0,
     };
+    ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 
     // I/O expander inputs
     ioexpander->i2c_expander_trrs_a = pca_num_t::PCA_NUM_5; // TRRS A
@@ -117,6 +118,7 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
         .atf_calibration_curve = atf_temp_lookup_V12,
         .current_sense_multi = 1.0,
     };
+    ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 
     // I/O expander inputs
     ioexpander->i2c_expander_trrs_a = pca_num_t::PCA_NUM_5; // TRRS A

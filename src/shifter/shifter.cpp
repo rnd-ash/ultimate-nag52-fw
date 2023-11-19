@@ -1,10 +1,5 @@
 #include "shifter.h"
 
-void Shifter::set_shifter_position(ShifterPosition spos)
-{
-	this->spos = spos;
-}
-
 void Shifter::set_brake_is_pressed(bool is_pressed)
 {
 	is_brake_pressed = is_pressed;

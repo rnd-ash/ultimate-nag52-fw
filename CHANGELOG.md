@@ -23,7 +23,7 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
     * On/Off solenoid - On for specific period of time, then activate holding phase
     * Inrush solenoid - On, Hold, Off for specific period (Torque converter solenoid)
     * CC Solenoid - Constant current driver solenoid (Corrected every 2ms)
-    * Make output shaft sensor appear in config app if present
+* Make output shaft sensor appear in config app if present
 * DIAG `FN_SALVE_MODE` emulation (Originally on EGS52) - Allows for controlling IO of the TCU on a test bench via CAN
 * DIAG `FN_CANLOGGER_MODE` - Allows for sniffing CANBUS on a vehicle (TCU does not send frames in this mode)
 * EGS51 - Add the following Getters and setters to CAN matrix:
@@ -33,6 +33,8 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
     4. Neutral active (For EGS51s that use CAN to disable start rather than grounding out pin 7)
     5. TCC status bits
 * Torque requests - Add `BackToDriverDemand` torque request bit (EGS52/53). This allows the engine to know that torque will be increasing and it can roll back the ignition retarding (Results in a much smoother up ramp)
+* Rework IO Expander and program selector API (Credit: @chrissivo)
+* Add support for the SLR McLaren shifter!
 
 # 21/08/23
 * EGS51 - Repair wonky torque requests

@@ -4,15 +4,15 @@
 #include "clock.hpp"
 #include "board_config.h"
 
-IOExpander::IOExpander(void)
+IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 {
-	if ((gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_sda) && (gpio_num_t::GPIO_NUM_NC != pcb_gpio_matrix->i2c_scl))
+	if ((gpio_num_t::GPIO_NUM_NC != sda) && (gpio_num_t::GPIO_NUM_NC != scl))
 	{
 		// init I/O expander module
 		i2c_config_t conf = {
 			.mode = I2C_MODE_MASTER,
-			.sda_io_num = pcb_gpio_matrix->i2c_sda,
-			.scl_io_num = pcb_gpio_matrix->i2c_scl,
+			.sda_io_num = sda,
+			.scl_io_num = scl,
 			.sda_pullup_en = GPIO_PULLUP_ENABLE,
 			.scl_pullup_en = GPIO_PULLUP_ENABLE,
 			.master = {
@@ -26,7 +26,7 @@ IOExpander::IOExpander(void)
 			{
 				// set I/O 1 as output
 				i2c_tx_bytes[0] = (uint8_t)PCAReg::CONFIG1;
-				i2c_tx_bytes[1] = 0x0u;
+				i2c_tx_bytes[1] = 0x00;
 				init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, i2c_tx_bytes, 2, 50);
 				if (ESP_OK == init_status)
 				{
@@ -39,6 +39,7 @@ IOExpander::IOExpander(void)
 					init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, i2c_tx_bytes, 2, 50);
 					i2c_tx_bytes[0] = (uint8_t)PCAReg::OUTPUT1;
 					i2c_tx_bytes[1] = 0x0u;
+					init_status = i2c_master_write_to_device(I2C_NUM_0, IO_ADDR, i2c_tx_bytes, 2, 50);
 					if (ESP_OK != init_status)
 					{
 						ESP_LOG_LEVEL(ESP_LOG_ERROR, name, "Failed to set input reg");
@@ -79,7 +80,7 @@ void IOExpander::read_from_ioexpander(void)
 		if (50u < (now - last_i2c_query_time))
 		{
 			// query I2C I/O expander
-			uint8_t req[1] = {0};
+			uint8_t req[2] = {(uint8_t)PCAReg::INPUT0, 0};
 			esp_err_t e = i2c_master_write_read_device(I2C_NUM_0, IO_ADDR, req, 1, i2c_rx_bytes, 2, 5);
 			if (ESP_OK == e)
 			{

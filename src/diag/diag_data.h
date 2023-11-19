@@ -96,7 +96,7 @@ typedef struct {
     uint16_t driver_torque;
     uint16_t left_rear_rpm;
     uint16_t right_rear_rpm;
-    uint8_t shift_button_pressed;
+    DiagProfileInputState profile_input_raw;
     ShifterPosition shifter_position;
     PaddlePosition paddle_position;
     uint16_t engine_rpm;

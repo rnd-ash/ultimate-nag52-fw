@@ -187,27 +187,5 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
             }
         }
     }
-    /*
-    const uint16_t thresh = 25; // 4%
-    // Cleanup
-    if (cs.k1 < thresh && cs.k1 > -thresh) {
-        cs.k1 = 0;
-    }
-    if (cs.k2 < thresh && cs.k2 > -thresh) {
-        cs.k2 = 0;
-    }
-    if (cs.k3 < thresh && cs.k3 > -thresh) {
-        cs.k3 = 0;
-    }
-    if (cs.b1 < thresh && cs.b1 > -thresh) {
-        cs.b1 = 0;
-    }
-    if (cs.b2 < thresh && cs.b2 > -thresh) {
-        cs.b2 = 0;
-    }
-    if (cs.b3 < thresh && cs.b3 > -thresh) {
-        cs.b3 = 0;
-    }
-    */
     return cs;
 }

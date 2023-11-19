@@ -53,9 +53,9 @@ class TorqueConverter {
     private:
         bool tcc_solenoid_enabled = true;
         inline void reset_rpm_samples(SensorData* sensors);
-        float tcc_pressure_target = 0;
-        float tcc_pressure_current = 0;
-        float prev_state_tcc_pressure = 0;
+        int tcc_pressure_target = 0;
+        int tcc_pressure_current = 0;
+        int prev_state_tcc_pressure = 0;
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
@@ -64,6 +64,8 @@ class TorqueConverter {
         uint32_t last_adapt_check = 0;
         uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
+        int16_t slip_offset[5] = {-500, -500, -500, -500, -500};
+        int16_t lock_offset[5] = {-100, -100, -100, -100, -100};
 };
 
 #endif

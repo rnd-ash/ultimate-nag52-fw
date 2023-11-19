@@ -28,7 +28,7 @@ output_yml = open("MODULE_SETTINGS.yml", "w")
 
 class Enum:
     def __init__(self, name: str, mappings: [(str, str, int)]) -> None:
-        self.name = name;
+        self.name = name.strip();
         self.mappings = mappings[:]
     
     def get_name(self) -> str:

@@ -88,7 +88,7 @@ class Variable:
         else:
             # Check enums
             for i in range(0, len(enums)):
-                if enums[i].get_name() == self.data_type:
+                if enums[i].get_name().strip() == self.data_type.strip():
                     return 1 # Enums are always uint8_t type
             for i in range(0, len(i_structs)):
                 if i_structs[i].get_name() == self.data_type:

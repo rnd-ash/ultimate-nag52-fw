@@ -67,25 +67,6 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
-// AbstractProfile* AbstractProfile::profile_from_auto_ty(AutoProfile prof)
-// {
-//     AbstractProfile *p = standard;
-//     switch (prof)
-//     {
-//     case AutoProfile::Sport:
-//         p = standard;
-//         break;
-//     case AutoProfile::Agility:
-//         p = agility;
-//         break;
-//     case AutoProfile::Winter:
-//     case AutoProfile::Comfort:
-//     default:
-//         return comfort;
-//     }
-//     return p;
-// }
-
 ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {
@@ -223,7 +204,15 @@ bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
         return false;
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        if (sensors->is_braking) { can_upshift = false; }
+        if (can_upshift) {
+            float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+            if (demanded_load > 30) {
+                can_upshift = false;
+            }
+        }
+        return can_upshift;
     } else {
         return false;
     }
@@ -347,8 +336,13 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
         if (this->accel_delta_factor > 100 && sensors->pedal_pos > 64) {
             can_upshift = false;
         }
-
-
+        // Load check
+        if (can_upshift) {
+            float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+            if (demanded_load > 30) {
+                can_upshift = false;
+            }
+        }
         return can_upshift;
     } else {
         return false;

@@ -13,12 +13,12 @@ void ProgramSelectorSwitchEWM::set_profile_switch_pos(ProfileSwitchPos pos) {
 AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_time_ms)
 {
 	AbstractProfile *result = nullptr;
-	GearboxProfile profile = ETS_CURRENT_SETTINGS.profile_idx_top;
+	GearboxProfile profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_top);
 	if (ProfileSwitchPos::Bottom == this->pos)
 	{
-		profile = ETS_CURRENT_SETTINGS.profile_idx_bottom;
+		profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_bottom);
 	}
-	result = profiles[profile];
+	result = profiles[(uint8_t)profile];
 	return result;
 }
 

@@ -12,12 +12,12 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 		ProfileSwitchPos profileswitchpos;
 		bool tmp = board->is_program_switch_pressed();
 		profileswitchpos = tmp ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
-		GearboxProfile profile = ETS_CURRENT_SETTINGS.profile_idx_top;
+		GearboxProfile profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_top);
 		if (ProfileSwitchPos::Bottom == profileswitchpos)
 		{
-			profile = ETS_CURRENT_SETTINGS.profile_idx_bottom;
+			profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_bottom);
 		}
-		result = profiles[profile];
+		result = profiles[(uint8_t)profile];
 	}
 	return result;
 }

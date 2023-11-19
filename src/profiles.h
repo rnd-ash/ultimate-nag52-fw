@@ -15,7 +15,7 @@ const int16_t downshift_y_headers[SHIFT_MAP_Y_SIZE] = {2,3,4,5};
 
 const int16_t shift_time_table_x_header[6] = {0, 20, 40, 60, 80, 100};
 
-enum GearboxProfile : uint8_t{
+enum class GearboxProfile : uint8_t{
     // Standard (S)
     Standard = 0u,
     // Comfort (C)

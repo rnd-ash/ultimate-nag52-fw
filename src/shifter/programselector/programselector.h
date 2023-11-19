@@ -2,6 +2,7 @@
 #define PROGRAMSELECTOR_H
 
 #include "../../profiles.h"
+#include "../../nvs/module_settings.h"
 
 enum class ProgramSelectorType {
 	SLR,
@@ -69,5 +70,7 @@ public:
 protected:
 	uint8_t profile_id = 0u;	
 };
+
+GearboxProfile selectableProfileToProfile(SelectableGearboxProfile p);
 
 #endif

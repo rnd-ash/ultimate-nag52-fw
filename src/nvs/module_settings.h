@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <tcu_maths.h>
 #include <esp_err.h>
-#include "profiles.h"
 
 // TCC Settings
 
@@ -556,6 +555,19 @@ enum EwmSelectorType: uint8_t {
     Switch = 2
 };
 
+enum SelectableGearboxProfile : uint8_t {
+    // Standard mode
+    Standard,
+    // Comfort mode
+    Comfort,
+    // Agility mode
+    Agility,
+    /// Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
+    Manual,
+    /// Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
+    Race
+};
+
 // Shifter settings
 typedef struct {
     // TRRS shifter (Wired to the TCU) has a profile selector?
@@ -565,27 +577,29 @@ typedef struct {
     EwmSelectorType ewm_selector_type;
     // When using a switch profile selector. This is the profile
     // to use when in the top position
-    GearboxProfile profile_idx_top;
+    SelectableGearboxProfile switch_profile_idx_top;
     // When using a switch profile selector. This is the profile
     // to use when in the bottom position
-    GearboxProfile profile_idx_bottom;
-    // If you have a CAN based EWM shifter (+/- markings on it),
-    // but have a profile W/S switch rather than a profile button,
-    // you can enable this option to force cycling of ALL profiles,
-    // including manual ones, by toggling the switch.
-    //
-    // It is suggested to only enable this if you have a profile
-    // display on the instrument cluster, so you know if the car
-    // is in manual mode or not.
-    bool ewm_shifter_switch_cycles_profiles;
+    SelectableGearboxProfile switch_profile_idx_bottom;
+    // When using the SLR profile selector, this is the profile
+    // when the profile selector is in the left position
+    SelectableGearboxProfile slr_profile_idx_left;
+    // When using the SLR profile selector, this is the profile
+    // when the profile selector is in the center position
+    SelectableGearboxProfile slr_profile_idx_center;
+    // When using the SLR profile selector, this is the profile
+    // when the profile selector is in the right position
+    SelectableGearboxProfile slr_profile_idx_right;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .trrs_has_profile_selector = true,
     .ewm_selector_type = EwmSelectorType::Button,
-    .profile_idx_top = GearboxProfile::Comfort,
-    .profile_idx_bottom = GearboxProfile::Agility,
-    .ewm_shifter_switch_cycles_profiles = false,
+    .switch_profile_idx_top = SelectableGearboxProfile::Comfort,
+    .switch_profile_idx_bottom = SelectableGearboxProfile::Standard,
+    .slr_profile_idx_left = SelectableGearboxProfile::Comfort,
+    .slr_profile_idx_center = SelectableGearboxProfile::Standard,
+    .slr_profile_idx_right = SelectableGearboxProfile::Manual
 };
 
 

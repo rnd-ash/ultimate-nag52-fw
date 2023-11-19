@@ -484,10 +484,10 @@ void Profiles::init_profiles(bool is_diesel) {
     manual = new ManualProfile(is_diesel);
     race = new RaceProfile(is_diesel);
 
-    profiles[GearboxProfile::Standard] = standard;
-    profiles[GearboxProfile::Comfort] = comfort;
-    profiles[GearboxProfile::Winter] = winter;
-    profiles[GearboxProfile::Agility] = agility;
-    profiles[GearboxProfile::Manual] = manual;
-    profiles[GearboxProfile::Race] = race;
+    profiles[(uint8_t)GearboxProfile::Standard] = standard;
+    profiles[(uint8_t)GearboxProfile::Comfort] = comfort;
+    profiles[(uint8_t)GearboxProfile::Winter] = winter;
+    profiles[(uint8_t)GearboxProfile::Agility] = agility;
+    profiles[(uint8_t)GearboxProfile::Manual] = manual;
+    profiles[(uint8_t)GearboxProfile::Race] = race;
 }

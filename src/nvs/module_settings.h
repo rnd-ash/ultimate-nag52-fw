@@ -557,15 +557,15 @@ enum EwmSelectorType: uint8_t {
 
 enum SelectableGearboxProfile : uint8_t {
     // Standard mode
-    Standard,
+    Standard = 0,
     // Comfort mode
-    Comfort,
+    Comfort = 1,
     // Agility mode
-    Agility,
+    Agility = 2,
     /// Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
-    Manual,
+    Manual = 3,
     /// Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
-    Race
+    Race = 4
 };
 
 // Shifter settings

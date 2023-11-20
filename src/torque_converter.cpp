@@ -58,7 +58,7 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    if (!this->tcc_solenoid_enabled || is_shifting) {
+    if (!this->tcc_solenoid_enabled) {
         pm->set_target_tcc_pressure(0);
         return;
     }
@@ -131,33 +131,35 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_pressure_target = 0;
     } else if (targ == InternalTccState::Slipping) {
         if (calc_friction_torque > 0) {
-            if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 50 && time_since_last_adapt > 250) {
+            if (at_req_pressure && sensors->static_torque > 0 && sensors->static_torque < 100 && rpm_delta > 100 && time_since_last_adapt > 250) {
                 if (this->slip_offset[idx] < 1000) {
                     this->slip_offset[idx] += 5;
                     this->lock_offset[idx] = MAX(this->slip_offset[idx], this->lock_offset[idx]);
                 }
-            } else if (at_req_pressure && sensors->static_torque > 100 && rpm_delta <= 20 && time_since_last_adapt > 250) {
+                this->last_adapt_check = GET_CLOCK_TIME();
+            } else if (at_req_pressure && sensors->static_torque > 0 && sensors->static_torque < 100 && rpm_delta <= 30 && time_since_last_adapt > 250) {
                 if (this->slip_offset[idx] > -500) {
                     this->slip_offset[idx] -= 5;
                 }
+                this->last_adapt_check = GET_CLOCK_TIME();
             }
             this->tcc_pressure_target = output_mpc + this->slip_offset[idx];
         }
 
     } else if (targ == InternalTccState::Closed) {
-        if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 20 && time_since_last_adapt > 250) {
+        if (at_req_pressure && sensors->static_torque > 0 && sensors->static_torque < 200 && rpm_delta > 20 && time_since_last_adapt > 250) {
             if (this->lock_offset[idx] < 1000) {
                 this->lock_offset[idx] += 2;
             }
+            this->last_adapt_check = GET_CLOCK_TIME();
         }
         this->tcc_pressure_target = output_mpc + this->lock_offset[idx];
     }
-    this->last_adapt_check = GET_CLOCK_TIME();
     
     if (this->tcc_pressure_target > this->tcc_pressure_current + 5 && this->current_tcc_state < targ) {
         // Increasing (Slow ramp)
         if (this->tcc_pressure_current == 0) {
-            this->tcc_pressure_current = this->tcc_pressure_target - 200;
+            this->tcc_pressure_current = MIN((this->tcc_pressure_target/3)*2, 1000);
         } else {
             this->tcc_pressure_current += MIN(5, this->tcc_pressure_target - this->tcc_pressure_current);
         }

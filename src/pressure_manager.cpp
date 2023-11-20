@@ -184,7 +184,6 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         } else {
             sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp));
         }
-        
         int tcc_corrected = this->target_tcc_pressure * ((float)valve_body_settings->working_pressure_compensation.new_min / (float)pump);
         sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(tcc_corrected));
     }
@@ -259,43 +258,56 @@ void PressureManager::notify_shift_end() {
 
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
     ShiftData sd; 
+    uint8_t lookup_valve_info = 0;
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:
             sd.targ_g = 2; sd.curr_g = 1;
             sd.shift_circuit = ShiftCircuit::sc_1_2;
+            lookup_valve_info = 0;
             break;
         case ProfileGearChange::TWO_THREE:
             sd.targ_g = 3; sd.curr_g = 2;
             sd.shift_circuit = ShiftCircuit::sc_2_3;
+            lookup_valve_info = 1;
             break;
         case ProfileGearChange::THREE_FOUR:
             sd.targ_g = 4; sd.curr_g = 3;
             sd.shift_circuit = ShiftCircuit::sc_3_4;
+            lookup_valve_info = 2;
             break;
         case ProfileGearChange::FOUR_FIVE:
             sd.targ_g = 5; sd.curr_g = 4;
             sd.shift_circuit = ShiftCircuit::sc_4_5;
+            lookup_valve_info = 3;
             break;
         case ProfileGearChange::FIVE_FOUR:
             sd.targ_g = 4; sd.curr_g = 5;
             sd.shift_circuit = ShiftCircuit::sc_4_5;
+            lookup_valve_info = 7;
             break;
         case ProfileGearChange::FOUR_THREE:
             sd.targ_g = 3; sd.curr_g = 4;
             sd.shift_circuit = ShiftCircuit::sc_3_4;
+            lookup_valve_info = 6;
             break;
         case ProfileGearChange::THREE_TWO:
             sd.targ_g = 2; sd.curr_g = 3;
             sd.shift_circuit = ShiftCircuit::sc_2_3;
+            lookup_valve_info = 5;
             break;
         case ProfileGearChange::TWO_ONE:
             sd.targ_g = 1; sd.curr_g = 2;
             sd.shift_circuit = ShiftCircuit::sc_1_2;
+            lookup_valve_info = 4;
             break;
     }
+    sd.pressure_multi_mpc = MODULATING_P_OVERLAP_AREA_MAP[lookup_valve_info];
+    sd.pressure_multi_spc = SHIFT_P_OVERLAP_AREA_MAP[lookup_valve_info];
+    sd.mpc_pressure_spring_reduction = SHIFT_VALVE_SPRING_PRESSURE_MAP[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;
+
     return sd;
 }
 

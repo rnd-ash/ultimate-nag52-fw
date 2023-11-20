@@ -98,3 +98,18 @@ const int16_t HYDRALIC_PCS_MAP_X_HEADER[NUM_HYDRALIC_CALIBRATIONS][8] = {
     {0,  50,  600, 1000, 2350, 4500, 6600, 7700},
     {0, 100, 1300, 1800, 3250, 7100, 8200, 9700}
 };
+
+const float SHIFT_P_OVERLAP_AREA_MAP[SHIFT_VALVE_MAP_SIZE] = {
+    //   1-2    2-3    3-4    4-5    2-1    3-2    4-3    5-4
+       0.878, 1.059, 1.109, 1.407, 1.407, 0.534, 0.803, 0.878
+};
+
+const float MODULATING_P_OVERLAP_AREA_MAP[SHIFT_VALVE_MAP_SIZE] = {
+    //   1-2    2-3    3-4    4-5    2-1    3-2    4-3    5-4
+       1.407, 0.534, 0.803, 0.878, 0.878, 0.534, 1.109, 1.407
+};
+
+const int16_t SHIFT_VALVE_SPRING_PRESSURE_MAP[SHIFT_VALVE_MAP_SIZE] = {
+    // 1-2   2-3   3-4   4-5   2-1   3-2   4-3   5-4
+      -826, -168, -432, -826, -826, -168, -432, -826
+};

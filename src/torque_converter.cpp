@@ -87,7 +87,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 if (this->current_tcc_state >= InternalTccState::Slipping) {
                     // Check if we should FULLY lock
                     if (
-                        (sensors->pedal_pos != 0 && ((sensors->pedal_pos*100)/255) < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
+                        (sensors->pedal_pos != 0 && ((sensors->pedal_pos*100)/250) < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
                         sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
                     ) {
                         targ = InternalTccState::Closed;

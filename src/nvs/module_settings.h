@@ -126,8 +126,8 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
         .raw_max = 2500,
     },
     .sailing_mode_active_rpm = 500,
-    .force_lock_min_output_rpm = 2500,
-    .locking_pedal_pos_max = 15
+    .force_lock_min_output_rpm = 2000,
+    .locking_pedal_pos_max = 20
 };
 
 // Solenoid subsystem settings

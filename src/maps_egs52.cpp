@@ -1,5 +1,6 @@
 #include "maps.h"
 
+// N, 1,2,3,4,5,R1,R2
 const uint8_t STRONGEST_LOADED_CLUTCH_SMALL_NAG[8] = {3, 4, 0, 1, 1, 1, 5, 5};
 const uint8_t STRONGEST_LOADED_CLUTCH_LARGE_NAG[8] = {3, 2, 2, 1, 1, 1, 2, 2};
 

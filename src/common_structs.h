@@ -175,6 +175,7 @@ struct ShiftData{
     uint8_t curr_g;
     float pressure_multi_spc;
     float pressure_multi_mpc;
+    float shift_circuit_spc_multi;
     int16_t mpc_pressure_spring_reduction;
 };
 

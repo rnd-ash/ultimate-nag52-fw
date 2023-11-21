@@ -41,25 +41,16 @@ public:
      * 
      * @param targ Target Working pressure to achieve in mBar
      */
-    void set_target_modulating_working_pressure(uint16_t targ);
-    
-    /**
-     * @brief Set the target modulating pressure of the gearbox. 
-     * This pressure affects the actively engaged clutches in any gear, 
-     * as well as hydralic elements in the valve body
-     * 
-     * @param targ Target Working pressure to achieve in mBar
-     */
-    void set_target_modulating_releasing_pressure(uint16_t targ);
+    void set_target_modulating_pressure(uint16_t targ);
 
     /**
      * @brief Set the target Shift pressure clutch pressure.
      * Via means of the overlap valve, when a shift command solenoid is engaged,
      * this pressure is sent to the engaging clutch in the gearbox
      * 
-     * @param targ Target pressure to achieve in mBar
+     * @param targ Target shift pressure to achieve in mBar
      */
-    void set_target_shift_clutch_pressure(uint16_t targ);
+    void set_target_shift_pressure(uint16_t targ);
 
     /**
      * @brief Set the target TCC pressure (Torque converter)
@@ -132,10 +123,8 @@ private:
     
     // Shift pressure
     uint16_t target_shift_pressure = 0;
-    // Modulating pressure (For maintaing gear)
+    // Modulating pressure
     uint16_t target_modulating_pressure = 0;
-    // Modulating pressure (For releasing old clutch in a shift)
-    uint16_t target_modulating_clutch_pressure = 0;
     // TCC pressure
     uint16_t target_tcc_pressure = 0;
     uint16_t corrected_spc_pressure = 0;

@@ -115,13 +115,6 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
         valve_body_settings->pressure_correction_pump_speed_max,
         InterpType::Linear
     );
-
-    if (in_spc > this->valve_body_settings->shift_regulator_force_mbar) {
-        in_spc = 0;
-    } else {
-        in_spc -= this->valve_body_settings->shift_regulator_force_mbar;
-    }
-
     float spc_reduction = in_spc * k1_factor;
     return (fac * regulator_pressure) + extra_pressure - spc_reduction;
 }
@@ -145,14 +138,6 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     } else {
         uint16_t spc_in = this->target_shift_pressure;
         uint16_t mpc_in = this->target_modulating_pressure;
-        uint16_t mpcc_in = this->target_modulating_clutch_pressure;
-
-        // Shift solenoid 1-2 active, reduce SPC and mpc(clutch release) influence
-        if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
-            spc_in /= valve_body_settings->shift_circuit_factor_1_2;
-        }
-
-        mpc_in += mpcc_in;
 
         uint16_t wp = this->calc_working_pressure(current_gear, mpc_in, spc_in);
         uint16_t pump = this->calc_input_pressure(wp);
@@ -304,6 +289,7 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
     sd.pressure_multi_mpc = MODULATING_P_OVERLAP_AREA_MAP[lookup_valve_info];
     sd.pressure_multi_spc = SHIFT_P_OVERLAP_AREA_MAP[lookup_valve_info];
     sd.mpc_pressure_spring_reduction = SHIFT_VALVE_SPRING_PRESSURE_MAP[lookup_valve_info];
+    sd.shift_circuit_spc_multi = SHIFT_CIRCUIT_FACTOR_MAP[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;
@@ -385,16 +371,12 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
     }
 }
 
-void PressureManager::set_target_shift_clutch_pressure(uint16_t targ) {
+void PressureManager::set_target_shift_pressure(uint16_t targ) {
     this->target_shift_pressure = targ;
 }
 
-void PressureManager::set_target_modulating_working_pressure(uint16_t targ) {
+void PressureManager::set_target_modulating_pressure(uint16_t targ) {
     this->target_modulating_pressure = targ;
-}
-
-void PressureManager::set_target_modulating_releasing_pressure(uint16_t targ) {
-    this->target_modulating_clutch_pressure = targ;
 }
 
 void PressureManager::set_spc_p_max() {
@@ -427,7 +409,7 @@ uint16_t PressureManager::get_input_shift_pressure(void) const {
 }
 
 uint16_t PressureManager::get_input_modulating_pressure(void) const {
-    return this->target_modulating_pressure + this->target_modulating_clutch_pressure;
+    return this->target_modulating_pressure;
 }
 
 uint16_t PressureManager::get_corrected_spc_pressure(void) const {

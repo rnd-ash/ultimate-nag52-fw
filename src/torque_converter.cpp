@@ -157,19 +157,27 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     if (this->tcc_pressure_target > this->tcc_pressure_current + 5 && this->current_tcc_state < targ) {
-        // Increasing (Slow ramp)
-        if (this->tcc_pressure_current == 0) {
-            this->tcc_pressure_current = MIN((this->tcc_pressure_target/3)*2, 1000);
+        if (targ == InternalTccState::Slipping) {
+            // Just slipping, instant increase
+            this->tcc_pressure_current = this->tcc_pressure_target;
         } else {
-            this->tcc_pressure_current += MIN(5, this->tcc_pressure_target - this->tcc_pressure_current);
+            // Increasing (Slow ramp)
+            if (this->tcc_pressure_current == 0) {
+                this->tcc_pressure_current = MIN((this->tcc_pressure_target/3)*2, 1000);
+            } else {
+                this->tcc_pressure_current += MIN(5, this->tcc_pressure_target - this->tcc_pressure_current);
+            }
         }
     } else {
         // Equal or less than (Jump to requested)
-        this->current_tcc_state = targ;
         this->tcc_pressure_current = this->tcc_pressure_target;
     }
     if (this->tcc_pressure_current < 0) {
         this->tcc_pressure_current = 0;
+    }
+    // Change state if pressure target met
+    if (this->tcc_pressure_current == this->tcc_pressure_target) {
+        this->current_tcc_state = targ;
     }
 
     pm->set_target_tcc_pressure(this->tcc_pressure_current);

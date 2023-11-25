@@ -208,7 +208,7 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
-uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
+uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc) {
     uint16_t ret = this->solenoid_max_pressure;
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float friction_coefficient = interpolate_float(
@@ -221,7 +221,7 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
     );
     float friction_val = this->clutch_friction_coefficient_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
-    if (calc < this->valve_body_settings->minimum_mpc_pressure) {
+    if (calc < this->valve_body_settings->minimum_mpc_pressure && clamp_to_min_mpc) {
         calc = this->valve_body_settings->minimum_mpc_pressure;
     } else if (calc > this->solenoid_max_pressure) {
         calc = this->solenoid_max_pressure;

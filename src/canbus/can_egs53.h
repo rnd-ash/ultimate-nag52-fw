@@ -26,7 +26,7 @@ class Egs53Can: public EgsBaseCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // Gets the shifter position
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+        ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode

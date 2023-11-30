@@ -128,7 +128,7 @@ WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs52Can::get_shifter_position(const uint32_t expire_time_ms) {
+ShifterPosition Egs52Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
 	EWM_230_EGS52 dest;
 	if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))

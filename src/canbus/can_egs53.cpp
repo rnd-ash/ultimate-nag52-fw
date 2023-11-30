@@ -149,7 +149,7 @@ WheelData Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs53Can::get_shifter_position(const uint32_t expire_time_ms) {
+ShifterPosition Egs53Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
     SBW_RS_ISM_EGS53 tslm;
     if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms*1000, &tslm)) {
         switch (tslm.TSL_Posn_ISM) {

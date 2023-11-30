@@ -72,8 +72,17 @@ class EgsBaseCan {
         }
         
 
-        virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
+        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
             return shifter->get_shifter_position(expire_time_ms);
+        }
+
+        /**
+         * @brief Only Call from Shifter!
+         * @param expire_time_ms 
+         * @return 
+         */
+        virtual ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
+            return ShifterPosition::SignalNotAvailable;
         }
 
         /**

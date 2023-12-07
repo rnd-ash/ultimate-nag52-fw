@@ -193,27 +193,27 @@ typedef struct {
     // Shift timeout when coasting
     // UNIT: milliseconds
     uint16_t shift_timeout_coasting;
-    // DEBUG
-    float smooth_shifting_spc_multi_too_slow;
-    // DEBUG
-    float smooth_shifting_spc_multi_too_fast;
-    // Maximum torque reduction this far into the shift when upshifting
-    // UNIT: %
-    uint16_t upshift_trq_max_reduction_at;
-    // Maximum torque reduction this far into the shift when downshifting
-    // UNIT: %
-    uint16_t downshift_trq_max_reduction_at;
-    // SPC ramp multiplier based on target shift speed
-    LinearInterpSetting spc_multi_overlap_shift_speed;
-    // SPC multiplier when at 0 gearbox torque
-    float spc_multi_overlap_zero_trq;
-    // SPC multiplier when at maximum gearbox torque
-    float spc_multi_overlap_max_trq;
     // When garage shifting, this is the maximum time to wait
     // for engine to drop its RPM when we ask it to before performing
     // the garage shift
     // UNIT: milliseconds
     uint16_t garage_shift_max_timeout_engine;
+    // Enable torque request for the 1-2 upshift
+    bool trq_req_1_2_enable;
+    // Enable torque request for the 2-3 upshift
+    bool trq_req_2_3_enable;
+    // Enable torque request for the 3-4 upshift
+    bool trq_req_3_4_enable;
+    // Enable torque request for the 4-5 upshift
+    bool trq_req_4_5_enable;
+    // Enable torque request for the 5-4 downshift
+    bool trq_req_5_4_enable;
+    // Enable torque request for the 4-3 downshift
+    bool trq_req_4_3_enable;
+    // Enable torque request for the 3-2 downshift
+    bool trq_req_3_2_enable;
+    // Enable torque request for the 2-1 downshift
+    bool trq_req_2_1_enable;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
@@ -235,19 +235,15 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .stationary_shift_hold_time = 1000,
     .shift_timeout_pulling = 3000,
     .shift_timeout_coasting = 5000,
-    .smooth_shifting_spc_multi_too_slow = 2.0,
-    .smooth_shifting_spc_multi_too_fast = 0.5,
-    .upshift_trq_max_reduction_at = 50,
-    .downshift_trq_max_reduction_at = 100,
-    .spc_multi_overlap_shift_speed = {
-        .new_min = 1.0,
-        .new_max = 5.0,
-        .raw_min = 500,
-        .raw_max = 100,
-    },
-    .spc_multi_overlap_zero_trq = 2.0,
-    .spc_multi_overlap_max_trq = 30.0,
     .garage_shift_max_timeout_engine = 1000,
+    .trq_req_1_2_enable = true,
+    .trq_req_2_3_enable = true,
+    .trq_req_3_4_enable = true,
+    .trq_req_4_5_enable = true,
+    .trq_req_5_4_enable = true,
+    .trq_req_4_3_enable = true,
+    .trq_req_3_2_enable = true,
+    .trq_req_2_1_enable = true,
 };
 
 /// Hydralic valve body settings

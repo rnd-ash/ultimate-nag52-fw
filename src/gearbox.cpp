@@ -426,6 +426,38 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         Clutch applying = get_clutch_to_apply(req_lookup);
         Clutch releasing = get_clutch_to_apply(req_lookup);
         int off_clutch_pressure = prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch;
+        
+        bool enable_torque_request = true;
+        switch (req_lookup) {
+            case ProfileGearChange::ONE_TWO:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_1_2_enable;
+                break;
+            case ProfileGearChange::TWO_THREE:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_2_3_enable;
+                break;
+            case ProfileGearChange::THREE_FOUR:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_3_4_enable;
+                break;
+            case ProfileGearChange::FOUR_FIVE:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_4_5_enable;
+                break;
+
+            case ProfileGearChange::FIVE_FOUR:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_5_4_enable;
+                break;
+            case ProfileGearChange::FOUR_THREE:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_4_3_enable;
+                break;
+            case ProfileGearChange::THREE_TWO:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_3_2_enable;
+                break;
+            case ProfileGearChange::TWO_ONE:
+                enable_torque_request = SBS_CURRENT_SETTINGS.trq_req_2_1_enable;
+                break;
+            default:
+                break;
+        };
+        
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -468,9 +500,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->shifting_velocity.on_clutch_vel = old_cs.on_clutch_speed - now_cs.on_clutch_speed;
                     this->shifting_velocity.off_clutch_vel = old_cs.off_clutch_speed - now_cs.off_clutch_speed;
                     old_cs = now_cs;
-                    if (now_cs.off_clutch_speed > 0) {
-                        
-                    }
                 }
                 if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed && now_cs.on_clutch_speed < 25) {
                     detected_shift_done_clutch_progress = true;
@@ -491,39 +520,40 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 // for Max Pressure or overlap
 
-                bool goto_torque_ramp = false;
-                if (output_data.ctrl_type != TorqueRequestControlType::None) {
-                    goto_torque_ramp = true;
-                }
-                if (sensor_data.static_torque > gearboxConfig.max_torque/5 && now_cs.off_clutch_speed < 100) { // Torque below bounds
-                    if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
+                if (enable_torque_request) {
+                    bool goto_torque_ramp = false;
+                    if (output_data.ctrl_type != TorqueRequestControlType::None) {
                         goto_torque_ramp = true;
                     }
-                }
-
-                if (goto_torque_ramp) {
-                    if (total_elapsed <= torque_req_max_time) {
-                        target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
-                        int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::Linear);
-                        current_torque_req = MIN(torque, current_torque_req);
-                        this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
-                        if (now_cs.off_clutch_speed > now_cs.on_clutch_speed && now_cs.on_clutch_speed < 20) { // Switchover completed early!
-                            torque_req_max_time = total_elapsed;
-                            target_reduction_torque = target_reduction_torque;
+                    if (sensor_data.static_torque > gearboxConfig.max_torque/5 && now_cs.off_clutch_speed < 100) { // Torque below bounds
+                        if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
+                            goto_torque_ramp = true;
                         }
-                    } else { // Decreasing still, or increasing
-                        if (now_cs.off_clutch_speed > 100) {
-                            if (trq_up_time == 0) {
-                                trq_up_time = total_elapsed;
-                            }
+                    }
 
-                            int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::Linear);
-                            current_torque_req = MAX(torque, current_torque_req);
-                            this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
+                    if (goto_torque_ramp) {
+                        if (total_elapsed <= torque_req_max_time) {
+                            target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
+                            int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::Linear);
+                            current_torque_req = MIN(torque, current_torque_req);
+                            this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
+                            if (now_cs.off_clutch_speed > now_cs.on_clutch_speed && now_cs.on_clutch_speed < 20) { // Switchover completed early!
+                                torque_req_max_time = total_elapsed;
+                                target_reduction_torque = target_reduction_torque;
+                            }
+                        } else { // Decreasing still, or increasing
+                            if (now_cs.off_clutch_speed > 100) {
+                                if (trq_up_time == 0) {
+                                    trq_up_time = total_elapsed;
+                                }
+
+                                int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::Linear);
+                                current_torque_req = MAX(torque, current_torque_req);
+                                this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
+                            }
                         }
                     }
                 }
-
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
                 shifting_velocity = {0, 0};

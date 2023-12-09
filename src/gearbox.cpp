@@ -534,7 +534,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (goto_torque_ramp) {
                         if (total_elapsed <= torque_req_max_time) {
                             target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
-                            int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::Linear);
+                            int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::EaseInEaseOut);
                             current_torque_req = MIN(torque, current_torque_req);
                             this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
                             if (now_cs.off_clutch_speed > now_cs.on_clutch_speed && now_cs.on_clutch_speed < 20) { // Switchover completed early!
@@ -547,7 +547,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                                     trq_up_time = total_elapsed;
                                 }
 
-                                int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::Linear);
+                                int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::EaseInEaseOut);
                                 current_torque_req = MAX(torque, current_torque_req);
                                 this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
                             }

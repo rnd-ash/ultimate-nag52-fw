@@ -350,6 +350,25 @@ int Egs53Can::esp_torque_demand(const uint32_t expire_time_ms) {
     return INT_MAX; // TODO
 }
 
+TccReqState Egs53Can::get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+    TX_RQ_ECM_EGS53 tx_rq_ecm;
+    TccReqState ret = TccReqState::None;
+    // Check for slip first
+    if (this->ecm_ecu.get_TX_RQ_ECM(GET_CLOCK_TIME(), expire_time_ms, &tx_rq_ecm)) {
+        switch (tx_rq_ecm.TCC_Rq) {
+            case TX_RQ_ECM_TCC_Rq_EGS53::ENGG:
+                ret = TccReqState::Slipping;
+                break;
+            case TX_RQ_ECM_TCC_Rq_EGS53::DISENGG:
+                ret = TccReqState::Open;
+                break;
+            default:
+                break;
+        }
+    }
+    return ret;
+}
+
 void Egs53Can::set_clutch_status(TccClutchStatus status) {
     
 }

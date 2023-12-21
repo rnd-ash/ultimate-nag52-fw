@@ -97,6 +97,10 @@ typedef struct {
     //
     // UNIT: %
     uint8_t locking_pedal_pos_max;
+    // Open the converter to slipping (If locked) if the engine requests it
+    bool react_on_engine_slip_request;
+    // Open the converter fully, if the engine requests it
+    bool react_on_engine_open_request;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {

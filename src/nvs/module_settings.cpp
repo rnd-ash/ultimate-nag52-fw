@@ -73,31 +73,31 @@ esp_err_t ModuleConfiguration::load_all_settings() {
 esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
     switch (idx) {
         case TCC_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(TCC);
+            RESET_EEPROM_SETINGS(TCC)
             break;
         case SOL_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(SOL);
+            RESET_EEPROM_SETINGS(SOL)
             break;
         case SBS_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(SBS);
+            RESET_EEPROM_SETINGS(SBS)
             break;
         case NAG_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(NAG);
+            RESET_EEPROM_SETINGS(NAG)
             break;
         case PRM_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(PRM);
+            RESET_EEPROM_SETINGS(PRM)
             break;
         case ADP_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(ADP);
+            RESET_EEPROM_SETINGS(ADP)
             break;
         case ETS_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(ETS);
+            RESET_EEPROM_SETINGS(ETS)
             break;
         case HYD_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(HYD);
+            RESET_EEPROM_SETINGS(HYD)
             break;
         case CAL_MODULE_SETTINGS_SCN_ID:
-            RESET_EEPROM_SETINGS(CAL);
+            RESET_EEPROM_SETINGS(CAL)
             break;
         default:
             return ESP_ERR_INVALID_ARG;

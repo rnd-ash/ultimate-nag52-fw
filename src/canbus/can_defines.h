@@ -159,4 +159,10 @@ const WheelData DEFAULT_SNV_WD {
     .current_dir = WheelDirection::SignalNotAvailable
 };
 
+enum class TccReqState {
+    None = 0,
+    Slipping = 1,
+    Open = 2
+};
+
 #endif

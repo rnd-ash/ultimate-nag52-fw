@@ -214,6 +214,25 @@ uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     }
 }
 
+TccReqState Egs51Can::get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+    MS_210_EGS51 ms210;
+    MS_308_EGS51 ms308;
+    TccReqState ret = TccReqState::None;
+    // Check for slip first
+    if (this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
+        if (ms210.KUEB_S_A) {
+            ret = TccReqState::Slipping;
+        }
+    }
+    // Then check if engine wants open
+    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
+        if (ms308.KUEB_O_A) {
+            ret = TccReqState::Open;
+        }
+    }
+    return ret;
+}
+
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
         case TccClutchStatus::Open:

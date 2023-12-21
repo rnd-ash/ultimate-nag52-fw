@@ -292,6 +292,10 @@ class EgsBaseCan {
         virtual int esp_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
+
+        virtual TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+            return TccReqState::None;
+        }
         
         /**
          * Setters

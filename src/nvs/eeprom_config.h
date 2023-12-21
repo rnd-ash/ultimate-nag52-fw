@@ -84,7 +84,7 @@ namespace EEPROM {
 
     template <typename T>
     esp_err_t write_subsystem_settings(const char* key_name, const T* write);
-};
+}
 
 #define NUM_GEARS 5
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;

@@ -225,6 +225,8 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
         calc = this->valve_body_settings->minimum_mpc_pressure;
     } else if (calc > this->solenoid_max_pressure) {
         calc = this->solenoid_max_pressure;
+    } else if (!clamp_to_min_mpc && calc < this->valve_body_settings->minimum_mpc_pressure/3) {
+        calc = this->valve_body_settings->minimum_mpc_pressure/3;
     }
     ret = calc;
     return ret;

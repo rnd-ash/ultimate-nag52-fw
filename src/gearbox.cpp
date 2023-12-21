@@ -426,7 +426,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         Clutch applying = get_clutch_to_apply(req_lookup);
         Clutch releasing = get_clutch_to_apply(req_lookup);
         int off_clutch_pressure = prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch;
-        
         bool enable_torque_request = true;
         switch (req_lookup) {
             case ProfileGearChange::ONE_TWO:
@@ -657,27 +656,32 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     prefill_adapt_flags = 0x1000;
                 }
             } else if (current_stage == ShiftStage::Overlap) {
+                float spc_overlap_step = (float)wp_new_clutch / (float)(chars.target_shift_time / SHIFT_DELAY_MS);
+                if (!stationary_shift) {
+                    spc_overlap_step = interpolate_float(
+                        now_cs.on_clutch_speed,
+                        spc_overlap_step,
+                        spc_overlap_step/8,
+                        pre_cs.on_clutch_speed,
+                        0,
+                        InterpType::Linear
+                    );
+                }
+
                 if (!stationary_shift && now_cs.off_clutch_speed > now_cs.on_clutch_speed) {
                     this->tcc->on_shift_ending();
                 }
+                spc_delta += spc_overlap_step;
                 //int reduction = interpolate_float(sensor_data.pedal_pos, spring_pressure_off_clutch, spring_pressure_off_clutch/2, 25, 128, InterpType::Linear);
                 //float sportiness = interpolate_float(sensor_data.driver_requested_torque, 1.0, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
                 //if (now_cs.off_clutch_speed < 100) {
-                    off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch, 0, 0, chars.target_shift_time, InterpType::Linear);
+                off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch, 0, 0, chars.target_shift_time/2, InterpType::Linear);
                 //}
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)
                 //float overlap_ending_spc = current_working_pressure + prefill_data.fill_pressure_on_clutch*1.5;
                 //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
                 //float wp_multiplier = interpolate_float(sensor_data.pedal_pos, 0.5, 1.0, 25, 128, InterpType::Linear);
-                
-                current_shift_pressure =  MAX(prev_shift_pressure + interpolate_float(
-                    phase_elapsed,
-                    0,
-                    wp_new_clutch*2,
-                    0,
-                    chars.target_shift_time*2,
-                    InterpType::Linear
-                ) / sd.shift_circuit_spc_multi, current_shift_pressure);
+                current_shift_pressure =  MAX((prev_shift_pressure + spc_delta) / sd.shift_circuit_spc_multi, current_shift_pressure);
                 current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             }/* else if (current_stage == ShiftStage::Synchronize) {
                 current_shift_pressure =  MAX(prev_shift_pressure + interpolate_float(
@@ -815,8 +819,6 @@ void Gearbox::shift_thread()
                 pressure_mgr->set_target_shift_pressure(working/2);
                 pressure_mgr->set_target_modulating_pressure(working);
             }
-
-            
             this->pressure_mgr->update_pressures(this->actual_gear);
             // N/P -> R/D
             // Defaults (Start in 2nd)

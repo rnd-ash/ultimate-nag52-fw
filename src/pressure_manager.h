@@ -99,6 +99,8 @@ public:
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
+
+    const VBY_SETTINGS* vby_settings() { return this->valve_body_settings; }
 private:
 
     uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);

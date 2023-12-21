@@ -13,10 +13,9 @@
 #include "moving_average.h"
 
 enum class InternalTccState {
-    None = 0,
-    Open = 1,
-    Slipping = 2,
-    Closed = 3
+    Open = 0,
+    Slipping = 1,
+    Closed = 2
 };
 
 class TorqueConverter {
@@ -50,6 +49,8 @@ class TorqueConverter {
         // In % (0-100) - 100 is returned if already at next phase
         uint8_t progress_to_next_phase(void);
 
+        void set_stationary();
+
     private:
         bool tcc_solenoid_enabled = true;
         inline void reset_rpm_samples(SensorData* sensors);
@@ -64,8 +65,10 @@ class TorqueConverter {
         uint32_t last_adapt_check = 0;
         uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
-        int16_t slip_offset[5] = {-500, -500, -500, -500, -500};
-        int16_t lock_offset[5] = {-100, -100, -100, -100, -100};
+        uint16_t slip_offset[5] = {400, 400, 400, 400, 400};
+        uint16_t lock_offset[5] = {700, 700, 700, 700, 700};
+        bool was_stationary = true;
+        uint32_t last_state_stable_time = 0;
 };
 
 #endif

@@ -98,8 +98,12 @@ typedef struct {
     // UNIT: %
     uint8_t locking_pedal_pos_max;
     // Open the converter to slipping (If locked) if the engine requests it
+    // This is used on the M113K platform when the supercharger clutch
+    // is about to engage, so that the shock of the supercharger coming on does
+    // not cause too much discomfort
     bool react_on_engine_slip_request;
-    // Open the converter fully, if the engine requests it
+    // Open the converter fully, if the engine requests it.
+    // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
@@ -131,7 +135,9 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     },
     .sailing_mode_active_rpm = 500,
     .force_lock_min_output_rpm = 2000,
-    .locking_pedal_pos_max = 20
+    .locking_pedal_pos_max = 20,
+    .react_on_engine_slip_request = true,
+    .react_on_engine_open_request = true
 };
 
 // Solenoid subsystem settings

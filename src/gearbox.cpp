@@ -420,8 +420,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int spc_delta = 0;
         int trq_up_time = 0;
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
-
-        this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
+        if (
+            req_lookup == ProfileGearChange::FIVE_FOUR || req_lookup == ProfileGearChange::FIVE_FOUR ||
+            req_lookup == ProfileGearChange::THREE_FOUR || req_lookup == ProfileGearChange::FOUR_THREE
+        ) {
+            this->tcc->set_shift_target_state(InternalTccState::Slipping);
+        } else {
+            this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
+        }
 
         Clutch applying = get_clutch_to_apply(req_lookup);
         Clutch releasing = get_clutch_to_apply(req_lookup);

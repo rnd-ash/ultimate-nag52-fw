@@ -103,7 +103,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if ((c_gear == 1 && t_gear == 2) || (c_gear == 2 && t_gear == 1)) {
+    if (sol_y3->is_on()) { // 1-2 shift circuit is activated
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
         k1_factor = valve_body_settings->k1_engaged_factor;
     }

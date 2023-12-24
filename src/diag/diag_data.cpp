@@ -90,6 +90,18 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
     return ret;
 }
 
+DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
+    DATA_TCC_PROGRAM ret = {};
+    ret.current_pressure = gb_ptr->tcc->get_current_pressure();
+    ret.target_pressure = gb_ptr->tcc->get_target_pressure();
+    ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();
+    ret.slip_now = (int16_t)gb_ptr->sensor_data.engine_rpm - (int16_t)gb_ptr->sensor_data.input_rpm;
+    ret.targ_state = gb_ptr->tcc->get_target_state();
+    ret.current_state = gb_ptr->tcc->get_current_state();
+    ret.can_request_bits = 0; // TODO
+    return ret;
+}
+
 DATA_DMA_BUFFER dump_i2s_dma(void) {
     DATA_DMA_BUFFER dma = {};
     dma.dma = 0;

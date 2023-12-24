@@ -31,7 +31,7 @@ class TorqueConverter {
          * @param sensors Sensor data used as input
          * @param shifting True if the car is currently transitioning to new gear
          */
-        void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting);
+        void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors);
         TccClutchStatus get_clutch_state(void);
         void save() {
             if (this->tcc_learn_lockup_map != nullptr && this->pending_changes) {
@@ -51,7 +51,15 @@ class TorqueConverter {
 
         void set_stationary();
 
+        int16_t get_slip_filtered();
+        uint8_t get_current_state();
+        uint8_t get_target_state();
+        uint8_t get_can_req_bits();
+        uint16_t get_current_pressure();
+        uint16_t get_target_pressure();
+
     private:
+        bool is_shifting = false;
         bool tcc_solenoid_enabled = true;
         inline void reset_rpm_samples(SensorData* sensors);
         int tcc_pressure_target = 0;
@@ -65,8 +73,9 @@ class TorqueConverter {
         uint32_t last_adapt_check = 0;
         uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
-        uint16_t slip_offset[5] = {400, 400, 400, 400, 400};
-        uint16_t lock_offset[5] = {700, 700, 700, 700, 700};
+        float slip_multi[5] = {0.2, 0.3, 0.3, 0.4, 0.4};
+        float coast_multi[5] = {0.1, 0.2, 0.2, 0.3, 0.3};
+        float lock_multi[5] = {0.3, 0.4, 0.4, 0.5, 0.5};
         bool was_stationary = true;
         uint32_t last_state_stable_time = 0;
 };

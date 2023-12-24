@@ -25,6 +25,7 @@
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
 #define RLI_SYS_USAGE       0x23 // Brain usage
+#define RLI_TCC_PROGRAM     0x24 // TCC info
 #define RLI_PRESSURES       0x25
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
@@ -121,6 +122,22 @@ typedef struct {
     uint32_t num_tasks;
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
+/// Torque converter program stats 
+typedef struct {
+    uint16_t current_pressure;
+    uint16_t target_pressure;
+    int16_t slip_now;
+    int16_t slip_filtered;
+    // 0 - Open
+    // 1 - Slip
+    // 2 - Closed
+    uint8_t targ_state;
+    uint8_t current_state;
+    // 0b1 - Open request 
+    // 0b01 - Slip request
+    uint8_t can_request_bits;
+} __attribute__ ((packed)) DATA_TCC_PROGRAM;
+
 typedef struct {
     uint16_t adc_reading;
     uint16_t dma;
@@ -153,6 +170,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
 DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
+DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr);
 
 // Read and write TCU Module settings
 

@@ -381,10 +381,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // Min input torque to perform shift overlap torque ramp
         int torque_lim_ramp_shift = torque_lim_adapt/2;
 
-        // Prefill phase time calculations
-        int torque_req_start_time = prefill_data.fill_time;
-        int torque_req_max_time = prefill_data.fill_time + (chars.target_shift_time/2);
-
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
         } else {
@@ -537,17 +533,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
 
                     if (goto_torque_ramp) {
-                        if (total_elapsed <= torque_req_max_time) {
+                        if (current_stage == ShiftStage::Overlap && phase_elapsed <= chars.target_shift_time/2) {
                             target_reduction_torque = calc_torque_limit(req_lookup, chars.target_shift_time);
-                            int torque = interpolate_float(total_elapsed, torque_req_upper_torque, target_reduction_torque, torque_req_start_time, torque_req_max_time, InterpType::EaseInEaseOut);
+                            int torque = interpolate_float(phase_elapsed, torque_req_upper_torque, target_reduction_torque, 0, chars.target_shift_time/2, InterpType::EaseInEaseOut);
                             current_torque_req = MIN(torque, current_torque_req);
                             this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque);
                             if (now_cs.off_clutch_speed > now_cs.on_clutch_speed && now_cs.on_clutch_speed < 20) { // Switchover completed early!
-                                torque_req_max_time = total_elapsed;
+                                //torque_req_max_time = total_elapsed;
                                 target_reduction_torque = target_reduction_torque;
                             }
                         } else { // Decreasing still, or increasing
-                            if (now_cs.off_clutch_speed > 100) {
+                            if (now_cs.off_clutch_speed > 100 && current_stage == ShiftStage::Overlap) {
                                 if (trq_up_time == 0) {
                                     trq_up_time = total_elapsed;
                                 }
@@ -555,6 +551,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                                 int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::EaseInEaseOut);
                                 current_torque_req = MAX(torque, current_torque_req);
                                 this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
+                            } else if (current_stage > ShiftStage::Overlap && now_cs.on_clutch_speed < 50) {
+                                // Max pressure phase - Disable torque requests since overlap is complete
+                                this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
                             }
                         }
                     }

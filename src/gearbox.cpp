@@ -526,7 +526,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (output_data.ctrl_type != TorqueRequestControlType::None) {
                         goto_torque_ramp = true;
                     }
-                    if (sensor_data.static_torque > gearboxConfig.max_torque/5 && now_cs.off_clutch_speed < 100) { // Torque below bounds
+                    if (sensor_data.static_torque > gearboxConfig.max_torque/4 && now_cs.off_clutch_speed < 100) { // Torque below bounds
                         if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
                             goto_torque_ramp = true;
                         }
@@ -551,7 +551,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                                 int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::EaseInEaseOut);
                                 current_torque_req = MAX(torque, current_torque_req);
                                 this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
-                            } else if (current_stage > ShiftStage::Overlap && now_cs.on_clutch_speed < 50) {
+                            } else if (now_cs.on_clutch_speed < 10) {
                                 // Max pressure phase - Disable torque requests since overlap is complete
                                 this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
                             }
@@ -678,10 +678,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 spc_delta += spc_overlap_step;
                 //int reduction = interpolate_float(sensor_data.pedal_pos, spring_pressure_off_clutch, spring_pressure_off_clutch/2, 25, 128, InterpType::Linear);
-                //float sportiness = interpolate_float(sensor_data.driver_requested_torque, 1.0, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
                 //if (now_cs.off_clutch_speed < 100) {
                 if (stationary_shift || now_cs.off_clutch_speed < now_cs.on_clutch_speed) {
-                    off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch, spring_pressure_off_clutch/2, 0, chars.target_shift_time/2, InterpType::Linear);
+                    float release_speed_factor = interpolate_float(sensor_data.driver_requested_torque, 0.5, 0.25, 50, gearboxConfig.max_torque, InterpType::Linear);
+                    off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch, spring_pressure_off_clutch/2, 0, chars.target_shift_time*release_speed_factor, InterpType::Linear);
                 }
                 //}
                 // Max shift clutch pressure increase beyond shift time (Fixes slow 1-2)

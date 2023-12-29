@@ -5,7 +5,7 @@
 // AT 12.0V
 const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
 const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
-const uint16_t INRUSH_TIME_US = 25000; 
+const uint16_t INRUSH_TIME_US = 15000; 
 const uint16_t INRUSH_PWM = 4096;
 const uint16_t HOLD_PWM = 1300;
 
@@ -116,7 +116,9 @@ uint32_t InrushControlSolenoid::on_timer_interrupt() {
         }
     }
     ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, write_pwm);
-    ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
+    while (ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel) != write_pwm) {
+        ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
+    }
     return ret;
 }
 
@@ -127,9 +129,9 @@ void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperatu
 
 void InrushControlSolenoid::set_duty(uint16_t duty) {
     this->pwm_raw = duty;
-    this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US);
+    this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
     if (this->period_on_time > INRUSH_TIME_US) {
-        this->hold_time = this->period_on_time - INRUSH_TIME_US;
+        this->hold_time = this->period_on_time - (INRUSH_TIME_US);
         this->inrush_time = INRUSH_TIME_US;
     } else {
         this->inrush_time = this->period_on_time;

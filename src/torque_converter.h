@@ -73,9 +73,8 @@ class TorqueConverter {
         uint32_t last_adapt_check = 0;
         uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
-        float slip_multi[5] = {0.2, 0.3, 0.3, 0.4, 0.4};
-        float coast_multi[5] = {0.1, 0.2, 0.2, 0.3, 0.3};
-        float lock_multi[5] = {0.3, 0.4, 0.4, 0.5, 0.5};
+        int16_t slip_offset[5] = {-500, -500, -500, -500, -500};
+        int16_t lock_offset[5] = {-200, -200, -200, -200, -200};
         bool was_stationary = true;
         uint32_t last_state_stable_time = 0;
 };

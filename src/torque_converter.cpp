@@ -68,7 +68,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     GearboxGear cmp_gear = curr_gear;
-    this->slip_average->add_sample((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
+    if (GET_CLOCK_TIME() - this->last_slip_add_time > 40) {
+        this->slip_average->add_sample((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
+        this->last_slip_add_time = GET_CLOCK_TIME();
+    }
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
     if (
@@ -84,19 +87,20 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 targ = InternalTccState::Slipping; // Gliding mode
             } else {
                 int slip_now = abs(sensors->engine_rpm - sensors->input_rpm);
-                if (this->target_tcc_state == InternalTccState::Open && sensors->pedal_pos < 60 && slip_now < 50) {
+                int slip_avg = abs(this->slip_average->get_average());
+                if (this->target_tcc_state == InternalTccState::Open && sensors->pedal_pos < 80 && slip_now < 100 && slip_avg < 100) {
                     targ = InternalTccState::Slipping;
                 } else if (this->target_tcc_state > InternalTccState::Open) {
                     targ = InternalTccState::Slipping;
                 }
-                if (targ >= InternalTccState::Slipping) {
+                if (this->target_tcc_state >= InternalTccState::Slipping) {
                     // Check if we should FULLY lock
                     if (
                         (sensors->pedal_pos != 0 && ((sensors->pedal_pos*100)/250) < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
                         sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
                     ) {
                         // Only lock if we have low slip
-                        if (abs(sensors->engine_rpm - sensors->input_rpm) < 40) {
+                        if (slip_now < 30 && slip_avg < 30) {
                             targ = InternalTccState::Closed;
                         }
                     }
@@ -150,28 +154,28 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_pressure_target = 0;
     } else if (this->target_tcc_state == InternalTccState::Slipping) {
         if (calc_friction_torque > 0) {
-            if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 100 && time_since_last_adapt > 500) {
-                if (this->slip_multi[idx] < 1) {
-                    this->slip_multi[idx] += 0.01;
-                    this->slip_multi[idx] = MAX(this->slip_multi[idx], this->lock_multi[idx]);
+            if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 100 && time_since_last_adapt > 1000) {
+                if (this->slip_offset[idx] < 0) {
+                    this->slip_offset[idx] += 2;
+                    this->lock_offset[idx] = MAX(this->slip_offset[idx], this->lock_offset[idx]);
                 }
                 this->last_adapt_check = GET_CLOCK_TIME();
-            } else if (at_req_pressure && sensors->static_torque > 100 && rpm_delta <= 20 && time_since_last_adapt > 500) {
-                if (this->slip_multi[idx] > 0) {
-                    this->slip_multi[idx] -= 0.005; // 0.5%
+            } else if (at_req_pressure && sensors->static_torque > 100 && rpm_delta <= 20 && time_since_last_adapt > 1000) {
+                if (this->slip_offset[idx] > -700) {
+                    this->slip_offset[idx] -= 1; 
                 }
                 this->last_adapt_check = GET_CLOCK_TIME();
             }
         }
-        this->tcc_pressure_target = (float)wp * this->slip_multi[idx];
+        this->tcc_pressure_target = wp + this->slip_offset[idx];
     } else if (this->target_tcc_state == InternalTccState::Closed) {
-        if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 15 && time_since_last_adapt > 500) {
-            if (this->lock_multi[idx] < 1.25) {
-                this->lock_multi[idx] += 0.01; // +1%
+        if (at_req_pressure && sensors->static_torque > 100 && rpm_delta > 20 && time_since_last_adapt > 1000) {
+            if (this->lock_offset[idx] < 250) {
+                this->lock_offset[idx] += 2;
             }
             this->last_adapt_check = GET_CLOCK_TIME();
         }
-        this->tcc_pressure_target = (float)wp * this->lock_multi[idx];
+        this->tcc_pressure_target = wp + this->lock_offset[idx];
     }
 
     if (this->target_tcc_state == this->current_tcc_state) {

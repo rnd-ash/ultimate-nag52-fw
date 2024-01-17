@@ -574,6 +574,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 #define FILL_RAMP_TIME 100
 #define FILL_LP_HOLD_TIME 200
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
+                    if (
+                        req_lookup == ProfileGearChange::FIVE_FOUR || req_lookup == ProfileGearChange::FIVE_FOUR ||
+                        req_lookup == ProfileGearChange::THREE_FOUR || req_lookup == ProfileGearChange::FOUR_THREE
+                    ) {
+                        this->tcc->set_shift_target_state(InternalTccState::Slipping);
+                    } else {
+                        this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
+                    }
                 } else if (current_stage == ShiftStage::Overlap) {
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = chars.target_shift_time+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)

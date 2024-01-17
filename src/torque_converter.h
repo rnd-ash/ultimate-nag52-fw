@@ -38,8 +38,6 @@ class TorqueConverter {
                 this->tcc_learn_lockup_map->save_to_eeprom();
             }
         };
-
-        void adjust_map_cell(GearboxGear g, uint16_t new_pressure);
         StoredMap* tcc_learn_lockup_map;
         void set_shift_target_state(InternalTccState target_state);
         void on_shift_ending(void);
@@ -59,9 +57,9 @@ class TorqueConverter {
         uint16_t get_target_pressure();
 
     private:
+        int rated_max_torque;
         bool is_shifting = false;
         bool tcc_solenoid_enabled = true;
-        inline void reset_rpm_samples(SensorData* sensors);
         int tcc_pressure_target = 0;
         int tcc_pressure_current = 0;
         int prev_state_tcc_pressure = 0;
@@ -73,8 +71,21 @@ class TorqueConverter {
         uint32_t last_adapt_check = 0;
         uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
-        int16_t slip_offset[5] = {-500, -500, -500, -500, -500};
-        int16_t lock_offset[5] = {-200, -200, -200, -200, -200};
+        
+        bool init_tables_ok = false;
+        // -%, 0%, 25%, 50%, 75%, 100%, 150%
+
+        const int16_t load_header[7] = {-25, 0, 25, 50, 75, 100, 150};
+
+        LookupTable* slip_2_3;
+        LookupTable* lock_2_3;
+
+        LookupTable* slip_4_5;
+        LookupTable* lock_4_5;
+
+        const int16_t slip_data_default[7] = {700, 750, 800, 850, 950, 1000, 1050};
+        const int16_t lock_data_default[7] = {850, 850, 1000, 1050, 1100, 1150, 1200};
+
         bool was_stationary = true;
         uint32_t last_state_stable_time = 0;
 };

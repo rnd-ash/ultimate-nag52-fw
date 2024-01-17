@@ -93,17 +93,15 @@ uint8_t sensor_counter = 0;
 int adc_voltage;
 
 static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    if (sensor_counter == 4) {
-        int pulses = 0;
-        // N2 Sensor
-        read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
-        n2_avg_buffer->add_sample(pulses*50);
+    int pulses = 0;
+    // N2 Sensor
+    read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
+    n2_avg_buffer->add_sample(pulses*50);
 
-        // N3 Sensor
-        read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
-        n3_avg_buffer->add_sample(pulses*50);
-        sensor_counter = 0;
-    }
+    // N3 Sensor
+    read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
+    n3_avg_buffer->add_sample(pulses*50);
+
     adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &tft_adc_res);
     adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &batt_adc_res);
 
@@ -152,9 +150,6 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
         tft_avg_buffer->add_sample(atf_calc_c);
         tft = tft_avg_buffer->get_average();
     }
-
-
-    sensor_counter += 1;
     return true;
 }
 
@@ -166,7 +161,7 @@ const pcnt_glitch_filter_config_t glitch_filter = {
 };
 
 esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingUnsignedAverage** buffer) {
-    *buffer = new MovingUnsignedAverage((1000/RPM_TIMER_INTERVAL_MS)/4, true); // 250ms moving average
+    *buffer = new MovingUnsignedAverage((1000/RPM_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
     if (!(*buffer)->init_ok()) {
         ESP_LOGE("SENSORS", "Failed to allocate moving average buffer for %s", name);
         return ESP_ERR_NO_MEM;
@@ -290,7 +285,7 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer_pcnt), "SENSORS", "Failed to create PCNT read timer");
 
     const gptimer_alarm_config_t alarm_config_pcnt = {
-        .alarm_count = (5 * 1000),
+        .alarm_count = (20 * 1000), // Every 20ms
         .reload_count = 0,
         .flags = {
             .auto_reload_on_alarm = true,
@@ -315,16 +310,14 @@ esp_err_t Sensors::init_sensors(void){
 esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 {
     esp_err_t res = ESP_OK;
-
-    dest->n2_raw = n2_avg_buffer->get_average()/2; // /2 as we are counting both high and low edge, so we get 2x the number of pulses as teeth
-    dest->n3_raw = n3_avg_buffer->get_average()/2;
-    
-    float f2 = (float)dest->n2_raw;
-    float f3 = (float)dest->n3_raw;
+    float f2 = (float)n2_avg_buffer->get_average()/2.0;
+    float f3 = (float)n3_avg_buffer->get_average()/2.0;
     float c = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
     if (c < 0) {
         c = 0;
     }
+    dest->n2_raw = f2;
+    dest->n3_raw = f3;
     dest->calc_rpm = c;
 
     // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,

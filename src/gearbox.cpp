@@ -551,7 +551,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                                 int torque = interpolate_float(total_elapsed, target_reduction_torque, MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), trq_up_time, trq_up_time+(chars.target_shift_time/2), InterpType::EaseInEaseOut);
                                 current_torque_req = MAX(torque, current_torque_req);
                                 this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
-                            } else if (now_cs.on_clutch_speed < 10) {
+                            } else if (now_cs.on_clutch_speed < 25) {
                                 // Max pressure phase - Disable torque requests since overlap is complete
                                 this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
                             }

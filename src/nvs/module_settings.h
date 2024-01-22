@@ -274,9 +274,9 @@ typedef struct {
     // Solenoid inlet pressure offset vs working pressure
     uint16_t inlet_pressure_offset_mbar_other_gears;
     // Inlet pressure correction algorithm pump speed minimum
-    uint16_t pressure_correction_pump_speed_max;
-    // Inlet pressure correction algorithm pump speed maximum
     uint16_t pressure_correction_pump_speed_min;
+    // Inlet pressure correction algorithm pump speed maximum
+    uint16_t pressure_correction_pump_speed_max;
     // Working pressure vs inlet pressure correction
     LinearInterpSetting working_pressure_compensation;
     // Factor for shift pressure when the K1 clutch is engaged
@@ -309,8 +309,8 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
         .shift_circuit_factor_1_2 = 1.993,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
-        .pressure_correction_pump_speed_max = 1000,
-        .pressure_correction_pump_speed_min = 4000,
+        .pressure_correction_pump_speed_min = 1000,
+        .pressure_correction_pump_speed_max = 4000,
         .working_pressure_compensation = {
             .new_min = 2690,
             .new_max = 8330,
@@ -328,8 +328,8 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
         .shift_circuit_factor_1_2 = 1.993,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
-        .pressure_correction_pump_speed_max = 1000,
-        .pressure_correction_pump_speed_min = 4000,
+        .pressure_correction_pump_speed_min = 1000,
+        .pressure_correction_pump_speed_max = 4000,
         .working_pressure_compensation = {
             .new_min = 4000,
             .new_max = 10000,

@@ -103,9 +103,11 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if (sol_y3->is_on()) { // 1-2 shift circuit is activated
+    if (sol_y3->is_on()) { // 1-2/2-1 shift circuit is activated
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
-        k1_factor = valve_body_settings->k1_engaged_factor;
+        if (c_gear == 1 && t_gear == 2) { // 1-2 only (K1 is active)
+            k1_factor = valve_body_settings->k1_engaged_factor;
+        }
     }
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, 
@@ -127,10 +129,50 @@ uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
     );
 }
 
+#define CLAMP(in, min, max) MAX(min, MIN(in, max))
+
 float PressureManager::calc_inlet_factor(uint16_t inlet_pressure) {
-    return 0.03 * ((float)valve_body_settings->working_pressure_compensation.new_max - (float)inlet_pressure) / 1000.0;
+    return CLAMP(
+        0.03 * ((float)valve_body_settings->working_pressure_compensation.new_max - (float)inlet_pressure),
+        0,
+        0.1
+    );
 }
 
+uint16_t PressureManager::get_shift_regulator_pressure(void) {
+    if (nullptr != this->valve_body_settings) {
+        return this->valve_body_settings->shift_regulator_force_mbar;
+    } else {
+        return 0;
+    }
+}
+
+/*
+
+MERCEDES-BENZS PRESSURE NAMES (WIS)
+
+p-A - Working pressure
+p-RV - Regulating valve pressure
+p-SV - Shift valve pressure
+p-S/RMV - Shift pressure control solenoid valve pressure (Solenoid output)
+p-S/KUB - TCC solenoid output
+p-Mod - Modulating pressure (Solenoid output)
+p-U - Overlap pressure
+p-KUB - TCC lockup clutch working pressure
+p-Sm - Lubrication pressure
+
+Solenoids:             In     Out
+Shift solenoid(s):    p-SV -> p-SV
+Modulating pressure:  p-RV -> p-Mod
+Shift pressure:       p-RV -> p-S/RMV
+TCC pressure:         p-SV -> p-S/KUB
+
+Correlation:
+p-A is directly controlled by p-Rv (Linear correlation)
+p-U is derrived by p-S and p-Mod, which controls p-A
+p-KUB is derrived from p-S/KUB and p-A
+p-SV is created by Shift valve pressure regulator, it converts a variable p-RV into constant p-SV
+*/
 void PressureManager::update_pressures(GearboxGear current_gear) {
     // Ignore
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
@@ -139,11 +181,11 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         uint16_t spc_in = this->target_shift_pressure;
         uint16_t mpc_in = this->target_modulating_pressure;
 
-        uint16_t wp = this->calc_working_pressure(current_gear, mpc_in, spc_in);
-        uint16_t pump = this->calc_input_pressure(wp);
+        uint16_t p_a = this->calc_working_pressure(current_gear, mpc_in, spc_in);
+        uint16_t pump = this->calc_input_pressure(p_a);
 
         this->calculated_inlet_pressure = pump;
-        this->calculated_working_pressure = wp;
+        this->calculated_working_pressure = p_a;
 
         float factor = this->calc_inlet_factor(pump);
         

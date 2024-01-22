@@ -56,7 +56,7 @@
     DO(PRM_SETTINGS, "PRM_A1")\
     DO(ADP_SETTINGS, "ADP_A1")\
     DO(ETS_SETTINGS, "ETS_A3")\
-    DO(HYD_SETTINGS, "HYD_A2")\
+    DO(HYD_SETTINGS, "HYD_A3")\
     DO(CAL_SETTINGS, "CAL_A0")\
 
 extern const char** ALL_NVS_KEYS[];

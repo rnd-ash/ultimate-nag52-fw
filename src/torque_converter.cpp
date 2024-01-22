@@ -37,7 +37,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new MovingAverage(20); // 2 Seconds moving window (Every 100ms)
+    this->slip_average = new MovingAverage(20); // 20ms div * 20 = 400ms average
     if (!this->slip_average->init_ok()) {
         delete this->slip_average;
     }
@@ -89,10 +89,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     GearboxGear cmp_gear = curr_gear;
-    if (GET_CLOCK_TIME() - this->last_slip_add_time > 40) {
-        this->slip_average->add_sample((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
-        this->last_slip_add_time = GET_CLOCK_TIME();
-    }
+    this->slip_average->add_sample((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
     if (

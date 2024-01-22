@@ -79,7 +79,6 @@ class TorqueConverter {
         InternalTccState shift_req_tcc_state = InternalTccState::Open;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        uint32_t last_slip_add_time = 0;
         MovingAverage* slip_average = nullptr;
         
         bool init_tables_ok = false;

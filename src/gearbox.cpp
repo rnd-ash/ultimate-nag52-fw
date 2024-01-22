@@ -615,7 +615,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             
             if (current_stage == ShiftStage::Bleed) {
                 float end_spc = (prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch)  / sd.shift_circuit_spc_multi;
-                current_shift_pressure = interpolate_float(phase_elapsed, pressure_manager->get_max_solenoid_pressure(), end_spc, 0, 100, InterpType::Linear);
+                current_shift_pressure = interpolate_float(phase_elapsed, pressure_manager->get_max_solenoid_pressure() / sd.shift_circuit_spc_multi, end_spc, 0, 100, InterpType::Linear);
                 current_modulating_pressure = (end_spc*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction; // To add to working pressure for maximum filling effect
             } else if (current_stage == ShiftStage::Fill) {
                 bool was_adapting = prefill_adapt_flags == 0;
@@ -710,6 +710,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     current_shift_pressure = pressure_manager->get_max_solenoid_pressure();
                 }
                 // Merge working pressure slowly
+                current_shift_pressure /= sd.shift_circuit_spc_multi;
                 current_modulating_pressure = interpolate_float(phase_elapsed, prev_modulating_pressure, wp_new_gear, 0, maxp.ramp_time, InterpType::Linear);
             }
 

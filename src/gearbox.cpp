@@ -666,9 +666,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     spc_overlap_step = interpolate_float(
                         now_cs.on_clutch_speed,
                         spc_overlap_step,
-                        spc_overlap_step/10,
+                        spc_overlap_step/2,
                         pre_cs.on_clutch_speed,
-                        pre_cs.on_clutch_speed/10,
+                        0,
                         InterpType::Linear
                     );
                 }

@@ -223,15 +223,12 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
             if (xQueueSend(this->read_msg_queue, &this->rx_msg, 0) != pdTRUE) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
             }
-        // } else if ((this->frames_received >= KWP_CAN_BS) && KWP_CAN_BS != 0) { // Send flow control when we overflow
-        } else if (KWP_CAN_BS != 0) { // Send flow control when we overflow
-            // if (!this->send_to_twai((uint8_t*)FLOW_CONTROL)) {
-                if (!this->send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL))) {
+        } else if ((this->frames_received >= KWP_CAN_BS) && KWP_CAN_BS != 0) { // Send flow control when we overflow
+            if (!this->send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL))) {
                 this->is_receiving = false; // Set if could not send Tx Frame
             }
             this->frames_received = 0;
         }
-
     }
 }
 

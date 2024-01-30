@@ -41,6 +41,7 @@ ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
 	if (nullptr != egs_can_hal) {
+
 		pos = egs_can_hal->internal_can_shifter_get_shifter_position(expire_time_ms);
 	}
 	return pos;

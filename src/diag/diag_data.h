@@ -128,6 +128,9 @@ typedef struct {
     uint16_t target_pressure;
     int16_t slip_now;
     int16_t slip_filtered;
+    uint16_t slip_target;
+    uint16_t pedal_now;
+    uint16_t pedal_filtered;
     // 0 - Open
     // 1 - Slip
     // 2 - Closed

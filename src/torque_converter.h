@@ -18,6 +18,7 @@ enum class InternalTccState {
     Closed = 2
 };
 
+
 class TorqueConverter {
     public:
         TorqueConverter(uint16_t max_gb_rating);
@@ -57,6 +58,9 @@ class TorqueConverter {
         uint8_t get_can_req_bits();
         uint16_t get_current_pressure();
         uint16_t get_target_pressure();
+        uint16_t get_slip_targ() {
+            return this->slip_target;
+        }
 
         inline StoredMap* get_slip_map() {
             return this->tcc_slip_map;
@@ -64,6 +68,10 @@ class TorqueConverter {
 
         inline StoredMap* get_lock_map() {
             return this->tcc_lock_map;
+        }
+
+        inline StoredMap* get_rpm_slip_map() {
+            return this->slip_rpm_target_map;
         }
 
     private:
@@ -77,17 +85,19 @@ class TorqueConverter {
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
         InternalTccState shift_req_tcc_state = InternalTccState::Open;
+        StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        MovingAverage* slip_average = nullptr;
+        MovingAverage<uint32_t>* slip_average = nullptr;
         
         bool init_tables_ok = false;
 
-        StoredMap* tcc_slip_map;
-        StoredMap* tcc_lock_map;
+        StoredMap* tcc_slip_map = nullptr;
+        StoredMap* tcc_lock_map = nullptr;
 
         bool was_stationary = true;
         uint32_t last_state_stable_time = 0;
+        uint16_t slip_target = 100;
 };
 
 #endif

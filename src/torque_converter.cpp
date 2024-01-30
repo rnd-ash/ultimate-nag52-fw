@@ -4,17 +4,7 @@
 #include "nvs/eeprom_impl.h"
 #include "nvs/all_keys.h"
 #include "adapt_maps.h"
-
-// 1400 mBar ~= locking (C200CDI)
-// 1700 mBar ~= locking (E55 AMG)
-
-const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
-const int16_t tcc_learn_y_headers[1] = {1};
-const int16_t tcc_learn_default_data[5] = {1500, 1500, 1500, 1500, 1500};
-
-const uint16_t MAX_WORKING_PRESSURE = 15000; // mBar - Same in all 722.6 variants.
-const uint16_t SLIPPING_SLIP_MAX_VALUE = 100; // RPM
-const uint16_t CLOSED_SLIP_MAX_VALUE = 10; // RPM
+#include "maps.h"
 
 #define LOAD_SIZE 11
 
@@ -32,12 +22,20 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     if (this->tcc_lock_map->init_status() != ESP_OK) {
         delete[] this->tcc_lock_map;
     }
-    this->init_tables_ok = (this->tcc_slip_map != nullptr) && (this->tcc_lock_map != nullptr);
+
+    const int16_t rpm_map_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
+    const int16_t rpm_map_y_headers[11] = {1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000}; // RPM
+    this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 11, TCC_RPM_TARGET_MAP);
+    if (this->slip_rpm_target_map->init_status() != ESP_OK) {
+        delete[] this->slip_rpm_target_map;
+    }
+
+    this->init_tables_ok = (this->tcc_slip_map != nullptr) && (this->tcc_lock_map != nullptr) && (this->slip_rpm_target_map != nullptr);
     if (!init_tables_ok) {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new MovingAverage(20); // 20ms div * 20 = 400ms average
+    this->slip_average = new MovingAverage<uint32_t>(50); // 20ms div * 50 = 1 second moving average
     if (!this->slip_average->init_ok()) {
         delete this->slip_average;
     }
@@ -99,28 +97,22 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         (cmp_gear == GearboxGear::Fourth && TCC_CURRENT_SETTINGS.enable_d4) ||
         (cmp_gear == GearboxGear::Fifth && TCC_CURRENT_SETTINGS.enable_d5)
     ) {
-        // See if we should slip or close
-        if (sensors->input_rpm >= TCC_CURRENT_SETTINGS.min_locking_rpm) {
-            if (sensors->pedal_pos == 0 && sensors->output_rpm >= TCC_CURRENT_SETTINGS.sailing_mode_active_rpm) {
-                targ = InternalTccState::Slipping; // Gliding mode
-            } else {
-                int slip_now = abs(sensors->engine_rpm - sensors->input_rpm);
-                int slip_avg = abs(this->slip_average->get_average());
-                if (this->target_tcc_state == InternalTccState::Open && slip_now < 200 && slip_avg < 200) {
-                    targ = InternalTccState::Slipping;
-                } else if (this->target_tcc_state > InternalTccState::Open) {
-                    targ = InternalTccState::Slipping;
-                }
-                if (this->target_tcc_state >= InternalTccState::Slipping) {
-                    // Check if we should FULLY lock
-                    if (
-                        (sensors->pedal_pos != 0 && ((sensors->pedal_pos*100)/250) < TCC_CURRENT_SETTINGS.locking_pedal_pos_max) || // Small pedal input (Safe to lock)
-                        sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm // Force lock at very high speeds no matter the pedal position
-                    ) {
-                        targ = InternalTccState::Closed;
-                    }
-                }
+        // See if we should slip or close based on maps
+        targ = InternalTccState::Open;
+        int pedal_as_percent = (sensors->pedal_smoothed->get_average()*100)/250;
+        int slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
+        this->slip_target = slipping_rpm_targ; // For diag data
+        // Can we slip?
+        if (slipping_rpm_targ <= 100) {
+            targ = InternalTccState::Slipping;
+            // Can we lock?
+            if (slipping_rpm_targ <= 10) {
+                targ = InternalTccState::Closed;
             }
+        }
+        // Override locking (Only if slipping is allowed and at high RPM)
+        if (this->target_tcc_state >= InternalTccState::Slipping && sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm && pedal_as_percent != 0) {
+                targ = InternalTccState::Closed;
         }
     }
     if (is_shifting) {
@@ -144,6 +136,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool at_req_pressure = this->tcc_pressure_current == this->tcc_pressure_target;
+    int pedal_delta = sensors->pedal_smoothed->front() - sensors->pedal_smoothed->back();
+    bool is_stable = abs(pedal_delta) <= 25; // 10% difference allowed in our time window
 
     int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
@@ -179,7 +173,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_pressure_target = 0;
     } else if (this->target_tcc_state == InternalTccState::Slipping) {
         if (load_cell != -1) {
-            if (at_req_pressure && rpm_delta > 100) {
+            if (at_req_pressure && is_stable && abs(rpm_delta) > slip_target * 1.1) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +2);
                 if (load_cell != 0) { // If not coasting
                     // Check all upper cells and increase value if they are not increased
@@ -187,14 +181,14 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     max_adapt_row(this->tcc_slip_map->get_current_data(), curr_gear, load_cell);
                 }
                 this->last_adapt_check = GET_CLOCK_TIME();
-            } else if (at_req_pressure && rpm_delta <= 20) {
+            } else if (at_req_pressure && is_stable && abs(rpm_delta) <= slip_target * 0.9) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
                 this->last_adapt_check = GET_CLOCK_TIME();
             }
         }
         this->tcc_pressure_target = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
     } else if (this->target_tcc_state == InternalTccState::Closed) {
-        if (load_cell != -1 && at_req_pressure && rpm_delta > 10) {
+        if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
             set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +2);
             if (load_cell != 0) { // If not coasting
                 // Check all upper cells and increase value if they are not increased

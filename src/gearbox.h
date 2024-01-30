@@ -113,7 +113,8 @@ private:
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
-    MovingAverage* output_avg_filter;
+    MovingAverage<uint32_t>* output_avg_filter;
+    MovingAverage<uint32_t>* pedal_average = nullptr;
 
 };
 

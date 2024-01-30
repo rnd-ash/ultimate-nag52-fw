@@ -166,6 +166,11 @@ extern const int16_t W_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t R_UPSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 
+/** TCC Slip maps */
+// 1000 - 6000RPM (Step of 500 RPM), 0-100% Pedal, step of 10%
+#define TCC_RPM_TARGET_MAP_SIZE 11*11
+extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
+
 /**
  * Adaptation subsystem maps
 */

@@ -325,6 +325,28 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
 
+/** TCC Slip maps */
+
+// VALUES (Target TCC slip):
+// Values <=10 - Sets TCC is closed
+// Values > 100 - Sets TCC is open
+// Values between 10 and 100 - Tcc is slipping with desired target slip
+const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
+    /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
+        200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
+         90,  90,  90, 100, 150, 200, 200, 200, 200, 200, 200, // Input 1500 RPM
+         50,  50,  50,  80, 100, 100, 100, 150, 200, 200, 200, // Input 2000 RPM 
+         20,  20,  35,  55,  70,  80,  95, 100, 200, 200, 200, // Input 2500 RPM 
+          0,   0,  10,  30,  60,  60,  65,  90, 200, 200, 200, // Input 3000 RPM 
+          0,   0,   0,  10,  40,  40,  55,  85, 200, 200, 200, // Input 3500 RPM 
+          0,   0,   0,   0,  20,  30,  40,  80, 200, 200, 200, // Input 4000 RPM 
+          0,   0,   0,   0,  10,  20,  30,  70, 200, 200, 200, // Input 4500 RPM 
+          0,   0,   0,   0,   0,  10,  20,  40, 200, 200, 200, // Input 5000 RPM 
+          0,   0,   0,   0,   0,   0,  10,  20, 200, 200, 200, // Input 5500 RPM 
+          0,   0,   0,   0,   0,   0,   0,  10, 200, 200, 200, // Input 6000 RPM 
+};
+
+
 const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
 //  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
       0,   0,   0,   0,   0,   0,   0,   0

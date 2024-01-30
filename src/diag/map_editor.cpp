@@ -53,6 +53,8 @@ StoredMap* get_map(uint8_t map_id) {
             return gearbox->tcc->get_slip_map();
         case TCC_ADAPT_LOCK_MAP_ID:
             return gearbox->tcc->get_lock_map();
+        case TCC_RPM_SLIP_MAP:
+            return gearbox->tcc->get_rpm_slip_map();
         default:
             return nullptr;
     }

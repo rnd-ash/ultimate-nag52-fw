@@ -53,10 +53,10 @@ adc_cali_handle_t adc2_cal = nullptr;
 #define RPM_CHANGE_MAX 1000
 #define RPM_TIMER_INTERVAL_MS 20
 
-MovingUnsignedAverage* n2_avg_buffer = nullptr;
-MovingUnsignedAverage* n3_avg_buffer = nullptr;
-MovingAverage* tft_avg_buffer = nullptr;
-MovingUnsignedAverage* batt_avg_buffer = nullptr;
+MovingAverage<uint32_t>* n2_avg_buffer = nullptr;
+MovingAverage<uint32_t>* n3_avg_buffer = nullptr;
+MovingAverage<int32_t>* tft_avg_buffer = nullptr;
+MovingAverage<uint32_t>* batt_avg_buffer = nullptr;
 uint64_t output_last_rev_time = 0;
 uint64_t output_current_revolution_time = 1000;
 
@@ -160,8 +160,8 @@ const pcnt_glitch_filter_config_t glitch_filter = {
     .max_glitch_ns = 1000
 };
 
-esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingUnsignedAverage** buffer) {
-    *buffer = new MovingUnsignedAverage((1000/RPM_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
+esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingAverage<uint32_t>** buffer) {
+    *buffer = new MovingAverage<uint32_t>((1000/RPM_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
     if (!(*buffer)->init_ok()) {
         ESP_LOGE("SENSORS", "Failed to allocate moving average buffer for %s", name);
         return ESP_ERR_NO_MEM;
@@ -244,8 +244,8 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
 
     // Set moving average buffers
-    tft_avg_buffer = new MovingAverage(10, true);
-    batt_avg_buffer = new MovingUnsignedAverage(10, true);
+    tft_avg_buffer = new MovingAverage<int32_t>(10, true);
+    batt_avg_buffer = new MovingAverage<uint32_t>(10, true);
 
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
@@ -322,7 +322,7 @@ esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 
     // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
     // otherwise we have a faulty conductor place sensor!
-    if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 150) {
+    if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 100) {
         res = ESP_ERR_INVALID_STATE;
     }
     return res;

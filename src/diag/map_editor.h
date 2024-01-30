@@ -31,6 +31,8 @@
 #define TCC_ADAPT_SLIP_MAP_ID 0xA0
 #define TCC_ADAPT_LOCK_MAP_ID 0xA1
 
+#define TCC_RPM_SLIP_MAP 0xB0
+
 
 // MAP COMMAND IDs
 #define MAP_CMD_READ 0x01

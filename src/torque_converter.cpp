@@ -35,7 +35,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new MovingAverage<uint32_t>(50); // 20ms div * 50 = 1 second moving average
+    this->slip_average = new MovingAverage<int32_t>(50); // 20ms div * 50 = 1 second moving average
     if (!this->slip_average->init_ok()) {
         delete this->slip_average;
     }
@@ -67,15 +67,6 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
         old = 100;
     }
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
-}
-
-void max_adapt_row(int16_t* dest, GearboxGear gear, uint8_t load_idx_start) {
-    uint8_t gear_int = (uint8_t)gear;
-    if (gear_int == 0 || gear_int > 5) {return;} // Gear should be 1-5
-    int16_t at_cell = dest[(LOAD_SIZE*gear_int) + load_idx_start];
-    for (int i = load_idx_start; i < LOAD_SIZE; i++) {
-        dest[(LOAD_SIZE*gear_int) + i] = MAX(at_cell, dest[(LOAD_SIZE*gear_int) + i]);
-    }
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
@@ -113,6 +104,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // Override locking (Only if slipping is allowed and at high RPM)
         if (this->target_tcc_state >= InternalTccState::Slipping && sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm && pedal_as_percent != 0) {
                 targ = InternalTccState::Closed;
+                slipping_rpm_targ = 0;
         }
     }
     if (is_shifting) {
@@ -131,6 +123,13 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     }
 
+    this->engine_output_joule = sensors->engine_rpm * (abs(sensors->static_torque)) / 9.5488;
+    if (likely(sensors->engine_rpm >= sensors->input_rpm)) {
+        int rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
+        this->absorbed_power_joule = this->engine_output_joule - (this->engine_output_joule * rpm_as_percent);
+    } else {
+        this->absorbed_power_joule = 0;
+    }
     this->target_tcc_state = targ;
     int rpm_delta = slip_average->get_average();
 
@@ -141,7 +140,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
-    if (time_since_last_adapt > 500){ 
+    if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
         if (load_as_percent < -5) {
             load_cell = 0;
@@ -175,11 +174,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (load_cell != -1) {
             if (at_req_pressure && is_stable && abs(rpm_delta) > slip_target * 1.1) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +2);
-                if (load_cell != 0) { // If not coasting
-                    // Check all upper cells and increase value if they are not increased
-                    // This helps speed up adaptation of higher loads even when user may just be cruising at low load
-                    max_adapt_row(this->tcc_slip_map->get_current_data(), curr_gear, load_cell);
-                }
                 this->last_adapt_check = GET_CLOCK_TIME();
             } else if (at_req_pressure && is_stable && abs(rpm_delta) <= slip_target * 0.9) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
@@ -190,11 +184,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     } else if (this->target_tcc_state == InternalTccState::Closed) {
         if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
             set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +2);
-            if (load_cell != 0) { // If not coasting
-                // Check all upper cells and increase value if they are not increased
-                // This helps speed up adaptation of higher loads even when user may just be cruising at low load
-                max_adapt_row(this->tcc_lock_map->get_current_data(), curr_gear, load_cell);
-            }
             this->last_adapt_check = GET_CLOCK_TIME();
         }
         this->tcc_pressure_target = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)curr_gear);
@@ -211,7 +200,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 0,
                 this->tcc_pressure_target,
                 this->last_state_stable_time,
-                this->last_state_stable_time+500,
+                this->last_state_stable_time+200,
                 InterpType::Linear
             );
         } else { // Slipping -> Closed
@@ -220,7 +209,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->prev_state_tcc_pressure,
                 this->tcc_pressure_target,
                 this->last_state_stable_time,
-                this->last_state_stable_time+1000,
+                this->last_state_stable_time+200,
                 InterpType::Linear
             );
         }
@@ -240,7 +229,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->prev_state_tcc_pressure,
                 this->tcc_pressure_target,
                 this->last_state_stable_time,
-                this->last_state_stable_time+500,
+                this->last_state_stable_time+200,
                 InterpType::Linear
             );
         }

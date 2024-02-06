@@ -139,6 +139,9 @@ typedef struct {
     // 0b1 - Open request 
     // 0b01 - Slip request
     uint8_t can_request_bits;
+    //
+    uint32_t engine_output_joule;
+    uint32_t tcc_absorbed_joule;
 } __attribute__ ((packed)) DATA_TCC_PROGRAM;
 
 typedef struct {

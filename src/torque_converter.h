@@ -73,6 +73,14 @@ class TorqueConverter {
         inline StoredMap* get_rpm_slip_map() {
             return this->slip_rpm_target_map;
         }
+        
+        inline uint32_t get_engine_power() {
+            return this->engine_output_joule;
+        }
+        
+        inline uint32_t get_absorbed_power() {
+            return this->absorbed_power_joule;
+        }
 
     private:
         int rated_max_torque;
@@ -88,7 +96,7 @@ class TorqueConverter {
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        MovingAverage<uint32_t>* slip_average = nullptr;
+        MovingAverage<int32_t>* slip_average = nullptr;
         
         bool init_tables_ok = false;
 
@@ -98,6 +106,8 @@ class TorqueConverter {
         bool was_stationary = true;
         uint32_t last_state_stable_time = 0;
         uint16_t slip_target = 100;
+        uint32_t absorbed_power_joule = 0;
+        uint32_t engine_output_joule = 0;
 };
 
 #endif

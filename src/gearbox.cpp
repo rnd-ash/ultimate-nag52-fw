@@ -308,7 +308,7 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
 
 
 int Gearbox::calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms) {
-    float ped_trq = MAX(sensor_data.input_torque, sensor_data.static_torque);
+    float ped_trq = sensor_data.driver_requested_torque;
     float multi_reduction = interpolate_float(ped_trq, &SBS.torque_reduction_factor_input_torque, InterpType::Linear);
     multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
     int restricted = ped_trq - (ped_trq * multi_reduction);
@@ -460,7 +460,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 break;
             }
 
-            int torque_to_use = abs(sensor_data.input_torque);
+            int torque_to_use;
+            if (this->output_data.ctrl_type != TorqueRequestControlType::None) {
+                // Request in progress, substitute torque values
+                torque_to_use = abs(sensor_data.driver_requested_torque - shifting_torque_delta);
+            } else {
+                shifting_torque_delta = sensor_data.driver_requested_torque - sensor_data.static_torque;
+                torque_to_use = abs(sensor_data.static_torque);
+            }
             //bool allow_mpc_reduction_below_min = current_stage == ShiftStage::Overlap || current_stage == ShiftStage::Synchronize;
             int wp_old_clutch = pressure_manager->find_working_pressure_for_clutch(a_gear, releasing, torque_to_use, false);
             int wp_new_clutch = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, torque_to_use);
@@ -504,7 +511,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     prefill_protection_active = true;
                 }
 
-                int torque_req_upper_torque = MAX(sensor_data.static_torque, sensor_data.driver_requested_torque);
+                int torque_req_upper_torque = sensor_data.driver_requested_torque;
                 if (prefill_protection_active && current_stage < ShiftStage::Overlap) {
                     // Use torque lim (Activate protection)
                     this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque_lim_adapt);
@@ -517,7 +524,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (output_data.ctrl_type != TorqueRequestControlType::None) {
                         goto_torque_ramp = true;
                     }
-                    if (sensor_data.static_torque > gearboxConfig.max_torque/4 && now_cs.off_clutch_speed < 100) { // Torque below bounds
+                    if (sensor_data.driver_requested_torque > gearboxConfig.max_torque/4 && now_cs.off_clutch_speed < 100) { // Torque below bounds
                         if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
                             goto_torque_ramp = true;
                         }
@@ -549,14 +556,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                                 int torque = interpolate_float(
                                     total_elapsed, 
                                     target_reduction_torque, 
-                                    MAX(sensor_data.static_torque, sensor_data.driver_requested_torque), 
+                                    sensor_data.driver_requested_torque, 
                                     trq_up_time, 
                                     trq_up_time+(chars.target_shift_time/2), 
                                     InterpType::EaseInEaseOut
                                 );
                                 current_torque_req = MAX(torque, current_torque_req);
                                 this->set_torque_request(TorqueRequestControlType::BackToDemandTorque, TorqueRequestBounds::LessThan, current_torque_req);
-                            } else if (now_cs.on_clutch_speed < 25) {
+                            } else if (now_cs.on_clutch_speed < 10) {
                                 // Max pressure phase - Disable torque requests since overlap is complete
                                 this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
                             }
@@ -643,7 +650,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (!stationary_shift && now_cs.off_clutch_speed > 25) {
                     ESP_LOGI("SHIFT", "Shift started in fill phase. Finishing early!");
                     skip_phase = true;
-                    if (sensor_data.static_torque > gearboxConfig.max_torque/2) {
+                    if (sensor_data.driver_requested_torque > gearboxConfig.max_torque/2) {
                         current_shift_pressure = (spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch);
                     } else {
                         current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch);
@@ -677,7 +684,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 //int reduction = interpolate_float(sensor_data.pedal_pos, spring_pressure_off_clutch, spring_pressure_off_clutch/2, 25, 128, InterpType::Linear);
                 //if (now_cs.off_clutch_speed < 100) {
                 if (stationary_shift || now_cs.off_clutch_speed < now_cs.on_clutch_speed) {
-                    float release_speed_factor = interpolate_float(sensor_data.driver_requested_torque, 0.5, 0.25, 50, gearboxConfig.max_torque, InterpType::Linear);
+                    float release_speed_factor = interpolate_float(sensor_data.pedal_pos, 0.5, 0.25, 100, 250, InterpType::Linear);
                     off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch + spring_pressure_off_clutch, 0, 0, chars.target_shift_time*release_speed_factor, InterpType::Linear);
                 }
                 //}

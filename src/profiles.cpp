@@ -426,7 +426,7 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) {
         return false;
-    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm && sensors->pedal_pos == 0) {
+    } else if (sensors->input_rpm < 300 && sensors->pedal_pos == 0) {
         return true;
     } else {
         return false;

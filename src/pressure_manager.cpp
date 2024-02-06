@@ -249,6 +249,36 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
+// TODO MOVE THESE TO CONFIGURATION PARAMS
+const float ATF_DENSITY_NEG_50C = 889; // kg/M^3
+const float ATF_DENSITY_DROP_PER_C = 0.6; // kg/M^3
+
+float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
+    const uint16_t* table = VEHICLE_CONFIG.is_large_nag ? CENTIFUGAL_PRESSURE_FACTOR_LARGE_NAG : CENTIFUGAL_PRESSURE_FACTOR_SMALL_NAG;
+    float speed = 0;
+    uint8_t sel_idx = 0xFF;
+    float ret = 0;
+    switch (clutch) {
+        case Clutch::K2:
+            sel_idx = 0;
+            speed = input;
+            break;
+        case Clutch::K3:
+            sel_idx = 1;
+            speed = rear_sun;
+            break;
+        default:
+            break;
+    }
+    if (sel_idx != 0xFF) {
+        float clutch_factor = table[sel_idx];
+        float density_now = ATF_DENSITY_NEG_50C - ((sensor_data->atf_temp + 50) * ATF_DENSITY_DROP_PER_C);
+        ret = density_now * ((speed * speed) / clutch_factor);
+        ret /= 1000.0; // To convert to mbar
+    }
+    return ret;
+}
+
 uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc) {
     uint16_t ret = this->solenoid_max_pressure;
     uint8_t gear_idx = gear_to_idx_lookup(gear);

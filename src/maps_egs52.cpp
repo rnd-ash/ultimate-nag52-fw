@@ -4,6 +4,10 @@
 const uint8_t STRONGEST_LOADED_CLUTCH_SMALL_NAG[8] = {3, 4, 0, 1, 1, 1, 5, 5};
 const uint8_t STRONGEST_LOADED_CLUTCH_LARGE_NAG[8] = {3, 2, 2, 1, 1, 1, 2, 2};
 
+// For K2 and K3
+const uint16_t CENTIFUGAL_PRESSURE_FACTOR_SMALL_NAG[2] = {40000, 1635};
+const uint16_t CENTIFUGAL_PRESSURE_FACTOR_LARGE_NAG[2] = {40000, 3000};
+
 const int16_t CLUTCH_FRICTION_MAP[NUM_MECHANICAL_CALIBRATIONS][9*6] = {
     {
 /*                    SET 0 (SMALL NAG)  */

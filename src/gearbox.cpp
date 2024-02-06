@@ -449,7 +449,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             default:
                 break;
         };
-        
+        int shifting_torque_delta = 0;
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -471,7 +471,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             //bool allow_mpc_reduction_below_min = current_stage == ShiftStage::Overlap || current_stage == ShiftStage::Synchronize;
             int wp_old_clutch = pressure_manager->find_working_pressure_for_clutch(a_gear, releasing, torque_to_use, false);
             int wp_new_clutch = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, torque_to_use);
-            
+            int centrifugal_force_on_clutch = 0;
+            int centrifugal_force_off_clutch = 0;
+
             // Grab ratio informations
             bool coasting_shift = 0 > sensor_data.static_torque;
             // Shift reporting
@@ -479,7 +481,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 int input_rpm_old_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, a_gear, &this->gearboxConfig);
                 delta_rpm = abs(sensor_data.input_rpm - input_rpm_old_gear);
                 now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(sensor_data.output_rpm, this->rpm_reading, req_lookup, this->gearboxConfig.bounds);
-                
+                // Only calculate if speed > 0, to avoid weirdness with negative speed values in the event of a flare
+                // This only applies for K2 and K3. Stock EGS has K1 at 0, meaning its not used (Maybe they found an issue whilst testing?)
+                centrifugal_force_on_clutch = pressure_manager->calculate_centrifugal_force_for_clutch(applying, sensor_data.input_rpm, MAX(0, now_cs.rear_sun_speed));
+                centrifugal_force_off_clutch = pressure_manager->calculate_centrifugal_force_for_clutch(releasing, sensor_data.input_rpm, MAX(0, now_cs.rear_sun_speed));
+
                 if (now_cs.off_clutch_speed < -50 || now_cs.on_clutch_speed < -50) {
                     flaring = true;
                     if (prefill_adapt_flags == 0 && !flare_notified) {
@@ -617,9 +623,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             
             if (current_stage == ShiftStage::Bleed) {
-                float end_spc = (prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch)  / sd.shift_circuit_spc_multi;
+                float end_spc = (prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch - centrifugal_force_on_clutch)  / sd.shift_circuit_spc_multi;
                 current_shift_pressure = interpolate_float(phase_elapsed, pressure_manager->get_max_solenoid_pressure() / sd.shift_circuit_spc_multi, end_spc, 0, 100, InterpType::Linear);
-                current_modulating_pressure = (end_spc*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction; // To add to working pressure for maximum filling effect
+                current_modulating_pressure = (end_spc*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction - centrifugal_force_off_clutch; // To add to working pressure for maximum filling effect
             } else if (current_stage == ShiftStage::Fill) {
                 bool was_adapting = prefill_adapt_flags == 0;
                 if (was_adapting && prefill_adapt_flags != 0) {
@@ -627,9 +633,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 bool can_exit_fill_early = false;
                 if (phase_elapsed < prefill_data.fill_time) {
-                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch);
+                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch - centrifugal_force_on_clutch);
                 } else if (phase_elapsed < prefill_data.fill_time + FILL_RAMP_TIME) {
-                    current_shift_pressure = spring_pressure_on_clutch + interpolate_float(
+                    current_shift_pressure = spring_pressure_on_clutch - centrifugal_force_on_clutch + interpolate_float(
                         phase_elapsed - prefill_data.fill_time, 
                         prefill_data.fill_pressure_on_clutch,
                         prefill_data.low_fill_pressure_on_clutch,
@@ -639,7 +645,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     );
                     can_exit_fill_early = true;
                 } else {
-                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch);
+                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
                     can_exit_fill_early = true;
                 }
                 pre_overlap_torque = sensor_data.input_torque;
@@ -657,7 +663,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     }
                 }
                 current_shift_pressure /= sd.shift_circuit_spc_multi;
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
                 
                 if (mpc_released && !prefill_protection_active && prefill_adapt_flags == 0x0000) {
                     // Do adapting for prefill
@@ -665,12 +671,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     prefill_adapt_flags = 0x1000;
                 }
             } else if (current_stage == ShiftStage::Overlap) {
-                float spc_overlap_step = (float)wp_new_clutch / (float)(chars.target_shift_time / SHIFT_DELAY_MS);
+                float spc_overlap_step = (float)(wp_new_clutch) / (float)(chars.target_shift_time / SHIFT_DELAY_MS);
                 if (!stationary_shift && phase_elapsed < chars.target_shift_time) {
                     spc_overlap_step = interpolate_float(
                         now_cs.on_clutch_speed,
                         spc_overlap_step,
-                        spc_overlap_step/2,
+                        0,
                         pre_cs.on_clutch_speed,
                         0,
                         InterpType::Linear
@@ -693,7 +699,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 //current_shift_clutch_pressure = MAX(prev_shift_clutch_pressure, interpolate_float(phase_elapsed, prev_shift_clutch_pressure, overlap_ending_spc, 0, chars.target_shift_time, InterpType::Linear));
                 //float wp_multiplier = interpolate_float(sensor_data.pedal_pos, 0.5, 1.0, 25, 128, InterpType::Linear);
                 current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), pressure_manager->get_max_solenoid_pressure()*0.8) / sd.shift_circuit_spc_multi, current_shift_pressure);
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);

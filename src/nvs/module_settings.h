@@ -21,63 +21,12 @@ typedef struct {
     bool enable_d4;
     // Enable torque converter in D5
     bool enable_d5;
-    // The pressure that is applied to the torque converter
-    // simply to start closing the distance between the clutch pack,
-    // without actually biting the clutch.
-    //
-    // UNIT: mBar
-    uint16_t prefill_pressure;
-    // The minimum input shaft speed before the torque converter can
-    // being to slip or close
-    //
-    // UNIT: RPM
-    uint16_t min_locking_rpm;
     // When adapting, this is the time between checks to see how
     // much additional or less pressure should be applied to the converter.
     // Making this interval too quick can result in over adapting!
     //
     // UNIT: milliseconds
     uint16_t adapt_test_interval_ms;
-    // The stall speed of the torque converter. At this speed,
-    // no matter the state of the clutch, the fluid in the converter
-    // will trigger a soft lockup of the impellor and turbine.
-    //
-    // UNIT: RPM
-    uint16_t tcc_stall_speed;
-    // The minimum torque limit for adaptation
-    //
-    // UNIT: Nm
-    uint16_t min_torque_adapt;
-    // The maximum torque limit for adaptation
-    //
-    // UNIT: Nm
-    uint16_t max_torque_adapt;
-    // The minimum engine speed for prefill to start
-    //
-    // UNIT: RPM
-    uint16_t prefill_min_engine_rpm;
-    // Maximum slip allowed when at maximum adapting torque
-    // UNIT: RPM
-    uint16_t max_slip_max_adapt_trq;
-    // Minimum slip allowed when at maximum adapting torque
-    // UNIT: RPM
-    uint16_t min_slip_max_adapt_trq;
-    // Maximum slip allowed when at minimum adapting torque
-    // UNIT: RPM
-    uint16_t max_slip_min_adapt_trq;
-    // Minimum slip allowed when at minimum adapting torque
-    // UNIT: RPM
-    uint16_t min_slip_min_adapt_trq;
-    // If the adaptation algorithm detects it needs to increase or 
-    // decrease pressure. This is how much of a change it will perform
-    // in 1 adaptation cycle.
-    //
-    // UNIT: mBar
-    uint8_t pressure_increase_step;
-
-    uint8_t adapt_pressure_step;
-    // Pressure multiplier based on output speed
-    LinearInterpSetting pressure_multiplier_output_rpm;
     // The minimum output shaft speed for Sailing mode to occur.
     // In sailing mode, when the accelerator input is 0%, the torque
     // converter will fully unlock, in order to acheive the maximum
@@ -92,11 +41,6 @@ typedef struct {
     //
     // UNIT: RPM
     uint16_t force_lock_min_output_rpm;
-    // The maximum pedal input when the output speed is below 
-    // force_lock_min_output_rpm to trigger a lock of the torque converter
-    //
-    // UNIT: %
-    uint8_t locking_pedal_pos_max;
     // Open the converter to slipping (If locked) if the engine requests it
     // This is used on the M113K platform when the supercharger clutch
     // is about to engage, so that the shock of the supercharger coming on does
@@ -114,28 +58,9 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .enable_d3 = true,
     .enable_d4 = true,
     .enable_d5 = true,
-    .prefill_pressure = 500,
-    .min_locking_rpm = 1100,
     .adapt_test_interval_ms = 1000,
-    .tcc_stall_speed = 2500,
-    .min_torque_adapt = 30,
-    .max_torque_adapt = 200,
-    .prefill_min_engine_rpm = 1000,
-    .max_slip_max_adapt_trq = 200,
-    .min_slip_max_adapt_trq = 100,
-    .max_slip_min_adapt_trq = 60,
-    .min_slip_min_adapt_trq = 30,
-    .pressure_increase_step = 50,
-    .adapt_pressure_step = 20,
-    .pressure_multiplier_output_rpm = {
-        .new_min = 1.00,
-        .new_max = 1.5,
-        .raw_min = 1500,
-        .raw_max = 2500,
-    },
     .sailing_mode_active_rpm = 500,
     .force_lock_min_output_rpm = 2000,
-    .locking_pedal_pos_max = 20,
     .react_on_engine_slip_request = true,
     .react_on_engine_open_request = true
 };
@@ -465,19 +390,6 @@ const NAG_MODULE_SETTINGS NAG_DEFAULT_SETTINGS = {
 
 // Pressure manager settings
 typedef struct {
-    // Maximum Shift pressure with SPC solenoid off
-    // UNIT: mBar
-    uint16_t max_spc_pressure;
-    // Maximum Modulating pressure with MPC solenoid off
-    // UNIT: mBar
-    uint16_t max_mpc_pressure;
-    // Maximum line pressure
-    // UNIT: mBar
-    uint16_t max_line_pressure;
-    // Engine RPM multiplier on line pressure
-    LinearInterpSetting engine_rpm_pressure_multi;
-    // K1 clutch factor for 1-2 and 2-1 shifting
-    float k1_pressure_multi;
     // Time before shift solenoids are reduced PWM.
     // Setting this too low can result in the shift circuit
     // not activating!
@@ -489,16 +401,6 @@ typedef struct {
 
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
-    .max_spc_pressure = 7000,
-    .max_mpc_pressure = 7000,
-    .max_line_pressure = 15000,
-    .engine_rpm_pressure_multi = {
-        .new_min = 1.0,
-        .new_max = 1.5,
-        .raw_min = 1000,
-        .raw_max = 6000,
-    },
-    .k1_pressure_multi = 1.9,
     .shift_solenoid_pwm_reduction_time = 1000,
 };
 

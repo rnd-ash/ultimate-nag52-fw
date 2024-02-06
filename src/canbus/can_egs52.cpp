@@ -217,7 +217,7 @@ int Egs52Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
 int Egs52Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
     if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
-        return ((int)ms212.M_FV / 4) - 500;
+        return ((int)ms212.M_ESPV / 4) - 500;
     }
     return INT_MAX;
 }

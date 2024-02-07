@@ -43,5 +43,13 @@ template <typename T> void search_value(const T value, const T *values, const ui
     }
 }
 
+template <typename T> float interpolate_linear_array(T v, const uint8_t len, const T* x, const T* vals) {
+    uint16_t idx_min = 0;
+    uint16_t idx_max = 0;
+    search_value(v, x, len, &idx_min, &idx_max);
+    int16_t x1 = x[idx_min];
+    int16_t x2 = x[idx_max];
+    return interpolate((float)vals[idx_min], (float)vals[idx_max], x1, x2, v);
+}
 
 #endif

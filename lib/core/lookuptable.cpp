@@ -1,7 +1,7 @@
 #include "lookuptable.h"
 #include "tcu_alloc.h"
 #include <string.h>
-#include "tcu_maths.h"
+#include "tcu_maths_impl.h"
 
 LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize)
 {
@@ -56,7 +56,7 @@ float LookupTable::get_value(float xValue)
     uint16_t    idx_max;
     
     // part 1 - identification of the indices for x-value
-    search_value(xValue, xHeader->get_data(), xHeaderSize, &idx_min, &idx_max);
+    search_value<int16_t>(xValue, xHeader->get_data(), xHeaderSize, &idx_min, &idx_max);
     
     // part 2: do the interpolation
     int16_t x1 = xHeader->get_value(idx_min);
@@ -71,7 +71,7 @@ float LookupTable::get_header_interpolated(const float value) const
     uint16_t    idvalue_max;
 
     // part 1 - identification of the indices for x-value
-    search_value(value, data, dataSize, &idvalue_min, &idvalue_max);
+    search_value<int16_t>(value, data, dataSize, &idvalue_min, &idvalue_max);
 
     // part 2: do the interpolation
     const float value1 = (float)xHeader->get_value(idvalue_min);

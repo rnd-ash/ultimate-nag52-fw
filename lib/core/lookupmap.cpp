@@ -1,5 +1,5 @@
 #include "lookupmap.h"
-#include "tcu_maths.h"
+#include "tcu_maths_impl.h"
 
 LookupMap::LookupMap(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_yHeader, const uint16_t _yHeaderSize, const int16_t *_data, const uint16_t _dataSize) :
     LookupTable(_xHeader, _xHeaderSize, _data, _dataSize)
@@ -16,10 +16,10 @@ float LookupMap::get_value(const float xValue, const float yValue)
     uint16_t    y_idx_max;
 
     // part 1a - identification of the indices for x-value
-    search_value(xValue, xHeader->get_data(), xHeader->get_size(), &x_idx_min, &x_idx_max);
+    search_value<int16_t>(xValue, xHeader->get_data(), xHeader->get_size(), &x_idx_min, &x_idx_max);
     
     // part 1b - identification of the indices for y-value
-    search_value(yValue, yHeader->get_data(), yHeader->get_size(), &y_idx_min, &y_idx_max);
+    search_value<int16_t>(yValue, yHeader->get_data(), yHeader->get_size(), &y_idx_min, &y_idx_max);
     
     // part 2: do the interpolation
     const int16_t x1 = xHeader->get_value(x_idx_min);
@@ -60,7 +60,7 @@ float LookupMap::get_x_header_interpolated(const float value, const int16_t y) c
     uint16_t    idvalue_max;
 
     // part 1 - identification of the indices for x-value
-    search_value(value, row, xHeader->get_size(), &idvalue_min, &idvalue_max);
+    search_value<int16_t>(value, row, xHeader->get_size(), &idvalue_min, &idvalue_max);
 
     // part 2: do the interpolation
     const float value1 = (float)xHeader->get_value(idvalue_min);

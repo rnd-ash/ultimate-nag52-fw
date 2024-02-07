@@ -145,6 +145,7 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 /// @param size The size of values.
 /// @param idvalue_min The index for the value smaller than the value to be searched for.
 /// @param idvalue_max The index for the value greater than the value to be searched for.
-void search_value(const int16_t value, const int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
+template <typename T> void search_value(const T value, const T *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
+
 
 #endif // TCU_MATHS_H

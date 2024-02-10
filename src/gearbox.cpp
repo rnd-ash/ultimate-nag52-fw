@@ -673,7 +673,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->tcc->on_shift_ending();
                 }
                 spc_delta += spc_overlap_step;
-                if (!stationary_shift && now_cs.off_clutch_speed < 100) {
+                if (stationary_shift || now_cs.off_clutch_speed < 100) {
                     off_clutch_pressure = interpolate_float(phase_elapsed, spring_pressure_off_clutch+prefill_data.fill_pressure_on_clutch/2, spring_pressure_off_clutch/2, 0, chars.target_shift_time/2, InterpType::Linear);
                 }
                 current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), pressure_manager->get_max_solenoid_pressure()*0.8) / sd.shift_circuit_spc_multi, current_shift_pressure) - centrifugal_force_on_clutch;

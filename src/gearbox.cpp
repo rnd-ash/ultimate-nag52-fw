@@ -127,14 +127,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     {
         vTaskDelay(1);
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---GEARBOX INFO---");
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Max torque: %d Nm", this->gearboxConfig.max_torque);
-    for (int i = 0; i < 7; i++)
-    {
-        char c = i < 5 ? 'D' : 'R';
-        int g = i < 5 ? i + 1 : i - 4;
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Gear ratio %c%d %.3f. Bounds: (%.3f - %.3f). Power loss %.2f", c, g, gearboxConfig.bounds[i].ratio, gearboxConfig.bounds[i].ratio_max_drift, gearboxConfig.bounds[i].ratio_min_drift, gearboxConfig.bounds[i].power_loss);
-    }
     if (VEHICLE_CONFIG.engine_type == 1)
     {
         this->redline_rpm = VEHICLE_CONFIG.red_line_rpm_petrol;
@@ -147,10 +139,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     {
         this->redline_rpm = 4000; // just in case
     }
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "---OTHER CONFIG---");
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Redline RPM: %d", this->redline_rpm);
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Diff ratio: %.2f", this->diff_ratio_f);
     this->output_avg_filter = new MovingAverage<uint32_t>(10);
     this->pedal_average = new MovingAverage<uint32_t>(50);
     sensor_data.pedal_smoothed = (const MovingAverage<uint32_t>*)this->pedal_average;

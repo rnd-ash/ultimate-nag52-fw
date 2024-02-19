@@ -342,7 +342,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         PrefillData prefill_data = pressure_mgr->make_fill_data(req_lookup);
 
         AdaptShiftRequest adaptation_req;
-        float phase_total_time = 150;
+        float phase_total_time = 100;
 
         // Current Y values
         float current_shift_pressure = 0;
@@ -586,8 +586,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (current_stage == ShiftStage::Fill) {
                     ESP_LOGI("SHIFT", "Fill start");
                     pressure_manager->set_shift_circuit(sd.shift_circuit, true);
-#define FILL_RAMP_TIME 100
-#define FILL_LP_HOLD_TIME 200
+#define FILL_RAMP_TIME 60
+#define FILL_LP_HOLD_TIME 100
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
                 } else if (current_stage == ShiftStage::Overlap) {
                     this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
@@ -662,9 +662,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->tcc->on_shift_ending();
                 }
                 spc_delta += spc_overlap_step;
-                if (stationary_shift || now_cs.off_clutch_speed < 100) {
-                    off_clutch_pressure = interpolate_float(phase_elapsed, spring_pressure_off_clutch+prefill_data.fill_pressure_on_clutch/2, spring_pressure_off_clutch/2, 0, chars.target_shift_time/2, InterpType::Linear);
-                }
+                //if (stationary_shift || now_cs.off_clutch_speed < 100) {
+                    off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_on_clutch, 0, 0, chars.target_shift_time, InterpType::Linear);
+                //}
                 current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), pressure_manager->get_max_solenoid_pressure()*0.8) / sd.shift_circuit_spc_multi, current_shift_pressure) - centrifugal_force_on_clutch;
                 current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::MaxPressure) {

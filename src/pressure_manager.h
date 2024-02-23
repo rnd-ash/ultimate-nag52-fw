@@ -33,6 +33,7 @@ public:
      * @param enable Set circuit state to on
      */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
+    void set_shift_stage(ShiftStage s);
 
     /**
      * @brief Set the target modulating pressure of the gearbox. 
@@ -152,7 +153,7 @@ private:
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
     uint16_t solenoid_max_pressure = 0;
-
+    ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
 

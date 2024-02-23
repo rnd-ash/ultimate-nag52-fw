@@ -103,11 +103,9 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if (sol_y3->is_on()) { // 1-2/2-1 shift circuit is activated
+    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && (this->shift_stage != ShiftStage::Bleed && this->shift_stage != ShiftStage::MaxPressure)) { // 1-2/2-1 shift circuit is activated
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
-        if (c_gear == 1 && t_gear == 2) { // 1-2 only (K1 is active)
-            k1_factor = valve_body_settings->k1_engaged_factor;
-        }
+        k1_factor = valve_body_settings->k1_engaged_factor;
     }
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, 
@@ -118,6 +116,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
         InterpType::Linear
     );
     float spc_reduction = in_spc * k1_factor;
+    //ESP_LOGI("P", "%d %d", (int)((fac * regulator_pressure) + extra_pressure), (int)spc_reduction);
     return (fac * regulator_pressure) + extra_pressure - spc_reduction;
 }
 
@@ -145,6 +144,10 @@ uint16_t PressureManager::get_shift_regulator_pressure(void) {
     } else {
         return 0;
     }
+}
+
+void PressureManager::set_shift_stage(ShiftStage s) {
+    this->shift_stage = s;
 }
 
 /*
@@ -178,23 +181,30 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
+
+        float amplifier_1_2 = 1.0;
+        if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && (this->shift_stage != ShiftStage::Bleed && this->shift_stage != ShiftStage::MaxPressure)) {
+            amplifier_1_2 = 1.993;
+        }
+
         uint16_t spc_in = this->target_shift_pressure;
+        uint16_t spc_sol_in = ((float)this->target_shift_pressure / amplifier_1_2) + this->get_shift_regulator_pressure();
         uint16_t mpc_in = this->target_modulating_pressure;
 
         uint16_t p_a = this->calc_working_pressure(current_gear, mpc_in, spc_in);
-        uint16_t pump = this->calc_input_pressure(p_a);
+        uint16_t inlet = this->calc_input_pressure(p_a);
 
-        this->calculated_inlet_pressure = pump;
+        this->calculated_inlet_pressure = inlet;
         this->calculated_working_pressure = p_a;
 
-        float factor = this->calc_inlet_factor(pump);
+        float factor = this->calc_inlet_factor(inlet);
         
         this->corrected_mpc_pressure = mpc_in + (factor * (mpc_in + 1000.0));
 
-        if (spc_in > pump) {
+        if (spc_sol_in > inlet) {
             this->corrected_spc_pressure = this->solenoid_max_pressure;
         } else {
-            this->corrected_spc_pressure = spc_in + (factor * (spc_in + 1000.0));
+            this->corrected_spc_pressure = spc_sol_in + (factor * (spc_sol_in + 1000.0));
         }
 
         // Now actuate solenoids
@@ -259,6 +269,9 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
     uint8_t sel_idx = 0xFF;
     float ret = 0;
     switch (clutch) {
+        // OBSERVE. K1 is missing from this list.
+        // on EGS52, it is listed as 0 for the factor table. Perhaps during
+        // testing, they found calculating this force for K1 created some issues?
         case Clutch::K2:
             sel_idx = 0;
             speed = input;
@@ -359,14 +372,12 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
             lookup_valve_info = 4;
             break;
     }
-    sd.pressure_multi_mpc = MODULATING_P_OVERLAP_AREA_MAP[lookup_valve_info];
-    sd.pressure_multi_spc = SHIFT_P_OVERLAP_AREA_MAP[lookup_valve_info];
+    sd.pressure_multi_mpc = (float)MODULATING_P_OVERLAP_AREA_MAP[lookup_valve_info]/1000.0;
+    sd.pressure_multi_spc = (float)SHIFT_P_OVERLAP_AREA_MAP[lookup_valve_info]/1000.0;
     sd.mpc_pressure_spring_reduction = SHIFT_VALVE_SPRING_PRESSURE_MAP[lookup_valve_info];
-    sd.shift_circuit_spc_multi = SHIFT_CIRCUIT_FACTOR_MAP[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;
-
     return sd;
 }
 

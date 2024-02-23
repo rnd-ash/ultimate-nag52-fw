@@ -54,7 +54,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .driver_requested_torque = 0,
         .last_shift_time = 0,
         .is_braking = false,
-        .d_output_rpm = 0,
         .gear_ratio = 0.0F,
         .rr_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
         .rl_wheel = WheelData { .double_rpm = 0, .current_dir = WheelDirection::Stationary },
@@ -119,7 +118,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_reporter = new ShiftReporter();
-    this->itm = new InputTorqueModel();
     this->shift_adapter = new ShiftAdaptationSystem(&this->gearboxConfig);
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
@@ -1376,11 +1374,9 @@ void Gearbox::controller_loop()
         if (static_torque != INT_MAX)
         {
             this->sensor_data.static_torque = static_torque;
-            if (nullptr != this->itm) {
-                this->itm->update(egs_can_hal, &this->sensor_data, is_fwd_gear(this->target_gear) && is_fwd_gear(this->actual_gear));
-            } else {
-                this->sensor_data.input_torque = static_torque;
-                egs_can_hal->set_turbine_torque_loss(0xFFFF);
+            int input_torque = InputTorqueModel::get_input_torque(egs_can_hal, &sensor_data);
+            if (input_torque != INT16_MAX) {
+                this->sensor_data.input_torque = input_torque;
             }
         }
 

@@ -140,7 +140,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         this->redline_rpm = 4000; // just in case
     }
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
-    this->output_avg_filter = new MovingAverage<uint32_t>(10);
     this->pedal_average = new MovingAverage<uint32_t>(50);
     sensor_data.pedal_smoothed = (const MovingAverage<uint32_t>*)this->pedal_average;
 }
@@ -1068,28 +1067,17 @@ void Gearbox::controller_loop()
         bool can_read_input = this->calc_input_rpm(&sensor_data.input_rpm);
         uint16_t o = 0;
         bool can_read_output = this->calc_output_rpm(&o);
-        if (can_read_output && this->output_avg_filter) {
-            this->output_avg_filter->add_sample(o);
-            this->sensor_data.output_rpm = this->output_avg_filter->get_average();
-        } else if (can_read_output) {
+        if (can_read_output) {
             this->sensor_data.output_rpm = o;
         }
         bool can_read = can_read_input && can_read_output;
         if (can_read)
         {
-            if (GET_CLOCK_TIME() - last_output_measure_time > 250)
-            {
-                this->sensor_data.d_output_rpm = this->sensor_data.output_rpm - old_output_rpm;
-                old_output_rpm = this->sensor_data.output_rpm;
-                last_output_measure_time = GET_CLOCK_TIME();
-            }
             bool stationary = this->is_stationary();
             if (!stationary)
             {
                 // Store our ratio
                 this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
-                this->shadow_ratio_n2 = (float)this->rpm_reading.n2_raw / (float)this->sensor_data.output_rpm;
-                this->shadow_ratio_n3 = (float)this->rpm_reading.n3_raw / (float)this->sensor_data.output_rpm;
             }
             if (!shifting && !stationary)
             {

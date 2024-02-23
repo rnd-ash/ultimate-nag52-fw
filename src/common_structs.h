@@ -93,8 +93,6 @@ struct SensorData{
     uint32_t last_shift_time;
     /// Is the brake pedal depressed?
     bool is_braking;
-    /// Delta in output RPM, used for calculating if car is accelerating or slowing down
-    int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
     WheelData rr_wheel;

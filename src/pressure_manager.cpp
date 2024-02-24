@@ -97,7 +97,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc) {
     float fac = valve_body_settings->multiplier_all_gears;
     // Only when not shifting and constantly in 1 or R1
-    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) && (c_gear == 0 && t_gear == 0)) {
+    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
         fac = valve_body_settings->multiplier_in_1st_gear;
     }
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;

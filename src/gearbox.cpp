@@ -440,6 +440,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         if (req_lookup == ProfileGearChange::ONE_TWO || req_lookup == ProfileGearChange::TWO_ONE) {
             SPC_GAIN = 1.993;
         }
+        int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -472,6 +473,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             }
             // Grab ratio informations
             bool coasting_shift = 0 > sensor_data.static_torque;
+            int filling_torque = 0;
             // Shift reporting
             if (!stationary_shift) {
                 int input_rpm_old_gear = calc_input_rpm_from_req_gear(sensor_data.output_rpm, a_gear, &this->gearboxConfig);
@@ -597,6 +599,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 #define FILL_RAMP_TIME 60
 #define FILL_LP_HOLD_TIME 100
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
+                    filling_torque = abs(torque_to_use);
                 } else if (current_stage == ShiftStage::Overlap) {
                     this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
                     ESP_LOGI("SHIFT", "Overlap start");
@@ -656,7 +659,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     skip_phase = true;
                     current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
                 }
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((wp_old_clutch + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
                 
                 if (mpc_released && !prefill_protection_active && prefill_adapt_flags == 0x0000) {
                     // Do adapting for prefill
@@ -669,19 +672,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     this->tcc->on_shift_ending();
                 }
                 spc_delta += spc_overlap_step;
-                //if (stationary_shift || now_cs.off_clutch_speed < 100) {
-                    off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_on_clutch, 0, 0, chars.target_shift_time, InterpType::Linear);
-                //}
-                current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), SPC_MAX), current_shift_pressure) - centrifugal_force_on_clutch;
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((wp_old_clutch+off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                off_clutch_pressure = interpolate_float(phase_elapsed, wp_old_clutch+prefill_data.fill_pressure_off_clutch+spring_pressure_off_clutch, spring_pressure_off_clutch, 0, chars.target_shift_time, InterpType::Linear);
+                current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), MOD_MAX), current_shift_pressure) - centrifugal_force_on_clutch;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);
                 if (phase_elapsed < maxp.ramp_time) {
-                    current_shift_pressure = interpolate_float(phase_elapsed, prev_shift_pressure, pressure_manager->get_max_solenoid_pressure(), 0, maxp.ramp_time, InterpType::Linear);
+                    current_shift_pressure = interpolate_float(phase_elapsed, prev_shift_pressure, MOD_MAX, 0, maxp.ramp_time, InterpType::Linear);
                 } else {
                     // Hold phase. Mod at 0, Shift at full
-                    current_shift_pressure = pressure_manager->get_max_solenoid_pressure();
+                    current_shift_pressure = MOD_MAX;
                 }
                 // Merge working pressure slowly
                 current_modulating_pressure = interpolate_float(phase_elapsed, prev_modulating_pressure, wp_new_gear, 0, maxp.ramp_time, InterpType::Linear);

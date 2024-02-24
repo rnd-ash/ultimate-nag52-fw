@@ -182,13 +182,13 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
 
     } else {
 
-        float amplifier_1_2 = 1.0;
+        float amplifier = 1.0;
         if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && (this->shift_stage != ShiftStage::Bleed && this->shift_stage != ShiftStage::MaxPressure)) {
-            amplifier_1_2 = 1.993;
+            amplifier = 1.993;
         }
 
         uint16_t spc_in = this->target_shift_pressure;
-        uint16_t spc_sol_in = ((float)this->target_shift_pressure / amplifier_1_2) + this->get_shift_regulator_pressure();
+        uint16_t spc_sol_in = ((float)this->target_shift_pressure / amplifier) + this->get_shift_regulator_pressure();
         uint16_t mpc_in = this->target_modulating_pressure;
 
         uint16_t p_a = this->calc_working_pressure(current_gear, mpc_in, spc_in);

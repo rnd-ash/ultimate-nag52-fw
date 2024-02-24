@@ -631,34 +631,36 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (was_adapting && prefill_adapt_flags != 0) {
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
-                bool can_exit_fill_early = false;
                 if (phase_elapsed < prefill_data.fill_time) {
                     current_shift_pressure = (spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch - centrifugal_force_on_clutch);
                 } else if (phase_elapsed < prefill_data.fill_time + FILL_RAMP_TIME) {
-                    current_shift_pressure = spring_pressure_on_clutch - centrifugal_force_on_clutch + interpolate_float(
-                        phase_elapsed - prefill_data.fill_time, 
-                        prefill_data.fill_pressure_on_clutch,
-                        prefill_data.low_fill_pressure_on_clutch,
-                        0,
-                        FILL_RAMP_TIME,
-                        InterpType::Linear
-                    );
-                    can_exit_fill_early = true;
+                    if (filling_torque > gearboxConfig.max_torque/10) {
+                        current_shift_pressure = spring_pressure_on_clutch - centrifugal_force_on_clutch + interpolate_float(
+                            phase_elapsed - prefill_data.fill_time, 
+                            prefill_data.fill_pressure_on_clutch,
+                            prefill_data.low_fill_pressure_on_clutch,
+                            0,
+                            FILL_RAMP_TIME,
+                            InterpType::Linear
+                        );
+                    } else {
+                        current_shift_pressure = spring_pressure_on_clutch - centrifugal_force_on_clutch + interpolate_float(
+                            phase_elapsed - prefill_data.fill_time, 
+                            prefill_data.fill_pressure_on_clutch,
+                            0,
+                            0,
+                            FILL_RAMP_TIME,
+                            InterpType::Linear
+                        );
+                    }
                 } else {
-                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
-                    can_exit_fill_early = true;
+                    if (filling_torque > gearboxConfig.max_torque/10) {
+                        current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
+                    } else {
+                        current_shift_pressure = (spring_pressure_on_clutch - centrifugal_force_on_clutch);
+                    }
                 }
                 pre_overlap_torque = sensor_data.input_torque;
-                if (can_exit_fill_early && sensor_data.input_torque > gearboxConfig.max_torque/2) {
-                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
-                    skip_phase = true;
-                }
-                // Early fill done!
-                if (!stationary_shift && now_cs.off_clutch_speed > 25) {
-                    ESP_LOGI("SHIFT", "Shift started in fill phase. Finishing early!");
-                    skip_phase = true;
-                    current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
-                }
                 current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((wp_old_clutch + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
                 
                 if (mpc_released && !prefill_protection_active && prefill_adapt_flags == 0x0000) {

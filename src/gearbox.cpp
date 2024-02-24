@@ -673,9 +673,28 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (!stationary_shift && now_cs.off_clutch_speed > now_cs.on_clutch_speed) {
                     this->tcc->on_shift_ending();
                 }
-                spc_delta += spc_overlap_step;
                 off_clutch_pressure = interpolate_float(phase_elapsed, wp_old_clutch+prefill_data.fill_pressure_off_clutch+spring_pressure_off_clutch, spring_pressure_off_clutch, 0, chars.target_shift_time, InterpType::Linear);
-                current_shift_pressure =  MAX(MIN((prev_shift_pressure + spc_delta), MOD_MAX), current_shift_pressure) - centrifugal_force_on_clutch;
+                if (phase_elapsed <= chars.target_shift_time) {
+                    int target_spc = MAX(
+                        spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,
+                        spring_pressure_on_clutch + wp_new_clutch
+                    );
+                    current_shift_pressure = interpolate_float(
+                        phase_elapsed,
+                        prev_shift_pressure,
+                        target_spc,
+                        0,
+                        chars.target_shift_time,
+                        InterpType::Linear
+                    );
+                    current_shift_pressure -= centrifugal_force_on_clutch;
+                } else {
+                    // Exceeded shift time, start adding extra Pressure
+                    if (now_cs.off_clutch_speed < now_cs.on_clutch_speed) { // but only add if not merging
+                        current_shift_pressure += spc_overlap_step;
+                        current_shift_pressure = MIN(current_shift_pressure, SPC_MAX);
+                    }
+                }
                 current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms

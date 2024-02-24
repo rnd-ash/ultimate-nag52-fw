@@ -316,6 +316,21 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
     return ret;
 }
 
+uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    float friction_coefficient = interpolate_float(
+        sensor_data->atf_temp, 
+        friction_coefficient_0c,
+        friction_coefficient_80C,
+        0,
+        80,
+        InterpType::Linear
+    );
+    float friction_val = this->clutch_friction_coefficient_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / friction_coefficient) * (float) pressure;
+    return calc;
+}
+
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
     Clutch heaviest_loaded_clutch = (Clutch)heaviest_loaded_clutch_idx_map[gear_idx];

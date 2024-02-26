@@ -188,6 +188,7 @@ typedef struct {
     // is acting on the main pressure regulator in 1st gear
     float multiplier_in_1st_gear;
     float multiplier_all_gears;
+    float shift_pressure_adder;
     // Main pressure regulator spring pressure
     uint16_t lp_regulator_force_mbar;
     // Shift pressure regulator spring pressure
@@ -229,9 +230,10 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
     .type0 = {
         .multiplier_in_1st_gear = 2.320,
         .multiplier_all_gears = 1.689,
+        .shift_pressure_adder = 0.02,
         .lp_regulator_force_mbar = 1828,
         .shift_regulator_force_mbar = 601,
-        .shift_circuit_factor_1_2 = 1.993,
+        .shift_circuit_factor_1_2 = 0.037,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
         .pressure_correction_pump_speed_min = 1000,
@@ -242,15 +244,17 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
             .raw_min = 3180,
             .raw_max = 8820,
         },
-        .k1_engaged_factor = 1.993,
+        .k1_engaged_factor = 0.037,
         .minimum_mpc_pressure = 500
+
     },
     .type1 = {
         .multiplier_in_1st_gear = 1.954,
         .multiplier_all_gears = 1.567,
+        .shift_pressure_adder = 0.03,
         .lp_regulator_force_mbar = 1926,
         .shift_regulator_force_mbar = 601,
-        .shift_circuit_factor_1_2 = 1.993,
+        .shift_circuit_factor_1_2 = 0.037,
         .inlet_pressure_offset_mbar_first_gear = 1500,
         .inlet_pressure_offset_mbar_other_gears = 1000,
         .pressure_correction_pump_speed_min = 1000,
@@ -261,7 +265,7 @@ const HYD_MODULE_SETTINGS HYD_DEFAULT_SETTINGS = {
             .raw_min = 4000,
             .raw_max = 10000,
         },
-        .k1_engaged_factor = 1.993,
+        .k1_engaged_factor = 0.037,
         .minimum_mpc_pressure = 1500
     }
 };

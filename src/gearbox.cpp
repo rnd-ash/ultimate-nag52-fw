@@ -601,6 +601,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
                     filling_torque = abs(torque_to_use);
                 } else if (current_stage == ShiftStage::Overlap) {
+                    prev_shift_pressure += centrifugal_force_on_clutch; // This gives us the pressure without centrifugal compensation
                     this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = chars.target_shift_time+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
@@ -669,7 +670,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     prefill_adapt_flags = 0x1000;
                 }
             } else if (current_stage == ShiftStage::Overlap) {
-                float spc_overlap_step = (float)(wp_new_clutch) / (float)(chars.target_shift_time / SHIFT_DELAY_MS);
                 if (!stationary_shift && now_cs.off_clutch_speed > now_cs.on_clutch_speed) {
                     this->tcc->on_shift_ending();
                 }
@@ -679,23 +679,26 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,
                         spring_pressure_on_clutch + wp_new_clutch
                     );
-                    current_shift_pressure = interpolate_float(
-                        phase_elapsed,
-                        prev_shift_pressure,
-                        target_spc,
-                        0,
-                        chars.target_shift_time,
-                        InterpType::Linear
-                    );
-                    current_shift_pressure -= centrifugal_force_on_clutch;
+                    if (now_cs.off_clutch_speed < now_cs.on_clutch_speed) {
+                        current_shift_pressure = interpolate_float(
+                            phase_elapsed,
+                            prev_shift_pressure, // Without compensation
+                            target_spc,
+                            0,
+                            chars.target_shift_time,
+                            InterpType::Linear
+                        );
+                        current_shift_pressure -= centrifugal_force_on_clutch;
+                    }
                 } else {
                     // Exceeded shift time, start adding extra Pressure
                     if (now_cs.off_clutch_speed < now_cs.on_clutch_speed) { // but only add if not merging
+                        float spc_overlap_step = (float)(wp_new_clutch) / (float)(chars.target_shift_time / SHIFT_DELAY_MS);
                         current_shift_pressure += spc_overlap_step;
                         current_shift_pressure = MIN(current_shift_pressure, SPC_MAX);
                     }
                 }
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc)+((off_clutch_pressure-centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::MaxPressure) {
                 // Ramp time is always 250ms
                 int wp_new_gear = pressure_manager->find_working_mpc_pressure(this->target_gear);

@@ -97,13 +97,13 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc) {
     float fac = valve_body_settings->multiplier_all_gears;
     // Only when not shifting and constantly in 1 or R1
-    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
+    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First || current_gear == GearboxGear::Second)) {
         fac = valve_body_settings->multiplier_in_1st_gear;
     }
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && (this->shift_stage != ShiftStage::Bleed && this->shift_stage != ShiftStage::MaxPressure)) { // 1-2/2-1 shift circuit is activated
+    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && current_gear == GearboxGear::First) {
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
         k1_factor = valve_body_settings->k1_engaged_factor;
     }
@@ -132,7 +132,7 @@ uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
 
 float PressureManager::calc_inlet_factor(uint16_t inlet_pressure) {
     return CLAMP(
-        0.03 * ((float)valve_body_settings->working_pressure_compensation.new_max - (float)inlet_pressure),
+        valve_body_settings->shift_pressure_adder * ((float)valve_body_settings->working_pressure_compensation.new_max - (float)inlet_pressure),
         0,
         0.1
     );

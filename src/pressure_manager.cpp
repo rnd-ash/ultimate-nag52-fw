@@ -103,9 +103,11 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     uint16_t regulator_pressure = in_mpc + valve_body_settings->lp_regulator_force_mbar;
     float k1_factor = 0;
     uint16_t p_adder = valve_body_settings->inlet_pressure_offset_mbar_other_gears;
-    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && current_gear == GearboxGear::First) {
+    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) {
         p_adder = valve_body_settings->inlet_pressure_offset_mbar_first_gear;
-        k1_factor = valve_body_settings->k1_engaged_factor;
+        if(current_gear == GearboxGear::First) { // Only for 1-2
+            k1_factor = valve_body_settings->k1_engaged_factor;
+        }
     }
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, 

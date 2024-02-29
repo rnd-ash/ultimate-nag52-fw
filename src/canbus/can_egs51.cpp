@@ -398,6 +398,12 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
+void Egs51Can::set_safe_start(bool can_start) {
+    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
+        ioexpander->set_start(can_start);
+    }
+}
+
 void Egs51Can::tx_frames() {
     tx.data_length_code = 6;
     GS_218_EGS51 gs_218tx;

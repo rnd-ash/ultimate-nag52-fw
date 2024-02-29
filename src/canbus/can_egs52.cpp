@@ -15,13 +15,14 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs418.FMRAD = 1.0;
     this->set_target_gear(GearboxGear::SignalNotAvailable);
     this->set_actual_gear(GearboxGear::SignalNotAvailable);
-    this->set_shifter_position(ShifterPosition::SignalNotAvailable);
+    this->set_shifter_position(ShifterPosition::P);
     this->gs418.KD = false;
     this->gs418.SCHALT = false; // Auto is 0, manual is 1
     this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
     gs218.CALID_CVN_AKT = true;
     gs218.G_G = true;
+    this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
     // Set profile to N/A for now
     this->set_drive_profile(GearboxProfile::Underscore);
     // Set no message
@@ -38,7 +39,6 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
-    this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
 }
 
 WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)

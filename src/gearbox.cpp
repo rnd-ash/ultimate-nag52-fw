@@ -1019,10 +1019,11 @@ void Gearbox::inc_subprofile()
 
 void Gearbox::controller_loop()
 {
-    bool lock_state = false;
+    bool lock_state = true;
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
+    egs_can_hal->set_safe_start(true);
     while (GET_CLOCK_TIME() < expire_check)
     {
         this->shifter_pos = egs_can_hal->get_shifter_position(250);
@@ -1037,11 +1038,17 @@ void Gearbox::controller_loop()
             this->actual_gear = GearboxGear::Fifth;
             this->target_gear = GearboxGear::Fifth;
             this->gear_disagree_count = 20; // Set disagree counter to non 0. This way gearbox must calculate ratio
+            egs_can_hal->set_safe_start(false);
+            break;
         }
         else if (this->shifter_pos == ShifterPosition::R)
         { // Car is in motion backwards!
             this->actual_gear = GearboxGear::Reverse_Second;
             this->target_gear = GearboxGear::Reverse_Second;
+            egs_can_hal->set_safe_start(false);
+            break;
+        } else {
+            egs_can_hal->set_safe_start(true); // Unknown position, keep polling until we don't know
         }
         vTaskDelay(5);
     }

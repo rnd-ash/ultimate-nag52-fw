@@ -83,7 +83,7 @@ int batt_adc_res = 0;
 int tft_adc_res = 0;
 
 esp_err_t pl_res = ESP_OK;
-bool parking_lock = false;
+bool parking_lock = true;
 esp_err_t vbatt_res = ESP_OK;
 uint16_t vbatt = 12000; // 12.0V
 esp_err_t tft_res = ESP_OK;

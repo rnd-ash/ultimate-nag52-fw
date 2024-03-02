@@ -13,6 +13,7 @@ class LookupTable {
         /// @return the interpolated header-value
         float get_header_interpolated(const float value) const;
         void get_x_headers(uint16_t *size, int16_t **headers);
+        const int16_t* get_current_data(void);
     protected:
         uint16_t xHeaderSize;
         uint16_t dataSize;
@@ -25,7 +26,6 @@ class LookupAllocTable: public LookupTable {
         LookupAllocTable(const int16_t* _xHeader, const uint16_t _xHeaderSize);
         LookupAllocTable(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _data, const uint16_t _dataSize);
         ~LookupAllocTable(void);
-        int16_t* get_current_data(void);
         bool set_data(const int16_t* _data, uint16_t _dataSize);
         bool is_allocated(void) const;
         bool add_data(const int16_t* map, const uint16_t size);

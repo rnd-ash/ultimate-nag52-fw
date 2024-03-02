@@ -19,7 +19,7 @@ class LookupAllocMap : public LookupAllocTable, public LookupMap {
         ~LookupAllocMap();
 };
 
-class LookupRefMap : public LookupRefTable, public LookupMap {
+class LookupRefMap : public LookupRefTable,  public LookupMap {
     public:
         LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16_t* _yHeader, const uint16_t _yHeaderSize, int16_t* _data, const uint16_t _dataSize);
 };

@@ -20,19 +20,10 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t* default_data;
 
     /** Pressure PWM map **/
-    const int16_t pwm_x_headers[7] = {};
-    int16_t pwm_y_headers[4] = {};
-    const int16_t pwm_z[7*4] = {};
-
-    memcpy((void*)pwm_x_headers, HYDR_PTR->pcs_map_x, 7*sizeof(uint16_t));
-    memcpy((void*)pwm_z, HYDR_PTR->pcs_map_z, 7*4*sizeof(uint16_t));
-    for(int i = 0; i < 4; i++) {
-        pwm_y_headers[i] = (int16_t)HYDR_PTR->pcs_map_y[i] - 50;
-    }
     this->solenoid_max_pressure = HYDR_PTR->pcs_map_x[6];
 
     // Friction lookup table
-    this->pressure_pwm_map = new LookupMap(pwm_x_headers, 7, (const int16_t*)pwm_y_headers, 4, pwm_z, 7*4);
+    this->pressure_pwm_map = new LookupRefMap(HYDR_PTR->pcs_map_x, 7, HYDR_PTR->pcs_map_y, 4, HYDR_PTR->pcs_map_z, 7*4);
 
     /** Pressure PWM map (TCC) **/
     const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};

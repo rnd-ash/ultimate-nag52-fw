@@ -40,6 +40,10 @@ void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
     *headers = xHeader->get_data();
 }
 
+const int16_t* LookupTable::get_current_data(void) {
+    return data;
+}
+
 
 // Alloc table implementation
 LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, uint16_t _xHeaderSize)
@@ -68,10 +72,6 @@ LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, const uint16_t _xHea
 LookupAllocTable::~LookupAllocTable()
 {
     TCU_FREE(data);
-}
-
-int16_t* LookupAllocTable::get_current_data(void) {
-    return data;
 }
 
 bool LookupAllocTable::add_data(const int16_t* map, const uint16_t size) {

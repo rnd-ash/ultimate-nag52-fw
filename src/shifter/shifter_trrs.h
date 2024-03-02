@@ -13,6 +13,7 @@ public:
     ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;    
     AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
     DiagProfileInputState diag_get_profile_input() override;
+    ShifterStyle get_shifter_type() override;
 private:
     const ShifterPosition TRRS_SHIFTER_TABLE[16] = {
         ShifterPosition::SignalNotAvailable,    // 0b0000

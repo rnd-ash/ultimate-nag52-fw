@@ -115,10 +115,31 @@ class HydralicVariantData:
         self.hydralic_map = map
 
 
+
+swap_map = {4:1, 12:2, 3:3, 11:4, 2:5, 10:6, 1:7, 9:8, 8:9, 16:10, 7:11, 15:12, 6:13, 14:14, 5:15, 13:16}
+
+def swap_word(in_word):
+    out_word = 0
+    for i in range(1,17):
+        if in_word & 1:
+            out_word |= 1 << (swap_map[i]-1)
+        in_word >>= 1
+    return out_word
+
 SCN_OFFSET = 0x4000
 HYDRALIC_FIRST_PTR = bytes("mk00", encoding="ASCII")
 
 file_bytes = open(sys.argv[1], "rb").read()
+
+if file_bytes[0] != 0xFA:
+    print("Flash is scrambled, unscrambling")
+    tmp = bytearray()
+    for i in range(0, int(len(file_bytes)/2)):
+        swaped = swap_word(int.from_bytes(file_bytes[i*2:(i*2)+2], 'big'))
+        x = int.to_bytes(swaped, length=2, byteorder='big')
+        tmp.append(x[0])
+        tmp.append(x[1])
+    file_bytes = tmp
 
 
 scn_string = file_bytes[SCN_OFFSET:SCN_OFFSET+42]
@@ -132,7 +153,9 @@ hydralic_offset = file_bytes.find(HYDRALIC_FIRST_PTR)
 if hydralic_offset != -1:
     for i in range(0,2):
         hydralic_variant = HydralicVariantData(hydralic_offset, file_bytes)
-        hydralic_offset += 116 # 0x39610 - 0x3959C
+        hydralic_offset += 0x6C # 0x39610 - 0x3959C
+        print("VARIANT HYD")
+        print(vars(hydralic_variant))
         hydralic_data.append(hydralic_variant)
     offset = 0x30000
     # Need to manually locate this hydralic map

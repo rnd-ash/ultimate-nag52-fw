@@ -6,6 +6,7 @@
 #include "speaker.h"
 #include "clock.hpp"
 #include "nvs/device_mode.h"
+#include "egs_calibration/calibration_structs.h"
 
 #define SBS SBS_CURRENT_SETTINGS
 
@@ -66,58 +67,54 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .bounds = TorqueRequestBounds::LessThan,
     };
 
+    float r1 = ((float)(MECH_PTR->ratio_table[1]))/1000.0;
+    float r2 = ((float)(MECH_PTR->ratio_table[2]))/1000.0;
+    float r3 = ((float)(MECH_PTR->ratio_table[3]))/1000.0;
+    float r4 = ((float)(MECH_PTR->ratio_table[4]))/1000.0;
+    float r5 = ((float)(MECH_PTR->ratio_table[5]))/1000.0;
+    float rr1 = ((float)(MECH_PTR->ratio_table[6])*-1)/1000.0;
+    float rr2 = ((float)(MECH_PTR->ratio_table[7])*-1)/1000.0;
 
-    NAG_SETTINGS* nag_settings = VEHICLE_CONFIG.is_large_nag ? &NAG_CURRENT_SETTINGS.large_nag : &NAG_CURRENT_SETTINGS.small_nag;
-    // Generate our ratio info
-    this->gearboxConfig.max_torque = nag_settings->max_torque;
     this->gearboxConfig.bounds[0] = GearRatioInfo { // 1st 
-        .ratio_max_drift = nag_settings->ratio_1*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_1/100.0f)),
-        .ratio = nag_settings->ratio_1,
-        .ratio_min_drift = nag_settings->ratio_1*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_1/100.0f)),
-        .power_loss = (nag_settings->power_loss_1)/100.0f,
+        .ratio_max_drift = r1*(float)1.1,
+        .ratio = r1,
+        .ratio_min_drift = r1*(float)0.9,
     };
     this->gearboxConfig.bounds[1] = GearRatioInfo { // 2nd 
-        .ratio_max_drift = nag_settings->ratio_2*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_2/100.0f)),
-        .ratio = nag_settings->ratio_2,
-        .ratio_min_drift = nag_settings->ratio_2*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_2/100.0f)),
-        .power_loss = (nag_settings->power_loss_2)/100.0f,
+        .ratio_max_drift = r2*(float)1.1,
+        .ratio = r2,
+        .ratio_min_drift = r2*(float)0.9,
     };
     this->gearboxConfig.bounds[2] = GearRatioInfo { // 3rd 
-        .ratio_max_drift = nag_settings->ratio_3*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_3/100.0f)),
-        .ratio = nag_settings->ratio_3,
-        .ratio_min_drift = nag_settings->ratio_3*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_3/100.0f)),
-        .power_loss = (nag_settings->power_loss_3)/100.0f,
+        .ratio_max_drift = r3*(float)1.1,
+        .ratio = r3,
+        .ratio_min_drift = r3*(float)0.9,
     };
     this->gearboxConfig.bounds[3] = GearRatioInfo { // 4th 
-        .ratio_max_drift = nag_settings->ratio_4*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_4/100.0f)),
-        .ratio = nag_settings->ratio_4,
-        .ratio_min_drift = nag_settings->ratio_4*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_4/100.0f)),
-        .power_loss = (nag_settings->power_loss_4)/100.0f,
+        .ratio_max_drift = r4*(float)1.1,
+        .ratio = r4,
+        .ratio_min_drift = r4*(float)0.9,
     };
     this->gearboxConfig.bounds[4] = GearRatioInfo { // 5th 
-        .ratio_max_drift = nag_settings->ratio_5*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_5/100.0f)),
-        .ratio = nag_settings->ratio_5,
-        .ratio_min_drift = nag_settings->ratio_5*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_5/100.0f)),
-        .power_loss = (nag_settings->power_loss_5)/100.0f,
+        .ratio_max_drift = r5*(float)1.1,
+        .ratio = r5,
+        .ratio_min_drift = r5*(float)0.9,
     };
-    this->gearboxConfig.bounds[5] = GearRatioInfo { // r1 
-        .ratio_max_drift = nag_settings->ratio_r1*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_r1/100.0f)),
-        .ratio = nag_settings->ratio_r1,
-        .ratio_min_drift = nag_settings->ratio_r1*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_r1/100.0f)),
-        .power_loss = (nag_settings->power_loss_r1)/100.0f,
+    this->gearboxConfig.bounds[5] = GearRatioInfo { // R1 
+        .ratio_max_drift = rr1*(float)1.1,
+        .ratio = rr1,
+        .ratio_min_drift = rr1*(float)0.9,
     };
-    this->gearboxConfig.bounds[6] = GearRatioInfo { // r2 
-        .ratio_max_drift = nag_settings->ratio_r2*(1.0f+(float)(NAG_CURRENT_SETTINGS.max_drift_r2/100.0f)),
-        .ratio = nag_settings->ratio_r2,
-        .ratio_min_drift = nag_settings->ratio_r2*(1.0f-(float)(NAG_CURRENT_SETTINGS.max_drift_r2/100.0f)),
-        .power_loss = (nag_settings->power_loss_r2)/100.0f,
+    this->gearboxConfig.bounds[6] = GearRatioInfo { // R2 
+        .ratio_max_drift = rr2*(float)1.1,
+        .ratio = rr2,
+        .ratio_min_drift = rr2*(float)0.9,
     };
     // IMPORTANT - Set the Ratio2/Ratio1 multiplier for the sensor RPM reading algorithm!
-    Sensors::set_ratio_2_1(nag_settings->ratio_1/nag_settings->ratio_2);
+    Sensors::set_ratio_2_1(r1/r2);
 
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
-    this->shift_reporter = new ShiftReporter();
     this->shift_adapter = new ShiftAdaptationSystem(&this->gearboxConfig);
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
@@ -1222,7 +1219,6 @@ void Gearbox::controller_loop()
                             {
                                 this->shift_adapter->save();
                             }
-                            this->shift_reporter->save();
                             this->tcc->save();
                         }
                         else if (this->shifter_pos == ShifterPosition::N)

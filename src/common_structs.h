@@ -190,7 +190,6 @@ struct GearRatioInfo {
     float ratio_max_drift;
     float ratio;
     float ratio_min_drift;
-    float power_loss;
 };
 
 struct GearboxConfiguration{

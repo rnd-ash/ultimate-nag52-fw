@@ -4,19 +4,24 @@
 #include "lookuptable.h"
 
 class LookupMap : public LookupTable {
-
     public:
-        LookupMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize);
-
         float get_value(const float xValue, const float yValue);
         void get_y_headers(uint16_t *size, int16_t **headers);
         float get_x_header_interpolated(const float value, const int16_t y) const;
-
     protected:
         LookupHeader* yHeader;
-
-    private:
         uint16_t yHeaderSize;
+};
+
+class LookupAllocMap : public LookupTable {
+    public:
+        LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize);
+        ~LookupAllocMap();
+};
+
+class LookupRefMap : public LookupTable {
+    public:
+        LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16_t* _yHeader, const uint16_t _yHeaderSize, int16_t* _data, const uint16_t _dataSize);
 };
 
 #endif /* lookupmap.h */

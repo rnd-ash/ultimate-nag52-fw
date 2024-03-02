@@ -78,3 +78,7 @@ AbstractProfile *ShifterTrrs::get_profile(const uint32_t expire_time_ms)
 {
 	return programselector->get_profile(expire_time_ms);
 }
+
+ShifterStyle ShifterTrrs::get_shifter_type() {
+	return ShifterStyle::TRRS;
+}

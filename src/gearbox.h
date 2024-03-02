@@ -14,7 +14,6 @@
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
-#include "adaptation/shift_report.h"
 #include "models/input_torque.hpp"
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
@@ -44,7 +43,6 @@ public:
         return this->sensor_data.gear_ratio * 100.0F;
     }
     uint16_t redline_rpm;
-    ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 

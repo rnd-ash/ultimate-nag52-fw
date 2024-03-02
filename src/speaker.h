@@ -15,12 +15,18 @@ enum class SPEAKER_POST_CODE {
     CONTROLLER_FAIL,        // long short short long
     EFUSE_NOT_SET,          // Long long long short
     CONFIGURATION_MISMATCH, // long short long short
+    CALIBRATION_FAIL,       // short shot long long
+};
+
+enum class ToneLength {
+    Short,
+    Long
 };
 
 class Speaker {
     public:
         explicit Speaker(gpio_num_t pin);
-        void send_note(uint32_t freq, uint32_t play_time_ms, uint32_t total_time_ms);
+        void send_note(uint32_t freq, ToneLength tone);
         void post(SPEAKER_POST_CODE code);
     private:
         void set_freq(uint32_t freq);

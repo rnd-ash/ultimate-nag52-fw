@@ -104,8 +104,6 @@ public:
     uint16_t get_shift_regulator_pressure(void);
 
     float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
-
-    const VBY_SETTINGS* vby_settings() { return this->valve_body_settings; }
 private:
 
     uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);
@@ -142,9 +140,6 @@ private:
 
     // Shift circuit currently open
     ShiftCircuit currently_open_circuit;
-    const int16_t* clutch_friction_coefficient_map;
-    const int16_t* clutch_spring_release_map;
-    const uint8_t* heaviest_loaded_clutch_idx_map;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* fill_time_map;
@@ -157,8 +152,6 @@ private:
     ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
-
-    VBY_SETTINGS* valve_body_settings;
 };
 
 extern PressureManager* pressure_manager;

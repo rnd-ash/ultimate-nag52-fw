@@ -7,6 +7,7 @@
 #include "esp_core_dump.h"
 #include "../nvs/module_settings.h"
 #include "clock.hpp"
+#include "egs_calibration/calibration_structs.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -289,6 +290,10 @@ PARTITION_INFO get_next_sw_info(void) {
 
 const esp_app_desc_t* get_image_header(void) {
     return esp_app_get_description();
+}
+
+uint16_t get_egs_calibration_size(void) {
+    return sizeof(CalibrationInfo);
 }
 
 kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {

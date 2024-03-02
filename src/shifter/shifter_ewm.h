@@ -15,6 +15,7 @@ public:
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
 	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
 	DiagProfileInputState diag_get_profile_input() override;
+	ShifterStyle get_shifter_type() override;
 private:
 	bool state = false;
 	bool esp_toggle = false;

@@ -1,13 +1,6 @@
 #include "lookupmap.h"
 #include "tcu_maths_impl.h"
 
-LookupMap::LookupMap(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_yHeader, const uint16_t _yHeaderSize, const int16_t *_data, const uint16_t _dataSize) :
-    LookupTable(_xHeader, _xHeaderSize, _data, _dataSize)
-{
-    yHeaderSize = _yHeaderSize;
-    yHeader = new LookupHeader(_yHeader, _yHeaderSize);
-}
-
 float LookupMap::get_value(const float xValue, const float yValue)
 {
     uint16_t    x_idx_min;
@@ -67,4 +60,8 @@ float LookupMap::get_x_header_interpolated(const float value, const int16_t y) c
     const float value2 = (float)xHeader->get_value(idvalue_max);
     
     return value1 + progress_between_targets(value, row[idvalue_min], row[idvalue_max]) * (value2 - value1);
+}
+
+LookupAllocMap::LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize) {
+
 }

@@ -38,6 +38,7 @@
 #define RLI_CLUTCH_SPEEDS   0x30
 #define RLI_CLUTCH_VELOCITY 0x31
 
+#define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
@@ -191,6 +192,7 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 PARTITION_INFO get_coredump_info(void);
 PARTITION_INFO get_current_sw_info(void);
 PARTITION_INFO get_next_sw_info(void);
+uint16_t get_egs_calibration_size(void);
 
 const esp_app_desc_t* get_image_header(void);
 

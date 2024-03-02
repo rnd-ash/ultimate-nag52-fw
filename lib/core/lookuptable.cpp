@@ -3,52 +3,7 @@
 #include <string.h>
 #include "tcu_maths_impl.h"
 
-LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize)
-{
-    dataSize = 0u;
-    data = nullptr;
-    allocation_successful = false;
-    xHeaderSize = _xHeaderSize;
-    xHeader = new LookupHeader(_xHeader, _xHeaderSize);
-}
-
-LookupTable::LookupTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_data, const uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize)
-{
-    dataSize = _dataSize;
-    xHeaderSize = _xHeaderSize;
-    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
-    allocation_successful = (nullptr != data);
-    if (allocation_successful)
-    {
-        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
-    }
-}
-
-LookupTable::~LookupTable(void)
-{
-    TCU_FREE(data);
-}
-
-bool LookupTable::set_data(const int16_t* _data, uint16_t _dataSize)
-{
-    bool result = false;
-    dataSize = _dataSize;
-    if(allocation_successful) {
-        TCU_FREE(data);
-    }
-    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
-    allocation_successful = (nullptr != data);
-    if (allocation_successful)
-    {
-        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
-    }
-    return result;
-}
-
-bool LookupTable::is_allocated(void) const
-{
-    return allocation_successful;
-}
+// Lookup table base implementations
 
 float LookupTable::get_value(float xValue)
 {
@@ -80,16 +35,44 @@ float LookupTable::get_header_interpolated(const float value) const
     return value1 + progress_between_targets(value, data[idvalue_min], data[idvalue_max]) * (value2 - value1);
 }
 
-int16_t* LookupTable::get_current_data(void) {
-    return data;
-}
-
 void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
     *size = xHeaderSize;
     *headers = xHeader->get_data();
 }
 
-bool LookupTable::add_data(const int16_t* map, const uint16_t size) {
+
+// Alloc table implementation
+LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, uint16_t _xHeaderSize)
+{
+    dataSize = 0u;
+    data = nullptr;
+    allocation_successful = false;
+    xHeaderSize = _xHeaderSize;
+    xHeader = new LookupAllocHeader(_xHeader, _xHeaderSize);
+}
+
+LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_data, const uint16_t _dataSize)
+{
+    dataSize = _dataSize;
+    xHeaderSize = _xHeaderSize;
+    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
+    allocation_successful = (nullptr != data);
+    if (allocation_successful)
+    {
+        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
+    }
+}
+
+LookupAllocTable::~LookupAllocTable()
+{
+    TCU_FREE(data);
+}
+
+int16_t* LookupAllocTable::get_current_data(void) {
+    return data;
+}
+
+bool LookupAllocTable::add_data(const int16_t* map, const uint16_t size) {
     bool result = false;
     if (nullptr != map)
     {
@@ -101,3 +84,25 @@ bool LookupTable::add_data(const int16_t* map, const uint16_t size) {
     }
     return result;
 }
+
+bool LookupAllocTable::set_data(const int16_t* _data, uint16_t _dataSize)
+{
+    bool result = false;
+    dataSize = _dataSize;
+    if(allocation_successful) {
+        TCU_FREE(data);
+    }
+    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
+    allocation_successful = (nullptr != data);
+    if (allocation_successful)
+    {
+        (void)memcpy(data, _data, dataSize*sizeof(int16_t));
+    }
+    return result;
+}
+
+bool LookupAllocTable::is_allocated(void) const
+{
+    return allocation_successful;
+}
+

@@ -5,7 +5,7 @@
 
 
 StoredTable::StoredTable(const char * eeprom_key_name, const uint16_t data_element_count, const int16_t * x_headers, uint16_t x_element_count, const int16_t * default_data):
-															LookupTable(x_headers,
+															LookupAllocTable(x_headers,
                                                                 x_element_count,
                                                                 default_data,
                                                                 data_element_count)

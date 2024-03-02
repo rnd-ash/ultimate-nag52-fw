@@ -5,7 +5,7 @@
 #include "../../lib/core/lookuptable.h"
 #include "stored_data.h"
 
-class StoredTable : public LookupTable, public StoredData{
+class StoredTable : public LookupAllocTable, public StoredData{
     public:
         StoredTable(
             const char* eeprom_key_name,

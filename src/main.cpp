@@ -13,6 +13,7 @@
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
 #include "nvs/module_settings.h"
+#include "egs_calibration/calibration_structs.h"
 
 // CAN LAYERS
 #include "canbus/can_egs51.h"
@@ -66,85 +67,89 @@ SPEAKER_POST_CODE setup_tcm()
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {
-                // Read device mode!
-                CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
-                ESP_LOGI("INIT", "TCU mode on EEPROM is %08X", CURRENT_DEVICE_MODE);
-                // Read our configuration (This is allowed to fail as the default opts are always set by default)
-                ModuleConfiguration::load_all_settings();
-                // init driving profiles
-                Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
+                if (ESP_OK == EGSCal::init_egs_calibration()) {
+                    // Load EGS Calibration
+                    // Read device mode!
+                    CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
+                    // Read our configuration (This is allowed to fail as the default opts are always set by default)
+                    ModuleConfiguration::load_all_settings();
+                    // init driving profiles
+                    Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
 
-                // init the shifter module
-                switch (VEHICLE_CONFIG.shifter_style)
-                {
-                case (uint8_t)ShifterStyle::EWM:
-                case (uint8_t)ShifterStyle::SLR:
-                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
-                    break;
-                case (uint8_t)ShifterStyle::TRRS:
-                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
-                    break;
-                default:
-                    // possibly
-                    break;
-                }
-                if (nullptr != shifter)
-                {
-                    // init the CAN module
-                    switch (VEHICLE_CONFIG.egs_can_type)
+                    // init the shifter module
+                    switch (VEHICLE_CONFIG.shifter_style)
                     {
-                    case 1:
-                        egs_can_hal = new Egs51Can("EGS51", 20, 500000, shifter); // EGS51 CAN Abstraction layer
+                    case (uint8_t)ShifterStyle::EWM:
+                    case (uint8_t)ShifterStyle::SLR:
+                        shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                         break;
-                    case 2:
-                        egs_can_hal = new Egs52Can("EGS52", 20, 500000, shifter); // EGS52 CAN Abstraction layer
-                        break;
-                    case 3:
-                        egs_can_hal = new Egs53Can("EGS53", 20, 500000, shifter); // EGS53 CAN Abstraction layer
-                        break;
-                    case 4:
-                        egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
+                    case (uint8_t)ShifterStyle::TRRS:
+                        shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
                         break;
                     default:
-                        // Unknown (Fallback to basic CAN)
-                        ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
-                        egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000, shifter);
+                        // possibly
                         break;
                     }
-                    if (egs_can_hal->begin_task())
+                    if (nullptr != shifter)
                     {
-                        if (ESP_OK == Sensors::init_sensors())
+                        // init the CAN module
+                        switch (VEHICLE_CONFIG.egs_can_type)
                         {
-                            if (ESP_OK == Solenoids::init_all_solenoids())
+                        case 1:
+                            egs_can_hal = new Egs51Can("EGS51", 20, 500000, shifter); // EGS51 CAN Abstraction layer
+                            break;
+                        case 2:
+                            egs_can_hal = new Egs52Can("EGS52", 20, 500000, shifter); // EGS52 CAN Abstraction layer
+                            break;
+                        case 3:
+                            egs_can_hal = new Egs53Can("EGS53", 20, 500000, shifter); // EGS53 CAN Abstraction layer
+                            break;
+                        case 4:
+                            egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
+                            break;
+                        default:
+                            // Unknown (Fallback to basic CAN)
+                            ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
+                            egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000, shifter);
+                            break;
+                        }
+                        if (egs_can_hal->begin_task())
+                        {
+                            if (ESP_OK == Sensors::init_sensors())
                             {
-                                gearbox = new Gearbox(shifter);
-                                if (ESP_OK == gearbox->start_controller())
+                                if (ESP_OK == Solenoids::init_all_solenoids())
                                 {
-                                    gearbox->set_profile(shifter->get_profile(50u));
+                                    gearbox = new Gearbox(shifter);
+                                    if (ESP_OK == gearbox->start_controller())
+                                    {
+                                        gearbox->set_profile(shifter->get_profile(50u));
+                                    }
+                                    else
+                                    {
+                                        ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                    }
                                 }
                                 else
                                 {
-                                    ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                    ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
                                 }
                             }
                             else
                             {
-                                ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
+                                ret = SPEAKER_POST_CODE::SENSOR_FAIL;
                             }
                         }
                         else
                         {
-                            ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                            ret = SPEAKER_POST_CODE::CAN_FAIL;
                         }
                     }
                     else
                     {
-                        ret = SPEAKER_POST_CODE::CAN_FAIL;
+                        ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
                     }
-                }
-                else
-                {
-                    ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
+                } else {
+                    ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
                 }
             }
             else
@@ -184,7 +189,7 @@ void err_beep_loop(void *a)
             spkr->post(p);
             if (spkr2 != nullptr)
             {
-                spkr2->post(p);
+                //spkr2->post(p);
             }
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
@@ -259,6 +264,8 @@ const char *post_code_to_str(SPEAKER_POST_CODE s)
         return "EFUSE_CONFIG_NOT_SET";
     case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
         return "CONFIGURATION_MISMATCH";
+    case SPEAKER_POST_CODE::CALIBRATION_FAIL:
+        return "NO_EGS_CALIBRATION";
     default:
         return nullptr;
     }

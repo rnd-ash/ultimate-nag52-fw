@@ -73,3 +73,7 @@ void ShifterEwm::set_program_button_pressed(const bool is_pressed, const Profile
 		}
 	}
 }
+
+ShifterStyle ShifterEwm::get_shifter_type() {
+	return ShifterStyle::EWM;
+}

@@ -22,6 +22,7 @@ int16_t * LookupHeader::get_data(void)
 }
 
 LookupAllocHeader::LookupAllocHeader(const int16_t *_header, const uint16_t _size)
+:LookupHeader()
 {
     size = _size;
     header = static_cast<int16_t*>(TCU_HEAP_ALLOC(size * sizeof(int16_t)));
@@ -39,6 +40,7 @@ LookupAllocHeader::~LookupAllocHeader(void)
 }
 
 LookupRefHeader::LookupRefHeader(int16_t *_header, const uint16_t _size)
+:LookupHeader()
 {
     size = _size;
     header = _header;

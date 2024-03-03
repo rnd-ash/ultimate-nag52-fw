@@ -75,6 +75,10 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     float rr1 = ((float)(MECH_PTR->ratio_table[6])*-1)/1000.0;
     float rr2 = ((float)(MECH_PTR->ratio_table[7])*-1)/1000.0;
 
+    this->gearboxConfig.max_torque = 330;
+    if (MECH_PTR->gb_ty == 0) {
+        this->gearboxConfig.max_torque = 580;
+    }
     this->gearboxConfig.bounds[0] = GearRatioInfo { // 1st 
         .ratio_max_drift = r1*(float)1.1,
         .ratio = r1,

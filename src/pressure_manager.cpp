@@ -202,14 +202,14 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
             this->corrected_spc_pressure = this->solenoid_max_pressure;
             sol_spc->set_current_target(0);
         } else {
-            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp));
+            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0));
         }
 
         if (this->corrected_mpc_pressure >= this->solenoid_max_pressure) {
             this->corrected_mpc_pressure = this->solenoid_max_pressure;
             sol_mpc->set_current_target(0);
         } else {
-            sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp));
+            sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
         }
         sol_tcc->set_duty(this->target_tcc_pressure);
     }

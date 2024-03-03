@@ -13,7 +13,9 @@ class LookupTable {
         /// @return the interpolated header-value
         float get_header_interpolated(const float value) const;
         void get_x_headers(uint16_t *size, int16_t **headers);
-        const int16_t* get_current_data(void);
+        int16_t* get_current_data(void);
+        const LookupHeader* get_header(void);
+        uint16_t data_size(void) const;
     protected:
         uint16_t xHeaderSize;
         uint16_t dataSize;

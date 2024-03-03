@@ -16,7 +16,7 @@ uint16_t LookupHeader::get_size(void) const
     return size;
 }
 
-int16_t * LookupHeader::get_data(void)
+int16_t * LookupHeader::get_data(void) const
 {
     return header;
 }

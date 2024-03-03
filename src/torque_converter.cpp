@@ -140,7 +140,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
-    if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms){ 
+    if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
         if (load_as_percent < -5) {
             load_cell = 0;

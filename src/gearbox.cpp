@@ -679,17 +679,15 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,
                         spring_pressure_on_clutch + wp_new_clutch
                     );
-                    if (now_cs.off_clutch_speed < now_cs.on_clutch_speed) {
-                        current_shift_pressure = interpolate_float(
-                            phase_elapsed,
-                            prev_shift_pressure, // Without compensation
-                            target_spc,
-                            0,
-                            chars.target_shift_time,
-                            InterpType::Linear
-                        );
-                        current_shift_pressure -= centrifugal_force_on_clutch;
-                    }
+                    current_shift_pressure = interpolate_float(
+                        phase_elapsed,
+                        prev_shift_pressure, // Without compensation
+                        target_spc,
+                        0,
+                        chars.target_shift_time,
+                        InterpType::Linear
+                    );
+                    current_shift_pressure -= centrifugal_force_on_clutch;
                 } else {
                     // Exceeded shift time, start adding extra Pressure
                     if (now_cs.off_clutch_speed < now_cs.on_clutch_speed) { // but only add if not merging

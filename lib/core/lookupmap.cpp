@@ -81,6 +81,7 @@ float LookupMap::get_x_header_interpolated(const float value, const int16_t y) c
 LookupAllocMap::LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize) {
     this->table = new LookupAllocTable(_xHeader, _xHeaderSize, _data, _dataSize);
     this->yHeader = new LookupAllocHeader(_yHeader, _yHeaderSize);
+    this->yHeaderSize = _yHeaderSize;
 }
 
 LookupAllocMap::~LookupAllocMap() {
@@ -99,4 +100,5 @@ bool LookupAllocMap::is_allocated(void) const {
 LookupRefMap::LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16_t* _yHeader, const uint16_t _yHeaderSize, int16_t* _data, const uint16_t _dataSize) {
     this->table = new LookupRefTable(_xHeader, _xHeaderSize, _data, _dataSize);
     this->yHeader = new LookupRefHeader(_yHeader, _yHeaderSize);
+    this->yHeaderSize = _yHeaderSize;
 }

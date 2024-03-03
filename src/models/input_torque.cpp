@@ -1,10 +1,6 @@
 #include "input_torque.hpp"
 #include "tcu_maths.h"
-
-// 290R TCC (E55 M113K) (Test)
-// 0    919
-// 175  100
-// 1.75x at 0, 1.00x at 0.919
+#include "egs_calibration/calibration_structs.h"
 
 int16_t InputTorqueModel::get_input_torque(EgsBaseCan* can_hal, SensorData* measures) {
     int16_t ret = 0;
@@ -19,7 +15,14 @@ int16_t InputTorqueModel::get_input_torque(EgsBaseCan* can_hal, SensorData* meas
             motor_torque -= ac_loss;
         }
         float rpm_multi = ((float)measures->input_rpm) / ((float)measures->engine_rpm);
-        float multi = interpolate_float(rpm_multi, 1.75, 1.00, 0, 0.919, InterpType::Linear);
+
+        //Interpolate map, but faster, since its just 4 values, no need to allocate a whole map for this
+        float x1 = (float)(TCC_CFG_PTR->multiplier_map_x[0]) / 1000.0;
+        float x2 = (float)(TCC_CFG_PTR->multiplier_map_x[1]) / 1000.0;
+        float z1 = (float)(TCC_CFG_PTR->multiplier_map_z[0]) / 1000.0;
+        float z2 = (float)(TCC_CFG_PTR->multiplier_map_z[1]) / 1000.0;
+        
+        float multi = interpolate_float(rpm_multi, z1, z2, x1, x2, InterpType::Linear);
         ret = motor_torque * multi;
     }
     return ret;

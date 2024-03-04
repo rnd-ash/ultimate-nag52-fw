@@ -47,6 +47,13 @@ esp_err_t EGSCal::init_egs_calibration() {
                 ret = ESP_ERR_INVALID_CRC;
                 goto exit;
             }
+            // Guard against zeroed mechanical CAL
+            const uint16_t* r_table = CAL_RAM_PTR->mech_cal.ratio_table;
+            if (r_table[1] == 0 || r_table[2] == 0  || r_table[3] == 0  || r_table[4] == 0  || r_table[5] == 0) {
+                ESP_LOGE("CAL", "Calibration load failed. Ratio table has 0'ed values!");
+                ret = ESP_ERR_INVALID_ARG;
+                goto exit;
+            }
             // All OK!
             HYDR_PTR = &CAL_RAM_PTR->hydr_cal;
             MECH_PTR = &CAL_RAM_PTR->mech_cal;
@@ -87,6 +94,13 @@ esp_err_t EGSCal::reload_egs_calibration() {
                     // CRC Error
                     ESP_LOGE("CAL", "Calibration load failed. CRC error. Wanted %04X, got %04X", crc_calculated, tmp->crc);
                     ret = ESP_ERR_INVALID_CRC;
+                    goto exit;
+                }
+                // Guard against zeroed mechanical CAL
+                const uint16_t* r_table = CAL_RAM_PTR->mech_cal.ratio_table;
+                if (r_table[1] == 0 || r_table[2] == 0  || r_table[3] == 0  || r_table[4] == 0  || r_table[5] == 0) {
+                    ESP_LOGE("CAL", "Calibration load failed. Ratio table has 0'ed values!");
+                    ret = ESP_ERR_INVALID_ARG;
                     goto exit;
                 }
                 // Copy the temporery CalInfo to the in use one!

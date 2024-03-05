@@ -83,7 +83,12 @@ SPEAKER_POST_CODE setup_tcm()
                     shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                     break;
                 case (uint8_t)ShifterStyle::TRRS:
-                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                    if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
+                        shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                    } else {
+                        ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
+                        shifter = nullptr;
+                    }
                     break;
                 default:
                     // possibly
@@ -203,7 +208,9 @@ void input_manager(void *)
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
     while (1)
     {
-        ioexpander->read_from_ioexpander();
+        if (ioexpander) {
+            ioexpander->read_from_ioexpander();
+        }
         AbstractProfile* prof = shifter->get_profile(500);
         if (nullptr != prof) {
             gearbox->set_profile(prof);

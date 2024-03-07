@@ -602,10 +602,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
                     filling_torque = abs(torque_to_use);
                 } else if (current_stage == ShiftStage::Overlap) {
-                    prev_shift_pressure += centrifugal_force_on_clutch; // This gives us the pressure without centrifugal compensation
                     this->tcc->set_shift_target_state(InternalTccState::Open); // Open for shifting since TCC has a influence on MPC and we don't want this for shifting
                     ESP_LOGI("SHIFT", "Overlap start");
                     phase_total_time = chars.target_shift_time+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
+                    prev_shift_pressure = spring_pressure_on_clutch + interpolate_float(torque_to_use, prefill_data.low_fill_pressure_on_clutch, prefill_data.fill_pressure_on_clutch, 0, gearboxConfig.max_torque, InterpType::Linear);
                     //if (now_cs.off_clutch_speed < 25 && prev_shift_pressure < prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch) { // No speed change (Increase shift pressure by filling pressure)
                     //    prev_shift_pressure = prefill_data.fill_pressure_on_clutch + spring_pressure_on_clutch;
                     //}
@@ -630,6 +630,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 current_modulating_pressure = (end_spc*sd.pressure_multi_spc)+((wp_old_clutch + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction; // To add to working pressure for maximum filling effect
             } else if (current_stage == ShiftStage::Fill) {
                 bool was_adapting = prefill_adapt_flags == 0;
+                int wp_old_clutch_tmp = wp_old_clutch;
                 if (was_adapting && prefill_adapt_flags != 0) {
                     ESP_LOGW("SHIFT", "Adapting was cancelled. Reason flag: 0x%08X", (int)prefill_adapt_flags);
                 }
@@ -655,15 +656,25 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                             InterpType::Linear
                         );
                     }
+                    wp_old_clutch_tmp = interpolate_float(
+                        phase_elapsed - prefill_data.fill_time, 
+                        wp_old_clutch,
+                        0,
+                        0,
+                        FILL_RAMP_TIME,
+                        InterpType::Linear
+                    );
                 } else {
                     if (filling_torque > gearboxConfig.max_torque/10) {
                         current_shift_pressure = (spring_pressure_on_clutch + prefill_data.low_fill_pressure_on_clutch - centrifugal_force_on_clutch);
                     } else {
                         current_shift_pressure = (spring_pressure_on_clutch - centrifugal_force_on_clutch);
                     }
+                    off_clutch_pressure = prefill_data.fill_pressure_off_clutch+spring_pressure_off_clutch;
+                    wp_old_clutch_tmp = 0;
                 }
                 pre_overlap_torque = sensor_data.input_torque;
-                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((wp_old_clutch + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
+                current_modulating_pressure = (current_shift_pressure*sd.pressure_multi_spc/SPC_GAIN)+((wp_old_clutch_tmp + off_clutch_pressure - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+sd.mpc_pressure_spring_reduction;
                 
                 if (mpc_released && !prefill_protection_active && prefill_adapt_flags == 0x0000) {
                     // Do adapting for prefill
@@ -674,7 +685,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 if (!stationary_shift && now_cs.off_clutch_speed > now_cs.on_clutch_speed) {
                     this->tcc->on_shift_ending();
                 }
-                off_clutch_pressure = interpolate_float(phase_elapsed, wp_old_clutch+prefill_data.fill_pressure_off_clutch+spring_pressure_off_clutch, spring_pressure_off_clutch, 0, chars.target_shift_time, InterpType::Linear);
+                off_clutch_pressure = interpolate_float(phase_elapsed, prefill_data.fill_pressure_off_clutch+spring_pressure_off_clutch, spring_pressure_off_clutch, 0, chars.target_shift_time/2, InterpType::Linear);
                 if (phase_elapsed <= chars.target_shift_time) {
                     int target_spc = MAX(
                         spring_pressure_on_clutch + prefill_data.fill_pressure_on_clutch,

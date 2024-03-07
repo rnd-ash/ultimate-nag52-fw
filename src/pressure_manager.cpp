@@ -85,16 +85,18 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
  */
 uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc) {
     float fac = 1.0/((float)HYDR_PTR->p_multi_other/1000.0);
+    uint16_t p_adder = HYDR_PTR->extra_pressure_adder_other_gears;
     // Only when not shifting and constantly in 1 or R1
     if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First || current_gear == GearboxGear::Second)) {
         fac = 1.0/((float)HYDR_PTR->p_multi_1/1000.0);
+        if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
+            p_adder = HYDR_PTR->extra_pressure_adder_r1_1; // Since we have a feedback on the LP regulator in this shift for some reason
+        }
     }
     uint16_t regulator_pressure = in_mpc + HYDR_PTR->lp_reg_spring_pressure; // Using just p-RV, this is what the working pressure should be
     // Now calculate influence of shift pressure and additional pressure caused by RPM
     float k1_factor = 0;
-    uint16_t p_adder = HYDR_PTR->extra_pressure_adder_other_gears;
     if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) { // 1-2 or 2-1
-        p_adder = HYDR_PTR->extra_pressure_adder_r1_1; // Since we have a feedback on the LP regulator in this shift for some reason
         if(current_gear == GearboxGear::First) { // Only for 1-2 shift since K1 is applied in 1
             k1_factor = (float)HYDR_PTR->shift_pressure_factor_percent/1000.0;
         }
@@ -211,7 +213,7 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         } else {
             sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
         }
-        sol_tcc->set_duty(this->target_tcc_pressure);
+        sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
     }
 }
 
@@ -479,7 +481,7 @@ void PressureManager::set_target_tcc_pressure(uint16_t targ) {
     if (targ > 15000) {
         targ = 15000;
     }
-    sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(targ));
+    this->target_tcc_pressure = targ;
 }
 
 uint16_t PressureManager::get_spring_pressure(Clutch c) {

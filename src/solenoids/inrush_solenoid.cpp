@@ -129,6 +129,7 @@ void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperatu
 
 void InrushControlSolenoid::set_duty(uint16_t duty) {
     this->pwm_raw = duty;
+    this->pwm = duty;
     this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
     if (this->period_on_time > INRUSH_TIME_US) {
         this->hold_time = this->period_on_time - (INRUSH_TIME_US);

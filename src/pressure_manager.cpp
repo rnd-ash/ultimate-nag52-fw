@@ -87,11 +87,9 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     float fac = 1.0/((float)HYDR_PTR->p_multi_other/1000.0);
     uint16_t p_adder = HYDR_PTR->extra_pressure_adder_other_gears;
     // Only when not shifting and constantly in 1 or R1
-    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First || current_gear == GearboxGear::Second)) {
+    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
         fac = 1.0/((float)HYDR_PTR->p_multi_1/1000.0);
-        if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
-            p_adder = HYDR_PTR->extra_pressure_adder_r1_1; // Since we have a feedback on the LP regulator in this shift for some reason
-        }
+        p_adder = HYDR_PTR->extra_pressure_adder_r1_1;
     }
     uint16_t regulator_pressure = in_mpc + HYDR_PTR->lp_reg_spring_pressure; // Using just p-RV, this is what the working pressure should be
     // Now calculate influence of shift pressure and additional pressure caused by RPM
@@ -175,7 +173,7 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     } else {
 
         float amplifier = 1.0;
-        if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && (this->shift_stage != ShiftStage::Bleed && this->shift_stage != ShiftStage::MaxPressure)) {
+        if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && this->shift_stage != ShiftStage::MaxPressure) {
             amplifier = 1.993;
         }
 

@@ -626,7 +626,11 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
-    eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
+    if (ratio == -1) {
+        eng_rq2_tcm.EngWhlTrqRatio_TCM = 0; // Implausible
+    } else {
+        eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
+    }
 }
 
 /**

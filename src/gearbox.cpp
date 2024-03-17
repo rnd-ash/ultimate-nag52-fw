@@ -187,6 +187,27 @@ bool is_controllable_gear(GearboxGear g)
     return controllable;
 }
 
+float ratio_absolute(GearboxGear g, GearboxConfiguration* cfg) {
+    switch (g) {
+        case GearboxGear::First:
+            return cfg->bounds[0].ratio;
+        case GearboxGear::Second:
+            return cfg->bounds[1].ratio;
+        case GearboxGear::Third:
+            return cfg->bounds[2].ratio;
+        case GearboxGear::Fourth:
+            return cfg->bounds[3].ratio;
+        case GearboxGear::Fifth:
+            return cfg->bounds[4].ratio;
+        case GearboxGear::Reverse_First:
+            return abs(cfg->bounds[5].ratio);
+        case GearboxGear::Reverse_Second:
+            return abs(cfg->bounds[6].ratio);
+        default:
+            return 0;
+    }
+}
+
 bool is_fwd_gear(GearboxGear g)
 {
     bool is_fwd = false;
@@ -1481,6 +1502,26 @@ void Gearbox::controller_loop()
 
         // ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "Torque: MIN: %3d, MAX: %3d, STAT: %3d", min_torque, max_torque, static_torque);
         //  Show debug symbols on IC
+        float ratio_from_c_gear = ratio_absolute(this->actual_gear, &this->gearboxConfig);
+        float ratio_from_t_gear = ratio_absolute(this->target_gear, &this->gearboxConfig);
+        float torque_ratio = 0; // Implausible
+        if (
+            ratio_from_c_gear != 0 && // Valid ratio
+            sensor_data.engine_rpm != 0 // Engine is turning
+        ) {
+            torque_ratio = ratio_from_c_gear;
+            if (ratio_from_t_gear > ratio_from_c_gear) {
+                torque_ratio = ratio_from_t_gear;
+            }
+            torque_ratio *= InputTorqueModel::get_input_torque_factor(sensor_data.engine_rpm, sensor_data.input_rpm);
+            torque_ratio *= diff_ratio_f;
+            if (torque_ratio < 1) {
+                torque_ratio = 1; // HOW!? (diff ratio is always > 2.0)
+            }
+        } else if (sensor_data.engine_rpm == 0) {
+            torque_ratio = -1; // Cannot calculate
+        }
+        egs_can_hal->set_wheel_torque_multi_factor(torque_ratio);
         if (this->show_upshift && this->show_downshift)
         {
             egs_can_hal->set_display_msg(GearboxMessage::RequestGearAgain);

@@ -21,7 +21,7 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
     gs218.CALID_CVN_AKT = true;
-    gs218.G_G = true;
+    gs218.G_G = false;
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
     // Set profile to N/A for now
     this->set_drive_profile(GearboxProfile::Underscore);
@@ -768,7 +768,12 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
-    gs418.FMRAD = ratio * 100;
+    if (ratio == -1) {
+        gs418.FMRAD = 0x7FF; // Implausible
+    } else {
+        uint16_t fmrad_int = MIN((uint16_t)(ratio * 0.05), 2046);
+        gs418.FMRAD = fmrad_int;
+    }
 }
 
 /**

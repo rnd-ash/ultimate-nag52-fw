@@ -7,6 +7,7 @@
 
 namespace InputTorqueModel {
     int16_t get_input_torque(EgsBaseCan* can_hal, SensorData* measures);
+    float get_input_torque_factor(uint16_t engine, uint16_t input);
 };
 
 #endif

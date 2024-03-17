@@ -14,16 +14,19 @@ int16_t InputTorqueModel::get_input_torque(EgsBaseCan* can_hal, SensorData* meas
         if (ac_loss != UINT8_MAX) {
             motor_torque -= ac_loss;
         }
-        float rpm_multi = ((float)measures->input_rpm) / ((float)measures->engine_rpm);
-
-        //Interpolate map, but faster, since its just 4 values, no need to allocate a whole map for this
-        float x1 = (float)(TCC_CFG_PTR->multiplier_map_x[0]) / 1000.0;
-        float x2 = (float)(TCC_CFG_PTR->multiplier_map_x[1]) / 1000.0;
-        float z1 = (float)(TCC_CFG_PTR->multiplier_map_z[0]) / 100.0;
-        float z2 = (float)(TCC_CFG_PTR->multiplier_map_z[1]) / 100.0;
-        
-        float multi = interpolate_float(rpm_multi, z1, z2, x1, x2, InterpType::Linear);
+        float multi = InputTorqueModel::get_input_torque_factor(measures->engine_rpm, measures->input_rpm);
         ret = motor_torque * multi;
     }
     return ret;
+}
+
+float InputTorqueModel::get_input_torque_factor(uint16_t engine, uint16_t input) {
+    float rpm_multi = ((float)input) / ((float)engine);
+
+    //Interpolate map, but faster, since its just 4 values, no need to allocate a whole map for this
+    float x1 = (float)(TCC_CFG_PTR->multiplier_map_x[0]) / 1000.0;
+    float x2 = (float)(TCC_CFG_PTR->multiplier_map_x[1]) / 1000.0;
+    float z1 = (float)(TCC_CFG_PTR->multiplier_map_z[0]) / 100.0;
+    float z2 = (float)(TCC_CFG_PTR->multiplier_map_z[1]) / 100.0;
+    return interpolate_float(rpm_multi, z1, z2, x1, x2, InterpType::Linear);
 }

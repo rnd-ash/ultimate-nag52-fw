@@ -251,10 +251,10 @@ uint8_t TorqueConverter::progress_to_next_phase(void) {
 
 TccClutchStatus TorqueConverter::get_clutch_state(void) {
     TccClutchStatus ret = TccClutchStatus::Open;
-    InternalTccState cmp = this->target_tcc_state;
+    InternalTccState targ = this->target_tcc_state;
     // Reduction or equal state (EG: Closed -> Slipping)
     // Just return the target state
-    if (this->current_tcc_state >= cmp) {
+    if (this->current_tcc_state >= targ) {
         switch (this->current_tcc_state) {
             case InternalTccState::Closed:
                 ret = TccClutchStatus::Closed;
@@ -264,6 +264,7 @@ TccClutchStatus TorqueConverter::get_clutch_state(void) {
                 break;
             case InternalTccState::Open: // Already set
             default:
+                ret = TccClutchStatus::Open;
                 break;
         }
     } 

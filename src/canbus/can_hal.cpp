@@ -193,7 +193,10 @@ void EgsBaseCan::task_loop() {
         {
             this->tx_frames();
         }
-        vTaskDelay(this->tx_time_ms / portTICK_PERIOD_MS); // Reset watchdog here
+        int taken = GET_CLOCK_TIME() - now;
+        if (taken < this->tx_time_ms) {
+            vTaskDelay((this->tx_time_ms - taken) / portTICK_PERIOD_MS); // Reset watchdog here
+        }
     }
 }
 

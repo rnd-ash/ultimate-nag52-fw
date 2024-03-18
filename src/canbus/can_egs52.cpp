@@ -715,6 +715,7 @@ void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
 
 void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->curr_profile_bit = p;
+    gs218.HSM = false;
     switch (p) {
         case GearboxProfile::Agility:
             gs418.FPC = 'A';
@@ -724,6 +725,7 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Winter:
             gs418.FPC = 'W';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Failure:
             gs418.FPC = 'F';
@@ -733,12 +735,14 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Manual:
             gs418.FPC = 'M';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Individual:
             gs418.FPC = 'I';
             break;
         case GearboxProfile::Race:
             gs418.FPC = 'R';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Underscore:
             gs418.FPC = '_';

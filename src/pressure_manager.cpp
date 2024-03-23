@@ -173,7 +173,7 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     } else {
 
         float amplifier = 1.0;
-        if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 && this->shift_stage != ShiftStage::MaxPressure) {
+        if ((this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2 || this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_2_1) && this->shift_stage != ShiftStage::MaxPressure) {
             amplifier = 1.993;
         }
 

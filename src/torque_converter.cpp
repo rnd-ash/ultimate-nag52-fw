@@ -125,7 +125,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     this->engine_output_joule = sensors->engine_rpm * (abs(sensors->static_torque)) / 9.5488;
     if (likely(sensors->engine_rpm >= sensors->input_rpm)) {
-        int rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
+        float rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
         this->absorbed_power_joule = this->engine_output_joule - (this->engine_output_joule * rpm_as_percent);
     } else {
         this->absorbed_power_joule = 0;

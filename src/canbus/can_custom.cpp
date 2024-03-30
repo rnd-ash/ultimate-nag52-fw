@@ -13,18 +13,34 @@ CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifte
 }
 
 WheelData CustomCan::get_front_right_wheel(const uint32_t expire_time_ms)
-{ // TODO
-	return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
+{
+	WHEELS_300_CUSTOMCAN wheel_data{};
+    WheelData ret = {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvailable
     };
+    if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
+        if (wheel_data.RPM_2X_FR != UINT16_MAX) {
+            ret.double_rpm = wheel_data.RPM_2X_FR;
+            ret.current_dir = WheelDirection::Forward;
+        }
+    }
+    return ret;
 }
 
 WheelData CustomCan::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
+    WHEELS_300_CUSTOMCAN wheel_data{};
+    WheelData ret = {
+            .double_rpm = 0,
+            .current_dir = WheelDirection::SignalNotAvailable
     };
+    if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
+        if (wheel_data.RPM_2X_FL != UINT16_MAX) {
+            ret.double_rpm = wheel_data.RPM_2X_FL;
+            ret.current_dir = WheelDirection::Forward;
+        }
+    }
+    return ret;
 }
 
 WheelData CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
@@ -39,6 +55,7 @@ WheelData CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
             ret.current_dir = WheelDirection::Forward;
         }
     }
+    return ret;
 }
 
 WheelData CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
@@ -53,6 +70,7 @@ WheelData CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
             ret.current_dir = WheelDirection::Forward;
         }
     }
+    return ret;
 }
 
 EngineType CustomCan::get_engine_type(const uint32_t expire_time_ms) {

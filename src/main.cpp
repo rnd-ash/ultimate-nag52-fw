@@ -19,6 +19,7 @@
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
 #include "canbus/can_hfm.h"
+#include "canbus/can_custom.h"
 
 #include "board_config.h"
 #include "nvs/device_mode.h"
@@ -104,6 +105,9 @@ SPEAKER_POST_CODE setup_tcm()
                         break;
                     case 4:
                         egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
+                        break;
+                    case 5:
+                        egs_can_hal = new CustomCan("CC", 20, 500000, shifter); // Custom CAN Abstraction layer
                         break;
                     default:
                         // Unknown (Fallback to basic CAN)

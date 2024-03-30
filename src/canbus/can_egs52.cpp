@@ -565,8 +565,8 @@ void Egs52Can::set_safe_start(bool can_start) {
     // ioexpander->set_start(can_start);
 }
 
-void Egs52Can::set_gearbox_temperature(uint16_t temp) {
-    this->gs418.T_GET = (temp+50) & 0xFF;
+void Egs52Can::set_gearbox_temperature(int16_t temp) {
+    this->gs418.T_GET = (MAX(temp, -50) + 50) & 0xFF;
 }
 
 void Egs52Can::set_input_shaft_speed(uint16_t rpm) {

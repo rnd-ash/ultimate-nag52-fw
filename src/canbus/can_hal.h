@@ -309,7 +309,7 @@ class EgsBaseCan {
         // Sets the status bit indicating the car is safe to start
         virtual void set_safe_start(bool can_start){};
         // Sets the gerabox ATF temperature. Offset by +50C
-        virtual void set_gearbox_temperature(uint16_t temp){};
+        virtual void set_gearbox_temperature(int16_t temp){};
         // Sets the RPM of the input shaft of the gearbox on CAN
         virtual void set_input_shaft_speed(uint16_t rpm){};
         // Sets 4WD activated toggle bit

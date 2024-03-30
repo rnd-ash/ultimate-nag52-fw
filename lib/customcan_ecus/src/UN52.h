@@ -73,7 +73,11 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING1__: 8;
+		uint8_t __PADDING1__: 6;
+		/** Gearbox OK **/
+		bool GB_OK: 1;
+		/** Garage shifting **/
+		bool G_SHIFT: 1;
 		/** Oil temperature **/
 		uint8_t T_OEL: 8;
 		/** Transmission output speed **/

@@ -337,7 +337,7 @@ void Egs51Can::set_target_gear(GearboxGear target) {
     }
 }
 
-void Egs51Can::set_gearbox_temperature(uint16_t temp) {
+void Egs51Can::set_gearbox_temperature(int16_t temp) {
 }
 
 void Egs51Can::set_input_shaft_speed(uint16_t rpm) {

@@ -450,8 +450,8 @@ void Egs53Can::set_safe_start(bool can_start) {
     this->eng_rq1_tcm.EngSt_Enbl_Rq_TCM = can_start;
 }
 
-void Egs53Can::set_gearbox_temperature(uint16_t temp) {
-    this->tcm_a1.TxOilTemp = temp + 50;
+void Egs53Can::set_gearbox_temperature(int16_t temp) {
+    this->tcm_a1.TxOilTemp = MAX(temp, -50) + 50;
 }
 
 void Egs53Can::set_input_shaft_speed(uint16_t rpm) {

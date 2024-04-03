@@ -333,6 +333,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
 void PressureManager::notify_shift_end() {
     this->c_gear = 0;
     this->t_gear = 0;
+    this->ptr_shift_pressures = nullptr;
 }
 
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {

@@ -23,6 +23,21 @@ typedef struct {
     uint16_t ramp_time;
 } PressureStageTiming;
 
+struct ShiftPressures {
+    // At the applying clutch
+    float on_clutch;
+    // At the releasing clutch
+    float off_clutch;
+    // Pressure on the modulating side of the overlap slider
+    float overlap_mod;
+    // Pressure on the shift side of the overlap slider
+    float overlap_shift;
+    // At the shift solenoid
+    float shift_sol_req;
+    // At the modulating solenoid
+    float mod_sol_req;
+};
+
 class PressureManager {
 
 public:
@@ -104,6 +119,20 @@ public:
     uint16_t get_shift_regulator_pressure(void);
 
     float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
+
+    void register_shift_pressure_data(ShiftPressures* p) {
+        this->ptr_shift_pressures = p;
+    }
+
+    ShiftPressures get_shift_pressures_now() {
+        ShiftPressures ret{};
+        if (nullptr == this->ptr_shift_pressures) {
+            memset(&ret, 0x00, sizeof(ShiftPressures));
+        } else {
+            memcpy(&ret, this->ptr_shift_pressures, sizeof(ShiftPressures));
+        }
+        return ret;
+    }
 private:
 
     uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);
@@ -152,6 +181,7 @@ private:
     ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
+    ShiftPressures* ptr_shift_pressures = nullptr;
 };
 
 extern PressureManager* pressure_manager;

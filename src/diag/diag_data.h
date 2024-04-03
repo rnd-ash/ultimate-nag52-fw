@@ -87,6 +87,12 @@ typedef struct {
     uint16_t corrected_mpc_pressure;
 
     uint16_t tcc_pressure;
+
+    // Shifting pressures
+    uint16_t on_clutch_pressure;
+    uint16_t off_clutch_pressure;
+    uint16_t overlap_mod;
+    uint16_t overlap_shift;
 }  __attribute__ ((packed)) DATA_PRESSURES;
 
 // Solenoid command struct

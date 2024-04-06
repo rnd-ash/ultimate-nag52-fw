@@ -316,7 +316,7 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
         InterpType::Linear
     );
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / friction_coefficient) * (float) pressure;
+    float calc = ((float)pressure*(float)friction_coefficient) / friction_val;
     return calc;
 }
 
@@ -335,6 +335,9 @@ void PressureManager::notify_shift_end() {
     this->t_gear = 0;
     this->ptr_shift_pressures = nullptr;
 }
+
+// TODO pull this from calibration tables
+const float C_C_FACTOR[8] = {0.15, 0.25, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8};
 
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
     ShiftData sd; 
@@ -384,6 +387,7 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
     sd.pressure_multi_mpc = (float)HYDR_PTR->overlap_circuit_factor_mpc[lookup_valve_info]/1000.0;
     sd.pressure_multi_spc = (float)HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info]/1000.0;
     sd.mpc_pressure_spring_reduction = HYDR_PTR->overlap_circuit_spring_pressure[lookup_valve_info];
+    sd.centrifugal_factor_off_clutch = C_C_FACTOR[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;

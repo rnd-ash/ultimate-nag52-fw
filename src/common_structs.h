@@ -176,6 +176,7 @@ struct ShiftData{
     float pressure_multi_spc;
     float pressure_multi_mpc;
     int16_t mpc_pressure_spring_reduction;
+    float centrifugal_factor_off_clutch;
 };
 
 #define RAT_1_IDX 0

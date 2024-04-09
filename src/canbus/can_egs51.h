@@ -69,7 +69,7 @@ class Egs51Can: public EgsBaseCan {
         // // Sets the status bit indicating the car is safe to start
         void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
-        void set_gearbox_temperature(uint16_t temp) override;
+        void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit

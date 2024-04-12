@@ -32,28 +32,9 @@ Kwp2000_server *diag_server;
 
 uint8_t profile_id = 0;
 
-AbstractProfile *profiles[NUM_PROFILES];
-
 Speaker *spkr2 = nullptr;
 
 Shifter *shifter = nullptr;
-
-void init_driving_profiles(bool is_diesel)
-{
-    standard = new StandardProfile(is_diesel);
-    comfort = new ComfortProfile(is_diesel);
-    winter = new WinterProfile(is_diesel);
-    agility = new AgilityProfile(is_diesel);
-    manual = new ManualProfile(is_diesel);
-    race = new RaceProfile(is_diesel);
-
-    profiles[GearboxProfile::Standard] = standard;
-    profiles[GearboxProfile::Comfort] = comfort;
-    profiles[GearboxProfile::Winter] = winter;
-    profiles[GearboxProfile::Agility] = agility;
-    profiles[GearboxProfile::Manual] = manual;
-    profiles[GearboxProfile::Race] = race;
-}
 
 SPEAKER_POST_CODE setup_tcm()
 {
@@ -91,19 +72,17 @@ SPEAKER_POST_CODE setup_tcm()
                 // Read our configuration (This is allowed to fail as the default opts are always set by default)
                 ModuleConfiguration::load_all_settings();
                 // init driving profiles
-                init_driving_profiles(0 == VEHICLE_CONFIG.engine_type);
+                Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
 
                 // init the shifter module
                 switch (VEHICLE_CONFIG.shifter_style)
                 {
                 case (uint8_t)ShifterStyle::EWM:
-                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS, reinterpret_cast<AbstractProfile *>(profiles));
+                case (uint8_t)ShifterStyle::SLR:
+                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                     break;
                 case (uint8_t)ShifterStyle::TRRS:
-                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix, reinterpret_cast<AbstractProfile *>(profiles));
-                    break;
-                case (uint8_t)ShifterStyle::SLR:
-                    shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS, reinterpret_cast<AbstractProfile *>(profiles));
+                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
                     break;
                 default:
                     // possibly
@@ -215,14 +194,15 @@ void err_beep_loop(void *a)
 
 void input_manager(void *)
 {
-    const uint32_t expire_time_ms = 100u;
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
-
     while (1)
     {
-        pcb_gpio_matrix->read_input_signals();
-        gearbox->set_profile(shifter->get_profile(expire_time_ms));
+        ioexpander->read_from_ioexpander();
+        AbstractProfile* prof = shifter->get_profile(500);
+        if (nullptr != prof) {
+            gearbox->set_profile(prof);
+        }
         PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
         if (last_pos != paddle)
         { // Same position, ignore

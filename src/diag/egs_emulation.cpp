@@ -15,7 +15,6 @@ RLI_30_DATA get_rli_30(EgsBaseCan* can_layer) {
 
 RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     RLI_31_DATA ret = {};
-    uint32_t now = GET_CLOCK_TIME();
     RpmReading d;
     if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
         ret.n2_pulse_count = flip_uint16_t(d.n2_raw);

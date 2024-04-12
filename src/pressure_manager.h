@@ -14,6 +14,7 @@
 typedef struct {
     uint16_t fill_time;
     uint16_t fill_pressure_on_clutch;
+    uint16_t low_fill_pressure_on_clutch;
     uint16_t fill_pressure_off_clutch;
 } PrefillData;
 
@@ -150,8 +151,9 @@ private:
     const uint8_t* heaviest_loaded_clutch_idx_map;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
-    StoredMap* hold2_time_map;
-    StoredMap* hold2_pressure_map;
+    StoredMap* fill_time_map;
+    StoredMap* fill_pressure_map;
+    StoredMap* fill_low_pressure_map;
     uint16_t gb_max_torque;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;

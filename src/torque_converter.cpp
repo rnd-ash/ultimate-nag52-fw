@@ -9,7 +9,7 @@
 
 const int16_t tcc_learn_x_headers[5] = {1,2,3,4,5};
 const int16_t tcc_learn_y_headers[1] = {1};
-const int16_t tcc_learn_default_data[5] = {200, 200, 200, 200, 200};
+const int16_t tcc_learn_default_data[5] = {1500, 1500, 1500, 1500, 1500};
 
 static const uint16_t TCC_ADJ_INTERVAL_MS = 500;
 
@@ -58,7 +58,7 @@ void TorqueConverter::adjust_map_cell(GearboxGear g, uint16_t new_pressure) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors, bool is_shifting) {
-    if (!this->tcc_solenoid_enabled) {
+    if (!this->tcc_solenoid_enabled || is_shifting) {
         pm->set_target_tcc_pressure(0);
         return;
     }

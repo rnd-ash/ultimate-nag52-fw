@@ -156,6 +156,11 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+private:
+    void update(SensorData *sd);
+    int32_t accel_delta_factor = 0;
+    SensorData last_sensors = {};
+    uint32_t last_check = 0;
 };
 
 class ManualProfile : public AbstractProfile {
@@ -182,5 +187,11 @@ extern WinterProfile* winter;
 extern ManualProfile* manual;
 extern StandardProfile* standard;
 extern RaceProfile* race;
+
+extern AbstractProfile *profiles[NUM_PROFILES];
+
+namespace Profiles {
+    void init_profiles(bool is_diesel);
+}
 
 #endif

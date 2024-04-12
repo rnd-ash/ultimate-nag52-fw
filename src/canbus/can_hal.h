@@ -20,6 +20,7 @@
 #include "can_defines.h"
 
 #include "../shifter/shifter.h"
+#include "../shifter/programselector/programselector.h"
 #include "../profiles.h"
 
 class EgsBaseCan {
@@ -72,7 +73,7 @@ class EgsBaseCan {
         
 
         virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            return ShifterPosition::SignalNotAvailable;
+            return shifter->get_shifter_position(expire_time_ms);
         }
 
         /**
@@ -227,6 +228,17 @@ class EgsBaseCan {
         }
 
         /**
+         * @brief OPTIONAL DATA - Returns true if the shifter profile switch is in the top most position
+         * This is intended for only the handling of the EWM CAN based shifters.
+         * 
+         * @param expire_time_ms data expiration period
+         * @return True if the profile switch is in the top position
+         */
+        virtual ProfileSwitchPos get_profile_switch_pos(const uint32_t expire_time_ms) {
+            return ProfileSwitchPos::SNV;
+        }
+
+        /**
          * @brief MANDITORY DATA - Returns if the brake pedal is being pressed
          * 
          * @param expire_time_ms data expiration period
@@ -271,7 +283,7 @@ class EgsBaseCan {
         virtual int esp_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
-
+        
         /**
          * Setters
          */
@@ -350,7 +362,7 @@ class EgsBaseCan {
             this->un52_slave_resp = un52_rpt;
         }
 
-
+        Shifter* shifter;
 
     protected:
         const char* name;
@@ -388,8 +400,6 @@ class EgsBaseCan {
         SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
         SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
         UN52_REPORT_EGS_SLAVE un52_slave_resp;
-
-        Shifter* shifter;
 };
 
 extern EgsBaseCan* egs_can_hal;

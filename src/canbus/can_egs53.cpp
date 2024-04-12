@@ -646,7 +646,7 @@ inline void to_bytes(uint64_t src, uint8_t* dst) {
 }
 
 uint8_t msg_counter = 0;
-
+uint8_t cvn_counter = 0;
 
 void Egs53Can::tx_frames() {
     tx.data_length_code = 8; // Always

@@ -12,6 +12,8 @@
 #include "solenoids/solenoids.h"
 #include "clock.hpp"
 #include "nvs/device_mode.h"
+#include "esp_flash.h"
+#include "egs_calibration/calibration_structs.h"
 
 typedef struct {
     uint8_t day;
@@ -302,6 +304,9 @@ void Kwp2000_server::server_loop() {
                     break;
                 case SID_READ_MEM_BY_ADDRESS:
                     this->process_read_mem_address(args_ptr, args_size);
+                    break;
+                case SID_WRITE_MEM_BY_ADDRESS:
+                    this->process_write_mem_by_address(args_ptr, args_size);
                     break;
                 case SID_READ_ECU_IDENT:
                     this->process_read_ecu_ident(args_ptr, args_size);
@@ -606,6 +611,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SYS_USAGE, (uint8_t*)&r, sizeof(DATA_SYS_USAGE));
+    } else if (args[0] == RLI_TCC_PROGRAM) {
+        DATA_TCC_PROGRAM r = get_tcc_program_data(this->gearbox_ptr);
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCC_PROGRAM, (uint8_t*)&r, sizeof(DATA_TCC_PROGRAM));
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
@@ -639,6 +647,10 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_NEXT_SW_PART_INFO) {
         PARTITION_INFO r = get_next_sw_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_NEXT_SW_PART_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
+    } else if (args[0] == RLI_EGS_CAL_LEN) {
+        uint16_t len = get_egs_calibration_size();
+        uint8_t x[2] = { (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF) };
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EGS_CAL_LEN, x, sizeof(uint16_t));
     } else if (args[0] == RLI_SETTINGS_EDIT) {
         // [RLI, MODULE ID]
         if (arg_len != 2) {
@@ -691,22 +703,51 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (arg_len != 4 && arg_len != 5) {
+    if (arg_len != 4) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    uint8_t* address;
-    if (arg_len == 4) {
-       address = reinterpret_cast<uint8_t*>(0x40070000+((args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from
+    uint32_t start = (args[0] << 16) | (args[1] << 8) | args[2]; // Raw address to read from
+    uint8_t len = args[3];
+    uint32_t end = start + len;
+    if (start >= 0x800000 && end <= 0x87D000) {
+        // Address is stored in flash
+        uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(len);
+        if (nullptr != buffer) {
+            // Alloc OK
+            if (ESP_OK == esp_flash_read(NULL, buffer, 0x349000 + (start-0x800000), len)) {
+                make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, buffer, len);
+                TCU_FREE(buffer);
+            } else {
+                // Read failed
+                make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
+                TCU_FREE(buffer);
+            }
+        } else {
+            // Alloc Failed
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
+        }
     } else {
-        address = reinterpret_cast<uint8_t*>(0x40070000+((args[3] << 24) | (args[2] << 16) | (args[1] << 8) | args[0])); // Raw address to read from 4 byte
+        uint32_t start_ptr = 0;
+        // Address is somewhere in memory
+        if(end <= 0x2FFFF) { // and start >= 0x000000
+            start_ptr = 0x40070000; // SRAM0
+        } else if(start >= 0x030000 && end <= 0x04FFFF) {
+            start_ptr = 0x400A0000; // SRAM1
+        } else if(start >= 0x050000 && end <= 0x071FFF) {
+            start_ptr = 0x3FFAE000; // SRAM2
+        } else if(start >= 0x100000 && end <= 0x4FFFFF) {
+            start_ptr = 0x3F800000; // PSRAM
+        }
+        if (0 == start_ptr) { // Invalid address range
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            // Interp as pointer
+            make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, (uint8_t*)start_ptr, len);
+        }
     }
-    if (address + args[arg_len-1] >= reinterpret_cast<uint8_t*>(0x400BFFFF)) { // Address too big (Not in SRAM 0 or SRAM1)!
-        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-        return;
-    }
-    make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, address, args[arg_len-1]); // Copy args[3] len bytes from address into positive message
 }
+
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
 
 }
@@ -878,6 +919,13 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             } else {
                 // Can only fail if adapt manager is nullptr (Not ready)
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+            }
+        } else if (args[0] == ROUTINE_CALIBRATION_HOT_RELOAD) {
+            esp_err_t res = EGSCal::reload_egs_calibration();
+            if (ESP_OK == res) {
+                make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
+            } else {
+                make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
             }
         } else {
             make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -1074,7 +1122,58 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
     }
 }
 void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_len) {
-
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (arg_len < 4) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    uint32_t start = (args[0] << 16) | (args[1] << 8) | args[2]; // Raw address to read from
+    uint8_t len = args[3];
+    if (arg_len-4 != len) { // Length mismatch between message write data, and actual data to write
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    uint8_t* src = &args[4];
+    uint32_t end = start + len;
+    if (start >= 0x800000 && end <= 0x87D000) {
+        #define SECTOR_SIZE 4096
+        int phys_address = 0x349000 + (start-0x800000);
+        int sec_start_addr = (phys_address/SECTOR_SIZE)*SECTOR_SIZE;
+        int offset_into_start_sector = phys_address - sec_start_addr;
+        uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(SECTOR_SIZE);
+        esp_flash_read(NULL, buffer, sec_start_addr, SECTOR_SIZE);
+        memcpy(&buffer[offset_into_start_sector], src, len);
+        esp_flash_erase_region(NULL, sec_start_addr, SECTOR_SIZE);
+        if (ESP_OK == esp_flash_write(NULL, buffer, sec_start_addr, SECTOR_SIZE)) {
+            make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, nullptr, 0);
+        } else {
+            // Read failed
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
+        }
+        delete[] buffer;
+    } else {
+        uint32_t start_ptr = 0;
+        // Address is somewhere in memory
+        if(end <= 0x2FFFF) { // and start >= 0x000000
+            start_ptr = 0x40070000; // SRAM0
+        } else if(start >= 0x030000 && end <= 0x04FFFF) {
+            start_ptr = 0x400A0000; // SRAM1
+        } else if(start >= 0x050000 && end <= 0x071FFF) {
+            start_ptr = 0x3FFAE000; // SRAM2
+        } else if(start >= 0x100000 && end <= 0x4FFFFF) {
+            start_ptr = 0x3F800000; // PSRAM
+        }
+        if (0 == start_ptr) { // Invalid address range
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        } else {
+            // Interp as pointer
+            memcpy((void*)start_ptr, (void*)src, len);
+            make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, nullptr, 0);
+        }
+    }
 }
 
 void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {

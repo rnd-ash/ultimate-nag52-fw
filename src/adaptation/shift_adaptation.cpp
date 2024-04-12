@@ -169,7 +169,9 @@ esp_err_t ShiftAdaptationSystem::reset(void)
     return ESP_OK;
 }
 
+
 bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, ProfileGearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim) {
+    /*
     bool ret = false;
     if (dest) {
         uint8_t idx = (uint8_t)change;
@@ -184,7 +186,8 @@ bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, ProfileGear
             data[idx] = modify;
         }
     }
-    return ret;
+    */
+    return false;
 }
 
 void ShiftAdaptationSystem::debug_print_prefill_data() {

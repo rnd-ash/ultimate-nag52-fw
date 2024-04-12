@@ -72,42 +72,6 @@ extern const int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 /*
 ================================================================================
 
-   CLUTCH DATA MAPS (From EGS52)
-
-   There are 10 maps in each data 'set'. Sets 0-3 are for small NAG, and 4-9 are for large NAG
-
-================================================================================
-
- */
-
-#define NUM_MECHANICAL_CALIBRATIONS 5
-#define NUM_SPRING_CALIBRATIONS 2
-
-extern const int16_t CLUTCH_FRICTION_MAP[NUM_MECHANICAL_CALIBRATIONS][9*6];
-extern const int16_t CLUTCH_RELEASE_SPRING_MAP[NUM_SPRING_CALIBRATIONS][6];
-
-/* Order is N,1,2,3,4,5,R1,R2 */
-extern const uint8_t STRONGEST_LOADED_CLUTCH_SMALL_NAG[8];
-/* Order is N,1,2,3,4,5,R1,R2 */
-extern const uint8_t STRONGEST_LOADED_CLUTCH_LARGE_NAG[8];
-
-/*
-================================================================================
-
-   HYDRALIC DATA MAPS (From EGS52)
-
-   These maps contain data for hydralic variants. There are only 2, and only ever 2 of these
-
-================================================================================
- */
-
-#define NUM_HYDRALIC_CALIBRATIONS 2
-extern const int16_t HYDRALIC_PCS_MAP[NUM_HYDRALIC_CALIBRATIONS][8*4];
-extern const int16_t HYDRALIC_PCS_MAP_X_HEADER[NUM_HYDRALIC_CALIBRATIONS][8];
-
-/*
-================================================================================
-
    PRESSURE MAPS
 
 ================================================================================
@@ -158,6 +122,11 @@ extern const int16_t W_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 
 extern const int16_t R_UPSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
+
+/** TCC Slip maps */
+// 1000 - 6000RPM (Step of 500 RPM), 0-100% Pedal, step of 10%
+#define TCC_RPM_TARGET_MAP_SIZE 11*11
+extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
 
 /**
  * Adaptation subsystem maps

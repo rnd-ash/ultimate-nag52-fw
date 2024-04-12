@@ -60,10 +60,6 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 			}
 		}
 	}
-	// update starter lock solenoid
-	bool start_enable = (ShifterPosition::P == result || ShifterPosition::N == result);
-	board->set_start(start_enable);
-
 	// update reverse/parking lock solenoid
 	// TODO: add logic for using either brake signal or CAN-signal for is_brake_pressed
 	set_rp_solenoid(vVeh, result, is_brake_pressed);
@@ -81,4 +77,8 @@ void ShifterTrrs::set_rp_solenoid(const float vVeh, const ShifterPosition pos, c
 AbstractProfile *ShifterTrrs::get_profile(const uint32_t expire_time_ms)
 {
 	return programselector->get_profile(expire_time_ms);
+}
+
+ShifterStyle ShifterTrrs::get_shifter_type() {
+	return ShifterStyle::TRRS;
 }

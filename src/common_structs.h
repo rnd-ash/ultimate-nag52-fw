@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
+#include "moving_average.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
@@ -75,6 +76,7 @@ struct SensorData{
     uint16_t output_rpm;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
+    const MovingAverage<uint32_t>* pedal_smoothed;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque
@@ -91,8 +93,6 @@ struct SensorData{
     uint32_t last_shift_time;
     /// Is the brake pedal depressed?
     bool is_braking;
-    /// Delta in output RPM, used for calculating if car is accelerating or slowing down
-    int16_t d_output_rpm;
     /// Current gearbox ratio
     float gear_ratio;
     WheelData rr_wheel;
@@ -173,6 +173,10 @@ struct ShiftData{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
+    float pressure_multi_spc;
+    float pressure_multi_mpc;
+    int16_t mpc_pressure_spring_reduction;
+    float centrifugal_factor_off_clutch;
 };
 
 #define RAT_1_IDX 0
@@ -187,7 +191,6 @@ struct GearRatioInfo {
     float ratio_max_drift;
     float ratio;
     float ratio_min_drift;
-    float power_loss;
 };
 
 struct GearboxConfiguration{

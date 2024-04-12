@@ -41,7 +41,8 @@ ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
 	if (nullptr != egs_can_hal) {
-		pos = egs_can_hal->get_shifter_position(expire_time_ms);
+
+		pos = egs_can_hal->internal_can_shifter_get_shifter_position(expire_time_ms);
 	}
 	return pos;
 }
@@ -71,4 +72,8 @@ void ShifterEwm::set_program_button_pressed(const bool is_pressed, const Profile
 				break;
 		}
 	}
+}
+
+ShifterStyle ShifterEwm::get_shifter_type() {
+	return ShifterStyle::EWM;
 }

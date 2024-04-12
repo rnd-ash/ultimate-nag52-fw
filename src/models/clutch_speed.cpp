@@ -41,13 +41,9 @@ ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const uint16_t outp
         ret.off_clutch_speed = req == ProfileGearChange::THREE_FOUR ? vb2 : vk3;
         ret.rear_sun_speed = vb2;
     }
-    const uint16_t thresh = 25;
-    if (ret.on_clutch_speed < thresh && ret.on_clutch_speed > -thresh) {
-        ret.on_clutch_speed = 0;
-    }
-    // Off clutch does not get filtered so we can see as SOON as it starts to lift off
-    //if (ret.off_clutch_speed < thresh && ret.off_clutch_speed > -thresh) {
-    //    ret.off_clutch_speed = 0;
+    //const uint16_t thresh = 25;
+    //if (ret.on_clutch_speed < thresh && ret.on_clutch_speed > -thresh) {
+    //    ret.on_clutch_speed = 0;
     //}
     return ret;
 }

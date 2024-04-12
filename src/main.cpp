@@ -13,12 +13,14 @@
 #include "nvs/eeprom_config.h"
 #include "diag/kwp2000.h"
 #include "nvs/module_settings.h"
+#include "egs_calibration/calibration_structs.h"
 
 // CAN LAYERS
 #include "canbus/can_egs51.h"
 #include "canbus/can_egs52.h"
 #include "canbus/can_egs53.h"
 #include "canbus/can_hfm.h"
+#include "canbus/can_custom.h"
 
 #include "board_config.h"
 #include "nvs/device_mode.h"
@@ -66,9 +68,9 @@ SPEAKER_POST_CODE setup_tcm()
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {
+                // Load EGS Calibration
                 // Read device mode!
                 CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
-                ESP_LOGI("INIT", "TCU mode on EEPROM is %08X", CURRENT_DEVICE_MODE);
                 // Read our configuration (This is allowed to fail as the default opts are always set by default)
                 ModuleConfiguration::load_all_settings();
                 // init driving profiles
@@ -82,7 +84,12 @@ SPEAKER_POST_CODE setup_tcm()
                     shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
                     break;
                 case (uint8_t)ShifterStyle::TRRS:
-                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                    if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
+                        shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                    } else {
+                        ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
+                        shifter = nullptr;
+                    }
                     break;
                 default:
                     // possibly
@@ -105,6 +112,9 @@ SPEAKER_POST_CODE setup_tcm()
                     case 4:
                         egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
                         break;
+                    case 5:
+                        egs_can_hal = new CustomCan("CC", 20, 500000, shifter); // Custom CAN Abstraction layer
+                        break;
                     default:
                         // Unknown (Fallback to basic CAN)
                         ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
@@ -117,14 +127,18 @@ SPEAKER_POST_CODE setup_tcm()
                         {
                             if (ESP_OK == Solenoids::init_all_solenoids())
                             {
-                                gearbox = new Gearbox(shifter);
-                                if (ESP_OK == gearbox->start_controller())
-                                {
-                                    gearbox->set_profile(shifter->get_profile(50u));
-                                }
-                                else
-                                {
-                                    ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                if (ESP_OK == EGSCal::init_egs_calibration()) {
+                                    gearbox = new Gearbox(shifter);
+                                    if (ESP_OK == gearbox->start_controller())
+                                    {
+                                        gearbox->set_profile(shifter->get_profile(50u));
+                                    }
+                                    else
+                                    {
+                                        ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                    }
+                                } else {
+                                    ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
                                 }
                             }
                             else
@@ -184,7 +198,7 @@ void err_beep_loop(void *a)
             spkr->post(p);
             if (spkr2 != nullptr)
             {
-                spkr2->post(p);
+                //spkr2->post(p);
             }
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
@@ -198,7 +212,9 @@ void input_manager(void *)
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
     while (1)
     {
-        ioexpander->read_from_ioexpander();
+        if (ioexpander) {
+            ioexpander->read_from_ioexpander();
+        }
         AbstractProfile* prof = shifter->get_profile(500);
         if (nullptr != prof) {
             gearbox->set_profile(prof);
@@ -259,6 +275,8 @@ const char *post_code_to_str(SPEAKER_POST_CODE s)
         return "EFUSE_CONFIG_NOT_SET";
     case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
         return "CONFIGURATION_MISMATCH";
+    case SPEAKER_POST_CODE::CALIBRATION_FAIL:
+        return "NO_EGS_CALIBRATION";
     default:
         return nullptr;
     }

@@ -72,8 +72,17 @@ class EgsBaseCan {
         }
         
 
-        virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
+        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
             return shifter->get_shifter_position(expire_time_ms);
+        }
+
+        /**
+         * @brief Only Call from Shifter!
+         * @param expire_time_ms 
+         * @return 
+         */
+        virtual ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
+            return ShifterPosition::SignalNotAvailable;
         }
 
         /**
@@ -283,6 +292,10 @@ class EgsBaseCan {
         virtual int esp_torque_demand(const uint32_t expire_time_ms) {
             return INT_MAX;
         }
+
+        virtual TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+            return TccReqState::None;
+        }
         
         /**
          * Setters
@@ -296,7 +309,7 @@ class EgsBaseCan {
         // Sets the status bit indicating the car is safe to start
         virtual void set_safe_start(bool can_start){};
         // Sets the gerabox ATF temperature. Offset by +50C
-        virtual void set_gearbox_temperature(uint16_t temp){};
+        virtual void set_gearbox_temperature(int16_t temp){};
         // Sets the RPM of the input shaft of the gearbox on CAN
         virtual void set_input_shaft_speed(uint16_t rpm){};
         // Sets 4WD activated toggle bit

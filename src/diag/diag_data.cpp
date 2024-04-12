@@ -7,6 +7,7 @@
 #include "esp_core_dump.h"
 #include "../nvs/module_settings.h"
 #include "clock.hpp"
+#include "egs_calibration/calibration_structs.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -86,7 +87,29 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
         ret.corrected_mpc_pressure = gb_ptr->pressure_mgr->get_corrected_modulating_pressure();
         ret.tcc_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
         ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
+        ShiftPressures p = gb_ptr->pressure_mgr->get_shift_pressures_now();
+        ret.overlap_mod = p.overlap_mod;
+        ret.overlap_shift = p.overlap_shift;
+        ret.on_clutch_pressure = p.on_clutch;
+        ret.off_clutch_pressure = p.off_clutch;
     }
+    return ret;
+}
+
+DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
+    DATA_TCC_PROGRAM ret = {};
+    ret.current_pressure = gb_ptr->tcc->get_current_pressure();
+    ret.target_pressure = gb_ptr->tcc->get_target_pressure();
+    ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();
+    ret.slip_now = (int16_t)gb_ptr->sensor_data.engine_rpm - (int16_t)gb_ptr->sensor_data.input_rpm;
+    ret.pedal_filtered = gb_ptr->sensor_data.pedal_smoothed->get_average();
+    ret.pedal_now = gb_ptr->sensor_data.pedal_pos;
+    ret.slip_target = gb_ptr->tcc->get_slip_targ();
+    ret.targ_state = gb_ptr->tcc->get_target_state();
+    ret.current_state = gb_ptr->tcc->get_current_state();
+    ret.can_request_bits = 0; // TODO
+    ret.tcc_absorbed_joule = gb_ptr->tcc->get_absorbed_power();
+    ret.engine_output_joule = gb_ptr->tcc->get_engine_power();
     return ret;
 }
 
@@ -272,6 +295,10 @@ PARTITION_INFO get_next_sw_info(void) {
 
 const esp_app_desc_t* get_image_header(void) {
     return esp_app_get_description();
+}
+
+uint16_t get_egs_calibration_size(void) {
+    return sizeof(CalibrationInfo);
 }
 
 kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {

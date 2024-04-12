@@ -145,6 +145,13 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 /// @param size The size of values.
 /// @param idvalue_min The index for the value smaller than the value to be searched for.
 /// @param idvalue_max The index for the value greater than the value to be searched for.
-void search_value(const int16_t value, const int16_t *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
+template <typename T> void search_value(const T value, const T *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
+
+/// @brief Interpolates on a calibration table where you have an axis and a single value axis
+/// @param v - The value to look up the interpoaltion for
+/// @param len - The size of both X and Y, this function requires both to be the same len
+/// @param x - Pointer to X axis
+/// @param vals - Pointer to value axis
+template <typename T> float interpolate_linear_array(T v, const uint8_t len, const T* x, const T* vals);
 
 #endif // TCU_MATHS_H

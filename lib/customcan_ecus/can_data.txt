@@ -1,0 +1,98 @@
+# For compatibility with CAN (EWM) gear selector
+ECU EWM
+	FRAME EWM_230h (0x00000230)
+		SIGNAL W_S, OFFSET: 0, LEN: 1, DESC: Driving program, DATA TYPE BOOL
+		SIGNAL FPT, OFFSET: 1, LEN: 1, DESC: Driving program button actuated, DATA TYPE BOOL
+		SIGNAL KD, OFFSET: 2, LEN: 1, DESC: Kickdown, DATA TYPE BOOL
+		SIGNAL SPERR, OFFSET: 3, LEN: 1, DESC: barrier magnet energized, DATA TYPE BOOL
+		SIGNAL WHC, OFFSET: 4, LEN: 4, DESC: gear selector lever position (NAG only), DATA TYPE ENUM
+			ENUM D, RAW: 5, DESC: selector lever in position "D"
+			ENUM N, RAW: 6, DESC: selector lever in position "N"
+			ENUM R, RAW: 7, DESC: selector lever in position "R"
+			ENUM P, RAW: 8, DESC: selector lever in position "P"
+			ENUM PLUS, RAW: 9, DESC: selector lever in position "+"
+			ENUM MINUS, RAW: 10, DESC: selector lever in position "-"
+			ENUM N_ZW_D, RAW: 11, DESC: selector lever in intermediate position "N-D"
+			ENUM R_ZW_N, RAW: 12, DESC: selector lever in intermediate position "R-N"
+			ENUM P_ZW_R, RAW: 13, DESC: selector lever in intermediate position "P-R"
+			ENUM SNV, RAW: 15, DESC: selector lever position unplausible
+ECU UN52
+    FRAME UN52_400h (0x00000400)
+        SIGNAL T_GEAR, OFFSET: 0, LEN: 8, DESC: Target gear, DATA TYPE ENUM
+            ENUM P, RAW: 0, DESC: Park
+            ENUM N, RAW: 1, DESC: Neutral
+            ENUM R1, RAW: 2, DESC: Reverse 1
+            ENUM R2, RAW: 3, DESC: Reverse 2
+            ENUM D1, RAW: 4, DESC: Drive 1
+            ENUM D2, RAW: 5, DESC: Drive 2
+            ENUM D3, RAW: 6, DESC: Drive 3
+            ENUM D4, RAW: 7, DESC: Drive 4
+            ENUM D5, RAW: 8, DESC: Drive 5
+            ENUM D6, RAW: 9, DESC: Drive 6
+            ENUM D7, RAW: 10, DESC: Drive 7
+            ENUM D8, RAW: 11, DESC: Drive 8
+            ENUM D9, RAW: 12, DESC: Drive 9
+            ENUM ABORT, RAW: 13, DESC: Shift abort
+            ENUM SNV, RAW: 255, DESC: Signal not available
+        SIGNAL A_GEAR, OFFSET: 8, LEN: 8, DESC: Actual gear, DATA TYPE ENUM
+            ENUM P, RAW: 0, DESC: Park
+            ENUM N, RAW: 1, DESC: Neutral
+            ENUM R1, RAW: 2, DESC: Reverse 1
+            ENUM R2, RAW: 3, DESC: Reverse 2
+            ENUM D1, RAW: 4, DESC: Drive 1
+            ENUM D2, RAW: 5, DESC: Drive 2
+            ENUM D3, RAW: 6, DESC: Drive 3
+            ENUM D4, RAW: 7, DESC: Drive 4
+            ENUM D5, RAW: 8, DESC: Drive 5
+            ENUM D6, RAW: 9, DESC: Drive 6
+            ENUM D7, RAW: 10, DESC: Drive 7
+            ENUM D8, RAW: 11, DESC: Drive 8
+            ENUM D9, RAW: 12, DESC: Drive 9
+            ENUM P_FREE, RAW: 13, DESC: Power free (Loss of drive detected)
+            ENUM SNV, RAW: 255, DESC: Signal not available
+        SIGNAL PROFILE, OFFSET: 16, LEN: 8, DESC: Profile, DATA TYPE ENUM
+            ENUM P_S, RAW: 0, DESC: S profile
+            ENUM P_C, RAW: 1, DESC: C profile
+            ENUM P_W, RAW: 2, DESC: W profile
+            ENUM P_A, RAW: 3, DESC: A profile
+            ENUM P_M, RAW: 4, DESC: M profile
+            ENUM P_R, RAW: 5, DESC: R profile
+            ENUM P_U, RAW: 6, DESC: User custom profile
+            ENUM SNV, RAW: 255, DESC: Profile not available
+        SIGNAL INPUT_RPM, OFFSET: 24, LEN: 16, DESC: Transmission input speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+        SIGNAL OUTPUT_RPM, OFFSET: 40, LEN: 16, DESC: Transmission output speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+        SIGNAL T_OEL, OFFSET: 48, LEN: 8, DESC: Oil temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 50.0)
+        SIGNAL G_SHIFT, OFFSET: 56, LEN: 1, DESC: Garage shifting, DATA TYPE BOOL
+        SIGNAL GB_OK, OFFSET: 57, LEN: 1, DESC: Gearbox OK, DATA TYPE BOOL
+    FRAME UN52_410h (0x00000410)
+        SIGNAL TRQ_REQ_CTRL0, OFFSET: 0, LEN: 1, DESC: Torque request control bit 0, DATA TYPE BOOL
+        SIGNAL TRQ_REQ_CTRL1, OFFSET: 1, LEN: 1, DESC: Torque request control bit 1, DATA TYPE BOOL
+        SIGNAL TRQ_REQ_MIN, OFFSET: 2, LEN: 1, DESC: Torque request min request, DATA TYPE BOOL
+        SIGNAL TRQ_REQ_MAX, OFFSET: 3, LEN: 1, DESC: Torque request max request, DATA TYPE BOOL
+        SIGNAL TRQ_REQ_TOGGLE, OFFSET: 4, LEN: 1, DESC: Torque request watchdog toggle bit, DATA TYPE BOOL
+        SIGNAL TRQ_REQ_TRQ, OFFSET: 48, LEN: 16, DESC: Torque request target (Nm), DATA TYPE NUMBER(_MULTIPLIER_: 4.0, _OFFSET_: -500.0)
+
+ECU ENGINE
+    FRAME ENGINE_100h (0x00000100)
+        SIGNAL T_COOLANT, OFFSET: 0, LEN: 8, DESC: Engine coolant temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 40.0)
+        SIGNAL T_OIL, OFFSET: 8, LEN: 8, DESC: Engine oil temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 40.0)
+        SIGNAL RPM, OFFSET: 16, LEN: 16, DESC: Engine RPM, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+        SIGNAL PEDAL, OFFSET: 32, LEN: 8, DESC: Pedal position (%), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.4)
+        SIGNAL KD, OFFSET: 40, LEN: 1, DESC: Kickdown pressed, DATA TYPE BOOL
+
+    FRAME ENGINE_102h (0x00000120)
+        SIGNAL MAX_TORQUE, OFFSET: 0, LEN: 16, DESC: Maximum engine torque (Nm), DATA TYPE NUMBER(_MULTIPLIER_: 4.0, _OFFSET_: -500.0)
+        SIGNAL MIN_TORQUE, OFFSET: 16, LEN: 16, DESC: Minimum engine torque (Nm), DATA TYPE NUMBER(_MULTIPLIER_: 4.0, _OFFSET_: -500.0)
+        SIGNAL DRIVER_TORQUE, OFFSET: 32, LEN: 16, DESC: Driver requested engine torque (Nm), DATA TYPE NUMBER(_MULTIPLIER_: 4.0, _OFFSET_: -500.0)
+        SIGNAL STATIC_TORQUE, OFFSET: 48, LEN: 16, DESC: Static engine torque (Nm), DATA TYPE NUMBER(_MULTIPLIER_: 4.0, _OFFSET_: -500.0)
+
+ECU WHEELS
+    FRAME WHEELS_300h (0x00000300)
+        SIGNAL RPM_2X_FL, OFFSET: 0, LEN: 16, DESC: Front left wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 2.0, _OFFSET_: 0.0)
+        SIGNAL RPM_2X_FR, OFFSET: 16, LEN: 16, DESC: Front right wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 2.0, _OFFSET_: 0.0)
+        SIGNAL RPM_2X_RL, OFFSET: 24, LEN: 16, DESC: Rear left wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 2.0, _OFFSET_: 0.0)
+        SIGNAL RPM_2X_RR, OFFSET: 32, LEN: 16, DESC: Rear right wheel speed, DATA TYPE NUMBER(_MULTIPLIER_: 2.0, _OFFSET_: 0.0)
+
+ECU BRAKES
+    FRAME BRAKES_310h (0x00000310)
+        SIGNAL BRAKE, OFFSET: 0, LEN: 1, DESC: Brake pressed, DATA TYPE BOOL

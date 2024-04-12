@@ -26,7 +26,7 @@ class Egs53Can: public EgsBaseCan {
         // Get the rear left wheel data
         WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // Gets the shifter position
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+        ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -62,6 +62,8 @@ class Egs53Can: public EgsBaseCan {
         bool is_cruise_control_active(const uint32_t expire_time_ms) override;
         int cruise_control_torque_demand(const uint32_t expire_time_ms) override;
         int esp_torque_demand(const uint32_t expire_time_ms) override;
+        TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
+        
         /**
          * Setters
          */
@@ -75,7 +77,7 @@ class Egs53Can: public EgsBaseCan {
         // Sets the status bit indicating the car is safe to start
         void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
-        void set_gearbox_temperature(uint16_t temp) override;
+        void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit

@@ -9,7 +9,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
                            const int16_t *y_headers,
                            const uint16_t x_size,
                            const uint16_t y_size,
-                           const int16_t *default_map) : LookupMap(x_headers,
+                           const int16_t *default_map) : LookupAllocMap(x_headers,
                                                                 x_size,
                                                                 y_headers,
                                                                 y_size,
@@ -77,7 +77,7 @@ esp_err_t StoredMap::replace_data_content(const int16_t *new_data, uint16_t cont
 esp_err_t StoredMap::reset_from_flash(void) {
     esp_err_t res = ESP_OK;
     const int16_t* default_data = this->default_map;
-    if (ESP_OK == this->replace_data_content(default_data, this->dataSize) ) {
+    if (ESP_OK == this->replace_data_content(default_data, this->data_size()) ) {
         res = this->save_to_eeprom();
     }
     return res;

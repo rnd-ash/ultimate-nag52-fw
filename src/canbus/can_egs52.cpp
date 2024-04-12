@@ -15,13 +15,14 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs418.FMRAD = 1.0;
     this->set_target_gear(GearboxGear::SignalNotAvailable);
     this->set_actual_gear(GearboxGear::SignalNotAvailable);
-    this->set_shifter_position(ShifterPosition::SignalNotAvailable);
+    this->set_shifter_position(ShifterPosition::P);
     this->gs418.KD = false;
     this->gs418.SCHALT = false; // Auto is 0, manual is 1
     this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
     gs218.CALID_CVN_AKT = true;
-    gs218.G_G = true;
+    gs218.G_G = false;
+    this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
     // Set profile to N/A for now
     this->set_drive_profile(GearboxProfile::Underscore);
     // Set no message
@@ -38,7 +39,6 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
-    this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
 }
 
 WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -128,7 +128,7 @@ WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs52Can::get_shifter_position(const uint32_t expire_time_ms) {
+ShifterPosition Egs52Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
 	EWM_230_EGS52 dest;
 	if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
@@ -217,7 +217,7 @@ int Egs52Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
 int Egs52Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
     if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
-        return ((int)ms212.M_FV / 4) - 500;
+        return ((int)ms212.M_ESPV / 4) - 500;
     }
     return INT_MAX;
 }
@@ -417,6 +417,25 @@ int Egs52Can::esp_torque_demand(const uint32_t expire_time_ms) {
     return r;
 }
 
+TccReqState Egs52Can::get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+    MS_210_EGS52 ms210;
+    MS_308_EGS52 ms308;
+    TccReqState ret = TccReqState::None;
+    // Check for slip first
+    if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
+        if (ms210.KUEB_S_A) {
+            ret = TccReqState::Slipping;
+        }
+    }
+    // Then check if engine wants open
+    if (this->ecu_ms.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
+        if (ms308.KUEB_O_A) {
+            ret = TccReqState::Open;
+        }
+    }
+    return ret;
+}
+
 void Egs52Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
         case TccClutchStatus::Open:
@@ -546,8 +565,8 @@ void Egs52Can::set_safe_start(bool can_start) {
     // ioexpander->set_start(can_start);
 }
 
-void Egs52Can::set_gearbox_temperature(uint16_t temp) {
-    this->gs418.T_GET = (temp+50) & 0xFF;
+void Egs52Can::set_gearbox_temperature(int16_t temp) {
+    this->gs418.T_GET = (MAX(temp, -50) + 50) & 0xFF;
 }
 
 void Egs52Can::set_input_shaft_speed(uint16_t rpm) {
@@ -696,6 +715,7 @@ void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
 
 void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->curr_profile_bit = p;
+    gs218.HSM = false;
     switch (p) {
         case GearboxProfile::Agility:
             gs418.FPC = 'A';
@@ -705,6 +725,7 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Winter:
             gs418.FPC = 'W';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Failure:
             gs418.FPC = 'F';
@@ -714,12 +735,14 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Manual:
             gs418.FPC = 'M';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Individual:
             gs418.FPC = 'I';
             break;
         case GearboxProfile::Race:
             gs418.FPC = 'R';
+            gs218.HSM = true;
             break;
         case GearboxProfile::Underscore:
             gs418.FPC = '_';
@@ -749,7 +772,12 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
-    gs418.FMRAD = ratio * 100;
+    if (ratio == -1) {
+        gs418.FMRAD = 0x7FF; // Implausible
+    } else {
+        uint16_t fmrad_int = MIN((uint16_t)(ratio * 0.05), 2046);
+        gs418.FMRAD = fmrad_int;
+    }
 }
 
 /**

@@ -13,7 +13,8 @@ public:
     void pre_current_test() override;
     void post_current_test() override;
 private:
-    uint32_t period_duration_us = 0;
+    ledc_timer_t ledc_timer;
+    float vref = 1.0;
     // 0 - Inrush
     // 1 - Hold
     // 2 - Off
@@ -23,6 +24,12 @@ private:
     uint16_t calc_hold_pwm = 1024;
     uint32_t inrush_time = 20000; // at 12V and 25C
     uint32_t hold_time = 0; 
+    uint32_t off_time  = 0;
+
+    uint32_t inrush_time_this_cycle = 0;
+    uint32_t hold_time_this_cycle = 0;
+    uint32_t off_time_this_cycle = 0;
+
     gptimer_handle_t timer;
     bool off = false;
 };

@@ -28,7 +28,7 @@ output_yml = open("MODULE_SETTINGS.yml", "w")
 
 class Enum:
     def __init__(self, name: str, mappings: [(str, str, int)]) -> None:
-        self.name = name;
+        self.name = name.strip();
         self.mappings = mappings[:]
     
     def get_name(self) -> str:
@@ -88,7 +88,7 @@ class Variable:
         else:
             # Check enums
             for i in range(0, len(enums)):
-                if enums[i].get_name() == self.data_type:
+                if enums[i].get_name().strip() == self.data_type.strip():
                     return 1 # Enums are always uint8_t type
             for i in range(0, len(i_structs)):
                 if i_structs[i].get_name() == self.data_type:

@@ -23,6 +23,21 @@ typedef struct {
     uint16_t ramp_time;
 } PressureStageTiming;
 
+struct ShiftPressures {
+    // At the applying clutch
+    float on_clutch;
+    // At the releasing clutch
+    float off_clutch;
+    // Pressure on the modulating side of the overlap slider
+    float overlap_mod;
+    // Pressure on the shift side of the overlap slider
+    float overlap_shift;
+    // At the shift solenoid
+    float shift_sol_req;
+    // At the modulating solenoid
+    float mod_sol_req;
+};
+
 class PressureManager {
 
 public:
@@ -33,6 +48,7 @@ public:
      * @param enable Set circuit state to on
      */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
+    void set_shift_stage(ShiftStage s);
 
     /**
      * @brief Set the target modulating pressure of the gearbox. 
@@ -41,25 +57,16 @@ public:
      * 
      * @param targ Target Working pressure to achieve in mBar
      */
-    void set_target_modulating_working_pressure(uint16_t targ);
-    
-    /**
-     * @brief Set the target modulating pressure of the gearbox. 
-     * This pressure affects the actively engaged clutches in any gear, 
-     * as well as hydralic elements in the valve body
-     * 
-     * @param targ Target Working pressure to achieve in mBar
-     */
-    void set_target_modulating_releasing_pressure(uint16_t targ);
+    void set_target_modulating_pressure(uint16_t targ);
 
     /**
      * @brief Set the target Shift pressure clutch pressure.
      * Via means of the overlap valve, when a shift command solenoid is engaged,
      * this pressure is sent to the engaging clutch in the gearbox
      * 
-     * @param targ Target pressure to achieve in mBar
+     * @param targ Target shift pressure to achieve in mBar
      */
-    void set_target_shift_clutch_pressure(uint16_t targ);
+    void set_target_shift_pressure(uint16_t targ);
 
     /**
      * @brief Set the target TCC pressure (Torque converter)
@@ -100,7 +107,8 @@ public:
     void notify_shift_end();
     ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
-    uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
+    uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
+    uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure);
     void update_pressures(GearboxGear current_gear);
 
     PrefillData make_fill_data(ProfileGearChange change);
@@ -108,6 +116,23 @@ public:
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
+    uint16_t get_shift_regulator_pressure(void);
+
+    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
+
+    void register_shift_pressure_data(ShiftPressures* p) {
+        this->ptr_shift_pressures = p;
+    }
+
+    ShiftPressures get_shift_pressures_now() {
+        ShiftPressures ret{};
+        if (nullptr == this->ptr_shift_pressures) {
+            memset(&ret, 0x00, sizeof(ShiftPressures));
+        } else {
+            memcpy(&ret, this->ptr_shift_pressures, sizeof(ShiftPressures));
+        }
+        return ret;
+    }
 private:
 
     uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);
@@ -132,10 +157,8 @@ private:
     
     // Shift pressure
     uint16_t target_shift_pressure = 0;
-    // Modulating pressure (For maintaing gear)
+    // Modulating pressure
     uint16_t target_modulating_pressure = 0;
-    // Modulating pressure (For releasing old clutch in a shift)
-    uint16_t target_modulating_clutch_pressure = 0;
     // TCC pressure
     uint16_t target_tcc_pressure = 0;
     uint16_t corrected_spc_pressure = 0;
@@ -146,9 +169,6 @@ private:
 
     // Shift circuit currently open
     ShiftCircuit currently_open_circuit;
-    const int16_t* clutch_friction_coefficient_map;
-    const int16_t* clutch_spring_release_map;
-    const uint8_t* heaviest_loaded_clutch_idx_map;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* fill_time_map;
@@ -158,11 +178,10 @@ private:
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
     uint16_t solenoid_max_pressure = 0;
-
+    ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
-
-    VBY_SETTINGS* valve_body_settings;
+    ShiftPressures* ptr_shift_pressures = nullptr;
 };
 
 extern PressureManager* pressure_manager;

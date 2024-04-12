@@ -135,6 +135,7 @@ public:
     virtual DiagProfileInputState diag_get_profile_input() = 0;
     void set_brake_is_pressed(bool is_pressed);
     void set_vehicle_speed(WheelData front_left, WheelData front_right);
+    virtual ShifterStyle get_shifter_type() = 0;
     
 protected:
     TCM_CORE_CONFIG *vehicle_config;    

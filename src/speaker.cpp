@@ -43,64 +43,74 @@ void Speaker::set_freq(uint32_t freq) {
     }
 }
 
-void Speaker::send_note(uint32_t freq, uint32_t play_time_ms, uint32_t total_time_ms) {
+#define PULSE_LONG  300
+#define PULSE_SHORT 150
+
+void Speaker::send_note(uint32_t freq, ToneLength tone) {
+    int length = PULSE_SHORT;
+    if (ToneLength::Long == tone) {
+        length = PULSE_LONG;
+    }
     this->set_freq(freq);
-    vTaskDelay(play_time_ms/portTICK_PERIOD_MS);
+    vTaskDelay(length/portTICK_PERIOD_MS);
     this->set_freq(0);
-    vTaskDelay((total_time_ms-play_time_ms)/portTICK_PERIOD_MS);
+    vTaskDelay(100/portTICK_PERIOD_MS);
 }
 
-#define PULSE_LONG  500
-#define PULSE_SHORT 250
-#define TOTAL_PULSE 550
 
 void Speaker::post(SPEAKER_POST_CODE code) {
     switch (code) {
         case SPEAKER_POST_CODE::INIT_OK:
-            this->send_note(1500, 150, 200);
-            this->send_note(1500, 150, 200);
+            this->send_note(1500, ToneLength::Short);
+            this->send_note(1500, ToneLength::Short);
             break;
         case SPEAKER_POST_CODE::EEPROM_FAIL:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
             break;
         case SPEAKER_POST_CODE::CAN_FAIL:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 300, 500);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Long);
             break;
         case SPEAKER_POST_CODE::SOLENOID_FAIL:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
             break;
         case SPEAKER_POST_CODE::SENSOR_FAIL:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 150, 200);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Short);
             break;
         case SPEAKER_POST_CODE::CONTROLLER_FAIL:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 300, 500);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Long);
             break;
         case SPEAKER_POST_CODE::EFUSE_NOT_SET:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
             break;
         case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
-            this->send_note(500, 300, 500);
-            this->send_note(500, 150, 200);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Short);
+            break;            
+        case SPEAKER_POST_CODE::CALIBRATION_FAIL:
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Short);
+            this->send_note(500, ToneLength::Long);
+            this->send_note(500, ToneLength::Long);
             break;            
         default:
             break;

@@ -27,7 +27,7 @@ def clear_bit(mask, bit):
     return mask & ~(1<<bit)
 
 def remove_useless_from_line(l: str) -> str:
-    return l.replace("\t", "").replace("\n", "")
+    return l.strip().replace("\n", "")
 
 class EnumEntry:
     def __init__(self, name: str, raw: int, desc: str):
@@ -337,6 +337,7 @@ for line in input_file:
     if not l.startswith("#"): # Ignore comments
         if l.startswith("ECU "):
             ecu = l.split("ECU ")[1].strip()
+            print("ECU "+ecu)
             if getattr(current_ecu, 'name', 'nan') != ecu and current_ecu != None:
                 # Check if frame / signal is none
                 if current_signal and current_frame:
@@ -351,6 +352,7 @@ for line in input_file:
         elif l.startswith("FRAME"):
             frame_name = l.split("FRAME ")[1].split("(")[0].strip()
             frame_id = int(l.split("(")[1].split(")")[0], 0)
+            print("FRAME "+frame_name)
             if current_signal and current_frame:
                 current_frame.add_signal(current_signal)
             if current_frame:

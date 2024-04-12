@@ -55,7 +55,8 @@ class Egs51Can: public EgsBaseCan {
         bool get_profile_btn_press(const uint32_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
-         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
+        bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
+        TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
 
         /**
          * Setters
@@ -66,9 +67,9 @@ class Egs51Can: public EgsBaseCan {
         // Set the target gear of the gearbox
         void set_target_gear(GearboxGear target) override;
         // // Sets the status bit indicating the car is safe to start
-        // void set_safe_start(bool can_start) override;
+        void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
-        void set_gearbox_temperature(uint16_t temp) override;
+        void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit

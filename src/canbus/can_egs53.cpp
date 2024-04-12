@@ -149,7 +149,7 @@ WheelData Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     }
 }
 
-ShifterPosition Egs53Can::get_shifter_position(const uint32_t expire_time_ms) {
+ShifterPosition Egs53Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
     SBW_RS_ISM_EGS53 tslm;
     if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms*1000, &tslm)) {
         switch (tslm.TSL_Posn_ISM) {
@@ -350,6 +350,25 @@ int Egs53Can::esp_torque_demand(const uint32_t expire_time_ms) {
     return INT_MAX; // TODO
 }
 
+TccReqState Egs53Can::get_engine_tcc_override_request(const uint32_t expire_time_ms) {
+    TX_RQ_ECM_EGS53 tx_rq_ecm;
+    TccReqState ret = TccReqState::None;
+    // Check for slip first
+    if (this->ecm_ecu.get_TX_RQ_ECM(GET_CLOCK_TIME(), expire_time_ms, &tx_rq_ecm)) {
+        switch (tx_rq_ecm.TCC_Rq) {
+            case TX_RQ_ECM_TCC_Rq_EGS53::ENGG:
+                ret = TccReqState::Slipping;
+                break;
+            case TX_RQ_ECM_TCC_Rq_EGS53::DISENGG:
+                ret = TccReqState::Open;
+                break;
+            default:
+                break;
+        }
+    }
+    return ret;
+}
+
 void Egs53Can::set_clutch_status(TccClutchStatus status) {
     
 }
@@ -431,8 +450,8 @@ void Egs53Can::set_safe_start(bool can_start) {
     this->eng_rq1_tcm.EngSt_Enbl_Rq_TCM = can_start;
 }
 
-void Egs53Can::set_gearbox_temperature(uint16_t temp) {
-    this->tcm_a1.TxOilTemp = temp + 50;
+void Egs53Can::set_gearbox_temperature(int16_t temp) {
+    this->tcm_a1.TxOilTemp = MAX(temp, -50) + 50;
 }
 
 void Egs53Can::set_input_shaft_speed(uint16_t rpm) {
@@ -607,7 +626,11 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
-    eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
+    if (ratio == -1) {
+        eng_rq2_tcm.EngWhlTrqRatio_TCM = 0; // Implausible
+    } else {
+        eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
+    }
 }
 
 /**

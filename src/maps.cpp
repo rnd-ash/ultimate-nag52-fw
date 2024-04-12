@@ -175,21 +175,21 @@ const int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
 const int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
     /* ATF TEMP             */
     /*  -20C,  5C, 25C, 60C */
-         600, 300, 180, 160, // K1 clutch
-        1620, 600, 240, 140, // K2 clutch
-         860, 440, 180, 160, // K3 clutch
+         600, 360, 220, 160, // K1 clutch
+        1620, 560, 260, 160, // K2 clutch
+         860, 500, 160, 160, // K3 clutch
          600, 380, 220, 180, // B1 brake
-         820, 400, 180, 120  // B2 brake
+         820, 680, 260, 120  // B2 brake
 };
 
 const int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
     /* ATF TEMP             */
     /*  -20C,  5C, 25C, 60C */
          600, 300, 180, 160, // K1 clutch
-        1620, 600, 240, 140, // K2 clutch
-         860, 440, 180, 160, // K3 clutch
+        1620, 540, 260, 140, // K2 clutch
+         860, 500, 160, 140, // K3 clutch
          600, 380, 220, 180, // B1 brake
-         820, 400, 180, 120  // B2 brake
+         820, 620, 220, 120  // B2 brake
 };
 
 const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
@@ -205,7 +205,7 @@ const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2    B3 */
-     1400, 1400, 1300, 1300, 1400, 1200
+     1200, 1400, 1300, 1300, 1400, 1200
 };
 
 const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
@@ -324,6 +324,28 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* 75% Redline     */  100,  100,  100, 100,  100,  100,
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
+
+/** TCC Slip maps */
+
+// VALUES (Target TCC slip):
+// Values <=10 - Sets TCC is closed
+// Values > 100 - Sets TCC is open
+// Values between 10 and 100 - Tcc is slipping with desired target slip
+const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
+    /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
+        200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
+         90,  90,  90, 100, 150, 200, 200, 200, 200, 200, 200, // Input 1500 RPM
+         50,  50,  50,  80, 100, 100, 100, 150, 200, 200, 200, // Input 2000 RPM 
+         20,  20,  35,  55,  70,  80,  95, 100, 200, 200, 200, // Input 2500 RPM 
+          0,   0,  10,  30,  60,  60,  65,  90, 200, 200, 200, // Input 3000 RPM 
+          0,   0,   0,  10,  40,  40,  55,  85, 200, 200, 200, // Input 3500 RPM 
+          0,   0,   0,   0,  20,  30,  40,  80, 200, 200, 200, // Input 4000 RPM 
+          0,   0,   0,   0,  10,  20,  30,  70, 200, 200, 200, // Input 4500 RPM 
+          0,   0,   0,   0,   0,  10,  20,  40, 200, 200, 200, // Input 5000 RPM 
+          0,   0,   0,   0,   0,   0,  10,  20, 200, 200, 200, // Input 5500 RPM 
+          0,   0,   0,   0,   0,   0,   0,  10, 200, 200, 200, // Input 6000 RPM 
+};
+
 
 const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
 //  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    

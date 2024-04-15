@@ -66,6 +66,8 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
 }
 
+const int PRESSURE_STEP = 500/(1000/20); // Per 20ms cycle
+
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     // TCC is commanded to be off,
     // or adaptation table failure.
@@ -133,7 +135,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool at_req_pressure = this->tcc_pressure_current == this->tcc_pressure_target;
     int pedal_delta = sensors->pedal_smoothed->front() - sensors->pedal_smoothed->back();
-    bool is_stable = abs(pedal_delta) <= 25; // 10% difference allowed in our time window
+    int slip_now = sensors->engine_rpm - sensors->input_rpm;
+    bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
     int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
@@ -191,25 +194,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->prev_state_tcc_pressure = this->tcc_pressure_current;
         this->last_state_stable_time = GET_CLOCK_TIME();
     } else if (this->target_tcc_state > this->current_tcc_state) { // Less -> More lock
-        if (this->target_tcc_state == InternalTccState::Slipping) { // Open -> Slipping
-            this->tcc_pressure_current = interpolate_float(
-                GET_CLOCK_TIME(),
-                0,
-                this->tcc_pressure_target,
-                this->last_state_stable_time,
-                this->last_state_stable_time+200,
-                InterpType::Linear
-            );
-        } else { // Slipping -> Closed
-            this->tcc_pressure_current = interpolate_float(
-                GET_CLOCK_TIME(),
-                this->prev_state_tcc_pressure,
-                this->tcc_pressure_target,
-                this->last_state_stable_time,
-                this->last_state_stable_time+200,
-                InterpType::Linear
-            );
-        }
+        int step = PRESSURE_STEP;
+        step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
+        this->tcc_pressure_current += step;
+        this->tcc_pressure_current = MIN(this->tcc_pressure_current, this->tcc_pressure_target/2);
     } else { // More -> Less lock
         if (this->target_tcc_state == InternalTccState::Open) { // Slipping -> Open
             this->tcc_pressure_current = interpolate_float(

@@ -319,9 +319,6 @@ int Gearbox::calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms
     float ped_trq = sensor_data.driver_requested_torque;
     float multi_reduction = interpolate_float(ped_trq, &SBS.torque_reduction_factor_input_torque, InterpType::Linear);
     multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
-    if (ProfileGearChange::THREE_FOUR == change) {
-        multi_reduction = MIN(1.0, multi_reduction*2);
-    }
     int restricted = ped_trq - (ped_trq * multi_reduction);
     return restricted;
 }

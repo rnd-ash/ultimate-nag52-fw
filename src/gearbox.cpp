@@ -7,7 +7,7 @@
 #include "clock.hpp"
 #include "nvs/device_mode.h"
 #include "egs_calibration/calibration_structs.h"
-
+#include "firstorder_average.h"
 #define SBS SBS_CURRENT_SETTINGS
 
 // ONLY FOR FORWARD GEARS!
@@ -474,7 +474,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         int fill_p_torque_max_on_clutch = gearboxConfig.max_torque/4;
         int DYNAMIC_SHIFT_THRESHOLD = fill_p_torque_max_on_clutch;
-
+        FirstOrderAverage on_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
+        FirstOrderAverage off_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -529,16 +530,24 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else {
                     flaring = false;
                 }
-                if (now_cs.off_clutch_speed < 100) {
+                if (now_cs.off_clutch_speed < 25) {
                     pre_cs = now_cs;
+                    pre_cs_time = total_elapsed;
                     target_c_on = pre_cs.on_clutch_speed / MAX(100, chars.target_shift_time);
+                } else if (now_cs.off_clutch_speed >= 100 && release_time_recorded == 0) {
+                    release_time_recorded = total_elapsed;
+                    float time = MAX(SHIFT_DELAY_MS, total_elapsed - pre_cs_time);
+                    release_clutch_vel = (float)(pre_cs.on_clutch_speed - now_cs.on_clutch_speed) / (time/100.0); // Calculate shifting velosity. Time to go from 50RPM -> 100RPM
+                    ESP_LOGI("Shift", "Detect shift release at %d ms. Vel is %.1f RPM/100ms", release_time_recorded, release_clutch_vel);
                 }
-                if (total_elapsed % 100 == 0) {
-                    this->shifting_velocity.on_clutch_vel = old_cs.on_clutch_speed - now_cs.on_clutch_speed;
-                    this->shifting_velocity.off_clutch_vel = old_cs.off_clutch_speed - now_cs.off_clutch_speed;
-                    old_cs = now_cs;
-                }
-                if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed && now_cs.on_clutch_speed < 25) {
+
+                on_velocity_avg.add_sample((old_cs.on_clutch_speed - now_cs.on_clutch_speed)*multi_vel);
+                off_velocity_avg.add_sample((old_cs.off_clutch_speed - now_cs.off_clutch_speed)*multi_vel);
+                this->shifting_velocity.on_clutch_vel = on_velocity_avg.get_average();
+                this->shifting_velocity.off_clutch_vel = off_velocity_avg.get_average();
+                old_cs = now_cs;
+
+                if (now_cs.off_clutch_speed >= now_cs.on_clutch_speed && now_cs.on_clutch_speed < 10) {
                     detected_shift_done_clutch_progress = true;
                 }
 

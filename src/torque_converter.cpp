@@ -35,10 +35,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new MovingAverage<int32_t>(50); // 20ms div * 50 = 1 second moving average
-    if (!this->slip_average->init_ok()) {
-        delete this->slip_average;
-    }
+    this->slip_average = new FirstOrderAverage<int32_t>(50); // 20ms div * 50 = 1 second moving average
 }
 
 void TorqueConverter::set_shift_target_state(InternalTccState target_state) {

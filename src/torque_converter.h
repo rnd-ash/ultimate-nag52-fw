@@ -10,7 +10,7 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 #include "nvs/module_settings.h"
-#include "moving_average.h"
+#include "firstorder_average.h"
 
 enum class InternalTccState {
     Open = 0,
@@ -96,7 +96,7 @@ class TorqueConverter {
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        MovingAverage<int32_t>* slip_average = nullptr;
+        FirstOrderAverage<int32_t>* slip_average = nullptr;
         
         bool init_tables_ok = false;
 

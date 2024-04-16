@@ -95,9 +95,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     // Now calculate influence of shift pressure and additional pressure caused by RPM
     float k1_factor = 0;
     if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) { // 1-2 or 2-1
-        if(current_gear == GearboxGear::First) { // Only for 1-2 shift since K1 is applied in 1
-            k1_factor = (float)HYDR_PTR->shift_pressure_factor_percent/1000.0;
-        }
+        k1_factor = (float)HYDR_PTR->shift_pressure_factor_percent/1000.0;
     }
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, // Engine RPM drives the pump, not input RPM
@@ -337,7 +335,7 @@ void PressureManager::notify_shift_end() {
 }
 
 // TODO pull this from calibration tables
-const float C_C_FACTOR[8] = {0.15, 0.25, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8};
+const float C_C_FACTOR[8] = {1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0};
 
 ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
     ShiftData sd; 

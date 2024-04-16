@@ -77,7 +77,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     GearboxGear cmp_gear = curr_gear;
-    this->slip_average->add_sample((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
+    int slip_now = (int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm;
+    this->slip_average->add_sample(slip_now);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
     if (
@@ -135,7 +136,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool at_req_pressure = this->tcc_pressure_current == this->tcc_pressure_target;
     int pedal_delta = sensors->pedal_smoothed->front() - sensors->pedal_smoothed->back();
-    int slip_now = sensors->engine_rpm - sensors->input_rpm;
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
     int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
@@ -156,11 +156,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             load_cell = 5;
         } else if (load_as_percent > 45 && load_as_percent <= 55) {
             load_cell = 6;
-        } else if (load_as_percent > 65 && load_as_percent <= 85) {
+        } else if (load_as_percent > 75) {
             load_cell = 7;
-        } else if (load_as_percent > 90 && load_as_percent <= 112) {
+        } else if (load_as_percent > 100) {
             load_cell = 8;
-        } else if (load_as_percent > 112 && load_as_percent <= 135) {
+        } else if (load_as_percent > 125) {
             load_cell = 9;
         } else if (load_as_percent > 140) {
             load_cell = 10;
@@ -197,7 +197,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         int step = PRESSURE_STEP;
         step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
         this->tcc_pressure_current += step;
-        this->tcc_pressure_current = MIN(this->tcc_pressure_current, this->tcc_pressure_target/2);
+        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target/2);
     } else { // More -> Less lock
         if (this->target_tcc_state == InternalTccState::Open) { // Slipping -> Open
             this->tcc_pressure_current = interpolate_float(

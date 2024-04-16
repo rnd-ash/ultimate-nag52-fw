@@ -3,12 +3,27 @@
 
 #include <stdint.h>
 #include <type_traits>
-#include "tcu_alloc.h"
-#include "tcu_maths.h"
-#include <string.h>
 
+/**
+ * @brief First order average class (Low pass signal filter)
+ * 
+ * This filter works by keeping track of f(x) and f(x-1)
+ * 
+ * The average is calculated (With sample size 'k' using the following equation):
+ * f(x) = (x + (f(x-1)*k)) / (k+1)
+ * 
+ * @tparam T The number type
+ */
 template <typename T> class FirstOrderAverage {
 public:
+    /**
+     * Create a new first order average filter.
+     * 
+     * IMPORTANT. `samples` variable CAN NEVER be set to greater than 254! This will be
+     * restricted in the constructor to max it out at 254.
+     * 
+     * Setting samples to 0 means no filtering (Output = Input)
+    */
     FirstOrderAverage(uint8_t samples) {
         if (samples > 254) {
             // SAFETY
@@ -23,6 +38,7 @@ public:
         this->last_sample = this->current_sample;
         this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
     }
+
     T get_average() const {
         return this->current_sample/100;
     }

@@ -496,9 +496,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 break;
             }
             int torque_to_use = abs(sensor_data.input_torque);
-            //bool allow_mpc_reduction_below_min = current_stage == ShiftStage::Overlap || current_stage == ShiftStage::Synchronize;
             int wp_old_clutch = pressure_manager->find_working_pressure_for_clutch(a_gear, releasing, torque_to_use, false);
-            int wp_new_clutch = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, torque_to_use);
+            if (req_lookup == ProfileGearChange::THREE_FOUR) {
+                wp_old_clutch *= 1.5; // Fix maybe for flaring during the prefill phase
+            }
+            int wp_new_clutch = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, torque_to_use, false);
             int centrifugal_force_on_clutch = 0;
             int centrifugal_force_off_clutch = 0;
             int SPC_MAX = SPC_GAIN * (this->pressure_mgr->get_max_solenoid_pressure() - this->pressure_mgr->get_shift_regulator_pressure());
@@ -733,7 +735,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     int into_phase = phase_elapsed - overlap_phase_2_time;
                     // Phase 2 is harder, we have to monitor the clutch release and apply speed, and adjust pressures to get the desired
                     // ramping speeds from both clutches
-                    int target = pressure_manager->find_working_pressure_for_clutch(target_gear, applying, abs(sensor_data.input_torque + (sensor_data.static_torque/2)), false);
+                    int target = pressure_manager->find_working_pressure_for_clutch(target_gear, applying, abs(sensor_data.input_torque + sensor_data.static_torque), false);
+                    target = MAX(target, prefill_data.low_fill_pressure_on_clutch);
 
                     float step = (float)target / ((float)chars.target_shift_time / (float)SHIFT_DELAY_MS);
                     spc_delta += step;
@@ -759,7 +762,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                     int spc_min_spc_end = p_prev.on_clutch;
                     int spc_targ_end = wp_new_clutch;
-                    p_now.on_clutch = MAX(interpolate_float(phase_elapsed, 0, wp_new_clutch, 0, 500, InterpType::Linear), p_prev.on_clutch);
+                    p_now.on_clutch = MAX(interpolate_float(phase_elapsed, 0, wp_new_clutch, 0, 250, InterpType::Linear), p_prev.on_clutch);
 
                     int overlap_end_spc_max = spring_pressure_on_clutch + p_prev.on_clutch - centrifugal_force_on_clutch;
 

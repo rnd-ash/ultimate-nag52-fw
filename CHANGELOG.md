@@ -1,40 +1,70 @@
 
-# Dev (Unreleased)
-
-## Bugs
-* N->R and N->D engagement is harsh
-* 1-2 and 2-1 is harsh
-
-## IMPORTANT - 19/10/23 and newer FW
+# IMPORTANT - 19/10/23 and newer FW
 This firmware contains initial EGS52 calibration data. You will need to select the correct settings for your car in the configuration app under
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
-* Add support for EGS52 calibration data (See above)
+# Dev (Unreleased)
+
+## Bugs
+* Adaptation is disabled at this time due to the massive rework, it will be re-enabled in a future release.
+
+## Added
+* Update ESP-IDF to 5.1.1
+* Fix for keyless GO systems starting
+* **Add support for EGS52 calibration data**
+    * Uses OEM EGS hydraulic configuration data
+    * Uses OEM EGS clutch calibration data
+        * Friction coefficient table
+        * Spring pressure table
+    * Uses OEM EGS torque converter calibration data
+        * Torque multiplication map
+        * Pump torque map
 * Add reverse-engineered EGS52 pressure control algorithm!
     * Computes working and solenoid inlet pressure
     * Corrects output MPC and SPC pressure accordingly
     * Computes clutch friction coeffients for optimal MPC working pressure (This means MPC working map no longer exists)
-    * Adds EGS maps for clutch spring resistance
 * Add in prefill for off clutch when changing gears (**NO MORE 3-4 FLARE!**)
-* Control shift release and engage ramps for shift clutch and mod clutch pressures
 * Clean process on first boot after update
+* Add option for TCU_ADV_SETTINGS to disable torque requests for each gear change
+* Sensor API rework
+    * Poll all sensors on a 20ms timer tick
+    * Average out VBATT and TFT signals in order to get a more steady reading
+    * Speed sensors are averaged over 8 reading polls (160ms) for a much cleaner reading
 * Brand new Solenoid API
     * On/Off solenoid - On for specific period of time, then activate holding phase
     * Inrush solenoid - On, Hold, Off for specific period (Torque converter solenoid)
     * CC Solenoid - Constant current driver solenoid (Corrected every 2ms)
+* New torque converter (v3) algorithm
+    * Adaptation maps are now present for slip and locking
+    * Take into account energy through the turbine (Joules)
+    * Only adapt when slip and user pedal input are stable
+* New shifter input logic
+    * Split the 3 style shifters into their own classes (EWM, TRRS, SLR)
+    * SLR - Implement the C/M/S knob for profile selection
+    * TRRS - Better handling of range restriction input
 * Make output shaft sensor appear in config app if present
 * DIAG `FN_SALVE_MODE` emulation (Originally on EGS52) - Allows for controlling IO of the TCU on a test bench via CAN
 * DIAG `FN_CANLOGGER_MODE` - Allows for sniffing CANBUS on a vehicle (TCU does not send frames in this mode)
-* EGS51 - Add the following Getters and setters to CAN matrix:
-    1. Gear protection bit
-    2. Garage shift protection bit
-    3. Gearbox OK bit
-    4. Neutral active (For EGS51s that use CAN to disable start rather than grounding out pin 7)
-    5. TCC status bits
+* EGS51 CAN Layer - Changes
+    1. Read `VB` (Fuel flow) signal (Recorded in config app for parity with EGS52/53)
+    2. Read `KUEB_S_A` and `KUEB_O_A` (Engine torque converter state request) bits, and pass them to torque converter control code
+    3. Send `K_O_B`, `K_G_B` and `K_S_B` signals (Torque converter clutch state)
+    4. Send `NEUTRAL` bit when in P/N.
+    5. Send `GARAGE_SHIFT` bit when shifting from P->R or N->D (Gearbox protection under garage shifting)
+* EGS52 CAN Layer - Changes
+    1. Set the `HSM` (Manual mode) bit when using a profile that shifts manually (Used by ESP and Engine ECU)
+    2. Send `FMRAD` (Input -> Output torque multiplier) signal (For Cruise control and ESP)
+    3. Send `M_VERL` - Torque converter loss
+    4. Send `K_O_B`, `K_G_B` and `K_S_B` signals (Torque converter clutch state)
+    5. Read `KUEB_S_A` and `KUEB_O_A` (Engine torque converter state request) bits, and pass them to torque converter control code
 * Torque requests - Add `BackToDriverDemand` torque request bit (EGS52/53). This allows the engine to know that torque will be increasing and it can roll back the ignition retarding (Results in a much smoother up ramp)
 * Rework IO Expander and program selector API (Credit: @chrissivo)
 * Add support for the SLR McLaren shifter!
+* Add in CUSTOM_CAN CAN layer. This is to support 3rd party engine ECUs [See here for more information](https://docs.ultimate-nag52.net/en/advanced/custom-can)
+* Shift logic rewrite (This is why adaptation is disabled)
+    * Overlap is now split into 2 phases (Release phase, Apply and hold phase)
+    * Filling of the clutches is now performed in 3 stages (High, Ramp, Low)
 
 # 21/08/23
 * EGS51 - Repair wonky torque requests

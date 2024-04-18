@@ -360,7 +360,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // calculate prefill data now, as we need this to set MPC offset
         PrefillData prefill_data = pressure_mgr->make_fill_data(req_lookup);
 
-        AdaptShiftRequest adaptation_req;
+        //AdaptShiftRequest adaptation_req;
         float phase_total_time = 100;
 
         // Current Y values
@@ -377,18 +377,18 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         uint32_t phase_elapsed = 0;
 
         uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup);
-        AdaptPrefillData adapt_prefill = this->shift_adapter->get_prefill_adapt_data(req_lookup);
-        prefill_data.fill_pressure_on_clutch += adapt_prefill.pressure_offset_on_clutch;
-        prefill_data.fill_time += adapt_prefill.timing_offset;
+        //AdaptPrefillData adapt_prefill = this->shift_adapter->get_prefill_adapt_data(req_lookup);
+        //prefill_data.fill_pressure_on_clutch += adapt_prefill.pressure_offset_on_clutch;
+        //prefill_data.fill_time += adapt_prefill.timing_offset;
         pressure_manager->register_shift_pressure_data(&p_now);
         /**
          * Precomputed variables
          */
 
         // Max input shaft torque for MPC fast off / adaptation
-        int torque_lim_adapt = adapt_prefill.torque_lim;
+        // int torque_lim_adapt = adapt_prefill.torque_lim;
         // Min input torque to perform shift overlap torque ramp
-        int torque_lim_ramp_shift = torque_lim_adapt/2;
+        //int torque_lim_ramp_shift = torque_lim_adapt/2;
 
         if (prefill_adapt_flags != 0) {
             ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
@@ -557,17 +557,17 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                 // Protect gearbox if MPC has already released, and there is a load
                 // spike on input torque
-                if (mpc_released && sensor_data.input_torque > torque_lim_adapt && !prefill_protection_active) {
-                    ESP_LOGW("SHIFT", "Activating prefill shift protection. Prefill adaptation has been cancelled");
-                    prefill_protection_active = true;
-                }
+                //if (mpc_released && sensor_data.input_torque > torque_lim_adapt && !prefill_protection_active) {
+                //    ESP_LOGW("SHIFT", "Activating prefill shift protection. Prefill adaptation has been cancelled");
+                //    prefill_protection_active = true;
+                //}
 
                 int torque_req_upper_torque = sensor_data.driver_requested_torque;
-                if (prefill_protection_active && current_stage < ShiftStage::Overlap) {
-                    // Use torque lim (Activate protection)
-                    this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque_lim_adapt);
-                    torque_req_upper_torque = MIN(torque_lim_adapt, torque_req_upper_torque);
-                }
+                //if (prefill_protection_active && current_stage < ShiftStage::Overlap) {
+                //    // Use torque lim (Activate protection)
+                //    this->set_torque_request(TorqueRequestControlType::NormalSpeed, TorqueRequestBounds::LessThan, torque_lim_adapt);
+                //    torque_req_upper_torque = MIN(torque_lim_adapt, torque_req_upper_torque);
+                //}
                 // for Max Pressure or overlap
 
                 if (enable_torque_request) {

@@ -735,10 +735,10 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     int into_phase = phase_elapsed - overlap_phase_2_time;
                     // Phase 2 is harder, we have to monitor the clutch release and apply speed, and adjust pressures to get the desired
                     // ramping speeds from both clutches
-                    int target = pressure_manager->find_working_pressure_for_clutch(target_gear, applying, abs(sensor_data.input_torque + sensor_data.static_torque), false);
+                    int target = pressure_manager->find_working_pressure_for_clutch(target_gear, applying, MAX(abs(sensor_data.input_torque), abs(filling_torque)), false);
                     target = MAX(target, prefill_data.low_fill_pressure_on_clutch);
 
-                    float step = (float)target / ((float)chars.target_shift_time / (float)SHIFT_DELAY_MS);
+                    float step = (float)target / ((float)(chars.target_shift_time / 2) / (float)SHIFT_DELAY_MS);
                     spc_delta += step;
 
                     p_now.on_clutch = p_prev.on_clutch + spc_delta;
@@ -762,7 +762,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                     int spc_min_spc_end = p_prev.on_clutch;
                     int spc_targ_end = wp_new_clutch;
-                    p_now.on_clutch = MAX(interpolate_float(phase_elapsed, 0, wp_new_clutch, 0, 250, InterpType::Linear), p_prev.on_clutch);
+                    p_now.on_clutch = MAX(interpolate_float(phase_elapsed, 0, MAX(wp_new_clutch, prefill_data.low_fill_pressure_on_clutch), 0, 250, InterpType::Linear), p_prev.on_clutch);
 
                     int overlap_end_spc_max = spring_pressure_on_clutch + p_prev.on_clutch - centrifugal_force_on_clutch;
 

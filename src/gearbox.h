@@ -105,7 +105,7 @@ private:
     RpmReading rpm_reading;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
+    float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     MovingAverage<uint32_t>* pedal_average = nullptr;
 
 };

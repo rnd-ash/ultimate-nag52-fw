@@ -815,13 +815,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     // MPC is easy, ramp to 0 pressure
                     if (chars.target_shift_time > overlap_phase_2_time) {
                         p_now.off_clutch = interpolate_float(into_phase, p_prev.on_clutch, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
-                        p_now.overlap_mod = interpolate_float(into_phase, p_prev.overlap_mod, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
+                        //p_now.overlap_mod = interpolate_float(into_phase, p_prev.overlap_mod, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
                     } else {
                         p_now.off_clutch = 0;
-                        p_now.overlap_mod = 0;
+                        //p_now.overlap_mod = 0;
                     }
-                    p_now.mod_sol_req = (
-                        ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc) +
+                    p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
+                    p_now.mod_sol_req  = (
+                        ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                         ((p_now.overlap_mod - centrifugal_force_off_clutch) * sd.centrifugal_factor_off_clutch * sd.pressure_multi_mpc) +
                         (-(sd.pressure_multi_mpc*150)) + // 150 comes from calibration pointer on E55 coding (TODO - Locate in calibration and assign in CAL structure)
                         sd.mpc_pressure_spring_reduction

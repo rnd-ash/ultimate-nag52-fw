@@ -717,7 +717,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 p_now.overlap_mod = wp_old_clutch_real + spring_pressure_off_clutch;
                 p_now.shift_sol_req = (p_now.overlap_shift-centrifugal_force_on_clutch)/SPC_GAIN;
                 p_now.mod_sol_req = 
-                    ((p_now.overlap_shift - centrifugal_force_on_clutch)*sd.pressure_multi_spc)+
+                    ((p_now.overlap_shift - centrifugal_force_on_clutch)*sd.pressure_multi_spc / SPC_GAIN)+
                     ((p_now.overlap_mod - centrifugal_force_off_clutch)*sd.pressure_multi_mpc)+
                     sd.mpc_pressure_spring_reduction;
             } else if (current_stage == ShiftStage::Fill) {
@@ -851,13 +851,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                         // Pressure based on torque transfer
                         int mod_off_torque_pressure = (
-                            ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc) +
+                            ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                             ((p_now.overlap_mod - centrifugal_force_off_clutch) * sd.centrifugal_factor_off_clutch * sd.pressure_multi_mpc) +
                             sd.mpc_pressure_spring_reduction
                         );
                         // Pressure at the end of the phase (Minimum)
                         int mod_off_end_pressure = (
-                            ((overlap_end_spc_max - centrifugal_force_on_clutch) * sd.pressure_multi_spc) +
+                            ((overlap_end_spc_max - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                             ((spring_pressure_off_clutch - centrifugal_force_off_clutch) * sd.centrifugal_factor_off_clutch * sd.pressure_multi_mpc) +
                             sd.mpc_pressure_spring_reduction
                         );
@@ -868,7 +868,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                         
                         p_now.mod_sol_req = (
-                            ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc) +
+                            ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                             ((p_now.overlap_mod - centrifugal_force_off_clutch) * sd.pressure_multi_mpc * sd.centrifugal_factor_off_clutch) +
                             sd.mpc_pressure_spring_reduction
                         );

@@ -813,13 +813,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
 
                     // MPC is easy, ramp to 0 pressure
-                    if (chars.target_shift_time > overlap_phase_2_time) {
-                        p_now.off_clutch = interpolate_float(into_phase, p_prev.on_clutch, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
-                        //p_now.overlap_mod = interpolate_float(into_phase, p_prev.overlap_mod, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
-                    } else {
-                        p_now.off_clutch = 0;
-                        //p_now.overlap_mod = 0;
-                    }
+                    //if (chars.target_shift_time > overlap_phase_2_time) {
+                    //    p_now.off_clutch = interpolate_float(into_phase, p_prev.on_clutch, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
+                    //    //p_now.overlap_mod = interpolate_float(into_phase, p_prev.overlap_mod, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
+                    //} else {
+                    //    p_now.off_clutch = 0;
+                    //    //p_now.overlap_mod = 0;
+                    //}
+                    p_now.off_clutch = 0;
                     p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                     p_now.mod_sol_req  = (
                         ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
@@ -864,7 +865,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         p_now.mod_sol_req = MAX(mod_off_torque_pressure, mod_off_end_pressure);
                     } else {
                         // Comfort shift, toggling off clutch to off in a linear ramp
-                        p_now.off_clutch = interpolate_float(phase_elapsed, p_prev.off_clutch, wp_old_clutch_real/2, 0, 500, InterpType::Linear);
+                        p_now.off_clutch = interpolate_float(phase_elapsed, p_prev.off_clutch, 0, 0, 500, InterpType::Linear);
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                         
                         p_now.mod_sol_req = (

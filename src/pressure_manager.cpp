@@ -314,7 +314,7 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
         InterpType::Linear
     );
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = ((float)pressure*(float)friction_coefficient) / friction_val;
+    float calc = (float)pressure / ((float)friction_val/ friction_coefficient);
     return calc;
 }
 

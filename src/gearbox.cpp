@@ -425,7 +425,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
         pressure_manager->set_shift_stage(current_stage);
         Clutch applying = get_clutch_to_apply(req_lookup);
-        Clutch releasing = get_clutch_to_apply(req_lookup);
+        Clutch releasing = get_clutch_to_release(req_lookup);
         int clutch_merge_rpm = 0;
         bool enable_torque_request = true;
         int trq_req_start_time = 100 + prefill_data.fill_time;
@@ -467,7 +467,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         }
         int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
 
-        int fill_p_torque_max_on_clutch = gearboxConfig.max_torque/4;
+        int fill_p_torque_max_on_clutch = this->pressure_mgr->calc_max_torque_for_clutch(target_gear, applying, prefill_data.low_fill_pressure_on_clutch);
         int DYNAMIC_SHIFT_THRESHOLD = fill_p_torque_max_on_clutch;
 #define FILL_RAMP_TIME 60
 #define FILL_LP_HOLD_TIME 100
@@ -481,7 +481,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int clutch_max_mpc = (MOD_MAX) - spring_pressure_off_clutch;
         int max_torque_on = pressure_manager->calc_max_torque_for_clutch(this->target_gear, applying, clutch_max_spc);
         int max_torque_off = pressure_manager->calc_max_torque_for_clutch(this->actual_gear, releasing, clutch_max_mpc);
-        ESP_LOGI("SHIFT", "Max torque (Calc). On: %d, Off: %d", max_torque_on, max_torque_off);
+        ESP_LOGI("SHIFT", "Max torque (Appl. C): %d, Dyn. Threshold: %d", max_torque_on, DYNAMIC_SHIFT_THRESHOLD);
         FirstOrderAverage on_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         FirstOrderAverage off_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         
@@ -811,17 +811,18 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     p_now.overlap_shift = p_now.on_clutch + spring_pressure_on_clutch;
                     p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
 
-
-                    // MPC is easy, ramp to 0 pressure
-                    //if (chars.target_shift_time > overlap_phase_2_time) {
-                    //    p_now.off_clutch = interpolate_float(into_phase, p_prev.on_clutch, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
-                    //    //p_now.overlap_mod = interpolate_float(into_phase, p_prev.overlap_mod, 0, 0, chars.target_shift_time-overlap_phase_2_time, InterpType::Linear);
-                    //} else {
-                    //    p_now.off_clutch = 0;
-                    //    //p_now.overlap_mod = 0;
-                    //}
-                    p_now.off_clutch = interpolate_float(into_phase, p_prev.on_clutch, 0, 0, chars.target_shift_time, InterpType::Linear);
-                    p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
+                    if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) {
+                        p_now.off_clutch = 0;
+                        p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
+                    } else {
+                        // Fade shift - Pressure on new clutch ramps up slowly
+                        // Pressure on old clutch is released such that combined, both clutches can hold the torque of the box
+                        int torque_held_by_new_clutch = pressure_manager->calc_max_torque_for_clutch(target_gear, applying, p_now.on_clutch);
+                        // Back calculate pressure to hold the remainder of the torque
+                        int mpc_required_holding = pressure_manager->find_working_pressure_for_clutch(actual_gear, releasing, MAX(0, abs(sensor_data.input_torque) - torque_held_by_new_clutch), false);
+                        p_now.off_clutch = MAX(0, mpc_required_holding);
+                        p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
+                    }
                     p_now.mod_sol_req  = (
                         ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                         ((p_now.overlap_mod - centrifugal_force_off_clutch) * sd.centrifugal_factor_off_clutch * sd.pressure_multi_mpc) +
@@ -831,32 +832,33 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else {
                     // Phase 1. Release phase.
                     // This part of the overlap phase should start the disengagement of the off clutch.
-
-                    int spc_min_spc_end = p_prev.on_clutch;
-                    int spc_targ_end = wp_new_clutch_real;
-                    // Drop all of modulating clutch pressure quickly (Release the old clutch fast)
-                    p_now.on_clutch = MAX(interpolate_float(phase_elapsed, 0, MAX(wp_new_clutch_real, prefill_data.low_fill_pressure_on_clutch), 0, 500, InterpType::Linear), p_prev.on_clutch);
-
-                    int overlap_end_spc_max = spring_pressure_on_clutch + p_prev.on_clutch;
-
-                    p_now.overlap_shift = spring_pressure_on_clutch + p_now.on_clutch;
-                    p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
-
                     if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) {
+                        p_now.on_clutch = interpolate_float(phase_elapsed, prefill_data.low_fill_pressure_on_clutch, prefill_data.low_fill_pressure_on_clutch+wp_new_clutch_real, 0, 500, InterpType::Linear);
+                        int overlap_end_spc_max = spring_pressure_on_clutch + p_prev.on_clutch;
+
+                        p_now.overlap_shift = spring_pressure_on_clutch + p_now.on_clutch;
+                        p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
+                        // Drop all of modulating clutch pressure quickly (Release the old clutch fast)
+                        // DYN bits are set to start the torque request
                         p_now.off_clutch = interpolate_float(phase_elapsed, wp_old_clutch_real, 0, 0, 250, InterpType::Linear);
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
-                        int mod_off_torque_pressure = (
+                        p_now.mod_sol_req = (
                             ((p_now.overlap_shift - centrifugal_force_on_clutch) * sd.pressure_multi_spc / SPC_GAIN) +
                             ((p_now.overlap_mod - centrifugal_force_off_clutch) * sd.centrifugal_factor_off_clutch * sd.pressure_multi_mpc) +
                             sd.mpc_pressure_spring_reduction
                         );
                     } else {
-                        // Dynamic shift, force switching off clutch via dynamic pressure ramping
-                        // based on transfer torque
+                        // Fade shift - Pressure on new clutch ramps up slowly
+                        p_now.on_clutch = interpolate_float(phase_elapsed, 0, wp_new_clutch_real, 0, chars.target_shift_time, InterpType::Linear);
+                        int overlap_end_spc_max = spring_pressure_on_clutch + p_prev.on_clutch;
+                        p_now.overlap_shift = spring_pressure_on_clutch + p_now.on_clutch;
+                        p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
 
-                        // Calculate transfered torque and thus resulting transfer pressures
+                        // Pressure on old clutch is released such that combined, both clutches can hold the torque of the box
                         int torque_held_by_new_clutch = pressure_manager->calc_max_torque_for_clutch(target_gear, applying, p_now.on_clutch);
-                        int mpc_required_holding = pressure_manager->find_working_pressure_for_clutch(actual_gear, releasing, (MAX(abs(abs(sensor_data.input_torque) - torque_held_by_new_clutch), 0)), false);
+                        // Back calculate pressure to hold the remainder of the torque
+                        int mpc_required_holding = pressure_manager->find_working_pressure_for_clutch(actual_gear, releasing, MAX(0, abs(sensor_data.input_torque) - torque_held_by_new_clutch), false);
+                        //printf("%d %d %d\n", torque_held_by_new_clutch, MAX(0, abs(sensor_data.input_torque) - torque_held_by_new_clutch), mpc_required_holding);
                         p_now.off_clutch = MAX(0, mpc_required_holding);
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                         // Pressure based on torque transfer
@@ -892,7 +894,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 p_now.overlap_mod = 0;
                 p_now.mod_sol_req = interpolate_float(phase_elapsed, p_prev.mod_sol_req, wp_new_gear, 0, maxp.ramp_time, InterpType::Linear);
             }
-
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
             pressure_mgr->update_pressures(current_stage == ShiftStage::MaxPressure ? this->target_gear : this->actual_gear);

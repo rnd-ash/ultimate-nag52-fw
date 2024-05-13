@@ -27,6 +27,9 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     // 1 - TRRS
     // 2 - SLR
     uint8_t shifter_style;
+    // 0 - Output (Generic)
+    // 1 - Vehicle speed sensor
+    // 2 - TCC Manual MOSFET (1.3 ONLY)
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
@@ -50,7 +53,12 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
 // PRODUCT.M_YEAR,    EFUSE_BLK3, 32,          8
 
 struct __attribute__ ((packed)) TCM_EFUSE_CONFIG {
-    uint8_t board_ver; // 1 - Red PCB, 2 - Black PCB, 3 - Black PCB with GPIO (WIP)
+    // 1 - Red PCB (V1.1)
+    // 2 - Blue PCB (V1.2)
+    // 3 - Black PCB (V1.3)
+    // 4 - Green PCB (V1.4 - PRE PROD)
+    // 0xF | 4 - Green PCB HGS Variant
+    uint8_t board_ver;
     uint8_t manufacture_day;
     uint8_t manufacture_week;
     uint8_t manufacture_month;

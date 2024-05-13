@@ -2,19 +2,18 @@
 #include "tcu_maths.h"
 #include "egs_calibration/calibration_structs.h"
 
-int16_t InputTorqueModel::get_input_torque(EgsBaseCan* can_hal, SensorData* measures) {
+int16_t InputTorqueModel::get_input_torque(uint16_t engine_rpm, uint16_t input_rpm, int16_t static_torque, uint8_t ac_torque) {
     int16_t ret = 0;
-    if (measures->static_torque == INT16_MAX) {
+    if (static_torque == INT16_MAX) {
         ret = INT16_MAX;
-    } else if (measures->engine_rpm == 0 || measures->engine_rpm == INT16_MAX) {
-        ret = measures->static_torque;
+    } else if (engine_rpm == 0 || engine_rpm == INT16_MAX) {
+        ret = static_torque;
     } else {
-        int motor_torque = measures->static_torque;
-        uint8_t ac_loss = can_hal->get_ac_torque_loss(500);
-        if (ac_loss != UINT8_MAX) {
-            motor_torque -= ac_loss;
+        int motor_torque = static_torque;
+        if (ac_torque != UINT8_MAX) {
+            motor_torque -= ac_torque;
         }
-        float multi = InputTorqueModel::get_input_torque_factor(measures->engine_rpm, measures->input_rpm);
+        float multi = InputTorqueModel::get_input_torque_factor(engine_rpm, input_rpm);
         ret = motor_torque * multi;
     }
     return ret;

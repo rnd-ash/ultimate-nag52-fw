@@ -24,6 +24,7 @@
 
 #include "board_config.h"
 #include "nvs/device_mode.h"
+#include "ext_adc.h"
 
 // shifter modules
 #include "shifter/shifter.h"
@@ -55,6 +56,9 @@ SPEAKER_POST_CODE setup_tcm()
         case 3:
             pcb_gpio_matrix = new BoardV13GpioMatrix();
             break;
+        case 4:
+            pcb_gpio_matrix = new BoardV14GpioMatrix();
+            break;
         default:
             pcb_gpio_matrix = nullptr;
             egs_can_hal = nullptr;
@@ -66,6 +70,7 @@ SPEAKER_POST_CODE setup_tcm()
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
+            return SPEAKER_POST_CODE::CAN_FAIL;
             if (ESP_OK == EEPROM::init_eeprom())
             {
                 // Load EGS Calibration
@@ -291,18 +296,19 @@ extern "C" void app_main(void)
     egs_can_hal = nullptr;
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
-    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
+    //xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 1024, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK)
     {
-        while (true)
-        {
-            ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
+        ext_adc = new ExternalADC(pcb_gpio_matrix->i2c_sda, pcb_gpio_matrix->i2c_scl);
+        //while (true)
+        //{
+        //    ESP_LOG_LEVEL(ESP_LOG_ERROR, "INIT", "TCM INIT ERROR (%s)! CANNOT START TCM!", post_code_to_str(s));
+        //    vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //}
     }
     else
     { // INIT OK!

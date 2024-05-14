@@ -287,7 +287,7 @@ esp_err_t EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
     if (dest->manufacture_year < 22) {
         return ESP_ERR_INVALID_ARG;
     }
-    if (dest->board_ver == 0 || dest->board_ver > 3) {
+    if (dest->board_ver == 0 || dest->board_ver > 4) {
         return ESP_ERR_INVALID_ARG;
     }
     if (esp_efuse_write_field_blob(ESP_EFUSE_BOARD_VER, &dest->board_ver, 8) != ESP_OK) {

@@ -183,6 +183,10 @@ public:
     BoardV13GpioMatrix(void);
 };
 
+class BoardV14GpioMatrix: public BoardGpioMatrixWithIOExpander {
+public:
+    BoardV14GpioMatrix(void);
+};
 
 extern BoardGpioMatrix* pcb_gpio_matrix;
 

@@ -16,7 +16,7 @@ extern uint16_t CURRENT_DEVICE_MODE;
 #define DEVICE_MODE_TEMPORARY_ERROR BIT(4) // Limp mode (Disabled after ignition cycle)
 // BIT 5?
 #define DEVICE_MODE_ERROR BIT(6) // Limp mode (Until DTCs cleared)
-// BIT 7?
+#define DEVICE_MODE_NO_CALIBRATION BIT(7) // No calibration (Cannot init)
 // BIT 8?
 // BIT 9?
 // BIT 10?

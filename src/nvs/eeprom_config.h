@@ -12,7 +12,7 @@
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
-    uint8_t is_large_nag;
+    uint8_t deprecated_is_large_nag;
     uint16_t diff_ratio;
     uint16_t wheel_circumference;
     uint8_t is_four_matic;
@@ -27,9 +27,10 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     // 1 - TRRS
     // 2 - SLR
     uint8_t shifter_style;
-    // 0 - Output (Generic)
+    // 0 - N/C
     // 1 - Vehicle speed sensor
-    // 2 - TCC Manual MOSFET (1.3 ONLY)
+    // 2 - Output (TBA)
+    // 3 - TCC Manual MOSFET (1.3 ONLY)
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;

@@ -5,6 +5,7 @@
 #include "../shifter/shifter_ewm.h"
 #include "../shifter/shifter_trrs.h"
 #include "ioexpander.h"
+#include "egs_calibration/calibration_structs.h"
 
 Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {
     // Set default values
@@ -34,7 +35,7 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     }
     this->gs418.FRONT = false; // Primary rear wheel drive
     this->gs418.CVT = false; // Not CVT gearbox]
-    if (VEHICLE_CONFIG.is_large_nag != 0) {
+    if (MECH_PTR->gb_ty == 0) {
         this->gs418.MECH = GS_418h_MECH_EGS52::GROSS;
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;

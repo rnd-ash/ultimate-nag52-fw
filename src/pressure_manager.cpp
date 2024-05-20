@@ -38,7 +38,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure fill time map **/
     const int16_t fill_t_x_headers[4] = {-20, 5, 25, 60};
     const int16_t fill_t_y_headers[5] = {1,2,3,4,5}; 
-    if (VEHICLE_CONFIG.is_large_nag) { // Large
+    if (MECH_PTR->gb_ty == 0) { // Large
         key_name = NVS_KEY_MAP_NAME_FILL_TIME_LARGE;
         default_data = LARGE_NAG_FILL_TIME_MAP;
     } else { // Small
@@ -399,7 +399,6 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
             .fill_time = 500,
             .fill_pressure_on_clutch = 1500,
             .low_fill_pressure_on_clutch = 700,
-            .fill_pressure_off_clutch = 1500,
         };
     } else {
         Clutch to_apply = get_clutch_to_apply(change);
@@ -408,7 +407,6 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
             .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
             .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_apply),
             .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)to_apply),
-            .fill_pressure_off_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_release)
         };
     }
 }

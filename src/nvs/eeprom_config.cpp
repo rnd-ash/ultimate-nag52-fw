@@ -202,7 +202,7 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     if (result == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "SCN Config not found. Creating a new one");
         TCM_CORE_CONFIG c = {
-            .is_large_nag = 0,
+            .deprecated_is_large_nag = 0,
             .diff_ratio = 1000,
             .wheel_circumference = 2850,
             .is_four_matic = 0,

@@ -2,6 +2,7 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "egs_calibration/calibration_structs.h"
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -19,7 +20,7 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->sbw_rs_tcm.TSL_Posn_Rq = SBW_RS_TCM_TSL_Posn_Rq_EGS53::IDLE; // Idle request (No SBW on EGS53)
     this->sbw_rs_tcm.TxSelSensPosn = 0; // No dialing sensor on EGS53
     // Tell engine which Mech style we are
-    if (VEHICLE_CONFIG.is_large_nag != 0) {
+    if (MECH_PTR->gb_ty == 0) {
         this->eng_rq2_tcm.TxMechStyle = ENG_RQ2_TCM_TxMechStyle_EGS53::LARGE;
     } else {
         this->eng_rq2_tcm.TxMechStyle = ENG_RQ2_TCM_TxMechStyle_EGS53::SMALL;

@@ -202,22 +202,24 @@ void EgsBaseCan::task_loop() {
 
 void EgsBaseCan::on_rx_done(const uint32_t now_ts)
 {
-    switch (VEHICLE_CONFIG.shifter_style)
-    {
-    case (uint8_t)ShifterStyle::EWM:
-    {
-        ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
-        shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
-        break;
-    }
-    case (uint8_t)ShifterStyle::TRRS:
-    {
-        ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
-        shiftertrrs->set_brake_is_pressed(get_is_brake_pressed(now_ts));
-        shiftertrrs->set_vehicle_speed(get_front_left_wheel(now_ts), get_front_right_wheel(now_ts));
-        break;
-    }
-    default:
-        break;
+    if (nullptr != shifter) {
+        switch (VEHICLE_CONFIG.shifter_style)
+        {
+        case (uint8_t)ShifterStyle::EWM:
+        {
+            ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
+            shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
+            break;
+        }
+        case (uint8_t)ShifterStyle::TRRS:
+        {
+            ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
+            shiftertrrs->set_brake_is_pressed(get_is_brake_pressed(now_ts));
+            shiftertrrs->set_vehicle_speed(get_front_left_wheel(now_ts), get_front_right_wheel(now_ts));
+            break;
+        }
+        default:
+            break;
+        }
     }
 }

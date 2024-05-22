@@ -468,7 +468,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
 
         int fill_p_torque_max_on_clutch = this->pressure_mgr->calc_max_torque_for_clutch(target_gear, applying, prefill_data.fill_pressure_on_clutch);
-        int DYNAMIC_SHIFT_THRESHOLD = fill_p_torque_max_on_clutch;
 #define FILL_RAMP_TIME 60
 #define FILL_LP_HOLD_TIME 100
         int release_time_min = 100 + prefill_data.fill_time + FILL_LP_HOLD_TIME + FILL_RAMP_TIME;
@@ -481,7 +480,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int clutch_max_mpc = (MOD_MAX) - spring_pressure_off_clutch;
         int max_torque_on = pressure_manager->calc_max_torque_for_clutch(this->target_gear, applying, clutch_max_spc);
         int max_torque_off = pressure_manager->calc_max_torque_for_clutch(this->actual_gear, releasing, clutch_max_mpc);
-        ESP_LOGI("SHIFT", "Max torque (Appl. C): %d, Dyn. Threshold: %d", max_torque_on, DYNAMIC_SHIFT_THRESHOLD);
         FirstOrderAverage on_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         FirstOrderAverage off_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         
@@ -496,6 +494,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         int downshift_time_req_start = 0;
         int filling_torque = 0;
+
+        bool do_dynamic_shift = !is_upshift && chars.target_shift_time < 500;
+
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             bool skip_phase = false;
@@ -598,7 +599,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (output_data.ctrl_type != TorqueRequestControlType::None) {
                         goto_torque_ramp = true;
                     }
-                    if (sensor_data.driver_requested_torque >= DYNAMIC_SHIFT_THRESHOLD) { // Torque above bounds
+                    if (sensor_data.driver_requested_torque >= fill_p_torque_max_on_clutch) { // Torque above bounds
                         if (output_data.ctrl_type == TorqueRequestControlType::None) { // No current trq request
                             goto_torque_ramp = true;
                         }
@@ -698,7 +699,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     phase_total_time = prefill_data.fill_time + FILL_RAMP_TIME + FILL_LP_HOLD_TIME; // TODO make these constants
                     filling_torque = abs(torque_to_use);
                 } else if (current_stage == ShiftStage::Overlap) {
-                    if (filling_torque < DYNAMIC_SHIFT_THRESHOLD) {
+                    if (!do_dynamic_shift) {
                         this->tcc->set_shift_target_state(InternalTccState::Open);
                     }
                     phase_total_time = chars.target_shift_time+SBS.shift_timeout_coasting; //(No ramping) (Worse case time)
@@ -737,7 +738,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     p_now.on_clutch = prefill_data.fill_pressure_on_clutch;
                     filling_torque = abs(torque_to_use); // Update filling torque variable as shift types diverge after this
                 } else if (phase_elapsed < prefill_data.fill_time + FILL_RAMP_TIME) { // Ramp phase (Hold 1 -> Hold 2)
-                    if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) { // Dynamic mode (Trq req starts here)
+                    if (do_dynamic_shift) { // Dynamic mode (Trq req starts here)
                         p_now.on_clutch = interpolate_float(
                             phase_elapsed - prefill_data.fill_time, 
                             prefill_data.fill_pressure_on_clutch,
@@ -759,7 +760,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                         p_now.off_clutch = wp_old_clutch_real;
                     }
                 } else { // Hold 2
-                    if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) { // Dynamic
+                    if (do_dynamic_shift) { // Dynamic
                         p_now.on_clutch = prefill_data.low_fill_pressure_on_clutch;
                         p_now.off_clutch = wp_old_clutch_real/2;
                     } else { // Comfort
@@ -818,7 +819,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     p_now.overlap_shift = p_now.on_clutch + spring_pressure_on_clutch;
                     p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
 
-                    if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) {
+                    if (do_dynamic_shift) {
                         p_now.off_clutch = 0;
                         p_now.overlap_mod = p_now.off_clutch + spring_pressure_off_clutch;
                     } else {
@@ -839,7 +840,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 } else {
                     // Phase 1. Release phase.
                     // This part of the overlap phase should start the disengagement of the off clutch.
-                    if (filling_torque > DYNAMIC_SHIFT_THRESHOLD) {
+                    if (do_dynamic_shift) {
                         p_now.on_clutch = interpolate_float(phase_elapsed, prefill_data.low_fill_pressure_on_clutch, MAX(prefill_data.low_fill_pressure_on_clutch, wp_new_clutch_real), 0, 250, InterpType::Linear);
 
                         p_now.overlap_shift = spring_pressure_on_clutch + p_now.on_clutch;

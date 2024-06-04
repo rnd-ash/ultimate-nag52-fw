@@ -55,12 +55,12 @@ typedef struct {
 typedef struct {
     uint8_t gb_ty;
     uint16_t ratio_table[8];
-    uint16_t shift_something_unk1[8];
+    uint16_t intertia_factor[8];
     uint16_t friction_map[48];
     uint16_t max_torque_on_clutch[4];
     uint16_t max_torque_off_clutch[4];
     uint16_t release_spring_pressure[6];
-    uint16_t torque_byte_unk2[8];
+    uint16_t intertia_torque[8];
     uint8_t strongest_loaded_clutch_idx[8];
     uint16_t unk3[8];
     uint16_t atf_density_minus_50c;

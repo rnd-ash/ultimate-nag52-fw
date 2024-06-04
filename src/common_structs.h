@@ -173,6 +173,7 @@ struct ShiftData{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
+    uint8_t map_idx;
     float pressure_multi_spc;
     float pressure_multi_mpc;
     int16_t mpc_pressure_spring_reduction;

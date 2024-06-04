@@ -386,6 +386,7 @@ ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Profi
     sd.pressure_multi_spc = (float)HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info]/1000.0;
     sd.mpc_pressure_spring_reduction = HYDR_PTR->overlap_circuit_spring_pressure[lookup_valve_info];
     sd.centrifugal_factor_off_clutch = C_C_FACTOR[lookup_valve_info];
+    sd.map_idx = lookup_valve_info;
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;

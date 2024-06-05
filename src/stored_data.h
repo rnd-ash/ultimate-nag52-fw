@@ -6,18 +6,17 @@
 class StoredData {
 	public:
     	esp_err_t init_status(void);
-		
-        /**
-         * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
-         * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
-         */
-        // bool reset_from_default_eeprom(void);
 
         virtual esp_err_t read_from_eeprom(const char *key_name, uint16_t expected_size) = 0;
 		/**
          * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
          */
         virtual esp_err_t save_to_eeprom(void) = 0;
+
+        /**
+         * @brief Resets the stored data to that from flash program
+        */
+        virtual esp_err_t reset_from_flash(void) = 0;
 
         /**
          * @brief Reloads the previously saved map from EEPROM into the map (Undo function)

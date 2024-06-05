@@ -20,6 +20,7 @@
 #define DBKOM_VERSION 0x0001 // 00.01
 #define FLEXER_VERSION 0x9999 // 99.99 (unsupported)
 
+#define ROUTINE_CALIBRATION_HOT_RELOAD 0xDC
 #define ROUTINE_ADAPTATION_RESET 0xDD
 #define ROUTINE_SOLENOID_TEST 0xDE
 #define ROUTINE_SPEAKER_TEST 0xDF
@@ -52,7 +53,7 @@ class Kwp2000_server {
         [[noreturn]]
         void response_timer_loop();
         uint8_t session_mode;
-        uint64_t next_tp_time;
+        uint32_t next_tp_time;
         DiagMessage tx_msg;
         DiagMessage rx_msg;
         UsbEndpoint* usb_diag_endpoint;
@@ -66,7 +67,7 @@ class Kwp2000_server {
         uint8_t response_pending_sid = 0;
         bool diag_on_usb = false;
         bool response_pending = false;
-        uint64_t cmd_recv_time = 0;
+        uint32_t cmd_recv_time = 0;
         bool send_resp;
         bool reboot_pending;
 

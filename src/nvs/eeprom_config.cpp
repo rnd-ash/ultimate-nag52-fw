@@ -6,6 +6,12 @@
 #include "efuse/efuse.h"
 #include "esp_efuse.h"
 #include "esp_check.h"
+#include "device_mode.h"
+#include "esp_app_desc.h"
+#include "all_keys.h"
+#include "esp_flash.h"
+
+uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
 esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
     size_t byte_count = map_element_count*sizeof(int16_t);
@@ -29,10 +35,59 @@ esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const i
     return e;
 }
 
+esp_err_t EEPROM::check_if_new_fw(bool* dest) {
+    esp_err_t res = ESP_OK;
+    const esp_app_desc_t* now = esp_app_get_description();
+    uint8_t sha[32];
+    size_t len = 32;
+    if (ESP_OK == nvs_get_blob(MAP_NVS_HANDLE, NVS_KEY_LAST_FW, &sha, &len)) {
+        // Check and compare
+        if (0 == memcmp(sha, now->app_elf_sha256, 32)) {
+            *dest = false;
+        } else {
+            // Different
+            nvs_set_blob(MAP_NVS_HANDLE, NVS_KEY_LAST_FW, now->app_elf_sha256, 32);
+            *dest = true;
+        }
+    } else {
+        res = nvs_set_blob(MAP_NVS_HANDLE, NVS_KEY_LAST_FW, now->app_elf_sha256, 32);
+        *dest = true;
+    }
+    return res;
+}
+
 esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count) {
     esp_err_t e = nvs_set_blob(MAP_NVS_HANDLE, map_name, to_write, map_element_count*sizeof(int16_t));
     if (e != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting value for %s (%s)", map_name, esp_err_to_name(e));
+    } else {
+        e = nvs_commit(MAP_NVS_HANDLE);
+        if (e != ESP_OK) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
+        }
+    }
+    return e;
+}
+
+uint16_t EEPROM::read_device_mode(void) {
+    uint16_t mode = 0;
+    esp_err_t e = nvs_get_u16(MAP_NVS_HANDLE, NVS_KEY_DEV_MODE, &mode);
+    if (ESP_OK != e) {
+        if (e == ESP_ERR_NVS_NOT_FOUND) {
+            mode |= DEVICE_MODE_NORMAL;
+            e = EEPROM::set_device_mode(mode);
+        } else {
+            ESP_LOGE("EEPROM", "Device mode get failed: %s, returning normal", esp_err_to_name(e));
+            mode |= DEVICE_MODE_NORMAL;
+        }
+    }
+    return mode;
+}
+
+esp_err_t EEPROM::set_device_mode(uint16_t mode) {
+    esp_err_t e = nvs_set_u16(MAP_NVS_HANDLE, NVS_KEY_DEV_MODE, mode);
+    if (ESP_OK != e) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error setting device mode to %08X: %s", mode, esp_err_to_name(e));
     } else {
         e = nvs_commit(MAP_NVS_HANDLE);
         if (e != ESP_OK) {
@@ -64,27 +119,6 @@ esp_err_t EEPROM::write_nvs_map_data(const char* map_name, const int16_t* to_wri
 //     return (e == ESP_OK);
 // }
 
-const char* LEGACY_EEPROM_KEYS[] = {
-    "WORK_LARGE", 
-    "WORK_SMALL", 
-    "TCC_A0", 
-    "TCC_A1",
-    "TCC_A2",
-    "SBS_A0",
-    "PRM_A0",
-    "FILL_PRESS_L", 
-    "FILL_PRESS_S",
-    "FILL_PRESS_L1", 
-    "FILL_PRESS_S1",
-    "FILL_MPC_ADDER",
-    "FILL_PRESS",
-    "ADP_A0",
-    "ADP_P_P",
-    "ADP_P_P0",
-    "ADP_P_P1",
-    "ADP_P_T"
-};
-
 esp_err_t EEPROM::init_eeprom() {
     // Called on startup
     esp_err_t result = nvs_flash_init();
@@ -98,15 +132,62 @@ esp_err_t EEPROM::init_eeprom() {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(result));
         }
         MAP_NVS_HANDLE = config_handle;
-        bool erase = false;
-        for (int i = 0; i < sizeof(LEGACY_EEPROM_KEYS) / sizeof(const char*); i++) {
-            if(nvs_erase_key(MAP_NVS_HANDLE, LEGACY_EEPROM_KEYS[i]) == ESP_OK) {
-                ESP_LOGI("EEPROM INIT", "Erasing old map entry %s", LEGACY_EEPROM_KEYS[i]);
-                erase = true;
+        bool new_fw = false;
+        if (ESP_OK == EEPROM::check_if_new_fw(&new_fw)) {
+            if (new_fw) {
+                ESP_LOGI("EEPROM", "New firmware after boot detected. Cleaning up NVS");
+                nvs_iterator_t it = NULL;
+                esp_err_t res = nvs_entry_find("nvs", NULL, NVS_TYPE_ANY, &it);
+                while (ESP_OK == res) {
+                    nvs_entry_info_t info;
+                    nvs_entry_info(it, &info);
+                    res = nvs_entry_next(&it);
+                    bool found = false;
+                    for (int i = 0; i < ALL_NVS_KEYS_LEN; i++) {
+                        if (0 == strcmp(*ALL_NVS_KEYS[i], info.key)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        ESP_LOGI("EEPROM", "Deleting NVS key %s\n", info.key);
+                        nvs_erase_key(config_handle, info.key);
+                    }
+                }
+                nvs_release_iterator(it);
+                nvs_commit(config_handle);
+                FLASH_NVS_SETTINGS_DESC desc = {};
+                if (ESP_OK == esp_flash_read(esp_flash_default_chip, &desc, 0x330000, sizeof(FLASH_NVS_SETTINGS_DESC))) {
+                    if (
+                        desc.magic[0] == 0xDE &&
+                        desc.magic[1] == 0xAD &&
+                        desc.magic[2] == 0xBE &&
+                        desc.magic[3] == 0xEF
+                    ) {
+                        // Valid data stored, check cs
+                        // Also check flashed NVS config settings partition
+                        uint32_t key_cs = 0;
+                        for (int i = 0; i < ALL_NVS_KEYS_LEN; i++) {
+                            const char* key = *ALL_NVS_KEYS[i];
+                            int len = strlen(key);
+                            for (int l = 0; l < len; l++) {
+                                key_cs += l;
+                                key_cs += key[l];
+                            }
+                        }
+                        ESP_LOGI("EEPROM", "NVS CONFIG FLASH CHECK. CS OF KEYS: 0x%08X. CS OF FLASH: 0x%08X", (int)key_cs, (int)desc.key_cs);
+                        if (key_cs != desc.key_cs) {
+                            // Just erase 1 sector (Min), this way we avoid loads of writes, and config app will still be alerted
+                            esp_flash_erase_region(esp_flash_default_chip, 0x330000, 4096);
+                            ESP_LOGI("EEPROM", "Flash config desc erased");
+                        } else {
+                            ESP_LOGI("EEPROM", "NVS Flash config desc OK!");
+                        }
+                    } else {
+                        ESP_LOGI("EEPROM", "No NVS Config data found");
+                    }
+                }
             }
-        }
-        if (erase) {
-            nvs_commit(MAP_NVS_HANDLE);
         }
         result = read_core_config(&VEHICLE_CONFIG);
     }
@@ -117,11 +198,11 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     size_t s = sizeof(TCM_CORE_CONFIG);
-    esp_err_t result = nvs_get_blob(handle, NVS_KEY_SCN_CONFIG, dest, &s);
+    esp_err_t result = nvs_get_blob(handle, NVS_KEY_CORE_SCN, dest, &s);
     if (result == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "SCN Config not found. Creating a new one");
         TCM_CORE_CONFIG c = {
-            .is_large_nag = 0,
+            .deprecated_is_large_nag = 0,
             .diff_ratio = 1000,
             .wheel_circumference = 2850,
             .is_four_matic = 0,
@@ -137,9 +218,11 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .input_sensor_pulses_per_rev = 1,
             .output_pulse_width_per_kmh = 1,
             .gen_mosfet_purpose = 0,
+            .throttlevalve_maxopeningangle = 255, // 89.25°
+            .c_eng = 1000,
             .engine_drag_torque = 400 // 40Nm
         };
-        result = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, &c, sizeof(c));
+        result = nvs_set_blob(handle, NVS_KEY_CORE_SCN, &c, sizeof(c));
         if (result != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error initializing default SCN config (%s)", esp_err_to_name(result));
         } else {
@@ -163,7 +246,7 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     esp_err_t e;
     size_t s = sizeof(TCM_CORE_CONFIG);
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    e = nvs_set_blob(handle, NVS_KEY_SCN_CONFIG, write, s);
+    e = nvs_set_blob(handle, NVS_KEY_CORE_SCN, write, s);
     if (e != ESP_OK) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error Saving SCN config (%s)", esp_err_to_name(e));
     } else {

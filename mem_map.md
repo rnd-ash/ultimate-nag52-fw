@@ -1,0 +1,10 @@
+# Memory map for ReadMemoryByAddress (0x23) and WriteMemoryByAddress (0x3D)
+
+
+|Memory|Memory Type|Size|KWP Address|Physical address|
+|:-:|:-:|:-:|:-|:-|
+|SRAM0|RAM|192KB|0x000000-0x02FFFF|0x40070000 - 0x4009FFFF
+|SRAM1|RAM|128KB|0x030000-0x04FFFF|0x400A0000 - 0x400BFFFF
+|SRAM2|RAM|128KB|0x050000-0x071FFF|0x3FFAE000 - 0x3FFDFFFF
+|PSRAM|RAM|4MB|0x100000-0x4FFFFF|0x3F800000 - 0x3FBFFFFF
+|Calibration area - EGS emulation|Flash|512KB|0x80000-0xFD000|0x800000-0x87D000|

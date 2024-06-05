@@ -35,10 +35,15 @@ jobs:
       - name: Build Prod PCB FW
         run: |
           pio run -e unified
+      - name: Generate configuration markdown and YML
+        run:
+          python scripts/module_settings_parse.py
       - uses: actions/upload-artifact@v3
         with:
           name: UNIFIED_FW
           path: |
+            MODULE_SETTINGS.md
+            MODULE_SETTINGS.yml
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin
 
@@ -69,5 +74,7 @@ jobs:
         tag_name: ${{ env.BRANCH_NAME }}-${{ github.sha }}
         name: Release ${{ env.BRANCH_NAME }}
         files: |
-          UNIFIED_FW/firmware.elf
-          UNIFIED_FW/firmware.bin
+          UNIFIED_FW/MODULE_SETTINGS.md
+          UNIFIED_FW/MODULE_SETTINGS.yml
+          UNIFIED_FW/.pio/build/unified/firmware.elf
+          UNIFIED_FW/.pio/build/unified/firmware.bin

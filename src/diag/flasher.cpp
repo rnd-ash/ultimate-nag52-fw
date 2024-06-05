@@ -1,5 +1,4 @@
 #include "flasher.h"
-#include "esp_timer.h"
 #include "speaker.h"
 #include "esp_partition.h"
 #include "tcu_maths.h"
@@ -28,7 +27,7 @@ Flasher::~Flasher() {
  *  transfer. The function then returns a positive response message containing the maximum 
  *  number of data bytes that can be transferred in a single block." - ChatGPT
 */
-void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest) {
+void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
@@ -84,15 +83,15 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
-    resp[0] = CHUNK_SIZE >> 8 & 0xFF;
-    resp[1] = CHUNK_SIZE & 0xFF;
+    resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
+    resp[1] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) & 0xFF;
     this->written_data = 0;
     this->is_ota = (fmt & FMT_OTA) != 0;
     this->data_dir = DATA_DIR_DOWNLOAD;
     global_make_diag_pos_msg(dest, SID_REQ_DOWNLOAD, resp, 2);
 }
 
-void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest) {
+void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can) {
     // Shifter must be Offline (SNV) or P or N
     if (!is_shifter_passive(this->can_ref)) {
         return global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
@@ -126,8 +125,8 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
     this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
-    resp[0] = CHUNK_SIZE >> 8 & 0xFF;
-    resp[1] = CHUNK_SIZE & 0xFF;
+    resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
+    resp[1] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) & 0xFF;
     this->data_dir = DATA_DIR_UPLOAD;
     this->read_base_addr = src_mem_address;
     this->read_bytes = 0;
@@ -136,7 +135,7 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
 }
 
 
-void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* dest) {
+void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can) {
     if (this->data_dir == DATA_DIR_DOWNLOAD) {
         // We use block sequence counter
         if (arg_len < 2) {
@@ -171,7 +170,7 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
         // Construct diag message manually!
         dest->data[0] = SID_TRANSFER_DATA+0x40;
         dest->data[1] = args[0];
-        uint32_t max_bytes = MIN(CHUNK_SIZE, (uint32_t)(read_bytes_total-read_bytes));
+        uint32_t max_bytes = MIN(using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB, (uint32_t)(read_bytes_total-read_bytes));
         // Make diag message manually
         esp_flash_read(esp_flash_default_chip, &dest->data[2], this->read_base_addr+this->read_bytes, max_bytes);
         dest->id = 0x07E9;

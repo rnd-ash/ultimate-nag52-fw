@@ -54,7 +54,19 @@ typedef union {
 		/** error number or counter for calid / CVN transmission **/
 		uint8_t FEHLER: 4;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING2__: 18;
+		uint16_t __PADDING2__: 12;
+		/** Torque converter shut **/
+		bool TCC_SLIPPING: 1;
+		/** Torque converter shut **/
+		bool TCC_OPEN: 1;
+		/** Torque converter shut **/
+		bool TCC_SHUT: 1;
+		/** Gearbox is W5A580 **/
+		bool GEARBOX_BIG: 1;
+		/** Gearbox is in limp-home mode **/
+		bool LIMP_MODE: 1;
+		/** Schaltungseinleitung **/
+		bool SE: 1;
 		/** Kickdown pressed **/
 		bool KICKDOWN: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -64,11 +76,21 @@ typedef union {
 		/** Target gear **/
 		GS_218h_GZC_EGS51 GZC: 4;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING4__: 6;
+		bool __PADDING4__: 1;
+		/** Gearbox is OK **/
+		bool GEARBOX_OK: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		bool __PADDING5__: 1;
+		/** Selector is in P or N **/
+		bool NEUTRAL: 1;
+		/** Garage shifting **/
+		bool GARAGE_SHIFT: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		bool __PADDING6__: 1;
 		/** Enable torque request **/
 		bool TORQUE_REQ_EN: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING5__: 1;
+		bool __PADDING7__: 1;
 		/** Torque request value. 0xFE when inactive **/
 		uint8_t TORQUE_REQ: 8;
 	} __attribute__((packed));
@@ -87,7 +109,7 @@ class ECU_GS51 {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {
@@ -112,7 +134,7 @@ class ECU_GS51 {
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_GS_218(uint64_t now, uint64_t max_expire_time, GS_218_EGS51* dest) const {
+        bool get_GS_218(const uint32_t now, const uint32_t max_expire_time, GS_218_EGS51* dest) const {
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[0] <= now && now - LAST_FRAME_TIMES[0] < max_expire_time) {
                 dest->raw = FRAME_DATA[0];
@@ -123,6 +145,6 @@ class ECU_GS51 {
             
 	private:
 		uint64_t FRAME_DATA[1];
-		uint64_t LAST_FRAME_TIMES[1];
+		uint32_t LAST_FRAME_TIMES[1];
 };
 #endif // __ECU_GS51_H_

@@ -14,14 +14,20 @@
 #include "torque_converter.h"
 #include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
-#include "adaptation/shift_report.h"
 #include "models/input_torque.hpp"
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
+#include "shifter/shifter.h"
+
+struct PostShiftTorqueRamp {
+    bool enabled;
+    uint16_t start_nm;
+    uint16_t time_to_exit;
+};
 
 class Gearbox {
 public:
-    Gearbox(void);
+    explicit Gearbox(Shifter* shifter);
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
@@ -37,7 +43,6 @@ public:
         return this->sensor_data.gear_ratio * 100.0F;
     }
     uint16_t redline_rpm;
-    ShiftReporter* shift_reporter;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
@@ -45,7 +50,9 @@ public:
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
     ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
+    bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
@@ -57,7 +64,7 @@ private:
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool calc_input_rpm(uint16_t* dest);
-    bool calc_output_rpm(uint16_t* dest, uint64_t now);
+    bool calc_output_rpm(uint16_t* dest);
     [[noreturn]]
     void controller_loop(void);
 
@@ -87,6 +94,7 @@ private:
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
     bool diag_stop_control = false;
+    Shifter* shifter = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;
@@ -94,17 +102,11 @@ private:
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
-    // Shadow ratios. These are calculated via the raw values from the speed sensors.
-    // This way the TCU can see if a sensor is malfunctioning
-    float shadow_ratio_n2 = 0;
-    float shadow_ratio_n3 = 0;
     RpmReading rpm_reading;
-    InputTorqueModel* itm;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    ShiftAdaptationSystem* shift_adapter = nullptr;
-    int calc_torque_limit(ProfileGearChange change, uint16_t shift_speed_ms);
-    MovingAverage* output_avg_filter;
+    float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
+    MovingAverage<uint32_t>* pedal_average = nullptr;
 
 };
 

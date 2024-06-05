@@ -23,10 +23,6 @@ StoredMap* get_map(uint8_t map_id) {
             return comfort->get_downshift_map();
         case S_DOWNSHIFT_MAP_ID:
             return standard->get_downshift_map();
-        case WORKING_PRESSURE_MAP_ID:
-            return pressure_manager->get_working_map();
-        case PCS_CURRENT_MAP_ID:
-            return pressure_manager->get_pcs_map();
         case TCC_PWM_MAP_ID:
             return pressure_manager->get_tcc_pwm_map();
         case FILL_TIME_MAP_ID:
@@ -53,8 +49,12 @@ StoredMap* get_map(uint8_t map_id) {
             return manual->get_upshift_time_map();
         case M_DNTIME_MAP_ID:
             return manual->get_downshift_time_map();
-        case TCC_ADAPT_MAP_ID:
-            return gearbox->tcc->tcc_learn_lockup_map;
+        case TCC_ADAPT_SLIP_MAP_ID:
+            return gearbox->tcc->get_slip_map();
+        case TCC_ADAPT_LOCK_MAP_ID:
+            return gearbox->tcc->get_lock_map();
+        case TCC_RPM_SLIP_MAP:
+            return gearbox->tcc->get_rpm_slip_map();
         default:
             return nullptr;
     }
@@ -82,9 +82,9 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
     } else if (read_type == MAP_READ_TYPE_STO) {
         int16_t* eeprom_data = ptr->get_current_eeprom_map_data();
         memcpy(b, eeprom_data, size*sizeof(int16_t));
-        TCU_HEAP_FREE(eeprom_data);
+        TCU_FREE(eeprom_data);
     } else {
-        TCU_HEAP_FREE(buffer);
+        TCU_FREE(buffer);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;
@@ -93,7 +93,7 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
 }
 
 kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
-    CHECK_MAP(map_id);
+    CHECK_MAP(map_id)
     // X meta, Y meta, KEY_NAME
     int16_t* x_ptr;
     int16_t* y_ptr;
@@ -144,14 +144,14 @@ kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     }
 }
 
-// uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
-//     CHECK_MAP(map_id)
-//     if (ptr->reload_from_eeprom() && ptr->save_to_eeprom()) {
-//         return 0;
-//     } else {
-//         return NRC_GENERAL_REJECT;
-//     }
-// }
+uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
+    CHECK_MAP(map_id)
+    if (ESP_OK == ptr->reset_from_flash()) {
+        return 0;
+    } else {
+        return NRC_GENERAL_REJECT;
+    }
+}
 
 kwp_result_t MapEditor::undo_changes(uint8_t map_id) {
     CHECK_MAP(map_id)

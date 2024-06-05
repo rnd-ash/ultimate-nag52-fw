@@ -3,19 +3,23 @@
 
 #include "shifter.h"
 #include "esp_err.h"
+#include "../nvs/module_settings.h"
+#include "programselector/programselector.h"
 #include "../../egs52_ecus/src/EWM.h"
 
 class ShifterEwm : public Shifter
 {
 public:
-	ShifterEwm(esp_err_t *can_init_status, ECU_EWM *ewm);
-	ShifterPosition get_shifter_position(const uint64_t now, const uint64_t expire_time_ms) override;
-	bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms);
-	ProfileSwitchPos get_shifter_profile_switch_pos(const uint64_t now, const uint64_t expire_time_ms) override;
+	ShifterEwm(TCM_CORE_CONFIG* vehicle_config, ETS_MODULE_SETTINGS* shifter_settings);
+	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
+	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
+	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
+	DiagProfileInputState diag_get_profile_input() override;
+	ShifterStyle get_shifter_type() override;
 private:
-	ECU_EWM *_ewm;
 	bool state = false;
 	bool esp_toggle = false;
+	ProgramSelector* programselector;
 };
 
 #endif // SHIFTER_EWM_H

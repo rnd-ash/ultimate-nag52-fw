@@ -13,62 +13,62 @@
 
 class Egs52Can: public EgsBaseCan {
     public:
-        explicit Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
+        Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
 
         /**
          * Getters
          */
 
         // Get the front right wheel data
-        WheelData get_front_right_wheel(uint64_t now, uint64_t expire_time_ms)  override;
+        WheelData get_front_right_wheel(const uint32_t expire_time_ms)  override;
         // Get the front left wheel data
-        WheelData get_front_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
+        WheelData get_front_left_wheel(const uint32_t expire_time_ms) override;
         // Get the rear right wheel data
-        WheelData get_rear_right_wheel(uint64_t now, uint64_t expire_time_ms) override;
+        WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
-        WheelData get_rear_left_wheel(uint64_t now, uint64_t expire_time_ms) override;
-        // Gets shifter position from EWM module
-        ShifterPosition get_shifter_position(uint64_t now, uint64_t expire_time_ms) override;
+        WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
+        // Gets the shifter position
+        ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) override;
         // Gets engine type
-        EngineType get_engine_type(uint64_t now, uint64_t expire_time_ms) override;
+        EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
-        bool get_engine_is_limp(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_engine_is_limp(const uint32_t expire_time_ms) override;
         // Returns true if pedal is kickdown 
-         bool get_kickdown(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
-         uint8_t get_pedal_value(uint64_t now, uint64_t expire_time_ms) override;
+         uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets the current 'static' torque produced by the engine
-         int get_static_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
-         int get_driver_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_static_engine_torque(const uint32_t expire_time_ms) override;
+         int get_driver_engine_torque(const uint32_t expire_time_ms) override;
         // Gets the maximum engine torque allowed at this moment by the engine map
-         int get_maximum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
+         int get_maximum_engine_torque(const uint32_t expire_time_ms) override;
         // Gets the minimum engine torque allowed at this moment by the engine map
-         int get_minimum_engine_torque(uint64_t now, uint64_t expire_time_ms) override;
-         uint8_t get_ac_torque_loss(uint64_t now, uint64_t expire_time_ms) override;
+         int get_minimum_engine_torque(const uint32_t expire_time_ms) override;
+         uint8_t get_ac_torque_loss(const uint32_t expire_time_ms) override;
         // Gets the flappy paddle position
-         PaddlePosition get_paddle_position(uint64_t now, uint64_t expire_time_ms) override;
+         PaddlePosition get_paddle_position(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
-         int16_t get_engine_coolant_temp(uint64_t now, uint64_t expire_time_ms) override;
+         int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
         // Gets engine oil temperature
-         int16_t get_engine_oil_temp(uint64_t now, uint64_t expire_time_ms) override;
+         int16_t get_engine_oil_temp(const uint32_t expire_time_ms) override;
         // Gets engine charge air temperature
-        int16_t get_engine_iat_temp(uint64_t now, uint64_t expire_time_ms) override;
+        int16_t get_engine_iat_temp(const uint32_t expire_time_ms) override;
         // Gets engine RPM
-         uint16_t get_engine_rpm(uint64_t now, uint64_t expire_time_ms) override;
+         uint16_t get_engine_rpm(const uint32_t expire_time_ms) override;
         // Returns true if engine is cranking
-         bool get_is_starting(uint64_t now, uint64_t expire_time_ms) override;
-         bool get_profile_btn_press(uint64_t now, uint64_t expire_time_ms) override;
+         bool get_is_starting(const uint32_t expire_time_ms) override;
+         bool get_profile_btn_press(const uint32_t expire_time_ms) override;
         // 
-        bool get_is_brake_pressed(uint64_t now, uint64_t expire_time_ms) override;
-        // TerminalStatus get_terminal_15(uint64_t now, uint64_t expire_time_ms) override;
-        uint16_t get_fuel_flow_rate(uint64_t now, uint64_t expire_time_ms) override;
-        TransferCaseState get_transfer_case_state(uint64_t now, uint64_t expire_time_ms) override;
-        ProfileSwitchPos get_shifter_ws_mode(uint64_t now, uint64_t expire_time_ms) override;
-        bool engine_ack_torque_request(uint64_t now, uint64_t expire_time_ms) override;
-        bool esp_torque_intervention_active(uint64_t now, uint64_t expire_time_ms) override;
-        bool is_cruise_control_active(uint64_t now, uint64_t expire_time_ms) override;
-        int cruise_control_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
-        int esp_torque_demand(uint64_t now, uint64_t expire_time_ms) override;
+        bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
+        // TerminalStatus get_terminal_15(const uint32_t expire_time_ms) override;
+        uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
+        TransferCaseState get_transfer_case_state(const uint32_t expire_time_ms) override;
+        bool engine_ack_torque_request(const uint32_t expire_time_ms) override;
+        bool esp_torque_intervention_active(const uint32_t expire_time_ms) override;
+        bool is_cruise_control_active(const uint32_t expire_time_ms) override;
+        int cruise_control_torque_demand(const uint32_t expire_time_ms) override;
+        int esp_torque_demand(const uint32_t expire_time_ms) override;
+        TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
 
         /**
          * Setters
@@ -81,7 +81,7 @@ class Egs52Can: public EgsBaseCan {
         // Sets the status bit indicating the car is safe to start
         void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
-        void set_gearbox_temperature(uint16_t temp) override;
+        void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit
@@ -110,8 +110,7 @@ class Egs52Can: public EgsBaseCan {
         void set_garage_shift_state(bool enable) override;
     protected:
         void tx_frames() override;
-        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint64_t timestamp) override;
-        void on_rx_done(uint64_t now_ts) override;
+        void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
     private:
         GearboxProfile curr_profile_bit = GearboxProfile::Underscore;
         GearboxMessage curr_message = GearboxMessage::None;
@@ -125,12 +124,13 @@ class Egs52Can: public EgsBaseCan {
         ECU_ANY_ECU misc_ecu = ECU_ANY_ECU();
         ECU_EWM ewm_ecu = ECU_EWM();
         ECU_MS ecu_ms = ECU_MS();
-        Shifter *shifter;
         bool time_to_toggle = false;
         bool toggle = false;
         uint8_t cvn_counter = 0;
         uint16_t fake_rpm = 0;
-        bool start_enable_trrs = false;
+        GS_338_EGS52 gs_338tx;
+        GS_218_EGS52 gs_218tx;
+        GS_418_EGS52 gs_418tx;
 };
 
 #endif // EGS52_CAN_H

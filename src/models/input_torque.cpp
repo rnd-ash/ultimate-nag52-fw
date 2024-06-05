@@ -1,40 +1,31 @@
 #include "input_torque.hpp"
 #include "tcu_maths.h"
+#include "egs_calibration/calibration_structs.h"
 
-InputTorqueModel::InputTorqueModel() {
-
+int16_t InputTorqueModel::get_input_torque(uint16_t engine_rpm, uint16_t input_rpm, int16_t static_torque, uint8_t ac_torque) {
+    int16_t ret = 0;
+    if (static_torque == INT16_MAX) {
+        ret = INT16_MAX;
+    } else if (engine_rpm == 0 || engine_rpm == INT16_MAX) {
+        ret = static_torque;
+    } else {
+        int motor_torque = static_torque;
+        if (ac_torque != UINT8_MAX) {
+            motor_torque -= ac_torque;
+        }
+        float multi = InputTorqueModel::get_input_torque_factor(engine_rpm, input_rpm);
+        ret = motor_torque * multi;
+    }
+    return ret;
 }
 
+float InputTorqueModel::get_input_torque_factor(uint16_t engine, uint16_t input) {
+    float rpm_multi = ((float)input) / ((float)engine);
 
-void InputTorqueModel::update(EgsBaseCan* can_hal, SensorData* measures, bool is_fwd_gear) {
-    if (measures->static_torque == INT16_MAX) {
-        measures->input_torque = INT16_MAX;
-    } else {
-        float multi;
-        int16_t input_torque = measures->static_torque;
-        uint8_t ac_loss = can_hal->get_ac_torque_loss(measures->current_timestamp_ms, 500);
-        if (ac_loss != UINT8_MAX) {
-            input_torque -= ac_loss;
-        }
-        if (is_fwd_gear) {
-            // Now calculate torque loss (Function of TCC slip)
-            if (measures->input_rpm > 0 && measures->input_rpm > measures->engine_rpm) {
-                if (measures->input_rpm - measures->engine_rpm > 25) {
-                    multi = ((float)measures->input_rpm/(float)measures->engine_rpm);
-                    this->last_tcc_loss = input_torque * multi;
-                    input_torque -= this->last_tcc_loss;
-                }
-            }
-            egs_can_hal->set_turbine_torque_loss(MIN(0, (float)this->last_tcc_loss));
-
-            // Now calculate input torque multiplication
-            if (measures->input_rpm < MULTI_MULTIPLIER_END_RPM && input_torque > 0) {
-                float multi = scale_number(measures->input_rpm, INPUT_MULTIPLIER_STOPPED, 1.0, 0, MULTI_MULTIPLIER_END_RPM);
-                input_torque *= multi;
-            }
-        }
-        measures->input_torque = input_torque;
-    }
-    
-    // Set the measured input torque
+    //Interpolate map, but faster, since its just 4 values, no need to allocate a whole map for this
+    float x1 = (float)(TCC_CFG_PTR->multiplier_map_x[0]) / 1000.0;
+    float x2 = (float)(TCC_CFG_PTR->multiplier_map_x[1]) / 1000.0;
+    float z1 = (float)(TCC_CFG_PTR->multiplier_map_z[0]) / 100.0;
+    float z2 = (float)(TCC_CFG_PTR->multiplier_map_z[1]) / 100.0;
+    return interpolate_float(rpm_multi, z1, z2, x1, x2, InterpType::Linear);
 }

@@ -172,39 +172,24 @@ const int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE] = {
      600,  650,  700,  750,  800,  850,  900,  950, 1000, 1050, 1100 /* 5 -> 4 */
 };
 
-
-
-const int16_t NAG_WORKING_MAP[WORKING_PRESSURE_MAP_SIZE] = {
-   /* Input torque (% of rated) */
-   /*0%,  10%   20%   30%   40%   50%   60%    70%   80%   90%  100%  110%  120%  130%  140%  150%+ */
-    500,  600,  700,  800,  900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, // P/N
-    750,  800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000, 3200, 3400, 4000, // R1/R2
-
-    750,  900, 1150, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3900, 4200, 4500, 4800, 5100, // 1
-    750,  900, 1150, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3900, 4200, 4500, 4800, 5100, // 2
-    750,  900, 1150, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3900, 4200, 4500, 4800, 5100, // 3
-    750,  900, 1150, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3900, 4200, 4500, 4800, 5100, // 4
-    750,  900, 1150, 1400, 1700, 2000, 2300, 2600, 2900, 3200, 3500, 3900, 4200, 4500, 4800, 5100  // 5
-};
-
 const int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
     /* ATF TEMP             */
     /*  -20C,  5C, 25C, 60C */
-         600, 300, 180, 160, // K1 clutch
-        1620, 600, 240, 140, // K2 clutch
-         860, 440, 180, 160, // K3 clutch
+         600, 360, 220, 160, // K1 clutch
+        1620, 560, 260, 160, // K2 clutch
+         860, 500, 160, 160, // K3 clutch
          600, 380, 220, 180, // B1 brake
-         820, 400, 180, 120  // B2 brake
+         820, 680, 260, 120  // B2 brake
 };
 
 const int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
     /* ATF TEMP             */
     /*  -20C,  5C, 25C, 60C */
          600, 300, 180, 160, // K1 clutch
-        1620, 600, 240, 140, // K2 clutch
-         860, 440, 180, 160, // K3 clutch
+        1620, 540, 260, 140, // K2 clutch
+         860, 500, 160, 140, // K3 clutch
          600, 380, 220, 180, // B1 brake
-         820, 400, 180, 120  // B2 brake
+         820, 620, 220, 120  // B2 brake
 };
 
 const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
@@ -217,28 +202,19 @@ const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
     0,   640, 1120, 1280, 1920,  2560,  4096, // 120C
 };
 
-const int16_t BROWN_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = { // values are in mA
-    /*      mBar                                    */
-    /* 0    50    600  1000  2350  5600  6600  7700 */
-    1300, 1100, 1085,  954,  700,  450,  350, 200, // -25C
-    1277, 1077,  925,  830,  675,  415,  320,   0, //  20C
-    1200, 1000,  835,  780,  650,  400,  288,   0, //  60C
-    1175,  975,  795,  745,  625,  370,  260,   0  // 150C
-};
-
-const int16_t BLUE_PCS_CURRENT_MAP[PCS_CURRENT_MAP_SIZE] = {
-    /*               0    50    600  1000  2350  5600  6600  7700 <- mBar */
-    /* -25C */     1300, 1100, 1085,  954,  700,  450,  350, 200,
-    /*  20C */     1277, 1077,  925,  830,  675,  415,  320,   0,
-    /*  60C */     1200, 1000,  835,  780,  650,  400,  288,   0,
-    /* 150C */     1175,  975,  795,  745,  625,  370,  260,   0
-};
-
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
-   /* K1    K2    K3    B1    B2 */
-    1200, 1400, 1300, 1200, 1400
+    /* K1    K2    K3    B1    B2    B3 */
+     1200, 1400, 1300, 1300, 1400, 1200
 };
+
+const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
+    /* Clutch                    */
+    /* K1    K2    K3    B1    B2 */
+      600,  700,  700,  700,  560
+};
+
+
 
 const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
@@ -349,12 +325,50 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
     /* Redline (100%)  */  100,  100,  100, 100,  100,  100
 };
 
+/** TCC Slip maps */
+
+// VALUES (Target TCC slip):
+// Values <=10 - Sets TCC is closed
+// Values > 100 - Sets TCC is open
+// Values between 10 and 100 - Tcc is slipping with desired target slip
+const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
+    /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
+        200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
+         90,  90,  90, 100, 150, 200, 200, 200, 200, 200, 200, // Input 1500 RPM
+         50,  50,  50,  80, 100, 100, 100, 150, 200, 200, 200, // Input 2000 RPM 
+         20,  20,  35,  55,  70,  80,  95, 100, 200, 200, 200, // Input 2500 RPM 
+          0,   0,  10,  30,  60,  60,  65,  90, 200, 200, 200, // Input 3000 RPM 
+          0,   0,   0,  10,  40,  40,  55,  85, 200, 200, 200, // Input 3500 RPM 
+          0,   0,   0,   0,  20,  30,  40,  80, 200, 200, 200, // Input 4000 RPM 
+          0,   0,   0,   0,  10,  20,  30,  70, 200, 200, 200, // Input 4500 RPM 
+          0,   0,   0,   0,   0,  10,  20,  40, 200, 200, 200, // Input 5000 RPM 
+          0,   0,   0,   0,   0,   0,  10,  20, 200, 200, 200, // Input 5500 RPM 
+          0,   0,   0,   0,   0,   0,   0,  10, 200, 200, 200, // Input 6000 RPM 
+};
+
+
 const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
-//  K1 K2 K3 B1 B2    
-    0, 0, 0, 0, 0,
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+      0,   0,   0,   0,   0,   0,   0,   0
 };
 
 const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
-//  K1 K2 K3 B1 B2   
-    0, 0, 0, 0, 0,
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+    0,   0,   0,   0,   0,   0,   0,   0
+};
+
+// Values here are x100 (so 20 would be 0.2)
+const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[] = {
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+     20,  30,  40,  50,  50,  40,  30,  20
+};
+
+const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE] = "ENGINE_TORQUE_MAX";
+const int16_t ENGINE_TORQUE_HEADERS_MAP[] = {
+    /* rpm */    0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000
+};
+const int16_t ENGINE_TORQUE_MAP[] = { // Value = maximum torque at rpm
+    // initial values are taken from E 320 (M104 E32 in 124)
+    /*              0 rpm	250 rpm	500 rpm	750 rpm	1000 rpm	1250 rpm	1500 rpm	1750 rpm	2000 rpm	2250 rpm	2500 rpm	2750 rpm	3000 rpm	3250 rpm	3500 rpm	3750 rpm	4000 rpm	4250 rpm	4500 rpm	4750 rpm	5000 rpm	5250 rpm	5500 rpm	5750 rpm	6000 rpm	6250 rpm	6500 rpm	6750 rpm	7000 rpm	7250 rpm	7500 rpm	7750 rpm	8000 rpm */
+    /* in Nm */     0,	    61,	    121,	182,	242,	    251,	    259,	    268,	    276,	    280,	    284,	    288,	    292,	    299,	    306,	    310,	    309,    	308,    	304,    	300,    	296,    	290,    	282,    	266,    	250,    	235,    	219,	    205,	    190,	    176,	    161,	    147,	    132
 };

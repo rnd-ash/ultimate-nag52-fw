@@ -5,7 +5,7 @@
 #include "../../lib/core/lookuptable.h"
 #include "stored_data.h"
 
-class StoredTable : public LookupTable, public StoredData{
+class StoredTable : public LookupAllocTable, public StoredData{
     public:
         StoredTable(
             const char* eeprom_key_name,
@@ -20,8 +20,9 @@ class StoredTable : public LookupTable, public StoredData{
          * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
          * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
          */
-        esp_err_t replace_data_content(int16_t* new_data, uint16_t content_len);
+        esp_err_t replace_data_content(const int16_t* new_data, uint16_t content_len);
         esp_err_t save_to_eeprom(void) override;
+        esp_err_t reset_from_flash(void) override;
         esp_err_t read_from_eeprom(const char* key_name, uint16_t expected_size) override;        
         
 };

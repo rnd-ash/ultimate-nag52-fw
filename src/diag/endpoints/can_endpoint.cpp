@@ -1,7 +1,7 @@
 #include "endpoint.h"
 #include "../kwp2000_defines.h"
 #include "driver/twai.h"
-#include "esp_timer.h"
+#include "clock.hpp"
 
 const DiagCanMessage FLOW_CONTROL = {0x30, KWP_CAN_BS, KWP_CAN_ST_MIN, 0, 0, 0, 0, 0};
 const DiagCanMessage FLOW_CONTROL_BUSY = {0x31, 0, 0, 0, 0, 0, 0, 0};
@@ -68,8 +68,9 @@ void CanEndpoint::iso_tp_server_loop() {
     // This loop deals with sending and receiving data from ISO-TP
     DiagCanMessage rx;
     esp_err_t res;
+    uint32_t now;
     while(1) {
-        uint64_t now = esp_timer_get_time() / 1000;
+        now = GET_CLOCK_TIME();
         while (xQueueReceive(this->rx_queue, rx, 0) == pdTRUE) {
             this->last_rx_time = now;
             switch (rx[0] & 0xF0) { // Check incoming frame PCI
@@ -89,7 +90,7 @@ void CanEndpoint::iso_tp_server_loop() {
                     ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", rx[0]);
                     break;
             }
-            if (esp_timer_get_time()/1000 - now > 1) {
+            if (GET_CLOCK_TIME() - now > 1) {
                 break;
             }
         }
@@ -173,7 +174,7 @@ void CanEndpoint::iso_tp_server_loop() {
         if (is_receiving || is_sending) { // Rx
             vTaskDelay(2);
         } else { // Idle
-             vTaskDelay(25);
+            vTaskDelay(25);
         }
     }
 }
@@ -242,6 +243,6 @@ void CanEndpoint::process_flow_control(DiagCanMessage msg) {
             this->tx_stmin = 0; // Microseconds so < 1ms
         }
         this->tx_count = 0;
-        this->last_tx_time = esp_timer_get_time()/1000; // To avoid timeouts
+        this->last_tx_time = GET_CLOCK_TIME(); // To avoid timeouts
     }
 }

@@ -9,13 +9,14 @@ StoredMap::StoredMap(const char *eeprom_key_name,
                            const int16_t *y_headers,
                            const uint16_t x_size,
                            const uint16_t y_size,
-                           const int16_t *default_map) : LookupMap(x_headers,
+                           const int16_t *default_map) : LookupAllocMap(x_headers,
                                                                 x_size,
                                                                 y_headers,
                                                                 y_size,
                                                                 default_map,
                                                                 data_element_count)
 {
+    this->default_data = {0u};
     this->default_map = default_map;
     if ((x_size * y_size) == data_element_count)
     {
@@ -43,7 +44,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
             ESP_LOGE("STO_MAP", "Cannot Load Stored map %s! Internal map allocation failed!", eeprom_key_name);
             this->init_state = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {
@@ -57,7 +58,7 @@ StoredMap::StoredMap(const char *eeprom_key_name,
  * Note. This is a temporary replace. If you power the car down, changes made will be lost unless they
  * are written to EEPROM. This also acts as a failsafe in the event of a bad map edit, just reboot the car!
  */
-esp_err_t StoredMap::replace_data_content(int16_t *new_data, uint16_t content_len)
+esp_err_t StoredMap::replace_data_content(const int16_t *new_data, uint16_t content_len)
 {
     esp_err_t result = ESP_OK;
     if (content_len == (this->data_element_count))
@@ -73,22 +74,14 @@ esp_err_t StoredMap::replace_data_content(int16_t *new_data, uint16_t content_le
     return result;
 }
 
-/**
- * @brief Reloads the previously saved map from EEPROM into the map (Undo function)
- */
-esp_err_t StoredMap::reload_from_eeprom(void)
-{
-    return this->read_from_eeprom(this->data_name, this->data_element_count);
+esp_err_t StoredMap::reset_from_flash(void) {
+    esp_err_t res = ESP_OK;
+    const int16_t* default_data = this->default_map;
+    if (ESP_OK == this->replace_data_content(default_data, this->data_size()) ) {
+        res = this->save_to_eeprom();
+    }
+    return res;
 }
-
-/**
- * @brief Resets the map data to the stock map from the TCU firmware (maps.cpp)
- * THIS RESETS THE MAP TO FIRMWARE DEFAULT - ALL CHANGES WILL BE LOST!
- */
-// bool StoredTcuMap::reset_from_default_eeprom(void)
-// {
-//     return this->add_data(const_cast<int16_t *>(this->default_map), this->data_element_count);
-// }
 
 /**
  * @brief Save new map contents to EEPROM (This will mean next TCU load will use the new map)
@@ -120,7 +113,7 @@ esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_si
             ESP_LOGE("STO_MAP", "Read from eeprom failed (Cannot allocate dest array)");
             ret = ESP_ERR_NO_MEM;
         }
-        TCU_HEAP_FREE(dest);
+        TCU_FREE(dest);
     }
     else
     {
@@ -154,7 +147,7 @@ int16_t *StoredMap::get_current_eeprom_map_data(void)
         succesful_allocation = true;
         if (EEPROM::read_nvs_map_data(this->data_name, dest, this->default_map, this->data_element_count) != ESP_OK)
         {
-            TCU_HEAP_FREE(dest);
+            TCU_FREE(dest);
             succesful_allocation = false;            
         }
     }

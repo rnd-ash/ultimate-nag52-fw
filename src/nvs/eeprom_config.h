@@ -9,17 +9,10 @@
 #include "nvs_flash.h"
 #include "esp_err.h"
 
-// #define NVS_KEY_EEPROM_INIT "EEPROM_INIT"
-
-// Core SCN config (Needed for a ton of important calculations!)
-static const char NVS_KEY_SCN_CONFIG[9] = "CORE_SCN";
-
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
-static const char NVS_UCFG_KEY_PROFILE[13] = "LAST_PROFILE";
-static const char NVS_KEY_GEAR_ADAPTATION[16] = "GEAR_ADAPTATION";
 
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
-    uint8_t is_large_nag;
+    uint8_t deprecated_is_large_nag;
     uint16_t diff_ratio;
     uint16_t wheel_circumference;
     uint8_t is_four_matic;
@@ -34,6 +27,10 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     // 1 - TRRS
     // 2 - SLR
     uint8_t shifter_style;
+    // 0 - N/C
+    // 1 - Vehicle speed sensor
+    // 2 - Output (TBA)
+    // 3 - TCC Manual MOSFET (1.3 ONLY)
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
@@ -57,13 +54,23 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
 // PRODUCT.M_YEAR,    EFUSE_BLK3, 32,          8
 
 struct __attribute__ ((packed)) TCM_EFUSE_CONFIG {
-    uint8_t board_ver; // 1 - Red PCB, 2 - Black PCB, 3 - Black PCB with GPIO (WIP)
+    // 1 - Red PCB (V1.1)
+    // 2 - Blue PCB (V1.2)
+    // 3 - Black PCB (V1.3)
+    // 4 - Green PCB (V1.4 - PRE PROD)
+    // 0xF | 4 - Green PCB HGS Variant
+    uint8_t board_ver;
     uint8_t manufacture_day;
     uint8_t manufacture_week;
     uint8_t manufacture_month;
     uint8_t manufacture_year;
 };
 
+struct __attribute__ ((packed)) FLASH_NVS_SETTINGS_DESC {
+    uint8_t magic[4];
+    uint32_t key_cs;
+    uint32_t compressed_size;
+};
 
 namespace EEPROM {
     esp_err_t init_eeprom(void);
@@ -73,15 +80,20 @@ namespace EEPROM {
     esp_err_t read_efuse_config(TCM_EFUSE_CONFIG* dest);
     esp_err_t write_efuse_config(TCM_EFUSE_CONFIG* dest);
 
+    uint16_t read_device_mode(void);
+    esp_err_t set_device_mode(uint16_t mode);
+
     esp_err_t read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count);
     esp_err_t write_nvs_map_data(const char* map_name, const int16_t* to_write, size_t map_element_count);
     
+    esp_err_t check_if_new_fw(bool* dest);
+
     template <typename T>
     esp_err_t read_subsystem_settings(const char* key_name, T* dest, const T* default_settings);
 
     template <typename T>
     esp_err_t write_subsystem_settings(const char* key_name, const T* write);
-};
+}
 
 #define NUM_GEARS 5
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;

@@ -25,6 +25,7 @@
 #define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
 #define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
 #define RLI_SYS_USAGE       0x23 // Brain usage
+#define RLI_TCC_PROGRAM     0x24 // TCC info
 #define RLI_PRESSURES       0x25
 #define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
@@ -37,6 +38,7 @@
 #define RLI_CLUTCH_SPEEDS   0x30
 #define RLI_CLUTCH_VELOCITY 0x31
 
+#define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
 #define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
 #define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
@@ -74,16 +76,23 @@ typedef struct {
 
 // Pressure command struct
 typedef struct {
-    uint16_t spc_pwm;
-    uint16_t mpc_pwm;
-    uint16_t tcc_pwm;
     uint8_t ss_flag;
-    uint16_t spc_sol_pressure;
-    uint16_t mpc_sol_pressure;
-    uint16_t spc_clutch_pressure;
-    uint16_t mpc_clutch_pressure;
-    uint16_t tcc_clutch_pressure;
-    uint16_t line_pressure;
+    uint16_t shift_req_pressure;
+    uint16_t modulating_req_pressure;
+
+    uint16_t working_pressure;
+    uint16_t inlet_pressure;
+
+    uint16_t corrected_spc_pressure;
+    uint16_t corrected_mpc_pressure;
+
+    uint16_t tcc_pressure;
+
+    // Shifting pressures
+    uint16_t on_clutch_pressure;
+    uint16_t off_clutch_pressure;
+    uint16_t overlap_mod;
+    uint16_t overlap_shift;
 }  __attribute__ ((packed)) DATA_PRESSURES;
 
 // Solenoid command struct
@@ -95,7 +104,7 @@ typedef struct {
     uint16_t driver_torque;
     uint16_t left_rear_rpm;
     uint16_t right_rear_rpm;
-    uint8_t shift_button_pressed;
+    DiagProfileInputState profile_input_raw;
     ShifterPosition shifter_position;
     PaddlePosition paddle_position;
     uint16_t engine_rpm;
@@ -120,6 +129,28 @@ typedef struct {
     uint32_t num_tasks;
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
+/// Torque converter program stats 
+typedef struct {
+    uint16_t current_pressure;
+    uint16_t target_pressure;
+    int16_t slip_now;
+    int16_t slip_filtered;
+    uint16_t slip_target;
+    uint16_t pedal_now;
+    uint16_t pedal_filtered;
+    // 0 - Open
+    // 1 - Slip
+    // 2 - Closed
+    uint8_t targ_state;
+    uint8_t current_state;
+    // 0b1 - Open request 
+    // 0b01 - Slip request
+    uint8_t can_request_bits;
+    //
+    uint32_t engine_output_joule;
+    uint32_t tcc_absorbed_joule;
+} __attribute__ ((packed)) DATA_TCC_PROGRAM;
+
 typedef struct {
     uint16_t adc_reading;
     uint16_t dma;
@@ -138,8 +169,9 @@ typedef struct {
     uint16_t input_rpm;
     uint16_t engine_rpm;
     uint16_t output_rpm;
-    uint16_t engine_torque;
-    uint16_t req_engine_torque;
+    int16_t engine_torque;
+    int16_t input_torque;
+    int16_t req_engine_torque;
     uint8_t atf_temp;
     uint8_t shift_idx;
 } __attribute__ ((packed)) SHIFT_LIVE_INFO;
@@ -151,6 +183,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
 DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
+DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr);
 
 // Read and write TCU Module settings
 
@@ -165,6 +198,7 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 PARTITION_INFO get_coredump_info(void);
 PARTITION_INFO get_current_sw_info(void);
 PARTITION_INFO get_next_sw_info(void);
+uint16_t get_egs_calibration_size(void);
 
 const esp_app_desc_t* get_image_header(void);
 

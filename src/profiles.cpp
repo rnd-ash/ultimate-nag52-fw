@@ -3,7 +3,7 @@
 #include "tcu_maths.h"
 #include "gearbox.h"
 #include "maps.h"
-
+#include "nvs/all_keys.h"
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
 AbstractProfile::AbstractProfile(bool is_diesel, 
@@ -93,12 +93,12 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChang
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "WINTER", 
-        MAP_NAME_A_DIESEL_UPSHIFT, 
-        MAP_NAME_A_DIESEL_DOWNSHIFT,
-        MAP_NAME_A_PETROL_UPSHIFT, 
-        MAP_NAME_A_PETROL_DOWNSHIFT,
-        MAP_NAME_A_UPSHIFT_TIME,
-        MAP_NAME_A_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_A_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_A_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_A_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_A_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_A_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_A_DOWNSHIFT_TIME,
         A_DIESEL_UPSHIFT_MAP,
         A_DIESEL_DOWNSHIFT_MAP,
         A_PETROL_UPSHIFT_MAP,
@@ -159,12 +159,12 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "COMFORT", 
-        MAP_NAME_C_DIESEL_UPSHIFT, 
-        MAP_NAME_C_DIESEL_DOWNSHIFT,
-        MAP_NAME_C_PETROL_UPSHIFT, 
-        MAP_NAME_C_PETROL_DOWNSHIFT,
-        MAP_NAME_C_UPSHIFT_TIME,
-        MAP_NAME_C_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_C_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_C_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_C_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_C_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_C_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_C_DOWNSHIFT_TIME,
         C_DIESEL_UPSHIFT_MAP,
         C_DIESEL_DOWNSHIFT_MAP,
         C_PETROL_UPSHIFT_MAP,
@@ -204,7 +204,17 @@ bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
         return false;
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        if (sensors->is_braking) { can_upshift = false; }
+        //if (can_upshift) {
+        //    if (sensors->max_torque != 0) {
+        //        float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+        //        if (demanded_load > 30) {
+        //            can_upshift = false;
+        //        }
+        //    }
+        //}
+        return can_upshift;
     } else {
         return false;
     }
@@ -224,12 +234,12 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "WINTER", 
-        MAP_NAME_M_DIESEL_UPSHIFT, 
-        MAP_NAME_M_DIESEL_DOWNSHIFT,
-        MAP_NAME_M_PETROL_UPSHIFT, 
-        MAP_NAME_M_PETROL_DOWNSHIFT,
-        MAP_NAME_C_UPSHIFT_TIME,
-        MAP_NAME_C_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_C_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_C_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
@@ -279,12 +289,12 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "STANDARD", 
-        MAP_NAME_S_DIESEL_UPSHIFT, 
-        MAP_NAME_S_DIESEL_DOWNSHIFT,
-        MAP_NAME_S_PETROL_UPSHIFT, 
-        MAP_NAME_S_PETROL_DOWNSHIFT,
-        MAP_NAME_S_UPSHIFT_TIME,
-        MAP_NAME_S_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_S_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_S_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_S_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_S_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_S_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_S_DOWNSHIFT_TIME,
         S_DIESEL_UPSHIFT_MAP,
         S_DIESEL_DOWNSHIFT_MAP,
         S_PETROL_UPSHIFT_MAP,
@@ -320,11 +330,40 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 }
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
+    this->update(sensors);
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        if (sensors->is_braking) { can_upshift = false; } // Disable when breaking
+        //if (this->accel_delta_factor > 100 && sensors->pedal_pos > 64) {
+        //    can_upshift = false;
+        //}
+        // Load check
+        //if (can_upshift) {
+        //    if (sensors->max_torque != 0) {
+        //        float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+        //        if (demanded_load > 30) {
+        //            can_upshift = false;
+        //        }
+        //    }
+        //}
+        return can_upshift;
     } else {
         return false;
+    }
+}
+
+void StandardProfile::update(SensorData* sensors) {
+    // Every 250ms we check sensor inputs
+    if (GET_CLOCK_TIME() - this->last_check > 250) {
+        this->last_check = GET_CLOCK_TIME();
+        if (sensors->pedal_pos - last_sensors.pedal_pos > 64) { // More than a 25% jump in pedal in 250ms
+            accel_delta_factor += (sensors->pedal_pos - last_sensors.pedal_pos) * 10;
+        }
+        last_sensors = *sensors;
+    }
+    if (this->accel_delta_factor > 0) {
+        this->accel_delta_factor-=5;
     }
 }
 
@@ -365,12 +404,12 @@ GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGe
 ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
         "MANUAL", 
-        MAP_NAME_M_DIESEL_UPSHIFT, 
-        MAP_NAME_M_DIESEL_DOWNSHIFT,
-        MAP_NAME_M_PETROL_UPSHIFT, 
-        MAP_NAME_M_PETROL_DOWNSHIFT,
-        MAP_NAME_M_UPSHIFT_TIME,
-        MAP_NAME_M_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_M_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_M_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
@@ -387,7 +426,7 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) {
         return false;
-    } else if (sensors->input_rpm < 300 && sensors->engine_rpm < TCC_CURRENT_SETTINGS.min_locking_rpm && sensors->pedal_pos == 0) {
+    } else if (sensors->input_rpm < 300 && sensors->pedal_pos == 0) {
         return true;
     } else {
         return false;
@@ -398,12 +437,12 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 RaceProfile::RaceProfile(bool is_diesel): AbstractProfile(
         is_diesel,
         "RACE", 
-        MAP_NAME_M_DIESEL_UPSHIFT, 
-        MAP_NAME_M_DIESEL_DOWNSHIFT,
-        MAP_NAME_M_PETROL_UPSHIFT, 
-        MAP_NAME_M_PETROL_DOWNSHIFT,
-        MAP_NAME_R_UPSHIFT_TIME,
-        MAP_NAME_R_DOWNSHIFT_TIME,
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
+        NVS_KEY_MAP_NAME_R_UPSHIFT_TIME,
+        NVS_KEY_MAP_NAME_R_DOWNSHIFT_TIME,
         M_DIESEL_UPSHIFT_MAP,
         M_DIESEL_DOWNSHIFT_MAP,
         M_PETROL_UPSHIFT_MAP,
@@ -432,3 +471,21 @@ WinterProfile* winter = nullptr;
 ManualProfile* manual = nullptr;
 StandardProfile* standard = nullptr;
 RaceProfile* race = nullptr;
+
+AbstractProfile *profiles[NUM_PROFILES] = {};
+
+void Profiles::init_profiles(bool is_diesel) {
+    standard = new StandardProfile(is_diesel);
+    comfort = new ComfortProfile(is_diesel);
+    winter = new WinterProfile(is_diesel);
+    agility = new AgilityProfile(is_diesel);
+    manual = new ManualProfile(is_diesel);
+    race = new RaceProfile(is_diesel);
+
+    profiles[(uint8_t)GearboxProfile::Standard] = standard;
+    profiles[(uint8_t)GearboxProfile::Comfort] = comfort;
+    profiles[(uint8_t)GearboxProfile::Winter] = winter;
+    profiles[(uint8_t)GearboxProfile::Agility] = agility;
+    profiles[(uint8_t)GearboxProfile::Manual] = manual;
+    profiles[(uint8_t)GearboxProfile::Race] = race;
+}

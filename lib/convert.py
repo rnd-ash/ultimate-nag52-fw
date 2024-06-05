@@ -27,7 +27,7 @@ def clear_bit(mask, bit):
     return mask & ~(1<<bit)
 
 def remove_useless_from_line(l: str) -> str:
-    return l.replace("\t", "").replace("\n", "")
+    return l.strip().replace("\n", "")
 
 class EnumEntry:
     def __init__(self, name: str, raw: int, desc: str):
@@ -276,7 +276,7 @@ class ECU:
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint64_t timestamp_now) {
+        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             uint8_t idx = 0;
             bool add = true;
             switch(can_id) {"""
@@ -307,7 +307,7 @@ class ECU:
           *
           * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
           */
-        bool get_{0}(uint64_t now, uint64_t max_expire_time, {0}{2}* dest) const {{
+        bool get_{0}(const uint32_t now, const uint32_t max_expire_time, {0}{2}* dest) const {{
             bool ret = false;
             if (dest != nullptr && LAST_FRAME_TIMES[{1}] <= now && now - LAST_FRAME_TIMES[{1}] < max_expire_time) {{
                 dest->raw = FRAME_DATA[{1}];
@@ -318,7 +318,7 @@ class ECU:
             """.format(frame.name.strip().removesuffix("h"), idx, global_guard)
         tmp += "\n\tprivate:"
         tmp += "\n\t\tuint64_t FRAME_DATA[{0}];".format(num_frames)
-        tmp += "\n\t\tuint64_t LAST_FRAME_TIMES[{0}];".format(num_frames)
+        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}];".format(num_frames)
         tmp += "\n};"
 
         # Lastly append endif guard
@@ -337,6 +337,7 @@ for line in input_file:
     if not l.startswith("#"): # Ignore comments
         if l.startswith("ECU "):
             ecu = l.split("ECU ")[1].strip()
+            print("ECU "+ecu)
             if getattr(current_ecu, 'name', 'nan') != ecu and current_ecu != None:
                 # Check if frame / signal is none
                 if current_signal and current_frame:
@@ -351,6 +352,7 @@ for line in input_file:
         elif l.startswith("FRAME"):
             frame_name = l.split("FRAME ")[1].split("(")[0].strip()
             frame_id = int(l.split("(")[1].split(")")[0], 0)
+            print("FRAME "+frame_name)
             if current_signal and current_frame:
                 current_frame.add_signal(current_signal)
             if current_frame:

@@ -429,7 +429,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         bool prefill_protection_active = false;
         bool mpc_released = false;
         int current_torque_req = 0;
-        float spc_delta = 0;
+        float torque_adder = 0;
         int trq_up_time = 0;
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
         pressure_manager->set_shift_stage(current_stage);
@@ -809,10 +809,13 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     if (sensor_data.pedal_pos == 0 && !is_upshift) {
                         targ_torque += abs_input_torque; // For engine braking coast shifts
                     }
-
+                    if (!stationary_shift && now_cs.on_clutch_speed > now_cs.off_clutch_speed && into_phase > chars.target_shift_time/2) {
+                        torque_adder += 1;
+                        targ_torque += torque_adder;
+                    }
                     int wp_new_clutch_end = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, targ_torque, false);
+                    p_now.on_clutch = interpolate_float(into_phase, wp_new_clutch_start, wp_new_clutch_end, 0, chars.target_shift_time/2, InterpType::Linear);
 
-                    p_now.on_clutch = interpolate_float(into_phase, wp_new_clutch_start, wp_new_clutch_end, 0, chars.target_shift_time, InterpType::Linear);
                     //if (into_phase > chars.target_shift_time && now_cs.on_clutch_speed > now_cs.off_clutch_speed) {
                     //    spc_delta += 10;
                     //}

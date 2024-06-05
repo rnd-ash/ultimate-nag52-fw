@@ -322,10 +322,10 @@ float Gearbox::calc_torque_reduction_factor(ProfileGearChange change, uint16_t s
     return MIN(1.0, multi_reduction);
 }
 
-float calcualte_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
-    float min_factor = 1.0 / (float)MECH_PTR->intertia_factor[shift_idx];
+float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
+    float min_factor = 1.0 / ((float)(MECH_PTR->intertia_factor[shift_idx])/1000.0);
     float turbine_factor = (float)input_rpm / (float)engine_rpm;
-    float engine_inertia = VEHICLE_CONFIG.engine_drag_torque;
+    float engine_inertia = (float)(VEHICLE_CONFIG.engine_drag_torque)/10.0;
     float pump_inertia = MECH_PTR->intertia_torque[shift_idx];
     float ret = interpolate_float(turbine_factor, pump_inertia, engine_inertia, min_factor, 1, InterpType::Linear);
     return abs(ret);
@@ -800,7 +800,9 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                     int into_phase = phase_elapsed - overlap_phase_2_time;
                     // Phase 2 is harder, we have to monitor the clutch release and apply speed, and adjust pressures to get the desired
                     // ramping speeds from both clutches
-                    float inertia = calcualte_engine_inertia(sd.map_idx, sensor_data.engine_rpm, sensor_data.input_rpm);
+
+                    // Inertia of the engine / pump
+                    float inertia = calcualte_abs_engine_inertia(sd.map_idx, sensor_data.engine_rpm, sensor_data.input_rpm);
                     int wp_new_clutch_start = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, abs_input_torque, false);
 
                     int targ_torque = abs_input_torque + inertia;
@@ -810,11 +812,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
                     int wp_new_clutch_end = pressure_manager->find_working_pressure_for_clutch(t_gear, applying, targ_torque, false);
 
-                    p_now.on_clutch = interpolate_float(into_phase, wp_new_clutch_start, wp_new_clutch_end, 0, chars.target_shift_time/2, InterpType::Linear);
+                    p_now.on_clutch = interpolate_float(into_phase, wp_new_clutch_start, wp_new_clutch_end, 0, chars.target_shift_time, InterpType::Linear);
                     //if (into_phase > chars.target_shift_time && now_cs.on_clutch_speed > now_cs.off_clutch_speed) {
                     //    spc_delta += 10;
                     //}
-                    p_now.overlap_shift = p_now.on_clutch + interpolate_float(into_phase, spring_pressure_on_clutch, spring_pressure_on_clutch/2, 0, chars.target_shift_time, InterpType::Linear);
+                    p_now.overlap_shift = p_now.on_clutch + spring_pressure_on_clutch;
                     p_now.shift_sol_req = MAX((p_now.overlap_shift - centrifugal_force_on_clutch)/SPC_GAIN, 0);
 
                     if (do_dynamic_shift) {

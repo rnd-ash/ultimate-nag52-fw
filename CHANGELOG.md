@@ -65,6 +65,7 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
 * Shift logic rewrite (This is why adaptation is disabled)
     * Overlap is now split into 2 phases (Release phase, Apply and hold phase)
     * Filling of the clutches is now performed in 3 stages (High, Ramp, Low)
+    * Add in engine Inertia compensation when shifting to pull the engine to the correct RPM
 
 # 21/08/23
 * EGS51 - Repair wonky torque requests

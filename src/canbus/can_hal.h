@@ -73,7 +73,11 @@ class EgsBaseCan {
         
 
         ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            return shifter->get_shifter_position(expire_time_ms);
+            if (shifter) {
+                return shifter->get_shifter_position(expire_time_ms);
+            } else {
+                return ShifterPosition::SignalNotAvailable;
+            }
         }
 
         /**

@@ -41,6 +41,7 @@ Shifter *shifter = nullptr;
 SPEAKER_POST_CODE setup_tcm()
 {
     SPEAKER_POST_CODE ret = SPEAKER_POST_CODE::INIT_OK; // OK by default
+    CURRENT_DEVICE_MODE = DEVICE_MODE_NO_EFUSE;
     if (ESP_OK == EEPROM::read_efuse_config(&BOARD_CONFIG))
     {
         // First thing to do, Configure the GPIO Pin matrix!
@@ -67,70 +68,71 @@ SPEAKER_POST_CODE setup_tcm()
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
-            if (ESP_OK == EEPROM::init_eeprom())
+            if (ESP_OK == Sensors::init_sensors())
             {
-                // Read device mode!
-                CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
-                // Load EGS Calibration
-                if (ESP_OK == EGSCal::init_egs_calibration()) {
-                    // Read our configuration (This is allowed to fail as the default opts are always set by default)
-                    ModuleConfiguration::load_all_settings();
-                    // init driving profiles
-                    Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
+                if (ESP_OK == Solenoids::init_all_solenoids())
+                {
+                    if (ESP_OK == EEPROM::init_eeprom())
+                    {
+                        // Read device mode!
+                        CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
+                        // Load EGS Calibration
+                        if (ESP_OK == EGSCal::init_egs_calibration()) {
+                            // Read our configuration (This is allowed to fail as the default opts are always set by default)
+                            ModuleConfiguration::load_all_settings();
+                            // init driving profiles
+                            Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
 
-                    // init the shifter module
-                    switch (VEHICLE_CONFIG.shifter_style)
-                    {
-                    case (uint8_t)ShifterStyle::EWM:
-                    case (uint8_t)ShifterStyle::SLR:
-                        shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
-                        break;
-                    case (uint8_t)ShifterStyle::TRRS:
-                        if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
-                            shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
-                        } else {
-                            ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
-                            shifter = nullptr;
-                        }
-                        break;
-                    default:
-                        // possibly
-                        break;
-                    }
-                    if (nullptr != shifter)
-                    {
-                        // init the CAN module
-                        egs_can_hal->~EgsBaseCan();
-                        free(egs_can_hal); // Delete fallback CAN
-                        switch (VEHICLE_CONFIG.egs_can_type)
-                        {
-                        case 1:
-                            egs_can_hal = new Egs51Can("EGS51", 20, 500000, shifter); // EGS51 CAN Abstraction layer
-                            break;
-                        case 2:
-                            egs_can_hal = new Egs52Can("EGS52", 20, 500000, shifter); // EGS52 CAN Abstraction layer
-                            break;
-                        case 3:
-                            egs_can_hal = new Egs53Can("EGS53", 20, 500000, shifter); // EGS53 CAN Abstraction layer
-                            break;
-                        case 4:
-                            egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
-                            break;
-                        case 5:
-                            egs_can_hal = new CustomCan("CC", 20, 500000, shifter); // Custom CAN Abstraction layer
-                            break;
-                        default:
-                            // Unknown (Fallback to basic CAN)
-                            ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
-                            egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000, shifter);
-                            break;
-                        }
-                        if (egs_can_hal->begin_task())
-                        {
-                            if (ESP_OK == Sensors::init_sensors())
+                            // init the shifter module
+                            switch (VEHICLE_CONFIG.shifter_style)
                             {
-                                if (ESP_OK == Solenoids::init_all_solenoids())
+                            case (uint8_t)ShifterStyle::EWM:
+                            case (uint8_t)ShifterStyle::SLR:
+                                shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
+                                break;
+                            case (uint8_t)ShifterStyle::TRRS:
+                                if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
+                                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                                } else {
+                                    ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
+                                    shifter = nullptr;
+                                }
+                                break;
+                            default:
+                                // possibly
+                                break;
+                            }
+                            if (nullptr != shifter)
+                            {
+                                // init the CAN module
+                                egs_can_hal->~EgsBaseCan();
+                                free(egs_can_hal); // Delete fallback CAN
+                                switch (VEHICLE_CONFIG.egs_can_type)
                                 {
+                                case 1:
+                                    egs_can_hal = new Egs51Can("EGS51", 20, 500000, shifter); // EGS51 CAN Abstraction layer
+                                    break;
+                                case 2:
+                                    egs_can_hal = new Egs52Can("EGS52", 20, 500000, shifter); // EGS52 CAN Abstraction layer
+                                    break;
+                                case 3:
+                                    egs_can_hal = new Egs53Can("EGS53", 20, 500000, shifter); // EGS53 CAN Abstraction layer
+                                    break;
+                                case 4:
+                                    egs_can_hal = new HfmCan("HFM", 20, reinterpret_cast<ShifterTrrs*>(shifter)); // HFM CAN Abstraction layer
+                                    break;
+                                case 5:
+                                    egs_can_hal = new CustomCan("CC", 20, 500000, shifter); // Custom CAN Abstraction layer
+                                    break;
+                                default:
+                                    // Unknown (Fallback to basic CAN)
+                                    ESP_LOGE("INIT", "ERROR. CAN Mode not set, falling back to basic CAN (Diag only!)");
+                                    egs_can_hal = new EgsBaseCan("EGSBASIC", 20, 500000, shifter);
+                                    break;
+                                }
+                                if (egs_can_hal->begin_task())
+                                {
+                                    
                                     gearbox = new Gearbox(shifter);
                                     if (ESP_OK == gearbox->start_controller())
                                     {
@@ -144,32 +146,32 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 else
                                 {
-                                    CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
-                                    ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
+                                    ret = SPEAKER_POST_CODE::CAN_FAIL;
                                 }
                             }
                             else
                             {
-                                ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                                ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
                             }
-                        }
-                        else
-                        {
-                            ret = SPEAKER_POST_CODE::CAN_FAIL;
+                        } else {
+                            CURRENT_DEVICE_MODE = DEVICE_MODE_NO_CALIBRATION;
+                            ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
                         }
                     }
                     else
                     {
-                        ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
+                        ret = SPEAKER_POST_CODE::EEPROM_FAIL;
                     }
-                } else {
-                    CURRENT_DEVICE_MODE = DEVICE_MODE_NO_CALIBRATION;
-                    ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
+                }
+                else
+                {
+                    CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
+                    ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
                 }
             }
             else
             {
-                ret = SPEAKER_POST_CODE::EEPROM_FAIL;
+                ret = SPEAKER_POST_CODE::SENSOR_FAIL;
             }
         }
     }

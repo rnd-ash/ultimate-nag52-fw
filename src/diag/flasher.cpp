@@ -76,11 +76,15 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     this->to_write = dest_mem_size;
 
     // Ok, conditions are correct, now we need to prepare
-    this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
+    if (nullptr != this->gearbox_ref) {
+        this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
+    }
     vTaskDelay(50);
-    this->can_ref->set_safe_start(false);
-    this->can_ref->set_drive_profile(GearboxProfile::Underscore);
-    this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
+    if (nullptr != this->can_ref) {
+        this->can_ref->set_safe_start(false);
+        this->can_ref->set_drive_profile(GearboxProfile::Underscore);
+        this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
+    }
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
     resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
@@ -118,11 +122,15 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
         return global_make_diag_neg_msg(dest, SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     // Ok, conditions are correct, now we need to prepare
-    this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
+    if (nullptr != this->gearbox_ref) {
+        this->gearbox_ref->diag_inhibit_control(); // Disable gearbox controller
+    }
     vTaskDelay(50);
-    this->can_ref->set_safe_start(false);
-    this->can_ref->set_drive_profile(GearboxProfile::Underscore);
-    this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
+    if (nullptr != this->can_ref) {
+        this->can_ref->set_safe_start(false);
+        this->can_ref->set_drive_profile(GearboxProfile::Underscore);
+        this->can_ref->set_display_gear(GearboxDisplayGear::SNA, false);
+    }
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
     resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
@@ -185,7 +193,9 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
 void Flasher::on_transfer_exit(uint8_t* args, uint16_t arg_len, DiagMessage* dest) {
     this->data_dir = 0; // Invalidate it
     // Return control back to TCM
-    this->gearbox_ref->diag_regain_control();
+    if (nullptr != this->gearbox_ref) {
+        this->gearbox_ref->diag_regain_control();
+    }
     global_make_diag_pos_msg(dest, SID_TRANSFER_EXIT, nullptr, 0x00);
 }
 

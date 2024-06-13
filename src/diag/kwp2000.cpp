@@ -425,10 +425,12 @@ void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
         } else {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
-                if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
-                    // P or R, we CANNOT reset the ECU!
-                    make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
-                    return;
+                if (nullptr != gearbox) {
+                    if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
+                        // P or R, we CANNOT reset the ECU!
+                        make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+                        return;
+                    }
                 }
                 this->reboot_pending = true;
                 make_diag_pos_msg(SID_ECU_RESET, nullptr, 0);

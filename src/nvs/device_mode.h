@@ -17,7 +17,7 @@ extern uint16_t CURRENT_DEVICE_MODE;
 // BIT 5?
 #define DEVICE_MODE_ERROR BIT(6) // Limp mode (Until DTCs cleared)
 #define DEVICE_MODE_NO_CALIBRATION BIT(7) // No calibration (Cannot init)
-// BIT 8?
+#define DEVICE_MODE_NO_EFUSE BIT(8) // No Efuse set (Cannot init)
 // BIT 9?
 // BIT 10?
 // BIT 11?

@@ -6,6 +6,11 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
 
 # Dev (Unreleased)
 
+# 13/06/24
+* Improve the stability of the TCU when in emergency mode (No configuration)
+
+# 05/06/24
+
 ## Bugs
 * Adaptation is disabled at this time due to the massive rework, it will be re-enabled in a future release.
 

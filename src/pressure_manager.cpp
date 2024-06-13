@@ -275,7 +275,7 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
         if (clutch_factor != 0) {
             float density_now = MECH_PTR->atf_density_minus_50c - ((sensor_data->atf_temp + 50) * ((float)(MECH_PTR->atf_density_drop_per_c) / 100.0));
             ret = density_now * ((speed * speed) / clutch_factor);
-            ret /= 1000.0; // To convert to mbar
+            ret /= 10000.0; // To convert to mbar
         }
     }
     return ret;

@@ -310,20 +310,24 @@ esp_err_t Sensors::init_sensors(void){
 esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
 {
     esp_err_t res = ESP_OK;
-    float f2 = (float)n2_avg_buffer->get_average()/2.0;
-    float f3 = (float)n3_avg_buffer->get_average()/2.0;
-    float c = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
-    if (c < 0) {
-        c = 0;
-    }
-    dest->n2_raw = f2;
-    dest->n3_raw = f3;
-    dest->calc_rpm = c;
+    if (nullptr == n2_avg_buffer || nullptr == n3_avg_buffer) {
+        res = ESP_ERR_NOT_SUPPORTED;
+    } else {
+        float f2 = (float)n2_avg_buffer->get_average()/2.0;
+        float f3 = (float)n3_avg_buffer->get_average()/2.0;
+        float c = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
+        if (c < 0) {
+            c = 0;
+        }
+        dest->n2_raw = f2;
+        dest->n3_raw = f3;
+        dest->calc_rpm = c;
 
-    // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
-    // otherwise we have a faulty conductor place sensor!
-    if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 100) {
-        res = ESP_ERR_INVALID_STATE;
+        // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
+        // otherwise we have a faulty conductor place sensor!
+        if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 100) {
+            res = ESP_ERR_INVALID_STATE;
+        }
     }
     return res;
 }

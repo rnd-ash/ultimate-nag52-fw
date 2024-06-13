@@ -11,10 +11,6 @@
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
-    if (g == nullptr) {
-        memset(&ret, 0xFF, sizeof(ret));
-        return ret;
-    }
     RpmReading d;
     bool b = false;
 
@@ -28,14 +24,22 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
         ret.calculated_rpm = 0xFFFF;
     }
     if (Sensors::parking_lock_engaged(&b) == ESP_OK) {
-         ret.parking_lock = b;
-         ret.atf_temp_c = g->sensor_data.atf_temp;
+        ret.parking_lock = b;
+        if (!b) {
+            int16_t tmp = 0;
+            Sensors::read_atf_temp(&tmp);
+            ret.atf_temp_c = tmp;
+        }
     } else {
         ret.parking_lock = 0xFF;
         ret.atf_temp_c = 0xFFFF;
     }
     ret.v_batt = Solenoids::get_solenoid_voltage();
-    ret.calc_ratio = g->get_gear_ratio();
+    if (g == nullptr) {
+        ret.calc_ratio = UINT16_MAX;
+    } else {
+        ret.calc_ratio = g->get_gear_ratio();
+    }
     uint16_t res = 0;
     if (ESP_OK == Sensors::read_output_rpm(&res)) {
         ret.output_rpm = res;
@@ -239,7 +243,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = egs_can_hal == nullptr ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(250);
+    ShifterPosition pos = (egs_can_hal == nullptr || gearbox == nullptr) ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(250);
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

@@ -134,10 +134,6 @@ uint16_t PressureManager::get_shift_regulator_pressure(void) {
     return HYDR_PTR->shift_reg_spring_pressure;
 }
 
-void PressureManager::set_shift_stage(ShiftStage s) {
-    this->shift_stage = s;
-}
-
 /*
 
 MERCEDES-BENZS PRESSURE NAMES (WIS)
@@ -171,7 +167,7 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     } else {
 
         float amplifier = 1.0;
-        if ((this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) && this->shift_stage != ShiftStage::MaxPressure) {
+        if ((this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2)) {
             amplifier = 1.993;
         }
 
@@ -337,8 +333,8 @@ void PressureManager::notify_shift_end() {
 // TODO pull this from calibration tables
 const float C_C_FACTOR[8] = {1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0};
 
-ShiftData PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
-    ShiftData sd; 
+CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars) {
+    CircuitInfo sd; 
     uint8_t lookup_valve_info = 0;
     switch (shift_request) {
         case ProfileGearChange::ONE_TWO:

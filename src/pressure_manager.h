@@ -47,7 +47,6 @@ public:
      * @param enable Set circuit state to on
      */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
-    void set_shift_stage(ShiftStage s);
 
     /**
      * @brief Set the target modulating pressure of the gearbox. 
@@ -104,7 +103,7 @@ public:
      * @return ShiftData 
      */
     void notify_shift_end();
-    ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
+    CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure);
@@ -177,7 +176,6 @@ private:
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
     uint16_t solenoid_max_pressure = 0;
-    ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;

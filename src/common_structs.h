@@ -10,35 +10,6 @@
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
 
-/**
- * @brief Shifting state
- */
-enum class ShiftStage {
-    /**
-     * @brief Hydralic bleed phase.
-     * In this phase, Shift pressure fluid is bled in order to not over pressurise the overlap valve
-     * The shift solenoid is not active
-    */
-    Bleed = 1,
-    /**
-     * @brief Clutch filling phase.
-     * In this phase, the shift solenoid is engaged, and Shift pressure is ramped in order to clear
-     * the tolorance between the engaging clutch pack, without actually applying it.
-     */
-    Fill = 2,
-    /**
-     * @brief Clutch overlap phase.
-     * In this phase, the engaging clutch's pressure is raised, whilst the disengaging clutch's pressure
-     * is reduced, causing (Via the overlap hydralic valve), the gearbox to transition clutch packs.
-     */
-    Overlap = 3,
-    /**
-     * @brief Shift pressure is increased to its maximum via a ramp in order to lock the engaging clutch in place.
-     * Then, the shift solenoid turns off, completing the gear change.
-     */
-    MaxPressure = 4
-};
-
 enum class Clutch {
     K1 = 0,
     K2 = 1,
@@ -169,7 +140,7 @@ enum class ShiftCircuit {
  * @brief Shift data request structure
  * 
  */
-struct ShiftData{
+struct CircuitInfo{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;

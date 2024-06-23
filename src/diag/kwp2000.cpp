@@ -1276,9 +1276,14 @@ void Kwp2000_server::run_solenoid_test() {
 
     SolRtRes res{};
     res.lid = this->routine_id;
-    res.atf_temp = this->gearbox_ptr->sensor_data.atf_temp;
-
-    this->gearbox_ptr->diag_inhibit_control();
+    int16_t tmp = 0;
+    if (Sensors::read_atf_temp(&tmp) != ESP_OK) {
+        return;
+    }
+    res.atf_temp = tmp;
+    if (nullptr != this->gearbox_ptr) {
+        this->gearbox_ptr->diag_inhibit_control();
+    }
     Solenoids::notify_diag_test_start();
 
     PwmSolenoid* order[6] = {sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
@@ -1297,7 +1302,9 @@ void Kwp2000_server::run_solenoid_test() {
     }
     this->routine_running = false;
     Solenoids::notify_diag_test_end();
-    this->gearbox_ptr->diag_regain_control();
+    if (nullptr != this->gearbox_ptr) {
+        this->gearbox_ptr->diag_regain_control();
+    }
     memcpy(this->routine_result, &res, sizeof(SolRtRes));
     vTaskDelete(nullptr);
 }

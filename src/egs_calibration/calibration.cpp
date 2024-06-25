@@ -8,6 +8,7 @@ CalibrationInfo* CAL_RAM_PTR = NULL;
 HydraulicCalibration* HYDR_PTR = NULL;
 MechanicalCalibration* MECH_PTR = NULL;
 TorqueConverterCalibration* TCC_CFG_PTR = NULL;
+ShiftAlgorithmPack* SHIFT_ALGO_CFG_PTR = NULL;
 
 uint16_t crc(uint8_t* buffer, uint16_t len) {
     uint16_t res = 0;
@@ -58,6 +59,7 @@ esp_err_t EGSCal::init_egs_calibration() {
             HYDR_PTR = &CAL_RAM_PTR->hydr_cal;
             MECH_PTR = &CAL_RAM_PTR->mech_cal;
             TCC_CFG_PTR = &CAL_RAM_PTR->tcc_cal;
+            SHIFT_ALGO_CFG_PTR = &CAL_RAM_PTR->shift_algo_cal;
         }
     }
 exit:

@@ -15,6 +15,7 @@
 #include "moving_average.h"
 #include "esp_timer.h"
 #include "esp_private/adc_private.h"
+#include "firstorder_average.h"
 
 #define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
@@ -51,12 +52,12 @@ adc_cali_handle_t adc2_cal = nullptr;
 // For RPM sensor debouncing / smoothing
 
 #define RPM_CHANGE_MAX 1000
-#define RPM_TIMER_INTERVAL_MS 20
+#define SENSOR_TIMER_INTERVAL_MS 20
 
 MovingAverage<uint32_t>* n2_avg_buffer = nullptr;
 MovingAverage<uint32_t>* n3_avg_buffer = nullptr;
-MovingAverage<int32_t>* tft_avg_buffer = nullptr;
-MovingAverage<uint32_t>* batt_avg_buffer = nullptr;
+FirstOrderAverage<int32_t>* tft_filter = nullptr;
+FirstOrderAverage<uint32_t>* batt_filter = nullptr;
 uint64_t output_last_rev_time = 0;
 uint64_t output_current_revolution_time = 1000;
 
@@ -81,7 +82,7 @@ static bool IRAM_ATTR output_pcnt_on_watchpoint(pcnt_unit_handle_t unit, const p
 
 int batt_adc_res = 0;
 int tft_adc_res = 0;
-
+int16_t motor_temp = 25;
 esp_err_t pl_res = ESP_OK;
 bool parking_lock = true;
 esp_err_t vbatt_res = ESP_OK;
@@ -108,9 +109,8 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
     adc_cali_raw_to_voltage(adc2_cal, batt_adc_res, &adc_voltage);
     // Vin = Vout(R1+R2)/R2
     adc_voltage *= 5.54; // 5.54 = (100+22)/22
-    batt_avg_buffer->add_sample(adc_voltage);
-    vbatt = batt_avg_buffer->get_average();
-
+    batt_filter->add_sample(adc_voltage);
+    vbatt = batt_filter->get_average();
 
     if (tft_adc_res > 3000) {
         parking_lock = true;
@@ -147,8 +147,8 @@ static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_e
                 }
             }
         }
-        tft_avg_buffer->add_sample(atf_calc_c);
-        tft = tft_avg_buffer->get_average();
+        tft_filter->add_sample(atf_calc_c);
+        tft = tft_filter->get_average();
     }
     return true;
 }
@@ -161,7 +161,7 @@ const pcnt_glitch_filter_config_t glitch_filter = {
 };
 
 esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingAverage<uint32_t>** buffer) {
-    *buffer = new MovingAverage<uint32_t>((1000/RPM_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
+    *buffer = new MovingAverage<uint32_t>((1000/SENSOR_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
     if (!(*buffer)->init_ok()) {
         ESP_LOGE("SENSORS", "Failed to allocate moving average buffer for %s", name);
         return ESP_ERR_NO_MEM;
@@ -244,8 +244,9 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
 
     // Set moving average buffers
-    tft_avg_buffer = new MovingAverage<int32_t>(10, true);
-    batt_avg_buffer = new MovingAverage<uint32_t>(10, true);
+    // TFT and Battery is averaged over 1 second
+    tft_filter = new FirstOrderAverage<int32_t>(500/SENSOR_TIMER_INTERVAL_MS);
+    batt_filter = new FirstOrderAverage<uint32_t>(500/SENSOR_TIMER_INTERVAL_MS);
 
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
@@ -383,5 +384,5 @@ esp_err_t Sensors::parking_lock_engaged(bool *dest)
 }
 
 void Sensors::set_motor_temperature(int16_t celcius) {
-    
+    motor_temp = celcius;
 }

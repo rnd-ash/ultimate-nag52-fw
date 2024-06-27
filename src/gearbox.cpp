@@ -430,6 +430,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             SPC_GAIN = 1.993;
         }
         int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
+        int SPC_MAX = SPC_GAIN*(MOD_MAX - this->pressure_mgr->get_shift_regulator_pressure());
 #define FILL_RAMP_TIME 60
 #define FILL_LP_HOLD_TIME 100
         int release_time_min = 100 + prefill_data.fill_time + FILL_LP_HOLD_TIME + FILL_RAMP_TIME;
@@ -451,7 +452,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftInterfaceData sid = {
             .MOD_MAX = MOD_MAX,
-            .SPC_GAIN = SPC_GAIN,
+            .SPC_MAX = SPC_MAX,
             .change = req_lookup,
             .applying = applying,
             .releasing = releasing,
@@ -466,7 +467,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             .ptr_prev_pressures = &p_prev,
             .ptr_w_pressures = &p_now,
             .ptr_w_trq_req = &trd,
-            .maxp_info = maxp
+            .maxp_info = maxp,
+            .tcc = this->tcc
         };
 
         ShiftingAlgorithm* algo = new CrossoverShift(&sid);
@@ -547,8 +549,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             );
 
             // Update pressures
-            pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
-            pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
+            pressure_mgr->set_target_modulating_pressure(MIN(p_now.mod_sol_req, MOD_MAX));
+            pressure_mgr->set_target_shift_pressure(MIN(p_now.shift_sol_req, SPC_MAX));
             pressure_mgr->update_pressures(algo_phase_id != algo_max_phase ? this->target_gear : this->actual_gear);
 
             if (step_result == 0) {

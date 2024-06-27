@@ -3,6 +3,7 @@
 
 #include "../src/common_structs.h"
 #include "../pressure_manager.h"
+#include "torque_converter.h"
 
 struct TorqueRequstData {
     TorqueRequestControlType ty;
@@ -17,7 +18,7 @@ const uint8_t STEP_RES_END_SHIFT = 0xFF;
 
 typedef struct {
     int MOD_MAX;
-    float SPC_GAIN;
+    int SPC_MAX;
     ProfileGearChange change;
     Clutch applying;
     Clutch releasing;
@@ -33,6 +34,7 @@ typedef struct {
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;
     PressureStageTiming maxp_info;
+    TorqueConverter* tcc;
 } ShiftInterfaceData;
 
 class ShiftingAlgorithm {

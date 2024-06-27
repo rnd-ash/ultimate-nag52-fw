@@ -106,6 +106,8 @@ public:
     CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
+    uint16_t find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
+    uint16_t find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure);
     void update_pressures(GearboxGear current_gear);
 
@@ -175,10 +177,19 @@ private:
     uint16_t gb_max_torque;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
-    uint16_t solenoid_max_pressure = 0;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;
+
+    // 1-2, 2-3, 3-4, 4-5
+    LookupByteMap* momentum_upshifts[4];
+    // 2-1, 3-2, 4-3, 5-4
+    LookupByteMap* momentum_downshifts[4];
+
+    // 1-2, 2-3, 3-4, 4-5
+    LookupByteMap* torque_adder_upshifts[4];
+    // 2-1, 3-2, 4-3, 5-4
+    LookupByteMap* torque_adder_downshifts[4];
 };
 
 extern PressureManager* pressure_manager;

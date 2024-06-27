@@ -20,10 +20,53 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     const int16_t* default_data;
 
     /** Pressure PWM map **/
-    this->solenoid_max_pressure = HYDR_PTR->pcs_map_x[6];
 
     // Friction lookup table
     this->pressure_pwm_map = new LookupRefMap((int16_t*)HYDR_PTR->pcs_map_x, 7, (int16_t*)HYDR_PTR->pcs_map_y, 4, (int16_t*)HYDR_PTR->pcs_map_z, 7*4);
+
+    this->momentum_upshifts[0] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_1_2_x, 3, SHIFT_ALGO_CFG_PTR->momentum_1_2_y, 2, SHIFT_ALGO_CFG_PTR->momentum_1_2_z, 3*2);
+    this->momentum_upshifts[1] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_2_3_x, 3, SHIFT_ALGO_CFG_PTR->momentum_2_3_y, 2, SHIFT_ALGO_CFG_PTR->momentum_2_3_z, 3*2);
+    this->momentum_upshifts[2] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_3_4_x, 3, SHIFT_ALGO_CFG_PTR->momentum_3_4_y, 2, SHIFT_ALGO_CFG_PTR->momentum_3_4_z, 3*2);
+    this->momentum_upshifts[3] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_4_5_x, 3, SHIFT_ALGO_CFG_PTR->momentum_4_5_y, 2, SHIFT_ALGO_CFG_PTR->momentum_4_5_z, 3*2);
+    for (auto i = 0; i < 4; i++) {
+        if (!this->momentum_upshifts[i]->is_allocated()) {
+            ESP_LOGE("PM", "Momentum upshift map %d failed to allocate!", i);
+            delete this->momentum_upshifts[i];
+        }
+    }
+
+    this->momentum_downshifts[0] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_2_1_x, 6, SHIFT_ALGO_CFG_PTR->momentum_2_1_y, 10, SHIFT_ALGO_CFG_PTR->momentum_2_1_z, 6*10);
+    this->momentum_downshifts[1] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_3_2_x, 6, SHIFT_ALGO_CFG_PTR->momentum_3_2_y, 10, SHIFT_ALGO_CFG_PTR->momentum_3_2_z, 6*10);
+    this->momentum_downshifts[2] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_4_3_x, 6, SHIFT_ALGO_CFG_PTR->momentum_4_3_y, 10, SHIFT_ALGO_CFG_PTR->momentum_4_3_z, 6*10);
+    this->momentum_downshifts[3] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_5_4_x, 6, SHIFT_ALGO_CFG_PTR->momentum_5_4_y, 10, SHIFT_ALGO_CFG_PTR->momentum_5_4_z, 6*10);
+    for (auto i = 0; i < 4; i++) {
+        if (!this->momentum_downshifts[i]->is_allocated()) {
+            ESP_LOGE("PM", "Momentum downshift map %d failed to allocate!", i);
+            delete this->momentum_downshifts[i];
+        }
+    }
+
+    this->torque_adder_upshifts[0] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_1_2_x, 6, SHIFT_ALGO_CFG_PTR->trq_adder_1_2_y, 8, SHIFT_ALGO_CFG_PTR->trq_adder_1_2_z, 8*6);
+    this->torque_adder_upshifts[1] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_2_3_x, 6, SHIFT_ALGO_CFG_PTR->trq_adder_2_3_y, 8, SHIFT_ALGO_CFG_PTR->trq_adder_2_3_z, 8*6);
+    this->torque_adder_upshifts[2] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_3_4_x, 6, SHIFT_ALGO_CFG_PTR->trq_adder_3_4_y, 8, SHIFT_ALGO_CFG_PTR->trq_adder_3_4_z, 8*6);
+    this->torque_adder_upshifts[3] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_4_5_x, 6, SHIFT_ALGO_CFG_PTR->trq_adder_4_5_y, 8, SHIFT_ALGO_CFG_PTR->trq_adder_4_5_z, 8*6);
+    for (auto i = 0; i < 4; i++) {
+        if (!this->torque_adder_upshifts[i]->is_allocated()) {
+            ESP_LOGE("PM", "Torque adder upshift map %d failed to allocate!", i);
+            delete this->torque_adder_upshifts[i];
+        }
+    }
+
+    this->torque_adder_downshifts[0] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_2_1_x, 3, SHIFT_ALGO_CFG_PTR->trq_adder_2_1_y, 4, SHIFT_ALGO_CFG_PTR->trq_adder_2_1_z, 3*4);
+    this->torque_adder_downshifts[1] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_3_2_x, 3, SHIFT_ALGO_CFG_PTR->trq_adder_3_2_y, 4, SHIFT_ALGO_CFG_PTR->trq_adder_3_2_z, 3*4);
+    this->torque_adder_downshifts[2] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_4_3_x, 3, SHIFT_ALGO_CFG_PTR->trq_adder_4_3_y, 4, SHIFT_ALGO_CFG_PTR->trq_adder_4_3_z, 3*4);
+    this->torque_adder_downshifts[3] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->trq_adder_5_4_x, 3, SHIFT_ALGO_CFG_PTR->trq_adder_5_4_y, 4, SHIFT_ALGO_CFG_PTR->trq_adder_5_4_z, 3*4);
+    for (auto i = 0; i < 4; i++) {
+        if (!this->torque_adder_downshifts[i]->is_allocated()) {
+            ESP_LOGE("PM", "Torque adder doownshift map %d failed to allocate!", i);
+            delete this->torque_adder_downshifts[i];
+        }
+    }
 
     /** Pressure PWM map (TCC) **/
     const int16_t pwm_tcc_x_headers[7] = {0, 2000, 4000, 5000, 7500, 10000, 15000};
@@ -71,8 +114,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     }
 
     // Init MPC and SPC req pressures
-    this->target_shift_pressure = this->solenoid_max_pressure;
-    this->target_modulating_pressure = this->solenoid_max_pressure;
+    this->target_shift_pressure = this->get_max_solenoid_pressure();
+    this->target_modulating_pressure = this->get_max_solenoid_pressure();
     this->target_tcc_pressure = 0;
 }
 
@@ -87,11 +130,11 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     float fac = 1.0/((float)HYDR_PTR->p_multi_other/1000.0);
     uint16_t p_adder = HYDR_PTR->extra_pressure_adder_other_gears;
     // Only when not shifting and constantly in 1 or R1
-    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First)) {
+    if ((current_gear == GearboxGear::First || current_gear == GearboxGear::Reverse_First) && this->shift_circuit_flag == 0) {
         fac = 1.0/((float)HYDR_PTR->p_multi_1/1000.0);
         p_adder = HYDR_PTR->extra_pressure_adder_r1_1;
     }
-    uint16_t regulator_pressure = in_mpc + HYDR_PTR->lp_reg_spring_pressure; // Using just p-RV, this is what the working pressure should be
+    float regulator_pressure = in_mpc + HYDR_PTR->lp_reg_spring_pressure; // Using just p-RV, this is what the working pressure should be
     // Now calculate influence of shift pressure and additional pressure caused by RPM
     float k1_factor = 0;
     if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) { // 1-2 or 2-1
@@ -111,7 +154,7 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
 
 uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
     return interpolate_float(
-        (float)working_pressure,
+        working_pressure,
         HYDR_PTR->inlet_pressure_output_min,
         HYDR_PTR->inlet_pressure_output_max,
         HYDR_PTR->inlet_pressure_input_min,
@@ -122,12 +165,13 @@ uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
 
 #define CLAMP(in, min, max) MAX(min, MIN(in, max))
 
+// Number returns is 0..0.1
 float PressureManager::calc_inlet_factor(uint16_t inlet_pressure) {
     return CLAMP(
-        ((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)inlet_pressure),
+        (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)inlet_pressure)),
         0,
-        0.1
-    );
+        100.0
+    ) / 1000.0;
 }
 
 uint16_t PressureManager::get_shift_regulator_pressure(void) {
@@ -165,14 +209,13 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
-
         float amplifier = 1.0;
         if ((this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2)) {
             amplifier = 1.993;
         }
 
         uint16_t spc_in = this->target_shift_pressure;
-        uint16_t spc_sol_in = ((float)this->target_shift_pressure / amplifier) + this->get_shift_regulator_pressure();
+        uint16_t spc_sol_in = ((float)this->target_shift_pressure / amplifier) + HYDR_PTR->shift_reg_spring_pressure;
         uint16_t mpc_in = this->target_modulating_pressure;
 
         uint16_t p_a = this->calc_working_pressure(current_gear, mpc_in, spc_in);
@@ -182,29 +225,18 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         this->calculated_working_pressure = p_a;
 
         float factor = this->calc_inlet_factor(inlet);
-        
-        this->corrected_mpc_pressure = mpc_in + (factor * (mpc_in + HYDR_PTR->inlet_pressure_offset));
-
+        this->corrected_mpc_pressure = mpc_in + (factor * (float)(mpc_in + HYDR_PTR->inlet_pressure_offset));
         if (spc_sol_in > inlet) {
-            this->corrected_spc_pressure = this->solenoid_max_pressure;
+            this->corrected_spc_pressure = this->get_max_solenoid_pressure();
         } else {
-            this->corrected_spc_pressure = spc_sol_in + (factor * (spc_sol_in + HYDR_PTR->inlet_pressure_offset));
+            this->corrected_spc_pressure = spc_sol_in + (factor * (float)(spc_sol_in + HYDR_PTR->inlet_pressure_offset));
         }
 
         // Now actuate solenoids
-        if (this->corrected_spc_pressure >= this->solenoid_max_pressure) {
-            this->corrected_spc_pressure = this->solenoid_max_pressure;
-            sol_spc->set_current_target(0);
-        } else {
-            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0));
-        }
-
-        if (this->corrected_mpc_pressure >= this->solenoid_max_pressure) {
-            this->corrected_mpc_pressure = this->solenoid_max_pressure;
-            sol_mpc->set_current_target(0);
-        } else {
-            sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
-        }
+        this->corrected_spc_pressure = MIN(this->corrected_spc_pressure, get_max_solenoid_pressure());
+        this->corrected_mpc_pressure = MIN(this->corrected_mpc_pressure, get_max_solenoid_pressure());
+        sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0));
+        sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
         sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
     }
 }
@@ -243,10 +275,6 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
-// TODO MOVE THESE TO CONFIGURATION PARAMS
-const float ATF_DENSITY_NEG_50C = 889; // kg/M^3
-const float ATF_DENSITY_DROP_PER_C = 0.6; // kg/M^3
-
 float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
     float speed = 0;
     uint8_t sel_idx = 0xFF;
@@ -278,7 +306,6 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
 }
 
 uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc) {
-    uint16_t ret = this->solenoid_max_pressure;
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float friction_coefficient = interpolate_float(
         sensor_data->atf_temp, 
@@ -292,11 +319,65 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
     float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
     if (calc < HYDR_PTR->min_mpc_pressure && clamp_to_min_mpc) {
         calc = HYDR_PTR->min_mpc_pressure;
-    } else if (calc > this->solenoid_max_pressure) {
-        calc = this->solenoid_max_pressure;
+    } else if (calc > get_max_solenoid_pressure()) {
+        calc = get_max_solenoid_pressure();
     }
-    ret = calc;
-    return ret;
+    return calc;
+}
+
+uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
+    // 120 = 0.85% of 140 (Coefficient at 80C)
+    // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
+    //float friction_coefficient = interpolate_float(
+    //    sensor_data->atf_temp, 
+    //    friction_coefficient_0c,
+    //    friction_coefficient_80C,
+    //    0,
+    //    80,
+    //    InterpType::Linear
+    //) * 0.85;
+    float friction_coefficient = 120.0;
+    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
+    return calc;
+}
+
+uint16_t PressureManager::find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {
+    LookupByteMap* map = nullptr;
+    switch(change) {
+        case ProfileGearChange::ONE_TWO:
+            map = this->torque_adder_upshifts[0];
+            break;
+        case ProfileGearChange::TWO_THREE:
+            map = this->torque_adder_upshifts[1];
+            break;
+        case ProfileGearChange::THREE_FOUR:
+            map = this->torque_adder_upshifts[2];
+            break;
+        case ProfileGearChange::FOUR_FIVE:
+            map = this->torque_adder_upshifts[3];
+            break;
+        case ProfileGearChange::TWO_ONE:
+            map = this->torque_adder_downshifts[0];
+            break;
+        case ProfileGearChange::THREE_TWO:
+            map = this->torque_adder_downshifts[1];
+            break;
+        case ProfileGearChange::FOUR_THREE:
+            map = this->torque_adder_downshifts[2];
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+            map = this->torque_adder_downshifts[3];
+            break;
+    }
+    if (nullptr == map) {
+        return 0;
+    } else {
+        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)abs_motor_torque/5.0); 
+        return ret;
+    }
 }
 
 uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure) {
@@ -470,7 +551,7 @@ void PressureManager::set_target_modulating_pressure(uint16_t targ) {
 }
 
 void PressureManager::set_spc_p_max() {
-    this->target_shift_pressure = this->solenoid_max_pressure;
+    this->target_shift_pressure = get_max_solenoid_pressure();
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {
@@ -517,7 +598,7 @@ uint8_t PressureManager::get_active_shift_circuits(void) const {
 }
 
 uint16_t PressureManager::get_max_solenoid_pressure() {
-    return this->solenoid_max_pressure;
+    return HYDR_PTR->pcs_map_x[6];
 }
 
 StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }

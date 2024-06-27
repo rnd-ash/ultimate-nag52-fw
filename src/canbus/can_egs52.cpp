@@ -343,6 +343,15 @@ bool Egs52Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     return result;
 }
 
+ProfileSwitchPos Egs52Can::get_profile_switch_pos(const uint32_t expire_time_ms) {
+    EWM_230_EGS52 ewm;
+    ProfileSwitchPos result = ProfileSwitchPos::SNV;
+    if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
+        result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+    }
+    return result;
+}
+
 uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {

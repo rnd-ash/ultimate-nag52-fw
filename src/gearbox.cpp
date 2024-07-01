@@ -484,7 +484,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 break;
             }
             
-            int model_torque = sensor_data.static_torque;
+            int16_t model_torque = sensor_data.static_torque;
             if (!freeze_torque) {
                 t_delta = sensor_data.driver_requested_torque - sensor_data.static_torque;
             } else {
@@ -540,6 +540,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             uint8_t step_result = algo->step(
                 algo_phase_id, 
                 abs_input_torque, 
+                model_torque,
                 stationary_shift,
                 is_upshift,
                 phase_elapsed,

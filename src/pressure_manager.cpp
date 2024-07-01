@@ -330,15 +330,15 @@ uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, C
     // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
     // 120 = 0.85% of 140 (Coefficient at 80C)
     // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
-    //float friction_coefficient = interpolate_float(
-    //    sensor_data->atf_temp, 
-    //    friction_coefficient_0c,
-    //    friction_coefficient_80C,
-    //    0,
-    //    80,
-    //    InterpType::Linear
-    //) * 0.85;
-    float friction_coefficient = 120.0;
+    float friction_coefficient = interpolate_float(
+        sensor_data->atf_temp, 
+        friction_coefficient_0c,
+        friction_coefficient_80C,
+        0,
+        80,
+        InterpType::Linear
+    ) * 0.85;
+    //float friction_coefficient = 120.0;
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
     return calc;
@@ -380,7 +380,43 @@ uint16_t PressureManager::find_decent_adder_torque(ProfileGearChange change, uin
     }
 }
 
-uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure) {
+uint16_t PressureManager::find_freeing_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {
+    LookupByteMap* map = nullptr;
+    switch(change) {
+        case ProfileGearChange::ONE_TWO:
+            map = this->momentum_upshifts[0];
+            break;
+        case ProfileGearChange::TWO_THREE:
+            map = this->momentum_upshifts[1];
+            break;
+        case ProfileGearChange::THREE_FOUR:
+            map = this->momentum_upshifts[2];
+            break;
+        case ProfileGearChange::FOUR_FIVE:
+            map = this->momentum_upshifts[3];
+            break;
+        case ProfileGearChange::TWO_ONE:
+            map = this->momentum_downshifts[0];
+            break;
+        case ProfileGearChange::THREE_TWO:
+            map = this->momentum_downshifts[1];
+            break;
+        case ProfileGearChange::FOUR_THREE:
+            map = this->momentum_downshifts[2];
+            break;
+        case ProfileGearChange::FIVE_FOUR:
+            map = this->momentum_downshifts[3];
+            break;
+    }
+    if (nullptr == map) {
+        return 0;
+    } else {
+        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)abs_motor_torque/5.0); 
+        return ret;
+    }
+}
+
+uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float friction_coefficient = interpolate_float(
         sensor_data->atf_temp, 
@@ -390,8 +426,11 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
         80,
         InterpType::Linear
     );
+    if (use_release_coefficient) {
+        friction_coefficient *= 0.85;
+    }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (float)pressure / ((float)friction_val/ friction_coefficient);
+    float calc = (float)pressure / ((float)friction_val / friction_coefficient);
     return calc;
 }
 

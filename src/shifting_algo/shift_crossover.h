@@ -2,6 +2,7 @@
 #define __SHIFT_CROSSOVER_H__
 
 #include "s_algo.h"
+#include "firstorder_average.h"
 
 class CrossoverShift : public ShiftingAlgorithm {
 public:
@@ -10,6 +11,7 @@ public:
     uint8_t step(
         uint8_t phase_id,
         uint16_t abs_input_torque,
+        int16_t static_torque_no_reduction,
         bool stationary,
         bool is_upshift,
         uint16_t phase_elapsed,
@@ -21,9 +23,11 @@ public:
     uint8_t max_shift_stage_id() override;
 private:
     bool do_high_filling = false;
-    uint16_t torque_req_start_time = 0;
-    int16_t torque_at_req_start = 0;
-    int16_t trq_req_amount_at_end = 0;
+    uint16_t trq_req_start_time = 0;
+    uint16_t trq_req_ramp_trq = 0;
+    uint16_t trq_req_end_v = 0;
+    uint16_t trq_req_end_time = 0;
+
 };
 
 #endif

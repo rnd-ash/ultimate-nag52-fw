@@ -34,6 +34,11 @@ public:
         this->reset();
     }
 
+    void reset_with_start(T inital_value) {
+        this->last_sample = inital_value*100;
+        this->current_sample = inital_value*100;
+    }
+
     void add_sample(T sample) {
         this->last_sample = this->current_sample;
         this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);

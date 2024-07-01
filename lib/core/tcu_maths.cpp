@@ -1,49 +1,55 @@
 #include "tcu_maths.h"
 
 float interpolate_float(float raw, float new_min, float new_max, float raw_min, float raw_max, InterpType interp_type) {
-    float raw_limited = MAX(raw_min, MIN(raw, raw_max));
-    // Function based interpolation
-    const interp_mapping_t* ptr = nullptr;
-    switch (interp_type) {
-        case InterpType::EaseIn:
-            ptr = EASE_IN_INTERP_LOOKUP;
-            break;
-        case InterpType::EaseInEaseOut:
-            ptr = EASE_IN_EASE_OUT_INTERP_LOOKUP;
-            break;
-        case InterpType::EaseOut:
-            ptr = EASE_OUT_INTERP_LOOKUP;
-            break;
-        default:
-            break;
-    }
-    if (nullptr == ptr) {
-        // linear
-        return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
+    // Short cuts for cases where we are > or < than bounds
+    float ret;
+    if (raw <= raw_min) {
+        ret = new_min;
+    } else if (raw >= raw_max) {
+        ret = new_max;
     } else {
         // Function based interpolation
-        float input_percentage = progress_between_targets(raw_limited, raw_min, raw_max);
-        float input_percentage_as_int = (int16_t)input_percentage;
-        float ret;
-        if (input_percentage_as_int <= 0)
-        {
-            ret = new_min;
+        const interp_mapping_t* ptr = nullptr;
+        switch (interp_type) {
+            case InterpType::EaseIn:
+                ptr = EASE_IN_INTERP_LOOKUP;
+                break;
+            case InterpType::EaseInEaseOut:
+                ptr = EASE_IN_EASE_OUT_INTERP_LOOKUP;
+                break;
+            case InterpType::EaseOut:
+                ptr = EASE_OUT_INTERP_LOOKUP;
+                break;
+            default:
+                break;
         }
-        else if (input_percentage_as_int >= 100)
-        {
-            ret = new_max;
+        if (nullptr == ptr) {
+            // linear
+            ret = (((new_max - new_min) * (raw - raw_min)) / (raw_max - raw_min)) + new_min;
+        } else {
+            // Function based interpolation
+            float input_percentage = progress_between_targets(raw, raw_min, raw_max);
+            float input_percentage_as_int = (int16_t)input_percentage;
+            if (input_percentage_as_int <= 0)
+            {
+                ret = new_min;
+            }
+            else if (input_percentage_as_int >= 100)
+            {
+                ret = new_max;
+            }
+            else
+            {
+                // We know interpolation maps have a step size of 5,
+                // therefore, index for each point is very easy to calculate:
+                // percentage / 5 = low_bound_idx
+                uint8_t i = input_percentage_as_int/5;
+                float percentage_output = interpolate(ptr[i].out, ptr[i+1].out, ptr[i].in, ptr[i+1].in, input_percentage);
+                ret = (((new_max - new_min) * percentage_output) / 100.0) + new_min;
+            }
         }
-        else
-        {
-            // We know interpolation maps have a step size of 5,
-            // therefore, index for each point is very easy to calculate:
-            // percentage / 5 = low_bound_idx
-            uint8_t i = input_percentage_as_int/5;
-            float percentage_output = interpolate(ptr[i].out, ptr[i+1].out, ptr[i].in, ptr[i+1].in, input_percentage);
-            ret = (((new_max - new_min) * percentage_output) / 100.0) + new_min;
-        }
-        return ret;
     }
+    return ret;
 }
 
 int interpolate_int(int raw, int new_min, int new_max, int raw_min, int raw_max) {

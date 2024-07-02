@@ -10,6 +10,7 @@
 #include "firstorder_average.h"
 #include "shifting_algo/s_algo.h"
 #include "shifting_algo/shift_crossover.h"
+#include "shifting_algo/shift_release.h"
 #define SBS SBS_CURRENT_SETTINGS
 
 // ONLY FOR FORWARD GEARS!
@@ -431,13 +432,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         }
         int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
         int SPC_MAX = SPC_GAIN*(MOD_MAX - this->pressure_mgr->get_shift_regulator_pressure());
-#define FILL_RAMP_TIME 60
-#define FILL_LP_HOLD_TIME 100
-        int release_time_min = 100 + prefill_data.fill_time + FILL_LP_HOLD_TIME + FILL_RAMP_TIME;
-        int release_time_max = release_time_min + 100;
-        int release_time_recorded = 0;
-        float release_clutch_vel = 0;
-        int pre_cs_time = 0;
 
         FirstOrderAverage on_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
         FirstOrderAverage off_velocity_avg = FirstOrderAverage<int>(100/SHIFT_DELAY_MS);
@@ -471,7 +465,26 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             .tcc = this->tcc
         };
 
-        ShiftingAlgorithm* algo = new CrossoverShift(&sid);
+        ShiftingAlgorithm* algo;
+        // Check if we exceed the pressure of low filling
+        int max_torque_abs = pressure_manager->calc_max_torque_for_clutch(this->target_gear, applying, prefill_data.low_fill_pressure_on_clutch, false);
+        bool requires_high_pressure = sensor_data.input_torque > max_torque_abs;
+
+        bool is_manual = profile == manual || profile == race;
+        if (is_manual && sensor_data.static_torque > 0) {
+            algo = new ReleasingShift(&sid);
+        } else {
+            algo = new CrossoverShift(&sid);
+        }
+
+        //if (requires_high_pressure && sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/5.0) {
+        //    algo = new ReleasingShift(&sid);
+        //} else {
+        //    algo = new CrossoverShift(&sid);
+        //}
+
+        
+
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();
         const float multi_vel = 100.0/SHIFT_DELAY_MS;
@@ -513,12 +526,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 if (now_cs.off_clutch_speed < 25) {
                     pre_cs = now_cs;
-                    pre_cs_time = total_elapsed;
-                } else if (now_cs.off_clutch_speed >= 100 && release_time_recorded == 0) {
-                    release_time_recorded = total_elapsed;
-                    float time = MAX(SHIFT_DELAY_MS, total_elapsed - pre_cs_time);
-                    release_clutch_vel = (float)(pre_cs.on_clutch_speed - now_cs.on_clutch_speed) / (time/100.0); // Calculate shifting velosity. Time to go from 50RPM -> 100RPM
-                    ESP_LOGI("Shift", "Detect shift release at %d ms. Vel is %.1f RPM/100ms", release_time_recorded, release_clutch_vel);
                 }
 
                 on_velocity_avg.add_sample((old_cs.on_clutch_speed - now_cs.on_clutch_speed)*multi_vel);
@@ -577,15 +584,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->tcc->on_shift_ending();
         if (result) { // Only set gear on conformation!
             this->actual_gear = gear_from_idx(sd.targ_g);
-            if (release_time_recorded != 0) {
-                if (release_time_recorded > release_time_max) {
-                    ESP_LOGI("SHIFT", "Clutch release late!");
-                } else if (release_time_recorded < release_time_max) {
-                    ESP_LOGI("SHIFT", "Clutch release early!");
-                } else {
-                    ESP_LOGI("SHIFT", "Clutch release time OK!");
-                }
-            }
         } else {
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
                 ESP_LOGE("SHIFT", "Shift failed due to selector moving");

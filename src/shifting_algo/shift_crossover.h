@@ -28,6 +28,11 @@ private:
     uint16_t trq_req_end_v = 0;
     uint16_t trq_req_end_time = 0;
 
+    uint8_t prefill_phase_mod = 0;
+    uint8_t prefill_phase_shift = 0;
+
+    uint16_t ts_phase_mod = 0;
+    uint16_t ts_phase_shift = 0;
 };
 
 #endif

@@ -288,7 +288,7 @@ GearboxGear prev_gear(GearboxGear g)
     return prev;
 }
 
-#define SHIFT_DELAY_MS 10     // 10ms steps
+#define SHIFT_DELAY_MS 20     // 20ms steps
 #define NUM_SCD_ENTRIES 100 / SHIFT_DELAY_MS // 100ms moving average window
 
 ClutchSpeeds Gearbox::diag_get_clutch_speeds()
@@ -467,11 +467,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         // Check if we exceed the pressure of low filling
-        int max_torque_abs = pressure_manager->calc_max_torque_for_clutch(this->target_gear, applying, prefill_data.low_fill_pressure_on_clutch, false);
-        bool requires_high_pressure = sensor_data.input_torque > max_torque_abs;
-
-        bool is_manual = profile == manual || profile == race;
-        if (is_manual && sensor_data.static_torque > 0) {
+        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 * 5.0) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);

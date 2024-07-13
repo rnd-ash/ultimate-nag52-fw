@@ -102,9 +102,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             }
         }
         // Override locking (Only if slipping is allowed and at high RPM)
-        if (this->target_tcc_state >= InternalTccState::Slipping && sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm && pedal_as_percent != 0) {
-                targ = InternalTccState::Closed;
-                slipping_rpm_targ = 0;
+        // NEW - SAFETY! When at really high speeds, the TCC MUST stay locked to
+        // allow for engine braking and stability. The TCC suddenly unlocking at high speed
+        // is very noticable and causes the car to feel floaty.
+        if (this->target_tcc_state >= InternalTccState::Slipping && sensors->output_rpm > TCC_CURRENT_SETTINGS.force_lock_min_output_rpm) {
+            targ = InternalTccState::Closed;
+            slipping_rpm_targ = 0;
         }
     }
     if (is_shifting) {

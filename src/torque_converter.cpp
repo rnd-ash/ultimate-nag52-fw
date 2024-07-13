@@ -197,7 +197,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         int step = PRESSURE_STEP;
         step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
         this->tcc_pressure_current += step;
-        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target/2);
+        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target*0.8);
     } else { // More -> Less lock
         if (this->target_tcc_state == InternalTccState::Open) { // Slipping -> Open
             this->tcc_pressure_current = interpolate_float(

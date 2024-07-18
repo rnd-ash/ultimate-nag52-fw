@@ -120,7 +120,7 @@ typedef struct {
     uint16_t release_spring_pressure[6];
     uint16_t intertia_torque[8];
     uint8_t strongest_loaded_clutch_idx[8];
-    uint16_t unk3[8];
+    uint16_t turbine_drag[8];
     uint16_t atf_density_minus_50c;
     uint16_t atf_density_drop_per_c;
     uint16_t atf_density_centrifugal_force_factor[3];

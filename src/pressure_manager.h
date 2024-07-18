@@ -107,7 +107,8 @@ public:
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
     uint16_t find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
-    uint16_t find_freeing_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
+    uint16_t find_freeing_torque(ProfileGearChange change, uint16_t motor_torque, uint16_t output_rpm);
+    uint16_t find_turbine_drag(uint8_t map_idx);
     uint16_t find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient = false);
     void update_pressures(GearboxGear current_gear);

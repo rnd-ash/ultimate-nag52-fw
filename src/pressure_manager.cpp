@@ -380,7 +380,7 @@ uint16_t PressureManager::find_decent_adder_torque(ProfileGearChange change, uin
     }
 }
 
-uint16_t PressureManager::find_freeing_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {
+uint16_t PressureManager::find_freeing_torque(ProfileGearChange change, uint16_t motor_torque, uint16_t output_rpm) {
     LookupByteMap* map = nullptr;
     switch(change) {
         case ProfileGearChange::ONE_TWO:
@@ -411,8 +411,16 @@ uint16_t PressureManager::find_freeing_torque(ProfileGearChange change, uint16_t
     if (nullptr == map) {
         return 0;
     } else {
-        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)abs_motor_torque/5.0); 
+        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)motor_torque/5.0); 
         return ret;
+    }
+}
+
+uint16_t PressureManager::find_turbine_drag(uint8_t map_idx) {
+    if (map_idx > 7) {
+        return 1;
+    } else {
+        return MECH_PTR->turbine_drag[map_idx];
     }
 }
 

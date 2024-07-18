@@ -30,6 +30,7 @@ typedef struct {
     PrefillData prefill_info;
     ShiftCharacteristics chars;
     ShiftClutchData* ptr_r_clutch_speeds;
+    ShiftClutchData* ptr_r_pre_clutch_speeds;
     ShiftPressures*  ptr_prev_pressures;
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;
@@ -53,7 +54,6 @@ public:
     virtual uint8_t step(
         uint8_t phase_id,
         uint16_t abs_input_torque,
-        int16_t static_torque_no_reduction,
         bool stationary,
         bool is_upshift,
         uint16_t phase_elapsed,

@@ -59,7 +59,7 @@ uint8_t CrossoverShift::step(
         if (phase_elapsed >= 100) {
             // Turn on the switching valve!
             pressure_manager->set_shift_circuit(sid->inf.shift_circuit, true);
-            sid->tcc->set_shift_target_state(InternalTccState::Open);
+            sid->tcc->set_shift_target_state(sd, InternalTccState::Open);
             ret = PHASE_PREFILL;
         }
     } else if (phase_id == PHASE_PREFILL) {
@@ -72,7 +72,7 @@ uint8_t CrossoverShift::step(
             if (elapsed > sid->prefill_info.fill_time || sid->ptr_r_clutch_speeds->on_clutch_speed > 100) {
                 // 0 -> 1 -> 2 (Torque > Drag/2)
                 // 0 -> 3 -> 4 -> 5 (Torque <= Drag/2)
-                if (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/20.0 && is_upshift) {
+                if (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/20.0) {
                     this->prefill_phase_shift = 1;
                     this->do_high_filling = true;
                 } else {
@@ -90,6 +90,10 @@ uint8_t CrossoverShift::step(
             if (elapsed > FILL_RAMP_TIME || sid->ptr_r_clutch_speeds->on_clutch_speed > 100) {
                 this->prefill_phase_shift = 2;
                 this->ts_phase_shift = phase_elapsed;
+            }
+            // Skip the rest of the prefilling if we are standstill / very low speed
+            if (sd->input_rpm < 800) {
+                ret = PHASE_OVERLAP;
             }
         } else if (2 == this->prefill_phase_shift) {
             uint16_t elapsed = phase_elapsed - this->ts_phase_shift;

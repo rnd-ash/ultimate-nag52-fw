@@ -11,7 +11,6 @@ public:
     uint8_t step(
         uint8_t phase_id,
         uint16_t abs_input_torque,
-        int16_t static_torque_no_reduction,
         bool stationary,
         bool is_upshift,
         uint16_t phase_elapsed,

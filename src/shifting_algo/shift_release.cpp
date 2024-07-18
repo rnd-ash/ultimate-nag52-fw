@@ -25,7 +25,6 @@ ReleasingShift::~ReleasingShift() {
 uint8_t ReleasingShift::step(
     uint8_t phase_id,
     uint16_t abs_input_torque,
-    int16_t static_torque_no_reduction,
     bool stationary,
     bool is_upshift,
     uint16_t phase_elapsed,
@@ -210,7 +209,7 @@ uint8_t ReleasingShift::step(
      // Limiting engine torque by this much (Computed later with indicated_torque - trq_req_targ = trq request output)
     int trq_req_targ = 0;
     // We can only request if engine torque is above engines min torque
-    if (static_torque_no_reduction > sd->min_torque && static_torque_no_reduction > sd->min_torque && sd->input_rpm > 1200) {
+    if (sd->static_torque_wo_request > sd->min_torque && sd->static_torque_wo_request > sd->min_torque && sd->input_rpm > 1200 && this->trq_req) {
         bool inc = phase_id == PHASE_MAX_PRESSURE;
         if (phase_id == PHASE_FAR_LOWER_PRESSURE) {
             if (static_torque_no_reduction > max_trq_off_clutch) {

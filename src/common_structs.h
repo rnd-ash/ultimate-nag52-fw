@@ -54,6 +54,8 @@ struct SensorData{
     int16_t input_torque;
     /// Current 'static' torque of the engine in Nm
     int16_t static_torque;
+    /// Current 'static torque of the engine in Nm (Ignoring reductions made by torque reqests)
+    int16_t static_torque_wo_request;
     /// Engine torque limit maximum in Nm
     int16_t max_torque;
     /// Engine torque limit minimum in Nm

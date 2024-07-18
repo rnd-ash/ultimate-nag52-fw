@@ -20,7 +20,6 @@ CrossoverShift::~CrossoverShift() {}
 uint8_t CrossoverShift::step(
     uint8_t phase_id,
     uint16_t abs_input_torque,
-    int16_t static_torque_no_reduction,
     bool stationary,
     bool is_upshift,
     uint16_t phase_elapsed,
@@ -359,7 +358,7 @@ uint8_t CrossoverShift::step(
     // Limiting engine torque by this much (Computed later with indicated_torque - trq_req_targ = trq request output)
     int trq_req_targ = 0;
     // We can only request if engine torque is above engines min torque
-    if (static_torque_no_reduction > sd->min_torque && sd->driver_requested_torque && sd->input_rpm > 1200) {
+    if (sd->static_torque_wo_request > sd->min_torque && sd->driver_requested_torque && sd->input_rpm > 1200) {
         bool inc = false;
         if (phase_id == PHASE_MOMENTUM_RAMP && this->trq_req_start_time != 0) {
             trq_req_targ = this->trq_req_ramp_trq;

@@ -53,6 +53,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .atf_temp = 0,
         .input_torque = 0,
         .static_torque = 0,
+        .static_torque_wo_request = 0,
         .max_torque = 0,
         .min_torque = 0,
         .driver_requested_torque = 0,
@@ -492,19 +493,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 result = false;
                 break;
             }
-            
-            int16_t model_torque = sensor_data.static_torque;
-            if (!freeze_torque) {
-                t_delta = sensor_data.driver_requested_torque - sensor_data.static_torque;
-            } else {
-                // Torque freeze
-                model_torque = MAX(sensor_data.driver_requested_torque-t_delta, sensor_data.static_torque);
-            }
 
             int abs_input_torque = abs(InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
                 sensor_data.input_rpm,
-                model_torque,
+                sensor_data.static_torque_wo_request,
                 egs_can_hal->get_ac_torque_loss(500)
             ));
 
@@ -543,7 +536,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             uint8_t step_result = algo->step(
                 algo_phase_id, 
                 abs_input_torque, 
-                model_torque,
                 stationary_shift,
                 is_upshift,
                 phase_elapsed,
@@ -1257,6 +1249,20 @@ void Gearbox::controller_loop()
         {
             this->sensor_data.min_torque = min_torque;
         }
+
+        // Calculate static torque without torque request
+        if (shifting && this->output_data.ctrl_type != TorqueRequestControlType::None) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!shifting) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        } // Otherwise, leave value
+        if (this->freeze_torque) {
+            this->sensor_data.static_torque_wo_request = this->sensor_data.driver_requested_torque - this->req_static_torque_delta;
+        } else {
+            this->sensor_data.static_torque_wo_request = this->sensor_data.static_torque;
+            this->req_static_torque_delta = this->sensor_data.driver_requested_torque - this->sensor_data.static_torque;
+        }
+
         // Wheel torque
         /*
         if (this->sensor_data.gear_ratio == 0)

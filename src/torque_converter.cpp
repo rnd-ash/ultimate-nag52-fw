@@ -126,7 +126,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     }
 
-    this->engine_output_joule = sensors->engine_rpm * (abs(sensors->static_torque)) / 9.5488;
+    this->engine_output_joule = sensors->engine_rpm * (abs(sensors->static_torque_wo_request)) / 9.5488;
     if (likely(sensors->engine_rpm >= sensors->input_rpm)) {
         float rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
         this->absorbed_power_joule = this->engine_output_joule - (this->engine_output_joule * rpm_as_percent);
@@ -141,7 +141,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int pedal_delta = sensors->pedal_smoothed->front() - sensors->pedal_smoothed->back();
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
-    int load_as_percent = ((int)sensors->static_torque*100) / this->rated_max_torque;
+    int load_as_percent = ((int)sensors->static_torque_wo_request*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
     if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150

@@ -337,6 +337,10 @@ void Sensors::set_ratio_2_1(float r) {
     RATIO_2_1 = r;
 }
 
+float Sensors::get_ratio_2_1() {
+    return RATIO_2_1;
+}
+
 esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
     esp_err_t res = ESP_OK;
     if (output_rpm_ok == false) {

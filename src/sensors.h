@@ -32,6 +32,7 @@ namespace Sensors {
      * for the input shaft speed
     */
     void set_ratio_2_1(float r);
+    float get_ratio_2_1();
 
     /**
      * @brief Reads the input RPM of the gearbox

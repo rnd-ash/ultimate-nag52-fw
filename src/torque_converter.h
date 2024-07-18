@@ -42,13 +42,10 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void set_shift_target_state(InternalTccState target_state);
+        void set_shift_target_state(SensorData* sd, InternalTccState target_state);
         void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
-
-        // In % (0-100) - 100 is returned if already at next phase
-        uint8_t progress_to_next_phase(void);
 
         void set_stationary();
 

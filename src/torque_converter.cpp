@@ -38,8 +38,10 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     this->slip_average = new FirstOrderAverage<int32_t>(50); // 20ms div * 50 = 1 second moving average
 }
 
-void TorqueConverter::set_shift_target_state(InternalTccState target_state) {
-    this->shift_req_tcc_state = target_state;
+void TorqueConverter::set_shift_target_state(SensorData* sd, InternalTccState target_state) {
+    if (sd->output_rpm < TCC_CURRENT_SETTINGS.force_lock_min_output_rpm) {
+        this->shift_req_tcc_state = target_state;
+    }
     this->is_shifting = true;
 }
 
@@ -230,11 +232,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->last_state_stable_time = GET_CLOCK_TIME();
     }
     pm->set_target_tcc_pressure(this->tcc_pressure_current);
-}
-
-uint8_t TorqueConverter::progress_to_next_phase(void) {
-    uint8_t ret = 100;
-    return ret;
 }
 
 TccClutchStatus TorqueConverter::get_clutch_state(void) {

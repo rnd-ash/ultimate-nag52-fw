@@ -480,7 +480,12 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         // Check if we exceed the pressure of low filling
-        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && sensor_data.input_rpm > 1500) {
+        bool is_manual = (profile == manual || profile == race);
+
+        if (
+            (is_manual && sensor_data.static_torque > 50 && sensor_data.input_rpm > 1500) ||
+            (!is_manual && sensor_data.pedal_pos > 120 && sensor_data.input_rpm > 1500)
+        ) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);

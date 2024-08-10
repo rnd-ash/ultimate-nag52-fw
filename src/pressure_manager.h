@@ -87,6 +87,10 @@ public:
 
     uint8_t get_active_shift_circuits(void) const;
 
+
+    float friction_coefficient();
+    float release_coefficient();
+
     /**
      * Force SPC solenoid to turn off
     */

@@ -20,8 +20,6 @@ public:
 
     uint8_t max_shift_stage_id() override;
     uint16_t torque_adder = 0;
-    uint16_t limit_for_trq_req = 0;
-    uint16_t old_limit_for_trq_req = 0;
     float filling_adder = 0;
     float filling_trq_reducer = 0;
 
@@ -35,8 +33,14 @@ public:
 
     uint16_t ts_phase_mod = 0;
     uint16_t ts_phase_shift = 0;
+    uint16_t trq_req_start_time = 0;
+    uint16_t trq_req_end_time = 0;
+    uint16_t last_trq_req = 0;
+
+    uint16_t rpm_shift_phase_3 = 0;
 
     int torque_at_new_clutch = 0;
+    bool torque_req_en = false;
 };
 
 #endif

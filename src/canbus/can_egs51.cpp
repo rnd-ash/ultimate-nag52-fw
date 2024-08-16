@@ -126,7 +126,16 @@ int Egs51Can::get_static_engine_torque(const uint32_t expire_time_ms) {
 
 int Egs51Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     // Don't think EGS51 supports this so just run with static torque for now
-    return this->get_static_engine_torque(expire_time_ms);
+    int tmp;
+    if (this->gs218.TORQUE_REQ_EN) { // Active torque request (Frozen value for now)
+        tmp = this->torque_before_request;
+    } else { // No torque request (Unfreeze the torque value)
+        tmp = this->get_static_engine_torque(expire_time_ms);
+        this->torque_before_request = tmp;
+    }
+
+
+    return tmp;
 }
 
 int Egs51Can::get_maximum_engine_torque(const uint32_t expire_time_ms) {

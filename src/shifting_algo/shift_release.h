@@ -20,6 +20,7 @@ public:
 
     uint8_t max_shift_stage_id() override;
     uint16_t torque_adder = 0;
+    int16_t pre_shift_trq = 0;
     float filling_adder = 0;
     float filling_trq_reducer = 0;
 
@@ -36,6 +37,9 @@ public:
     uint16_t trq_req_start_time = 0;
     uint16_t trq_req_end_time = 0;
     uint16_t last_trq_req = 0;
+
+    float sports_factor=1.0;
+    float trq_request_target = 0;
 
     uint16_t rpm_shift_phase_3 = 0;
 

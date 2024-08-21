@@ -50,6 +50,7 @@ class TorqueConverter {
         void set_stationary();
 
         int16_t get_slip_filtered();
+        InternalTccState __get_internal_state(void);
         uint8_t get_current_state();
         uint8_t get_target_state();
         uint8_t get_can_req_bits();

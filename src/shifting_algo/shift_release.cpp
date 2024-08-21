@@ -50,7 +50,8 @@ uint8_t ReleasingShift::step(
         if (phase_elapsed >= 100) {
             // Turn on the switching valve!
             pressure_manager->set_shift_circuit(sid->inf.shift_circuit, true);
-            sid->tcc->set_shift_target_state(sd, InternalTccState::Closed);
+            InternalTccState now = sid->tcc->__get_internal_state();
+            sid->tcc->set_shift_target_state(sd, now); // Prevent TCC from locking more than current state
             this->subphase_mod = 0;
             this->subphase_shift = 0;
             ret = PHASE_FILL_AND_RELEASE;

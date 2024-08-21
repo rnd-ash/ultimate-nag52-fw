@@ -59,7 +59,8 @@ uint8_t CrossoverShift::step(
         if (phase_elapsed >= 100) {
             // Turn on the switching valve!
             pressure_manager->set_shift_circuit(sid->inf.shift_circuit, true);
-            sid->tcc->set_shift_target_state(sd, InternalTccState::Open);
+            InternalTccState now = sid->tcc->__get_internal_state();
+            sid->tcc->set_shift_target_state(sd, now); // Prevent TCC from locking more than current state
             ret = PHASE_PREFILL;
         }
     } else if (phase_id == PHASE_PREFILL) {

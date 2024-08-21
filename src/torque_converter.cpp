@@ -234,6 +234,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     pm->set_target_tcc_pressure(this->tcc_pressure_current);
 }
 
+InternalTccState TorqueConverter::__get_internal_state(void) {
+    return this->current_tcc_state;
+}
+
 TccClutchStatus TorqueConverter::get_clutch_state(void) {
     TccClutchStatus ret = TccClutchStatus::Open;
     InternalTccState targ = this->target_tcc_state;

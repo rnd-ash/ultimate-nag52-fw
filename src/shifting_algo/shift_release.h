@@ -21,13 +21,15 @@ public:
     uint8_t max_shift_stage_id() override;
     uint16_t torque_adder = 0;
     int16_t pre_shift_trq = 0;
+    uint16_t threshold_rpm = 0;
     float filling_adder = 0;
     float filling_trq_reducer = 0;
-
+    bool trq_ramp_up = false;
     float sports_trq_req_adder = 1.0;
     bool trq_req = true;
     
     int mod_time_phase_0 = -1;
+    int mod_time_phase_1 = -1;
 
     uint8_t subphase_mod = 0;
     uint8_t subphase_shift = 0;
@@ -45,6 +47,8 @@ public:
 
     int torque_at_new_clutch = 0;
     bool torque_req_en = false;
+
+
 };
 
 #endif

@@ -19,6 +19,7 @@ const uint8_t STEP_RES_END_SHIFT = 0xFF;
 typedef struct {
     int MOD_MAX;
     int SPC_MAX;
+    uint16_t targ_time;
     ProfileGearChange change;
     Clutch applying;
     Clutch releasing;

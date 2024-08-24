@@ -459,6 +459,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         ShiftInterfaceData sid = {
             .MOD_MAX = MOD_MAX,
             .SPC_MAX = SPC_MAX,
+            .targ_time = chars.target_shift_time,
             .change = req_lookup,
             .applying = applying,
             .releasing = releasing,
@@ -479,13 +480,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         };
 
         ShiftingAlgorithm* algo;
-        // Check if we exceed the pressure of low filling
-        bool is_manual = (profile == manual || profile == race);
         
-        if (
-            (is_manual && sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && sensor_data.pedal_pos > 10) ||
-            (sensor_data.pedal_pos > 100)
-        ) {
+        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && !is_stationary()) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);

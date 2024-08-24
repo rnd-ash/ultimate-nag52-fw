@@ -68,11 +68,11 @@ SPEAKER_POST_CODE setup_tcm()
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
-            if (ESP_OK == Sensors::init_sensors())
+            if (ESP_OK == EEPROM::init_eeprom())
             {
-                if (ESP_OK == Solenoids::init_all_solenoids())
+                if (ESP_OK == Sensors::init_sensors())
                 {
-                    if (ESP_OK == EEPROM::init_eeprom())
+                    if (ESP_OK == Solenoids::init_all_solenoids())
                     {
                         // Read device mode!
                         CURRENT_DEVICE_MODE = EEPROM::read_device_mode();

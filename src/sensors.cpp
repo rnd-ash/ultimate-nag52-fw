@@ -266,9 +266,13 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(configure_pcnt("N3", pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3, &n3_avg_buffer), "SENSORS", "N3 PCNT Setup failed");
 
     // Enable output RPM reading if needed
-    if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
-        ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-        if (ESP_OK == configure_output_pcnt(pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT)) {
+    if (VEHICLE_CONFIG.io_0_usage == 1) {
+        if (VEHICLE_CONFIG.input_sensor_pulses_per_rev == 0) {
+            ESP_LOGE("SENSORS", "Cannot init output sensor with 0 pulses/rev specified");
+            return ESP_ERR_INVALID_ARG;
+        } else {
+            ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
+            ESP_RETURN_ON_ERROR(configure_output_pcnt(pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT), "SENSORS", "Output PCNT Setup failed");
             output_rpm_ok = true;
         }
     }

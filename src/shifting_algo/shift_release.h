@@ -42,6 +42,7 @@ public:
 
     float sports_factor=1.0;
     float trq_request_target = 0;
+    float trq_request_absolute_target=0;
 
     uint16_t rpm_shift_phase_3 = 0;
 

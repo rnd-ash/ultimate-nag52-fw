@@ -481,7 +481,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         
-        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && !is_stationary()) {
+        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && !is_stationary() && sensor_data.pedal_pos > 0) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);
@@ -489,7 +489,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();
-        const float multi_vel = 100.0/SHIFT_DELAY_MS;
         while(process_shift) {
             bool stationary_shift = this->is_stationary();
             // Shifter moved mid shift!
@@ -501,9 +500,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
             int abs_input_torque = abs(InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
-                sensor_data.input_rpm,
-                sensor_data.static_torque_wo_request,
-                egs_can_hal->get_ac_torque_loss(500)
+                sensor_data.input_rpm,  
+                sensor_data.static_torque_wo_request
             ));
 
             // Shift reporting
@@ -1231,14 +1229,18 @@ void Gearbox::controller_loop()
         egs_can_hal->set_wheel_torque(0); // Nm
 
         int static_torque = egs_can_hal->get_static_engine_torque(500);
+        int ac_loss = egs_can_hal->get_ac_torque_loss(500);
+        if (ac_loss != UINT8_MAX && static_torque != UINT8_MAX) {
+            static_torque -= ac_loss;
+        }
+
         if (static_torque != INT_MAX)
         {
             this->sensor_data.static_torque = static_torque;
             int input_torque = InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
                 sensor_data.input_rpm,
-                sensor_data.static_torque,
-                egs_can_hal->get_ac_torque_loss(500)
+                sensor_data.static_torque
             );
             if (input_torque != INT16_MAX) {
                 this->sensor_data.input_torque = input_torque;

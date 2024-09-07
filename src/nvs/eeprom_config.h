@@ -8,6 +8,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "esp_err.h"
+#include <string.h>
 
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 

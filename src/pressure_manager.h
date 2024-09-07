@@ -10,6 +10,7 @@
 #include "sensors.h"
 #include "nvs/module_settings.h"
 #include "lookuptable.h"
+#include <string.h>
 
 typedef struct {
     uint16_t fill_time;

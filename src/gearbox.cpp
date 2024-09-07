@@ -143,8 +143,9 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         this->redline_rpm = 4000; // just in case
     }
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
-    this->pedal_average = new MovingAverage<uint32_t>(50);
-    sensor_data.pedal_smoothed = (const MovingAverage<uint32_t>*)this->pedal_average;
+    this->pedal_average = new FirstOrderAverage(25);
+    sensor_data.pedal_delta = new FirstOrderAverage(25);
+    sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
 }
 
 bool Gearbox::is_stationary() {
@@ -447,8 +448,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         int MOD_MAX = this->pressure_mgr->get_max_solenoid_pressure();
         int SPC_MAX = SPC_GAIN*(MOD_MAX - this->pressure_mgr->get_shift_regulator_pressure());
 
-        FirstOrderAverage on_velocity_avg = FirstOrderAverage<int>(0);
-        FirstOrderAverage off_velocity_avg = FirstOrderAverage<int>(0);
+        FirstOrderAverage on_velocity_avg = FirstOrderAverage(0);
+        FirstOrderAverage off_velocity_avg = FirstOrderAverage(0);
 
         TorqueRequstData trd = {
             .ty = TorqueRequestControlType::None,

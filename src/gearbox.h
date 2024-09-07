@@ -106,7 +106,7 @@ private:
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
-    MovingAverage<uint32_t>* pedal_average = nullptr;
+    FirstOrderAverage* pedal_average = nullptr;
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 

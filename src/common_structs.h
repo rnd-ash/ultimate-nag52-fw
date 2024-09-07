@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
-#include "moving_average.h"
+#include "firstorder_average.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
@@ -47,7 +47,9 @@ struct SensorData{
     uint16_t output_rpm;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
-    const MovingAverage<uint32_t>* pedal_smoothed;
+    const FirstOrderAverage* pedal_smoothed;
+    // in 0.4%/sec
+    FirstOrderAverage* pedal_delta;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque

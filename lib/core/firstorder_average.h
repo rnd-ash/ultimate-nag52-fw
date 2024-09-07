@@ -14,7 +14,7 @@
  * 
  * @tparam T The number type
  */
-template <typename T> class FirstOrderAverage {
+class FirstOrderAverage {
 public:
     /**
      * Create a new first order average filter.
@@ -24,42 +24,37 @@ public:
      * 
      * Setting samples to 0 means no filtering (Output = Input)
     */
-    FirstOrderAverage(uint8_t samples) {
+    FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
         if (samples > 254) {
             // SAFETY
             this->sample_count = 254;
         } else {
             this->sample_count = samples;
         }
-        this->reset();
+        this->reset(reset_value);
     }
 
-    void reset_with_start(T inital_value) {
-        this->last_sample = inital_value*100;
-        this->current_sample = inital_value*100;
-    }
-
-    void add_sample(T sample) {
+    void add_sample(int32_t sample) {
         this->last_sample = this->current_sample;
         this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
     }
 
-    T get_average() const {
+    int32_t get_average() const {
         return this->current_sample/100;
     }
 
     float get_average_float() const {
-        return (float)this->current_sample/100.0;
+        return (float)this->current_sample/100;
     }
 
-    void reset() {
-        this->last_sample = 0;
-        this->current_sample = 0;
+    void reset(int32_t reset_value = 0) {
+        this->last_sample = reset_value*100;
+        this->current_sample = reset_value*100;
     }
 
 private:
-    T current_sample;
-    T last_sample;
+    int32_t current_sample;
+    int32_t last_sample;
     uint8_t sample_count;
 };
 

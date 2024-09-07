@@ -35,7 +35,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new FirstOrderAverage<int32_t>(50); // 20ms div * 50 = 1 second moving average
+    this->slip_average = new FirstOrderAverage(50); // 20ms div * 50 = 1 second moving average
 }
 
 void TorqueConverter::set_shift_target_state(SensorData* sd, InternalTccState target_state) {
@@ -140,7 +140,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool at_req_pressure = this->tcc_pressure_current == this->tcc_pressure_target;
-    int pedal_delta = sensors->pedal_smoothed->front() - sensors->pedal_smoothed->back();
+    int pedal_delta = sensors->pedal_delta->get_average();
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
     int load_as_percent = ((int)sensors->static_torque_wo_request*100) / this->rated_max_torque;

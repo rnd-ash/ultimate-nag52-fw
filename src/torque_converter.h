@@ -94,7 +94,7 @@ class TorqueConverter {
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        FirstOrderAverage<int32_t>* slip_average = nullptr;
+        FirstOrderAverage* slip_average = nullptr;
         
         bool init_tables_ok = false;
 

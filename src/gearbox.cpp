@@ -145,6 +145,14 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     this->pedal_average = new FirstOrderAverage(25);
     sensor_data.pedal_delta = new FirstOrderAverage(25);
+
+    this->motor_speed_average = new FirstOrderAverage(5);
+    this->input_torque_average = new FirstOrderAverage(5);
+    this->engine_torque_average = new FirstOrderAverage(5);
+    this->torque_req_average = new FirstOrderAverage(5);
+    this->output_speed_average = new FirstOrderAverage(5);
+
+
     sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
 }
 
@@ -458,6 +466,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         };
 
         ShiftInterfaceData sid = {
+            .profile = profile,
             .MOD_MAX = MOD_MAX,
             .SPC_MAX = SPC_MAX,
             .targ_time = chars.target_shift_time,
@@ -482,7 +491,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         
-        if (sensor_data.static_torque > VEHICLE_CONFIG.engine_drag_torque/10.0 && !is_stationary() && sensor_data.pedal_pos > 0) {
+        if (sensor_data.pedal_pos > 0) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);
@@ -929,7 +938,8 @@ void Gearbox::controller_loop()
         uint16_t o = 0;
         bool can_read_output = this->calc_output_rpm(&o);
         if (can_read_output) {
-            this->sensor_data.output_rpm = o;
+            this->output_speed_average->add_sample(o);
+            this->sensor_data.output_rpm = this->output_speed_average->get_average();
         }
         bool can_read = can_read_input && can_read_output;
         if (can_read)
@@ -988,6 +998,7 @@ void Gearbox::controller_loop()
             }
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(1000);
+        this->pedal_last = this->sensor_data.pedal_pos;
         if (p_tmp != 0xFF)
         {
             this->sensor_data.pedal_pos = p_tmp;
@@ -995,14 +1006,22 @@ void Gearbox::controller_loop()
             p_tmp = 250/4; // 25% as a fallback
         }
         this->pedal_average->add_sample(p_tmp);
+        int16_t delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*50.0;
+        sensor_data.pedal_delta->add_sample(delta_sec);
         sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(1000);
-        this->sensor_data.engine_rpm = egs_can_hal->get_engine_rpm(1000);
-        if (this->sensor_data.engine_rpm == UINT16_MAX)
+        int tmp_rpm = 0;
+        tmp_rpm = egs_can_hal->get_engine_rpm(1000);
+        if (tmp_rpm == UINT16_MAX)
         {
-            this->sensor_data.engine_rpm = 0;
+            tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
+        if (tmp_rpm > 400 && this->motor_speed_average->get_average() < 200) {
+            this->motor_speed_average->reset(tmp_rpm);
+        }
+        this->motor_speed_average->add_sample(tmp_rpm);
+        this->sensor_data.engine_rpm = this->motor_speed_average->get_average();
         // Update solenoids, only if engine RPM is OK
-        if (this->sensor_data.engine_rpm > 500)
+        if (tmp_rpm > 500)
         {
             if (!shifting)
             { // If shifting then shift manager has control over MPC working
@@ -1237,7 +1256,8 @@ void Gearbox::controller_loop()
 
         if (static_torque != INT_MAX)
         {
-            this->sensor_data.static_torque = static_torque;
+            this->engine_torque_average->add_sample(static_torque);
+            this->sensor_data.static_torque = engine_torque_average->get_average();
             int input_torque = InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
                 sensor_data.input_rpm,

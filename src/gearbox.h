@@ -18,6 +18,7 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 #include "shifter/shifter.h"
+//#include "runtime_sensors/runtime_sensors.h"
 
 struct PostShiftTorqueRamp {
     bool enabled;
@@ -79,6 +80,7 @@ private:
         static_cast<Gearbox*>(_this)->controller_loop();
     }
     uint16_t temp_raw = 0;
+    uint8_t pedal_last = 0;
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
@@ -107,6 +109,14 @@ private:
     GearboxGear last_motion_gear = GearboxGear::Second;
     float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = nullptr;
+    FirstOrderAverage* motor_speed_average = nullptr;
+    FirstOrderAverage* output_speed_average = nullptr;
+
+    FirstOrderAverage* engine_torque_average = nullptr;
+    FirstOrderAverage* input_torque_average = nullptr;
+
+    FirstOrderAverage* torque_req_average = nullptr;
+
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 

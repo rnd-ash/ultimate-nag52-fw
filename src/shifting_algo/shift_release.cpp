@@ -14,13 +14,13 @@ const uint8_t FILL_HOLD_TIME = 100;
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {}
 ReleasingShift::~ReleasingShift() {}
 
-uint16_t calc_trq_req(uint16_t input_rpm, uint16_t abs_static_trq, uint16_t max_trq) {
+uint16_t calc_trq_req(uint16_t input_rpm, uint16_t req_trq, uint16_t max_trq) {
     // Higher RPM = Higher request
-    float rpm_multi = interpolate_float(input_rpm, 0.0, 0.4, 1200, 6000, InterpType::Linear);
+    float rpm_multi = interpolate_float(input_rpm, 0.0, 0.4, 1500, 4000, InterpType::Linear);
     // Higher Trq = Higher request
-    float trq_multi = interpolate_float(abs_static_trq, 0.0, 0.4, 50, max_trq/2, InterpType::Linear);
-    float r = (float)abs_static_trq * (rpm_multi+trq_multi);
-    return MIN(r, abs_static_trq);
+    float trq_multi = interpolate_float(req_trq, 0.0, 0.4, 50, max_trq/2, InterpType::Linear);
+    float r = (float)req_trq * (rpm_multi+trq_multi);
+    return MIN(r, req_trq);
 }
 
 uint8_t ReleasingShift::step(
@@ -43,30 +43,35 @@ uint8_t ReleasingShift::step(
     float drag = pm->find_turbine_drag(sid->inf.map_idx);
 
     // Keep calculating these values until we have to start using them
-    if (phase_id == PHASE_FILL_AND_RELEASE && this->subphase_mod == 0) {
+    if (phase_id == PHASE_BLEED) {
         this->sports_factor = interpolate_float(sd->pedal_pos, 1.0, 2.5, 10, 250, InterpType::Linear);
         this->sports_factor *= interpolate_float(sid->targ_time, 0.8, 1.5, 1000, 100, InterpType::Linear);
         this->sports_factor = MIN(3.0, MAX(1.0, this->sports_factor));
     }
 
-    // Calculate torque request trq here.
-    int clutch_max_trq_req = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, pm->get_max_solenoid_pressure(), false);
-    int trq_request_raw = calc_trq_req(sd->input_rpm, MAX(0, sd->static_torque_wo_request), clutch_max_trq_req);
-    if (is_upshift) {
-        this->trq_request_target = trq_request_raw;
-    } else {
-        // Downshift uses pedal multiplier
-        this->trq_request_target = MIN(this->sports_factor*trq_request_raw, abs_input_torque);
-    }
-    // Threshold RPM for ramping up based on torque
-    int effective_torque = MIN(this->trq_request_target, (this->trq_request_target + this->torque_at_new_clutch)/2);
+    // Calculate torque request trq here. (Only used until we ramp down torque
+    if (phase_id <= PHASE_FILL_AND_RELEASE && subphase_mod == 0) {
+        int clutch_max_trq_req = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, sid->SPC_MAX, true);
+        int trq_request_raw = calc_trq_req(sd->input_rpm, MAX(0, sd->driver_requested_torque), clutch_max_trq_req);
+        if (is_upshift) {
+            this->trq_request_target = trq_request_raw;
+        } else {
+            // Downshift uses pedal multiplier
+            this->trq_request_target = MIN(this->sports_factor * trq_request_raw, abs_input_torque);
+        }
+        // Threshold RPM for ramping up based on torque
+        int effective_torque = MIN(this->trq_request_target,
+                                   (this->trq_request_target + this->torque_at_new_clutch) / 2);
 
-    this->threshold_rpm =
-        (effective_torque + this->torque_at_new_clutch) *
-        ((80.0 + 40.0) / 1000.0) * // 80 for MPC ramp time, 20*2 (40) for computation delay over CAN (Rx of Sta. Trq -> Tx of EGS Trq)
-        drag /
-        inertia;
-    this->threshold_rpm = MAX(this->threshold_rpm, 100);
+        this->threshold_rpm =
+                (effective_torque + this->torque_at_new_clutch) *
+                ((80.0 + 40.0) / 1000.0) *
+                // 80 for MPC ramp time, 20*2 (40) for computation delay over CAN (Rx of Sta. Trq -> Tx of EGS Trq)
+                drag /
+                inertia;
+        this->threshold_rpm = MAX(this->threshold_rpm, 100);
+        this->trq_request_absolute_target = abs_input_torque - this->trq_request_target;
+    }
 
     ShiftPressures* p_now = sid->ptr_w_pressures;
     if (phase_id == PHASE_BLEED) {
@@ -133,7 +138,7 @@ uint8_t ReleasingShift::step(
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
-            if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100 || elapsed > 1000) {
+            if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100 || elapsed > 5000) {
                 this->subphase_shift = 4;
                 this->ts_phase_shift = phase_elapsed;
                 this->rpm_shift_phase_3 = sid->ptr_r_clutch_speeds->off_clutch_speed;
@@ -142,14 +147,14 @@ uint8_t ReleasingShift::step(
         } else if (4 == this->subphase_shift) { // Ramping new clutch
             uint16_t elapsed = phase_elapsed - this->ts_phase_shift;
             this->filling_adder += 8.0;
+            if (sid->profile == race) {
+                // Aggression
+                this->filling_adder += (0.1 * this->sports_factor * this->filling_adder);
+            }
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch + filling_adder;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
-            //int end = (float)sid->ptr_r_pre_clutch_speeds->on_clutch_speed * 0.75;
-            int end = this->rpm_shift_phase_3 + 100;
-            if (
-                (sid->ptr_r_clutch_speeds->off_clutch_speed > end || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) 
-            || elapsed > 1000) {
+            if ((sid->ptr_r_clutch_speeds->on_clutch_speed < (this->threshold_rpm)) || elapsed > 5000) {
                 this->subphase_shift = 5;
                 this->ts_phase_shift = phase_elapsed;
             }
@@ -159,9 +164,15 @@ uint8_t ReleasingShift::step(
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch + filling_adder;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
-            if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100 || elapsed > 1000) {
+            if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100 || elapsed > 5000) {
                 // END FILLING AND RELEASE
-                ret = PHASE_OVERLAP;
+                if (this->trq_request_target != 0) {
+                    // Jump if we have issued a torque request to MAX pressure
+                    // This makes dynamic shifts a lot faster
+                    ret = PHASE_MAX_PRESSURE;
+                } else {
+                    ret = PHASE_OVERLAP;
+                }
             }
             this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->on_clutch, false);
         } else {
@@ -199,7 +210,7 @@ uint8_t ReleasingShift::step(
             if (this->mod_time_phase_1 == -1) {
                 #define MOD_RAMP_TIME 80
                 // Initialize ramp time
-                this->mod_time_phase_1 = MAX(
+                this->mod_time_phase_1 = MAX(   
                     MOD_RAMP_TIME,
                     sid->prefill_info.fill_time + RAMP_TIME - this->mod_time_phase_0
                 );
@@ -209,7 +220,7 @@ uint8_t ReleasingShift::step(
             }
 
 
-            int wp_old_clutch = pm->find_working_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(0, abs_input_torque - this->trq_request_target), false);
+            int wp_old_clutch = pm->find_working_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(30, abs_input_torque - this->trq_request_target), false);
             p_now->off_clutch = interpolate_float(elapsed, sid->ptr_prev_pressures->off_clutch, wp_old_clutch, 0, this->mod_time_phase_1, InterpType::Linear);
             p_now->overlap_mod = sid->spring_off_clutch + p_now->off_clutch;
             p_now->mod_sol_req = MAX(
@@ -228,8 +239,7 @@ uint8_t ReleasingShift::step(
             }
         } else if (2 == this->subphase_mod) {
             // Reducing until releasing the clutch
-            uint16_t elapsed = phase_elapsed - this->ts_phase_mod;
-            this->filling_trq_reducer += 9.0 * this->sports_factor;
+            this->filling_trq_reducer += (9.0 * this->sports_factor) + (this->sports_factor * 0.05 * this->filling_trq_reducer);
             int trq = MAX(0, abs_input_torque - this->trq_request_target - filling_trq_reducer);
 
             int wp_old_clutch = pm->find_working_pressure_for_clutch(sid->curr_g, sid->releasing, trq, false);
@@ -288,8 +298,9 @@ uint8_t ReleasingShift::step(
         int duration = 140; // FROM EGS CAL
         // New clutch gets full pressure (+momentum)
         // Old clutch valve is empties completely
-        int wp_new_clutch = pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque) + filling_adder;
-        p_now->on_clutch = MAX(sid->ptr_prev_pressures->on_clutch, interpolate_float(phase_elapsed, sid->ptr_prev_pressures->on_clutch, wp_new_clutch, 0, duration, InterpType::Linear));
+        int old_new_clutch = sid->ptr_prev_pressures->on_clutch;
+        int wp_new_clutch_weak = pm->find_releasing_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque);
+        p_now->on_clutch = MAX(wp_new_clutch_weak, old_new_clutch);
         this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->on_clutch, false);
 
         p_now->off_clutch = 0;
@@ -316,7 +327,7 @@ uint8_t ReleasingShift::step(
         p_now->off_clutch = 0;
         // Overlap valves
         p_now->overlap_mod = p_now->off_clutch + sid->spring_off_clutch;
-        p_now->overlap_shift = interpolate_float(phase_elapsed, p_prev->overlap_shift, sid->MOD_MAX, 0, sid->maxp_info.ramp_time, InterpType::Linear);
+        p_now->overlap_shift = interpolate_float(phase_elapsed, p_prev->overlap_shift, sid->SPC_MAX, 0, sid->maxp_info.ramp_time, InterpType::Linear);
         // DIFFERS! - For mod_sol_req, use a different value for overlap_shift
         int overlap_shift_mod_sol = MIN(p_now->overlap_shift, wp_new_clutch + sid->spring_on_clutch);
         // Solenoids (important!)
@@ -324,10 +335,9 @@ uint8_t ReleasingShift::step(
         p_now->mod_sol_req  = (
             ((overlap_shift_mod_sol - centrifugal_force_on_clutch) * sid->inf.pressure_multi_spc) +
             (-centrifugal_force_off_clutch * sid->inf.centrifugal_factor_off_clutch * sid->inf.pressure_multi_mpc) +
-            (-sid->inf.pressure_multi_mpc*150) + // 150 comes from calibration pointer on E55 coding (TODO - Locate in calibration and assign in CAL structure)
             sid->inf.mpc_pressure_spring_reduction
         );
-        this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->on_clutch, false);
+        this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->overlap_shift - centrifugal_force_on_clutch, false);
         if (phase_elapsed > sid->maxp_info.hold_time + sid->maxp_info.ramp_time) {
             // Turn off the shift circuit!
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
@@ -366,14 +376,14 @@ uint8_t ReleasingShift::step(
                 this->trq_req_end_time = total_elapsed;
             }
             int duration = total_elapsed - this->trq_req_end_time;
-            trq_ramp_value = interpolate_float(duration, this->trq_request_target, 0, 0, 120, InterpType::Linear);
+            trq_ramp_value = interpolate_float(duration, this->trq_request_target, 0, 0, 120, InterpType::EaseIn);
         } else {
             // Decrease ramp
             if (this->trq_req_start_time == 0) {
                 this->trq_req_start_time = total_elapsed;
             }
             int duration = total_elapsed - this->trq_req_start_time;
-            trq_ramp_value = interpolate_float(duration, 0, this->trq_request_target, 0, 140, InterpType::Linear);
+            trq_ramp_value = interpolate_float(duration, 0, this->trq_request_target, 0, 140, InterpType::EaseOut);
             // Ramp up!
             if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
                 this->trq_ramp_up = true;
@@ -399,9 +409,9 @@ uint8_t ReleasingShift::step(
             }
         }
     }
-    trq_req_now = MAX(0, MIN(trq_req_now, sd->static_torque_wo_request));
+    trq_req_now = MAX(0, MIN(trq_req_now, sd->driver_requested_torque));
     if (trq_req_now != 0) {
-        sid->ptr_w_trq_req->amount = sd->static_torque_wo_request - trq_req_now;
+        sid->ptr_w_trq_req->amount = sd->driver_requested_torque - trq_req_now;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  trq_ramp_inc ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
     } else {

@@ -27,6 +27,7 @@ public:
     bool trq_ramp_up = false;
     float sports_trq_req_adder = 1.0;
     bool trq_req = true;
+    bool ramp_done = false;
     
     int mod_time_phase_0 = -1;
     int mod_time_phase_1 = -1;

@@ -413,7 +413,7 @@ uint16_t PressureManager::find_freeing_torque(ProfileGearChange change, uint16_t
         return 0;
     } else {
         uint16_t ret = map->get_value((float)output_rpm/30.0, (float)motor_torque/5.0); 
-        return ret;
+        return ret*5;
     }
 }
 

@@ -69,6 +69,7 @@ class Egs52Can: public EgsBaseCan {
         int cruise_control_torque_demand(const uint32_t expire_time_ms) override;
         int esp_torque_demand(const uint32_t expire_time_ms) override;
         TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
+        ProfileSwitchPos get_profile_switch_pos(const uint32_t expire_time_ms) override;
 
         /**
          * Setters

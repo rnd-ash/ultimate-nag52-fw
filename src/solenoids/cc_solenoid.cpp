@@ -1,6 +1,7 @@
 #include "cc_solenoid.h"
 #include "esp_log.h"
 #include "nvs/module_settings.h"
+#include <string.h>
 
 float mpc_sol_trim_factor = 0.0;
 

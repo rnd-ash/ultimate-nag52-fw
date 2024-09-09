@@ -5,39 +5,10 @@
 #include <stdint.h>
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
-#include "moving_average.h"
+#include "firstorder_average.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
-
-/**
- * @brief Shifting state
- */
-enum class ShiftStage {
-    /**
-     * @brief Hydralic bleed phase.
-     * In this phase, Shift pressure fluid is bled in order to not over pressurise the overlap valve
-     * The shift solenoid is not active
-    */
-    Bleed = 1,
-    /**
-     * @brief Clutch filling phase.
-     * In this phase, the shift solenoid is engaged, and Shift pressure is ramped in order to clear
-     * the tolorance between the engaging clutch pack, without actually applying it.
-     */
-    Fill = 2,
-    /**
-     * @brief Clutch overlap phase.
-     * In this phase, the engaging clutch's pressure is raised, whilst the disengaging clutch's pressure
-     * is reduced, causing (Via the overlap hydralic valve), the gearbox to transition clutch packs.
-     */
-    Overlap = 3,
-    /**
-     * @brief Shift pressure is increased to its maximum via a ramp in order to lock the engaging clutch in place.
-     * Then, the shift solenoid turns off, completing the gear change.
-     */
-    MaxPressure = 4
-};
 
 enum class Clutch {
     K1 = 0,
@@ -76,13 +47,17 @@ struct SensorData{
     uint16_t output_rpm;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
-    const MovingAverage<uint32_t>* pedal_smoothed;
+    const FirstOrderAverage* pedal_smoothed;
+    // in 0.4%/sec
+    FirstOrderAverage* pedal_delta;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque
     int16_t input_torque;
     /// Current 'static' torque of the engine in Nm
     int16_t static_torque;
+    /// Current 'static torque of the engine in Nm (Ignoring reductions made by torque reqests)
+    int16_t static_torque_wo_request;
     /// Engine torque limit maximum in Nm
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
@@ -169,7 +144,7 @@ enum class ShiftCircuit {
  * @brief Shift data request structure
  * 
  */
-struct ShiftData{
+struct CircuitInfo{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;

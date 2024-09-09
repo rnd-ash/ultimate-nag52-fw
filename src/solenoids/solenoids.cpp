@@ -126,14 +126,13 @@ void update_solenoids(void*) {
         } else {
             vref_compensation = 1.0;
         }
-        // Only query ATF temp when not changing gears
-        bool ss_full_on = sol_y3->is_max_on() || sol_y4->is_max_on() || sol_y5->is_max_on();
-        if (!ss_full_on && ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
+        if (ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
             temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
         }
+        bool vbatt_too_low = voltage < 9000;
         if (write_pwm) {
-            sol_mpc->__write_pwm(vref_compensation, temp_compensation, ss_full_on);
-            sol_spc->__write_pwm(vref_compensation, temp_compensation, ss_full_on);
+            sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
+            sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_tcc->__write_pwm(vref_compensation, temp_compensation);
             sol_y3->__write_pwm(vref_compensation, temp_compensation);
             sol_y4->__write_pwm(vref_compensation, temp_compensation);

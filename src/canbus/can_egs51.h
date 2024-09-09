@@ -98,6 +98,7 @@ class Egs51Can: public EgsBaseCan {
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;
     private:
+        int16_t torque_before_request=0;
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();

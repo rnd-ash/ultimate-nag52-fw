@@ -339,14 +339,14 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
         //    can_upshift = false;
         //}
         // Load check
-        //if (can_upshift) {
-        //    if (sensors->max_torque != 0) {
-        //        float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
-        //        if (demanded_load > 30) {
-        //            can_upshift = false;
-        //        }
-        //    }
-        //}
+        if (can_upshift) {
+            if (sensors->max_torque != 0) {
+                float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+                if (demanded_load > 30) {
+                    can_upshift = false;
+                }
+            }
+        }
         return can_upshift;
     } else {
         return false;

@@ -51,7 +51,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
 
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     DATA_SOLENOIDS ret = {};
-    if (gb_ptr == nullptr) {
+    if (sol_mpc == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }

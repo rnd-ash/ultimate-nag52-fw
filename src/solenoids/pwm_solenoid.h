@@ -10,7 +10,6 @@
 #include <esp_event.h>
 #include "esp_err.h"
 #include "tcu_maths.h"
-#include "moving_average.h"
 
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;

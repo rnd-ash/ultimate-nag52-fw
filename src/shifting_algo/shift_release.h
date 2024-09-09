@@ -2,6 +2,7 @@
 #define __SHIFT_RELEASE_H__
 
 #include "s_algo.h"
+#include "firstorder_average.h"
 
 class ReleasingShift : public ShiftingAlgorithm {
 public:
@@ -17,7 +18,7 @@ public:
         PressureManager* pm,
         SensorData* sd
     ) override;
-
+    FirstOrderAverage* trq_req_avg;
     uint8_t max_shift_stage_id() override;
     uint16_t torque_adder = 0;
     int16_t pre_shift_trq = 0;

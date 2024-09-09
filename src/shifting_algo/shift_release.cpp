@@ -11,8 +11,12 @@ const uint8_t PHASE_END_CONTROL   = 4;
 const uint8_t FILL_RAMP_TIME = 60;
 const uint8_t FILL_HOLD_TIME = 100;
 
-ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {}
-ReleasingShift::~ReleasingShift() {}
+ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
+    this->trq_req_avg = new FirstOrderAverage(5);
+}
+ReleasingShift::~ReleasingShift() {
+    delete this->trq_req_avg;
+}
 
 uint16_t calc_trq_req(uint16_t input_rpm, uint16_t req_trq, uint16_t max_trq) {
     // Higher RPM = Higher request
@@ -382,7 +386,7 @@ uint8_t ReleasingShift::step(
                 this->trq_req_end_time = total_elapsed;
             }
             int duration = total_elapsed - this->trq_req_end_time;
-            trq_ramp_value = interpolate_float(duration, this->trq_request_target, 0, 0, 60+160, InterpType::Linear);
+            trq_ramp_value = interpolate_float(duration, this->trq_request_target, 0, 0, 140, InterpType::Linear);
             if (trq_ramp_value < 1) {
                 this->ramp_done = true;
             }
@@ -392,7 +396,7 @@ uint8_t ReleasingShift::step(
                 this->trq_req_start_time = total_elapsed;
             }
             int duration = total_elapsed - this->trq_req_start_time;
-            trq_ramp_value = interpolate_float(duration, 0, this->trq_request_target, 0, 60+160, InterpType::Linear);
+            trq_ramp_value = interpolate_float(duration, 0, this->trq_request_target, 0, 140, InterpType::Linear);
             // Ramp up!
             if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
                 this->trq_ramp_up = true;
@@ -419,6 +423,10 @@ uint8_t ReleasingShift::step(
             }
         }
     }
+    // Buffer it to smooth the ramps
+    this->trq_req_avg->add_sample(trq_req_now);
+    trq_req_now = this->trq_req_avg->get_average();
+
     trq_req_now = MAX(0, MIN(trq_req_now, sd->driver_requested_torque));
     if (trq_req_now != 0) {
         sid->ptr_w_trq_req->amount = sd->driver_requested_torque - trq_req_now;

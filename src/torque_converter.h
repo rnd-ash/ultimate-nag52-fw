@@ -81,6 +81,7 @@ class TorqueConverter {
         }
 
     private:
+        FirstOrderAverage* motor_torque_smoothed = nullptr;
         int rated_max_torque;
         bool is_shifting = false;
         bool tcc_solenoid_enabled = true;

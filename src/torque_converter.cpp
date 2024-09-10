@@ -36,6 +36,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     }
 
     this->slip_average = new FirstOrderAverage(50); // 20ms div * 50 = 1 second moving average
+    this->motor_torque_smoothed = new FirstOrderAverage(10); // 500ms average
 }
 
 void TorqueConverter::set_shift_target_state(SensorData* sd, InternalTccState target_state) {
@@ -68,7 +69,7 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
 }
 
-const int PRESSURE_STEP = 500/(1000/20); // Per 20ms cycle
+const int PRESSURE_STEP = 250/(1000/20); // Per 20ms cycle
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     // TCC is commanded to be off,
@@ -80,6 +81,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     
     GearboxGear cmp_gear = curr_gear;
     int slip_now = (int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm;
+    this->motor_torque_smoothed->add_sample(sensors->static_torque_wo_request);
+    int motor_torque = this->motor_torque_smoothed->get_average();
     this->slip_average->add_sample(slip_now);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
@@ -128,7 +131,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     }
 
-    this->engine_output_joule = sensors->engine_rpm * (abs(sensors->static_torque_wo_request)) / 9.5488;
+    this->engine_output_joule = sensors->engine_rpm * (abs(motor_torque)) / 9.5488;
     if (likely(sensors->engine_rpm >= sensors->input_rpm)) {
         float rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
         this->absorbed_power_joule = this->engine_output_joule - (this->engine_output_joule * rpm_as_percent);
@@ -143,7 +146,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int pedal_delta = sensors->pedal_delta->get_average();
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
-    int load_as_percent = ((int)sensors->static_torque_wo_request*100) / this->rated_max_torque;
+    int load_as_percent = ((int)motor_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
     if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150

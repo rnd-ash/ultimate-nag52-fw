@@ -132,10 +132,10 @@ public:
 	 */
 	virtual ShifterPosition get_shifter_position(const uint32_t expire_time_ms) = 0;
     virtual AbstractProfile* get_profile(const uint32_t expire_time_ms) = 0;
-    virtual DiagProfileInputState diag_get_profile_input() = 0;
+    virtual DiagProfileInputState diag_get_profile_input(void) = 0;
     void set_brake_is_pressed(bool is_pressed);
     void set_vehicle_speed(WheelData front_left, WheelData front_right);
-    virtual ShifterStyle get_shifter_type() = 0;
+    virtual ShifterStyle get_shifter_type(void) = 0;
     
 protected:
     TCM_CORE_CONFIG *vehicle_config;    

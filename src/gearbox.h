@@ -20,17 +20,18 @@
 #include "shifter/shifter.h"
 //#include "runtime_sensors/runtime_sensors.h"
 
-struct PostShiftTorqueRamp {
-    bool enabled;
-    uint16_t start_nm;
-    uint16_t time_to_exit;
-};
+/* unused */
+// struct PostShiftTorqueRamp {
+//     bool enabled;
+//     uint16_t start_nm;
+//     uint16_t time_to_exit;
+// };
 
 class Gearbox {
 public:
     explicit Gearbox(Shifter* shifter);
     // Diag test
-    ClutchSpeeds diag_get_clutch_speeds();
+    ClutchSpeeds diag_get_clutch_speeds(void);
     void set_profile(AbstractProfile* prof);
     void inc_subprofile(void);
     esp_err_t start_controller(void);
@@ -43,7 +44,6 @@ public:
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
-    uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
@@ -53,7 +53,8 @@ public:
     ShiftClutchVelocity shifting_velocity = {0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
-    bool is_stationary();
+    uint16_t redline_rpm = 4000u;
+    bool is_stationary(void);
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
@@ -108,7 +109,7 @@ private:
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
-    FirstOrderAverage* pedal_average = nullptr;
+    FirstOrderAverage* pedal_average = new FirstOrderAverage(25);
     FirstOrderAverage* motor_speed_average = nullptr;
     FirstOrderAverage* output_speed_average = nullptr;
 

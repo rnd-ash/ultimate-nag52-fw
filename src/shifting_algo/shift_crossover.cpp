@@ -40,7 +40,7 @@ uint8_t CrossoverShift::step(
     // Case (2) - Upshifting under power, downshifting when idle
     // In case 1, the engine will speed up the clutches, so we have to control using Modulating pressure to avoid a quick release
     // In case 2, the engine will resist the gearboxes actions
-    bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->static_torque < 0));
+    // bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->static_torque < 0)); //unused
     if (phase_id == PHASE_BLEED) {
         int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(abs_input_torque, 30));
         // Clutches

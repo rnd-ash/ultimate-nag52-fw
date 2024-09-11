@@ -21,7 +21,7 @@ enum class InternalTccState {
 
 class TorqueConverter {
     public:
-        TorqueConverter(uint16_t max_gb_rating);
+        explicit TorqueConverter(uint16_t max_gb_rating);
 
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters

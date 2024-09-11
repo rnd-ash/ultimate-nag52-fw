@@ -301,7 +301,7 @@ uint8_t ReleasingShift::step(
             , 0);
         }
     } else if (phase_id == PHASE_OVERLAP) {
-        int duration = 140; // FROM EGS CAL
+        // int duration = 140; // FROM EGS CAL
         // New clutch gets full pressure (+momentum)
         // Old clutch valve is empties completely
         int old_new_clutch = sid->ptr_prev_pressures->on_clutch;
@@ -373,7 +373,6 @@ uint8_t ReleasingShift::step(
     // This outputs the current target torque reduction based on the ramps
     // (It is used below for calculating current limit)
     int trq_ramp_value = 0;
-    bool trq_ramp_inc = false;
     if (time_for_trq_req) {
         // Compute ramp
         if (this->trq_ramp_up) {
@@ -423,6 +422,7 @@ uint8_t ReleasingShift::step(
     if (trq_req_now != 0) {
         sid->ptr_w_trq_req->amount = sd->driver_requested_torque - trq_req_now;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
+        bool trq_ramp_inc = false; //TODO: is alway false
         sid->ptr_w_trq_req->ty =  trq_ramp_inc ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
     } else {
         // No request

@@ -62,9 +62,9 @@ public:
 	 * @brief For identification
 	 * @return 
 	 */
-	virtual ProgramSelectorType get_type() const;
+	virtual ProgramSelectorType get_type(void) const;
 
-	virtual DiagProfileInputState get_input_raw() const {
+	virtual DiagProfileInputState get_input_raw(void) const {
 		return DiagProfileInputState::None;
 	};
 protected:

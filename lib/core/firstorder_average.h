@@ -1,5 +1,5 @@
-#ifndef __FO_AVERAGE_H__
-#define __FO_AVERAGE_H__
+#ifndef FO_AVERAGE_H
+#define FO_AVERAGE_H
 
 #include <stdint.h>
 #include <type_traits>

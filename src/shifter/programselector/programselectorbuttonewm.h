@@ -13,7 +13,7 @@ private:
 	TCM_CORE_CONFIG* vehicle_config;
 	bool is_pressed_last_call = false;
 public:
-	ProgramSelectorButtonEwm(TCM_CORE_CONFIG* vehicle_config);
+	explicit ProgramSelectorButtonEwm(TCM_CORE_CONFIG* vehicle_config);
 	void set_button_pressed(const bool is_pressed);
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
 	ProgramSelectorType get_type() const override;

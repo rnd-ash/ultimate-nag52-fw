@@ -1,5 +1,5 @@
-#ifndef __MODULE_SETTINGS_H
-#define __MODULE_SETTINGS_H
+#ifndef MODULE_SETTINGS_H
+#define MODULE_SETTINGS_H
 
 #include <stdint.h>
 #include <tcu_maths.h>
@@ -320,7 +320,7 @@ extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
 
 namespace ModuleConfiguration {
-    esp_err_t load_all_settings();
+    esp_err_t load_all_settings(void);
     esp_err_t reset_settings(uint8_t idx);
     esp_err_t write_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer);
     esp_err_t read_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer);

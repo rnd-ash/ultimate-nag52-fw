@@ -1,12 +1,12 @@
-#ifndef __SHIFT_CROSSOVER_H__
-#define __SHIFT_CROSSOVER_H__
+#ifndef SHIFT_CROSSOVER_H
+#define SHIFT_CROSSOVER_H
 
 #include "s_algo.h"
 #include "firstorder_average.h"
 
 class CrossoverShift : public ShiftingAlgorithm {
 public:
-    CrossoverShift(ShiftInterfaceData* data);
+    explicit CrossoverShift(ShiftInterfaceData* data);
     ~CrossoverShift() override;
     uint8_t step(
         uint8_t phase_id,

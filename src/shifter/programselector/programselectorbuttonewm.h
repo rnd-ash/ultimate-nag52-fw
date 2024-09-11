@@ -1,7 +1,7 @@
 #ifndef PROGRAMSELECTORBUTTONEWM_H
 #define PRORAMSELECTORBUTTONEWM_H
 
-#include "programselector.h"
+#include "programselector.hpp"
 #include "../../nvs/eeprom_config.h"
 #include "../../canbus/can_hal.h"
 

@@ -185,11 +185,11 @@ const int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
 const int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
     /* ATF TEMP             */
     /*  -20C,  5C, 25C, 60C */
-         600, 300, 180, 160, // K1 clutch
-        1620, 540, 260, 140, // K2 clutch
-         860, 500, 160, 140, // K3 clutch
+         600, 360, 220, 160, // K1 clutch
+        1620, 560, 260, 160, // K2 clutch
+         860, 500, 160, 160, // K3 clutch
          600, 380, 220, 180, // B1 brake
-         820, 620, 220, 120  // B2 brake
+         820, 680, 260, 120  // B2 brake
 };
 
 const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
@@ -211,7 +211,7 @@ const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
 const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2 */
-      600,  700,  700,  700,  560
+      100,  700,  700,  750,  700
 };
 
 

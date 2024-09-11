@@ -22,9 +22,8 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
     this->old_current_targets[current_target_idx] = this->current_target;
     this->current_target_idx = (this->current_target_idx + 1) % 10;
 
-    uint16_t calc_pwm = this->pwm;
+    uint16_t calc_pwm = 0;
     if (this->current_target == 0) {
-        calc_pwm = 0;
         if (use_global_cc) {
             this->internal_trim_factor = mpc_sol_trim_factor;
         }
@@ -90,11 +89,11 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
     this->c = 0;
 }
 
-uint16_t ConstantCurrentSolenoid::get_current_target() {
+uint16_t ConstantCurrentSolenoid::get_current_target() const {
     return this->current_target;
 }
 
-float ConstantCurrentSolenoid::get_trim() {
+float ConstantCurrentSolenoid::get_trim() const {
     return 1.0+this->internal_trim_factor;
 }
 

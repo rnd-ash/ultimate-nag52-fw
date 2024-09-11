@@ -8,7 +8,7 @@
 // TCC Settings
 
 // Torque converter setting
-typedef struct {
+struct TCC_MODULE_SETTINGS{
     // Enable adaptation for all gears
     bool adapt_enable;
     // Enable torque converter in D1
@@ -49,7 +49,7 @@ typedef struct {
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
-} __attribute__ ((packed)) TCC_MODULE_SETTINGS;
+} __attribute__ ((packed)) ;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_enable = true,
@@ -66,7 +66,7 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
 };
 
 // Solenoid subsystem settings
-typedef struct {
+struct SOL_MODULE_SETTINGS{
     // Minimum battery voltage before performing 
     // the solenoid boot up test on TCU start
     //
@@ -90,7 +90,7 @@ typedef struct {
     // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
     
-} __attribute__ ((packed)) SOL_MODULE_SETTINGS;
+} __attribute__ ((packed));
 
 const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .min_batt_power_on_test = 11000,
@@ -103,7 +103,7 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
 };
 
 // Shift program basic settings
-typedef struct {
+struct SBS_MODULE_SETTINGS{
     // Minimum end RPM for an upshift. Setting this too high
     // might block shifting
     // UNIT: RPM
@@ -149,7 +149,7 @@ typedef struct {
     bool trq_req_3_2_enable;
     // Enable torque request for the 2-1 downshift
     bool trq_req_2_1_enable;
-} __attribute__ ((packed)) SBS_MODULE_SETTINGS;
+} __attribute__ ((packed)) ;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .min_upshift_end_rpm = 1000,
@@ -182,14 +182,14 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
 };
 
 // Pressure manager settings
-typedef struct {
+struct PRM_MODULE_SETTINGS{
     // Time before shift solenoids are reduced PWM.
     // Setting this too low can result in the shift circuit
     // not activating!
     //
     // UNIT: milliseconds
     uint16_t shift_solenoid_pwm_reduction_time;
-} __attribute__ ((packed)) PRM_MODULE_SETTINGS;
+} __attribute__ ((packed)) ;
 
 
 
@@ -198,7 +198,7 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
 };
 
 // Adaptation settings
-typedef struct {
+struct ADP_MODULE_SETTINGS{
     // Minimum transmission oil temperature for adaptation
     //
     // UNIT: degrees C
@@ -234,7 +234,7 @@ typedef struct {
     // UNIT: milliseconds
     uint16_t prefill_max_time_delta;
     
-} __attribute__ ((packed)) ADP_MODULE_SETTINGS;
+} __attribute__ ((packed));
 
 const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .min_atf_temp = 60,
@@ -270,7 +270,7 @@ enum SelectableGearboxProfile : uint8_t {
 };
 
 // Shifter settings
-typedef struct {
+struct ETS_MODULE_SETTINGS{
     // TRRS shifter (Wired to the TCU) has a profile selector?
     bool trrs_has_profile_selector;
     // The type of profile selection available on the CAN EWM
@@ -291,7 +291,7 @@ typedef struct {
     // When using the SLR profile selector, this is the profile
     // when the profile selector is in the right position
     SelectableGearboxProfile slr_profile_idx_right;
-} __attribute__ ((packed)) ETS_MODULE_SETTINGS;
+} __attribute__ ((packed));
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .trrs_has_profile_selector = true,

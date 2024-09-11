@@ -22,6 +22,7 @@ void init_clock(void) {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000u,
+        .intr_priority = 3,
         .flags = {
             .intr_shared = 1
         }

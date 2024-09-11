@@ -1,7 +1,7 @@
 #ifndef PROGRAMSELECTORSWITCHEWM_H
 #define PROGRAMSELECTORSWITCHEWM_H
 
-#include "programselector.h"
+#include "programselector.hpp"
 
 class ProgramSelectorSwitchEWM : public ProgramSelector {
 public:

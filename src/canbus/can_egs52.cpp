@@ -768,9 +768,10 @@ void Egs52Can::set_abort_shift(bool is_aborting){
     this->gs218.GZC = GS_218h_GZC_EGS52::G_ABBRUCH;
 }
 
-void Egs52Can::set_fake_engine_rpm(uint16_t rpm) {
-    this->fake_rpm = rpm;
-}
+/* unused */
+// void Egs52Can::set_fake_engine_rpm(uint16_t rpm) {
+//     this->fake_rpm = rpm;
+// }
 
 void Egs52Can::set_display_msg(GearboxMessage msg) {
     this->curr_message = msg;

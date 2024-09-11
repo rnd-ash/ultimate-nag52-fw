@@ -123,22 +123,22 @@ esp_err_t StoredMap::read_from_eeprom(const char *key_name, uint16_t expected_si
     return ret;
 }
 
-uint16_t StoredMap::get_map_element_count(void)
+uint16_t StoredMap::get_map_element_count(void) const
 {
     return this->data_element_count;
 }
 
-const int16_t *StoredMap::get_default_map_data(void)
+const int16_t *StoredMap::get_default_map_data(void) const
 {
     return this->default_map;
 }
 
-const char *StoredMap::get_map_name(void)
+const char *StoredMap::get_map_name(void) const
 {
     return this->data_name;
 }
 
-int16_t *StoredMap::get_current_eeprom_map_data(void)
+int16_t *StoredMap::get_current_eeprom_map_data(void) const
 {
     bool succesful_allocation = false;
     int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(this->data_element_count * sizeof(int16_t)));

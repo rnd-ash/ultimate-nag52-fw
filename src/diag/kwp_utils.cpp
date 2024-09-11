@@ -34,7 +34,7 @@ void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, uint8_t pid, const
     memcpy(&dest->data[2], resp, len);
 }
 
-bool is_engine_off(EgsBaseCan* can) {
+bool is_engine_off(const EgsBaseCan* can) {
     if (can == nullptr) {
         return true;
     } else {
@@ -62,10 +62,10 @@ bool is_shifter_passive(EgsBaseCan* can) {
 // Error lookup
 #define ERR_TABLE_ADD(err) { err, #err }
 
-typedef struct {
+struct kwp_err_desc{
     kwp_result_t code;
     const char* name;
-} kwp_err_desc;
+} ;
 
 const char* kwp_nrc_unknown  = "NRC_UNKNOWN";
 static const kwp_err_desc kwp_err_table[] = {
@@ -101,17 +101,17 @@ static const kwp_err_desc kwp_err_table[] = {
     ERR_TABLE_ADD(NRC_UN52_OTA_INVALID_TY),
 };
 
-
-const char* kwp_nrc_to_name(kwp_result_t res) {
-    const char* def = nullptr;
-    for (int i = 0; i < sizeof(kwp_err_table) / sizeof(kwp_err_desc); i++) {
-        if (kwp_err_table[i].code == res) {
-            def = kwp_err_table->name;
-            break;
-        }
-    }
-    if (def == nullptr) {
-        def = kwp_nrc_unknown;
-    }
-    return def;
-}
+/* unused */
+// const char* kwp_nrc_to_name(kwp_result_t res) {
+//     const char* def = nullptr;
+//     for (int i = 0; i < sizeof(kwp_err_table) / sizeof(kwp_err_desc); i++) {
+//         if (kwp_err_table[i].code == res) {
+//             def = kwp_err_table->name;
+//             break;
+//         }
+//     }
+//     if (def == nullptr) {
+//         def = kwp_nrc_unknown;
+//     }
+//     return def;
+// }

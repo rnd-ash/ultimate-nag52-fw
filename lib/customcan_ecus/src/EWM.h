@@ -31,7 +31,7 @@ enum class EWM_230h_WHC_CUSTOMCAN : uint16_t {
 
 
 
-typedef union {
+union EWM_230_CUSTOMCAN {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -50,7 +50,7 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of EWM_230_CUSTOMCAN **/
 	uint32_t get_canid(){ return EWM_230_CUSTOMCAN_CAN_ID; }
-} EWM_230_CUSTOMCAN;
+};
 
 
 
@@ -63,9 +63,9 @@ class ECU_EWM {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
+         bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             bool add = true;
+            uint8_t idx = 0;
             switch(can_id) {
                 case EWM_230_CUSTOMCAN_CAN_ID:
                     idx = 0;
@@ -98,7 +98,7 @@ class ECU_EWM {
         }
             
 	private:
-		uint64_t FRAME_DATA[1];
-		uint32_t LAST_FRAME_TIMES[1];
+		uint64_t FRAME_DATA[1] = { 0 };
+		uint32_t LAST_FRAME_TIMES[1] = { 0 };
 };
 #endif // ECU_EWM_H

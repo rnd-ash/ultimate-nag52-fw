@@ -122,11 +122,9 @@ bool EgsBaseCan::begin_task() {
 [[noreturn]]
 void EgsBaseCan::task_loop() {
     twai_message_t rx;
-    uint8_t i;
     uint64_t tmp;
-    uint32_t now;
     while(true) {
-        now = GET_CLOCK_TIME();
+        uint32_t now = GET_CLOCK_TIME();
         // Message Rx
 
         twai_get_status_info(&this->can_status);
@@ -153,7 +151,7 @@ void EgsBaseCan::task_loop() {
                         }
                     } else { // Normal message
                         tmp = 0;
-                        for(i = 0; i < rx.data_length_code; i++) {
+                        for(uint8_t i = 0; i < rx.data_length_code; i++) {
                             tmp |= (uint64_t)rx.data[i] << (8*(7-i));
                         }
                         if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {

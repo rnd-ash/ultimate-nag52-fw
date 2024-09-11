@@ -4,7 +4,7 @@
 #define GEARBOX_H
 
 #include <stdint.h>
-#include "canbus/can_hal.h"
+// #include "canbus/can_hal.h"
 #include "solenoids/solenoids.h"
 #include "sensors.h"
 #include "profiles.h"
@@ -33,7 +33,8 @@ public:
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds(void);
     void set_profile(AbstractProfile* prof);
-    void inc_subprofile(void);
+    /* unused       */
+    // void inc_subprofile(void);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
@@ -41,20 +42,20 @@ public:
     void diag_regain_control(void) { this->diag_stop_control = false; }
     SensorData sensor_data;
     OutputData output_data;
-    uint16_t get_gear_ratio(void) {
+    uint16_t get_gear_ratio(void) const {
         return this->sensor_data.gear_ratio * 100.0F;
     }
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool isShifting(void) { return this->shifting; }
-    ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
+    bool isShifting(void) const { return this->shifting; }
+    ProfileGearChange get_curr_gear_change(void) const { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
     ShiftClutchVelocity shifting_velocity = {0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
 private:
     uint16_t redline_rpm = 4000u;
-    bool is_stationary(void);
+    bool is_stationary(void) const;
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
@@ -108,7 +109,8 @@ private:
     RpmReading rpm_reading;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
+    /* unused */
+    // float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = new FirstOrderAverage(25);
     FirstOrderAverage* motor_speed_average = nullptr;
     FirstOrderAverage* output_speed_average = nullptr;

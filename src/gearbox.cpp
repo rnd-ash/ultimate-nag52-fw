@@ -154,7 +154,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     last_shift_circuit = ShiftCircuit::None;
 }
 
-bool Gearbox::is_stationary() {
+bool Gearbox::is_stationary() const{
     return this->sensor_data.input_rpm < 100 && this->sensor_data.output_rpm < 100;
 }
 
@@ -325,13 +325,13 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
     };
 }
 
-
-float Gearbox::calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms) {
-    int t_now = sensor_data.input_torque;
-    float multi_reduction = interpolate_float(t_now, 0.2, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
-    multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
-    return MIN(1.0, multi_reduction);
-}
+/* unused */
+// float Gearbox::calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms) {
+//     int t_now = sensor_data.input_torque;
+//     float multi_reduction = interpolate_float(t_now, 0.2, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
+//     multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
+//     return MIN(1.0, multi_reduction);
+// }
 
 float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
     float min_factor = 1.0 / ((float)(MECH_PTR->intertia_factor[shift_idx])/1000.0);
@@ -360,7 +360,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         sr.change = req_lookup;
         sr.atf_temp_c = sensor_data.atf_temp/10;
         uint32_t shift_start_time = GET_CLOCK_TIME();
-        uint8_t overlap_report_size = 0;
+        /* unused */
+        // uint8_t overlap_report_size = 0;
         ShiftCharacteristics chars = profile->get_shift_characteristics(req_lookup, &this->sensor_data);
         chars.target_shift_time = MAX(100, chars.target_shift_time);
         CircuitInfo sd = pressure_mgr->get_basic_shift_data(&this->gearboxConfig, req_lookup, chars);
@@ -377,11 +378,22 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // calculate prefill data now, as we need this to set MPC offset
         PrefillData prefill_data = pressure_mgr->make_fill_data(req_lookup);
 
-        ShiftPressures p_now = {};
-        ShiftPressures p_prev = {};
-
-        memset(&p_now, 0, sizeof(ShiftPressures));
-        memset(&p_prev, 0, sizeof(ShiftPressures));
+        ShiftPressures p_now = {
+            .on_clutch = 0.F,
+            .off_clutch = 0.F,
+            .overlap_mod = 0.F,
+            .overlap_shift = 0.F,
+            .shift_sol_req = 0.F,
+            .mod_sol_req = 0.F
+        };
+        ShiftPressures p_prev = {
+            .on_clutch = 0.F,
+            .off_clutch = 0.F,
+            .overlap_mod = 0.F,
+            .overlap_shift = 0.F,
+            .shift_sol_req = 0.F,
+            .mod_sol_req = 0.F
+        };
 
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
@@ -501,7 +513,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             bool stationary_shift = this->is_stationary();
             // Shifter moved mid shift!
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
-                process_shift = false;
+                /* unused */
+                // process_shift = false;
                 result = false;
                 break;
             }
@@ -599,10 +612,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 this->target_gear = this->actual_gear;
             }
         }
-        sr.end_reading = this->collect_report_segment(shift_start_time);
-        sr.overlap_reading_size = overlap_report_size;
-        sr.shift_status = result;
-        sr.target_shift_speed = chars.target_shift_time;
+        /* unused */
+        // sr.end_reading = this->collect_report_segment(shift_start_time);
+        // sr.overlap_reading_size = overlap_report_size;
+        // sr.shift_status = result;
+        // sr.target_shift_speed = chars.target_shift_time;
         pressure_manager->set_spc_p_max();
         pressure_manager->set_shift_circuit(sd.shift_circuit, false);
         pressure_manager->notify_shift_end();
@@ -624,6 +638,10 @@ void Gearbox::shift_thread()
     if (curr_actual == curr_target)
     {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFTER", "Gears are the same????");
+        goto cleanup;
+    }
+    if(egs_can_hal->get_is_starting(500u)) {
+        ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFTER", "Engine is starting");
         goto cleanup;
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target))
@@ -839,15 +857,16 @@ cleanup:
     vTaskDelete(nullptr);
 }
 
-void Gearbox::inc_subprofile()
-{
-    portENTER_CRITICAL(&this->profile_mutex);
-    if (this->current_profile != nullptr)
-    {
-        this->current_profile->increment_subprofile();
-    }
-    portEXIT_CRITICAL(&this->profile_mutex);
-}
+/* unused */
+// void Gearbox::inc_subprofile()
+// {
+//     portENTER_CRITICAL(&this->profile_mutex);
+//     if (this->current_profile != nullptr)
+//     {
+//         this->current_profile->increment_subprofile();
+//     }
+//     portEXIT_CRITICAL(&this->profile_mutex);
+// }
 
 void Gearbox::controller_loop()
 {

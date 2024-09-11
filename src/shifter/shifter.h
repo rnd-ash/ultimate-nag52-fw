@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "clock.hpp"
-#include "programselector/programselector.h"
+#include "programselector/programselector.hpp"
 #include "../nvs/eeprom_config.h"
 
 /**
@@ -23,28 +23,6 @@ enum class ShifterStyle : uint8_t {
      * NOTE: This is unimplemented at the moment.
 	 */
 	SLR = 2u,
-};
-
-/**
- * @brief SLR profile knob position
- */
-enum class SLRProfileWheel : uint8_t {
-    /**
-     * @brief Right (S)
-     */
-    Right = 0u,
-    /**
-     * @brief Center (M)
-     */
-    Center = 1u,
-    /**
-     * @brief Left (C)
-     */
-    Left = 2u,
-    /**
-     * @brief Could not determine position
-     */
-    SNV = UINT8_MAX,
 };
 
 /**

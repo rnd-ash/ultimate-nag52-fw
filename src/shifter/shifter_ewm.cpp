@@ -3,7 +3,7 @@
 #include "programselector/programselectorswitchewm.h"
 #include "programselector/programselectorSLR.h"
 
-ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings)
 {
 	this->vehicle_config = vehicle_config;
 	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
@@ -27,7 +27,7 @@ ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shi
 	}
 }
 
-DiagProfileInputState ShifterEwm::diag_get_profile_input() {
+DiagProfileInputState ShifterEwm::diag_get_profile_input(void) {
 	// None rather than SNV (SNV means valid configuration, but no communication)
 	// None implied not configured / no program selector
 	DiagProfileInputState ret = DiagProfileInputState::None;

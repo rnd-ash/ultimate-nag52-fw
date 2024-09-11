@@ -13,7 +13,7 @@ const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10Khz, Hydralic P
 
 
 static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    InrushControlSolenoid* solenoid = (InrushControlSolenoid*)user_data;
+    InrushControlSolenoid* solenoid = reinterpret_cast<InrushControlSolenoid*>(user_data);
     uint32_t next_alarm_in = solenoid->on_timer_interrupt();
     gptimer_alarm_config_t alarm_config = {
         .alarm_count = edata->alarm_value + next_alarm_in,
@@ -38,7 +38,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = (1 * 1000 * 1000 * 10), // 10Khz
+        .resolution_hz = (1u * 1000u * 1000u * 10u), // 10Khz
         .flags = {
             .intr_shared = 0
         }
@@ -60,7 +60,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
             };
             this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
             if (ESP_OK == ready) {
-                this->ready = gptimer_register_event_callbacks(this->timer, &cbs, (void*)this);
+                this->ready = gptimer_register_event_callbacks(this->timer, &cbs, reinterpret_cast<void*>(this));
                 if (ESP_OK == ready) {
                     this->ready = gptimer_enable(this->timer);
                     if (ESP_OK == ready) {

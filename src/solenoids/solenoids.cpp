@@ -69,7 +69,7 @@ void read_solenoids_i2s(void*) {
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
         if (ret == ESP_OK) {
             for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
                 uint8_t channel_idx = p->type1.channel;
                 if (p->type1.data != 0) {
                     peak_samples[channel_idx] += 1;
@@ -118,7 +118,7 @@ void Solenoids::notify_diag_test_end(void) {
 
 void update_solenoids(void*) {
     int16_t atf_temp = 250;
-    float vref_compensation = 1.0;
+    float vref_compensation;
     float temp_compensation = 1.0;
     while(true) {
         if (ESP_OK == Sensors::read_vbatt(&voltage)) {
@@ -129,8 +129,8 @@ void update_solenoids(void*) {
         if (ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
             temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
         }
-        bool vbatt_too_low = voltage < 9000;
         if (write_pwm) {
+            bool vbatt_too_low = voltage < 9000;
             sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_tcc->__write_pwm(vref_compensation, temp_compensation);
@@ -163,53 +163,53 @@ bool Solenoids::init_routine_completed(void) {
 //     return startup_ok;
 // }
 
-void Solenoids::boot_solenoid_test(void*) {
-    while(!first_read_complete){vTaskDelay(1);}
-    if(sol_spc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
+// void Solenoids::boot_solenoid_test(void*) {
+//     while(!first_read_complete){vTaskDelay(1);}
+//     if(sol_spc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
 
-    if(sol_mpc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
+//     if(sol_mpc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
 
-    if(sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
+//     if(sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
 
-    if(sol_y3->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
+//     if(sol_y3->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
 
-    if(sol_y4->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
+//     if(sol_y4->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
 
-    if(sol_y5->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
-        ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
-        routine = true;
-        startup_ok = false;
-        return;
-    }
-    startup_ok = true;
-    routine = true;
-    vTaskDelete(NULL);
-}
+//     if(sol_y5->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+//         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
+//         routine = true;
+//         startup_ok = false;
+//         return;
+//     }
+//     startup_ok = true;
+//     routine = true;
+//     vTaskDelete(NULL);
+// }
 
 esp_err_t Solenoids::init_all_solenoids()
 {

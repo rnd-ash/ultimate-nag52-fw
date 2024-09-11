@@ -153,7 +153,7 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
         if (args[0] == this->block_counter+1 || (args[0] == 0x00 && this->block_counter == 0xFF)) {
             // Next block
             this->block_counter++;
-            if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
+            if (esp_flash_write(esp_flash_default_chip, reinterpret_cast<const void*>(&args[1]), this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
                 global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
                 return;
             } else {

@@ -47,7 +47,7 @@ enum class HFM_308h_HFM_COD : uint16_t {
 
 
 
-typedef union {
+union HFM_210 {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -58,15 +58,15 @@ typedef union {
 		/** throttle valve target value implausible **/
 		bool DKV_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 4;
+		uint16_t __PADDING2__: 4;
 		/** vehicle speed signal implausible **/
 		bool VSIG_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 3;
+		uint16_t __PADDING3__: 3;
 		/** full throttle **/
 		bool VG_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING4__: 2;
+		uint16_t __PADDING4__: 2;
 		/** brake light switch on **/
 		bool BLS_B: 1;
 		/** emergency mode **/
@@ -88,11 +88,11 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_210 **/
 	uint32_t get_canid(){ return HFM_210_CAN_ID; }
-} HFM_210;
+};
 
 
 
-typedef union {
+union HFM_308 {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -101,11 +101,11 @@ typedef union {
 		/** starter running **/
 		bool KL50_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 6;
+		uint16_t __PADDING2__: 6;
 		/** air mass signal implausible **/
 		bool HFM_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 8;
+		uint16_t __PADDING3__: 8;
 		/** engine speed **/
 		uint16_t NMOT: 16;
 		/** HFM coding **/
@@ -117,11 +117,11 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_308 **/
 	uint32_t get_canid(){ return HFM_308_CAN_ID; }
-} HFM_308;
+};
 
 
 
-typedef union {
+union HFM_608 {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -136,17 +136,17 @@ typedef union {
 		/** engine temperature implausible **/
 		bool TFM_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 8;
+		uint16_t __PADDING3__: 8;
 		/** engine temperature **/
 		uint8_t T_MOT: 8;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_608 **/
 	uint32_t get_canid(){ return HFM_608_CAN_ID; }
-} HFM_608;
+};
 
 
 
-typedef union {
+union HFM_610 {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -155,7 +155,7 @@ typedef union {
 		/** air mass flow **/
 		uint8_t MLE: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
+		uint16_t __PADDING2__: 8;
 		/** ROZ tempering detection **/
 		bool ROZ_TP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -163,7 +163,7 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_610 **/
 	uint32_t get_canid(){ return HFM_610_CAN_ID; }
-} HFM_610;
+};
 
 
 
@@ -176,9 +176,9 @@ class ECU_HFM {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
+         bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             bool add = true;
+            uint8_t idx = 0;
             switch(can_id) {
                 case HFM_210_CAN_ID:
                     idx = 0;
@@ -268,7 +268,7 @@ class ECU_HFM {
         }
             
 	private:
-		uint64_t FRAME_DATA[4];
-		uint32_t LAST_FRAME_TIMES[4];
+		uint64_t FRAME_DATA[4] = { 0, 0, 0, 0 };
+		uint32_t LAST_FRAME_TIMES[4] = { 0, 0, 0, 0 };
 };
 #endif // ECU_HFM_H

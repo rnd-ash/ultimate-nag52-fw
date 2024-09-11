@@ -16,7 +16,7 @@ const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
 const uint8_t STEP_RES_END_SHIFT = 0xFF;
 
 
-typedef struct {
+struct ShiftInterfaceData{
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
@@ -38,7 +38,7 @@ typedef struct {
     TorqueRequstData* ptr_w_trq_req;
     PressureStageTiming maxp_info;
     TorqueConverter* tcc;
-} ShiftInterfaceData;
+};
 
 class ShiftingAlgorithm {
 public:

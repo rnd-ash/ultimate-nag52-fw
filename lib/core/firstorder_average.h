@@ -24,10 +24,10 @@ public:
      * 
      * Setting samples to 0 means no filtering (Output = Input)
     */
-    FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
-        if (samples > 254) {
+    explicit FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
+        if (samples > 254u) {
             // SAFETY
-            this->sample_count = 254;
+            this->sample_count = 254u;
         } else {
             this->sample_count = samples;
         }
@@ -35,15 +35,15 @@ public:
     }
 
     void add_sample(int32_t sample) {
-        this->last_sample = this->current_sample;
-        this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
+        last_sample = current_sample;
+        current_sample = ((sample*100) + ((int32_t)sample_count*last_sample)) / ((int32_t)sample_count + 1);
     }
 
-    int32_t get_average() const {
+    int32_t get_average(void) const {
         return this->current_sample/100;
     }
 
-    float get_average_float() const {
+    float get_average_float(void) const {
         return (float)this->current_sample/100;
     }
 

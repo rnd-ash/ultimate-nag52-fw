@@ -12,16 +12,16 @@
 #include "lookuptable.h"
 #include <string.h>
 
-typedef struct {
+struct PrefillData{
     uint16_t fill_time;
     uint16_t fill_pressure_on_clutch;
     uint16_t low_fill_pressure_on_clutch;
-} PrefillData;
+} ;
 
-typedef struct {
+struct PressureStageTiming{
     uint16_t hold_time;
     uint16_t ramp_time;
-} PressureStageTiming;
+} ;
 
 struct ShiftPressures {
     // At the applying clutch
@@ -74,9 +74,9 @@ public:
      */
     void set_target_tcc_pressure(uint16_t targ);
 
-    uint16_t get_max_solenoid_pressure();
+    static uint16_t get_max_solenoid_pressure(void);
 
-    uint16_t get_spring_pressure(Clutch c);
+    static uint16_t get_spring_pressure(Clutch c);
 
     uint16_t get_calc_line_pressure(void) const;
     uint16_t get_calc_inlet_pressure(void) const;
@@ -113,7 +113,7 @@ public:
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
     uint16_t find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
     uint16_t find_freeing_torque(ProfileGearChange change, uint16_t motor_torque, uint16_t output_rpm);
-    uint16_t find_turbine_drag(uint8_t map_idx);
+    static uint16_t find_turbine_drag(uint8_t map_idx);
     uint16_t find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient = false);
     void update_pressures(GearboxGear current_gear);
@@ -123,19 +123,24 @@ public:
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
-    uint16_t get_shift_regulator_pressure(void);
+    static uint16_t get_shift_regulator_pressure(void);
 
-    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
+    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const;
 
     void register_shift_pressure_data(ShiftPressures* p) {
         this->ptr_shift_pressures = p;
     }
 
     ShiftPressures get_shift_pressures_now() {
-        ShiftPressures ret{};
-        if (nullptr == this->ptr_shift_pressures) {
-            memset(&ret, 0x00, sizeof(ShiftPressures));
-        } else {
+        ShiftPressures ret = {
+            .on_clutch = 0.F,
+            .off_clutch = 0.F,
+            .overlap_mod = 0.F,
+            .overlap_shift = 0.F,
+            .shift_sol_req = 0.F,
+            .mod_sol_req = 0.F
+        };
+        if (nullptr != this->ptr_shift_pressures) {
             memcpy(&ret, this->ptr_shift_pressures, sizeof(ShiftPressures));
         }
         return ret;
@@ -143,14 +148,15 @@ public:
 private:
 
     uint16_t calc_working_pressure(GearboxGear current_gear, uint16_t in_mpc, uint16_t in_spc);
-    uint16_t calc_input_pressure(uint16_t working_pressure);
-    float calc_inlet_factor(uint16_t inlet_pressure);
+    static uint16_t calc_input_pressure(uint16_t working_pressure);
+    static float calc_inlet_factor(uint16_t inlet_pressure);
 
      /**
      * Returns the estimated PWM to send to either SPC or MPC solenoid
      * Based on the requested pressure that is needed withint either pressure rail.
      */
-    uint16_t get_p_solenoid_current(uint16_t request_mbar) const;
+    /* unused */
+    // uint16_t get_p_solenoid_current(uint16_t request_mbar) const;
 
     /**
      * Returns the estimated PWM to send to the TCC solenoid
@@ -175,7 +181,7 @@ private:
     uint16_t calculated_inlet_pressure = 0;
 
     // Shift circuit currently open
-    ShiftCircuit currently_open_circuit;
+    ShiftCircuit currently_open_circuit = ShiftCircuit::None;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* fill_time_map;

@@ -1,5 +1,5 @@
-#ifndef __PWM_SOLENOID_H_
-#define __PWM_SOLENOID_H_
+#ifndef PWM_SOLENOID_H
+#define PWM_SOLENOID_H
 
 #include <stdint.h>
 #include "driver/gpio.h"
@@ -14,12 +14,13 @@
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
 extern uint16_t min_adc_raw_reading;
-extern const ledc_timer_config_t SOLENOID_TIMER_CFG;
+/* unused */
+// extern const ledc_timer_config_t SOLENOID_TIMER_CFG;
 
-typedef struct {
+struct SolenoidTestReading{
     uint16_t avg_voltage;
     uint16_t avg_current;
-} __attribute__((packed)) SolenoidTestReading;
+} __attribute__((packed));
 
 class PwmSolenoid
 {
@@ -37,16 +38,15 @@ public:
     PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms);
 
 
-    const char* get_name(void) {
-        return this->name;
-    }
+    /* unused */
+    // const char* get_name(void) const;
 
     /**
      * @brief Returns the raw PWM that was requested by write_pwm_12_bit
      * 
      * @return The raw PWM duty that was requested
      */
-    uint16_t get_pwm_raw(void);
+    uint16_t get_pwm_raw(void) const;
 
     /**
      * @brief returns the actual PWM that is being written to the solenoid
@@ -58,7 +58,8 @@ public:
      */
     uint16_t get_pwm_compensated(void) const;
 
-    uint16_t get_ledc_pwm(void);
+    /* unused */
+    // uint16_t get_ledc_pwm(void);
 
     /**
      * @brief Gets the current consumed by the solenoid at the previous I2S sample

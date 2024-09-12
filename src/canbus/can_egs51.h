@@ -56,7 +56,6 @@ class Egs51Can: public EgsBaseCan {
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
-        TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
 
         /**
          * Setters

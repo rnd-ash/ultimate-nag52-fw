@@ -194,7 +194,7 @@ esp_err_t Sensors::init_sensors(void){
     // Set moving average buffers
     // TFT and Battery is averaged over 1 second
     tft_filter = new FirstOrderAverage(500/SENSOR_TIMER_INTERVAL_MS);
-    batt_filter = new FirstOrderAverage(500/SENSOR_TIMER_INTERVAL_MS, 12000);
+    batt_filter = new FirstOrderAverage(250/SENSOR_TIMER_INTERVAL_MS, 12000);
 
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");

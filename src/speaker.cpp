@@ -10,7 +10,8 @@ Speaker::Speaker(gpio_num_t pin) {
         .duty_resolution = LEDC_TIMER_8_BIT,
         .timer_num = LEDC_TIMER_3,
         .freq_hz = 100,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false
     };
     // Set the timer configuration
     ledc_timer_config(&timer_cfg);

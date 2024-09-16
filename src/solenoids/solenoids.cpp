@@ -4,7 +4,6 @@
 #include "esp_adc/adc_cali_scheme.h"
 #include "board_config.h"
 #include "../sensors.h"
-#include "soc/syscon_periph.h"
 #include "soc/i2s_periph.h"
 #include "string.h"
 #include "esp_adc/adc_continuous.h"
@@ -21,10 +20,41 @@ ConstantCurrentSolenoid *sol_mpc = nullptr;
 ConstantCurrentSolenoid *sol_spc = nullptr;
 InrushControlSolenoid *sol_tcc = nullptr;
 
+#define NUM_SOLENOIDS 6
+struct SolenoidOutputSummary {
+    uint64_t peak_total[NUM_SOLENOIDS];
+    uint16_t count_peak[NUM_SOLENOIDS];
+    uint16_t count_total[NUM_SOLENOIDS];
+};
+
+QueueHandle_t solenoid_summery_queue;
+
 // 6 channels * SOC_ADC_DIGI_DATA_BYTES_PER_CONV bytes per sample *  
 #define I2S_DMA_BUF_LEN 6 * 100 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 4
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
+
+uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+static bool IRAM_ATTR on_i2s_read(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data) {
+    SolenoidOutputSummary s;
+    memset(&s, 0x00, sizeof(SolenoidOutputSummary));
+    uint64_t valid_samples = 0;
+    for (int i = 0; i < edata->size; i += SOC_ADC_DIGI_RESULT_BYTES) {
+        adc_digi_output_data_t *p = (adc_digi_output_data_t*)&edata->conv_frame_buffer[i];
+        uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
+        if (channel_idx != 0xFF) {
+            if (p->type1.data > 40) { // > 1%
+                valid_samples += 1;
+                s.peak_total[channel_idx] += p->type1.data;
+                s.count_peak[channel_idx] += 1;
+            }
+            s.count_total[channel_idx] += 1;
+        }
+    }
+    BaseType_t taskWoken = pdFALSE;
+    xQueueSendFromISR(solenoid_summery_queue, &s, &taskWoken);
+    return (taskWoken == pdTRUE);
+}
 
 void read_solenoids_i2s(void*) {
     PwmSolenoid* const sol_order[6]  = { sol_mpc, sol_spc, sol_y3, sol_y4, sol_y5, sol_tcc };
@@ -34,67 +64,50 @@ void read_solenoids_i2s(void*) {
         .conv_frame_size = I2S_DMA_BUF_LEN,
     };
     adc_continuous_new_handle(&c_cfg, &c_handle);
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+    for (int i = 0; i < NUM_SOLENOIDS; i++) {
+        adc_pattern[i].atten = ADC_ATTEN_DB_12;
+        adc_pattern[i].channel = sol_order[i]->get_adc_channel() & 0x7;
+        adc_pattern[i].unit = ADC_UNIT_1;
+        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH; // 12bits
+        CHANNEL_ID_MAP[(uint8_t)sol_order[i]->get_adc_channel()] = i;
+    }
     adc_continuous_config_t dig_cfg = {
         .pattern_num = 6, 
+        .adc_pattern = adc_pattern,
         .sample_freq_hz = 732000, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
-    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
-    for (int i = 0; i < 6; i++) {
-        adc_pattern[i].atten = ADC_ATTEN_DB_11;
-        adc_pattern[i].channel = sol_order[i]->get_adc_channel() & 0x7;
-        adc_pattern[i].unit = ADC_UNIT_1;
-        adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH; // 12bits
-    }
-    dig_cfg.adc_pattern = adc_pattern;
     adc_continuous_config(c_handle, &dig_cfg);
+
+    const adc_continuous_evt_cbs_t callbacks = {
+        .on_conv_done = on_i2s_read,
+        .on_pool_ovf = nullptr
+    };
+
+
+    adc_continuous_register_event_callbacks(c_handle, &callbacks, nullptr);
+    solenoid_summery_queue = xQueueCreate(4, sizeof(SolenoidOutputSummary));
     adc_continuous_start(c_handle);
-
-    esp_err_t ret;
-
-    PwmSolenoid* sol_order_by_adc_channel[adc_channel_t::ADC_CHANNEL_9] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
-    uint64_t totals[ADC_BITWIDTH_9];
-    uint16_t peak_samples[ADC_BITWIDTH_9];
-    uint16_t total_count[ADC_CHANNEL_9];
-    for (uint8_t i = 0; i < 6; i++) {
-        uint8_t idx = sol_order[i]->get_adc_channel();
-        sol_order_by_adc_channel[idx] = sol_order[i];
-        total_count[idx] = 0;
-        peak_samples[idx] = 0;
-        totals[idx] = 0;
-    }
-    uint32_t out_len = 0;
+    SolenoidOutputSummary s;
+    uint32_t total = 0;
     while(true) {
-        ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &out_len, portMAX_DELAY);
-        if (ret == ESP_OK) {
-            for (int i = 0; i < out_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
-                uint8_t channel_idx = p->type1.channel;
-                if (p->type1.data != 0) {
-                    peak_samples[channel_idx] += 1;
-                    totals[channel_idx] += p->type1.data;
-                }
-                total_count[channel_idx] += 1;
-                if (total_count[channel_idx] == 200*sol_order_by_adc_channel[channel_idx]->get_pwm_phase_time()) { // over 4ms
-                    if (peak_samples[channel_idx] >= sol_order_by_adc_channel[channel_idx]->get_pwm_phase_time()) {
-                        sol_order_by_adc_channel[channel_idx]->__set_adc_reading((float)totals[channel_idx]/(float)peak_samples[channel_idx]);
-                    } else {
-                        sol_order_by_adc_channel[channel_idx]->__set_adc_reading(0);
-                    }
-
-                    // Important step for CC solenoids
-                    if (sol_order_by_adc_channel[channel_idx] == sol_mpc) {
-                        sol_mpc->set_target_current_when_reading();
-                    } else if (sol_order_by_adc_channel[channel_idx] == sol_spc) {
-                        sol_spc->set_target_current_when_reading();
-                    }
-
-                    totals[channel_idx] = 0;
-                    peak_samples[channel_idx] = 0;
-                    total_count[channel_idx] = 0;
-                }
+        xQueueReceive(solenoid_summery_queue, &s, portMAX_DELAY);
+        for (int i = 0; i < 6; i++) {
+            if (s.count_peak[i] > 0) {
+                sol_order[i]->__set_adc_reading((float)s.peak_total[i]/(float)s.count_peak[i]);
+            } else {
+                sol_order[i]->__set_adc_reading(0);
             }
+
+            // Important step for CC solenoids
+            if (sol_order[i] == sol_mpc) {
+                sol_mpc->set_target_current_when_reading();
+            } else if (sol_order[i] == sol_spc) {
+                sol_spc->set_target_current_when_reading();
+            }
+            total += s.count_total[i];
         }
     }
 }
@@ -138,7 +151,7 @@ void update_solenoids(void*) {
             sol_y4->__write_pwm(vref_compensation, temp_compensation);
             sol_y5->__write_pwm(vref_compensation, temp_compensation);
         }
-        vTaskDelay(1); // Max we can do at 1000hz
+    vTaskDelay(1); // Max we can do at 1000hz
     }
 }
 

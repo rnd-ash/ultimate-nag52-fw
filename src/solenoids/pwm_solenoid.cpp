@@ -37,7 +37,8 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = ledc_timer,
         .freq_hz = 1000,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false
     };
 
     // Set the timer configuration
@@ -115,7 +116,7 @@ uint16_t PwmSolenoid::get_pwm_phase_time() const {
 esp_err_t SolenoidSetup::init_adc() {
     const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_1,
-        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .atten = adc_atten_t::ADC_ATTEN_DB_12,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
         .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
     };

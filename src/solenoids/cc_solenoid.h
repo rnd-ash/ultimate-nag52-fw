@@ -20,7 +20,7 @@ private:
     float internal_trim_factor = 0.0;
     uint16_t current_target = 0;
     uint16_t current_target_at_report_time = 0;
-    uint8_t c = 0;
+    //uint8_t c = 0;
     bool use_global_cc;
 };
 

@@ -37,7 +37,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
 
         // 250mA sense cuttoff (To avoid noise), and only when current step delta is low such that the solenoid
         // can respond within the time window
-        if (!stop_compensation && this->current_target_at_report_time >= 250 && abs(current_delta) <= 100  && c >= 4) { // 250mA cut off
+        if (!stop_compensation && this->current_target_at_report_time >= 250 && abs(current_delta) <= 100) { // 250mA cut off
             // Large enough error, adapt!
             if (abs(this->current_target_at_report_time - read) > 10) {
                 float err = (((float)this->current_target_at_report_time-(float)read)/max_current);
@@ -51,7 +51,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
             }
             // Remove old current reading (ADC thread will refresh this value)
             this->current_target_at_report_time = 0;
-            c = 0;
+            //c = 0;
         }
         if (!use_global_cc) {
             mpc_sol_trim_factor = this->internal_trim_factor;
@@ -68,7 +68,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
         //    // Fast increase for a split second so that current ramps up sharply
         //    calc_pwm *= interpolate_float(delta_as_percent, 1, 1.25, 0.1, 0.5, InterpType::Linear);
         //}
-        this->c++;
+        //this->c++;
         if (calc_pwm > 4096) {
             calc_pwm = 4096;
         }
@@ -86,7 +86,7 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
         target_ma = 1500;
     }
     this->current_target = target_ma;
-    this->c = 0;
+    //this->c = 0;
 }
 
 uint16_t ConstantCurrentSolenoid::get_current_target() const {

@@ -80,11 +80,12 @@ public:
      */
     esp_err_t init_ok(void) const;
 
+/* unused */
     /**
      * @brief Gets the time in milliseconds of a full PWM cycle
      * @return PWM phase duration
      */
-    uint16_t get_pwm_phase_time() const;
+    // uint16_t get_pwm_phase_time() const;
 
     // Internal functions - Don't touch, handled by I2S thread!
     void __set_adc_reading(uint16_t c);

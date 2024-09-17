@@ -20,8 +20,6 @@ public:
     ) override;
     FirstOrderAverage* trq_req_avg;
     uint8_t max_shift_stage_id() override;
-    uint16_t torque_adder = 0;
-    int16_t pre_shift_trq = 0;
     uint16_t threshold_rpm = 0;
     float filling_adder = 0;
     float filling_trq_reducer = 0;
@@ -44,6 +42,7 @@ public:
 
     float sports_factor=1.0;
     float trq_request_target = 0;
+    float trq_request_target_adder = 0;
     float trq_request_absolute_target=0;
 
     uint16_t rpm_shift_phase_3 = 0;

@@ -1,5 +1,5 @@
-#ifndef FO_AVERAGE_H
-#define FO_AVERAGE_H
+#ifndef __FO_AVERAGE_H__
+#define __FO_AVERAGE_H__
 
 #include <stdint.h>
 #include <type_traits>
@@ -24,10 +24,10 @@ public:
      * 
      * Setting samples to 0 means no filtering (Output = Input)
     */
-    explicit FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
-        if (samples > 254u) {
+    FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
+        if (samples > 254) {
             // SAFETY
-            this->sample_count = 254u;
+            this->sample_count = 254;
         } else {
             this->sample_count = samples;
         }
@@ -35,16 +35,16 @@ public:
     }
 
     void add_sample(int32_t sample) {
-        last_sample = current_sample;
-        current_sample = ((sample*100) + ((int32_t)sample_count*last_sample)) / ((int32_t)sample_count + 1);
+        this->last_sample = this->current_sample;
+        this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
     }
 
-    int32_t get_average(void) const {
+    int32_t get_average() const {
         return this->current_sample/100;
     }
 
-    float get_average_float(void) const {
-        return (float)this->current_sample/100;
+    float get_average_float() const {
+        return (float)this->current_sample/100.0;
     }
 
     void reset(int32_t reset_value = 0) {

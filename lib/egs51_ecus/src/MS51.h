@@ -18,45 +18,6 @@
 #define MS_310_EGS51_CAN_ID 0x0310
 #define MS_608_EGS51_CAN_ID 0x0608
 
-/** switching line shift MS */
-enum class MS_210h_SLV_MS_EGS51 : uint16_t {
-	SKL0 = 0, // Shift characteristic "0"
-	SKL1 = 1, // Shift characteristic "1"
-	SKL2 = 2, // Shift characteristic "2"
-	SKL3 = 3, // Shift characteristic "3"
-	SKL4 = 4, // Shift characteristic "4"
-	SKL5 = 5, // Shift characteristic "5"
-	SKL6 = 6, // Shift characteristic "6"
-	SKL7 = 7, // Shift characteristic "7"
-	SKL8 = 8, // Shift characteristic "8"
-	SKL9 = 9, // Shift characteristic "9"
-	SKL10 = 10, // Shift characteristic "10"
-};
-
-/** Gear, upper limit */
-enum class MS_210h_GMAX_MS_EGS51 : uint16_t {
-	PASSIVE = 0, // passive value
-	G1 = 1, // Gear, upper limit = 1
-	G2 = 2, // Gear, upper limit = 2
-	G3 = 3, // Gear, upper limit = 3
-	G4 = 4, // Gear, upper limit = 4
-	G5 = 5, // Gear, upper limit = 5
-	G6 = 6, // Gear, upper limit = 6
-	G7 = 7, // Gear, upper limit = 7
-};
-
-/** Gear, lower limit */
-enum class MS_210h_GMIN_MS_EGS51 : uint16_t {
-	PASSIVE = 0, // passive value
-	G1 = 1, // Gear, lower limit = 1
-	G2 = 2, // Gear, lower limit = 2
-	G3 = 3, // Gear, lower limit = 3
-	G4 = 4, // Gear, lower limit = 4
-	G5 = 5, // Gear, lower limit = 5
-	G6 = 6, // Gear, lower limit = 6
-	G7 = 7, // Gear, lower limit = 7
-};
-
 
 
 typedef union {
@@ -130,78 +91,18 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
-		/** Set maximum or cruise control speed **/
-		uint8_t V_MAX_TM: 8;
-		/** factor for fill value. d. max. Mom with remo.. A.druck **/
-		uint8_t FMMOTMAX: 8;
-		/** Geschw.begrenzer- / cruise control display a **/
-		bool V_DSPL_EIN: 1;
-		/** display flashes **/
-		bool V_DSPL_BL: 1;
-		/** "Error" indicator on the display **/
-		bool V_DSPL_ERR: 1;
-		/** Display "limit?" on display **/
-		bool V_DSPL_LIM: 1;
-		/** Speed ​​controls **/
-		bool V_MAX_REG: 1;
-		/** activated cruise control **/
-		bool TM_EIN: 1;
-		/** "achieved winter tires limitation" Indicated on display **/
-		bool V_DSPL_PGB: 1;
-		/** FBStart Error **/
-		bool FBS_SE: 1;
-		/** Warning buzzer **/
-		bool V_MAX_SUM: 1;
-		/** emergency operation **/
-		bool NOTL: 1;
-		/** Kick Down (changeover scenario open!) **/
-		bool KD_MS: 1;
-		/** activated speed limit **/
-		bool V_MAX_EIN: 1;
-		/** cruise control regulates **/
-		bool TM_REG: 1;
-		/** beg. "Slip" lock-up clutch **/
-		bool KUEB_S_A: 1;
-		/** idle **/
-		bool LL: 1;
-		/** error pedal sensor **/
-		bool PWG_ERR: 1;
-		/** Crash signal from motor control **/
-		bool CRASH_MS: 1;
-		/** turn air compressor:: S acceleration **/
-		bool KOMP_BAUS: 1;
-		/** engine start / stop system active **/
-		bool MSS_AKT: 1;
-		/** engine start / stop system warning **/
-		bool MSS_KL: 1;
-		/** Engine Start / Stop system is defective **/
-		bool MSS_DEF: 1;
-		/** Vorglühstatus **/
-		bool VGL_ST: 1;
-		/** idle is stable **/
-		bool LL_STBL: 1;
-		/** retrigger minimum display time in the display: S **/
-		bool V_DSPL_NEU: 1;
-		/** pedal **/
-		uint8_t PW: 8;
-		/** Gear, lower limit **/
-		MS_210h_GMIN_MS_EGS51 GMIN_MS: 3;
-		/** Gear, upper limit **/
-		MS_210h_GMAX_MS_EGS51 GMAX_MS: 3;
-		/** Turn off heater **/
-		bool ZH_AUS_MS: 1;
-		/** MS-wish: "Active downshift" **/
-		bool AKT_R_MS: 1;
-		/** MS-wish: "Approach 1.Gang" **/
-		bool ANF1: 1;
-		/** Switch KSG-creep **/
-		bool KRIECH_AUS: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING1__: 1;
-		/** switching line shift MS **/
-		MS_210h_SLV_MS_EGS51 SLV_MS: 4;
-		/** Air compressor Emergency Shutdown **/
-		bool KOMP_NOTAUS: 1;
+		uint8_t __PADDING1__: 8;
+		/** Motor torque for ESP **/
+		uint8_t M_ESP: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint32_t __PADDING2__: 24;
+		/** Pedal position **/
+		uint8_t PW: 8;
+		/** Ignition angle **/
+		uint8_t IGN_ANG: 8;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING3__: 8;
 	} __attribute__((packed));
 	/** Gets CAN ID of MS_210_EGS51 **/
 	uint32_t get_canid(){ return MS_210_EGS51_CAN_ID; }
@@ -221,9 +122,9 @@ typedef union {
 		uint8_t DRG_TORQUE: 8;
 		/** engine indicated torque **/
 		uint8_t IND_TORQUE: 8;
-		/** factor of max torque  **/
+		/** factor of max torque **/
 		uint8_t MAX_TRQ_FACTOR: 8;
-		/** BITFIELD PADDING. DO NOT CHANGE **/
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint32_t __PADDING1__: 24;
 	} __attribute__((packed));
 	/** Gets CAN ID of MS_310_EGS51 **/

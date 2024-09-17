@@ -613,6 +613,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->sensor_data.last_shift_time = GET_CLOCK_TIME();
         this->flaring = false;
         shifting_velocity = {0, 0};
+        // Reset the pedal delta
+        sensor_data.pedal_delta->reset(0);
         delete algo;
     }
     return result;
@@ -1006,8 +1008,8 @@ void Gearbox::controller_loop()
             p_tmp = 250/4; // 25% as a fallback
         }
         this->pedal_average->add_sample(p_tmp);
-        int16_t delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*50.0;
-        sensor_data.pedal_delta->add_sample(delta_sec);
+        int16_t percent_delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*20.0; // 20.0 = 50 (Cycles/sec) / 2.5 (Pedal raw -> %)
+        sensor_data.pedal_delta->add_sample(percent_delta_sec);
         sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(1000);
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);

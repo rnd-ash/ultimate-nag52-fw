@@ -44,7 +44,7 @@ public:
     }
 
     float get_average_float() const {
-        return (float)this->current_sample/100;
+        return (float)this->current_sample/100.0;
     }
 
     void reset(int32_t reset_value = 0) {

@@ -48,7 +48,7 @@ struct SensorData{
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
     const FirstOrderAverage* pedal_smoothed;
-    // in 0.4%/sec
+    // in %/sec
     FirstOrderAverage* pedal_delta;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;

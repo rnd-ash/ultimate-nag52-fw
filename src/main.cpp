@@ -132,16 +132,21 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 if (egs_can_hal->begin_task())
                                 {
-                                    
-                                    gearbox = new Gearbox(shifter);
-                                    if (ESP_OK == gearbox->start_controller())
+                                    if (static_cast<uint8_t>(egs_can_hal->get_engine_type(500u)) == VEHICLE_CONFIG.engine_type)
                                     {
-                                        gearbox->set_profile(shifter->get_profile(50u));
+                                        gearbox = new Gearbox(shifter);
+                                        if (ESP_OK == gearbox->start_controller())
+                                        {
+                                            gearbox->set_profile(shifter->get_profile(50u));
+                                        }
+                                        else
+                                        {
+                                            CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
+                                            ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                        }
                                     }
-                                    else
-                                    {
-                                        CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
-                                        ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                    else {
+                                        ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
                                     }
                                 }
                                 else
@@ -216,48 +221,60 @@ void err_beep_loop(void *a)
 
 void input_manager(void *)
 {
-    PaddlePosition last_pos = PaddlePosition::None;
-    ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
+    const uint32_t expire_time = 500u;
+    PaddlePosition paddle_pos_last = PaddlePosition::None;
+    ShifterPosition shifter_pos_last = ShifterPosition::SignalNotAvailable;
+    bool kickdown_is_pressed_last = false;
     while (1)
     {
-        if (nullptr != ioexpander) {
-            ioexpander->read_from_ioexpander();
-        }
-        AbstractProfile* prof = shifter->get_profile(500);
+        pcb_gpio_matrix->read_input_signals();
+        AbstractProfile* prof = shifter->get_profile(expire_time);
         if (nullptr != prof) {
             gearbox->set_profile(prof);
         }
-        PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
-        if (last_pos != paddle)
-        { // Same position, ignore
-            if (last_pos != PaddlePosition::None)
-            {
-                // Process last request of the user
-                if (last_pos == PaddlePosition::Plus)
-                {
-                    gearbox->inc_gear_request();
-                }
-                else if (last_pos == PaddlePosition::Minus)
-                {
-                    gearbox->dec_gear_request();
-                }
-            }
-            last_pos = paddle;
-        }
-        ShifterPosition spos = shifter->get_shifter_position(1000);
-        if (spos != slast_pos)
-        { // Same position, ignore
+        PaddlePosition paddle = egs_can_hal->get_paddle_position(100u);
+        if (paddle_pos_last != paddle)
+        {
+            // Same position is ignored
             // Process last request of the user
-            if (slast_pos == ShifterPosition::PLUS)
+            switch (paddle_pos_last)
             {
+            case PaddlePosition::Plus:
                 gearbox->inc_gear_request();
-            }
-            else if (slast_pos == ShifterPosition::MINUS)
-            {
+                break;
+            case PaddlePosition::Minus:
                 gearbox->dec_gear_request();
+                break;
+            default:
+                break;
             }
-            slast_pos = spos;
+            paddle_pos_last = paddle;
         }
+        if((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR)) {
+            ShifterPosition spos = shifter->get_shifter_position(1000);
+            if (spos != shifter_pos_last)
+            {
+                // Same position, ignore
+                // Process last request of the user
+                switch (shifter_pos_last)
+                {
+                case ShifterPosition::PLUS:
+                    gearbox->inc_gear_request();
+                    break;
+                case ShifterPosition::MINUS:
+                    gearbox->dec_gear_request();
+                    break;
+                default:
+                    break;
+                }
+                shifter_pos_last = spos;
+            }
+        }
+        bool kickdown_is_pressed = pcb_gpio_matrix->is_kickdown_pressed();
+        if (kickdown_is_pressed && (!kickdown_is_pressed_last) && (!egs_can_hal->get_engine_is_limp(expire_time))) {
+            gearbox->dec_gear_request();            
+        }
+        kickdown_is_pressed_last = kickdown_is_pressed;
         pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }

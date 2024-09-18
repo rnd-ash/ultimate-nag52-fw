@@ -1,6 +1,6 @@
 /** @file */
-#ifndef __DRIVING_PROFILER_H__
-#define __DRIVING_PROFILER_H__
+#ifndef DRIVING_PROFILER_H
+#define DRIVING_PROFILER_H
 
 #include "data.h"
 #include "common_structs.h"
@@ -17,7 +17,7 @@ struct MovingAverageData {
     T prev_avg;
     T curr_avg;
 
-    MovingAverageData() {
+    MovingAverageData(void) {
         sum = 0;
         total = 0;
         sample_id = 0;
@@ -38,13 +38,13 @@ template<typename T> void add_to_moving_avg(MovingAverageData<T>* sample_data, T
 
 class DrivingProfile {
     public:
-        DrivingProfile();
+        // DrivingProfile(void);
         void update(SensorData sensors);
-        DrivingData* get_data();
+        // DrivingData* get_data(void);
     private:
         unsigned long last_update_ms = 0;
-        DrivingData data;
-        SensorData last_sensors;
+        // DrivingData data;
+        // SensorData last_sensors;
         MovingAverageData<uint16_t> rpm_samples;
         MovingAverageData<int> speed_samples;
         MovingAverageData<int> pedal_samples;

@@ -67,7 +67,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
-ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, const SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {
         case ProfileGearChange::ONE_TWO:
@@ -353,7 +353,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     }
 }
 
-void StandardProfile::update(SensorData* sensors) {
+void StandardProfile::update(const SensorData* sensors) {
     // Every 250ms we check sensor inputs
     if (GET_CLOCK_TIME() - this->last_check > 250) {
         this->last_check = GET_CLOCK_TIME();

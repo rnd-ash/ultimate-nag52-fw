@@ -18,7 +18,7 @@
 
 
 
-typedef union {
+union ENGINE_100_CUSTOMCAN {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -37,11 +37,11 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of ENGINE_100_CUSTOMCAN **/
 	uint32_t get_canid(){ return ENGINE_100_CUSTOMCAN_CAN_ID; }
-} ENGINE_100_CUSTOMCAN;
+};
 
 
 
-typedef union {
+union ENGINE_102_CUSTOMCAN {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -56,7 +56,7 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of ENGINE_102_CUSTOMCAN **/
 	uint32_t get_canid(){ return ENGINE_102_CUSTOMCAN_CAN_ID; }
-} ENGINE_102_CUSTOMCAN;
+};
 
 
 
@@ -69,9 +69,9 @@ class ECU_ENGINE {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
+         bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             bool add = true;
+            uint8_t idx = 0;
             switch(can_id) {
                 case ENGINE_100_CUSTOMCAN_CAN_ID:
                     idx = 0;
@@ -123,7 +123,7 @@ class ECU_ENGINE {
         }
             
 	private:
-		uint64_t FRAME_DATA[2];
-		uint32_t LAST_FRAME_TIMES[2];
+		uint64_t FRAME_DATA[2] = { 0, 0 };
+		uint32_t LAST_FRAME_TIMES[2] = { 0, 0 };
 };
 #endif // ECU_ENGINE_H

@@ -11,17 +11,18 @@ static bool IRAM_ATTR on_clock_timer_isr(gptimer_handle_t timer, const gptimer_a
     return true;
 }
 
-uint32_t IRAM_ATTR GET_CLOCK_TIME() {
+uint32_t IRAM_ATTR GET_CLOCK_TIME(void) {
     return TIMESTAMP_NOW;
 }
 
-void init_clock() {
+void init_clock(void) {
     // Start a timer that runs every 1ms
     gptimer_handle_t timer;
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000u,
+        .intr_priority = 3,
         .flags = {
             .intr_shared = 1
         }

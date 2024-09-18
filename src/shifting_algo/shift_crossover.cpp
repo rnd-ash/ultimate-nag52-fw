@@ -40,7 +40,7 @@ uint8_t CrossoverShift::step(
     // Case (2) - Upshifting under power, downshifting when idle
     // In case 1, the engine will speed up the clutches, so we have to control using Modulating pressure to avoid a quick release
     // In case 2, the engine will resist the gearboxes actions
-    bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->static_torque < 0));
+    // bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->static_torque < 0)); //unused
     if (phase_id == PHASE_BLEED) {
         int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(abs_input_torque, 30));
         // Clutches
@@ -166,7 +166,8 @@ uint8_t CrossoverShift::step(
             }
         } else if (1 == this->prefill_phase_mod) { // This phase does not end, as shift pressure will set the end of phase flag to move to overlap phase
             // Dependent on if doing high filling or not
-            uint16_t elapsed = phase_elapsed - this->ts_phase_mod;
+            /* unused */
+            // uint16_t elapsed = phase_elapsed - this->ts_phase_mod;
             if (!this->do_high_filling) {
                 // Low pressure filling (2 ramps)
                 p_now->on_clutch = 0;
@@ -361,10 +362,10 @@ uint8_t CrossoverShift::step(
     }
 
     // Limiting engine torque by this much (Computed later with indicated_torque - trq_req_targ = trq request output)
-    int trq_req_targ = 0;
     // We can only request if engine torque is above engines min torque
     if (sd->static_torque_wo_request > sd->min_torque && sd->driver_requested_torque > sd->min_torque && sd->input_rpm > 1200) {
         bool inc = false;
+        int trq_req_targ = 0;
         if (phase_id == PHASE_MOMENTUM_RAMP && this->trq_req_start_time != 0) {
             trq_req_targ = this->trq_req_ramp_trq;
             if (!is_upshift) { // Test

@@ -154,7 +154,6 @@ EngineType HfmCan::get_engine_type(const uint32_t expire_time_ms)
             result = EngineType::Petrol;
             break;
         default:
-            result = EngineType::Unknown;
             break;
         }
     }

@@ -39,10 +39,11 @@ void OnOffSolenoid::off() {
     this->holding = false;
 }
 
-bool OnOffSolenoid::is_on() {
-    return this->state;
-}
+/* unused */
+// bool OnOffSolenoid::is_on() {
+//     return this->state;
+// }
 
-bool OnOffSolenoid::is_max_on() {
-    return this->state && !this->holding;
-}
+// bool OnOffSolenoid::is_max_on() {
+//     return this->state && !this->holding;
+// }

@@ -38,13 +38,13 @@ uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x
 static bool IRAM_ATTR on_i2s_read(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data) {
     SolenoidOutputSummary s;
     memset(&s, 0x00, sizeof(SolenoidOutputSummary));
-    uint64_t valid_samples = 0;
+    // uint64_t valid_samples = 0;
     for (int i = 0; i < edata->size; i += SOC_ADC_DIGI_RESULT_BYTES) {
         adc_digi_output_data_t *p = (adc_digi_output_data_t*)&edata->conv_frame_buffer[i];
         uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
         if (channel_idx != 0xFF) {
             if (p->type1.data > 40) { // > 1%
-                valid_samples += 1;
+                // valid_samples += 1;
                 s.peak_total[channel_idx] += p->type1.data;
                 s.count_peak[channel_idx] += 1;
             }
@@ -91,7 +91,7 @@ void read_solenoids_i2s(void*) {
     solenoid_summery_queue = xQueueCreate(4, sizeof(SolenoidOutputSummary));
     adc_continuous_start(c_handle);
     SolenoidOutputSummary s;
-    uint32_t total = 0;
+    // uint32_t total = 0;
     while(true) {
         xQueueReceive(solenoid_summery_queue, &s, portMAX_DELAY);
         for (int i = 0; i < 6; i++) {
@@ -107,7 +107,7 @@ void read_solenoids_i2s(void*) {
             } else if (sol_order[i] == sol_spc) {
                 sol_spc->set_target_current_when_reading();
             }
-            total += s.count_total[i];
+            // total += s.count_total[i];
         }
     }
 }
@@ -131,7 +131,7 @@ void Solenoids::notify_diag_test_end(void) {
 
 void update_solenoids(void*) {
     int16_t atf_temp = 250;
-    float vref_compensation = 1.0;
+    float vref_compensation;
     float temp_compensation = 1.0;
     while(true) {
         if (ESP_OK == Sensors::read_vbatt(&voltage)) {
@@ -142,8 +142,8 @@ void update_solenoids(void*) {
         if (ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
             temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
         }
-        bool vbatt_too_low = voltage < 9000;
         if (write_pwm) {
+            bool vbatt_too_low = voltage < 9000;
             sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_tcc->__write_pwm(vref_compensation, temp_compensation);

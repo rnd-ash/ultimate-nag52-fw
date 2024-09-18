@@ -17,7 +17,7 @@
 
 
 
-typedef union {
+union WHEELS_300_CUSTOMCAN {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
@@ -34,7 +34,7 @@ typedef union {
 	} __attribute__((packed));
 	/** Gets CAN ID of WHEELS_300_CUSTOMCAN **/
 	uint32_t get_canid(){ return WHEELS_300_CUSTOMCAN_CAN_ID; }
-} WHEELS_300_CUSTOMCAN;
+};
 
 
 
@@ -47,9 +47,9 @@ class ECU_WHEELS {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
+         bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             bool add = true;
+            uint8_t idx = 0;
             switch(can_id) {
                 case WHEELS_300_CUSTOMCAN_CAN_ID:
                     idx = 0;
@@ -82,7 +82,7 @@ class ECU_WHEELS {
         }
             
 	private:
-		uint64_t FRAME_DATA[1];
-		uint32_t LAST_FRAME_TIMES[1];
+		uint64_t FRAME_DATA[1] = { 0 };
+		uint32_t LAST_FRAME_TIMES[1] = { 0 };
 };
 #endif // ECU_WHEELS_H

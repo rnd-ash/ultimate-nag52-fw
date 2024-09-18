@@ -315,7 +315,8 @@ uint8_t ReleasingShift::step(
             , 0);
         }
     } else if (phase_id == PHASE_OVERLAP) {
-        int duration = 140; // FROM EGS CAL
+        /* unused */
+        // int duration = 140; // FROM EGS CAL
         // New clutch gets full pressure (+momentum)
         // Old clutch valve is empties completely
         int old_new_clutch = sid->ptr_prev_pressures->on_clutch;
@@ -426,7 +427,8 @@ uint8_t ReleasingShift::step(
     }
 
     int trq_req_now = 0;
-    bool trq_ramp_inc = false;
+    /* unused */
+    // bool trq_ramp_inc = false;
     // We can only request if engine torque is above engines min torque
     if (sd->static_torque_wo_request > sd->min_torque && sd->driver_requested_torque > sd->min_torque && sd->input_rpm > 1000 && this->trq_req) {
         int max_for_off_clutch = pm->calc_max_torque_for_clutch(sid->curr_g, sid->releasing, p_now->off_clutch, false);

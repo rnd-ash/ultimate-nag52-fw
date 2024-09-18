@@ -188,7 +188,8 @@ class ECU:
         # Now create our type unions for CAN Frames!
         for x in self.frames:
             struct_name = x.name.strip().removesuffix("h")
-            tmp += "\n\ntypedef union {" # Struct name
+            tmp += "\n\nunion {}{}".format(struct_name, global_guard) # Struct name
+            tmp += " {"
             tmp += "\n\tuint64_t raw;" # Store raw value
             tmp += "\n\tuint8_t bytes[8];"
             tmp += "\n\tstruct {"
@@ -206,8 +207,9 @@ class ECU:
                     want_data = "uint64_t"
                     if padding_len == 1:
                         want_data = "bool"
+                    # set to uint16_t, see https://stackoverflow.com/questions/41253759/ignoring-note-offset-of-packed-bit-field-without-using-wno-packed-bitfield-co
                     elif padding_len <= 8:
-                        want_data = "uint8_t"
+                        want_data = "uint16_t"
                     elif padding_len <= 16:
                         want_data = "uint16_t"
                     elif padding_len <= 32:
@@ -258,7 +260,7 @@ class ECU:
             # Setters and getters!
             
             
-            tmp += "\n}} {}{};\n\n".format(struct_name, global_guard)
+            tmp += "\n};\n\n"
 
 
         # Now magic to create the class ;)
@@ -276,16 +278,21 @@ class ECU:
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
-            bool add = true;
-            switch(can_id) {"""
-        for idx, frame in enumerate(self.frames):
+         """
+        if (0==len(self.frames)):
+            tmp += "static "
+        tmp += """bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
+            bool add = true;"""
+        if (0<len(self.frames)):
             tmp += """
+            uint8_t idx = 0;
+            switch(can_id) {"""
+            for idx, frame in enumerate(self.frames):
+                tmp += """
                 case {0}{2}_CAN_ID:
                     idx = {1};
                     break;""".format(frame.name.strip().removesuffix("h"), idx, global_guard)
-        tmp += """
+            tmp += """
                 default:
                     add = false;
                     break;
@@ -293,7 +300,8 @@ class ECU:
             if (add) {
                 LAST_FRAME_TIMES[idx] = timestamp_now;
                 FRAME_DATA[idx] = value;
-            }
+            }"""
+        tmp += """
             return add;
         }
         """
@@ -317,8 +325,24 @@ class ECU:
         }}
             """.format(frame.name.strip().removesuffix("h"), idx, global_guard)
         tmp += "\n\tprivate:"
-        tmp += "\n\t\tuint64_t FRAME_DATA[{0}];".format(num_frames)
-        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}];".format(num_frames)
+        tmp += "\n\t\tuint64_t FRAME_DATA[{0}] = ".format(num_frames)
+        tmp += "{"
+        i = num_frames
+        if 1 <= i:
+            while 1 < i:
+                tmp += " 0,"
+                i -= 1
+            tmp += " 0"
+        tmp += " };"
+        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}] = ".format(num_frames)
+        tmp += "{"
+        i = num_frames
+        if 1 <= i:
+            while 1 < i:
+                tmp += " 0,"
+                i -= 1
+            tmp += " 0"
+        tmp += " };"
         tmp += "\n};"
 
         # Lastly append endif guard

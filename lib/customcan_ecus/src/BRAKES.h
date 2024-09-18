@@ -25,23 +25,13 @@ class ECU_BRAKES {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
+         static bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
             bool add = true;
-            switch(can_id) {
-                default:
-                    add = false;
-                    break;
-            }
-            if (add) {
-                LAST_FRAME_TIMES[idx] = timestamp_now;
-                FRAME_DATA[idx] = value;
-            }
             return add;
         }
         
 	private:
-		uint64_t FRAME_DATA[0];
-		uint32_t LAST_FRAME_TIMES[0];
+		uint64_t FRAME_DATA[0] = { };
+		uint32_t LAST_FRAME_TIMES[0] = { };
 };
 #endif // ECU_BRAKES_H

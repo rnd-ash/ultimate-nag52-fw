@@ -20,15 +20,15 @@
 #include "can_defines.h"
 
 #include "../shifter/shifter.h"
-#include "../shifter/programselector/programselector.h"
+#include "../shifter/programselector/programselector.hpp"
 #include "../profiles.h"
 
 class EgsBaseCan {
     public:
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
-        ~EgsBaseCan();        
-        bool begin_task();
-        esp_err_t init_state() const;
+        virtual ~EgsBaseCan(void);        
+        bool begin_task(void);
+        esp_err_t init_state(void) const;
 
         /**
          * Getters
@@ -73,11 +73,11 @@ class EgsBaseCan {
         
 
         ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            if (shifter) {
-                return shifter->get_shifter_position(expire_time_ms);
-            } else {
-                return ShifterPosition::SignalNotAvailable;
-            }
+            ShifterPosition result = ShifterPosition::SignalNotAvailable;
+            if (nullptr != shifter) {
+                result = shifter->get_shifter_position(expire_time_ms);
+            } 
+            return result;
         }
 
         /**
@@ -406,7 +406,7 @@ class EgsBaseCan {
         twai_status_info_t can_status;
         esp_err_t can_init_status;
         twai_message_t tx;
-        inline void to_bytes(uint64_t src, uint8_t* dst) {
+        static void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;
                 src >>= 8;
@@ -421,6 +421,6 @@ class EgsBaseCan {
 
 extern EgsBaseCan* egs_can_hal;
 
-typedef uint8_t DiagCanMessage[8];
+struct DiagCanMessage { uint8_t data[8]; };
 
 #endif

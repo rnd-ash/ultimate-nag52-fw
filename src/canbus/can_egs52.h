@@ -107,7 +107,8 @@ class Egs52Can: public EgsBaseCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
         void set_abort_shift(bool is_aborting) override;
-        void set_fake_engine_rpm(uint16_t rpm) override;
+        /* unused */
+        //void set_fake_engine_rpm(uint16_t rpm) override;
         void set_garage_shift_state(bool enable) override;
     protected:
         void tx_frames() override;

@@ -22,7 +22,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     /** Pressure PWM map **/
 
     // Friction lookup table
-    this->pressure_pwm_map = new LookupRefMap((int16_t*)HYDR_PTR->pcs_map_x, 7, (int16_t*)HYDR_PTR->pcs_map_y, 4, (int16_t*)HYDR_PTR->pcs_map_z, 7*4);
+    this->pressure_pwm_map = new LookupRefMap(reinterpret_cast<int16_t*>(HYDR_PTR->pcs_map_x), 7, reinterpret_cast<int16_t*>(HYDR_PTR->pcs_map_y), 4, reinterpret_cast<int16_t*>(HYDR_PTR->pcs_map_z), 7*4);
 
     this->momentum_upshifts[0] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_1_2_x, 3, SHIFT_ALGO_CFG_PTR->momentum_1_2_y, 2, SHIFT_ALGO_CFG_PTR->momentum_1_2_z, 3*2);
     this->momentum_upshifts[1] = new LookupByteMap(SHIFT_ALGO_CFG_PTR->momentum_2_3_x, 3, SHIFT_ALGO_CFG_PTR->momentum_2_3_y, 2, SHIFT_ALGO_CFG_PTR->momentum_2_3_z, 3*2);
@@ -275,7 +275,7 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
-float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
+float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const {
     float speed = 0;
     uint8_t sel_idx = 0xFF;
     float ret = 0;
@@ -307,9 +307,9 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
 
 uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    float friction_coefficient = this->friction_coefficient();
+    float friction_coefficient_result = this->friction_coefficient();
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
+    float calc = (friction_val / friction_coefficient_result) * (float)abs_torque_nm;
     if (calc < HYDR_PTR->min_mpc_pressure && clamp_to_min_mpc) {
         calc = HYDR_PTR->min_mpc_pressure;
     } else if (calc > get_max_solenoid_pressure()) {
@@ -338,10 +338,10 @@ uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, C
     // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
     // 120 = 0.85% of 140 (Coefficient at 80C)
     // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
-    float release_coefficient = this->release_coefficient();
+    float release_coefficient_result = this->release_coefficient();
     //float friction_coefficient = 120.0;
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / release_coefficient) * (float)abs_torque_nm;
+    float calc = (friction_val / release_coefficient_result) * (float)abs_torque_nm;
     return calc;
 }
 
@@ -518,7 +518,8 @@ PrefillData PressureManager::make_fill_data(ProfileGearChange change) {
         };
     } else {
         Clutch to_apply = get_clutch_to_apply(change);
-        Clutch to_release = get_clutch_to_release(change);
+        /* unused */
+        // Clutch to_release = get_clutch_to_release(change);
         return PrefillData {
             .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)to_apply),
             .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)to_apply),
@@ -535,12 +536,13 @@ PressureStageTiming PressureManager::get_max_pressure_timing() {
 }
 
 // Get PWM value (out of 4096) to write to the solenoid
-uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) const {
-    if (this->pressure_pwm_map == nullptr) {
-        return 0; // 10% (Failsafe)
-    }
-    return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
-}
+/* unused */
+// uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) const {
+//     if (this->pressure_pwm_map == nullptr) {
+//         return 0; // 10% (Failsafe)
+//     }
+//     return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
+// }
 
 uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const {
     if (request_mbar == 0) {

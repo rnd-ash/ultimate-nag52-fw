@@ -1,5 +1,5 @@
-#ifndef __CONSTANT_CURRENT_SOLENOID_H_
-#define __CONSTANT_CURRENT_SOLENOID_H_
+#ifndef CONSTANT_CURRENT_SOLENOID_H
+#define CONSTANT_CURRENT_SOLENOID_H
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
@@ -11,9 +11,9 @@ public:
     explicit ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms, bool is_mpc);
     void __write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation);
     void set_current_target(uint16_t target_ma);
-    void set_target_current_when_reading();
-    uint16_t get_current_target();
-    float get_trim();
+    void set_target_current_when_reading(void);
+    uint16_t get_current_target(void) const;
+    float get_trim(void) const;
 private:
     uint16_t old_current_targets[10];
     uint8_t current_target_idx = 0;

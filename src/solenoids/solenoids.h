@@ -20,7 +20,7 @@ namespace Solenoids {
     esp_err_t init_all_solenoids(void);
     uint16_t get_solenoid_voltage(void);
 
-    void boot_solenoid_test(void*);
+    // void boot_solenoid_test(void*);
 
     bool init_routine_completed(void);
 

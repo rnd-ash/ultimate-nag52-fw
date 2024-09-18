@@ -1,5 +1,5 @@
-#ifndef __INRUSH_SOLENOID_H_
-#define __INRUSH_SOLENOID_H_
+#ifndef INRUSH_SOLENOID_H
+#define INRUSH_SOLENOID_H
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
@@ -8,10 +8,10 @@ class InrushControlSolenoid : public PwmSolenoid {
 public:
     explicit InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms);
     void __write_pwm(float vref_compensation, float temperature_factor);
-    uint32_t on_timer_interrupt();
+    uint32_t on_timer_interrupt(void);
     void set_duty(uint16_t duty);
-    void pre_current_test() override;
-    void post_current_test() override;
+    void pre_current_test(void) override;
+    void post_current_test(void) override;
 private:
     ledc_timer_t ledc_timer;
     float vref = 1.0;

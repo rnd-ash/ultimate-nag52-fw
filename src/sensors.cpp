@@ -22,6 +22,7 @@
 const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
     .low_limit = INT16_MIN,
     .high_limit = INT16_MAX,
+    .intr_priority = INT16_MAX,
     .flags {
         .accum_count = 0
     }
@@ -231,6 +232,7 @@ esp_err_t Sensors::init_sensors(void){
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000u,
+        .intr_priority = INT16_MAX,
         .flags = {
             .intr_shared = 1
         }

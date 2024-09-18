@@ -117,7 +117,7 @@ uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
 int Egs51Can::get_static_engine_torque(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        int max = this->get_maximum_engine_torque(expire_time_ms);
+        // int max = this->get_maximum_engine_torque(expire_time_ms);
         //int drag = ms310.DRG_TORQUE*3;
         int ind = ms310.IND_TORQUE*3;
         return ind;

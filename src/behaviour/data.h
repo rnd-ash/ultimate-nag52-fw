@@ -1,5 +1,5 @@
-#ifndef __BEHAVIOUR_DATA_H__
-#define __BEHAVIOUR_DATA_H__
+#ifndef BEHAVIOUR_DATA_H
+#define BEHAVIOUR_DATA_H
 
 // Only affect the automatic drive profiles (Manual mode is unaffected)
 enum class DriveStyle {
@@ -35,7 +35,7 @@ struct DrivingData{
 
     // Based on current deceleration of the car, how many seconds until we stop?
     // If INT32_MAX is returned, that is because we are accelerating (Not possible to stop)
-    int num_seconds_to_stop(void) {
+    int num_seconds_to_stop(void) const{
         return (vehicle_acceleration >= 0) ? __INT32_MAX__ : (current_vehicle_speed_kmh/vehicle_acceleration) * -1;
     }
 };

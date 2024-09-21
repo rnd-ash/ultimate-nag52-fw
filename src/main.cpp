@@ -303,7 +303,6 @@ const char *post_code_to_str(SPEAKER_POST_CODE s)
 
 extern "C" void app_main(void)
 {
-    init_clock();
     esp_log_level_set("gpio", esp_log_level_t::ESP_LOG_NONE);
     // Set all pointers
     gearbox = nullptr;

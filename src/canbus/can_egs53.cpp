@@ -29,125 +29,49 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->eng_rq2_tcm.TxShiftStyle = ENG_RQ2_TCM_TxShiftStyle_EGS53::MS; // Mechanical shifting (With EWM module)
 }
 
-WheelData Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
-{ // TODO
+uint16_t Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{
 	WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_FR_Stat) {
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_FR_Stat != WHL_STAT2_WhlDir_FR_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_FR;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_FR,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+uint16_t Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_FL_Stat) {
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_FL_Stat != WHL_STAT2_WhlDir_FL_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_FL;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_FL,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_RR_Stat) {
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_RR_Stat != WHL_STAT2_WhlDir_RR_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_RR;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_RR,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_RL_Stat) {
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_RL_Stat != WHL_STAT2_WhlDir_RL_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_RL;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_RL,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
 ShifterPosition Egs53Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {

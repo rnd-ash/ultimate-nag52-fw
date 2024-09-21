@@ -17,13 +17,13 @@ class CustomCan: public EgsBaseCan {
          */
 
         // Get the front right wheel data
-        WheelData get_front_right_wheel(const uint32_t expire_time_ms)  override;
+        uint16_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
         // Get the front left wheel data
-        WheelData get_front_left_wheel(const uint32_t expire_time_ms) override;
+        uint16_t get_front_left_wheel(const uint32_t expire_time_ms) override;
         // Get the rear right wheel data
-        WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
+        uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
-        WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
+        uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // // Gets the shifter position
         // ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;        
         // Gets engine type

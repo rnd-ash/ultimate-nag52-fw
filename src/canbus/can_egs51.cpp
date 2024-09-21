@@ -16,81 +16,37 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs218.bytes[3] = 0x64;
 }
 
-WheelData Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
-{ // TODO
-	return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{
+	return UINT16_MAX;
 }
 
-WheelData Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) {
+    return UINT16_MAX;
 }
 
-WheelData Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHR) {
-            case BS_208h_DRTGHR_EGS51::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHR_EGS51::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHR_EGS51::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHR_EGS51::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHR_EGS51::SNV != bs208.DRTGHR) {
+            ret = bs208.DHR;
         }
-
-        return WheelData {
-            .double_rpm = bs208.DHR,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
-WheelData Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHL) {
-            case BS_208h_DRTGHL_EGS51::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHL_EGS51::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHL_EGS51::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHL_EGS51::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHL_EGS51::SNV != bs208.DRTGHL) {
+            ret = bs208.DHL;
         }
-
-        return WheelData {
-            .double_rpm = bs208.DHL,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
 EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {

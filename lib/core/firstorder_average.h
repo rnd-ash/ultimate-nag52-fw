@@ -34,12 +34,12 @@ public:
         this->reset(reset_value);
     }
 
-    void add_sample(int32_t sample) {
+    void IRAM_ATTR add_sample(int32_t sample) {
         this->last_sample = this->current_sample;
         this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
     }
 
-    int32_t get_average() const {
+    int32_t IRAM_ATTR get_average() const {
         return this->current_sample/100;
     }
 

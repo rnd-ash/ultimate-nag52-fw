@@ -507,11 +507,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 result = false;
                 break;
             }
-
+            int sta = sensor_data.static_torque_wo_request;
+            if (sensor_data.ac_torque != UINT8_MAX) {
+                sta -= sensor_data.ac_torque;
+            }
             int abs_input_torque = abs(InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
                 sensor_data.input_rpm,  
-                sensor_data.static_torque_wo_request
+                sta
             ));
 
             // Shift reporting
@@ -1252,18 +1255,20 @@ void Gearbox::controller_loop()
 
         int static_torque = egs_can_hal->get_static_engine_torque(500);
         int ac_loss = egs_can_hal->get_ac_torque_loss(500);
-        if (ac_loss != UINT8_MAX && static_torque != UINT8_MAX) {
-            static_torque -= ac_loss;
-        }
+        sensor_data.ac_torque = ac_loss;
 
         if (static_torque != INT_MAX)
         {
             this->engine_torque_average->add_sample(static_torque);
             this->sensor_data.static_torque = engine_torque_average->get_average();
+            int sta = this->sensor_data.static_torque;
+            if (sensor_data.ac_torque != UINT8_MAX) {
+                sta -= sensor_data.ac_torque;
+            }
             int input_torque = InputTorqueModel::get_input_torque(
                 sensor_data.engine_rpm,
                 sensor_data.input_rpm,
-                sensor_data.static_torque
+                sta
             );
             if (input_torque != INT16_MAX) {
                 this->sensor_data.input_torque = input_torque;

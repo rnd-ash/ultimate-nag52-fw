@@ -36,39 +36,39 @@ class EgsBaseCan {
 
         
         /**
-         * @brief OPTIONAL DATA - Returns the front right wheel speed
+         * @brief OPTIONAL DATA - Returns the front right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return front right wheel data
          */
-        virtual WheelData get_front_right_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_front_right_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief OPTIONAL DATA - Returns the front left wheel speed
+         * @brief OPTIONAL DATA - Returns the front left wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return front left wheel data
          */
-        virtual WheelData get_front_left_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_front_left_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the rear right wheel speed
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the rear right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return rear right wheel data
          */
-        virtual WheelData get_rear_right_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the left right wheel speed
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the left right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return rear right left data
          */
-        virtual WheelData get_rear_left_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
 

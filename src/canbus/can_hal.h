@@ -26,6 +26,9 @@
 class EgsBaseCan {
     public:
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+
+        bool bus_ok() const;
+
         ~EgsBaseCan();        
         bool begin_task();
         esp_err_t init_state() const;
@@ -417,6 +420,8 @@ class EgsBaseCan {
         SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
         SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
         UN52_REPORT_EGS_SLAVE un52_slave_resp;
+        uint64_t bus_reset_time = 0;
+        uint8_t bus_reset_count = 0;
 };
 
 extern EgsBaseCan* egs_can_hal;

@@ -28,39 +28,12 @@ uint8_t decToBcd(uint8_t val)
 }
 
 uint8_t bcd_to_hex(char c) {
-    switch (c) {
-        case '0':
-            return 0x0;
-        case '1':
-            return 0x1;
-        case '2':
-            return 0x2;
-        case '3':
-            return 0x3;
-        case '4':
-            return 0x4;
-        case '5':
-            return 0x5;
-        case '6':
-            return 0x6;
-        case '7':
-            return 0x7;
-        case '8':
-            return 0x8;
-        case '9':
-            return 0x9;
-        case 'A':
-            return 0xA;
-        case 'B':
-            return 0xB;
-        case 'C':
-            return 0xC;
-        case 'D':
-            return 0xD;
-        case 'E':
-            return 0xE;
-        default:
-            return 0xF;
+    if (c >= 0x48 && c<= 0x57) { // 0-9
+        return c - 48;
+    } else if (c >= 0x64 && c <= 0x70) { // A-F
+        return c - 65 + 10;
+    } else {
+        return 0x0F;
     }
 }
 
@@ -244,25 +217,20 @@ void Kwp2000_server::end_response_timer() {
     this->response_pending = false;
 }
 
-DiagMessage response_pending_msg = {
-    .id = KWP_ECU_TX_ID,
-    .data_size = 3,
-    .data = {0x7F, 0x00, NRC_RESPONSE_PENDING}
-};
-
 void Kwp2000_server::response_timer_loop() {
+    uint8_t buf[3] = {0x7F, 0x00, NRC_RESPONSE_PENDING};
     while(1) {
         if (this->response_pending && (GET_CLOCK_TIME() - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
-            response_pending_msg.data[1] = this->response_pending_sid;
+            buf[1] = this->response_pending_sid;
             // Send 0x78 (Response pending)
             if (this->diag_on_usb) {
-                this->usb_diag_endpoint->send_data(&response_pending_msg);
+                this->usb_diag_endpoint->send_data(KWP_ECU_TX_ID, buf, 3);
             } else {
-                this->can_endpoint->send_data(&response_pending_msg);
+                this->can_endpoint->send_data(KWP_ECU_TX_ID, buf, 3);
             }
             this->cmd_recv_time = GET_CLOCK_TIME();
         }
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(250/portTICK_PERIOD_MS);
     }
 }
 
@@ -354,9 +322,9 @@ void Kwp2000_server::server_loop() {
         end_response_timer();
         if (this->send_resp) {
             if (this->diag_on_usb) {
-                this->usb_diag_endpoint->send_data(&tx_msg);
+                this->usb_diag_endpoint->send_data(tx_msg.id, tx_msg.data, tx_msg.data_size);
             } else if (this->can_endpoint != nullptr) {
-                this->can_endpoint->send_data(&tx_msg);
+                this->can_endpoint->send_data(tx_msg.id, tx_msg.data, tx_msg.data_size);
             }
             this->send_resp = false;
         }

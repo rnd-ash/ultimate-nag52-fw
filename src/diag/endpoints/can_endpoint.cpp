@@ -45,10 +45,10 @@ bool CanEndpoint::send_to_twai(DiagCanMessage msg) {
     return twai_transmit(&this->tx_can, 5) == ESP_OK;
 }
 
-void CanEndpoint::send_data(const DiagMessage* msg) {
+void CanEndpoint::send_data(uint32_t id, uint8_t *buf, uint16_t len) {
     this->tmp.curr_pos = 0;
-    this->tmp.max_pos = msg->data_size;
-    memcpy(this->tmp.data, msg->data, msg->data_size);
+    this->tmp.max_pos = len;
+    memcpy(this->tmp.data, buf, len);
     if (xQueueSend(this->send_msg_queue, &this->tmp, 0) != pdTRUE) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Tx queue is full!?");
     }

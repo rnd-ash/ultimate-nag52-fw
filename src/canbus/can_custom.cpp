@@ -1,7 +1,7 @@
 #include "can_custom.h"
 
 #include "driver/twai.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"

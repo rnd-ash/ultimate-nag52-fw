@@ -41,6 +41,7 @@ public:
     uint16_t last_trq_req = 0;
 
     float sports_factor=1.0;
+    float trq_factor = 1.0;
     float trq_request_target = 0;
     float trq_request_target_adder = 0;
     float trq_request_absolute_target=0;

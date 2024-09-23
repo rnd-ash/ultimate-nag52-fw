@@ -71,10 +71,10 @@ struct SensorData{
     bool is_braking;
     /// Current gearbox ratio
     float gear_ratio;
-    WheelData rr_wheel;
-    WheelData rl_wheel;
-    WheelData fr_wheel;
-    WheelData fl_wheel;
+    uint16_t rr_wheel;
+    uint16_t rl_wheel;
+    uint16_t fr_wheel;
+    uint16_t fl_wheel;
 };
 
 struct OutputData {

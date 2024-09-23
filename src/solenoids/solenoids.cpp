@@ -11,6 +11,8 @@
 #include "esp_check.h"
 #include "../nvs/module_settings.h"
 #include "clock.hpp"
+#include "esp_timer.h"
+#include "tcu_io/tcu_io.hpp"
 
 OnOffSolenoid *sol_y3 = nullptr;
 OnOffSolenoid *sol_y4 = nullptr;
@@ -29,22 +31,28 @@ struct SolenoidOutputSummary {
 
 QueueHandle_t solenoid_summery_queue;
 
-// 6 channels * SOC_ADC_DIGI_DATA_BYTES_PER_CONV bytes per sample *  
-#define I2S_DMA_BUF_LEN 6 * 100 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 4
+/*
+6 channels
+each channel:
+    200 samples per 'spike' (1000hz)
+    record 2 spikes, and get average
+*/
+#define I2S_DMA_BUF_LEN 6 * 200 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 2
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
-
+uint64_t isr_done = 0;
 uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 static bool IRAM_ATTR on_i2s_read(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data) {
-    SolenoidOutputSummary s;
-    memset(&s, 0x00, sizeof(SolenoidOutputSummary));
-    uint64_t valid_samples = 0;
+    SolenoidOutputSummary s = {
+        .peak_total = {0,0,0,0,0,0},
+        .count_peak = {0,0,0,0,0,0},
+        .count_total = {0,0,0,0,0,0},
+    };
     for (int i = 0; i < edata->size; i += SOC_ADC_DIGI_RESULT_BYTES) {
         adc_digi_output_data_t *p = (adc_digi_output_data_t*)&edata->conv_frame_buffer[i];
         uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
         if (channel_idx != 0xFF) {
-            if (p->type1.data > 40) { // > 1%
-                valid_samples += 1;
+            if (p->type1.data > 120) { // > ~0.1V
                 s.peak_total[channel_idx] += p->type1.data;
                 s.count_peak[channel_idx] += 1;
             }
@@ -52,6 +60,7 @@ static bool IRAM_ATTR on_i2s_read(adc_continuous_handle_t handle, const adc_cont
         }
     }
     BaseType_t taskWoken = pdFALSE;
+    isr_done = esp_timer_get_time();
     xQueueSendFromISR(solenoid_summery_queue, &s, &taskWoken);
     return (taskWoken == pdTRUE);
 }
@@ -60,7 +69,7 @@ void read_solenoids_i2s(void*) {
     PwmSolenoid* const sol_order[6]  = { sol_mpc, sol_spc, sol_y3, sol_y4, sol_y5, sol_tcc };
     adc_continuous_handle_t c_handle = nullptr;
     const adc_continuous_handle_cfg_t c_cfg = {
-        .max_store_buf_size = I2S_DMA_BUF_LEN*4,
+        .max_store_buf_size = I2S_DMA_BUF_LEN*2,
         .conv_frame_size = I2S_DMA_BUF_LEN,
     };
     adc_continuous_new_handle(&c_cfg, &c_handle);
@@ -75,7 +84,7 @@ void read_solenoids_i2s(void*) {
     adc_continuous_config_t dig_cfg = {
         .pattern_num = 6, 
         .adc_pattern = adc_pattern,
-        .sample_freq_hz = 732000, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
+        .sample_freq_hz = 732000*2, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
@@ -86,28 +95,29 @@ void read_solenoids_i2s(void*) {
         .on_pool_ovf = nullptr
     };
 
-
     adc_continuous_register_event_callbacks(c_handle, &callbacks, nullptr);
     solenoid_summery_queue = xQueueCreate(4, sizeof(SolenoidOutputSummary));
     adc_continuous_start(c_handle);
     SolenoidOutputSummary s;
-    uint32_t total = 0;
+    uint64_t last_time = GET_CLOCK_TIME();
     while(true) {
         xQueueReceive(solenoid_summery_queue, &s, portMAX_DELAY);
+        uint64_t now = esp_timer_get_time();
         for (int i = 0; i < 6; i++) {
             if (s.count_peak[i] > 0) {
                 sol_order[i]->__set_adc_reading((float)s.peak_total[i]/(float)s.count_peak[i]);
             } else {
                 sol_order[i]->__set_adc_reading(0);
             }
-
+            // Yields 800 samples/sol/4ms
+            // Each solenoid is being sampled at 200 samples per wave
             // Important step for CC solenoids
             if (sol_order[i] == sol_mpc) {
-                sol_mpc->set_target_current_when_reading();
+                sol_mpc->update_when_reading(voltage);
             } else if (sol_order[i] == sol_spc) {
-                sol_spc->set_target_current_when_reading();
+                //printf("%d %d\n", (int)s.count_peak[i], (int)s.count_total[i]);
+                sol_spc->update_when_reading(voltage);
             }
-            total += s.count_total[i];
         }
     }
 }
@@ -133,19 +143,25 @@ void update_solenoids(void*) {
     int16_t atf_temp = 250;
     float vref_compensation = 1.0;
     float temp_compensation = 1.0;
+    uint16_t vbatt = TCUIO::battery_mv();
+    int16_t atf = TCUIO::atf_temperature();
     while(true) {
-        if (ESP_OK == Sensors::read_vbatt(&voltage)) {
+        vbatt = TCUIO::battery_mv();
+        atf = TCUIO::atf_temperature();
+        if (UINT16_MAX != vbatt) {
+            voltage = vbatt;
             vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
         } else {
             vref_compensation = 1.0;
         }
-        if (ESP_OK == Sensors::read_atf_temp_fine(&atf_temp)) {
+        if (INT16_MAX != atf) {
+            atf_temp = atf*10.0;
             temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
         }
-        bool vbatt_too_low = voltage < 9000;
         if (write_pwm) {
-            sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
-            sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
+            // MOVED TO CURRENT READING TASK SO READINGS ARE SYNCED
+            //sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
+            //sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_tcc->__write_pwm(vref_compensation, temp_compensation);
             sol_y3->__write_pwm(vref_compensation, temp_compensation);
             sol_y4->__write_pwm(vref_compensation, temp_compensation);

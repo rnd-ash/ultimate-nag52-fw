@@ -8,27 +8,22 @@
 #include "../nvs/module_settings.h"
 #include "clock.hpp"
 #include "egs_calibration/calibration_structs.h"
+#include "tcu_io/tcu_io.hpp"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
-    RpmReading d;
-    bool b = false;
+    SpeedSensors speeds = gearbox->speed_sensors;
+    uint8_t pll = TCUIO::parking_lock();
 
-    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
-        ret.n2_rpm = d.n2_raw;
-        ret.n3_rpm = d.n3_raw;
-        ret.calculated_rpm = d.calc_rpm;
-    } else {
-        ret.n2_rpm = 0xFFFF;
-        ret.n3_rpm = 0xFFFF;
-        ret.calculated_rpm = 0xFFFF;
-    }
-    if (Sensors::parking_lock_engaged(&b) == ESP_OK) {
-        ret.parking_lock = b;
-        if (!b) {
-            int16_t tmp = 0;
-            Sensors::read_atf_temp(&tmp);
-            ret.atf_temp_c = tmp;
+    ret.n2_rpm = speeds.n2;
+    ret.n3_rpm = speeds.n3;
+    ret.calculated_rpm = speeds.turbine;
+    
+    if (UINT8_MAX != pll) {
+        ret.parking_lock = pll;
+        if (pll == 0) {
+            int16_t tft = TCUIO::atf_temperature();
+            ret.atf_temp_c = tft;
         }
     } else {
         ret.parking_lock = 0xFF;
@@ -40,12 +35,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     } else {
         ret.calc_ratio = g->get_gear_ratio();
     }
-    uint16_t res = 0;
-    if (ESP_OK == Sensors::read_output_rpm(&res)) {
-        ret.output_rpm = res;
-    } else {
-        ret.output_rpm = 0xFFFF;
-    }
+    ret.output_rpm = speeds.output;
     return ret;
 }
 
@@ -131,10 +121,8 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
         return ret;
     }
     
-    WheelData t = gearbox->sensor_data.rl_wheel;
-    ret.left_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
-    t = gearbox->sensor_data.rr_wheel;
-    ret.right_rear_rpm = t.current_dir == WheelDirection::SignalNotAvailable ? 0xFFFF : t.double_rpm;
+    ret.left_rear_rpm = gearbox->sensor_data.rl_wheel;
+    ret.right_rear_rpm = gearbox->sensor_data.rr_wheel;
 
     ret.paddle_position = can_layer->get_paddle_position(250);
     ret.pedal_pos = can_layer->get_pedal_value(250);

@@ -14,6 +14,7 @@
 #include "nvs/device_mode.h"
 #include "esp_flash.h"
 #include "egs_calibration/calibration_structs.h"
+#include "tcu_io/tcu_io.hpp"
 
 typedef struct {
     uint8_t day;
@@ -856,15 +857,15 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
 
     if (arg_len == 1) {
         if (args[0] == ROUTINE_SOLENOID_TEST) {
-            bool pl = false;
-            uint16_t v = 0;
+            uint16_t voltage = TCUIO::battery_mv();
+            uint16_t pll = TCUIO::parking_lock();
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-                    Sensors::read_vbatt(&v) == ESP_OK &&
-                    v > 10000 && // Enough battery voltage
-                    Sensors::parking_lock_engaged(&pl) == ESP_OK &&
-                    !pl // Parking lock off (In D/R)
+
+                    voltage != UINT16_MAX &&
+                    voltage > 10000 && // Enough battery voltage
+                    pll == 0 // Parking lock off (In D/R)
                 ) {
                 this->routine_running = true;
                 this->routine_id = ROUTINE_SOLENOID_TEST;
@@ -1244,11 +1245,12 @@ void Kwp2000_server::run_solenoid_test() {
 
     SolRtRes res{};
     res.lid = this->routine_id;
-    int16_t tmp = 0;
-    if (Sensors::read_atf_temp(&tmp) != ESP_OK) {
-        return;
+    int16_t temp = TCUIO::atf_temperature();
+    uint8_t pll = TCUIO::parking_lock();
+    if (pll != 0 || INT16_MAX == temp) {
+        return; // Cannot function unless PLL is off
     }
-    res.atf_temp = tmp;
+    res.atf_temp = temp;
     if (nullptr != this->gearbox_ptr) {
         this->gearbox_ptr->diag_inhibit_control();
     }

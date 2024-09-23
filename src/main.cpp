@@ -7,7 +7,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "speaker.h"
-#include "sensors.h"
+#include "tcu_io/tcu_io.hpp"
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
@@ -70,7 +70,7 @@ SPEAKER_POST_CODE setup_tcm()
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {
-                if (ESP_OK == Sensors::init_sensors())
+                if (ESP_OK == TCUIO::setup_io_layer())
                 {
                     if (ESP_OK == Solenoids::init_all_solenoids())
                     {

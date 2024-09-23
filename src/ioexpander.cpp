@@ -12,9 +12,10 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 			.i2c_port = I2C_NUM_0,
 			.sda_io_num = sda,
 			.scl_io_num = scl,
+			.clk_source = I2C_CLK_SRC_DEFAULT,
 			.glitch_ignore_cnt = 7,
 			.intr_priority = 0,
-			.trans_queue_depth = 1,
+			.trans_queue_depth = 4,
 			.flags {
 				.enable_internal_pullup = true
 			}

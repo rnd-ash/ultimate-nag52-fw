@@ -63,10 +63,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .last_shift_time = 0,
         .is_braking = false,
         .gear_ratio = 0.0F,
-        .rr_wheel = 0,
-        .rl_wheel = 0,
-        .fr_wheel = 0,
-        .fl_wheel = 0,
     };
     this->output_data = OutputData {
         .torque_req_amount = 0,

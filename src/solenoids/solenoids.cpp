@@ -99,10 +99,8 @@ void read_solenoids_i2s(void*) {
     solenoid_summery_queue = xQueueCreate(4, sizeof(SolenoidOutputSummary));
     adc_continuous_start(c_handle);
     SolenoidOutputSummary s;
-    uint64_t last_time = GET_CLOCK_TIME();
     while(true) {
         xQueueReceive(solenoid_summery_queue, &s, portMAX_DELAY);
-        uint64_t now = esp_timer_get_time();
         for (int i = 0; i < 6; i++) {
             if (s.count_peak[i] > 0) {
                 sol_order[i]->__set_adc_reading((float)s.peak_total[i]/(float)s.count_peak[i]);

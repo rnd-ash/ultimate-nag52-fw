@@ -141,7 +141,7 @@ void Sensors::update(SensorDataRaw* dest) {
 }
 
 esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, PcntCallbackData* cbd) {
-#define RPM_DIVIDER 4
+#define RPM_DIVIDER 8
     int max = MAX(1, pulses_per_rpm/RPM_DIVIDER);
     memset(cbd, 0x00, sizeof(PcntCallbackData));
     cbd->max_val = max;

@@ -121,8 +121,14 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
         return ret;
     }
     
-    ret.left_rear_rpm = gearbox->sensor_data.rl_wheel;
-    ret.right_rear_rpm = gearbox->sensor_data.rr_wheel;
+    ret.left_rear_rpm = TCUIO::wheel_rl_2x_rpm();
+    if (UINT16_MAX != ret.left_rear_rpm) {
+        ret.left_rear_rpm /= 2;
+    }
+    ret.right_rear_rpm = TCUIO::wheel_rr_2x_rpm();
+    if (UINT16_MAX != ret.right_rear_rpm) {
+        ret.right_rear_rpm /= 2;
+    }
 
     ret.paddle_position = can_layer->get_paddle_position(250);
     ret.pedal_pos = can_layer->get_pedal_value(250);

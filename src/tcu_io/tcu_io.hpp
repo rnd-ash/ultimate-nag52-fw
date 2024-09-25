@@ -39,6 +39,14 @@ namespace TCUIO {
     uint16_t n3_rpm();
     uint16_t output_rpm();
 
+    uint16_t wheel_rr_2x_rpm();
+    uint16_t wheel_rl_2x_rpm();
+    uint16_t wheel_fr_2x_rpm();
+    uint16_t wheel_fl_2x_rpm();
+
+    int16_t motor_temperature();
+    int16_t motor_oil_temperature();
+
 };  
 
 

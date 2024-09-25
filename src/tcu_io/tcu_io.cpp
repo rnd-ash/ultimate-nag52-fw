@@ -16,8 +16,15 @@ TCUIO::SmoothedSensor smoothed_sensor_out_rpm;
 TCUIO::SmoothedSensor smoothed_sensor_atf_temp;
 TCUIO::SmoothedSensor smoothed_sensor_vbatt;
 
+
+TCUIO::OnePollSensor<uint16_t> onepoll_rr_speed;
+TCUIO::OnePollSensor<uint16_t> onepoll_rl_speed;
+TCUIO::OnePollSensor<uint16_t> onepoll_fr_speed;
+TCUIO::OnePollSensor<uint16_t> onepoll_fl_speed;
+
 TCUIO::OnePollSensor<uint8_t> onepoll_parking_lock;
 TCUIO::OnePollSensor<int16_t> onepoll_motor_temperature;
+TCUIO::OnePollSensor<int16_t> onepoll_motor_oil_temperature;
 
 SensorDataRaw raw_sensors;
 
@@ -68,6 +75,31 @@ void add_to_onepoll_sensor(TCUIO::OnePollSensor<T>* dest, T value) {
     }
 }
 
+template <typename T>
+inline T get_onepoll_sensor_val(TCUIO::OnePollSensor<T>* src, uint8_t ecounter_max) {
+    return (src->e_counter <= ecounter_max) ? src->current_value : std::numeric_limits<T>::max();
+} 
+
+inline uint16_t get_smoothed_sensor_val_unsigned(TCUIO::SmoothedSensor* src, uint8_t ecounter_max) {
+    uint16_t ret;
+    if (likely(src->e_counter <= ecounter_max)) {
+        ret = MIN(UINT16_MAX, src->buffer->get_average());
+    } else {
+        ret = UINT16_MAX;
+    }
+    return ret;
+} 
+
+inline int16_t get_smoothed_sensor_val_signed(TCUIO::SmoothedSensor* src, uint8_t ecounter_max) {
+    int16_t ret;
+    if (likely(src->e_counter <= ecounter_max)) {
+        ret = MIN(INT16_MAX, src->buffer->get_average());
+    } else {
+        ret = INT16_MAX;
+    }
+    return ret;
+} 
+
 esp_err_t TCUIO::setup_io_layer() {
     // Setup PCB Sensor HAL
     esp_err_t ret = ESP_OK;
@@ -86,8 +118,14 @@ esp_err_t TCUIO::setup_io_layer() {
 
     init_onepoll(&onepoll_parking_lock);
 
+    init_onepoll(&onepoll_fl_speed);
+    init_onepoll(&onepoll_fr_speed);
+    init_onepoll(&onepoll_rl_speed);
+    init_onepoll(&onepoll_rr_speed);
+
     // CAN Matrix inputs
     init_onepoll(&onepoll_motor_temperature);
+    init_onepoll(&onepoll_motor_oil_temperature);
 
     DIFF_RATIO_F = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     return ret;
@@ -119,15 +157,17 @@ void update_tft_sensor() {
 void update_rpm_sensors() {
     // INPUT SHAFT CALCULATION
     uint16_t calc_rpm = UINT16_MAX;
-    if (raw_sensors.rpm_n2 >= 100) {
+    if (raw_sensors.rpm_n2 > 100) {
         add_to_smoothed_sensor(&smoothed_sensor_n2_rpm, raw_sensors.rpm_n2);
     } else {
-        add_to_smoothed_sensor(&smoothed_sensor_n2_rpm, 0);
+        smoothed_sensor_n2_rpm.e_counter = 0;
+        smoothed_sensor_n2_rpm.buffer->reset();
     }
-    if (raw_sensors.rpm_n3 >= 100) {
+    if (raw_sensors.rpm_n3 > 100) {
         add_to_smoothed_sensor(&smoothed_sensor_n3_rpm, raw_sensors.rpm_n3);
     } else {
-        add_to_smoothed_sensor(&smoothed_sensor_n3_rpm, 0);
+        smoothed_sensor_n3_rpm.e_counter = 0;
+        smoothed_sensor_n3_rpm.buffer->reset();
     }
     
     // OUTPUT SHAFT RPM CALCULATION
@@ -139,8 +179,10 @@ void update_rpm_sensors() {
         }
     } else {
         // Poll CANBUS
-        uint16_t rl = egs_can_hal->get_rear_left_wheel(100);
-        uint16_t rr = egs_can_hal->get_rear_right_wheel(100);
+        add_to_onepoll_sensor(&onepoll_rl_speed, egs_can_hal->get_rear_left_wheel(100));
+        add_to_onepoll_sensor(&onepoll_rr_speed, egs_can_hal->get_rear_right_wheel(100));
+        uint16_t rl = TCUIO::wheel_rl_2x_rpm();
+        uint16_t rr = TCUIO::wheel_rr_2x_rpm();
         calc_rpm = UINT16_MAX;
         if (UINT16_MAX != rl || UINT16_MAX != rr) {
             if (unlikely(UINT16_MAX == rl)) {
@@ -181,6 +223,7 @@ void update_rpm_sensors() {
 void update_can_values() {
     // Motor coolant temperature (Used as a sub for ATF temperature)
     add_to_onepoll_sensor(&onepoll_motor_temperature, egs_can_hal->get_engine_coolant_temp(100));
+    add_to_onepoll_sensor(&onepoll_motor_oil_temperature, egs_can_hal->get_engine_oil_temp(100));
 }
 
 void TCUIO::update_io_layer() {
@@ -208,57 +251,39 @@ uint16_t TCUIO::calc_turbine_rpm(const uint16_t n2, const uint16_t n3) {
     return MAX(0,((float)n2 * RATIO_2_1) + ((float)n3 - (RATIO_2_1*(float)n3)));
 }
 
-uint8_t TCUIO::parking_lock() { 
-    // Critical signal. If missing, fail (No substitution)
-    return onepoll_parking_lock.e_counter > 0 ? UINT8_MAX : onepoll_parking_lock.current_value;
-}
-int16_t TCUIO::atf_temperature() { 
-    return smoothed_sensor_atf_temp.buffer->get_average();
-}
-
-uint16_t TCUIO::battery_mv() { 
-    return smoothed_sensor_vbatt.buffer->get_average();
-}
-
+uint8_t TCUIO::parking_lock() { return get_onepoll_sensor_val(&onepoll_parking_lock, 0); }
+int16_t TCUIO::atf_temperature() { return smoothed_sensor_atf_temp.buffer->get_average();}
+uint16_t TCUIO::battery_mv() { return smoothed_sensor_vbatt.buffer->get_average();}
 uint16_t TCUIO::n2_rpm() { 
-    // Critical signal
-    if (smoothed_sensor_n2_rpm.e_counter > 0) {
-        return UINT16_MAX;
+    uint16_t rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_n2_rpm, 0); 
+    if (rpm < 100) {
+        return 0;
     } else {
-        uint16_t ret = smoothed_sensor_n2_rpm.buffer->get_average();
-        if (ret > 100) {
-            return ret;
-        } else {
-            return 0;
-        }
+        return rpm;
     }
 }
-
 uint16_t TCUIO::n3_rpm() { 
-    // Critical signal
-    if (smoothed_sensor_n3_rpm.e_counter > 0) {
-        return UINT16_MAX;
+    int rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_n3_rpm, 0); 
+    if (rpm < 100) {
+        return 0;
     } else {
-        uint16_t ret = smoothed_sensor_n3_rpm.buffer->get_average();
-        if (ret > 100) {
-            return ret;
-        } else {
-            return 0;
-        }
+        return rpm;
     }
 }
 
-uint16_t TCUIO::output_rpm() { 
-    // Critical signal
-    if (smoothed_sensor_out_rpm.e_counter > 0) {
-        return UINT16_MAX;
+uint16_t TCUIO::output_rpm() {
+    int rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_out_rpm, 0); 
+    if (rpm < 100) {
+        return 0;
     } else {
-        uint16_t ret = smoothed_sensor_out_rpm.buffer->get_average();
-        if (ret > 100) {
-            return ret;
-        } else {
-            return 0;
-        }
+        return rpm;
     }
 }
 
+uint16_t TCUIO::wheel_fl_2x_rpm() { return get_onepoll_sensor_val(&onepoll_fl_speed, 2); }
+uint16_t TCUIO::wheel_fr_2x_rpm() { return get_onepoll_sensor_val(&onepoll_fr_speed, 2); }
+uint16_t TCUIO::wheel_rl_2x_rpm() { return get_onepoll_sensor_val(&onepoll_rl_speed, 2); }
+uint16_t TCUIO::wheel_rr_2x_rpm() { return get_onepoll_sensor_val(&onepoll_rr_speed, 2); }
+
+int16_t TCUIO::motor_temperature() { return get_onepoll_sensor_val(&onepoll_motor_temperature, 5); }
+int16_t TCUIO::motor_oil_temperature() { return get_onepoll_sensor_val(&onepoll_motor_oil_temperature, 5); }

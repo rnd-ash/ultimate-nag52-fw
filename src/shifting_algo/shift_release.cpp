@@ -12,7 +12,7 @@ const uint8_t FILL_RAMP_TIME = 60;
 const uint8_t FILL_HOLD_TIME = 100;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
-    this->trq_req_avg = new FirstOrderAverage(5);
+    this->trq_req_avg = new FirstOrderAverage(4);
 }
 ReleasingShift::~ReleasingShift() {
     delete this->trq_req_avg;
@@ -51,13 +51,13 @@ uint8_t ReleasingShift::step(
     // Threshold RPM for ramping up based on torque
     int freeing_torque = pm->find_freeing_torque(sid->change, sd->static_torque_wo_request, sd->output_rpm);
     // Calculate torque request trq here. (Only used until we ramp down torque
-    int clutch_max_trq_req = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, sid->SPC_MAX, true);
+    //int clutch_max_trq_req = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, sid->SPC_MAX, true);
     int trq_request_raw = freeing_torque;
     if (is_upshift) {
-        this->trq_request_target = MAX(trq_request_raw, this->trq_request_target);
+        this->trq_request_target = trq_request_raw;
     } else {
         // Downshift uses pedal multiplier
-        this->trq_request_target = MAX(MIN(this->sports_factor * trq_request_raw, abs_input_torque), this->trq_request_target);
+        this->trq_request_target = this->sports_factor * trq_request_raw;
     }
     this->trq_request_target = MIN(this->trq_request_target, abs_input_torque);
     freeing_torque = MIN(this->sports_factor * freeing_torque, abs_input_torque);
@@ -71,7 +71,6 @@ uint8_t ReleasingShift::step(
             drag /
             inertia;
     this->threshold_rpm = MAX(this->threshold_rpm, 100);
-    this->trq_request_absolute_target = abs_input_torque - this->trq_request_target;
     //}
 
     ShiftPressures* p_now = sid->ptr_w_pressures;
@@ -158,7 +157,7 @@ uint8_t ReleasingShift::step(
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch + filling_adder;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
-            if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100 || (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) || elapsed > 5000) {
+            if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm || elapsed > 5000) {
                 this->subphase_shift = 5;
                 this->ts_phase_shift = phase_elapsed;
             }
@@ -423,7 +422,7 @@ uint8_t ReleasingShift::step(
             // 1. Max torque
             // 2. The ramp torque of the current torque request
             // These 2 values are superimposed on one-another to create the final output EGS torque req.
-            if (sd->input_torque > this->torque_at_new_clutch) {
+            if (sd->input_torque >= this->torque_at_new_clutch) {
                 trq_req_now = MAX(0, MAX(sd->input_torque - this->torque_at_new_clutch, trq_ramp_value));
             } else {
                 trq_req_now = MAX(0, trq_ramp_value);

@@ -40,6 +40,16 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
+    // New! GS_338 data for newer K-Matrix cars (W216)
+    this->gs338.NTURBINE = 0;
+    this->gs338.MABS_SW_ANFB = 0;
+    this->gs338.M_VORSTR = 0;
+    this->gs338.RACE_START = GS_338h_RACE_START_EGS52::OFF;
+    this->gs338.KID = 0;
+    this->gs338.NAK_TGL = false;
+    this->gs338.NAK_PA = false;
+    this->gs338.MIL_ANF_GS = false;
+    this->gs338.NAB = 0;
 }
 
 uint16_t Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -768,6 +778,7 @@ void Egs52Can::tx_frames() {
     // and egs52 Tx interval is 20ms,
     // we can achieve this with 2 booleans
     gs_218tx.MTGL_EGS = toggle;
+    gs_338tx.NAK_TGL = toggle;
     gs_418tx.FMRADTGL = toggle;
     // Now do parity calculations
     gs_218tx.MPAR_EGS = calc_torque_parity(gs_218tx.raw >> 48);

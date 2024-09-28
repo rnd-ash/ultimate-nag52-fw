@@ -157,8 +157,8 @@ class ECU:
 * CAN Defintiion for ECU '{0}'
 */
 
-#ifndef ECU_{0}_H
-#define ECU_{0}_H
+#ifndef __ECU_{0}_H_
+#define __ECU_{0}_H_
 
 #include <stdint.h>
     """.format(self.name)
@@ -322,7 +322,7 @@ class ECU:
         tmp += "\n};"
 
         # Lastly append endif guard
-        tmp += "\n#endif // ECU_{}_H".format(self.name)
+        tmp += "\n#endif // __ECU_{}_H_".format(self.name)
         return tmp
 
 

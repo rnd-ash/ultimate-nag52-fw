@@ -588,8 +588,23 @@ ECU GS
 		SIGNAL CALID_CVN_AKT, OFFSET: 58, LEN: 1, DESC: CALID / CVN transmission active, DATA TYPE BOOL
 		SIGNAL FEHLER, OFFSET: 59, LEN: 5, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME GS_338h (0x00000338)
-		SIGNAL NAB, OFFSET: 0, LEN: 16, DESC: Transmission output speed (only 463/461, other FFFFH), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL NTURBINE, OFFSET: 48, LEN: 16, DESC: Turbine speed (EGS52-NAG, VGS-NAG2), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL NAB, OFFSET: 0, LEN: 16, DESC: Transmission output speed (only 463/461, otherwise FFFFH), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: unknown
+		SIGNAL MIL_ANF_GS, OFFSET: 16, LEN: 1, DESC: Request Mil through GS, DATA TYPE BOOL
+		SIGNAL NAK_PA, OFFSET: 17, LEN: 1, DESC: NAK interface parity bit, DATA TYPE BOOL
+		SIGNAL NAK_TGL, OFFSET: 18, LEN: 1, DESC: NAK interface Togglebit, DATA TYPE BOOL
+		SIGNAL KID, OFFSET: 19, LEN: 1, DESC: function 'power-free in D' activated, DATA TYPE BOOL
+		SIGNAL RACE_START, OFFSET: 20, LEN: 2, DESC: start with maximum acceleration, DATA TYPE ENUM
+			ENUM OFF, RAW: 0, DESC: unknown
+			ENUM ON, RAW: 1, DESC: unknown
+			ENUM ACTV, RAW: 2, DESC: unknown
+			ENUM SNA, RAW: 3, DESC: unknown
+		SIGNAL M_VORSTR, OFFSET: 22, LEN: 10, DESC: pilot torque (0h: passive value), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: unknown
+		SIGNAL MABS_SW_ANFB, OFFSET: 32, LEN: 16, DESC: Amount of the total side wave torque for starting area, DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: unknown
+		SIGNAL NTURBINE, OFFSET: 48, LEN: 16, DESC: Turbine speed (EGS52-NAG, VGS-NAG2), DATA TYPE ENUM
+			ENUM SNV, RAW: 255, DESC: unknown
 	FRAME GS_418h (0x00000418)
 #SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE ENUM
 #			ENUM BLANK, RAW: 32, DESC: blank ("")

@@ -19,6 +19,10 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->sbw_rs_tcm.SBW_MsgTxmtId = SBW_RS_TCM_SBW_MsgTxmtId_EGS53::EGS52; // We are EGS53
     this->sbw_rs_tcm.TSL_Posn_Rq = SBW_RS_TCM_TSL_Posn_Rq_EGS53::IDLE; // Idle request (No SBW on EGS53)
     this->sbw_rs_tcm.TxSelSensPosn = 0; // No dialing sensor on EGS53
+    this->sbw_rs_tcm.TxSelSensPosn = 0xFF; // We never report this
+    this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::SNA; // We never report this
+    this->sbw_rs_tcm.bytes[4] = 0x00;
+
     // Tell engine which Mech style we are
     if (MECH_PTR->gb_ty == 0) {
         this->eng_rq2_tcm.TxMechStyle = ENG_RQ2_TCM_TxMechStyle_EGS53::LARGE;
@@ -27,6 +31,13 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     }
     this->eng_rq2_tcm.TxStyle = ENG_RQ2_TCM_TxStyle_EGS53::SAT; // Stepped automatic gearbox
     this->eng_rq2_tcm.TxShiftStyle = ENG_RQ2_TCM_TxShiftStyle_EGS53::MS; // Mechanical shifting (With EWM module)
+    
+    this->tcm_a1.Clutch_Stat = TCM_A1_Clutch_Stat_EGS53::DISENGG;
+    this->tcm_a2.CurrDtyCyc_Rq = 0xFF;
+    this->tcm_a2.TxSlpRPM_Dsr = 0x3FFF;
+    this->tcm_a2.TCM_Data = 0xFF;
+    this->tcm_a2.TCM_ErrChk_Stat = TCM_A2_TCM_ErrChk_Stat_EGS53::OK;
+    this->tcm_a2.TCM_CALID_CVN_Actv = 0;
 }
 
 uint16_t Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -620,9 +631,6 @@ void Egs53Can::tx_frames() {
 
     tcm_a2_tx.TCM_CALID_CVN_ErrNum = cvn_counter;
     cvn_counter++;
-    if (cvn_counter == 0x14) {
-        cvn_counter = 0;
-    }
 
     // Set message counters
     eng_rq1_tcm_tx.MC_ENG_RQ1_TCM = msg_counter;
@@ -644,7 +652,6 @@ void Egs53Can::tx_frames() {
 
     tx.identifier = TCM_A2_EGS53_CAN_ID;
     to_bytes(tcm_a2_tx.raw, tx.data);
-    calc_crc_in_place(tx.data);
     twai_transmit(&tx, 5);
 
     tx.identifier = TCM_A1_EGS53_CAN_ID;

@@ -44,7 +44,7 @@ adc_oneshot_unit_init_cfg_t init_adc2 = {
     .ulp_mode = adc_ulp_mode_t::ADC_ULP_MODE_DISABLE
 };
 adc_oneshot_chan_cfg_t adc2_chan_config = {
-    .atten = ADC_ATTEN_DB_11,
+    .atten = ADC_ATTEN_DB_12,
     .bitwidth = ADC_BITWIDTH_12,
 };
 adc_cali_handle_t adc2_cal = nullptr;
@@ -204,7 +204,7 @@ esp_err_t Sensors::init_sensors(void){
     // Characterise ADC2       
     const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_2,
-        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .atten = adc_atten_t::ADC_ATTEN_DB_12,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
         .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
     };

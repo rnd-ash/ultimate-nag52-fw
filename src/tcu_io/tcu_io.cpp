@@ -27,6 +27,8 @@ TCUIO::OnePollSensor<int16_t> onepoll_motor_temperature;
 TCUIO::OnePollSensor<int16_t> onepoll_motor_oil_temperature;
 
 SensorDataRaw raw_sensors;
+TransferCaseState last_transfer_case_pos = TransferCaseState::SNA;
+bool block_shifting = false;
 
 void init_smoothed_sensor(TCUIO::SmoothedSensor* dest, uint8_t buffer_size, int reset_value = 0) {
     dest->e_counter = 0;
@@ -197,16 +199,31 @@ void update_rpm_sensors() {
             }
             calc_rpm *= DIFF_RATIO_F;
             // Check transfer case if present
-            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000))
+            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 0 && VEHICLE_CONFIG.transfer_case_low_ratio != 0))
             {
-                switch (egs_can_hal->get_transfer_case_state(500))
+                TransferCaseState state = egs_can_hal->get_transfer_case_state(500);
+                if (TransferCaseState::Switching == state) {
+                    // Switching - Use last state
+                    state = last_transfer_case_pos;
+                    block_shifting = true;
+                } else {
+                    block_shifting = false;
+                }
+                switch (state)
                 {
                 case TransferCaseState::Hi:
                     calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
+                    last_transfer_case_pos = state;
                     break;
                 case TransferCaseState::Low:
                     calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
+                    last_transfer_case_pos = state;
                     break;
+                case TransferCaseState::Neither:
+                    last_transfer_case_pos = state;
+                    break; // Transfer case is disengaged, ignore
+                case TransferCaseState::Switching:
+                    break; // Transfer case is switching, ignore
                 default:
                     calc_rpm = UINT16_MAX; // uh oh (Transfer case in invalid state)
                     break;

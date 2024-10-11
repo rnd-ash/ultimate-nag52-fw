@@ -318,23 +318,43 @@ uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
 }
 
 TransferCaseState Egs52Can::get_transfer_case_state(const uint32_t expire_time_ms) {
-    VG_428 vg428;
-    if (this->misc_ecu.get_VG_428(GET_CLOCK_TIME(), expire_time_ms, &vg428)) {
-        switch (vg428.get_VG_GANG()) {
-            case VG_428h_VG_GANG::HI:
-                return TransferCaseState::Hi;
-            case VG_428h_VG_GANG::LO:
-                return TransferCaseState::Low;
-            case VG_428h_VG_GANG::N:
-                return TransferCaseState::Neither;
-            case VG_428h_VG_GANG::SH_IPG:
-                return TransferCaseState::Switching;
-            case VG_428h_VG_GANG::SNV:
-            default:
-                return TransferCaseState::SNA;
+    if (VEHICLE_CONFIG.jeep_chrysler) {
+        // Handling for Jeep cars. This appears to be part of the MS608 frame
+        MS_608_EGS52 ms608;
+        if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
+            switch (ms608.bytes[0]) {
+                case 0x03:
+                    return TransferCaseState::Hi;// - High
+                case 0x04:
+                    return TransferCaseState::Neither;// - Neutral
+                case 0x05:
+                    return TransferCaseState::Low;// - Low range
+                default:
+                    return TransferCaseState::SNA;
+            }
+        } else {
+            return TransferCaseState::SNA;
         }
     } else {
-        return TransferCaseState::SNA;
+        // Mercedes handling - Query the dedicated VG ECU
+        VG_428 vg428;
+        if (this->misc_ecu.get_VG_428(GET_CLOCK_TIME(), expire_time_ms, &vg428)) {
+            switch (vg428.get_VG_GANG()) {
+                case VG_428h_VG_GANG::HI:
+                    return TransferCaseState::Hi;
+                case VG_428h_VG_GANG::LO:
+                    return TransferCaseState::Low;
+                case VG_428h_VG_GANG::N:
+                    return TransferCaseState::Neither;
+                case VG_428h_VG_GANG::SH_IPG:
+                    return TransferCaseState::Switching;
+                case VG_428h_VG_GANG::SNV:
+                default:
+                    return TransferCaseState::SNA;
+            }
+        } else {
+            return TransferCaseState::SNA;
+        }
     }
 }
 

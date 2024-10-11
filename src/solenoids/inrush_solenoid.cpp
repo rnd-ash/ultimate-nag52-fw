@@ -26,11 +26,41 @@ static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gp
     return true;
 }
 
-InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms)
+static bool IRAM_ATTR inrush_solenoid_timer_isr_new(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
+    InrushControlSolenoid* solenoid = (InrushControlSolenoid*)user_data;
+    uint32_t next_alarm_in = solenoid->on_timer_interrupt_new();
+    gptimer_alarm_config_t alarm_config = {
+        .alarm_count = edata->alarm_value + next_alarm_in,
+        .reload_count = 0u,
+        .flags = {
+            .auto_reload_on_alarm = 0u
+        }
+    };
+    gptimer_set_alarm_action(timer, &alarm_config);
+    return true;
+}
+
+InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, gpio_num_t zener_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms)
 : PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->ledc_timer = ledc_timer;
     this->target_hold_current = target_hold_current_ma;
-    ledc_set_freq(LEDC_HIGH_SPEED_MODE, ledc_timer, 10000);
+    this->zener_pin = zener_pin;
+    this->pwm_pin = pwm_pin;
+    // Old defaults
+    int freq = 10000;
+    gptimer_alarm_cb_t callback = inrush_solenoid_timer_isr;
+    if (GPIO_NUM_NC != this->zener_pin) { // Override! New mechanics
+        freq = 1000;
+        callback = inrush_solenoid_timer_isr_new;
+        ledc_stop(LEDC_HIGH_SPEED_MODE, channel, 0);
+        gpio_set_direction(pwm_pin, gpio_mode_t::GPIO_MODE_OUTPUT);
+        gpio_set_direction(zener_pin, gpio_mode_t::GPIO_MODE_OUTPUT);
+        this->inrush_time = 0;
+        this->hold_time = 0;
+        this->off_time = TOTAL_PERIOD_TIME_US;
+    } else {
+        ledc_set_freq(LEDC_HIGH_SPEED_MODE, ledc_timer, freq);
+    }
     if (ESP_OK != this->ready) {
         return; // Error trying to init base class, so skip
     }
@@ -56,7 +86,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
         this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
         if (ESP_OK == ready) {
             gptimer_event_callbacks_t cbs = {
-                .on_alarm = inrush_solenoid_timer_isr
+                .on_alarm = callback
             };
             this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
             if (ESP_OK == ready) {
@@ -83,6 +113,58 @@ void InrushControlSolenoid::pre_current_test() {
 
 void InrushControlSolenoid::post_current_test() {
     gptimer_start(this->timer);
+}
+
+bool on = false;
+bool pwm_on = false;
+bool zener_on = false;
+uint32_t total  = 0;
+bool pwm_en = false;
+uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
+    // Control the zener phase
+    int ret = TOTAL_PERIOD_TIME_US;
+    if (this->inrush_time != 0 || this->hold_time != 0) {
+        if (this->phase_id == 0) { // Off -> Inrush
+            pwm_on = true;
+            zener_on = false;
+            ret = this->inrush_time;
+            if (this->hold_time != 0) {
+                this->phase_id = 1; // Inrush -> hold
+                pwm_en = false;
+                total = 0;
+            } else {
+                this->phase_id = 2; // Inrush -> off (No hold)
+            }
+        } else if (this->phase_id == 1) { // Inrush -> Hold
+            zener_on = false;
+            pwm_on = pwm_en;
+            pwm_en = !pwm_en;
+            // Phase on/off for pwm
+
+            ret = MIN(pwm_en ? this->pwm_on_time : this->pwm_off_time, total - this->hold_time);
+            total += ret;
+            if (total >= this->hold_time) {
+                if (this->off_time == 0) {
+                    // We go back to this phase (Constant hold)
+                    total = 0;
+                } else {
+                    this->phase_id = 2; // Done, turn off!
+                }
+            }
+        } else { // Hold -> Off
+            zener_on = true;
+            pwm_on = false;
+            this->phase_id = 0;
+            ret = this->off_time;
+        }
+    } else {
+        zener_on = false;
+        pwm_on = false;
+        this->phase_id = 0; // Off
+    }
+    gpio_set_level(this->pwm_pin, pwm_on);
+    gpio_set_level(this->zener_pin, zener_on);
+    return ret;
 }
 
 // 100,000 is 10ms of time
@@ -130,13 +212,40 @@ void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperatu
 void InrushControlSolenoid::set_duty(uint16_t duty) {
     this->pwm_raw = duty;
     this->pwm = duty;
-    this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
-    if (this->period_on_time > INRUSH_TIME_US) {
-        this->hold_time = this->period_on_time - (INRUSH_TIME_US);
-        this->inrush_time = INRUSH_TIME_US;
+    if (GPIO_NUM_NC != this->zener_pin) {
+        // NEW! TCC Zener mode
+        int total_on_time = (float)TOTAL_PERIOD_TIME_US * ((float)duty / 4096.0);
+        if (total_on_time < TOTAL_PERIOD_TIME_US/20) { // < 5%
+            this->inrush_time = 0;
+            this->hold_time = 0;
+            this->off_time = TOTAL_PERIOD_TIME_US;
+        } else if (total_on_time > TOTAL_PERIOD_TIME_US*0.95) { // > 95%
+            this->inrush_time = 0;
+            this->hold_time = TOTAL_PERIOD_TIME_US;
+            this->off_time = 0;
+        } else {
+            this->inrush_time = MIN(total_on_time, 25000); // MIN period, 2.5ms (Inrush phase)
+            this->hold_time = 0;
+            if (total_on_time > this->inrush_time) {
+                this->hold_time = total_on_time - this->inrush_time;
+            }
+            this->off_time = TOTAL_PERIOD_TIME_US - (this->inrush_time + this->hold_time);
+            if (this->hold_time != 0) {
+                // Calc pwm for cycle
+                int total = TOTAL_PERIOD_TIME_US/10; // Per cycle
+                this->pwm_on_time = total * 0.3;
+                this->pwm_off_time = total - this->pwm_on_time;
+            }
+        }
     } else {
-        this->inrush_time = this->period_on_time;
-        this->hold_time = 0;
+        this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
+        if (this->period_on_time > INRUSH_TIME_US) {
+            this->hold_time = this->period_on_time - (INRUSH_TIME_US);
+            this->inrush_time = INRUSH_TIME_US;
+        } else {
+            this->inrush_time = this->period_on_time;
+            this->hold_time = 0;
+        }
+        this->off_time = TOTAL_PERIOD_TIME_US - this->period_on_time;
     }
-    this->off_time = TOTAL_PERIOD_TIME_US - this->period_on_time;
 }

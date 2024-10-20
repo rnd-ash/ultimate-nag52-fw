@@ -3,7 +3,6 @@
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
-
 class InrushControlSolenoid : public PwmSolenoid {
 public:
     explicit InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, gpio_num_t zener_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms);

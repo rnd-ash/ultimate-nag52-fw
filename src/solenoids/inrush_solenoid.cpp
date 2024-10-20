@@ -1,6 +1,7 @@
 #include "inrush_solenoid.h"
 #include "esp_check.h"
 #include "tcu_maths.h"
+#include "soc/gpio_struct.h"
 
 // AT 12.0V
 const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
@@ -141,9 +142,8 @@ uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
             pwm_en = !pwm_en;
             // Phase on/off for pwm
 
-            ret = MIN(pwm_en ? this->pwm_on_time : this->pwm_off_time, total - this->hold_time);
-            total += ret;
-            if (total >= this->hold_time) {
+            ret = MIN(!pwm_en ? this->pwm_on_time : this->pwm_off_time, total - this->hold_time);
+            if (total+ret >= this->hold_time) {
                 if (this->off_time == 0) {
                     // We go back to this phase (Constant hold)
                     total = 0;
@@ -151,6 +151,7 @@ uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
                     this->phase_id = 2; // Done, turn off!
                 }
             }
+            total += ret;
         } else { // Hold -> Off
             zener_on = true;
             pwm_on = false;
@@ -162,8 +163,10 @@ uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
         pwm_on = false;
         this->phase_id = 0; // Off
     }
-    gpio_set_level(this->pwm_pin, pwm_on);
-    gpio_set_level(this->zener_pin, zener_on);
+    volatile uint32_t* reg_pwm = pwm_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
+    volatile uint32_t* reg_zen = zener_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
+    *reg_pwm = (uint32_t)1 << (this->pwm_pin);
+    *reg_zen = (uint32_t)1 << (this->zener_pin);
     return ret;
 }
 
@@ -204,9 +207,17 @@ uint32_t InrushControlSolenoid::on_timer_interrupt() {
     return ret;
 }
 
+const float TOTAL_PERIOD_PWM = TOTAL_PERIOD_TIME_US/10; // Per cycle
+
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
-    this->calc_hold_pwm = (float)(HOLD_PWM) * vref_compensation;
-    this->vref = vref_compensation;
+    if (this->hold_time != 0) {
+        float on_pwm_ratio = 0.3 * vref_compensation;
+        if (inrush_time == 0) {
+            on_pwm_ratio = 0.5;
+        }
+        this->pwm_on_time = (int)(TOTAL_PERIOD_PWM * on_pwm_ratio);
+        this->pwm_off_time = TOTAL_PERIOD_PWM - this->pwm_on_time;
+    }
 }
 
 void InrushControlSolenoid::set_duty(uint16_t duty) {
@@ -229,13 +240,7 @@ void InrushControlSolenoid::set_duty(uint16_t duty) {
             if (total_on_time > this->inrush_time) {
                 this->hold_time = total_on_time - this->inrush_time;
             }
-            this->off_time = TOTAL_PERIOD_TIME_US - (this->inrush_time + this->hold_time);
-            if (this->hold_time != 0) {
-                // Calc pwm for cycle
-                int total = TOTAL_PERIOD_TIME_US/10; // Per cycle
-                this->pwm_on_time = total * 0.3;
-                this->pwm_off_time = total - this->pwm_on_time;
-            }
+            this->off_time = TOTAL_PERIOD_TIME_US - (this->inrush_time + this->hold_time); 
         }
     } else {
         this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);

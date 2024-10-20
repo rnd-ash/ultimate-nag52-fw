@@ -191,6 +191,7 @@ bool Solenoids::init_routine_completed(void) {
 // }
 
 void Solenoids::boot_solenoid_test(void*) {
+    bool tcc_new_mode = VEHICLE_CONFIG.io_0_usage == 3 && BOARD_CONFIG.board_ver == 3;
     while(!first_read_complete){vTaskDelay(1);}
     if(sol_spc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
@@ -206,7 +207,7 @@ void Solenoids::boot_solenoid_test(void*) {
         return;
     }
 
-    if(sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if(!tcc_new_mode && sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
         routine = true;
         startup_ok = false;

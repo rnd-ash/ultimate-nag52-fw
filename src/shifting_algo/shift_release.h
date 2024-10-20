@@ -18,7 +18,7 @@ public:
         PressureManager* pm,
         SensorData* sd
     ) override;
-    FirstOrderAverage* trq_req_avg;
+
     uint8_t max_shift_stage_id() override;
     uint16_t threshold_rpm = 0;
     float filling_adder = 0;
@@ -41,13 +41,12 @@ public:
     uint16_t last_trq_req = 0;
 
     float sports_factor=1.0;
-    float trq_factor = 1.0;
-    float trq_request_target = 0;
-    float trq_request_target_adder = 0;
-
-    uint16_t rpm_shift_phase_3 = 0;
+    float trq_req_last_ramp = 0;
+    int trq_ramp_down_time = 0;
+    int trq_ramp_up_time = 0;
 
     int torque_at_new_clutch = 0;
+    int torque_at_old_clutch = 0;
     bool torque_req_en = false;
 
 

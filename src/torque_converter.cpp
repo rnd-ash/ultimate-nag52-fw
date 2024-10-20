@@ -81,7 +81,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     
     GearboxGear cmp_gear = curr_gear;
     int slip_now = (int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm;
-    this->motor_torque_smoothed->add_sample(sensors->static_torque_wo_request);
+    this->motor_torque_smoothed->add_sample(sensors->converted_torque);
     int motor_torque = this->motor_torque_smoothed->get_average();
     this->slip_average->add_sample(slip_now);
     // See if we should be enabled in gear

@@ -70,46 +70,64 @@ uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     }
 }
 
-int Egs51Can::get_static_engine_torque(const uint32_t expire_time_ms) {
+CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
+    CanTorqueData ret = TORQUE_NDEF;
     MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        int max = this->get_maximum_engine_torque(expire_time_ms);
-        //int drag = ms310.DRG_TORQUE*3;
-        int ind = ms310.IND_TORQUE*3;
-        return ind;
-    } else {
-        return INT_MAX;
-    }
-    return INT_MAX;
-}
-
-int Egs51Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_210_EGS51 ms210;
-    if (this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
-        return ms210.M_ESP*3;
-    } else {
-        return INT_MAX;
+    uint16_t m_esp = INT16_MAX;
+    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310) &&
+        this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
+        if (UINT8_MAX != ms310.IND_TORQUE) {
+            ret.m_ind = ((int16_t)ms310.IND_TORQUE)*3;
+        }
+        if (UINT8_MAX != ms310.MIN_TORQUE) {
+            ret.m_min = ((int16_t)ms310.MIN_TORQUE)*3;
+        }
+        if (UINT8_MAX != ms310.MAX_TORQUE) {
+            ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
+            // TODO -> ms310.MAX_TRQ_FACTOR
+        }
+        if (UINT8_MAX != ms210.M_ESP) {
+            ret.m_converted_driver = ((int16_t)ms210.M_ESP)*3;
+        }
     }
-    return INT_MAX;
-}
+    if (
+        INT16_MAX != ret.m_min &&
+        INT16_MAX != ret.m_max &&
+        INT16_MAX != ret.m_ind &&
+        INT16_MAX != m_esp
+    ) {
+        int16_t driver_converted = ret.m_ind;
+        int16_t static_converted = ret.m_ind;
+        ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque
+        ret.m_ind = MAX(ret.m_min, ret.m_ind); // Floor indicated torque to min torque
 
-int Egs51Can::get_maximum_engine_torque(const uint32_t expire_time_ms) {
-    int result = INT_MAX;
-    MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        float factor = (float)ms310.MAX_TRQ_FACTOR*0.0078;
-        result = (float)ms310.MAX_TORQUE*3.0*factor;
-    }
-    return result;
-}
+        m_esp = MIN(m_esp, ret.m_max); // Limit ESP torque to max torque
+        m_esp = MAX(ret.m_min, m_esp); // Floor ESP torque to min torque
 
-int Egs51Can::get_minimum_engine_torque(const uint32_t expire_time_ms) {
-    int result = INT_MAX;
-    MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        result = (int)ms310.MIN_TORQUE*3;
+        if (m_esp > ret.m_ind) {
+            driver_converted = m_esp;
+        }
+
+        bool active_shift = (uint8_t)this->gs218.GIC != (uint8_t)this->gs218.GZC;
+        bool trq_req_en = this->gs218.TORQUE_REQ != 0xFE;
+        if (active_shift && trq_req_en) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!active_shift) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        }
+        // Change torque values based on freezing or not
+        if (this->freeze_torque) {
+            ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+        } else {
+            this->req_static_torque_delta = driver_converted - static_converted;
+        }
+
+        ret.m_converted_driver = driver_converted;
+        ret.m_converted_static = static_converted;
     }
-    return result;
+
+    return ret;
 }
 
 PaddlePosition Egs51Can::get_paddle_position(const uint32_t expire_time_ms) {

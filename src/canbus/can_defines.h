@@ -3,6 +3,19 @@
 
 #include <stdint.h>
 
+struct CanTorqueData {
+    /// Minimum torque to keep the engine running
+    int16_t m_min;
+    /// Maximum torque in the engines current state
+    int16_t m_max;
+    /// Indicated torque (0-N)
+    int16_t m_ind;
+    /// Static torque
+    int16_t m_converted_static;
+    /// Total torque available given substitutions by other ECUs like ESP
+    int16_t m_converted_driver;
+};
+
 enum class SystemStatusCheck: uint8_t {
     /// @brief Waiting for check to complete
     Waiting,

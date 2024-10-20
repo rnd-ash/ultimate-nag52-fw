@@ -49,7 +49,7 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs338.NAK_TGL = false;
     this->gs338.NAK_PA = false;
     this->gs338.MIL_ANF_GS = false;
-    this->gs338.NAB = 0;
+    this->gs338.NAB = 0xFFFF; // Passive as we don't report this (TODO - G class SHOULD report this)
 }
 
 uint16_t Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -163,53 +163,69 @@ uint8_t Egs52Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     }
 }
 
-int Egs52Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
+CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
     MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        return ((int)ms312.M_STA / 4) - 500;
-    }
-    return INT_MAX;
-}
-
-int Egs52Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
+    MS_210_EGS52 ms210;
+    CanTorqueData ret = TORQUE_NDEF;
+    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
+        if (UINT16_MAX != ms312.M_STA) {ret.m_converted_static = ((int16_t)ms312.M_STA / 4) - 500;}
+        if (UINT16_MAX != ms312.M_MIN) {ret.m_min = ((int16_t)ms312.M_MIN / 4) - 500;}
+        if (UINT16_MAX != ms312.M_MAX) {ret.m_max = ((int16_t)ms312.M_MAX / 4) - 500;}
+    }
     if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
-        return ((int)ms212.M_ESPV / 4) - 500;
+        if (UINT16_MAX != ms212.M_ESPV) {ret.m_converted_driver = ((int16_t)ms212.M_ESPV / 4) - 500;}
     }
-    return INT_MAX;
-}
-
-int Egs52Can::get_maximum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        float max = ((float)ms312.M_MAX / 4) - 500;
-        MS_210_EGS52 ms210;
+    if (INT16_MAX != ret.m_max) {
+        // Get factor to correct it by
         if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
-            max *= (float)(ms210.FMMOTMAX * 0.0078);
+            if (UINT8_MAX != ms210.FMMOTMAX) {ret.m_max = (float)ret.m_max * ((float)ms210.FMMOTMAX * 0.0078);}
         }
-        return (int)max;
     }
-    return INT_MAX;
-}
-
-int Egs52Can::get_minimum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        return ((int)ms312.M_MIN / 4) - 500;
-    }
-    return INT_MAX;
-}
-
-uint8_t Egs52Can::get_ac_torque_loss(const uint32_t expire_time_ms) {
-    KLA_410_EGS52 kl410;
-    if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
-        uint8_t ret = kl410.M_KOMP;
-        if (ret != UINT8_MAX) {
-            ret /= 4;
+    if (INT16_MAX != ret.m_converted_static && INT16_MAX != ret.m_converted_driver) {
+        int static_converted = ret.m_converted_static;
+        int tmp = ret.m_converted_driver;
+        int driver_converted = static_converted;
+        int indicated = 0;
+        // Calculate converted torque from ESP
+        // Chrysler cars don't seem to report MAX/MIN
+        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+            tmp = MIN(ret.m_converted_driver, ret.m_max);
         }
-        return ret;
+        if (tmp <= 0) {
+            tmp = MIN(tmp, static_converted);
+        }
+        driver_converted = tmp;
+
+        // Check if freezing torque should be done
+        bool active_shift = (uint8_t)this->gs418.GIC != (uint8_t)this->gs418.GZC;
+        bool trq_req_en = this->gs218.MMIN_EGS != 0 || this->gs218.MMAX_EGS != 0;
+        if (active_shift && trq_req_en) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!active_shift) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        }
+        // Change torque values based on freezing or not
+        if (this->freeze_torque) {
+            driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+        } else {
+            this->req_static_torque_delta = driver_converted - static_converted;
+        }
+        if (driver_converted > 0) {
+            indicated = driver_converted;
+        }
+        KLA_410_EGS52 kl410;
+        if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
+            if (UINT8_MAX != kl410.M_KOMP) {
+                driver_converted -= (kl410.M_KOMP / 4);
+                static_converted -= (kl410.M_KOMP / 4);
+            }
+        }
+        ret.m_ind = indicated;
+        ret.m_converted_driver = driver_converted;
+        ret.m_converted_static = static_converted;
     }
-    return UINT8_MAX;
+    return ret;
 }
 
 PaddlePosition Egs52Can::get_paddle_position(const uint32_t expire_time_ms) {

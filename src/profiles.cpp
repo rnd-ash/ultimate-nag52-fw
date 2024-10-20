@@ -341,7 +341,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
         // Load check
         if (can_upshift) {
             if (sensors->max_torque != 0) {
-                float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
+                float demanded_load = (MAX(sensors->converted_driver_torque, 0) * 100) / sensors->max_torque;
                 if (demanded_load > 30) {
                     can_upshift = false;
                 }

@@ -23,6 +23,14 @@
 #include "../shifter/programselector/programselector.h"
 #include "../profiles.h"
 
+const CanTorqueData TORQUE_NDEF = {
+    .m_min = INT16_MAX,
+    .m_max = INT16_MAX,
+    .m_ind = INT16_MAX,
+    .m_converted_static = INT16_MAX,
+    .m_converted_driver = INT16_MAX
+};
+
 class EgsBaseCan {
     public:
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
@@ -129,53 +137,13 @@ class EgsBaseCan {
         }
         
         /**
-         * @brief MANDITORY DATA - Returns the current output (Static) engine torque
-         * This function may return a negative number to indicate the engine is acting as a drag source 
-         * when coasting
+         * @brief MANDITORY DATA - Returns a structure containing a bunch of important engine torque information
          * 
          * @param expire_time_ms data expiration period
          * @return Static engine torque in Nm (In Nm)
          */
-        virtual int get_static_engine_torque(const uint32_t expire_time_ms) {
-            return 0;
-        }
-        
-        /**
-         * @brief MANDITORY DATA - Returns the amount of torque the engine has been asked to make
-         * by the drivers pedal position
-         * 
-         * @param expire_time_ms data expiration period
-         * @return Driver requested engine output torque (In Nm)
-         */
-        virtual int get_driver_engine_torque(const uint32_t expire_time_ms) {
-            return 0;
-        }
-        
-        /**
-         * @brief MANDITORY DATA - Returns the maximum engine output torque based on RPM
-         * @param expire_time_ms data expiration period
-         * @return Engine maximum possible production torque (In Nm)
-         */
-        virtual int get_maximum_engine_torque(const uint32_t expire_time_ms) {
-            return 0;
-        }
-        
-        /**
-         * @brief MANDITORY DATA - Returns the minimum engine output torque based on RPM
-         * @param expire_time_ms data expiration period
-         * @return Engine minimum possible production torque (In Nm)
-         */
-        virtual int get_minimum_engine_torque(const uint32_t expire_time_ms) {
-            return 0;
-        }
-        
-        /**
-         * @brief OPTIONAL DATA - Returns the drag torque imposed by the AC compressor on the engine
-         * @param expire_time_ms data expiration period
-         * @return AC torque loss (In Nm)
-         */
-        virtual uint8_t get_ac_torque_loss(const uint32_t expire_time_ms) {
-            return UINT8_MAX;
+        virtual CanTorqueData get_torque_data(const uint32_t expire_time_ms) {
+            return TORQUE_NDEF;
         }
 
         /**

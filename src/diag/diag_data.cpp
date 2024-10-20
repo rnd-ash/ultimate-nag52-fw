@@ -138,10 +138,8 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.max_torque = (torque+500)*4;
     torque = gearbox->sensor_data.min_torque;
     ret.min_torque = (torque+500)*4;
-    torque = gearbox->sensor_data.driver_requested_torque;
-    ret.driver_torque = (torque+500)*4;
-    torque = gearbox->sensor_data.static_torque;
-    ret.static_torque = (torque+500)*4;
+    ret.driver_torque = (gearbox->sensor_data.converted_driver_torque+500)*4;
+    ret.static_torque = (gearbox->sensor_data.converted_torque+500)*4;
     ret.profile_input_raw = can_layer->shifter->diag_get_profile_input();
     ret.shifter_position = can_layer->get_shifter_position(250);
     ret.engine_rpm = can_layer->get_engine_rpm(250);
@@ -188,7 +186,7 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     ret.input_rpm = g->sensor_data.input_rpm;
     ret.engine_rpm = g->sensor_data.engine_rpm;
     ret.output_rpm = g->sensor_data.output_rpm;
-    ret.engine_torque = g->sensor_data.static_torque;
+    ret.engine_torque = g->sensor_data.converted_driver_torque;
     ret.input_torque = g->sensor_data.input_torque;
     ret.req_engine_torque = g->output_data.ctrl_type == TorqueRequestControlType::None ? INT16_MAX : g->output_data.torque_req_amount;
     ret.atf_temp = g->sensor_data.atf_temp+40;

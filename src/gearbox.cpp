@@ -54,12 +54,11 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .pedal_pos = 0,
         .atf_temp = 0,
         .input_torque = 0,
-        .static_torque = 0,
-        .static_torque_wo_request = 0,
-        .ac_torque = 0,
+        .converted_torque = 0,
+        .converted_driver_torque = 0,
+        .indicated_torque = 0,
         .max_torque = 0,
         .min_torque = 0,
-        .driver_requested_torque = 0,
         .last_shift_time = 0,
         .is_braking = false,
         .gear_ratio = 0.0F,
@@ -146,8 +145,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     sensor_data.pedal_delta = new FirstOrderAverage(25);
 
     this->motor_speed_average = new FirstOrderAverage(5);
-    this->input_torque_average = new FirstOrderAverage(5);
-    this->engine_torque_average = new FirstOrderAverage(5);
     this->torque_req_average = new FirstOrderAverage(5);
 
 
@@ -313,8 +310,8 @@ ClutchSpeeds Gearbox::diag_get_clutch_speeds()
 
 ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
     return ShiftReportSegment {
-        .static_torque = sensor_data.static_torque,
-        .driver_torque = sensor_data.driver_requested_torque,
+        .static_torque = sensor_data.converted_torque,
+        .driver_torque = sensor_data.converted_driver_torque,
         .egs_req_torque = (int16_t)((this->output_data.ctrl_type == TorqueRequestControlType::None) ? INT16_MAX : (int16_t)(this->output_data.torque_req_amount)),
         .engine_rpm = sensor_data.engine_rpm,
         .input_rpm = sensor_data.input_rpm,
@@ -482,7 +479,14 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         
-        if (sensor_data.pedal_pos > 0) {
+        //if (sensor_data.pedal_pos > 0) {
+        //    algo = new ReleasingShift(&sid);
+        //} else {
+        //    algo = new CrossoverShift(&sid);
+        //}
+        if (profile == manual) {
+            algo = new CrossoverShift(&sid);
+        } else if (sensor_data.pedal_pos > 0) {
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);
@@ -498,15 +502,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 result = false;
                 break;
             }
-            int sta = sensor_data.static_torque_wo_request;
-            if (sensor_data.ac_torque != UINT8_MAX) {
-                sta -= sensor_data.ac_torque;
-            }
-            int abs_input_torque = abs(InputTorqueModel::get_input_torque(
-                sensor_data.engine_rpm,
-                sensor_data.input_rpm,  
-                sta
-            ));
+
+            int abs_input_torque = abs(sensor_data.input_torque);
 
             // Shift reporting
             if (!stationary_shift) {
@@ -549,7 +546,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(MIN(p_now.mod_sol_req, MOD_MAX));
             pressure_mgr->set_target_shift_pressure(MIN(p_now.shift_sol_req, SPC_MAX));
-            pressure_mgr->update_pressures(algo_phase_id != algo_max_phase ? this->target_gear : this->actual_gear);
+            pressure_mgr->update_pressures(algo_phase_id == 0 ? this->actual_gear : this->target_gear);
 
             if (step_result == 0) {
                 // Continue
@@ -571,7 +568,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             total_elapsed += SHIFT_DELAY_MS;
         }
         //this->shift_adapter->debug_print_prefill_data();
-        this->tcc->on_shift_ending();
+        //this->tcc->on_shift_ending();
         if (result) { // Only set gear on conformation!
             this->actual_gear = gear_from_idx(sd.targ_g);
         } else {
@@ -1230,55 +1227,20 @@ void Gearbox::controller_loop()
         egs_can_hal->set_actual_gear(this->actual_gear);
         egs_can_hal->set_wheel_torque(0); // Nm
 
-        int static_torque = egs_can_hal->get_static_engine_torque(500);
-        int ac_loss = egs_can_hal->get_ac_torque_loss(500);
-        sensor_data.ac_torque = ac_loss;
-
-        if (static_torque != INT_MAX)
-        {
-            this->engine_torque_average->add_sample(static_torque);
-            this->sensor_data.static_torque = engine_torque_average->get_average();
-            int sta = this->sensor_data.static_torque;
-            if (sensor_data.ac_torque != UINT8_MAX) {
-                sta -= sensor_data.ac_torque;
-            }
-            int input_torque = InputTorqueModel::get_input_torque(
-                sensor_data.engine_rpm,
+        CanTorqueData trqs = egs_can_hal->get_torque_data(100);
+        // CALC TORQUES
+        if (INT16_MAX != trqs.m_min) { sensor_data.min_torque = trqs.m_min; }
+        if (INT16_MAX != trqs.m_max) { sensor_data.max_torque = trqs.m_max; }
+        if (INT16_MAX != trqs.m_ind) { sensor_data.indicated_torque = trqs.m_ind; }
+        if (INT16_MAX != trqs.m_converted_static) { sensor_data.converted_torque = trqs.m_converted_static; }
+        if (INT16_MAX != trqs.m_converted_driver) {
+            int input_trq = InputTorqueModel::get_input_torque(
+                sensor_data.engine_rpm, 
                 sensor_data.input_rpm,
-                sta
+                trqs.m_converted_driver
             );
-            if (input_torque != INT16_MAX) {
-                this->sensor_data.input_torque = input_torque;
-            }
-        }
-
-        int driver_torque = egs_can_hal->get_driver_engine_torque(500);
-        if (driver_torque != INT_MAX)
-        {
-            this->sensor_data.driver_requested_torque = driver_torque;
-        }
-        int max_torque = egs_can_hal->get_maximum_engine_torque(500);
-        if (max_torque != INT_MAX)
-        {
-            this->sensor_data.max_torque = max_torque;
-        }
-        int min_torque = egs_can_hal->get_minimum_engine_torque(500);
-        if (min_torque != INT_MAX)
-        {
-            this->sensor_data.min_torque = min_torque;
-        }
-
-        // Calculate static torque without torque request
-        if (shifting && this->output_data.ctrl_type != TorqueRequestControlType::None) {
-            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
-        } else if (!shifting) {
-            this->freeze_torque = false; // No gear shift, unfreeze it
-        } // Otherwise, leave value
-        if (this->freeze_torque) {
-            this->sensor_data.static_torque_wo_request = this->sensor_data.driver_requested_torque - this->req_static_torque_delta;
-        } else {
-            this->sensor_data.static_torque_wo_request = this->sensor_data.static_torque;
-            this->req_static_torque_delta = this->sensor_data.driver_requested_torque - this->sensor_data.static_torque;
+            sensor_data.input_torque = input_trq;
+            sensor_data.converted_driver_torque = trqs.m_converted_driver;
         }
 
         // Wheel torque

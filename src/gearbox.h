@@ -109,10 +109,6 @@ private:
     float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = nullptr;
     FirstOrderAverage* motor_speed_average = nullptr;
-
-    FirstOrderAverage* engine_torque_average = nullptr;
-    FirstOrderAverage* input_torque_average = nullptr;
-
     FirstOrderAverage* torque_req_average = nullptr;
 
     int req_static_torque_delta = 0;

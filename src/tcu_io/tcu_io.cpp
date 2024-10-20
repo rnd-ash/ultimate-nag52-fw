@@ -241,6 +241,16 @@ void update_can_values() {
     // Motor coolant temperature (Used as a sub for ATF temperature)
     add_to_onepoll_sensor(&onepoll_motor_temperature, egs_can_hal->get_engine_coolant_temp(100));
     add_to_onepoll_sensor(&onepoll_motor_oil_temperature, egs_can_hal->get_engine_oil_temp(100));
+
+    //int16_t m_min = egs_can_hal->get_minimum_engine_torque(100);
+    //int16_t m_max = egs_can_hal->get_maximum_engine_torque(100);
+    //int16_t m_sta = egs_can_hal->get_static_engine_torque(100);
+    //int16_t m_esp = egs_can_hal->get_driver_engine_torque(100);
+
+    //if (UINT16_MAX != m_min && UINT16_MAX != m_max && UINT16_MAX != m_sta && UINT16_MAX != m_esp) {
+    //    // Calculate motor torques
+    //    
+    //}
 }
 
 void TCUIO::update_io_layer() {

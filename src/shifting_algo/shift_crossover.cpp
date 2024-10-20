@@ -40,7 +40,7 @@ uint8_t CrossoverShift::step(
     // Case (2) - Upshifting under power, downshifting when idle
     // In case 1, the engine will speed up the clutches, so we have to control using Modulating pressure to avoid a quick release
     // In case 2, the engine will resist the gearboxes actions
-    bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->static_torque < 0));
+    bool holding_engine_function = (is_upshift && abs_input_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) || (!is_upshift && (abs_input_torque > VEHICLE_CONFIG.engine_drag_torque/10 || sd->converted_torque < 0));
     if (phase_id == PHASE_BLEED) {
         int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(abs_input_torque, 30));
         // Clutches
@@ -238,7 +238,7 @@ uint8_t CrossoverShift::step(
         }
     } else if (phase_id == PHASE_MOMENTUM_RAMP) {
         int start_p = pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque, false);
-        uint16_t e_trq = pressure_manager->find_decent_adder_torque(sid->change, abs(sd->static_torque), sd->output_rpm);
+        uint16_t e_trq = pressure_manager->find_decent_adder_torque(sid->change, sd->converted_torque, sd->output_rpm);
         this->trq_req_ramp_trq = interpolate_float(phase_elapsed, 0, e_trq, 0, sid->chars.target_shift_time/2, InterpType::Linear);
         int wp_new_clutch = pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque+e_trq, false);
         // Clutches
@@ -361,41 +361,68 @@ uint8_t CrossoverShift::step(
     // Limiting engine torque by this much (Computed later with indicated_torque - trq_req_targ = trq request output)
     int trq_req_targ = 0;
     // We can only request if engine torque is above engines min torque
-    if (sd->static_torque_wo_request > sd->min_torque && sd->driver_requested_torque > sd->min_torque && sd->input_rpm > 1200) {
-        bool inc = false;
-        if (phase_id == PHASE_MOMENTUM_RAMP && this->trq_req_start_time != 0) {
-            trq_req_targ = this->trq_req_ramp_trq;
-            if (!is_upshift) { // Test
-                trq_req_targ *= 2;
+    if (sd->indicated_torque > sd->min_torque && sd->converted_torque > sd->min_torque && sd->input_rpm > 1000) {
+        trq_req_targ = abs_input_torque/2;
+    }
+    if (trq_req_targ < 40) {
+        trq_req_targ = 0;
+    }
+
+    // Now actuate (Tests for when to start the request)
+    if (!this->torque_req_en) {
+        if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100) {
+            this->torque_req_en = true;
+        } else if (phase_id == PHASE_OVERLAP) {
+            this->torque_req_en = true;
+        }
+    } 
+    bool set_last_stage = true;
+    int trq_req_output = 0;
+    if (this->torque_req_en) {
+        // We are doing the request
+        if (phase_id < PHASE_MAX_PRESSURE) {
+            // Start ramp to intercept
+            // 60ms from EGS52 cali
+            if (this->trq_ramp_down_time == 0) {
+                this->trq_ramp_down_time = total_elapsed;
             }
-            this->trq_req_end_v = trq_req_targ;
-        } else if (phase_id > PHASE_MOMENTUM_RAMP && trq_req_end_time != 0) {
-            inc = true;
-            int ramp_down_time = MIN(this->trq_req_end_time - this->trq_req_start_time, 300);
-            int duration = total_elapsed - this->trq_req_end_time;
-            trq_req_targ = interpolate_float(duration, this->trq_req_end_v, 0, 0, ramp_down_time, InterpType::Linear);
-        }
-        if (trq_req_targ <= 1) {
-            // No request
-            sid->ptr_w_trq_req->amount = 0;
-            sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
-            sid->ptr_w_trq_req->ty = TorqueRequestControlType::None;
+            int into = total_elapsed - this->trq_ramp_down_time;
+            trq_req_output = interpolate_float(into, 0, trq_req_targ, 0, 60, InterpType::Linear);
         } else {
-            trq_req_targ = MIN(trq_req_targ, sd->driver_requested_torque*0.8);
-            sid->ptr_w_trq_req->amount = sd->driver_requested_torque - trq_req_targ;
-            sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
-            sid->ptr_w_trq_req->ty = inc ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
+            // Ramp back up
+            if (this->trq_ramp_up_time == 0) {
+                this->trq_ramp_up_time = total_elapsed;
+            }
+            int into = total_elapsed - this->trq_ramp_up_time;
+            trq_req_output = interpolate_float(into, this->trq_req_last_ramp, 0, 0, 160, InterpType::Linear);
+            if (into > 160) {
+                this->torque_req_en = false; // Disable latch
+            }
+            set_last_stage = false;
         }
+    }
+    trq_req_output = MAX(0, MIN(trq_req_output, sd->indicated_torque));
+    
+    // We have our target (trq_req_now)
+    // So now we smooth it based on the stage of shift. This gives us smooth ramps
+    if (set_last_stage) {
+        this->trq_req_last_ramp = trq_req_output;
+    }
+    if (this->torque_req_en && trq_req_output != 0) {
+        sid->ptr_w_trq_req->amount = sd->indicated_torque - trq_req_output;
+        sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
+        sid->ptr_w_trq_req->ty =  phase_id >= PHASE_MAX_PRESSURE ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
     } else {
-        // DISABLE REQUESTS (REQ OUT OF BOUNDS FOR ENGINE)!
+        // No request
+        sid->ptr_w_trq_req->ty = TorqueRequestControlType::None;
         sid->ptr_w_trq_req->amount = 0;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
-        sid->ptr_w_trq_req->ty = TorqueRequestControlType::None;
     }
+        
 
     return ret;
 }
 
 uint8_t CrossoverShift::max_shift_stage_id() {
-    return PHASE_MAX_PRESSURE;
+    return PHASE_END_CONTROL;
 }

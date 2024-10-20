@@ -34,6 +34,10 @@ private:
     uint16_t ts_phase_shift = 0;
 
     int momentum_adder = 0;
+    bool torque_req_en = false;
+    int trq_ramp_down_time = 0;
+    int trq_ramp_up_time = 0;
+    int trq_req_last_ramp = 0;
 };
 
 #endif

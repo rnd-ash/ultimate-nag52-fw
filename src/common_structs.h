@@ -54,17 +54,13 @@ struct SensorData{
     int16_t atf_temp;
     // Input shaft torque
     int16_t input_torque;
-    /// Current 'static' torque of the engine in Nm
-    int16_t static_torque;
-    /// Current 'static torque of the engine in Nm (Ignoring reductions made by torque reqests)
-    int16_t static_torque_wo_request;
-    uint8_t ac_torque;
+    int16_t converted_torque;
+    int16_t converted_driver_torque;
+    int16_t indicated_torque;
     /// Engine torque limit maximum in Nm
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
     int16_t min_torque;
-    /// Driver requested torque
-    int16_t driver_requested_torque;
     /// Last time the gearbox changed gear (in milliseconds)
     uint32_t last_shift_time;
     /// Is the brake pedal depressed?

@@ -185,6 +185,11 @@ uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
     return result;
 }
 
+CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
+    return TORQUE_NDEF;
+}
+
+/*
 int HfmCan::get_static_engine_torque(const uint32_t expire_time_ms)
 {
     int result = INT_MAX;
@@ -254,7 +259,7 @@ int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms)
     }
     return result;
 }
-
+*/
 int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
 {
     int16_t result = INT16_MAX;

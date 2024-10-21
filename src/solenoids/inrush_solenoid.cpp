@@ -211,7 +211,7 @@ const float TOTAL_PERIOD_PWM = TOTAL_PERIOD_TIME_US/10; // Per cycle
 
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
     if (this->hold_time != 0) {
-        float on_pwm_ratio = 0.3 * vref_compensation;
+        float on_pwm_ratio = 0.35 * vref_compensation;
         if (inrush_time == 0) {
             on_pwm_ratio = 0.5;
         }

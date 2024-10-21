@@ -41,7 +41,7 @@ uint8_t ReleasingShift::step(
 
     // Keep calculating these values until we have to start using them
     if (phase_id == PHASE_BLEED) {
-        float max = interpolate_float(sid->targ_time, 2.5, 4.0, 1000, 100, InterpType::Linear);
+        float max = interpolate_float(sid->targ_time, 2.0, 3.0, 1000, 100, InterpType::Linear);
         this->sports_factor = interpolate_float(sd->pedal_delta->get_average(), 1.0, max, 10, 200, InterpType::Linear); //10%/sec - 200%/sec
     }
     // Threshold RPM for ramping up based on torque
@@ -51,6 +51,9 @@ uint8_t ReleasingShift::step(
     int trq_request_raw = freeing_torque;
     if (is_upshift) {
         trq_request_raw = trq_request_raw;
+        if (sid->profile == race) {
+            trq_request_raw *= 1.5;
+        }
     } else {
         // Downshift uses pedal multiplier
         trq_request_raw = this->sports_factor * trq_request_raw;
@@ -147,9 +150,7 @@ uint8_t ReleasingShift::step(
         } else if (4 == this->subphase_shift) { // Ramping new clutch (Clutch is still not moving)
             uint16_t elapsed = phase_elapsed - this->ts_phase_shift;
             this->filling_adder += 8.0;
-            if (sid->profile == race) {
-                this->filling_adder += 8;
-            }
+            this->filling_adder += (this->sports_factor * 0.05 * this->filling_adder);
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch + filling_adder;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;

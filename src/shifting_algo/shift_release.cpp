@@ -150,7 +150,6 @@ uint8_t ReleasingShift::step(
         } else if (4 == this->subphase_shift) { // Ramping new clutch (Clutch is still not moving)
             uint16_t elapsed = phase_elapsed - this->ts_phase_shift;
             this->filling_adder += 8.0;
-            this->filling_adder += (this->sports_factor * 0.05 * this->filling_adder);
             p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch + filling_adder;
             p_now->overlap_shift = sid->spring_on_clutch + p_now->on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;

@@ -97,13 +97,14 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         INT16_MAX != ret.m_ind &&
         INT16_MAX != m_esp
     ) {
-        int16_t driver_converted = ret.m_ind;
-        int16_t static_converted = ret.m_ind;
         ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque
         ret.m_ind = MAX(ret.m_min, ret.m_ind); // Floor indicated torque to min torque
 
         m_esp = MIN(m_esp, ret.m_max); // Limit ESP torque to max torque
         m_esp = MAX(ret.m_min, m_esp); // Floor ESP torque to min torque
+
+        int16_t driver_converted = ret.m_ind;
+        int16_t static_converted = ret.m_ind;
 
         if (m_esp > ret.m_ind) {
             driver_converted = m_esp;
@@ -299,6 +300,49 @@ void Egs51Can::set_target_gear(GearboxGear target) {
             this->gs218.GZC = GS_218h_GZC_EGS51::G_SNV;
             break;
     }
+}
+
+ShifterPosition Egs51Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
+	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
+	EWM_230_EGS52 dest;
+	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
+	{
+		switch (dest.WHC)
+		{
+		case EWM_230h_WHC_EGS52::D:
+			ret = ShifterPosition::D;
+			break;
+		case EWM_230h_WHC_EGS52::N:
+			ret = ShifterPosition::N;
+			break;
+		case EWM_230h_WHC_EGS52::R:
+			ret = ShifterPosition::R;
+			break;
+		case EWM_230h_WHC_EGS52::P:
+			ret = ShifterPosition::P;
+			break;
+		case EWM_230h_WHC_EGS52::PLUS:
+			ret = ShifterPosition::PLUS;
+			break;
+		case EWM_230h_WHC_EGS52::MINUS:
+			ret = ShifterPosition::MINUS;
+			break;
+		case EWM_230h_WHC_EGS52::N_ZW_D:
+			ret = ShifterPosition::N_D;
+			break;
+		case EWM_230h_WHC_EGS52::R_ZW_N:
+			ret = ShifterPosition::R_N;
+			break;
+		case EWM_230h_WHC_EGS52::P_ZW_R:
+			ret = ShifterPosition::P_R;
+			break;
+		case EWM_230h_WHC_EGS52::SNV:
+			break;
+		default:
+			break;
+		}
+	}
+	return ret;
 }
 
 void Egs51Can::set_gearbox_temperature(int16_t temp) {

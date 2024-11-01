@@ -223,7 +223,7 @@ esp_err_t Sensors::init_sensors(void){
             return ESP_ERR_INVALID_ARG;
         } else {
             ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-            ESP_RETURN_ON_ERROR(configure_pcnt("OUT", VEHICLE_CONFIG.input_sensor_pulses_per_rev, pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT, &cb_data_n3), "SENSORS", "OUTPUT PCNT Setup failed");
+            ESP_RETURN_ON_ERROR(configure_pcnt("OUT", VEHICLE_CONFIG.input_sensor_pulses_per_rev, pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT, &cb_data_out), "SENSORS", "OUTPUT PCNT Setup failed");
             output_rpm_ok = true;
         }
     }

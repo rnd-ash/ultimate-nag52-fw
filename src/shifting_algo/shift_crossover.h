@@ -27,17 +27,16 @@ private:
     uint16_t trq_req_end_v = 0;
     uint16_t trq_req_end_time = 0;
 
-    uint8_t prefill_phase_mod = 0;
-    uint8_t prefill_phase_shift = 0;
-
-    uint16_t ts_phase_mod = 0;
-    uint16_t ts_phase_shift = 0;
-
     int momentum_adder = 0;
     bool torque_req_en = false;
     int trq_ramp_down_time = 0;
     int trq_ramp_up_time = 0;
     int trq_req_last_ramp = 0;
+    bool filling_mode_check = false;
+    int adder_torque = 0;
+    int decent_adder_torque = 0;
+    int min_spc_clutch_allowed = 0;
+    
 };
 
 #endif

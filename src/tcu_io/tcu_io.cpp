@@ -177,7 +177,8 @@ void update_rpm_sensors() {
         if (raw_sensors.rpm_out >= 100) {
             add_to_smoothed_sensor(&smoothed_sensor_out_rpm, raw_sensors.rpm_out);
         } else {
-            add_to_smoothed_sensor(&smoothed_sensor_out_rpm, 0);
+            smoothed_sensor_out_rpm.e_counter = 0;
+            smoothed_sensor_out_rpm.buffer->reset();
         }
     } else {
         // Poll CANBUS

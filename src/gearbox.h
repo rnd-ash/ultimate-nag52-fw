@@ -50,7 +50,7 @@ public:
     bool isShifting(void) { return this->shifting; }
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
-    ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
     SpeedSensors speed_sensors;
 private:

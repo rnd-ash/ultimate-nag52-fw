@@ -46,6 +46,7 @@ public:
         this->sid = data;
     }
     virtual ~ShiftingAlgorithm() = default;
+    ShiftAlgoFeedback get_diag_feedback(uint8_t phase_id);
 
     /**
      * SPECIAL RETURN VALUES
@@ -64,10 +65,24 @@ public:
         SensorData* sd
     ) = 0;
 
+    void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
 
     protected:
         ShiftInterfaceData* sid;
+        uint8_t subphase_mod = 0;
+        uint16_t ts_subphase_mod = 0;
+        uint8_t subphase_shift = 0;
+        uint16_t ts_subphase_shift = 0;
+
+        void inc_subphase_mod(uint16_t phase_elapsed_now);
+        void inc_subphase_shift(uint16_t phase_elapsed_now);
+
+        uint16_t elapsed_subphase_shift(uint16_t phase_elapsed_now);
+        uint16_t elapsed_subphase_mod(uint16_t phase_elapsed_now);
+
+        uint16_t threshold_rpm = 0;
+        float inertia = 0;
 };
 
 // Helper functions

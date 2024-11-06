@@ -101,7 +101,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (slipping_rpm_targ <= 100) {
             targ = InternalTccState::Slipping;
             // Can we lock?
-            if (slipping_rpm_targ <= 10 && abs(slip_average->get_average()) <= 40) {
+            if (slipping_rpm_targ <= 10) {
                 targ = InternalTccState::Closed;
             }
         }

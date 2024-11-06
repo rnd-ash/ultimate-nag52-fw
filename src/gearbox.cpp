@@ -388,8 +388,6 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             ESP_LOGI("SHIFT", "Prefill adapting is allowed.");
         }
 
-        this->shifting_velocity = {0, 0};
-
         ShiftClutchData pre_cs = ClutchSpeedModel::get_shifting_clutch_speeds(this->speed_sensors, req_lookup, this->gearboxConfig.bounds);
         ShiftClutchData now_cs = pre_cs;
         PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
@@ -519,14 +517,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 }
                 on_velocity_avg.add_sample((now_cs.on_clutch_speed - pre_cs.on_clutch_speed));
                 off_velocity_avg.add_sample((now_cs.off_clutch_speed - pre_cs.off_clutch_speed));
-                this->shifting_velocity.on_clutch_vel = on_velocity_avg.get_average();
-                this->shifting_velocity.off_clutch_vel = off_velocity_avg.get_average();
                 if (enable_torque_request) {
                     this->set_torque_request(trd.ty, trd.bounds, trd.amount);
                 }
             } else {
                 // If input speed is too low, use the overlap time as a way of measuring shift progress
-                shifting_velocity = {0, 0};
                 this->flaring = false;
                 this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0); // And also torque requests
             }
@@ -542,6 +537,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 this->pressure_mgr,
                 &this->sensor_data
             );
+            this->algo_feedback = algo->get_diag_feedback(algo_phase_id);
 
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(MIN(p_now.mod_sol_req, MOD_MAX));
@@ -563,6 +559,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
                 p_prev = p_now;
                 phase_elapsed = 0;
                 algo_phase_id = step_result;
+                // Reset subphase data
+                algo->reset_all_subphase_data();
             }
             vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
             total_elapsed += SHIFT_DELAY_MS;
@@ -592,7 +590,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         this->abort_shift = false;
         this->sensor_data.last_shift_time = GET_CLOCK_TIME();
         this->flaring = false;
-        shifting_velocity = {0, 0};
+        memset(&this->algo_feedback, 0x00, sizeof(ShiftAlgoFeedback));
         // Reset the pedal delta
         sensor_data.pedal_delta->reset(0);
         delete algo;
@@ -688,8 +686,6 @@ void Gearbox::shift_thread()
                 vTaskDelay(20);
                 elapsed += 20;
             }
-            
-            this->shifting_velocity = {0,0};
             if (!completed_ok) {
                 ESP_LOGW("SHIFT", "Garage shift aborted");
                 curr_target = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;

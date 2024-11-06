@@ -322,6 +322,18 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
     return calc;
 }
 
+uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
+    // 120 = 0.85% of 140 (Coefficient at 80C)
+    // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
+    float release_coefficient = this->release_coefficient();
+    //float friction_coefficient = 120.0;
+    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / release_coefficient) * (float)abs_torque_nm;
+    return calc;
+}
+
 float PressureManager::friction_coefficient() {
     return interpolate_float(
         sensor_data->atf_temp, 
@@ -335,18 +347,6 @@ float PressureManager::friction_coefficient() {
 
 float PressureManager::release_coefficient() {
     return this->friction_coefficient() * 0.85;
-}
-
-uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
-    uint8_t gear_idx = gear_to_idx_lookup(gear);
-    // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
-    // 120 = 0.85% of 140 (Coefficient at 80C)
-    // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
-    float release_coefficient = this->release_coefficient();
-    //float friction_coefficient = 120.0;
-    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / release_coefficient) * (float)abs_torque_nm;
-    return calc;
 }
 
 uint16_t PressureManager::find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {

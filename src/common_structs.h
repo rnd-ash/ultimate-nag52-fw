@@ -26,9 +26,17 @@ struct ShiftClutchData {
     int16_t rear_sun_speed;
 };
 
-struct ShiftClutchVelocity {
-    int16_t on_clutch_vel;
-    int16_t off_clutch_vel;
+struct ShiftAlgoFeedback {
+    uint8_t active;
+    uint8_t shift_phase;
+    uint8_t subphase_shift;
+    uint8_t subphase_mod;
+    uint16_t sync_rpm;
+    int16_t inertia;
+    uint16_t p_on;
+    uint16_t p_off;
+    int16_t s_off;
+    int16_t s_on;
 } __attribute__ ((packed));
 
 /**

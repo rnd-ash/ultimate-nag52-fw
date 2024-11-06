@@ -594,9 +594,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_CLUTCH_SPEEDS) {
         ClutchSpeeds r = gearbox->diag_get_clutch_speeds();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_SPEEDS, (uint8_t*)&r, sizeof(ClutchSpeeds));
-    } else if (args[0] == RLI_CLUTCH_VELOCITY) {
-        ShiftClutchVelocity r = gearbox->shifting_velocity;
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_VELOCITY, (uint8_t*)&r, sizeof(ShiftClutchVelocity));
+    } else if (args[0] == RLI_SHIFTING_ALGO) {
+        ShiftAlgoFeedback r = gearbox->algo_feedback;
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFTING_ALGO, (uint8_t*)&r, sizeof(ShiftAlgoFeedback));
     } else if (args[0] == RLI_TCM_CONFIG) {
         TCM_CORE_CONFIG r = get_tcm_config();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCM_CONFIG, (uint8_t*)&r, sizeof(TCM_CORE_CONFIG));

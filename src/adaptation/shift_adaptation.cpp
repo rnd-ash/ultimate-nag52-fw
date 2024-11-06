@@ -84,6 +84,7 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(ProfileGearChange
     return ret;
 }
 
+/*
 void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm) {
     // Too early, reduce filling time
     // Velocities are calculated every 100ms
@@ -119,6 +120,7 @@ void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int ove
         }
     }
 }
+*/
 
 /*
 void ShiftAdaptationSystem::record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc) {

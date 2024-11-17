@@ -22,21 +22,15 @@ public:
     uint8_t max_shift_stage_id() override;
 private:
     bool do_high_filling = false;
-    uint16_t trq_req_start_time = 0;
-    uint16_t trq_req_ramp_trq = 0;
-    uint16_t trq_req_end_v = 0;
-    uint16_t trq_req_end_time = 0;
 
     int momentum_adder = 0;
-    bool torque_req_en = false;
-    int trq_ramp_down_time = 0;
-    int trq_ramp_up_time = 0;
-    int trq_req_last_ramp = 0;
     bool filling_mode_check = false;
     int adder_torque = 0;
     int decent_adder_torque = 0;
     int min_spc_clutch_allowed = 0;
-    
+    int torque_request_calc = 0;
+    float sports_factor = 1.0;
+    int max_torque_prefill = 0;
 };
 
 #endif

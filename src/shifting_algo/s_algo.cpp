@@ -39,3 +39,50 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .s_on = (int16_t)this->sid->ptr_r_clutch_speeds->on_clutch_speed,
     };
 }
+
+void ShiftingAlgorithm::trq_req_set_val(uint16_t max_req) {
+    if (!this->trq_mdl.up_triggered) { // Only do this if we are not 'up' ramping
+        this->trq_mdl.targ = max_req;
+    }
+}
+
+void ShiftingAlgorithm::trq_req_start_ramp(uint16_t total_elapsed) {
+    if (!this->trq_mdl.down_triggered) { // One time latch
+        this->trq_mdl.ramp_down_start_ms = total_elapsed;
+        this->trq_mdl.down_triggered = true;
+    }
+}
+
+void ShiftingAlgorithm::trq_req_end_ramp(uint16_t total_elapsed) {
+    if (!this->trq_mdl.up_triggered) { // One time latch
+        this->trq_mdl.targ = this->trq_req_get_val(total_elapsed); // In case we didn't reach our initial target, get the value of the ramp and hold as our target
+        this->trq_mdl.ramp_down_start_ms = 0; // Stop ramping down
+        this->trq_mdl.ramp_up_start_ms = total_elapsed;
+        this->trq_mdl.up_triggered = true;
+    }
+}
+
+uint16_t ShiftingAlgorithm::trq_req_get_val(uint16_t total_elapsed) {
+    uint16_t ret = 0;
+    // Check up ramp first, as this would be triggered second
+    if (this->trq_mdl.ramp_up_start_ms != 0) {
+        // Ramping back up to torque
+        int into = total_elapsed - this->trq_mdl.ramp_up_start_ms;
+        ret = interpolate_float(into, this->trq_mdl.targ, 0, 0, this->trq_mdl.ramp_up_ms, InterpType::Linear);
+        if (into >= this->trq_mdl.ramp_up_ms) {
+            this->trq_mdl.ramp_up_start_ms = 0; // Disable the entire sytem once we come out of this ramp
+            this->trq_mdl.ramp_down_start_ms = 0;
+        }
+    } 
+    // No up ramp, then check if we should be ramping down or holding torque
+    else if (this->trq_mdl.ramp_down_start_ms != 0) {
+        // We are ramping down
+        int into = total_elapsed - this->trq_mdl.ramp_down_start_ms;
+        ret = interpolate_float(into, 0, this->trq_mdl.targ, 0, this->trq_mdl.ramp_down_ms, InterpType::Linear);
+    } 
+    return ret;
+}
+
+bool ShiftingAlgorithm::trq_req_is_end_ramp() {
+    return (this->trq_mdl.ramp_up_start_ms != 0);
+}

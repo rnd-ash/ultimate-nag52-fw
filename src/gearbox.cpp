@@ -477,18 +477,11 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         
-        if (sensor_data.pedal_pos > 0) {
+        if (sensor_data.pedal_pos < 62) { // ~ 25%
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);
         }
-        //if (profile == manual) {
-        //    algo = new CrossoverShift(&sid);
-        //} else if (sensor_data.pedal_pos > 0) {
-        //    algo = new ReleasingShift(&sid);
-        //} else {
-        //    algo = new CrossoverShift(&sid);
-        //}
 
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();
@@ -1337,6 +1330,12 @@ void Gearbox::controller_loop()
                 } else {
                     egs_can_hal->set_display_msg(GearboxMessage::None);
                 }
+                //if ((this->current_profile == race) && !shifting && sensor_data.engine_rpm > 2000 && is_fwd_gear(this->actual_gear)) {
+                //     egs_can_hal->set_display_msg(GearboxMessage::Upshift);
+                //}
+                //else {
+                //     egs_can_hal->set_display_msg(GearboxMessage::None);
+                //}
                 egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear), this->current_profile == manual);
             }
         }

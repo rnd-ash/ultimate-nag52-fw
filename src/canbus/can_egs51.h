@@ -15,16 +15,16 @@ class Egs51Can: public EgsBaseCan {
          * Getters
          */
 
-        // Get the front right wheel data
-        WheelData get_front_right_wheel(const uint32_t expire_time_ms)  override;
-        // Get the front left wheel data
-        WheelData get_front_left_wheel(const uint32_t expire_time_ms) override;
-        // Get the rear right wheel data
-        WheelData get_rear_right_wheel(const uint32_t expire_time_ms) override;
-        // Get the rear left wheel data
-        WheelData get_rear_left_wheel(const uint32_t expire_time_ms) override;
+        // Get the front right wheel data (Double RPM is returned)
+        uint16_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
+        // Get the front left wheel data (Double RPM is returned)
+        uint16_t get_front_left_wheel(const uint32_t expire_time_ms) override;
+        // Get the rear right wheel data (Double RPM is returned)
+        uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
+        // Get the rear left wheel data (Double RPM is returned)
+        uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // // Gets the shifter position
-        // ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;        
+        ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) override;    
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -33,13 +33,8 @@ class Egs51Can: public EgsBaseCan {
          bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
-        // Gets the current 'static' torque produced by the engine
-         int get_static_engine_torque(const uint32_t expire_time_ms) override;
-         int get_driver_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the maximum engine torque allowed at this moment by the engine map
-         int get_maximum_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the minimum engine torque allowed at this moment by the engine map
-         int get_minimum_engine_torque(const uint32_t expire_time_ms) override;
+        // Gets Torque information
+        CanTorqueData get_torque_data(const uint32_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -56,7 +51,6 @@ class Egs51Can: public EgsBaseCan {
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
-        TccReqState get_engine_tcc_override_request(const uint32_t expire_time_ms) override;
 
         /**
          * Setters
@@ -98,12 +92,15 @@ class Egs51Can: public EgsBaseCan {
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;
     private:
+        int16_t torque_before_request=0;
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
+        bool freeze_torque = false;
+        int16_t req_static_torque_delta = 0;
 };
 
 #endif // EGS51_CAN_H

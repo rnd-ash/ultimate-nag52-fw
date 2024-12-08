@@ -42,10 +42,10 @@ public:
     
     uint32_t check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change);
 
-    void record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm);
-    void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
+    //void record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm);
+    //void record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc);
 
-    void record_flare(ShiftStage when, uint64_t elapsed);
+    //void record_flare(ShiftStage when, uint64_t elapsed);
     uint16_t get_overlap_end_shift_pressure(ProfileGearChange change, uint16_t selected_prefill_pressure);
 
     AdaptPrefillData get_prefill_adapt_data(ProfileGearChange change);
@@ -67,7 +67,6 @@ private:
     ProfileGearChange current_change;
 
     bool flared = false;
-    ShiftStage flare_location = ShiftStage::Bleed;
     uint64_t flare_time = 0;
 };
 

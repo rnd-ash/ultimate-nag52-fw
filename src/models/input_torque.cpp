@@ -2,19 +2,15 @@
 #include "tcu_maths.h"
 #include "egs_calibration/calibration_structs.h"
 
-int16_t InputTorqueModel::get_input_torque(uint16_t engine_rpm, uint16_t input_rpm, int16_t static_torque, uint8_t ac_torque) {
+int16_t InputTorqueModel::get_input_torque(uint16_t engine_rpm, uint16_t input_rpm, int16_t static_torque) {
     int16_t ret = 0;
     if (static_torque == INT16_MAX) {
         ret = INT16_MAX;
     } else if (engine_rpm == 0 || engine_rpm == INT16_MAX) {
         ret = static_torque;
     } else {
-        int motor_torque = static_torque;
-        if (ac_torque != UINT8_MAX) {
-            motor_torque -= ac_torque;
-        }
         float multi = InputTorqueModel::get_input_torque_factor(engine_rpm, input_rpm);
-        ret = motor_torque * multi;
+        ret = static_torque * multi;
     }
     return ret;
 }

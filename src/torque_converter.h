@@ -42,17 +42,15 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void set_shift_target_state(InternalTccState target_state);
+        void set_shift_target_state(SensorData* sd, InternalTccState target_state);
         void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
 
-        // In % (0-100) - 100 is returned if already at next phase
-        uint8_t progress_to_next_phase(void);
-
         void set_stationary();
 
         int16_t get_slip_filtered();
+        InternalTccState __get_internal_state(void);
         uint8_t get_current_state();
         uint8_t get_target_state();
         uint8_t get_can_req_bits();
@@ -83,6 +81,7 @@ class TorqueConverter {
         }
 
     private:
+        FirstOrderAverage* motor_torque_smoothed = nullptr;
         int rated_max_torque;
         bool is_shifting = false;
         bool tcc_solenoid_enabled = true;
@@ -96,7 +95,7 @@ class TorqueConverter {
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
-        FirstOrderAverage<int32_t>* slip_average = nullptr;
+        FirstOrderAverage* slip_average = nullptr;
         
         bool init_tables_ok = false;
 

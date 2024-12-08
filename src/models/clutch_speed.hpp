@@ -14,11 +14,17 @@ struct __attribute__ ((packed)) ClutchSpeeds {
     int16_t b3;
 };
 
+struct SpeedSensors {
+    uint16_t n2;
+    uint16_t n3;
+    uint16_t turbine;
+    uint16_t output;
+};
+
 namespace ClutchSpeedModel {
-    ShiftClutchData get_shifting_clutch_speeds(const uint16_t output_speed, const RpmReading input, const ProfileGearChange req, const GearRatioInfo* ratios);
+    ShiftClutchData get_shifting_clutch_speeds(const SpeedSensors speeds, const ProfileGearChange req, const GearRatioInfo* ratios);
     ClutchSpeeds get_clutch_speeds_debug(
-        const uint16_t output_speed, 
-        const RpmReading input, 
+        const SpeedSensors speeds,
         const GearboxGear last_motion_gear,
         const GearboxGear actual,
         const GearboxGear target,

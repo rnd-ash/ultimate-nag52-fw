@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "esp_err.h"
 #include "shifter/shifter.h"
+#include "driver/i2c_master.h"
 
 typedef enum {
     PCA_NUM_NC = -1,
@@ -71,6 +72,8 @@ private:
 
 	inline static bool get_bool_value(const pca_num_t bit, const uint8_t* i2c_rx_bytes);
 	inline static void set_value(const bool value, const pca_num_t bit, uint8_t* i2c_tx_bytes);
+
+	i2c_master_dev_handle_t dev_handle;
 };
 
 extern IOExpander* ioexpander;

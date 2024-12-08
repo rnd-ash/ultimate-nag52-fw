@@ -131,68 +131,9 @@ ECU MS51
 		SIGNAL OEL_FS, OFFSET: 48, LEN: 8, DESC: oil level, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 		SIGNAL OEL_QUAL, OFFSET: 56, LEN: 8, DESC: oil quality, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME MS_210h (0x00000210)
-		SIGNAL KOMP_NOTAUS, OFFSET: 0, LEN: 1, DESC: Air compressor Emergency Shutdown, DATA TYPE BOOL
-		SIGNAL SLV_MS, OFFSET: 1, LEN: 4, DESC: switching line shift MS, DATA TYPE ENUM
-			ENUM SKL0, RAW: 0, DESC: Shift characteristic "0"
-			ENUM SKL1, RAW: 1, DESC: Shift characteristic "1"
-			ENUM SKL2, RAW: 2, DESC: Shift characteristic "2"
-			ENUM SKL3, RAW: 3, DESC: Shift characteristic "3"
-			ENUM SKL4, RAW: 4, DESC: Shift characteristic "4"
-			ENUM SKL5, RAW: 5, DESC: Shift characteristic "5"
-			ENUM SKL6, RAW: 6, DESC: Shift characteristic "6"
-			ENUM SKL7, RAW: 7, DESC: Shift characteristic "7"
-			ENUM SKL8, RAW: 8, DESC: Shift characteristic "8"
-			ENUM SKL9, RAW: 9, DESC: Shift characteristic "9"
-			ENUM SKL10, RAW: 10, DESC: Shift characteristic "10"
-		SIGNAL KRIECH_AUS, OFFSET: 6, LEN: 1, DESC: Switch KSG-creep, DATA TYPE BOOL
-		SIGNAL ANF1, OFFSET: 7, LEN: 1, DESC: MS-wish: "Approach 1.Gang", DATA TYPE BOOL
-		SIGNAL AKT_R_MS, OFFSET: 8, LEN: 1, DESC: MS-wish: "Active downshift", DATA TYPE BOOL
-		SIGNAL ZH_AUS_MS, OFFSET: 9, LEN: 1, DESC: Turn off heater, DATA TYPE BOOL
-		SIGNAL GMAX_MS, OFFSET: 10, LEN: 3, DESC: Gear, upper limit, DATA TYPE ENUM
-			ENUM PASSIVE, RAW: 0, DESC: passive value
-			ENUM G1, RAW: 1, DESC: Gear, upper limit = 1
-			ENUM G2, RAW: 2, DESC: Gear, upper limit = 2
-			ENUM G3, RAW: 3, DESC: Gear, upper limit = 3
-			ENUM G4, RAW: 4, DESC: Gear, upper limit = 4
-			ENUM G5, RAW: 5, DESC: Gear, upper limit = 5
-			ENUM G6, RAW: 6, DESC: Gear, upper limit = 6
-			ENUM G7, RAW: 7, DESC: Gear, upper limit = 7
-		SIGNAL GMIN_MS, OFFSET: 13, LEN: 3, DESC: Gear, lower limit, DATA TYPE ENUM
-			ENUM PASSIVE, RAW: 0, DESC: passive value
-			ENUM G1, RAW: 1, DESC: Gear, lower limit = 1
-			ENUM G2, RAW: 2, DESC: Gear, lower limit = 2
-			ENUM G3, RAW: 3, DESC: Gear, lower limit = 3
-			ENUM G4, RAW: 4, DESC: Gear, lower limit = 4
-			ENUM G5, RAW: 5, DESC: Gear, lower limit = 5
-			ENUM G6, RAW: 6, DESC: Gear, lower limit = 6
-			ENUM G7, RAW: 7, DESC: Gear, lower limit = 7
-		SIGNAL PW, OFFSET: 16, LEN: 8, DESC: pedal, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL V_DSPL_NEU, OFFSET: 24, LEN: 1, DESC: retrigger minimum display time in the display: S, DATA TYPE BOOL
-		SIGNAL LL_STBL, OFFSET: 25, LEN: 1, DESC: idle is stable, DATA TYPE BOOL
-		SIGNAL VGL_ST, OFFSET: 26, LEN: 1, DESC: Vorglühstatus, DATA TYPE BOOL
-		SIGNAL MSS_DEF, OFFSET: 27, LEN: 1, DESC: Engine Start / Stop system is defective, DATA TYPE BOOL
-		SIGNAL MSS_KL, OFFSET: 28, LEN: 1, DESC: engine start / stop system warning, DATA TYPE BOOL
-		SIGNAL MSS_AKT, OFFSET: 29, LEN: 1, DESC: engine start / stop system active, DATA TYPE BOOL
-		SIGNAL KOMP_BAUS, OFFSET: 30, LEN: 1, DESC: turn air compressor:: S acceleration, DATA TYPE BOOL
-		SIGNAL CRASH_MS, OFFSET: 31, LEN: 1, DESC: Crash signal from motor control, DATA TYPE BOOL
-		SIGNAL PWG_ERR, OFFSET: 32, LEN: 1, DESC: error pedal sensor, DATA TYPE BOOL
-		SIGNAL LL, OFFSET: 33, LEN: 1, DESC: idle, DATA TYPE BOOL
-		SIGNAL KUEB_S_A, OFFSET: 34, LEN: 1, DESC: beg. "Slip" lock-up clutch, DATA TYPE BOOL
-		SIGNAL TM_REG, OFFSET: 35, LEN: 1, DESC: cruise control regulates, DATA TYPE BOOL
-		SIGNAL V_MAX_EIN, OFFSET: 36, LEN: 1, DESC: activated speed limit, DATA TYPE BOOL
-		SIGNAL KD_MS, OFFSET: 37, LEN: 1, DESC: Kick Down (changeover scenario open!), DATA TYPE BOOL
-		SIGNAL NOTL, OFFSET: 38, LEN: 1, DESC: emergency operation, DATA TYPE BOOL
-		SIGNAL V_MAX_SUM, OFFSET: 39, LEN: 1, DESC: Warning buzzer, DATA TYPE BOOL
-		SIGNAL FBS_SE, OFFSET: 40, LEN: 1, DESC: FBStart Error, DATA TYPE BOOL
-		SIGNAL V_DSPL_PGB, OFFSET: 41, LEN: 1, DESC: "achieved winter tires limitation" Indicated on display, DATA TYPE BOOL
-		SIGNAL TM_EIN, OFFSET: 42, LEN: 1, DESC: activated cruise control, DATA TYPE BOOL
-		SIGNAL V_MAX_REG, OFFSET: 43, LEN: 1, DESC: Speed ​​controls, DATA TYPE BOOL
-		SIGNAL V_DSPL_LIM, OFFSET: 44, LEN: 1, DESC: Display "limit?" on display, DATA TYPE BOOL
-		SIGNAL V_DSPL_ERR, OFFSET: 45, LEN: 1, DESC: "Error" indicator on the display, DATA TYPE BOOL
-		SIGNAL V_DSPL_BL, OFFSET: 46, LEN: 1, DESC: display flashes, DATA TYPE BOOL
-		SIGNAL V_DSPL_EIN, OFFSET: 47, LEN: 1, DESC: Geschw.begrenzer- / cruise control display a, DATA TYPE BOOL
-		SIGNAL FMMOTMAX, OFFSET: 48, LEN: 8, DESC: factor for fill value. d. max. Mom with remo.. A.druck, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
-		SIGNAL V_MAX_TM, OFFSET: 56, LEN: 8, DESC: Set maximum or cruise control speed, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL IGN_ANG, OFFSET: 16, LEN: 8, DESC: Ignition angle, DATA TYPE NUMBER(_MULTIPLIER_: 0.35, _OFFSET_: 0.0)
+		SIGNAL PW, OFFSET: 16, LEN: 8, DESC: Pedal position, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL M_ESP, OFFSET: 48, LEN: 8, DESC: Motor torque for ESP, DATA TYPE NUMBER(_MULTIPLIER_: 3.0, _OFFSET_: 0.0)
 	FRAME MS_310h (0x00000310)
 		SIGNAL MAX_TRQ_FACTOR, OFFSET: 24, LEN: 8, DESC: factor of max torque, DATA TYPE NUMBER(_MULTIPLIER_: 0.0078, _OFFSET_: 0.0)
 		SIGNAL IND_TORQUE, OFFSET: 32, LEN: 8, DESC: engine indicated torque, DATA TYPE NUMBER(_MULTIPLIER_: 3.0, _OFFSET_: 0.0)

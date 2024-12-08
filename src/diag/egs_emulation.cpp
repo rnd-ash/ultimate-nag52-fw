@@ -1,5 +1,5 @@
 #include "egs_emulation.h"
-#include "sensors.h"
+#include "tcu_io/tcu_io.hpp"
 #include "../pressure_manager.h"
 #include "clock.hpp"
 
@@ -15,45 +15,38 @@ RLI_30_DATA get_rli_30(EgsBaseCan* can_layer) {
 
 RLI_31_DATA get_rli_31(EgsBaseCan* can_layer) {
     RLI_31_DATA ret = {};
-    RpmReading d;
-    if (Sensors::read_input_rpm(&d, false) == ESP_OK) {
-        ret.n2_pulse_count = flip_uint16_t(d.n2_raw);
-        ret.n3_pulse_count = flip_uint16_t(d.n3_raw);
-        ret.input_rpm = flip_uint16_t(d.calc_rpm);
-    } else {
-        ret.n2_pulse_count = 0xFFFF;
-        ret.n3_pulse_count = 0xFFFF;
-        ret.input_rpm = 0xFFFF;
-    }
-    ret.vehicle_speed_rear_wheels = 0; // TODO
-    ret.vehicle_speed_front_wheels = 0; // TODO
+    uint16_t n2 = TCUIO::n2_rpm();
+    uint16_t n3 = TCUIO::n2_rpm();
+    ret.n2_pulse_count = flip_uint16_t(n2);
+    ret.n3_pulse_count = flip_uint16_t(n3);
+    //ret.input_rpm = flip_uint16_t(turbine.value);
 
-    WheelData wd = can_layer->get_front_left_wheel(300);
-    if (wd.current_dir == WheelDirection::SignalNotAvailable) {
+    uint16_t wd = can_layer->get_front_left_wheel(300);
+    if (UINT16_MAX != wd) {
         ret.front_left_wheel_speed = 0xFFFF;
     } else {
-        ret.front_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
+        ret.front_left_wheel_speed = flip_uint16_t(wd / 2.0);
     }
 
     wd = can_layer->get_front_right_wheel(300);
-    if (wd.current_dir == WheelDirection::SignalNotAvailable) {
+    if (UINT16_MAX != wd) {
         ret.front_right_wheel_speed = 0xFFFF;
     } else {
-        ret.front_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
+        ret.front_right_wheel_speed = flip_uint16_t(wd / 2.0);
     }
 
     wd = can_layer->get_rear_left_wheel(300);
-    if (wd.current_dir == WheelDirection::SignalNotAvailable) {
+    if (UINT16_MAX != wd) {
         ret.rear_left_wheel_speed = 0xFFFF;
     } else {
-        ret.rear_left_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
+        ret.rear_left_wheel_speed = flip_uint16_t(wd / 2.0);
     }
 
     wd = can_layer->get_rear_right_wheel(300);
-    if (wd.current_dir == WheelDirection::SignalNotAvailable) {
+    if (UINT16_MAX != wd) {
         ret.rear_right_wheel_speed = 0xFFFF;
     } else {
-        ret.rear_right_wheel_speed = flip_uint16_t(wd.double_rpm / 2.0);
+        ret.rear_right_wheel_speed = flip_uint16_t(wd / 2.0);
     }
 
     ret.engine_speed = flip_uint16_t(can_layer->get_engine_rpm(300));

@@ -5,39 +5,10 @@
 #include <stdint.h>
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
-#include "moving_average.h"
+#include "firstorder_average.h"
 
 typedef int16_t pressure_map[11];
 typedef float rpm_modifier_map[9];
-
-/**
- * @brief Shifting state
- */
-enum class ShiftStage {
-    /**
-     * @brief Hydralic bleed phase.
-     * In this phase, Shift pressure fluid is bled in order to not over pressurise the overlap valve
-     * The shift solenoid is not active
-    */
-    Bleed = 1,
-    /**
-     * @brief Clutch filling phase.
-     * In this phase, the shift solenoid is engaged, and Shift pressure is ramped in order to clear
-     * the tolorance between the engaging clutch pack, without actually applying it.
-     */
-    Fill = 2,
-    /**
-     * @brief Clutch overlap phase.
-     * In this phase, the engaging clutch's pressure is raised, whilst the disengaging clutch's pressure
-     * is reduced, causing (Via the overlap hydralic valve), the gearbox to transition clutch packs.
-     */
-    Overlap = 3,
-    /**
-     * @brief Shift pressure is increased to its maximum via a ramp in order to lock the engaging clutch in place.
-     * Then, the shift solenoid turns off, completing the gear change.
-     */
-    MaxPressure = 4
-};
 
 enum class Clutch {
     K1 = 0,
@@ -55,9 +26,17 @@ struct ShiftClutchData {
     int16_t rear_sun_speed;
 };
 
-struct ShiftClutchVelocity {
-    int16_t on_clutch_vel;
-    int16_t off_clutch_vel;
+struct ShiftAlgoFeedback {
+    uint8_t active;
+    uint8_t shift_phase;
+    uint8_t subphase_shift;
+    uint8_t subphase_mod;
+    uint16_t sync_rpm;
+    int16_t inertia;
+    uint16_t p_on;
+    uint16_t p_off;
+    int16_t s_off;
+    int16_t s_on;
 } __attribute__ ((packed));
 
 /**
@@ -76,29 +55,26 @@ struct SensorData{
     uint16_t output_rpm;
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
-    const MovingAverage<uint32_t>* pedal_smoothed;
+    const FirstOrderAverage* pedal_smoothed;
+    // in %/sec
+    FirstOrderAverage* pedal_delta;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque
     int16_t input_torque;
-    /// Current 'static' torque of the engine in Nm
-    int16_t static_torque;
+    int16_t converted_torque;
+    int16_t converted_driver_torque;
+    int16_t indicated_torque;
     /// Engine torque limit maximum in Nm
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
     int16_t min_torque;
-    /// Driver requested torque
-    int16_t driver_requested_torque;
     /// Last time the gearbox changed gear (in milliseconds)
     uint32_t last_shift_time;
     /// Is the brake pedal depressed?
     bool is_braking;
     /// Current gearbox ratio
     float gear_ratio;
-    WheelData rr_wheel;
-    WheelData rl_wheel;
-    WheelData fr_wheel;
-    WheelData fl_wheel;
 };
 
 struct OutputData {
@@ -169,7 +145,7 @@ enum class ShiftCircuit {
  * @brief Shift data request structure
  * 
  */
-struct ShiftData{
+struct CircuitInfo{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;

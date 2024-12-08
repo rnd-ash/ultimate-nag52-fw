@@ -18,7 +18,6 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     this->pwm_phase_period_ms = phase_duration_ms;
     esp_err_t ret = ESP_OK;
 
-
     const ledc_channel_config_t channel_cfg = {
         .gpio_num = pwm_pin,
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE,
@@ -32,12 +31,13 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
         }
     };
 
-    ledc_timer_config_t SOLENOID_TIMER_CFG = {
+    const ledc_timer_config_t SOLENOID_TIMER_CFG = {
         .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = ledc_timer,
         .freq_hz = 1000,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false
     };
 
     // Set the timer configuration
@@ -50,7 +50,7 @@ set_err:
 }
 
 uint16_t PwmSolenoid::get_current() const {
-    uint32_t raw = this->current_reading;
+    uint32_t raw = this->current_adc_reading;
     uint16_t ret = 0;
     if (0 != raw) {
         adc_cali_raw_to_voltage(adc1_cal, raw, (int*)&ret);
@@ -91,7 +91,7 @@ uint16_t PwmSolenoid::get_pwm_compensated() const
 
 void PwmSolenoid::__set_adc_reading(uint16_t c)
 {
-    this->current_reading = c;
+    this->current_adc_reading = c;
 }
 
 adc_channel_t PwmSolenoid::get_adc_channel() const {
@@ -113,11 +113,14 @@ uint16_t PwmSolenoid::get_pwm_phase_time() const {
 
 
 esp_err_t SolenoidSetup::init_adc() {
+    adc_cali_line_fitting_efuse_val_t x;
+    ESP_RETURN_ON_ERROR(adc_cali_scheme_line_fitting_check_efuse(&x), "SOLENOID", "Failed to get ADC Cal type");
+    ESP_RETURN_ON_FALSE(x != adc_cali_line_fitting_efuse_val_t::ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF, ESP_ERR_NOT_SUPPORTED, "SOLENOID", "Default VREF ADC mode is NOT supported");
     const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_1,
-        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .atten = adc_atten_t::ADC_ATTEN_DB_12,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
-        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
+        .default_vref = 0 // Since we do not support this, set to 0
     };
     ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc1_cal), "SOLENOID", "Failed to create ADC cal");
     return ESP_OK;

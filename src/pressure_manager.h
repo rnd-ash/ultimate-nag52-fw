@@ -10,6 +10,7 @@
 #include "sensors.h"
 #include "nvs/module_settings.h"
 #include "lookuptable.h"
+#include <string.h>
 
 typedef struct {
     uint16_t fill_time;
@@ -47,7 +48,6 @@ public:
      * @param enable Set circuit state to on
      */
     void set_shift_circuit(ShiftCircuit ss, bool enable);
-    void set_shift_stage(ShiftStage s);
 
     /**
      * @brief Set the target modulating pressure of the gearbox. 
@@ -85,8 +85,13 @@ public:
     uint16_t get_corrected_spc_pressure(void) const;
     uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
+    uint16_t get_b3_prefill_pressure(void) const;
 
     uint8_t get_active_shift_circuits(void) const;
+
+
+    float friction_coefficient();
+    float release_coefficient();
 
     /**
      * Force SPC solenoid to turn off
@@ -104,13 +109,17 @@ public:
      * @return ShiftData 
      */
     void notify_shift_end();
-    ShiftData get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
+    CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
-    uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure);
+    uint16_t find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
+    uint16_t find_freeing_torque(ProfileGearChange change, uint16_t motor_torque, uint16_t output_rpm);
+    uint16_t find_turbine_drag(uint8_t map_idx);
+    uint16_t find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
+    uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient = false);
     void update_pressures(GearboxGear current_gear);
 
-    PrefillData make_fill_data(ProfileGearChange change);
+    PrefillData make_fill_data(Clutch applying);
     PressureStageTiming get_max_pressure_timing();
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
@@ -176,11 +185,19 @@ private:
     uint16_t gb_max_torque;
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
-    uint16_t solenoid_max_pressure = 0;
-    ShiftStage shift_stage;
     bool init_ss_recovery = false;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;
+
+    // 1-2, 2-3, 3-4, 4-5
+    LookupByteMap* momentum_upshifts[4];
+    // 2-1, 3-2, 4-3, 5-4
+    LookupByteMap* momentum_downshifts[4];
+
+    // 1-2, 2-3, 3-4, 4-5
+    LookupByteMap* torque_adder_upshifts[4];
+    // 2-1, 3-2, 4-3, 5-4
+    LookupByteMap* torque_adder_downshifts[4];
 };
 
 extern PressureManager* pressure_manager;

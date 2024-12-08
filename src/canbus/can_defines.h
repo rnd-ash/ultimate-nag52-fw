@@ -3,16 +3,17 @@
 
 #include <stdint.h>
 
-enum class WheelDirection: uint8_t {
-    Forward, // Wheel going forwards
-    Reverse, // Wheel going backwards
-    Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvailable = 0xFF // SNV
-};
-
-struct WheelData {
-    int double_rpm; // 2x real RPM (Better accuracy)
-    WheelDirection current_dir; // Wheel direction
+struct CanTorqueData {
+    /// Minimum torque to keep the engine running
+    int16_t m_min;
+    /// Maximum torque in the engines current state
+    int16_t m_max;
+    /// Indicated torque (0-N)
+    int16_t m_ind;
+    /// Static torque
+    int16_t m_converted_static;
+    /// Total torque available given substitutions by other ECUs like ESP
+    int16_t m_converted_driver;
 };
 
 enum class SystemStatusCheck: uint8_t {
@@ -152,11 +153,6 @@ enum class TerminalStatus {
     On,
     Off,
     SNA
-};
-
-const WheelData DEFAULT_SNV_WD {
-    .double_rpm = 0,
-    .current_dir = WheelDirection::SignalNotAvailable
 };
 
 enum class TccReqState {

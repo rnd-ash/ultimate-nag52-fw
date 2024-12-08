@@ -36,7 +36,7 @@
 #define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
 
 #define RLI_CLUTCH_SPEEDS   0x30
-#define RLI_CLUTCH_VELOCITY 0x31
+#define RLI_SHIFTING_ALGO   0x31
 
 #define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)

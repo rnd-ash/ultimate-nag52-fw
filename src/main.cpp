@@ -7,7 +7,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "speaker.h"
-#include "sensors.h"
+#include "tcu_io/tcu_io.hpp"
 #include "gearbox.h"
 #include "dtcs.h"
 #include "nvs/eeprom_config.h"
@@ -68,11 +68,11 @@ SPEAKER_POST_CODE setup_tcm()
         if (ret == SPEAKER_POST_CODE::INIT_OK)
         {
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
-            if (ESP_OK == Sensors::init_sensors())
+            if (ESP_OK == EEPROM::init_eeprom())
             {
-                if (ESP_OK == Solenoids::init_all_solenoids())
+                if (ESP_OK == TCUIO::setup_io_layer())
                 {
-                    if (ESP_OK == EEPROM::init_eeprom())
+                    if (ESP_OK == Solenoids::init_all_solenoids())
                     {
                         // Read device mode!
                         CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
@@ -220,7 +220,7 @@ void input_manager(void *)
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
     while (1)
     {
-        if (ioexpander) {
+        if (nullptr != ioexpander) {
             ioexpander->read_from_ioexpander();
         }
         AbstractProfile* prof = shifter->get_profile(500);
@@ -265,34 +265,44 @@ void input_manager(void *)
 
 const char *post_code_to_str(SPEAKER_POST_CODE s)
 {
+    const char* ret = nullptr;
     switch (s)
     {
     case SPEAKER_POST_CODE::INIT_OK:
-        return "INIT_OK";
+        ret = "INIT_OK";
+        break;
     case SPEAKER_POST_CODE::CAN_FAIL:
-        return "CAN_INIT_FAIL";
+        ret = "CAN_INIT_FAIL";
+        break;
     case SPEAKER_POST_CODE::CONTROLLER_FAIL:
-        return "CONTROLLER_INIT_FAIL";
+        ret = "CONTROLLER_INIT_FAIL";
+        break;
     case SPEAKER_POST_CODE::EEPROM_FAIL:
-        return "ERRPOM_INIT_FAIL";
+        ret = "ERRPOM_INIT_FAIL";
+        break;
     case SPEAKER_POST_CODE::SENSOR_FAIL:
-        return "SENSOR_INIT_FAIL";
+        ret = "SENSOR_INIT_FAIL";
+        break;
     case SPEAKER_POST_CODE::SOLENOID_FAIL:
-        return "SOLENOID_INIT_FAIL";
+        ret = "SOLENOID_INIT_FAIL";
+        break;
     case SPEAKER_POST_CODE::EFUSE_NOT_SET:
-        return "EFUSE_CONFIG_NOT_SET";
+        ret = "EFUSE_CONFIG_NOT_SET";
+        break;
     case SPEAKER_POST_CODE::CONFIGURATION_MISMATCH:
-        return "CONFIGURATION_MISMATCH";
+        ret = "CONFIGURATION_MISMATCH";
+        break;
     case SPEAKER_POST_CODE::CALIBRATION_FAIL:
-        return "NO_EGS_CALIBRATION";
+        ret = "NO_EGS_CALIBRATION";
+        break;
     default:
-        return nullptr;
+        break;
     }
+    return ret;
 }
 
 extern "C" void app_main(void)
 {
-    init_clock();
     esp_log_level_set("gpio", esp_log_level_t::ESP_LOG_NONE);
     // Set all pointers
     gearbox = nullptr;

@@ -1,7 +1,7 @@
 #include "can_egs51.h"
 
 #include "driver/twai.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
@@ -16,81 +16,37 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs218.bytes[3] = 0x64;
 }
 
-WheelData Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
-{ // TODO
-	return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{
+	return UINT16_MAX;
 }
 
-WheelData Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) {
+    return UINT16_MAX;
 }
 
-WheelData Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHR) {
-            case BS_208h_DRTGHR_EGS51::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHR_EGS51::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHR_EGS51::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHR_EGS51::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHR_EGS51::SNV != bs208.DRTGHR) {
+            ret = bs208.DHR;
         }
-
-        return WheelData {
-            .double_rpm = bs208.DHR,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
-WheelData Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS51 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp51.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHL) {
-            case BS_208h_DRTGHL_EGS51::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHL_EGS51::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHL_EGS51::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHL_EGS51::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHL_EGS51::SNV != bs208.DRTGHL) {
+            ret = bs208.DHL;
         }
-
-        return WheelData {
-            .double_rpm = bs208.DHL,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
 EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {
@@ -114,37 +70,65 @@ uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     }
 }
 
-int Egs51Can::get_static_engine_torque(const uint32_t expire_time_ms) {
+CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
+    CanTorqueData ret = TORQUE_NDEF;
     MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        return ms310.IND_TORQUE*3;
-    } else {
-        return INT_MAX;
+    MS_210_EGS51 ms210;
+    uint16_t m_esp = INT16_MAX;
+    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310) &&
+        this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
+        if (UINT8_MAX != ms310.IND_TORQUE) {
+            ret.m_ind = ((int16_t)ms310.IND_TORQUE)*3;
+        }
+        if (UINT8_MAX != ms310.MIN_TORQUE) {
+            ret.m_min = ((int16_t)ms310.MIN_TORQUE)*3;
+        }
+        if (UINT8_MAX != ms310.MAX_TORQUE) {
+            ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
+            // TODO -> ms310.MAX_TRQ_FACTOR
+        }
+        if (UINT8_MAX != ms210.M_ESP) {
+            ret.m_converted_driver = ((int16_t)ms210.M_ESP)*3;
+        }
     }
-    return INT_MAX;
-}
+    if (
+        INT16_MAX != ret.m_min &&
+        INT16_MAX != ret.m_max &&
+        INT16_MAX != ret.m_ind &&
+        INT16_MAX != m_esp
+    ) {
+        ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque
+        ret.m_ind = MAX(ret.m_min, ret.m_ind); // Floor indicated torque to min torque
 
-int Egs51Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
-    // Don't think EGS51 supports this so just run with static torque for now
-    return this->get_static_engine_torque(expire_time_ms);
-}
+        m_esp = MIN(m_esp, ret.m_max); // Limit ESP torque to max torque
+        m_esp = MAX(ret.m_min, m_esp); // Floor ESP torque to min torque
 
-int Egs51Can::get_maximum_engine_torque(const uint32_t expire_time_ms) {
-    int result = INT_MAX;
-    MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        result = ms310.MAX_TORQUE*3;
+        int16_t driver_converted = ret.m_ind;
+        int16_t static_converted = ret.m_ind;
+
+        if (m_esp > ret.m_ind) {
+            driver_converted = m_esp;
+        }
+
+        bool active_shift = (uint8_t)this->gs218.GIC != (uint8_t)this->gs218.GZC;
+        bool trq_req_en = this->gs218.TORQUE_REQ != 0xFE;
+        if (active_shift && trq_req_en) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!active_shift) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        }
+        // Change torque values based on freezing or not
+        if (this->freeze_torque) {
+            ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+        } else {
+            this->req_static_torque_delta = driver_converted - static_converted;
+        }
+
+        ret.m_converted_driver = driver_converted;
+        ret.m_converted_static = static_converted;
     }
-    return result;
-}
 
-int Egs51Can::get_minimum_engine_torque(const uint32_t expire_time_ms) {
-    int result = INT_MAX;
-    MS_310_EGS51 ms310;
-    if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310)) {
-        result = (int)ms310.MIN_TORQUE*3;
-    }
-    return result;
+    return ret;
 }
 
 PaddlePosition Egs51Can::get_paddle_position(const uint32_t expire_time_ms) {
@@ -212,25 +196,6 @@ uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     } else {
         return 0;
     }
-}
-
-TccReqState Egs51Can::get_engine_tcc_override_request(const uint32_t expire_time_ms) {
-    MS_210_EGS51 ms210;
-    MS_308_EGS51 ms308;
-    TccReqState ret = TccReqState::None;
-    // Check for slip first
-    if (this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
-        if (ms210.KUEB_S_A) {
-            ret = TccReqState::Slipping;
-        }
-    }
-    // Then check if engine wants open
-    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
-        if (ms308.KUEB_O_A) {
-            ret = TccReqState::Open;
-        }
-    }
-    return ret;
 }
 
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
@@ -335,6 +300,49 @@ void Egs51Can::set_target_gear(GearboxGear target) {
             this->gs218.GZC = GS_218h_GZC_EGS51::G_SNV;
             break;
     }
+}
+
+ShifterPosition Egs51Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
+	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
+	EWM_230_EGS52 dest;
+	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
+	{
+		switch (dest.WHC)
+		{
+		case EWM_230h_WHC_EGS52::D:
+			ret = ShifterPosition::D;
+			break;
+		case EWM_230h_WHC_EGS52::N:
+			ret = ShifterPosition::N;
+			break;
+		case EWM_230h_WHC_EGS52::R:
+			ret = ShifterPosition::R;
+			break;
+		case EWM_230h_WHC_EGS52::P:
+			ret = ShifterPosition::P;
+			break;
+		case EWM_230h_WHC_EGS52::PLUS:
+			ret = ShifterPosition::PLUS;
+			break;
+		case EWM_230h_WHC_EGS52::MINUS:
+			ret = ShifterPosition::MINUS;
+			break;
+		case EWM_230h_WHC_EGS52::N_ZW_D:
+			ret = ShifterPosition::N_D;
+			break;
+		case EWM_230h_WHC_EGS52::R_ZW_N:
+			ret = ShifterPosition::R_N;
+			break;
+		case EWM_230h_WHC_EGS52::P_ZW_R:
+			ret = ShifterPosition::P_R;
+			break;
+		case EWM_230h_WHC_EGS52::SNV:
+			break;
+		default:
+			break;
+		}
+	}
+	return ret;
 }
 
 void Egs51Can::set_gearbox_temperature(int16_t temp) {

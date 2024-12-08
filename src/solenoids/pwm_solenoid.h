@@ -10,7 +10,6 @@
 #include <esp_event.h>
 #include "esp_err.h"
 #include "tcu_maths.h"
-#include "moving_average.h"
 
 extern uint16_t voltage;
 extern uint16_t min_adc_v_reading;
@@ -102,7 +101,7 @@ protected:
     adc_channel_t adc_channel;
     uint16_t pwm = 0;
     uint16_t pwm_raw = 0;
-    uint16_t current_reading = 0;
+    uint16_t current_adc_reading = 0;
     uint16_t pwm_phase_period_ms;
 };
 

@@ -2,30 +2,15 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
 #include "esp_log.h"
 #include "board_config.h"
-#include "nvs/eeprom_config.h"
 #include "esp_check.h"
-#include "driver/gptimer.h"
 #include "driver/pulse_cnt.h"
-#include "tcu_maths.h"
-#include "moving_average.h"
 #include "esp_timer.h"
 #include "esp_private/adc_private.h"
 
-#define PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
+#define N_SENSOR_PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
-
-const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
-    .low_limit = INT16_MIN,
-    .high_limit = INT16_MAX,
-    .flags {
-        .accum_count = 0
-    }
-};
 
 pcnt_unit_handle_t PCNT_HANDLE_N2;
 pcnt_channel_handle_t PCNT_C_HANDLE_N2;
@@ -36,136 +21,139 @@ pcnt_channel_handle_t PCNT_C_HANDLE_N3;
 pcnt_unit_handle_t PCNT_HANDLE_OUTPUT;
 pcnt_channel_handle_t PCNT_C_HANDLE_OUTPUT;
 
+const pcnt_glitch_filter_config_t glitch_filter = {
+    .max_glitch_ns = 1000
+};
+
+struct PcntCallbackData {
+    uint64_t last_time_us;
+    uint64_t t_val;
+    uint16_t pulses_per_rev;
+    uint16_t max_val;
+    uint64_t max_time_100rpm;
+};
+
+PcntCallbackData cb_data_n2 = {};
+PcntCallbackData cb_data_n3 = {};
+PcntCallbackData cb_data_out = {};
+
 adc_oneshot_unit_handle_t adc2_handle;
-adc_oneshot_unit_init_cfg_t init_adc2 = {
+
+const adc_oneshot_unit_init_cfg_t init_adc2 = {
     .unit_id = ADC_UNIT_2,
     .clk_src = soc_periph_adc_rtc_clk_src_t::ADC_RTC_CLK_SRC_DEFAULT,
     .ulp_mode = adc_ulp_mode_t::ADC_ULP_MODE_DISABLE
 };
-adc_oneshot_chan_cfg_t adc2_chan_config = {
-    .atten = ADC_ATTEN_DB_11,
+
+const adc_oneshot_chan_cfg_t adc2_chan_config = {
+    .atten = ADC_ATTEN_DB_12,
     .bitwidth = ADC_BITWIDTH_12,
 };
+
 adc_cali_handle_t adc2_cal = nullptr;
-
-// For RPM sensor debouncing / smoothing
-
-#define RPM_CHANGE_MAX 1000
-#define RPM_TIMER_INTERVAL_MS 20
-
-MovingAverage<uint32_t>* n2_avg_buffer = nullptr;
-MovingAverage<uint32_t>* n3_avg_buffer = nullptr;
-MovingAverage<int32_t>* tft_avg_buffer = nullptr;
-MovingAverage<uint32_t>* batt_avg_buffer = nullptr;
-uint64_t output_last_rev_time = 0;
-uint64_t output_current_revolution_time = 1000;
 
 bool output_rpm_ok = false;
 
-// Good enough for both boxes, but will be corrected as soon as the gearbox code boots up
-// to a more accurate value
-float RATIO_2_1 = 1.61f;
-
-inline static void read_and_reset_pcnt(pcnt_unit_handle_t unit, int* dest) {
-    pcnt_unit_get_count(unit, dest);
-    pcnt_unit_clear_count(unit);
-}
-
-static bool IRAM_ATTR output_pcnt_on_watchpoint(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
+static bool IRAM_ATTR on_pulse_reached(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx) {
+    PcntCallbackData* cbd = (PcntCallbackData*)(user_ctx);
     uint64_t now = esp_timer_get_time();
-    output_current_revolution_time = now - output_last_rev_time;
-    output_last_rev_time = now;
-    pcnt_unit_clear_count(unit);
+    uint64_t t_seg = (now - cbd->last_time_us)/cbd->max_val;
+    cbd->t_val = t_seg;
+    cbd->last_time_us = now;
     return true;
 }
 
-int batt_adc_res = 0;
-int tft_adc_res = 0;
+static uint16_t calc_rpm(PcntCallbackData* cb) {
+    uint16_t val = 0;
+    if (cb->t_val != 0 && (esp_timer_get_time() - cb->last_time_us) < cb->max_time_100rpm) {
+        val = (60*1000*1000)/(cb->t_val*cb->pulses_per_rev);
+    }
+    return val;
+}
 
-esp_err_t pl_res = ESP_OK;
-bool parking_lock = true;
-esp_err_t vbatt_res = ESP_OK;
-uint16_t vbatt = 12000; // 12.0V
-esp_err_t tft_res = ESP_OK;
-int16_t tft = 25; // 25.0C
+bool Sensors::using_dedicated_output_rpm() {
+    return output_rpm_ok;
+}
 
-uint8_t sensor_counter = 0;
-int adc_voltage;
+void Sensors::update(SensorDataRaw* dest) {
+    dest->rpm_n2 = UINT16_MAX;
+    dest->rpm_n3 = UINT16_MAX;
+    dest->rpm_out = UINT16_MAX;
+    dest->battery_mv = UINT16_MAX;
+    dest->atf_temp_c = INT_MAX;
+    dest->parking_lock = UINT8_MAX;
 
-static bool IRAM_ATTR on_rpm_timer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    int pulses = 0;
-    // N2 Sensor
-    read_and_reset_pcnt(PCNT_HANDLE_N2, &pulses);
-    n2_avg_buffer->add_sample(pulses*50);
-
-    // N3 Sensor
-    read_and_reset_pcnt(PCNT_HANDLE_N3, &pulses);
-    n3_avg_buffer->add_sample(pulses*50);
-
-    adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &tft_adc_res);
-    adc_oneshot_read_isr(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &batt_adc_res);
-
-    adc_cali_raw_to_voltage(adc2_cal, batt_adc_res, &adc_voltage);
-    // Vin = Vout(R1+R2)/R2
-    adc_voltage *= 5.54; // 5.54 = (100+22)/22
-    batt_avg_buffer->add_sample(adc_voltage);
-    vbatt = batt_avg_buffer->get_average();
-
-
-    if (tft_adc_res > 3000) {
-        parking_lock = true;
-        tft_res = ESP_ERR_INVALID_STATE;
-    } else {
-        parking_lock = false;
-        tft_res = ESP_OK;
-        adc_cali_raw_to_voltage(adc2_cal, tft_adc_res, &adc_voltage);
-        const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
-        int atf_calc_c = 0;
-        if (adc_voltage <= atf_temp_lookup[0].v)
-        {
-            atf_calc_c = (int16_t)(atf_temp_lookup[0].temp);
+    // RPM Sensors
+    dest->rpm_n2 = calc_rpm(&cb_data_n2);
+    dest->rpm_n3 = calc_rpm(&cb_data_n3);
+    if (output_rpm_ok) {
+        dest->rpm_out = calc_rpm(&cb_data_out);
+    }
+    // Battery voltage gathering
+    int adc_res = 0;
+    int adc_voltage = 0;
+    if (ESP_OK == adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc_res)) {
+        if (ESP_OK == adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage)) {
+            // Vin = Vout(R1+R2)/R2
+            adc_voltage *= 5.54; // 5.54 = (100+22)/22
+            dest->battery_mv = adc_voltage;
         }
-        else if (adc_voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
-        {
-            atf_calc_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp) / 10);
-        }
-        else
-        {
-            for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
+    }
+
+    // TFT/PL lock
+    if (ESP_OK == adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc_res)) {
+        if (adc_res > 3000) {
+            dest->parking_lock = 1;
+            dest->atf_temp_c = INT_MAX;
+        } else {
+            dest->parking_lock = 0;
+            adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
+            const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
+            if (adc_voltage <= atf_temp_lookup[0].v)
             {
-                // Found! Interpolate linearly to get a better estimate of ATF Temp
-                if (atf_temp_lookup[i].v <= adc_voltage && atf_temp_lookup[i + 1].v >= adc_voltage)
+                dest->atf_temp_c = (int16_t)(atf_temp_lookup[0].temp) / 10.0;
+            }
+            else if (adc_voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
+            {   
+                dest->atf_temp_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp)) / 10.0;
+            }
+            else
+            {
+                
+                for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
                 {
-                    atf_calc_c = interpolate_int(
-                        adc_voltage, // Read voltage
-                        atf_temp_lookup[i].temp, // Min temp for this range
-                        atf_temp_lookup[i+1].temp, // Max temp for this range
-                        atf_temp_lookup[i].v, // Min voltage for this boundary
-                        atf_temp_lookup[i+1].v // Max voltage for this boundary
-                    );
-                    break;
+                    // Found! Interpolate linearly to get a better estimate of ATF Temp
+                    if (atf_temp_lookup[i].v <= adc_voltage && atf_temp_lookup[i + 1].v >= adc_voltage)
+                    {
+                        dest->atf_temp_c = interpolate_int(
+                            adc_voltage, // Read voltage
+                            atf_temp_lookup[i].temp, // Min temp for this range
+                            atf_temp_lookup[i+1].temp, // Max temp for this range
+                            atf_temp_lookup[i].v, // Min voltage for this boundary
+                            atf_temp_lookup[i+1].v // Max voltage for this boundary
+                        ) / 10.0;
+                        break;
+                    }
                 }
             }
         }
-        tft_avg_buffer->add_sample(atf_calc_c);
-        tft = tft_avg_buffer->get_average();
     }
-    return true;
 }
 
-const pcnt_glitch_filter_config_t glitch_filter = {
-    // for input RPM - 1RPM = 1/Sec
-    // ==> 10000RPM = 10000RPS
-    // => 
-    .max_glitch_ns = 1000
-};
-
-esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, MovingAverage<uint32_t>** buffer) {
-    *buffer = new MovingAverage<uint32_t>((1000/RPM_TIMER_INTERVAL_MS)/8, true); // 125ms moving average
-    if (!(*buffer)->init_ok()) {
-        ESP_LOGE("SENSORS", "Failed to allocate moving average buffer for %s", name);
-        return ESP_ERR_NO_MEM;
-    }
+esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE, PcntCallbackData* cbd) {
+#define RPM_DIVIDER 8
+    int max = MAX(1, pulses_per_rpm/RPM_DIVIDER);
+    memset(cbd, 0x00, sizeof(PcntCallbackData));
+    cbd->max_val = max;
+    cbd->max_time_100rpm = (((60*1000*1000)/100)/pulses_per_rpm)*RPM_DIVIDER;
+    cbd->pulses_per_rev = pulses_per_rpm;
+    const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
+        .low_limit = INT16_MIN,
+        .high_limit = max,
+        .flags {
+            .accum_count = 0
+        }
+    };
     ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set %s Pin to Input", name);
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set %s Pin to pullup", name);
     ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Unit", name);
@@ -183,7 +171,7 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
     ESP_RETURN_ON_ERROR(pcnt_new_channel(*UNIT_HANDLE, &rpm_chan_config, CHANNEL_HANDLE), "SENSORS", "Failed to setup %s RPM PCNT Channel", name);
     ESP_RETURN_ON_ERROR(
         pcnt_channel_set_edge_action(*CHANNEL_HANDLE, 
-            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE,
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_HOLD,
             pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE
         ),
         "SENSORS",
@@ -191,51 +179,15 @@ esp_err_t configure_pcnt(const char* name, gpio_num_t gpio, pcnt_unit_handle_t* 
         name
     );
     ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(*UNIT_HANDLE, &glitch_filter), "SENSORS", "Failed to set glitch filter for PCNT unit %s", name);
+    ESP_RETURN_ON_ERROR(pcnt_unit_add_watch_point(*UNIT_HANDLE, max), "SENSORS", "Failed to add watch point for PCNT unit %s", name);
+    pcnt_event_callbacks_t cb = {
+        .on_reach = on_pulse_reached
+    };
+    ESP_RETURN_ON_ERROR(pcnt_unit_register_event_callbacks(*UNIT_HANDLE, &cb, (void*)(cbd)), "SENSORS", "Failed to set callbacks for PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_enable(*UNIT_HANDLE), "SENSORS", "Failed to enable PCNT unit %s", name);
+    ESP_RETURN_ON_ERROR(pcnt_unit_clear_count(*UNIT_HANDLE), "SENSORS", "Failed to clear PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_start(*UNIT_HANDLE), "SENSORS", "Failed to start PCNT unit %s", name);
-    return ESP_OK;
-}
-
-esp_err_t configure_output_pcnt(gpio_num_t gpio, pcnt_unit_handle_t* UNIT_HANDLE, pcnt_channel_handle_t* CHANNEL_HANDLE) {
-    ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set output Pin to Input");
-    ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set output Pin to pullup");
-    ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, UNIT_HANDLE), "SENSORS", "Failed to setup output PCNT Unit");
-    const pcnt_chan_config_t rpm_chan_config = {
-        .edge_gpio_num = gpio,
-        .level_gpio_num = -1,
-        .flags {
-            .invert_edge_input = 0,
-            .invert_level_input = 0,
-            .virt_edge_io_level = 0,
-            .virt_level_io_level = 0,
-            .io_loop_back = 0,
-        }     
-    };
-    ESP_RETURN_ON_ERROR(pcnt_new_channel(*UNIT_HANDLE, &rpm_chan_config, CHANNEL_HANDLE), "SENSORS", "Failed to setup output PCNT Channel");
-    ESP_RETURN_ON_ERROR(
-        pcnt_channel_set_edge_action(*CHANNEL_HANDLE, 
-            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_HOLD,
-            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE
-        ),
-        "SENSORS",
-        "Failed to set PCNT actions for output PCNT"
-    );
-
-    const pcnt_glitch_filter_config_t output_glitch_filter = {
-        .max_glitch_ns = 5000
-    };
-
-
-    ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(*UNIT_HANDLE, &output_glitch_filter), "SENSORS", "Failed to set glitch filter for output PCNT unit");
-    ESP_RETURN_ON_ERROR(pcnt_unit_add_watch_point(*UNIT_HANDLE, VEHICLE_CONFIG.input_sensor_pulses_per_rev), "SENSORS", "Failed to set output watchpoint");
-    ESP_RETURN_ON_ERROR(pcnt_unit_clear_count(*UNIT_HANDLE), "SENSORS", "Failed to clear output PCNT");
-    pcnt_event_callbacks_t cbs = {
-        .on_reach = output_pcnt_on_watchpoint
-    };
-    
-    ESP_RETURN_ON_ERROR(pcnt_unit_register_event_callbacks(*UNIT_HANDLE, &cbs, nullptr), "SENSORS", "Failed to set output callback");
-    ESP_RETURN_ON_ERROR(pcnt_unit_enable(*UNIT_HANDLE), "SENSORS", "Failed to enable output PCNT unit");
-    ESP_RETURN_ON_ERROR(pcnt_unit_start(*UNIT_HANDLE), "SENSORS", "Failed to start output PCNT unit");
+    cbd->last_time_us = esp_timer_get_time();
     return ESP_OK;
 }
 
@@ -243,145 +195,38 @@ esp_err_t Sensors::init_sensors(void){
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->vsense_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_VBATT to Input!");
     ESP_RETURN_ON_ERROR(gpio_set_direction(pcb_gpio_matrix->atf_pin, GPIO_MODE_INPUT), "SENSORS", "Failed to set PIN_ATF to Input!");
 
-    // Set moving average buffers
-    tft_avg_buffer = new MovingAverage<int32_t>(10, true);
-    batt_avg_buffer = new MovingAverage<uint32_t>(10, true);
-
     // Configure ADC2 for analog readings
     ESP_RETURN_ON_ERROR(adc_oneshot_new_unit(&init_adc2, &adc2_handle), "SENSORS", "Failed to init oneshot ADC2 driver");
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for ATF channel");
     ESP_RETURN_ON_ERROR(adc_oneshot_config_channel(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc2_chan_config), "SENSORS", "Failed to setup oneshot config for VBATT channel");
+    
     // Characterise ADC2       
+    adc_cali_line_fitting_efuse_val_t x;
+    ESP_RETURN_ON_ERROR(adc_cali_scheme_line_fitting_check_efuse(&x), "SENSORS", "Failed to get ADC Cal type");
+    ESP_RETURN_ON_FALSE(x != adc_cali_line_fitting_efuse_val_t::ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF, ESP_ERR_NOT_SUPPORTED, "SENSORS", "Default VREF ADC mode is NOT supported");
     const adc_cali_line_fitting_config_t cali = {
         .unit_id = ADC_UNIT_2,
-        .atten = adc_atten_t::ADC_ATTEN_DB_11,
+        .atten = adc_atten_t::ADC_ATTEN_DB_12,
         .bitwidth = adc_bitwidth_t::ADC_BITWIDTH_12,
-        .default_vref = ADC_CALI_LINE_FITTING_EFUSE_VAL_DEFAULT_VREF
+        .default_vref = 0 // Since we do not support this, set to 0
     };
-    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc2_cal), "SENSORS", "Failed to create line fitting ADC2 scheme");
+    ESP_RETURN_ON_ERROR(adc_cali_create_scheme_line_fitting(&cali, &adc2_cal), "SENSORS", "Failed to create ADC cal");
     
     // Now configure PCNT to begin counting!
-    ESP_RETURN_ON_ERROR(configure_pcnt("N2", pcb_gpio_matrix->n2_pin, &PCNT_HANDLE_N2, &PCNT_C_HANDLE_N2, &n2_avg_buffer), "SENSORS", "N2 PCNT Setup failed");
-    ESP_RETURN_ON_ERROR(configure_pcnt("N3", pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3, &n3_avg_buffer), "SENSORS", "N3 PCNT Setup failed");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N2", N_SENSOR_PULSES_PER_REV, pcb_gpio_matrix->n2_pin, &PCNT_HANDLE_N2, &PCNT_C_HANDLE_N2, &cb_data_n2), "SENSORS", "N2 PCNT Setup failed");
+    ESP_RETURN_ON_ERROR(configure_pcnt("N3", N_SENSOR_PULSES_PER_REV, pcb_gpio_matrix->n3_pin, &PCNT_HANDLE_N3, &PCNT_C_HANDLE_N3, &cb_data_n3), "SENSORS", "N3 PCNT Setup failed");
 
     // Enable output RPM reading if needed
-    if (VEHICLE_CONFIG.io_0_usage == 1 && VEHICLE_CONFIG.input_sensor_pulses_per_rev != 0) {
-        ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
-        if (ESP_OK == configure_output_pcnt(pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT)) {
+    if (VEHICLE_CONFIG.io_0_usage == 1) {
+        if (VEHICLE_CONFIG.input_sensor_pulses_per_rev == 0) {
+            ESP_LOGE("SENSORS", "Cannot init output sensor with 0 pulses/rev specified");
+            return ESP_ERR_INVALID_ARG;
+        } else {
+            ESP_LOGI("SENSORS", "Will init OUTPUT RPM sensor");
+            ESP_RETURN_ON_ERROR(configure_pcnt("OUT", VEHICLE_CONFIG.input_sensor_pulses_per_rev, pcb_gpio_matrix->io_pin, &PCNT_HANDLE_OUTPUT, &PCNT_C_HANDLE_OUTPUT, &cb_data_out), "SENSORS", "OUTPUT PCNT Setup failed");
             output_rpm_ok = true;
         }
     }
-
-    gptimer_handle_t gptimer_pcnt = NULL;
-
-    const gptimer_config_t timer_config = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-        .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = 1000000u,
-        .flags = {
-            .intr_shared = 1
-        }
-    };
-    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &gptimer_pcnt), "SENSORS", "Failed to create PCNT read timer");
-
-    const gptimer_alarm_config_t alarm_config_pcnt = {
-        .alarm_count = (20 * 1000), // Every 20ms
-        .reload_count = 0,
-        .flags = {
-            .auto_reload_on_alarm = true,
-        }
-    };
-    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(gptimer_pcnt, &alarm_config_pcnt), "SENSORS", "Failed to set PCNT Timer Alarm action");
-
-    const gptimer_event_callbacks_t cbs_pcnt = {
-        .on_alarm = on_rpm_timer
-    };
-
-    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(gptimer_pcnt, &cbs_pcnt, nullptr), "SENSORS", "Failed to register PCNT timer callback");
-
-    ESP_RETURN_ON_ERROR(gptimer_enable(gptimer_pcnt), "SENSORS", "Failed to enable PCNT GPTIMER");
-
-    ESP_RETURN_ON_ERROR(gptimer_start(gptimer_pcnt), "SENSORS", "Failed to start PCNT GPTIMER");
     ESP_LOGI("SENSORS", "Init complete");
     return ESP_OK;
-}
-
-// 1rpm = 60 pulse/sec -> 1 pulse every 20ms at MINIMUM
-esp_err_t Sensors::read_input_rpm(RpmReading *dest, bool check_sanity)
-{
-    esp_err_t res = ESP_OK;
-    if (nullptr == n2_avg_buffer || nullptr == n3_avg_buffer) {
-        res = ESP_ERR_NOT_SUPPORTED;
-    } else {
-        float f2 = (float)n2_avg_buffer->get_average()/2.0;
-        float f3 = (float)n3_avg_buffer->get_average()/2.0;
-        float c = (f2 * RATIO_2_1) + (f3 - (RATIO_2_1*f3));
-        if (c < 0) {
-            c = 0;
-        }
-        dest->n2_raw = f2;
-        dest->n3_raw = f3;
-        dest->calc_rpm = c;
-
-        // If we need to check sanity, check it, in gears 2,3 and 4, RPM readings should be the same,
-        // otherwise we have a faulty conductor place sensor!
-        if (check_sanity && abs((int)dest->n2_raw - (int)dest->n3_raw) > 100) {
-            res = ESP_ERR_INVALID_STATE;
-        }
-    }
-    return res;
-}
-
-void Sensors::set_ratio_2_1(float r) {
-    RATIO_2_1 = r;
-}
-
-esp_err_t Sensors::read_output_rpm(uint16_t* dest) {
-    esp_err_t res = ESP_OK;
-    if (output_rpm_ok == false) {
-        res = ESP_ERR_INVALID_STATE;
-    } else {
-        if (esp_timer_get_time() - output_last_rev_time > 1000000 || output_current_revolution_time > 1000000) {
-            *dest = 0;
-        } else {
-            *dest = ((float)1000000/(float)output_current_revolution_time)*60.0;
-        }
-    }
-    return res;
-}
-
-esp_err_t Sensors::read_vbatt(uint16_t *dest){
-    if (vbatt_res == ESP_OK) {
-        *dest = vbatt;
-    }
-    return vbatt_res;
-}
-
-// Returns ATF temp in *C
-esp_err_t Sensors::read_atf_temp(int16_t *dest)
-{
-    if (tft_res == ESP_OK) {
-        *dest = tft/10;
-    }
-    return tft_res;
-}
-
-esp_err_t Sensors::read_atf_temp_fine(int16_t *dest)
-{
-    if (tft_res == ESP_OK) {
-        *dest = tft;
-    }
-    return tft_res;
-}
-
-esp_err_t Sensors::parking_lock_engaged(bool *dest)
-{
-    if (pl_res == ESP_OK) {
-        *dest = parking_lock;
-    }
-    return ESP_OK;
-}
-
-void Sensors::set_motor_temperature(int16_t celcius) {
-    
 }

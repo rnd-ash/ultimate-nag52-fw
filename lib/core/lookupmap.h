@@ -30,4 +30,17 @@ class LookupRefMap : public LookupMap {
         LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16_t* _yHeader, const uint16_t _yHeaderSize, int16_t* _data, const uint16_t _dataSize);
 };
 
+class LookupByteMap : public LookupMap {
+    public:
+        LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uint8_t* _yHeader, const uint16_t _yHeaderSize, uint8_t* _data, const uint16_t _dataSize);
+        bool is_allocated(void) const;
+        bool add_data(const uint8_t* map, const uint16_t size);
+        ~LookupByteMap();
+    private:
+        int16_t* x_alloc;
+        int16_t* y_alloc;
+        int16_t* z_alloc;
+        uint16_t z_size;
+};
+
 #endif /* lookupmap.h */

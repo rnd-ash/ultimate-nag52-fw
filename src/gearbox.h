@@ -18,6 +18,7 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 #include "shifter/shifter.h"
+//#include "runtime_sensors/runtime_sensors.h"
 
 struct PostShiftTorqueRamp {
     bool enabled;
@@ -49,8 +50,9 @@ public:
     bool isShifting(void) { return this->shifting; }
     ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
-    ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
+    SpeedSensors speed_sensors;
 private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
@@ -63,8 +65,7 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
-    bool calc_input_rpm(uint16_t* dest);
-    bool calc_output_rpm(uint16_t* dest);
+    bool process_speed_sensors();
     [[noreturn]]
     void controller_loop(void);
 
@@ -79,6 +80,7 @@ private:
         static_cast<Gearbox*>(_this)->controller_loop();
     }
     uint16_t temp_raw = 0;
+    uint8_t pedal_last = 0;
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
@@ -102,11 +104,15 @@ private:
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
-    RpmReading rpm_reading;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
-    MovingAverage<uint32_t>* pedal_average = nullptr;
+    FirstOrderAverage* pedal_average = nullptr;
+    FirstOrderAverage* motor_speed_average = nullptr;
+    FirstOrderAverage* torque_req_average = nullptr;
+
+    int req_static_torque_delta = 0;
+    bool freeze_torque = false;
 
 };
 

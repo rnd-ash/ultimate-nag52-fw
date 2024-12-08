@@ -1,6 +1,6 @@
 #include "can_hfm.h"
 #include "driver/twai.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
@@ -21,11 +21,9 @@ HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : Egs
     }
 }
 
-WheelData HfmCan::generateWheelData(const uint32_t expire_time_ms) const
+uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
 {
-    WheelData result = WheelData{
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable};
+    uint16_t result = UINT16_MAX;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
@@ -47,22 +45,7 @@ WheelData HfmCan::generateWheelData(const uint32_t expire_time_ms) const
                 // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 20) * (1000 / wheel_circumference))
                 // <=> wheel_rpm_double = (2 * 20 * 1000 * V_SIGNAL) / wheel_circumference
                 // <=> wheel_rpm_double = (40000 * V_SIGNAL) / wheel_circumference
-                result.double_rpm = (40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference;
-                switch (hfm210.WHC)
-                {
-                case HFM_210h_WHC::PN_B:
-                    result.current_dir = WheelDirection::Stationary;
-                    break;
-                case HFM_210h_WHC::R_B:
-                    result.current_dir = WheelDirection::Reverse;
-                    break;
-                case HFM_210h_WHC::D4_B:
-                    result.current_dir = WheelDirection::Forward;
-                    break;
-                default:
-                    result.current_dir = WheelDirection::SignalNotAvailable;
-                    break;
-                }
+                result = (40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference;
             }
         }
     }
@@ -79,22 +62,22 @@ WheelData HfmCan::generateWheelData(const uint32_t expire_time_ms) const
     return result;
 }
 
-WheelData HfmCan::get_front_right_wheel(const uint32_t expire_time_ms)
+uint16_t HfmCan::get_front_right_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-WheelData HfmCan::get_front_left_wheel(const uint32_t expire_time_ms)
+uint16_t HfmCan::get_front_left_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-WheelData HfmCan::get_rear_right_wheel(const uint32_t expire_time_ms)
+uint16_t HfmCan::get_rear_right_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-WheelData HfmCan::get_rear_left_wheel(const uint32_t expire_time_ms)
+uint16_t HfmCan::get_rear_left_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
@@ -202,6 +185,11 @@ uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
     return result;
 }
 
+CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
+    return TORQUE_NDEF;
+}
+
+/*
 int HfmCan::get_static_engine_torque(const uint32_t expire_time_ms)
 {
     int result = INT_MAX;
@@ -271,7 +259,7 @@ int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms)
     }
     return result;
 }
-
+*/
 int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
 {
     int16_t result = INT16_MAX;

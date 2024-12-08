@@ -40,93 +40,49 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
+    // New! GS_338 data for newer K-Matrix cars (W216)
+    this->gs338.NTURBINE = 0;
+    this->gs338.MABS_SW_ANFB = 0;
+    this->gs338.M_VORSTR = 0;
+    this->gs338.RACE_START = GS_338h_RACE_START_EGS52::OFF;
+    this->gs338.KID = 0;
+    this->gs338.NAK_TGL = false;
+    this->gs338.NAK_PA = false;
+    this->gs338.MIL_ANF_GS = false;
+    this->gs338.NAB = 0xFFFF; // Passive as we don't report this (TODO - G class SHOULD report this)
 }
 
-WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
+uint16_t Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
 { // TODO
-	return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+	return UINT16_MAX;
 }
 
-WheelData Egs52Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs52Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+    return UINT16_MAX;
 }
 
-WheelData Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHR) {
-            case BS_208h_DRTGHR_EGS52::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHR_EGS52::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHR_EGS52::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHR_EGS52::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHR_EGS52::SNV != bs208.DRTGHR) {
+            ret = bs208.DHR;
         }
-
-        // Fix for some cars where SNV even with valid wheel speed
-        if (bs208.DHR != 0 && d == WheelDirection::SignalNotAvailable) {
-            d = WheelDirection::Forward;
-        }
-
-        return WheelData {
-            .double_rpm = bs208.DHR,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
-WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHL) {
-            case BS_208h_DRTGHL_EGS52::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHL_EGS52::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHL_EGS52::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHL_EGS52::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHL_EGS52::SNV != bs208.DRTGHL) {
+            ret = bs208.DHL;
         }
-
-        // Fix for some cars where SNV even with valid wheel speed
-        if (bs208.DHL != 0 && d == WheelDirection::SignalNotAvailable) {
-            d = WheelDirection::Forward;
-        }
-
-        return WheelData {
-            .double_rpm = bs208.DHL,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
 ShifterPosition Egs52Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
@@ -207,53 +163,69 @@ uint8_t Egs52Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
     }
 }
 
-int Egs52Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
+CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
     MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        return ((int)ms312.M_STA / 4) - 500;
-    }
-    return INT_MAX;
-}
-
-int Egs52Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
     MS_212_EGS52 ms212;
+    MS_210_EGS52 ms210;
+    CanTorqueData ret = TORQUE_NDEF;
+    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
+        if (UINT16_MAX != ms312.M_STA) {ret.m_converted_static = ((int16_t)ms312.M_STA / 4) - 500;}
+        if (UINT16_MAX != ms312.M_MIN) {ret.m_min = ((int16_t)ms312.M_MIN / 4) - 500;}
+        if (UINT16_MAX != ms312.M_MAX) {ret.m_max = ((int16_t)ms312.M_MAX / 4) - 500;}
+    }
     if (this->ecu_ms.get_MS_212(GET_CLOCK_TIME(), expire_time_ms, &ms212)) {
-        return ((int)ms212.M_ESPV / 4) - 500;
+        if (UINT16_MAX != ms212.M_ESPV) {ret.m_converted_driver = ((int16_t)ms212.M_ESPV / 4) - 500;}
     }
-    return INT_MAX;
-}
-
-int Egs52Can::get_maximum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        float max = ((float)ms312.M_MAX / 4) - 500;
-        MS_210_EGS52 ms210;
+    if (INT16_MAX != ret.m_max) {
+        // Get factor to correct it by
         if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
-            max *= (float)(ms210.FMMOTMAX * 0.0078);
+            if (UINT8_MAX != ms210.FMMOTMAX) {ret.m_max = (float)ret.m_max * ((float)ms210.FMMOTMAX * 0.0078);}
         }
-        return (int)max;
     }
-    return INT_MAX;
-}
-
-int Egs52Can::get_minimum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    MS_312_EGS52 ms312;
-    if (this->ecu_ms.get_MS_312(GET_CLOCK_TIME(), expire_time_ms, &ms312)) {
-        return ((int)ms312.M_MIN / 4) - 500;
-    }
-    return INT_MAX;
-}
-
-uint8_t Egs52Can::get_ac_torque_loss(const uint32_t expire_time_ms) {
-    KLA_410_EGS52 kl410;
-    if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
-        uint8_t ret = kl410.M_KOMP;
-        if (ret != UINT8_MAX) {
-            ret /= 4;
+    if (INT16_MAX != ret.m_converted_static && INT16_MAX != ret.m_converted_driver) {
+        int static_converted = ret.m_converted_static;
+        int tmp = ret.m_converted_driver;
+        int driver_converted = static_converted;
+        int indicated = 0;
+        // Calculate converted torque from ESP
+        // Chrysler cars don't seem to report MAX/MIN
+        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+            tmp = MIN(ret.m_converted_driver, ret.m_max);
         }
-        return ret;
+        if (tmp <= 0) {
+            tmp = MIN(tmp, static_converted);
+        }
+        driver_converted = tmp;
+
+        // Check if freezing torque should be done
+        bool active_shift = (uint8_t)this->gs418.GIC != (uint8_t)this->gs418.GZC;
+        bool trq_req_en = this->gs218.MMIN_EGS != 0 || this->gs218.MMAX_EGS != 0;
+        if (active_shift && trq_req_en) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!active_shift) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        }
+        // Change torque values based on freezing or not
+        if (this->freeze_torque) {
+            driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+        } else {
+            this->req_static_torque_delta = driver_converted - static_converted;
+        }
+        if (driver_converted > 0) {
+            indicated = driver_converted;
+        }
+        KLA_410_EGS52 kl410;
+        if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
+            if (UINT8_MAX != kl410.M_KOMP) {
+                driver_converted -= (kl410.M_KOMP / 4);
+                static_converted -= (kl410.M_KOMP / 4);
+            }
+        }
+        ret.m_ind = indicated;
+        ret.m_converted_driver = driver_converted;
+        ret.m_converted_static = static_converted;
     }
-    return UINT8_MAX;
+    return ret;
 }
 
 PaddlePosition Egs52Can::get_paddle_position(const uint32_t expire_time_ms) {
@@ -343,6 +315,15 @@ bool Egs52Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     return result;
 }
 
+ProfileSwitchPos Egs52Can::get_profile_switch_pos(const uint32_t expire_time_ms) {
+    EWM_230_EGS52 ewm;
+    ProfileSwitchPos result = ProfileSwitchPos::SNV;
+    if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm)) {
+        result = ewm.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+    }
+    return result;
+}
+
 uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
@@ -353,23 +334,43 @@ uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
 }
 
 TransferCaseState Egs52Can::get_transfer_case_state(const uint32_t expire_time_ms) {
-    VG_428 vg428;
-    if (this->misc_ecu.get_VG_428(GET_CLOCK_TIME(), expire_time_ms, &vg428)) {
-        switch (vg428.get_VG_GANG()) {
-            case VG_428h_VG_GANG::HI:
-                return TransferCaseState::Hi;
-            case VG_428h_VG_GANG::LO:
-                return TransferCaseState::Low;
-            case VG_428h_VG_GANG::N:
-                return TransferCaseState::Neither;
-            case VG_428h_VG_GANG::SH_IPG:
-                return TransferCaseState::Switching;
-            case VG_428h_VG_GANG::SNV:
-            default:
-                return TransferCaseState::SNA;
+    if (VEHICLE_CONFIG.jeep_chrysler) {
+        // Handling for Jeep cars. This appears to be part of the MS608 frame
+        MS_608_EGS52 ms608;
+        if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
+            switch (ms608.bytes[0]) {
+                case 0x03:
+                    return TransferCaseState::Hi;// - High
+                case 0x04:
+                    return TransferCaseState::Neither;// - Neutral
+                case 0x05:
+                    return TransferCaseState::Low;// - Low range
+                default:
+                    return TransferCaseState::SNA;
+            }
+        } else {
+            return TransferCaseState::SNA;
         }
     } else {
-        return TransferCaseState::SNA;
+        // Mercedes handling - Query the dedicated VG ECU
+        VG_428 vg428;
+        if (this->misc_ecu.get_VG_428(GET_CLOCK_TIME(), expire_time_ms, &vg428)) {
+            switch (vg428.get_VG_GANG()) {
+                case VG_428h_VG_GANG::HI:
+                    return TransferCaseState::Hi;
+                case VG_428h_VG_GANG::LO:
+                    return TransferCaseState::Low;
+                case VG_428h_VG_GANG::N:
+                    return TransferCaseState::Neither;
+                case VG_428h_VG_GANG::SH_IPG:
+                    return TransferCaseState::Switching;
+                case VG_428h_VG_GANG::SNV:
+                default:
+                    return TransferCaseState::SNA;
+            }
+        } else {
+            return TransferCaseState::SNA;
+        }
     }
 }
 
@@ -563,6 +564,9 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
+    if (ShifterStyle::TRRS == shifter->get_shifter_type()) { // TODO - Find a way to disable this
+        ioexpander->set_start(can_start);
+    }
     // ioexpander->set_start(can_start);
 }
 
@@ -813,6 +817,7 @@ void Egs52Can::tx_frames() {
     // and egs52 Tx interval is 20ms,
     // we can achieve this with 2 booleans
     gs_218tx.MTGL_EGS = toggle;
+    gs_338tx.NAK_TGL = toggle;
     gs_418tx.FMRADTGL = toggle;
     // Now do parity calculations
     gs_218tx.MPAR_EGS = calc_torque_parity(gs_218tx.raw >> 48);

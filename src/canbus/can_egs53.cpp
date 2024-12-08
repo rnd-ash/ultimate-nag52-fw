@@ -19,6 +19,10 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->sbw_rs_tcm.SBW_MsgTxmtId = SBW_RS_TCM_SBW_MsgTxmtId_EGS53::EGS52; // We are EGS53
     this->sbw_rs_tcm.TSL_Posn_Rq = SBW_RS_TCM_TSL_Posn_Rq_EGS53::IDLE; // Idle request (No SBW on EGS53)
     this->sbw_rs_tcm.TxSelSensPosn = 0; // No dialing sensor on EGS53
+    this->sbw_rs_tcm.TxSelSensPosn = 0xFF; // We never report this
+    this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::SNA; // We never report this
+    this->sbw_rs_tcm.bytes[4] = 0x00;
+
     // Tell engine which Mech style we are
     if (MECH_PTR->gb_ty == 0) {
         this->eng_rq2_tcm.TxMechStyle = ENG_RQ2_TCM_TxMechStyle_EGS53::LARGE;
@@ -27,127 +31,58 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     }
     this->eng_rq2_tcm.TxStyle = ENG_RQ2_TCM_TxStyle_EGS53::SAT; // Stepped automatic gearbox
     this->eng_rq2_tcm.TxShiftStyle = ENG_RQ2_TCM_TxShiftStyle_EGS53::MS; // Mechanical shifting (With EWM module)
+    
+    this->tcm_a1.Clutch_Stat = TCM_A1_Clutch_Stat_EGS53::DISENGG;
+    this->tcm_a2.CurrDtyCyc_Rq = 0xFF;
+    this->tcm_a2.TxSlpRPM_Dsr = 0x3FFF;
+    this->tcm_a2.TCM_Data = 0xFF;
+    this->tcm_a2.TCM_ErrChk_Stat = TCM_A2_TCM_ErrChk_Stat_EGS53::OK;
+    this->tcm_a2.TCM_CALID_CVN_Actv = 0;
 }
 
-WheelData Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
-{ // TODO
+uint16_t Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
+{
 	WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_FR_Stat) {
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_FR_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_FR_Stat != WHL_STAT2_WhlDir_FR_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_FR;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_FR,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+uint16_t Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_FL_Stat) {
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_FL_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_FL_Stat != WHL_STAT2_WhlDir_FL_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_FL;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_FL,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_RR_Stat) {
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_RR_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_RR_Stat != WHL_STAT2_WhlDir_RR_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_RR;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_RR,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
-WheelData Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
+    uint16_t ret = UINT16_MAX;
     if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
-        WheelDirection dir;
-        switch(whl_stat.WhlDir_RL_Stat) {
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::VOID:
-                dir = WheelDirection::Stationary;
-                break;
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::FORWARD:
-                dir = WheelDirection::Forward;
-                break;
-            case WHL_STAT2_WhlDir_RL_Stat_EGS53::BACKWARD:
-                dir = WheelDirection::Reverse;
-                break;
-            default:
-                dir = WheelDirection::SignalNotAvailable;
-                break;
+        if (whl_stat.WhlDir_RL_Stat != WHL_STAT2_WhlDir_RL_Stat_EGS53::SNA) {
+            ret = whl_stat.WhlRPM_RL;
         }
-        return WheelData {
-            .double_rpm = whl_stat.WhlRPM_RL,
-            .current_dir = dir
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
     }
+    return ret;
 }
 
 ShifterPosition Egs53Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
@@ -204,40 +139,68 @@ uint8_t Egs53Can::get_pedal_value(const uint32_t expire_time_ms) {
     return 0;
 }
 
-int Egs53Can::get_static_engine_torque(const uint32_t expire_time_ms) { // TODO
+CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
     ENG_RS2_PT_EGS53 rs2_pt;
-    if (this->ecm_ecu.get_ENG_RS2_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &rs2_pt)) {
-        return (rs2_pt.EngTrqStatic / 4) - 500;
-    }
-    return 0;
-}
-
-int Egs53Can::get_driver_engine_torque(const uint32_t expire_time_ms) {
-    // Test - suspect this is based on the parsed pedal curve from the engine
-    // Take min trq and max trq, and take (pedal %) of that number, offset it from min torque
-    // For example
     ENG_RS1_PT_EGS53 rs1_pt;
-    int trq = 0;
-    if (this->ecm_ecu.get_ENG_RS1_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &rs1_pt)) {
-        return (rs1_pt.EngTrqSel_D_TTC / 4) - 500;
+    int16_t sta = INT16_MAX;
+    int16_t esp = INT16_MAX;
+    CanTorqueData ret = TORQUE_NDEF;
+    if (
+        this->ecm_ecu.get_ENG_RS2_PT(GET_CLOCK_TIME(), expire_time_ms, &rs2_pt) &&
+        this->ecm_ecu.get_ENG_RS1_PT(GET_CLOCK_TIME(), expire_time_ms, &rs1_pt)
+    ) {
+        if (rs2_pt.EngTrqStatic != INT16_MAX) {
+            sta = (rs2_pt.EngTrqStatic / 4) - 500;
+        }
+        if (rs2_pt.EngTrqMaxETC != INT16_MAX) {
+            ret.m_max = (rs2_pt.EngTrqMaxETC / 4) - 500;
+        }
+        if (rs2_pt.EngTrqMinTTC != INT16_MAX) {
+            ret.m_min = (rs2_pt.EngTrqMinTTC / 4) - 500;
+        }
+        if (rs1_pt.EngTrqSel_D_TTC != INT16_MAX) {
+            esp = (rs1_pt.EngTrqSel_D_TTC / 4) - 500;
+        }
     }
-    return trq;
-}
+    if (INT16_MAX != sta && INT16_MAX != esp) {
+        // Conversion
+        int static_converted = sta;
+        int tmp = esp;
+        int driver_converted = static_converted;
+        int indicated = 0;
+        // Calculate converted torque from ESP
+        // Chrysler cars don't seem to report MAX/MIN
+        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+            tmp = MIN(esp, ret.m_max);
+        }
+        if (tmp <= 0) {
+            tmp = MIN(tmp, static_converted);
+        }
+        driver_converted = tmp;
 
-int Egs53Can::get_maximum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    ENG_RS2_PT_EGS53 rs2_pt;
-    if (this->ecm_ecu.get_ENG_RS2_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &rs2_pt)) {
-        return (rs2_pt.EngTrqMaxETC / 4) - 500;
-    }
-    return 0;
-}
+        // Check if freezing torque should be done
+        bool active_shift = (uint8_t)this->eng_rq2_tcm.Gr_Target != (uint8_t)this->eng_rq2_tcm.Gr;
+        bool trq_req_en = this->eng_rq1_tcm.EngTrqMin_Rq_TCM != 0 || this->eng_rq1_tcm.EngTrqMax_Rq_TCM != 0;
+        if (active_shift && trq_req_en) {
+            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
+        } else if (!active_shift) {
+            this->freeze_torque = false; // No gear shift, unfreeze it
+        }
+        // Change torque values based on freezing or not
+        if (this->freeze_torque) {
+            driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+        } else {
+            this->req_static_torque_delta = driver_converted - static_converted;
+        }
+        if (driver_converted > 0) {
+            indicated = driver_converted;
+        }
+        ret.m_ind = indicated;
+        ret.m_converted_driver = driver_converted;
+        ret.m_converted_static = static_converted;
 
-int Egs53Can::get_minimum_engine_torque(const uint32_t expire_time_ms) { // TODO
-    ENG_RS2_PT_EGS53 rs2_pt;
-    if (this->ecm_ecu.get_ENG_RS2_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &rs2_pt)) {
-        return (rs2_pt.EngTrqMinTTC / 4) - 500;
     }
-    return 0;
+    return ret;
 }
 
 PaddlePosition Egs53Can::get_paddle_position(const uint32_t expire_time_ms) {
@@ -470,38 +433,30 @@ void Egs53Can::set_wheel_torque(uint16_t t) {
 void Egs53Can::set_shifter_position(ShifterPosition pos) {
     switch (pos) {
         case ShifterPosition::P:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::P;
-            this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::P;
+            this->sbw_rs_tcm.TSL_Posn_Rq = SBW_RS_TCM_TSL_Posn_Rq_EGS53::P;
             break;
         case ShifterPosition::P_R:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::P_ZW_R;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::P;
             break;
         case ShifterPosition::R:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::R;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::R;
             break;
         case ShifterPosition::R_N:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::R_ZW_N;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::R;
             break;
         case ShifterPosition::N:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::N;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::N;
             break;
         case ShifterPosition::N_D:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::N_ZW_D;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::N;
             break;
         case ShifterPosition::D:
         case ShifterPosition::PLUS:
         case ShifterPosition::MINUS:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::D;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::D;
             break;
         case ShifterPosition::SignalNotAvailable:
         default:
-            this->sbw_rs_tcm.TxSelVlvPosn = SBW_RS_TCM_TxSelVlvPosn_EGS53::SNA;
             this->tcm_a1.TSL_Posn_TCM = TCM_A1_TSL_Posn_TCM_EGS53::SNA;
             break;
     }
@@ -696,9 +651,6 @@ void Egs53Can::tx_frames() {
 
     tcm_a2_tx.TCM_CALID_CVN_ErrNum = cvn_counter;
     cvn_counter++;
-    if (cvn_counter == 0x14) {
-        cvn_counter = 0;
-    }
 
     // Set message counters
     eng_rq1_tcm_tx.MC_ENG_RQ1_TCM = msg_counter;
@@ -720,7 +672,6 @@ void Egs53Can::tx_frames() {
 
     tx.identifier = TCM_A2_EGS53_CAN_ID;
     to_bytes(tcm_a2_tx.raw, tx.data);
-    calc_crc_in_place(tx.data);
     twai_transmit(&tx, 5);
 
     tx.identifier = TCM_A1_EGS53_CAN_ID;

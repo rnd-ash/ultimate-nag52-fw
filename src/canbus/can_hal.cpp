@@ -92,6 +92,11 @@ esp_err_t EgsBaseCan::init_state() const
     return this->can_init_status;
 }
 
+bool EgsBaseCan::bus_ok() const
+{
+    return this->can_status.state == twai_state_t::TWAI_STATE_RUNNING;
+}
+
 EgsBaseCan::~EgsBaseCan() {
     if (this->task != nullptr) {
         vTaskDelete(this->task);
@@ -128,71 +133,76 @@ void EgsBaseCan::task_loop() {
     while(true) {
         now = GET_CLOCK_TIME();
         // Message Rx
-
         twai_get_status_info(&this->can_status);
-        uint8_t f_count  = can_status.msgs_to_rx;
-        for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-            if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
-                if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
-                    // Logging mode
-                    char buf[35];
-                    int pos = 0;
-                    pos += sprintf(buf + pos, "CF->0x%04X", (uint16_t)rx.identifier);
-                    for (uint8_t i = 0; i < rx.data_length_code; i++) {
-                        pos += sprintf(buf + pos, "%02X", rx.data[i]);
-                    }
-                    printf("%.*s\n", pos, buf);
-                } else {
-                    if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
-                        // ISO-TP Diag endpoint
-                        if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
-                            // Send the frame
-                            if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
-                                ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+        // Handle BUS OFF and BUS STOPPED
+        if (this->can_status.state == twai_state_t::TWAI_STATE_BUS_OFF) {
+            twai_initiate_recovery();
+        } else if (this->can_status.state == twai_state_t::TWAI_STATE_STOPPED) {
+            twai_start();
+        } else if (likely(this->can_status.state == twai_state_t::TWAI_STATE_RUNNING)) {
+            uint8_t f_count  = can_status.msgs_to_rx;
+            for(uint8_t x = 0; x < f_count; x++) { // Read all frames
+                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                    if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
+                        // Logging mode
+                        char buf[35];
+                        int pos = 0;
+                        pos += sprintf(buf + pos, "CF->0x%04X", (uint16_t)rx.identifier);
+                        for (uint8_t i = 0; i < rx.data_length_code; i++) {
+                            pos += sprintf(buf + pos, "%02X", rx.data[i]);
+                        }
+                        printf("%.*s\n", pos, buf);
+                    } else {
+                        if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
+                            // ISO-TP Diag endpoint
+                            if (this->diag_rx_queue != nullptr && rx.data_length_code == 8) {
+                                // Send the frame
+                                if (xQueueSend(*this->diag_rx_queue, rx.data, 0) != pdTRUE) {
+                                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "EGS_BASIC_CAN","Discarded ISO-TP endpoint frame. Queue send failed");
+                                }
                             }
-                        }
-                    } else { // Normal message
-                        tmp = 0;
-                        for(i = 0; i < rx.data_length_code; i++) {
-                            tmp |= (uint64_t)rx.data[i] << (8*(7-i));
-                        }
-                        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
-                            // Slave mode handling
-                            this->egs_slave_mode_tester.import_frames(tmp, rx.identifier, now);
-                        } else {
-                            this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
+                        } else { // Normal message
+                            tmp = 0;
+                            for(i = 0; i < rx.data_length_code; i++) {
+                                tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                            }
+                            if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+                                // Slave mode handling
+                                this->egs_slave_mode_tester.import_frames(tmp, rx.identifier, now);
+                            } else {
+                                this->on_rx_frame(rx.identifier, rx.data_length_code, tmp, now);
+                            }
                         }
                     }
                 }
             }
+            // Message Tx
+            if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
+                // Only Tx slave frames
+                tx.data_length_code = 8;
+
+                uint64_t solenoid = solenoid_slave_resp.raw;
+                uint64_t sensors = sensors_slave_resp.raw;
+                uint64_t un52 = un52_slave_resp.raw;
+
+                tx.identifier = SOLENOID_REPORT_EGS_SLAVE_CAN_ID;
+                to_bytes(solenoid, tx.data);
+                twai_transmit(&tx, 5);
+
+                tx.identifier = SENSOR_REPORT_EGS_SLAVE_CAN_ID;
+                to_bytes(sensors, tx.data);
+                twai_transmit(&tx, 5);
+
+                tx.identifier = UN52_REPORT_EGS_SLAVE_CAN_ID;
+                to_bytes(un52, tx.data);
+                twai_transmit(&tx, 5);
+            }
+            else if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER))
+            {
+                this->tx_frames();
+            }
         }
         this->on_rx_done(now);
-
-        // Message Tx
-        if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
-            // Only Tx slave frames
-            tx.data_length_code = 8;
-
-            uint64_t solenoid = solenoid_slave_resp.raw;
-            uint64_t sensors = sensors_slave_resp.raw;
-            uint64_t un52 = un52_slave_resp.raw;
-
-            tx.identifier = SOLENOID_REPORT_EGS_SLAVE_CAN_ID;
-            to_bytes(solenoid, tx.data);
-            twai_transmit(&tx, 5);
-
-            tx.identifier = SENSOR_REPORT_EGS_SLAVE_CAN_ID;
-            to_bytes(sensors, tx.data);
-            twai_transmit(&tx, 5);
-
-            tx.identifier = UN52_REPORT_EGS_SLAVE_CAN_ID;
-            to_bytes(un52, tx.data);
-            twai_transmit(&tx, 5);
-        }
-        else if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER))
-        {
-            this->tx_frames();
-        }
         int taken = GET_CLOCK_TIME() - now;
         if (taken < this->tx_time_ms) {
             vTaskDelay((this->tx_time_ms - taken) / portTICK_PERIOD_MS); // Reset watchdog here

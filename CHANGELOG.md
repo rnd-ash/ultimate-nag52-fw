@@ -4,7 +4,16 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
-# Dev (Unreleased)
+# 08/12/24
+* Added in shift torque data from original EGS
+* Split shifting algorithm into 2 modes (Release and Crossover)
+* Added support for the TCC Zener mod addon PCB (For 1.3 PCB)
+* Rewrote current driver algorithm for MPC/SPC solenoids
+* Added support for the Jeep 5 wire shifter (Profile switching is disabled in this mode)
+    * See basic configuration for Jeep toggle setting
+* Rewrote sensor API to include smoothing all sensor inputs to the TCU
+* Rewrote torque API of EGS so that Each CAN layer is better handled how it sends/receives torque figures
+
 
 # 13/06/24
 * Improve the stability of the TCU when in emergency mode (No configuration)

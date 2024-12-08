@@ -220,7 +220,8 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
             .gen_mosfet_purpose = 0,
             .throttlevalve_maxopeningangle = 255, // 89.25°
             .c_eng = 1000,
-            .engine_drag_torque = 400 // 40Nm
+            .engine_drag_torque = 400, // 40Nm
+            .jeep_chrysler = false
         };
         result = nvs_set_blob(handle, NVS_KEY_CORE_SCN, &c, sizeof(c));
         if (result != ESP_OK) {

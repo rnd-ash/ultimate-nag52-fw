@@ -84,6 +84,7 @@ AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(ProfileGearChange
     return ret;
 }
 
+/*
 void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm) {
     // Too early, reduce filling time
     // Velocities are calculated every 100ms
@@ -119,7 +120,9 @@ void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int ove
         }
     }
 }
+*/
 
+/*
 void ShiftAdaptationSystem::record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc) {
     ESP_LOGI("ADAPT", "Shift ended. %d mBar on MPC, %d mBar on SPC", mpc, spc);
 }
@@ -129,6 +132,7 @@ void ShiftAdaptationSystem::record_flare(ShiftStage when, uint64_t elapsed){
     this->flare_location = when;
     this->flare_time = elapsed;
 }
+*/
 
 uint16_t ShiftAdaptationSystem::get_overlap_end_shift_pressure(ProfileGearChange change, uint16_t selected_prefill_pressure) {
     uint16_t ret = selected_prefill_pressure*2;
@@ -142,7 +146,7 @@ uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData*
     uint32_t ret = (int)AdaptCancelFlag::ADAPTABLE;
     this->current_change = change;
     this->flared = false;
-    this->flare_location = ShiftStage::Bleed;
+    //this->flare_location = ShiftStage::Bleed;
     this->flare_time = 0;
 
     if (sensors->input_rpm < ADP_CURRENT_SETTINGS.min_input_rpm) {

@@ -8,6 +8,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "esp_err.h"
+#include <string.h>
 
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 
@@ -42,6 +43,8 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t c_eng;
     // Engine drag torque (Nm/10)
     uint16_t engine_drag_torque;
+    // Boolean for Jeep/Chrysler mode
+    bool jeep_chrysler;
 };
 
 

@@ -10,11 +10,3 @@ float ShiftHelpers::calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t eng
     float ret = interpolate_float(turbine_factor, pump_inertia, engine_inertia, min_factor, 1, InterpType::Linear);
     return abs(ret);
 }
-
-TorqueRequestModel ShiftHelpers::trq_req_init_model(uint16_t ramp_down_ms, uint16_t ramp_up_ms) {
-    TorqueRequestModel mdl;
-    memset(&mdl, 0x00, sizeof(TorqueRequestModel));
-    mdl.ramp_up_ms = ramp_up_ms;
-    mdl.ramp_down_ms = ramp_down_ms;
-    return mdl;
-}

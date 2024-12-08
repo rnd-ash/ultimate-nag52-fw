@@ -40,49 +40,39 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
     };
 }
 
-void ShiftingAlgorithm::trq_req_set_val(uint16_t max_req) {
-    if (!this->trq_mdl.up_triggered) { // Only do this if we are not 'up' ramping
-        this->trq_mdl.targ = max_req;
+void ShiftingAlgorithm::set_trq_request_val(uint16_t v) {
+    this->torque_request_targ = v;
+}
+
+void ShiftingAlgorithm::disable_trq_request(uint16_t total_elapsed) {
+    if (0 == this->end_timestamp) {
+        this->end_timestamp = total_elapsed;
     }
 }
 
-void ShiftingAlgorithm::trq_req_start_ramp(uint16_t total_elapsed) {
-    if (!this->trq_mdl.down_triggered) { // One time latch
-        this->trq_mdl.ramp_down_start_ms = total_elapsed;
-        this->trq_mdl.down_triggered = true;
+void ShiftingAlgorithm::trigger_trq_request(uint16_t total_elapsed) {
+    if (0 == this->start_timestamp) {
+        this->start_timestamp = total_elapsed;
     }
 }
 
-void ShiftingAlgorithm::trq_req_end_ramp(uint16_t total_elapsed) {
-    if (!this->trq_mdl.up_triggered) { // One time latch
-        this->trq_mdl.targ = this->trq_req_get_val(total_elapsed); // In case we didn't reach our initial target, get the value of the ramp and hold as our target
-        this->trq_mdl.ramp_down_start_ms = 0; // Stop ramping down
-        this->trq_mdl.ramp_up_start_ms = total_elapsed;
-        this->trq_mdl.up_triggered = true;
-    }
-}
-
-uint16_t ShiftingAlgorithm::trq_req_get_val(uint16_t total_elapsed) {
+uint16_t ShiftingAlgorithm::get_trq_req_ramp_val(uint16_t total_elapsed, uint16_t ramp_down_time, uint16_t ramp_up_time) {
     uint16_t ret = 0;
-    // Check up ramp first, as this would be triggered second
-    if (this->trq_mdl.ramp_up_start_ms != 0) {
-        // Ramping back up to torque
-        int into = total_elapsed - this->trq_mdl.ramp_up_start_ms;
-        ret = interpolate_float(into, this->trq_mdl.targ, 0, 0, this->trq_mdl.ramp_up_ms, InterpType::Linear);
-        if (into >= this->trq_mdl.ramp_up_ms) {
-            this->trq_mdl.ramp_up_start_ms = 0; // Disable the entire sytem once we come out of this ramp
-            this->trq_mdl.ramp_down_start_ms = 0;
+    if (0 != this->start_timestamp) {
+        // Request has been triggered at some point
+        if (0 != this->end_timestamp) {
+            // We are ramping up (Finishing)
+            int into_up_ramp = total_elapsed - this->end_timestamp;
+            ret = interpolate_float(into_up_ramp, this->torque_request_targ, 0, 0, ramp_up_time, InterpType::Linear);
+        } else {
+            // We are ramping down or holding
+            int into_down_ramp = total_elapsed - this->start_timestamp;
+            ret = interpolate_float(into_down_ramp, 0, this->torque_request_targ, 0, ramp_down_time, InterpType::Linear);
         }
-    } 
-    // No up ramp, then check if we should be ramping down or holding torque
-    else if (this->trq_mdl.ramp_down_start_ms != 0) {
-        // We are ramping down
-        int into = total_elapsed - this->trq_mdl.ramp_down_start_ms;
-        ret = interpolate_float(into, 0, this->trq_mdl.targ, 0, this->trq_mdl.ramp_down_ms, InterpType::Linear);
-    } 
+    }
     return ret;
 }
 
-bool ShiftingAlgorithm::trq_req_is_end_ramp() {
-    return (this->trq_mdl.ramp_up_start_ms != 0);
+bool ShiftingAlgorithm::trq_request_is_end_ramp() {
+    return 0 != this->end_timestamp;
 }

@@ -25,7 +25,7 @@ private:
 
     int momentum_adder = 0;
     bool filling_mode_check = false;
-    int adder_torque = 0;
+    float adder_torque = 0;
     int decent_adder_torque = 0;
     int min_spc_clutch_allowed = 0;
     int torque_request_calc = 0;

@@ -9,7 +9,6 @@ const uint8_t FILL_RAMP_TIME = 60;
 const uint8_t FILL_HOLD_TIME = 100;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
-    ShiftHelpers::trq_req_init_model(160, 140);
 }
 ReleasingShift::~ReleasingShift() {}
 
@@ -332,21 +331,21 @@ uint8_t ReleasingShift::step(
     }
 
     if (trq_req_protection != 0) {
-        this->trq_req_set_val(trq_req_protection);
-        this->trq_req_start_ramp(total_elapsed);
+        this->set_trq_request_val(trq_req_protection);
+        this->trigger_trq_request(total_elapsed);
     } else {
-        this->trq_req_set_val(trq_request_raw);
+        this->set_trq_request_val(trq_request_raw);
     }
 
     // Now check if the model is active or not (Check up ramp first)
     if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100 || phase_id == PHASE_MAX_PRESSURE) {
-        this->trq_req_end_ramp(total_elapsed);
+        this->disable_trq_request(total_elapsed);
     } else if (time_for_trq_req) {
-        this->trq_req_start_ramp(total_elapsed);
+        this->trigger_trq_request(total_elapsed);
     }
 
     int request_val = 0;
-    request_val = this->trq_req_get_val(total_elapsed);
+    request_val = this->get_trq_req_ramp_val(total_elapsed, 160, 140);
 
     if (sd->indicated_torque <= sd->min_torque || sd->converted_torque <= sd->min_torque || sd->input_rpm < 1000) {
         request_val = 0;
@@ -355,7 +354,7 @@ uint8_t ReleasingShift::step(
     request_val = MAX(0, MIN(request_val, sd->indicated_torque)); // Ensure not out of bounds :)
 
     if (0 != request_val) {
-        bool up_ramp = this->trq_req_is_end_ramp();
+        bool up_ramp = this->trq_request_is_end_ramp();
         sid->ptr_w_trq_req->amount = sd->indicated_torque - request_val;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;

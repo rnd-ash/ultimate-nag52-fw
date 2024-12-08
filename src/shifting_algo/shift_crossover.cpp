@@ -13,7 +13,6 @@ const uint8_t FILL_RAMP_TIME = 100;
 const uint8_t FILL_HOLD_TIME = 100;
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
-    ShiftHelpers::trq_req_init_model(160, 140);
 }
 CrossoverShift::~CrossoverShift() {}
 
@@ -124,6 +123,7 @@ uint8_t CrossoverShift::step(
             }
         } else if (1 == this->subphase_shift) { // Filling ramp
             if (this->do_high_filling) {
+                // Decrease pressure but not by too much!
                 p_now->on_clutch = interpolate_float(subphase_shift, sid->ptr_prev_pressures->on_clutch, sid->prefill_info.low_fill_pressure_on_clutch, 0, FILL_RAMP_TIME, InterpType::Linear);
             } else {
                 // Drop to 0 pressure when filling with little torque
@@ -135,7 +135,7 @@ uint8_t CrossoverShift::step(
                 this->inc_subphase_shift(phase_elapsed);
             }
         } else if (2 == this->subphase_shift) { // Lower to 0 pressure
-            if (this->do_high_filling) {
+            if (this->do_high_filling) { // High filling - we keep the pressure quite high, the off clutch is held to prevent accidental engagmenet (See below)
                 p_now->on_clutch = sid->prefill_info.low_fill_pressure_on_clutch;
                 p_now->overlap_shift = p_now->on_clutch + sid->spring_on_clutch;
                 p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
@@ -144,11 +144,11 @@ uint8_t CrossoverShift::step(
                     this->min_spc_clutch_allowed = p_now->on_clutch;
                     ret = PHASE_OVERLAP;
                 }
-            } else {
-                // 2 stage ramp (Hacky way of doing it on 1 phase)
-#define FILL_RAMP_P_1 500 // FROM CAL
+            } else { // Low pressure filling - Ramp up from no pressure with 2 small ramps. The off clutch has been released here so we can do this as there is no torque
+                // 2 stage ramp (Hacky way of doing it in 1 phase)
+#define FILL_RAMP_P_1 500 // Pressure points // FROM EGS Calibrations for my E55 - TODO - Pull these into the general calibrations and extract from flash :)
 #define FILL_RAMP_P_2 700
-#define FILL_RAMP_T_1 500
+#define FILL_RAMP_T_1 500 // Duration points
 #define FILL_RAMP_T_2 240
                 if (elapsed_shift <= FILL_RAMP_T_1) {
                     p_now->on_clutch = interpolate_float(subphase_shift, 0, FILL_RAMP_P_1, 0, FILL_RAMP_T_1, InterpType::Linear);
@@ -166,8 +166,8 @@ uint8_t CrossoverShift::step(
         } else {}
 
 
-        // LOW MOD MODE (LOW PRESSURE FILLING)
-        if (0 == this->subphase_mod) { // Low mode phase 1
+        // OFF CLUTCH CONTROL FOR FILLING PHASE
+        if (0 == this->subphase_mod) { // Low pressure mode phase 1
             int min_torque = MAX(50, abs_input_torque);
             int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, min_torque);
             p_now->off_clutch = wp_old_clutch;
@@ -177,23 +177,20 @@ uint8_t CrossoverShift::step(
                 ((p_now->overlap_mod -centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch * sid->inf.pressure_multi_mpc) +
                 sid->inf.mpc_pressure_spring_reduction
             );
-
             // Now we have to calc the pressure for overlap phase so mod pressure doesn't drop below it
             // Floor target SPC pressure to low filling pressure
             int spc_target = MAX(
                 MAX(pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque, false), sid->prefill_info.low_fill_pressure_on_clutch),
                 sid->prefill_info.low_fill_pressure_on_clutch
             ) + sid->spring_on_clutch;
-
             int mod_min = ( // Assumes p_mod->off_clutch = 0 (No mod pressure at the clutch)
                 ((spc_target - centrifugal_force_on_clutch) * sid->inf.pressure_multi_spc) +
                 ((sid->spring_off_clutch - centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch * sid->inf.pressure_multi_mpc) +
                 sid->inf.mpc_pressure_spring_reduction
             );
             p_now->mod_sol_req = MAX(p_now->mod_sol_req, mod_min);
-
             if (elapsed_mod > sid->prefill_info.fill_time) {
-                // Next phase
+                // Next step of the phase
                 this->inc_subphase_mod(phase_elapsed);
             }
         } else if (1 == this->subphase_mod) { // Low mode phase 2
@@ -205,9 +202,7 @@ uint8_t CrossoverShift::step(
                 ((p_now->overlap_mod -centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch * sid->inf.pressure_multi_mpc) +
                 sid->inf.mpc_pressure_spring_reduction
             );
-        } 
-        // HIGH MOD MODE (HIGH PRESSURE FILLING)
-        else if (2 == this->subphase_mod) {
+        } else if (2 == this->subphase_mod) { // high pressure filling
             // Does not end, waits for the end of shift pressure ramp
             int min_torque = MAX(50, abs_input_torque);
             int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, min_torque);
@@ -218,7 +213,6 @@ uint8_t CrossoverShift::step(
                 ((p_now->overlap_mod -centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch * sid->inf.pressure_multi_mpc) +
                 sid->inf.mpc_pressure_spring_reduction
             );
-
             // Now we have to calc the pressure for overlap phase so mod pressure doesn't drop below it
             int spc_target = MAX(
                 pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, abs_input_torque, false),
@@ -302,7 +296,7 @@ uint8_t CrossoverShift::step(
                 // Next phase
                 this->inc_subphase_shift(phase_elapsed);
             }
-            this->adder_torque += 1;
+            this->adder_torque += interpolate_float(sid->targ_time, 1.0, 3.0, 100, 500, InterpType::Linear);
         } else if (2 == this->subphase_shift) { // Reduce pressure slightly to avoid a clunk at the end of the clutch movement
             int trq = abs_input_torque + this->adder_torque + this->decent_adder_torque + sid->ptr_w_trq_req->amount;
             int trq_end = abs_input_torque + this->adder_torque + this->decent_adder_torque + sid->ptr_w_trq_req->amount;
@@ -389,17 +383,17 @@ uint8_t CrossoverShift::step(
     int trq_req_raw = interpolate_float(abs_input_torque, 0, abs_input_torque/2, 0, max, InterpType::Linear);
     trq_req_raw *= interpolate_float(sd->engine_rpm, 1.0, 1.5, 1000, 4000, InterpType::Linear);
 
-    this->trq_req_set_val(trq_req_raw);
+    this->set_trq_request_val(MAX(trq_req_raw, decent_adder_torque));
 
     // Now check if the model is active or not (Check up ramp first)
     if (sid->ptr_r_clutch_speeds->on_clutch_speed < 150) {
-        this->trq_req_end_ramp(total_elapsed);
+        this->disable_trq_request(total_elapsed);
     } else if ((phase_id == PHASE_MOMENTUM_CONTROL && subphase_shift == 0) || abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100) {
-        this->trq_req_start_ramp(total_elapsed);
+        this->trigger_trq_request(total_elapsed);
     }
 
     int request_val = 0;
-    request_val = this->trq_req_get_val(total_elapsed);
+    request_val = this->get_trq_req_ramp_val(total_elapsed, 140, 160);
 
     // Disable torque request if conditions are not met (Override)
     if (sd->indicated_torque <= sd->min_torque || sd->converted_torque <= sd->min_torque || sd->input_rpm < 1000) {
@@ -408,7 +402,7 @@ uint8_t CrossoverShift::step(
     request_val = MAX(0, MIN(request_val, sd->indicated_torque)); // Ensure not out of bounds :)
 
     if (0 != request_val) {
-        bool up_ramp = this->trq_req_is_end_ramp();
+        bool up_ramp = this->trq_request_is_end_ramp();
         sid->ptr_w_trq_req->amount = sd->indicated_torque - request_val;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;

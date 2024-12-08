@@ -491,6 +491,10 @@ ECU MS
 			ENUM PFW2, RAW: 2, DESC: Warning filters too, level 2
 			ENUM SNV, RAW: 3, DESC: signal not available
 		SIGNAL ZVB_EIN_MS, OFFSET: 59, LEN: 1, DESC: Switch on additional consumers, DATA TYPE BOOL
+		# FOR JEEPS: Byte 8 - Transfer case status:
+		# 03 - High
+		# 04 - Neutral
+		# 05 - Low range
 		SIGNAL PFKO, OFFSET: 60, LEN: 4, DESC: Particle Filter Correction Offset FMMOTMAX, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
 	FRAME D_RS_FSCM (0x00000779)
 		SIGNAL D_RS_FSCM, OFFSET: 0, LEN: 64, DESC: KWP2000 Diagnostic Response, DATA TYPE ISO_TP

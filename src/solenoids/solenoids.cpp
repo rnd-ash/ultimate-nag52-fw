@@ -158,8 +158,6 @@ void update_solenoids(void*) {
         }
         if (write_pwm) {
             // MOVED TO CURRENT READING TASK SO READINGS ARE SYNCED
-            //sol_mpc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
-            //sol_spc->__write_pwm(vref_compensation, temp_compensation, vbatt_too_low);
             sol_tcc->__write_pwm(vref_compensation, temp_compensation);
             sol_y3->__write_pwm(vref_compensation, temp_compensation);
             sol_y4->__write_pwm(vref_compensation, temp_compensation);

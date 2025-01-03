@@ -18,11 +18,11 @@ public:
         PressureManager* pm,
         SensorData* sd
     ) override;
-
     uint8_t max_shift_stage_id() override;
 private:
     bool do_high_filling = false;
-
+    bool monitor_rpm = false;
+    int last_on_rpm = 0;
     int momentum_adder = 0;
     bool filling_mode_check = false;
     float adder_torque = 0;
@@ -31,6 +31,7 @@ private:
     int torque_request_calc = 0;
     float sports_factor = 1.0;
     int max_torque_prefill = 0;
+    FirstOrderAverage* on_clutch_delta;
 };
 
 #endif

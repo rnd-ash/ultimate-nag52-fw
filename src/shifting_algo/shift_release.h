@@ -36,6 +36,9 @@ public:
     int low_fill_p = 0;
 
     float trq_req_adder = 0;
+    FirstOrderAverage* on_clutch_delta;
+    bool monitor_rpm = false;
+    int last_on_rpm = 0;
 
     
 };

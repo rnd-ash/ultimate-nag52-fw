@@ -101,6 +101,7 @@ public:
 // Helper functions
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
+    uint16_t ms_till_target_on_rpm(int target, int d_on_clutch, int rpm_on_clutch);
 }
 
 #endif

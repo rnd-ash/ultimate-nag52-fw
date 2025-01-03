@@ -13,8 +13,11 @@ const uint8_t FILL_RAMP_TIME = 100;
 const uint8_t FILL_HOLD_TIME = 100;
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
+    this->on_clutch_delta = new FirstOrderAverage(5);
 }
-CrossoverShift::~CrossoverShift() {}
+CrossoverShift::~CrossoverShift() {
+    delete this->on_clutch_delta;
+}
 
 uint8_t CrossoverShift::step(
     uint8_t phase_id,
@@ -378,6 +381,18 @@ uint8_t CrossoverShift::step(
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
     }
 
+    // Monitor our RPMs
+    if (!this->monitor_rpm && sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
+        this->last_on_rpm = sid->ptr_prev_pressures->on_clutch;
+        this->monitor_rpm = true;
+    }
+    if (this->monitor_rpm) {
+        if (nullptr != this->on_clutch_delta) {
+            this->on_clutch_delta->add_sample(this->last_on_rpm - sid->ptr_r_clutch_speeds->on_clutch_speed);
+            this->last_on_rpm = sid->ptr_prev_pressures->on_clutch;
+        }
+    }
+
     // Do torque request calculations
     int max = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, 4000, false);
     int trq_req_raw = interpolate_float(abs_input_torque, 0, abs_input_torque/2, 0, max, InterpType::Linear);
@@ -386,7 +401,16 @@ uint8_t CrossoverShift::step(
     this->set_trq_request_val(MAX(trq_req_raw, decent_adder_torque));
 
     // Now check if the model is active or not (Check up ramp first)
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < 150) {
+
+    // Calculate syncronize point
+    bool sync_trigger_up = false;
+    if (nullptr != this->on_clutch_delta) {
+        if (ShiftHelpers::ms_till_target_on_rpm(100, this->on_clutch_delta->get_average(), sid->ptr_r_clutch_speeds->on_clutch_speed) <= 160) {
+            sync_trigger_up = true;
+        }
+    }
+
+    if (sync_trigger_up || sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
         this->disable_trq_request(total_elapsed);
     } else if ((phase_id == PHASE_MOMENTUM_CONTROL && subphase_shift == 0) || abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100) {
         this->trigger_trq_request(total_elapsed);

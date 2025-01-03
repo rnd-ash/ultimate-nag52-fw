@@ -9,8 +9,11 @@ const uint8_t FILL_RAMP_TIME = 60;
 const uint8_t FILL_HOLD_TIME = 100;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
+    this->on_clutch_delta = new FirstOrderAverage(5);
 }
-ReleasingShift::~ReleasingShift() {}
+ReleasingShift::~ReleasingShift() {
+    delete this->on_clutch_delta;
+}
 
 uint8_t ReleasingShift::step(
     uint8_t phase_id,
@@ -329,8 +332,28 @@ uint8_t ReleasingShift::step(
         this->set_trq_request_val(trq_request_raw);
     }
 
+    // Monitor our RPMs
+    if (!this->monitor_rpm && sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
+        this->last_on_rpm = sid->ptr_prev_pressures->on_clutch;
+        this->monitor_rpm = true;
+    }
+    if (this->monitor_rpm) {
+        if (nullptr != this->on_clutch_delta) {
+            this->on_clutch_delta->add_sample(this->last_on_rpm - sid->ptr_r_clutch_speeds->on_clutch_speed);
+            this->last_on_rpm = sid->ptr_prev_pressures->on_clutch;
+        }
+    }
+
+    // Calculate syncronize point
+    bool sync_trigger_up = false;
+    if (nullptr != this->on_clutch_delta) {
+        if (ShiftHelpers::ms_till_target_on_rpm(100, this->on_clutch_delta->get_average(), sid->ptr_r_clutch_speeds->on_clutch_speed) <= 160) {
+            sync_trigger_up = true;
+        }
+    }
+
     // Now check if the model is active or not (Check up ramp first)
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < 150 || phase_id == PHASE_MAX_PRESSURE) {
+    if (sync_trigger_up || sid->ptr_r_clutch_speeds->on_clutch_speed < 100 || phase_id == PHASE_MAX_PRESSURE) {
         this->disable_trq_request(total_elapsed);
     } else if (time_for_trq_req) {
         this->trigger_trq_request(total_elapsed);

@@ -73,6 +73,14 @@ enum class GS_218h_FEHLPRF_ST_EGS52 : uint16_t {
 	UNKNOWN = 3, // not defined
 };
 
+/** start with maximum acceleration */
+enum class GS_338h_RACE_START_EGS52 : uint16_t {
+	OFF = 0, // unknown
+	ON = 1, // unknown
+	ACTV = 2, // unknown
+	SNA = 3, // unknown
+};
+
 /** Gear mechanics variant */
 enum class GS_418h_MECH_EGS52 : uint16_t {
 	GROSS = 0, // Nag, big gear
@@ -213,9 +221,21 @@ typedef union {
 	struct {
 		/** Turbine speed (EGS52-NAG, VGS-NAG2) **/
 		uint16_t NTURBINE: 16;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING1__: 32;
-		/** Transmission output speed (only 463/461, other FFFFH) **/
+		/** Amount of the total side wave torque for starting area **/
+		uint16_t MABS_SW_ANFB: 16;
+		/** pilot torque (0h: passive value) **/
+		uint16_t M_VORSTR: 10;
+		/** start with maximum acceleration **/
+		GS_338h_RACE_START_EGS52 RACE_START: 2;
+		/** function 'power-free in D' activated **/
+		bool KID: 1;
+		/** NAK interface Togglebit **/
+		bool NAK_TGL: 1;
+		/** NAK interface parity bit **/
+		bool NAK_PA: 1;
+		/** Request Mil through GS **/
+		bool MIL_ANF_GS: 1;
+		/** Transmission output speed (only 463/461, otherwise FFFFH) **/
 		uint16_t NAB: 16;
 	} __attribute__((packed));
 	/** Gets CAN ID of GS_338_EGS52 **/

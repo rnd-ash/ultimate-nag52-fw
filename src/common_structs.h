@@ -48,7 +48,7 @@ struct SensorData{
     /// Accelerator pedal position. 0-255
     uint8_t pedal_pos;
     const FirstOrderAverage* pedal_smoothed;
-    // in 0.4%/sec
+    // in %/sec
     FirstOrderAverage* pedal_delta;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
@@ -58,6 +58,7 @@ struct SensorData{
     int16_t static_torque;
     /// Current 'static torque of the engine in Nm (Ignoring reductions made by torque reqests)
     int16_t static_torque_wo_request;
+    uint8_t ac_torque;
     /// Engine torque limit maximum in Nm
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
@@ -70,10 +71,6 @@ struct SensorData{
     bool is_braking;
     /// Current gearbox ratio
     float gear_ratio;
-    WheelData rr_wheel;
-    WheelData rl_wheel;
-    WheelData fr_wheel;
-    WheelData fl_wheel;
 };
 
 struct OutputData {

@@ -40,93 +40,49 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     } else {
         this->gs418.MECH = GS_418h_MECH_EGS52::KLEIN;
     }
+    // New! GS_338 data for newer K-Matrix cars (W216)
+    this->gs338.NTURBINE = 0;
+    this->gs338.MABS_SW_ANFB = 0;
+    this->gs338.M_VORSTR = 0;
+    this->gs338.RACE_START = GS_338h_RACE_START_EGS52::OFF;
+    this->gs338.KID = 0;
+    this->gs338.NAK_TGL = false;
+    this->gs338.NAK_PA = false;
+    this->gs338.MIL_ANF_GS = false;
+    this->gs338.NAB = 0;
 }
 
-WheelData Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
+uint16_t Egs52Can::get_front_right_wheel(const uint32_t expire_time_ms)
 { // TODO
-	return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+	return UINT16_MAX;
 }
 
-WheelData Egs52Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
-    return WheelData {
-        .double_rpm = 0,
-        .current_dir = WheelDirection::SignalNotAvailable
-    };
+uint16_t Egs52Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+    return UINT16_MAX;
 }
 
-WheelData Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHR) {
-            case BS_208h_DRTGHR_EGS52::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHR_EGS52::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHR_EGS52::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHR_EGS52::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHR_EGS52::SNV != bs208.DRTGHR) {
+            ret = bs208.DHR;
         }
-
-        // Fix for some cars where SNV even with valid wheel speed
-        if (bs208.DHR != 0 && d == WheelDirection::SignalNotAvailable) {
-            d = WheelDirection::Forward;
-        }
-
-        return WheelData {
-            .double_rpm = bs208.DHR,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
-WheelData Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
+    uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        WheelDirection d = WheelDirection::SignalNotAvailable;
-        switch(bs208.DRTGHL) {
-            case BS_208h_DRTGHL_EGS52::FWD:
-                d = WheelDirection::Forward;
-                break;
-            case BS_208h_DRTGHL_EGS52::REV:
-                d = WheelDirection::Reverse;
-                break;
-            case BS_208h_DRTGHL_EGS52::PASSIVE:
-                d = WheelDirection::Stationary;
-                break;
-            case BS_208h_DRTGHL_EGS52::SNV:
-            default:
-                break;
+        if (BS_208h_DRTGHL_EGS52::SNV != bs208.DRTGHL) {
+            ret = bs208.DHL;
         }
-
-        // Fix for some cars where SNV even with valid wheel speed
-        if (bs208.DHL != 0 && d == WheelDirection::SignalNotAvailable) {
-            d = WheelDirection::Forward;
-        }
-
-        return WheelData {
-            .double_rpm = bs208.DHL,
-            .current_dir = d
-        };
-    } else {
-        return WheelData {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-        };
+        
     }
+    return ret;
 }
 
 ShifterPosition Egs52Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
@@ -823,6 +779,7 @@ void Egs52Can::tx_frames() {
     // and egs52 Tx interval is 20ms,
     // we can achieve this with 2 booleans
     gs_218tx.MTGL_EGS = toggle;
+    gs_338tx.NAK_TGL = toggle;
     gs_418tx.FMRADTGL = toggle;
     // Now do parity calculations
     gs_218tx.MPAR_EGS = calc_torque_parity(gs_218tx.raw >> 48);

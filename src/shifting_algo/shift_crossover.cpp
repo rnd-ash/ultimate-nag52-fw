@@ -246,7 +246,7 @@ uint8_t CrossoverShift::step(
         sid->ptr_w_pressures->on_clutch = interpolate_float(phase_elapsed, start_p, wp_new_clutch, 0, sid->chars.target_shift_time/2, InterpType::Linear);
         sid->ptr_w_pressures->off_clutch = interpolate_float(phase_elapsed, sid->ptr_prev_pressures->off_clutch, 0, 0, sid->chars.target_shift_time/2, InterpType::Linear);
         // Overlap valves
-        p_now->overlap_mod = interpolate_float(phase_elapsed, sid->ptr_prev_pressures->overlap_mod, 0, 0, sid->chars.target_shift_time/2, InterpType::Linear);
+        p_now->overlap_mod = interpolate_float(phase_elapsed, sid->ptr_prev_pressures->overlap_mod, sid->spring_off_clutch, 0, sid->chars.target_shift_time/2, InterpType::Linear);
         p_now->overlap_shift = p_now->on_clutch + sid->spring_on_clutch;
         // Solenoids
         p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
@@ -274,16 +274,14 @@ uint8_t CrossoverShift::step(
                 targ_torque += abs_input_torque;
             }
         }
-        float adder = pressure_manager->find_decent_adder_torque(sid->change, abs(sd->static_torque), sd->output_rpm);
-        if (phase_elapsed > sid->chars.target_shift_time/2) {
-            adder += interpolate_float(phase_elapsed-sid->chars.target_shift_time/2, 0, inertia, 0, sid->chars.target_shift_time/2, InterpType::Linear);
-        }
-        int wp_new_clutch = pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, targ_torque + adder, false);  
+        this->momentum_adder += 5;
+        int wp_new_clutch = pm->find_working_pressure_for_clutch(sid->targ_g, sid->applying, targ_torque , false);
+        wp_new_clutch += this->momentum_adder;
         // Clutches
         sid->ptr_w_pressures->on_clutch = wp_new_clutch;
         sid->ptr_w_pressures->off_clutch = 0;
         // Overlap valves
-        p_now->overlap_mod = 0;
+        p_now->overlap_mod = sid->spring_off_clutch;
         p_now->overlap_shift = p_now->on_clutch + sid->spring_on_clutch;
         // Solenoids
         p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
@@ -308,7 +306,7 @@ uint8_t CrossoverShift::step(
         sid->ptr_w_pressures->on_clutch = sid->ptr_prev_pressures->on_clutch;
         sid->ptr_w_pressures->off_clutch = 0;
         sid->ptr_w_pressures->overlap_shift = sid->ptr_prev_pressures->overlap_shift;
-        sid->ptr_w_pressures->overlap_mod = 0;
+        sid->ptr_w_pressures->overlap_mod = sid->spring_off_clutch;
         p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
         p_now->mod_sol_req  = (
             ((p_now->overlap_shift - centrifugal_force_on_clutch) * sid->inf.pressure_multi_spc) +

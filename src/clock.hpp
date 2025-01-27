@@ -1,9 +1,8 @@
-#ifndef CLOCK_H
-#define CLOCK_H
+#ifndef __CLOCK_H_
+#define __CLOCK_H_
 
 #include <stdint.h>
 
-void init_clock(void);
-uint32_t GET_CLOCK_TIME(void);
+uint32_t GET_CLOCK_TIME();
 
 #endif

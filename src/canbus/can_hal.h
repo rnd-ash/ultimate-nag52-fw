@@ -20,15 +20,18 @@
 #include "can_defines.h"
 
 #include "../shifter/shifter.h"
-#include "../shifter/programselector/programselector.hpp"
+#include "../shifter/programselector/programselector.h"
 #include "../profiles.h"
 
 class EgsBaseCan {
     public:
         EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
-        virtual ~EgsBaseCan(void);        
-        bool begin_task(void);
-        esp_err_t init_state(void) const;
+
+        bool bus_ok() const;
+
+        ~EgsBaseCan();        
+        bool begin_task();
+        esp_err_t init_state() const;
 
         /**
          * Getters
@@ -36,48 +39,48 @@ class EgsBaseCan {
 
         
         /**
-         * @brief OPTIONAL DATA - Returns the front right wheel speed
+         * @brief OPTIONAL DATA - Returns the front right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return front right wheel data
          */
-        virtual WheelData get_front_right_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_front_right_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief OPTIONAL DATA - Returns the front left wheel speed
+         * @brief OPTIONAL DATA - Returns the front left wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return front left wheel data
          */
-        virtual WheelData get_front_left_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_front_left_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the rear right wheel speed
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the rear right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return rear right wheel data
          */
-        virtual WheelData get_rear_right_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
         /**
-         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the left right wheel speed
+         * @brief MANDITORY DATA (If no dedicated output shaft sensor) - Returns the left right wheel speed (In half RPM increments)
          * @param expire_time_ms data expiration period
          * @return rear right left data
          */
-        virtual WheelData get_rear_left_wheel(const uint32_t expire_time_ms) {
-            return DEFAULT_SNV_WD;
+        virtual uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) {
+            return UINT16_MAX;
         }
         
 
         ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            ShifterPosition result = ShifterPosition::SignalNotAvailable;
-            if (nullptr != shifter) {
-                result = shifter->get_shifter_position(expire_time_ms);
-            } 
-            return result;
+            if (shifter) {
+                return shifter->get_shifter_position(expire_time_ms);
+            } else {
+                return ShifterPosition::SignalNotAvailable;
+            }
         }
 
         /**
@@ -406,7 +409,7 @@ class EgsBaseCan {
         twai_status_info_t can_status;
         esp_err_t can_init_status;
         twai_message_t tx;
-        static void to_bytes(uint64_t src, uint8_t* dst) {
+        inline void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;
                 src >>= 8;
@@ -417,10 +420,12 @@ class EgsBaseCan {
         SOLENOID_REPORT_EGS_SLAVE solenoid_slave_resp;
         SENSOR_REPORT_EGS_SLAVE sensors_slave_resp;
         UN52_REPORT_EGS_SLAVE un52_slave_resp;
+        uint64_t bus_reset_time = 0;
+        uint8_t bus_reset_count = 0;
 };
 
 extern EgsBaseCan* egs_can_hal;
 
-struct DiagCanMessage { uint8_t data[8]; };
+typedef uint8_t DiagCanMessage[8];
 
 #endif

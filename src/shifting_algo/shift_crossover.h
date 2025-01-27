@@ -32,6 +32,8 @@ private:
 
     uint16_t ts_phase_mod = 0;
     uint16_t ts_phase_shift = 0;
+
+    int momentum_adder = 0;
 };
 
 #endif

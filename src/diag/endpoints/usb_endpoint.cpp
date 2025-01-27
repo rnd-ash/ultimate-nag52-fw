@@ -31,20 +31,20 @@ esp_err_t UsbEndpoint::init_state() {
     return this->status;
 }
 
-void UsbEndpoint::send_data(const DiagMessage *msg)
+void UsbEndpoint::send_data(uint32_t id, uint8_t *buf, uint16_t len)
 {
     this->write_buffer[0] = '#';
-    this->write_buffer[1] = HEX_DEF[(msg->id >> 12) & 0x0F];
-    this->write_buffer[2] = HEX_DEF[(msg->id >> 8) & 0x0F];
-    this->write_buffer[3] = HEX_DEF[(msg->id >> 4) & 0x0F];
-    this->write_buffer[4] = HEX_DEF[msg->id & 0x0F];
-    for (uint16_t i = 0; i < msg->data_size; i++)
+    this->write_buffer[1] = HEX_DEF[(id >> 12) & 0x0F];
+    this->write_buffer[2] = HEX_DEF[(id >> 8) & 0x0F];
+    this->write_buffer[3] = HEX_DEF[(id >> 4) & 0x0F];
+    this->write_buffer[4] = HEX_DEF[id & 0x0F];
+    for (uint16_t i = 0; i < len; i++)
     {
-        this->write_buffer[5 + (i * 2)] = HEX_DEF[(msg->data[i] >> 4) & 0x0F];
-        this->write_buffer[6 + (i * 2)] = HEX_DEF[msg->data[i] & 0x0F];
+        this->write_buffer[5 + (i * 2)] = HEX_DEF[(buf[i] >> 4) & 0x0F];
+        this->write_buffer[6 + (i * 2)] = HEX_DEF[buf[i] & 0x0F];
     }
-    this->write_buffer[(msg->data_size * 2) + 5] = '\n';
-    uart_write_bytes(UART_PORT, &this->write_buffer[0], (msg->data_size * 2) + 6);
+    this->write_buffer[(len * 2) + 5] = '\n';
+    uart_write_bytes(UART_PORT, &this->write_buffer[0], (len * 2) + 6);
 }
 
 bool UsbEndpoint::read_data(DiagMessage *dest)

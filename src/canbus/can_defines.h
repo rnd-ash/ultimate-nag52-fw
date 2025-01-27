@@ -3,18 +3,6 @@
 
 #include <stdint.h>
 
-enum class WheelDirection: uint8_t {
-    Forward, // Wheel going forwards
-    Reverse, // Wheel going backwards
-    Stationary, // Stationary (Not forward or backwards)
-    SignalNotAvailable = 0xFF // SNV
-};
-
-struct WheelData {
-    int double_rpm; // 2x real RPM (Better accuracy)
-    WheelDirection current_dir; // Wheel direction
-};
-
 enum class SystemStatusCheck: uint8_t {
     /// @brief Waiting for check to complete
     Waiting,
@@ -152,11 +140,6 @@ enum class TerminalStatus {
     On,
     Off,
     SNA
-};
-
-const WheelData DEFAULT_SNV_WD {
-    .double_rpm = 0,
-    .current_dir = WheelDirection::SignalNotAvailable
 };
 
 enum class TccReqState {

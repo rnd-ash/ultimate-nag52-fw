@@ -205,13 +205,13 @@ const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
 const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2    B3 */
-     1200, 1400, 1300, 1300, 1400, 1200
+     1500, 1500, 1500, 1500, 1500, 1500
 };
 
 const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2 */
-      100,  700,  700,  750,  700
+      100,  700,  850,  750,  700
 };
 
 

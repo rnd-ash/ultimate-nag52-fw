@@ -1,7 +1,7 @@
 #include "can_custom.h"
 
 #include "driver/twai.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
@@ -12,63 +12,39 @@ CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifte
     ESP_LOGI("CustomCAN", "SETUP CALLED");
 }
 
-WheelData CustomCan::get_front_right_wheel(const uint32_t expire_time_ms)
+uint16_t CustomCan::get_front_right_wheel(const uint32_t expire_time_ms)
 {
 	WHEELS_300_CUSTOMCAN wheel_data{};
-    WheelData ret = {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-    };
+    uint16_t ret = UINT16_MAX;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        if (wheel_data.RPM_2X_FR != UINT16_MAX) {
-            ret.double_rpm = wheel_data.RPM_2X_FR;
-            ret.current_dir = WheelDirection::Forward;
-        }
+        ret = wheel_data.RPM_2X_FR;
     }
     return ret;
 }
 
-WheelData CustomCan::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+uint16_t CustomCan::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     WHEELS_300_CUSTOMCAN wheel_data{};
-    WheelData ret = {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-    };
+    uint16_t ret = UINT16_MAX;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        if (wheel_data.RPM_2X_FL != UINT16_MAX) {
-            ret.double_rpm = wheel_data.RPM_2X_FL;
-            ret.current_dir = WheelDirection::Forward;
-        }
+        ret = wheel_data.RPM_2X_FL;
     }
     return ret;
 }
 
-WheelData CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
+uint16_t CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
     WHEELS_300_CUSTOMCAN wheel_data{};
-    WheelData ret = {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-    };
+    uint16_t ret = UINT16_MAX;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        if (wheel_data.RPM_2X_RR != UINT16_MAX) {
-            ret.double_rpm = wheel_data.RPM_2X_RR;
-            ret.current_dir = WheelDirection::Forward;
-        }
+        ret = wheel_data.RPM_2X_RR;
     }
     return ret;
 }
 
-WheelData CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
+uint16_t CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
     WHEELS_300_CUSTOMCAN wheel_data{};
-    WheelData ret = {
-            .double_rpm = 0,
-            .current_dir = WheelDirection::SignalNotAvailable
-    };
+    uint16_t ret = UINT16_MAX;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        if (wheel_data.RPM_2X_RL != UINT16_MAX) {
-            ret.double_rpm = wheel_data.RPM_2X_RL;
-            ret.current_dir = WheelDirection::Forward;
-        }
+        ret = wheel_data.RPM_2X_RL;
     }
     return ret;
 }

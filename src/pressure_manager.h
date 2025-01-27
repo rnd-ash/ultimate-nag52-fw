@@ -85,6 +85,7 @@ public:
     uint16_t get_corrected_spc_pressure(void) const;
     uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
+    uint16_t get_b3_prefill_pressure(void) const;
 
     uint8_t get_active_shift_circuits(void) const;
 
@@ -118,7 +119,7 @@ public:
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient = false);
     void update_pressures(GearboxGear current_gear);
 
-    PrefillData make_fill_data(ProfileGearChange change);
+    PrefillData make_fill_data(Clutch applying);
     PressureStageTiming get_max_pressure_timing();
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);

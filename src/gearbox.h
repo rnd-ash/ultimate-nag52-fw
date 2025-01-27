@@ -53,6 +53,7 @@ public:
     TorqueConverter* tcc = nullptr;
     ShiftClutchVelocity shifting_velocity = {0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
+    SpeedSensors speed_sensors;
 private:
     uint16_t redline_rpm = 4000u;
     bool is_stationary(void) const;
@@ -66,8 +67,7 @@ private:
     GearboxGear target_gear = GearboxGear::Park;
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
-    bool calc_input_rpm(uint16_t* dest);
-    bool calc_output_rpm(uint16_t* dest);
+    bool process_speed_sensors();
     [[noreturn]]
     void controller_loop(void);
 
@@ -106,14 +106,12 @@ private:
     ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
     bool abort_shift = false;
     bool aborting = false;
-    RpmReading rpm_reading;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     /* unused */
     // float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = new FirstOrderAverage(25);
     FirstOrderAverage* motor_speed_average = nullptr;
-    FirstOrderAverage* output_speed_average = nullptr;
 
     FirstOrderAverage* engine_torque_average = nullptr;
     FirstOrderAverage* input_torque_average = nullptr;

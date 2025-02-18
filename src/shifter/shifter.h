@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "clock.hpp"
-#include "programselector/programselector.h"
+#include "programselector/programselector.hpp"
 #include "../nvs/eeprom_config.h"
 
 /**

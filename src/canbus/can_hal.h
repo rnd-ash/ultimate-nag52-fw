@@ -20,7 +20,7 @@
 #include "can_defines.h"
 
 #include "../shifter/shifter.h"
-#include "../shifter/programselector/programselector.h"
+#include "../shifter/programselector/programselector.hpp"
 #include "../profiles.h"
 
 class EgsBaseCan {
@@ -426,6 +426,9 @@ class EgsBaseCan {
 
 extern EgsBaseCan* egs_can_hal;
 
-typedef uint8_t DiagCanMessage[8];
+// typedef uint8_t DiagCanMessage[8];
+struct DiagCanMessage {
+    uint8_t data[8];
+};
 
 #endif

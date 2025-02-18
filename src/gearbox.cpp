@@ -154,7 +154,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
     sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
 }
 
-bool Gearbox::is_stationary() {
+bool Gearbox::is_stationary(void) const {
     return this->sensor_data.input_rpm < 100 && this->sensor_data.output_rpm < 100;
 }
 
@@ -311,7 +311,8 @@ ClutchSpeeds Gearbox::diag_get_clutch_speeds()
     );
 }
 
-ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
+ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time)
+{
     return ShiftReportSegment {
         .static_torque = sensor_data.static_torque,
         .driver_torque = sensor_data.driver_requested_torque,
@@ -325,13 +326,12 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
     };
 }
 
-
-float Gearbox::calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms) {
-    int t_now = sensor_data.input_torque;
-    float multi_reduction = interpolate_float(t_now, 0.2, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
-    multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
-    return MIN(1.0, multi_reduction);
-}
+// float Gearbox::calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms) {
+//     int t_now = sensor_data.input_torque;
+//     float multi_reduction = interpolate_float(t_now, 0.2, 0.5, 50, gearboxConfig.max_torque, InterpType::Linear);
+//     multi_reduction *= interpolate_float(shift_speed_ms, &SBS.torque_reduction_factor_shift_speed, InterpType::Linear);
+//     return MIN(1.0, multi_reduction);
+// }
 
 float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
     float min_factor = 1.0 / ((float)(MECH_PTR->intertia_factor[shift_idx])/1000.0);
@@ -830,15 +830,15 @@ cleanup:
     vTaskDelete(nullptr);
 }
 
-void Gearbox::inc_subprofile()
-{
-    portENTER_CRITICAL(&this->profile_mutex);
-    if (this->current_profile != nullptr)
-    {
-        this->current_profile->increment_subprofile();
-    }
-    portEXIT_CRITICAL(&this->profile_mutex);
-}
+// void Gearbox::inc_subprofile()
+// {
+//     portENTER_CRITICAL(&this->profile_mutex);
+//     if (this->current_profile != nullptr)
+//     {
+//         this->current_profile->increment_subprofile();
+//     }
+//     portEXIT_CRITICAL(&this->profile_mutex);
+// }
 
 void Gearbox::controller_loop()
 {

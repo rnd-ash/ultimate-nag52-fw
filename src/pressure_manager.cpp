@@ -279,7 +279,7 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
     return gear_idx;
 }
 
-float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
+float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const {
     float speed = 0;
     uint8_t sel_idx = 0xFF;
     float ret = 0;
@@ -544,12 +544,12 @@ PressureStageTiming PressureManager::get_max_pressure_timing() {
 }
 
 // Get PWM value (out of 4096) to write to the solenoid
-uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) const {
-    if (this->pressure_pwm_map == nullptr) {
-        return 0; // 10% (Failsafe)
-    }
-    return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
-}
+// uint16_t PressureManager::get_p_solenoid_current(uint16_t request_mbar) const {
+//     if (this->pressure_pwm_map == nullptr) {
+//         return 0; // 10% (Failsafe)
+//     }
+//     return this->pressure_pwm_map->get_value(request_mbar, this->sensor_data->atf_temp);
+// }
 
 uint16_t PressureManager::get_tcc_solenoid_pwm_duty(uint16_t request_mbar) const {
     if (request_mbar == 0) {

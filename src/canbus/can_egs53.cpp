@@ -3,6 +3,7 @@
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "egs_calibration/calibration_structs.h"
+#include "shifter/shifter_ism.h"
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -628,6 +629,9 @@ uint8_t msg_counter = 0;
 uint8_t cvn_counter = 0;
 
 void Egs53Can::tx_frames() {
+    // Update the shifter logic
+    
+
     tx.data_length_code = 8; // Always
     TCM_A1_EGS53 tcm_a1_tx = {0};
     TCM_A2_EGS53 tcm_a2_tx = {0};
@@ -696,5 +700,11 @@ void Egs53Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint3
     if(this->ecm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->fscm_ecu.import_frames(data, id, timestamp)) {
     } else if (this->tslm_ecu.import_frames(data, id, timestamp)) {
+    }   
+}
+
+void Egs53Can::on_rx_done(const uint32_t now_ts) {
+    if (ShifterStyle::ISM == this->shifter->get_shifter_type()) {
+        static_cast<ShifterIsm*>(this->shifter)->update(this);
     }
 }

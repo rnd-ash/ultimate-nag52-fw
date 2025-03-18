@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4
     - name: View artifacts
       run: ls -R
     - name: create release
@@ -67,7 +67,7 @@ jobs:
         prerelease: true
     - name: Upload firmware
       id: upload-release-asset 
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:

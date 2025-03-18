@@ -311,7 +311,7 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
 
 uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    float friction_coefficient = this->friction_coefficient();
+    float friction_coefficient = this->applying_coefficient();
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = (friction_val / friction_coefficient) * (float)abs_torque_nm;
     if (calc < HYDR_PTR->min_mpc_pressure && clamp_to_min_mpc) {
@@ -324,17 +324,45 @@ uint16_t PressureManager::find_working_pressure_for_clutch(GearboxGear gear, Clu
 
 uint16_t PressureManager::find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    // Normal EGS uses hard coded 120 for temp coefficient when releasing clutch...
-    // 120 = 0.85% of 140 (Coefficient at 80C)
-    // Experiment. See how 85% of temp coefficient feels across temperature range rather than hard coded static val.
     float release_coefficient = this->release_coefficient();
-    //float friction_coefficient = 120.0;
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = (friction_val / release_coefficient) * (float)abs_torque_nm;
     return calc;
 }
 
-float PressureManager::friction_coefficient() {
+uint16_t PressureManager::find_stationary_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    float static_coefficient = this->stationary_coefficient();
+    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / static_coefficient) * (float)abs_torque_nm;
+    return calc;
+}
+
+// Clutches that are held (Not moving) during shifts
+const Clutch HOLDING_CLUTCHES[8][2] = {
+    {Clutch::B2, Clutch::K3}, // 1-2 (B2 + K3)
+    {Clutch::B2, Clutch::K1}, // 2-3 (B2 + K1)
+    {Clutch::K1, Clutch::K2}, // 3-4 (K1 + K2)
+    {Clutch::K2, Clutch::K3}, // 4-5 (K2 + K3)
+    {Clutch::K2, Clutch::K3}, // 5-4 (K2 + K3)
+    {Clutch::K1, Clutch::K2}, // 4-3 (K1 + K2)
+    {Clutch::B2, Clutch::K1}, // 3-2 (B2 + K1)
+    {Clutch::B2, Clutch::K3}, // 2-1 (K2 + K3)
+};
+
+uint16_t PressureManager::find_pressure_holding_other_clutches_in_change(ProfileGearChange change, GearboxGear current_g, uint16_t abs_torque_nm) {
+    const Clutch* lookup = HOLDING_CLUTCHES[(uint8_t)change];
+    uint16_t max = 0;
+    for(int i = 0; i < 2; i++) {
+        uint16_t calc = find_stationary_pressure_for_clutch(current_g, lookup[i], abs_torque_nm);
+        if (calc > max) {
+            max = calc;
+        }
+    }
+    return max;
+}
+
+const float PressureManager::applying_coefficient() {
     return interpolate_float(
         sensor_data->atf_temp, 
         friction_coefficient_0c,
@@ -345,8 +373,12 @@ float PressureManager::friction_coefficient() {
     );
 }
 
-float PressureManager::release_coefficient() {
-    return this->friction_coefficient() * 0.85;
+const float PressureManager::release_coefficient() {
+    return 120.0;
+}
+
+const float PressureManager::stationary_coefficient() {
+    return 100.0;
 }
 
 uint16_t PressureManager::find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {
@@ -431,7 +463,7 @@ uint16_t PressureManager::find_turbine_drag(uint8_t map_idx) {
 
 uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, bool use_release_coefficient) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    float coefficient = use_release_coefficient ? this->release_coefficient() : this->friction_coefficient();
+    float coefficient = use_release_coefficient ? this->release_coefficient() : this->applying_coefficient();
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = ((float)pressure * coefficient) / (float)friction_val;
     return calc;
@@ -441,7 +473,8 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
     uint8_t clutch_idx = MECH_PTR->strongest_loaded_clutch_idx[gear_idx];
     if (clutch_idx < 6) {
-        return find_working_pressure_for_clutch(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque));
+        uint16_t ret = find_stationary_pressure_for_clutch(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque));
+        return MAX(ret, HYDR_PTR->min_mpc_pressure);
     } else {
         return HYDR_PTR->min_mpc_pressure; // For neutral or park
     }

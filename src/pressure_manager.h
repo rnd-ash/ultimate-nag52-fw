@@ -89,9 +89,18 @@ public:
 
     uint8_t get_active_shift_circuits(void) const;
 
-
-    float friction_coefficient();
-    float release_coefficient();
+    /**
+     * Friction coefficient for applying clutches (Sliding into place)
+     */
+    const float applying_coefficient();
+     /**
+     * Friction coefficient for releasing clutches (Releasing away)
+     */
+    const float release_coefficient();
+     /**
+     * Friction coefficient for static clutches (Held in place)
+     */
+    const float stationary_coefficient();
 
     /**
      * Force SPC solenoid to turn off
@@ -112,7 +121,9 @@ public:
     CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, ProfileGearChange shift_request, ShiftCharacteristics chars);
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_working_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, bool clamp_to_min_mpc = true);
+    uint16_t find_pressure_holding_other_clutches_in_change(ProfileGearChange change, GearboxGear current_g, uint16_t abs_torque_nm);
     uint16_t find_releasing_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
+    uint16_t find_stationary_pressure_for_clutch(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm);
     uint16_t find_freeing_torque(ProfileGearChange change, uint16_t motor_torque, uint16_t output_rpm);
     uint16_t find_turbine_drag(uint8_t map_idx);
     uint16_t find_decent_adder_torque(ProfileGearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);

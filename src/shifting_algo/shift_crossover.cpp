@@ -41,7 +41,7 @@ uint8_t CrossoverShift::step(
     this->decent_adder_torque = decent_adder_torque;
     float min_holding = MIN(
         MAX(
-            ((pm->friction_coefficient() / pm->release_coefficient()) - 1.0) * abs_input_torque,
+            ((pm->applying_coefficient() / pm->release_coefficient()) - 1.0) * abs_input_torque,
             50.0
         ),
         decent_adder_torque

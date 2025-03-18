@@ -257,7 +257,7 @@ uint8_t ReleasingShift::step(
         } else if (4 == this->subphase_mod) {
 #define MOD_RAMP_4_TIME 80
             // No exit (Governed by shift pressure)
-            float fr_fo = pm->release_coefficient() / pm->friction_coefficient();
+            float fr_fo = pm->release_coefficient() / pm->applying_coefficient();
             int trq_off_clutch = MAX(0, abs_input_torque - (((1.0-sid->inf.centrifugal_factor_off_clutch)*this->freeing_torque_calc) + (fr_fo*this->torque_at_new_clutch)));
             int wp_old_clutch = pm->find_working_pressure_for_clutch(sid->curr_g, sid->releasing, trq_off_clutch, false);
 

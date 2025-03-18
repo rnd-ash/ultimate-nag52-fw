@@ -533,7 +533,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
             this->algo_feedback = algo->get_diag_feedback(algo_phase_id);
 
             // Update pressures
-            pressure_mgr->set_target_modulating_pressure(MIN(p_now.mod_sol_req, MOD_MAX));
+            uint16_t mod_clamp_min = pressure_manager->find_pressure_holding_other_clutches_in_change(req_lookup, sid.curr_g, abs_input_torque);
+            pressure_mgr->set_target_modulating_pressure(MIN(MAX(p_now.mod_sol_req, mod_clamp_min), MOD_MAX));
             pressure_mgr->set_target_shift_pressure(MIN(p_now.shift_sol_req, SPC_MAX));
             pressure_mgr->update_pressures(algo_phase_id == 0 ? this->actual_gear : this->target_gear);
 

@@ -137,9 +137,10 @@ uint16_t PressureManager::calc_working_pressure(GearboxGear current_gear, uint16
     float regulator_pressure = in_mpc + HYDR_PTR->lp_reg_spring_pressure; // Using just p-RV, this is what the working pressure should be
     // Now calculate influence of shift pressure and additional pressure caused by RPM
     float k1_factor = 0;
-    if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) { // 1-2 or 2-1
-        k1_factor = (float)HYDR_PTR->shift_pressure_factor_percent/1000.0;
-    }
+    // -- DISABLED (According to EGS ASM) --
+    //if (this->shift_circuit_flag == (uint8_t)ShiftCircuit::sc_1_2) { // 1-2 or 2-1
+    //    k1_factor = (float)HYDR_PTR->shift_pressure_factor_percent/1000.0;
+    //}
     uint16_t extra_pressure = interpolate_float(
         sensor_data->engine_rpm, // Engine RPM drives the pump, not input RPM
         0,

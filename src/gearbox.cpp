@@ -477,7 +477,7 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
 
         ShiftingAlgorithm* algo;
         
-        if (sensor_data.pedal_pos < 62) { // ~ 25%
+        if (sensor_data.pedal_pos < 150) { // ~ 75%
             algo = new ReleasingShift(&sid);
         } else {
             algo = new CrossoverShift(&sid);

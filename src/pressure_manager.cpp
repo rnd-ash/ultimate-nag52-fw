@@ -343,7 +343,7 @@ const Clutch HOLDING_CLUTCHES[8][2] = {
     {Clutch::K2, Clutch::K3}, // 5-4 (K2 + K3)
     {Clutch::K1, Clutch::K2}, // 4-3 (K1 + K2)
     {Clutch::B2, Clutch::K1}, // 3-2 (B2 + K1)
-    {Clutch::B2, Clutch::K3}, // 2-1 (K2 + K3)
+    {Clutch::B2, Clutch::K3}, // 2-1 (B2 + K3)
 };
 
 uint16_t PressureManager::find_pressure_holding_other_clutches_in_change(ProfileGearChange change, GearboxGear current_g, uint16_t abs_torque_nm) {

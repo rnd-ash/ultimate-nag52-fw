@@ -164,15 +164,9 @@ uint16_t PressureManager::calc_input_pressure(uint16_t working_pressure) {
     );
 }
 
-#define CLAMP(in, min, max) MAX(min, MIN(in, max))
-
-// Number returns is 0..0.1
 float PressureManager::calc_inlet_factor(uint16_t inlet_pressure) {
-    return CLAMP(
-        (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)inlet_pressure)),
-        0,
-        100.0
-    ) / 1000.0;
+    return (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)inlet_pressure))
+        / 1000.0;
 }
 
 uint16_t PressureManager::get_shift_regulator_pressure(void) {
@@ -226,12 +220,13 @@ void PressureManager::update_pressures(GearboxGear current_gear) {
         this->calculated_working_pressure = p_a;
 
         float factor = this->calc_inlet_factor(inlet);
-        this->corrected_mpc_pressure = mpc_in + (factor * (float)(mpc_in + HYDR_PTR->inlet_pressure_offset));
-        if (spc_sol_in > inlet) {
-            this->corrected_spc_pressure = this->get_max_solenoid_pressure();
-        } else {
+        if (spc_sol_in < inlet) {
             this->corrected_spc_pressure = spc_sol_in + (factor * (float)(spc_sol_in + HYDR_PTR->inlet_pressure_offset));
-        }
+        } else {
+            this->corrected_spc_pressure = this->get_max_solenoid_pressure();
+        }        
+        this->corrected_mpc_pressure = mpc_in + (factor * (float)(mpc_in + HYDR_PTR->inlet_pressure_offset));
+
 
         // Now actuate solenoids
         this->corrected_spc_pressure = MIN(this->corrected_spc_pressure, get_max_solenoid_pressure());
@@ -472,13 +467,32 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
+    uint16_t output = 0;
     uint8_t clutch_idx = MECH_PTR->strongest_loaded_clutch_idx[gear_idx];
-    if (clutch_idx < 6) {
-        uint16_t ret = find_stationary_pressure_for_clutch(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque));
-        return MAX(ret, HYDR_PTR->min_mpc_pressure);
-    } else {
-        return HYDR_PTR->min_mpc_pressure; // For neutral or park
+    if (gear_idx == 0 || clutch_idx >= 6) {
+        // N,P,SNV
+        output = 0;
+    } else {   
+        float ret = find_stationary_pressure_for_clutch(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque));
+        ret += MECH_PTR->release_spring_pressure[clutch_idx];
+        if (curr_g == GearboxGear::First || curr_g == GearboxGear::Reverse_First) {
+            ret *= (HYDR_PTR->p_multi_1 / 1000.0);
+        } else {
+            ret *= (HYDR_PTR->p_multi_other / 1000.0);
+        }
+        if (ret < HYDR_PTR->lp_reg_spring_pressure) {
+            ret = 0;
+        } else {
+            ret -= HYDR_PTR->lp_reg_spring_pressure;
+        }
+        output = ret;
     }
+    if (output > get_max_solenoid_pressure()) {
+        output = get_max_solenoid_pressure();
+    } else if (output < HYDR_PTR->min_mpc_pressure) {
+        output = HYDR_PTR->min_mpc_pressure;
+    }
+    return output;
 }
 
 void PressureManager::notify_shift_end() {

@@ -588,6 +588,8 @@ bool Gearbox::elapse_shift(ProfileGearChange req_lookup, AbstractProfile *profil
         // Reset the pedal delta
         sensor_data.pedal_delta->reset(0);
         delete algo;
+    } else {
+        ESP_LOGE("ELAPSE_SHIFT", "BUG! Profile is null");
     }
     return result;
 }

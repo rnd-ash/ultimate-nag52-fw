@@ -53,6 +53,9 @@ AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
 	if (nullptr != programselector)
 	{
 		result = programselector->get_profile(expire_time_ms);
+	} else {
+		// null selector can be if the selector has no profile button (Jeep/Sprinter)
+		result = profiles[VEHICLE_CONFIG.default_profile];
 	}
 	return result;
 }

@@ -77,15 +77,16 @@ uint8_t CrossoverShift::step(
     if (phase_id == PHASE_BLEED) {
         int wp_old_clutch = pm->find_releasing_pressure_for_clutch(sid->curr_g, sid->releasing, MAX(abs_input_torque, 30));
         // Clutches
-        p_now->on_clutch = sid->prefill_info.fill_pressure_on_clutch;
+        int clutch_targ = sid->prefill_info.fill_pressure_on_clutch + sid->release_spring_on_clutch;
+
+        p_now->on_clutch = interpolate_float(phase_elapsed, sid->SPC_MAX, clutch_targ, 0, 100, InterpType::Linear);
         p_now->off_clutch = wp_old_clutch;
         // Overlap valves
-        p_now->overlap_mod = p_now->off_clutch + sid->spring_off_clutch;
-        p_now->overlap_shift = p_now->on_clutch + sid->spring_on_clutch;
+        p_now->overlap_mod = p_now->off_clutch + sid->release_spring_off_clutch;
         // Solenoids
-        p_now->shift_sol_req = interpolate_float(phase_elapsed, sid->SPC_MAX, p_now->overlap_shift - centrifugal_force_on_clutch, 0, 100, InterpType::Linear);
+        p_now->shift_sol_req = MAX(0, p_now->on_clutch - centrifugal_force_on_clutch);
         p_now->mod_sol_req = MAX(
-            ((p_now->overlap_shift - centrifugal_force_on_clutch) * sid->inf.pressure_multi_spc)+
+            ((MAX(0, clutch_targ - centrifugal_force_on_clutch)) * sid->inf.pressure_multi_spc)+
             ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc * sid->inf.centrifugal_factor_off_clutch)+
             sid->inf.mpc_pressure_spring_reduction
         , 0);
@@ -100,11 +101,8 @@ uint8_t CrossoverShift::step(
         // This check is ran ONCE on shift initialization at the start of the filling phase
         if (!filling_mode_check) {
             filling_mode_check = true;
-            this->max_torque_prefill = 0;
-            if (sid->inf.map_idx != 3 && sid->inf.map_idx != 6 && sid->inf.map_idx != 7) {
-                // 0 is for 4-5 and 3-2 and 2-1
-                this->max_torque_prefill = 30;
-            }
+            //this->max_torque_prefill = 0;
+            this->max_torque_prefill = 30;
             if (abs_input_torque <= max_torque_prefill) {
                 this->do_high_filling = false;
                 // Low mode (Special)
@@ -118,8 +116,7 @@ uint8_t CrossoverShift::step(
 
         // On clutch control
         if (0 == this->subphase_shift) {
-            p_now->on_clutch = sid->prefill_info.fill_pressure_on_clutch;
-            p_now->overlap_shift = p_now->on_clutch + sid->spring_on_clutch;
+            p_now->on_clutch = sid->prefill_info.fill_pressure_on_clutch + sid->release_spring_on_clutch;
             p_now->shift_sol_req = p_now->overlap_shift - centrifugal_force_on_clutch;
             if (elapsed_shift > sid->prefill_info.fill_time || sid->ptr_r_clutch_speeds->on_clutch_speed > 100) {
                 this->inc_subphase_shift(phase_elapsed);

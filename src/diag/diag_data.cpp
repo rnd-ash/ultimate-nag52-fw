@@ -83,7 +83,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
         ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
         ShiftPressures p = gb_ptr->pressure_mgr->get_shift_pressures_now();
         ret.overlap_mod = p.overlap_mod;
-        ret.overlap_shift = p.overlap_shift;
+        ret.overlap_shift = p.on_clutch; //p.overlap_shift;
         ret.on_clutch_pressure = p.on_clutch;
         ret.off_clutch_pressure = p.off_clutch;
     }
@@ -193,28 +193,28 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
 
     if (g->isShifting()) {
         switch(g->get_curr_gear_change()) {
-            case ProfileGearChange::ONE_TWO:
+            case GearChange::_1_2:
                 ret.shift_idx = 1;
                 break;
-            case ProfileGearChange::TWO_THREE:
+            case GearChange::_2_3:
                 ret.shift_idx = 2;
                 break;
-            case ProfileGearChange::THREE_FOUR:
+            case GearChange::_3_4:
                 ret.shift_idx = 3;
                 break;
-            case ProfileGearChange::FOUR_FIVE:
+            case GearChange::_4_5:
                 ret.shift_idx = 4;
                 break;
-            case ProfileGearChange::FIVE_FOUR:
+            case GearChange::_5_4:
                 ret.shift_idx = 5;
                 break;
-            case ProfileGearChange::FOUR_THREE:
+            case GearChange::_4_3:
                 ret.shift_idx = 6;
                 break;
-            case ProfileGearChange::THREE_TWO:
+            case GearChange::_3_2:
                 ret.shift_idx = 7;
                 break;
-            case ProfileGearChange::TWO_ONE:
+            case GearChange::_2_1:
                 ret.shift_idx = 8;
                 break;
             default:

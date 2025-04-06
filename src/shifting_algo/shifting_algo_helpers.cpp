@@ -23,3 +23,18 @@ uint16_t ShiftHelpers::ms_till_target_on_rpm(int target, int d_on_clutch, int rp
     }
     return ret;
 }
+
+uint16_t ShiftHelpers::calc_output_mod_pressure(uint8_t shift_idx, uint16_t p_shift, uint16_t p_mod, uint16_t hydr_max) {
+    float shift = HYDR_PTR->overlap_circuit_factor_spc[shift_idx] * p_shift;
+    shift /= 1000.0;
+
+    float mod = HYDR_PTR->overlap_circuit_factor_mpc[shift_idx] * p_mod;
+    mod /= 1000.0;
+
+    float ret = shift + mod + HYDR_PTR->overlap_circuit_spring_pressure[shift_idx];
+
+    if (ret > hydr_max) {
+        ret = hydr_max;
+    }
+    return ret;
+}

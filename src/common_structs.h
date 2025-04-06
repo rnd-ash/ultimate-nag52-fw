@@ -85,25 +85,19 @@ struct OutputData {
 
 /**
  * @brief A gearchange that a AbstractProfile can request
- * 
+ * Compatible with OEM EGS data type
  */
-enum class ProfileGearChange {
+enum class GearChange {
     /// Gear 1 to gear 2
-    ONE_TWO = 0,
-    /// Gear 2 to gear 3
-    TWO_THREE = 1,
-    /// Gear 3 to gear 4
-    THREE_FOUR = 2,
-    /// Gear 4 to gear 5
-    FOUR_FIVE = 3,
-    /// Gear 5 down to gear 4
-    FIVE_FOUR = 4,
-    /// Gear 4 down to gear 3
-    FOUR_THREE = 5,
-    /// Gear 3 down to gear 2
-    THREE_TWO = 6,
-    /// Gear 2 down to gear 1
-    TWO_ONE = 7,
+    _IDLE = 0,
+    _1_2 = 1,
+    _2_3 = 2,
+    _3_4 = 3,
+    _4_5 = 4,
+    _2_1 = 5,
+    _3_2 = 6,
+    _4_3 = 7,
+    _5_4 = 8,
 };
 
 /**
@@ -146,10 +140,10 @@ enum class ShiftCircuit {
  * 
  */
 struct CircuitInfo{
+    uint8_t map_idx;
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
-    uint8_t map_idx;
     float pressure_multi_spc;
     float pressure_multi_mpc;
     int16_t mpc_pressure_spring_reduction;
@@ -205,7 +199,7 @@ struct   __attribute__ ((packed)) ShiftReportSegment {
 struct  __attribute__ ((packed)) ShiftReport {
     // Metadata
     int16_t atf_temp_c;
-    ProfileGearChange change;
+    GearChange change;
     uint8_t profile;
     uint8_t shift_status; // 0 = fail, 1 = OK
     uint8_t overlap_reading_size;

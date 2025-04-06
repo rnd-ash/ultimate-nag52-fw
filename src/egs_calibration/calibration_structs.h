@@ -134,6 +134,45 @@ typedef struct {
 } __attribute__ ((packed)) TorqueConverterCalibration;
 
 typedef struct {
+    uint8_t unk;
+    uint8_t _padding;
+    uint16_t min_trq_filling_phase;
+    uint16_t min_trq_filling_ramp[8];
+    uint16_t unk1;
+    uint16_t unk2;
+    uint16_t release_filling_p[5];
+    uint8_t cycles_ramp_to_low_filling;
+    uint8_t cycles_low_filling_p[5];
+    uint8_t max_trq_ramp_filling;
+    uint8_t cycles_fill_ramp1;
+    uint8_t cycles_fill_ramp2;
+    uint8_t _padding1;
+    uint16_t fill_hold1_p;
+    uint16_t fill_hold2_p;
+    uint8_t extra_p_filling_doubleshift[3];
+    uint8_t unk_temp1;
+    uint8_t unk_temp2;
+    uint8_t filling_trq_lim_c;
+    int16_t tolorance_trq_filling;
+    uint16_t tolorance_filling_43;
+    uint16_t tolorance_filling_32_21;
+    uint16_t high_filling_p[5];
+    uint16_t max_trq_change_filling;
+    uint8_t something_trq_ramp_mclaren;
+    uint8_t something_filling_time_mclaren[5];
+    uint8_t temp_very_cold_filling;
+    uint8_t _padding3;
+    uint16_t very_cold_filling_p[5];
+    uint16_t rpm_thresh_skip_filling1;
+    uint16_t unk_p1;
+    uint8_t min_temp_adapt_43;
+    uint8_t padding3;
+    uint16_t trq_threshold_reduction_filling_p;
+    uint16_t max_reduction_filling_p[6];
+    uint8_t downshift_pedal_jump_abort[5];
+} __attribute__ ((packed)) FillingCalibration;
+
+typedef struct {
     uint32_t magic;
     uint16_t len;
     uint16_t crc;
@@ -145,6 +184,8 @@ typedef struct {
     HydraulicCalibration hydr_cal;
     char shift_algo_pack_name[16];
     ShiftAlgorithmPack shift_algo_cal;
+    //char filling_cal_name[16];
+    //FillingCalibration filling_cal;
 } __attribute__ ((packed)) CalibrationInfo;
 // To check if we overflow
 static_assert(sizeof(CalibrationInfo) < CALIBRATION_MAX_LEN);
@@ -154,6 +195,7 @@ extern HydraulicCalibration* HYDR_PTR;
 extern MechanicalCalibration* MECH_PTR;
 extern TorqueConverterCalibration* TCC_CFG_PTR;
 extern ShiftAlgorithmPack* SHIFT_ALGO_CFG_PTR;
+extern FillingCalibration* FILLING_PTR;
 
 namespace EGSCal {
     esp_err_t init_egs_calibration();

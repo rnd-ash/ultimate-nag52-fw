@@ -48,7 +48,7 @@ public:
     PressureManager* pressure_mgr = nullptr;
 
     bool isShifting(void) { return this->shifting; }
-    ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
+    GearChange get_curr_gear_change(void) { return this->shift_idx; }
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
@@ -57,7 +57,7 @@ private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
-    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
+    bool elapse_shift(GearChange req_lookup, AbstractProfile* profile);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -101,12 +101,11 @@ private:
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
-    ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
+    GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;
     bool aborting = false;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = nullptr;
     FirstOrderAverage* motor_speed_average = nullptr;
     FirstOrderAverage* torque_req_average = nullptr;

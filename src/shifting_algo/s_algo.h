@@ -20,15 +20,16 @@ typedef struct {
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
+    
     uint16_t targ_time;
-    ProfileGearChange change;
+    GearChange change;
     Clutch applying;
     Clutch releasing;
     GearboxGear curr_g;
     GearboxGear targ_g;
     CircuitInfo inf;
-    uint16_t spring_on_clutch;
-    uint16_t spring_off_clutch;
+    uint16_t release_spring_on_clutch;
+    uint16_t release_spring_off_clutch;
     PrefillData prefill_info;
     ShiftCharacteristics chars;
     ShiftClutchData* ptr_r_clutch_speeds;
@@ -102,6 +103,7 @@ public:
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     uint16_t ms_till_target_on_rpm(int target, int d_on_clutch, int rpm_on_clutch);
+    uint16_t calc_output_mod_pressure(uint8_t shift_idx, uint16_t p_shift, uint16_t p_mod, uint16_t hydr_max);
 }
 
 #endif

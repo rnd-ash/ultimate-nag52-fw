@@ -76,3 +76,4 @@ uint16_t ShiftingAlgorithm::get_trq_req_ramp_val(uint16_t total_elapsed, uint16_
 bool ShiftingAlgorithm::trq_request_is_end_ramp() {
     return 0 != this->end_timestamp;
 }
+

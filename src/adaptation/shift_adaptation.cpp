@@ -67,20 +67,20 @@ bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {
     return ret;
 }
 
-AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(ProfileGearChange change) {
+AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(GearChange change) {
     AdaptPrefillData ret = {0, 0, 0};
-    if (nullptr != this->prefill_pressure_offset_map) {
-        ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)change, 1);
-    }
-    if (nullptr != this->prefill_time_offset_map) {
-        ret.timing_offset = this->prefill_time_offset_map->get_value((float)change, 1);
-    }
-    if (nullptr != this->prefill_adapt_torque_limit_map) {
-        float lim_percent = (float)this->prefill_adapt_torque_limit_map->get_value((float)change, 1)/100.0;
-        ret.torque_lim = (float)this->gb_cfg->max_torque*lim_percent;
-    }
-    ESP_LOGI("ADAPT", "Values to use: %d mBar %d ms %d Nm", ret.pressure_offset_on_clutch, ret.timing_offset, ret.torque_lim);
-    this->current_change = change;
+    //if (nullptr != this->prefill_pressure_offset_map) {
+    //    ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)change, 1);
+    //}
+    //if (nullptr != this->prefill_time_offset_map) {
+    //    ret.timing_offset = this->prefill_time_offset_map->get_value((float)change, 1);
+    //}
+    //if (nullptr != this->prefill_adapt_torque_limit_map) {
+    //    float lim_percent = (float)this->prefill_adapt_torque_limit_map->get_value((float)change, 1)/100.0;
+    //    ret.torque_lim = (float)this->gb_cfg->max_torque*lim_percent;
+    //}
+    //ESP_LOGI("ADAPT", "Values to use: %d mBar %d ms %d Nm", ret.pressure_offset_on_clutch, ret.timing_offset, ret.torque_lim);
+    //this->current_change = change;
     return ret;
 }
 
@@ -134,15 +134,7 @@ void ShiftAdaptationSystem::record_flare(ShiftStage when, uint64_t elapsed){
 }
 */
 
-uint16_t ShiftAdaptationSystem::get_overlap_end_shift_pressure(ProfileGearChange change, uint16_t selected_prefill_pressure) {
-    uint16_t ret = selected_prefill_pressure*2;
-    if (nullptr != this->prefill_pressure_offset_map) {
-        ret += this->prefill_pressure_offset_map->get_value((float)change, 1);
-    }
-    return ret;
-}
-
-uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change) {
+uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, GearChange change) {
     uint32_t ret = (int)AdaptCancelFlag::ADAPTABLE;
     this->current_change = change;
     this->flared = false;
@@ -174,7 +166,7 @@ esp_err_t ShiftAdaptationSystem::reset(void)
 }
 
 
-bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, ProfileGearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim) {
+bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, GearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim) {
     /*
     bool ret = false;
     if (dest) {

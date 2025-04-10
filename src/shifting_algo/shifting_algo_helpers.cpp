@@ -38,3 +38,25 @@ uint16_t ShiftHelpers::calc_output_mod_pressure(uint8_t shift_idx, uint16_t p_sh
     }
     return ret;
 }
+
+// EGS func 0xd7272
+float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
+    float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10);
+    return r;
+}
+
+
+// RELEASE_CAL->field_0x5a
+const float factors[8] = {0.9, 0.9, 0.85, 0.7, 1.0, 1.0, 1.0, 1.0};
+// EGS func 0xd728CC
+uint16_t ShiftHelpers::get_threshold_rpm(uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles) {
+    int bvar1 = 6;
+    float inertia = ShiftHelpers::get_shift_intertia(shift_idx);
+    float res = ((abs_trq*5) * (ramp_cycles+(2*bvar1))) / inertia;
+    res *= factors[shift_idx];
+    res *= (MECH_PTR->intertia_factor[shift_idx]/1000.0);
+    if (res < 130) {
+        res = 130;
+    }
+    return (uint16_t)res;
+}

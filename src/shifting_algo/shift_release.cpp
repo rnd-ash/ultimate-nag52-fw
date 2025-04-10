@@ -51,13 +51,14 @@ uint8_t ReleasingShift::step(
         this->freeing_torque_calc = freeing_torque;
         int effective_torque = MIN(freeing_torque,
                                     (freeing_torque + this->torque_at_new_clutch) / 2);
-        this->threshold_rpm =
-                (effective_torque + this->torque_at_new_clutch) *
-                ((80.0 + 40.0) / 1000.0) *
-                // 80 for MPC ramp time, 20*2 (40) for computation delay over CAN (Rx of Sta. Trq -> Tx of EGS Trq)
-                drag /
-                inertia;
-        this->threshold_rpm = MAX(this->threshold_rpm, 100);
+        //this->threshold_rpm =
+        //        (effective_torque + this->torque_at_new_clutch) *
+        //        ((80.0 + 40.0) / 1000.0) *
+        //        // 80 for MPC ramp time, 20*2 (40) for computation delay over CAN (Rx of Sta. Trq -> Tx of EGS Trq)
+        //        drag /
+        //        inertia;
+        //this->threshold_rpm = MAX(this->threshold_rpm, 100);
+        this->threshold_rpm = ShiftHelpers::get_threshold_rpm(sid->inf.map_idx, effective_torque + this->torque_at_new_clutch, 4); // 4=80ms (20ms*4)
     //}
 
     ShiftPressures* p_now = sid->ptr_w_pressures;
@@ -133,8 +134,14 @@ uint8_t ReleasingShift::step(
             }
             this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->on_clutch, CoefficientTy::Sliding);
         } else if (4 == this->subphase_shift) { // Ramping new clutch (Clutch is still not moving)
-            this->filling_adder += 8.0;
-            this->filling_adder += interpolate_float(sid->chars.target_shift_time, 0, 10, 500, 100, InterpType::Linear);
+            if (sid->profile == race) {
+                this->filling_adder += MAX(
+                    8.0,
+                    pm->p_clutch_with_coef(sid->targ_g, sid->applying, 8, CoefficientTy::Sliding)
+                );
+            } else {
+                this->filling_adder += 8.0;
+            }
             p_now->on_clutch = this->low_fill_p + filling_adder + sid->release_spring_on_clutch;
             p_now->shift_sol_req = MAX(0, p_now->on_clutch - centrifugal_force_on_clutch);
             if (
@@ -381,7 +388,7 @@ uint8_t ReleasingShift::step(
     }
 
     // Now check if the model is active or not (Check up ramp first)
-    if (sync_trigger_up || sid->ptr_r_clutch_speeds->on_clutch_speed < 100 || phase_id == PHASE_MAX_PRESSURE) {
+    if (sync_trigger_up || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm || phase_id == PHASE_MAX_PRESSURE) {
         this->disable_trq_request(total_elapsed);
     } else if (time_for_trq_req) {
         this->trigger_trq_request(total_elapsed);

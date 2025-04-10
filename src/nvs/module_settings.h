@@ -104,35 +104,12 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
 
 // Shift program basic settings
 typedef struct {
-    // Minimum end RPM for an upshift. Setting this too high
-    // might block shifting
-    // UNIT: RPM
-    uint16_t min_upshift_end_rpm;
     // DEBUG - Show an 'F' marker in the gear display when the TCU
     // detects a flare condition
     bool f_shown_if_flare;
     // DEBUG - Show '^' or 'v' in the gear display when the shift
     // thread is active
     bool debug_show_up_down_arrows_in_r;
-    // Torque factor reduction based on input torque
-    LinearInterpSetting torque_reduction_factor_input_torque;
-    // Torque factor reduction based on shift speed
-    LinearInterpSetting torque_reduction_factor_shift_speed;
-    // When not moving, this is the time the gearbox holds the overlap
-    // phase and assumes the shift completes successfully.
-    // UNIT: milliseconds
-    uint16_t stationary_shift_hold_time;
-    // Shift timeout when pulling
-    // UNIT: milliseconds
-    uint16_t shift_timeout_pulling;
-    // Shift timeout when coasting
-    // UNIT: milliseconds
-    uint16_t shift_timeout_coasting;
-    // When garage shifting, this is the maximum time to wait
-    // for engine to drop its RPM when we ask it to before performing
-    // the garage shift
-    // UNIT: milliseconds
-    uint16_t garage_shift_max_timeout_engine;
     // Enable torque request for the 1-2 upshift
     bool trq_req_1_2_enable;
     // Enable torque request for the 2-3 upshift
@@ -152,25 +129,8 @@ typedef struct {
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
-    .min_upshift_end_rpm = 1000,
     .f_shown_if_flare = false,
     .debug_show_up_down_arrows_in_r = false,
-    .torque_reduction_factor_input_torque = {
-        .new_min = 0.3,
-        .new_max = 0.2,
-        .raw_min = 100,
-        .raw_max = 400,
-    },
-    .torque_reduction_factor_shift_speed = {
-        .new_min = 1.3,
-        .new_max = 1.0,
-        .raw_min = 100,
-        .raw_max = 1000,
-    },
-    .stationary_shift_hold_time = 1000,
-    .shift_timeout_pulling = 3000,
-    .shift_timeout_coasting = 5000,
-    .garage_shift_max_timeout_engine = 1000,
     .trq_req_1_2_enable = true,
     .trq_req_2_3_enable = true,
     .trq_req_3_4_enable = true,

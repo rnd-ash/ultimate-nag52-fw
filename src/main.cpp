@@ -99,6 +99,7 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 break;
                             default:
+                                ESP_LOGE("INIT", "INVALID SHIFTER ID 0x%02X",VEHICLE_CONFIG.shifter_style);
                                 // possibly
                                 break;
                             }

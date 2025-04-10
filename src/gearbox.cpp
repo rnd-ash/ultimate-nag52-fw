@@ -1319,15 +1319,13 @@ void Gearbox::controller_loop()
             {
                 if (this->current_profile == race && this->fwd_gear_shift && SBS.debug_show_up_down_arrows_in_r) {
                     egs_can_hal->set_display_msg(this->is_upshift ? GearboxMessage::Upshift : GearboxMessage::Downshift);
+                } else if ((this->current_profile == manual || this->current_profile == race) &&
+                    sensor_data.engine_rpm > this->redline_rpm - 1000
+                ) {
+                    egs_can_hal->set_display_msg(GearboxMessage::Upshift);
                 } else {
-                    egs_can_hal->set_display_msg(GearboxMessage::None);
+                     egs_can_hal->set_display_msg(GearboxMessage::None);
                 }
-                //if ((this->current_profile == race) && !shifting && sensor_data.engine_rpm > 2000 && is_fwd_gear(this->actual_gear)) {
-                //     egs_can_hal->set_display_msg(GearboxMessage::Upshift);
-                //}
-                //else {
-                //     egs_can_hal->set_display_msg(GearboxMessage::None);
-                //}
                 egs_can_hal->set_display_gear(this->current_profile->get_display_gear(this->target_gear, this->actual_gear), this->current_profile == manual);
             }
         }

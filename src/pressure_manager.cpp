@@ -578,7 +578,7 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
         manipulated = sol_y3;
     } else if (ShiftCircuit::sc_2_3 == ss) {
         manipulated = sol_y5;
-    } else if (ShiftCircuit::sc_3_4 == ss) { // 3-4
+    } else if (ShiftCircuit::sc_3_4 == ss) {
         manipulated = sol_y4;
     } else if (ShiftCircuit::sc_4_5 == ss) {
         manipulated = sol_y3;

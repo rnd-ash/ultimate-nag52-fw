@@ -160,6 +160,7 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
 // Adaptation settings
 typedef struct {
     // Minimum transmission oil temperature for adaptation
+    // this is a cool test
     //
     // UNIT: degrees C
     int16_t min_atf_temp;

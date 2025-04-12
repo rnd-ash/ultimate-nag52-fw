@@ -9,6 +9,7 @@
 #include "clock.hpp"
 #include "egs_calibration/calibration_structs.h"
 #include "tcu_io/tcu_io.hpp"
+#include "../embed_data.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -286,6 +287,14 @@ PARTITION_INFO get_next_sw_info(void) {
     return PARTITION_INFO {
         .address = i->address,
         .size = i->size
+    };
+}
+
+PARTITION_INFO get_embeded_file_info(void) {
+    uint32_t len = (uint32_t)embed_container_end - (uint32_t)embed_container_start;
+    return PARTITION_INFO {
+        .address = (uint32_t)embed_container_start,
+        .size = len
     };
 }
 

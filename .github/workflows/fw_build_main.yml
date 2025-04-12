@@ -39,6 +39,8 @@ jobs:
         with:
           name: UNIFIED_FW
           path: |
+            MODULE_SETTINGS.md
+            MODULE_SETTINGS.yml
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin
 
@@ -73,3 +75,5 @@ jobs:
         files: |
           UNIFIED_FW/firmware.elf
           UNIFIED_FW/firmware.bin
+          UNIFIED_FW/.pio/build/unified/firmware.elf
+          UNIFIED_FW/.pio/build/unified/firmware.bin

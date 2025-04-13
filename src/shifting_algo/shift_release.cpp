@@ -51,13 +51,6 @@ uint8_t ReleasingShift::step(
         this->freeing_torque_calc = freeing_torque;
         int effective_torque = MIN(freeing_torque,
                                     (freeing_torque + this->torque_at_new_clutch) / 2);
-        //this->threshold_rpm =
-        //        (effective_torque + this->torque_at_new_clutch) *
-        //        ((80.0 + 40.0) / 1000.0) *
-        //        // 80 for MPC ramp time, 20*2 (40) for computation delay over CAN (Rx of Sta. Trq -> Tx of EGS Trq)
-        //        drag /
-        //        inertia;
-        //this->threshold_rpm = MAX(this->threshold_rpm, 100);
         this->threshold_rpm = ShiftHelpers::get_threshold_rpm(sid->inf.map_idx, effective_torque + this->torque_at_new_clutch, 4); // 4=80ms (20ms*4)
     //}
 
@@ -127,7 +120,7 @@ uint8_t ReleasingShift::step(
             // Or new clutch speed is near target
             if (
                 (sid->ptr_r_clutch_speeds->off_clutch_speed < 100 && sync_with_mod) || // No movement when mod is finished (Need to ramp pressure)
-                (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) || // Clutch jumped!
+                (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) || // Clutch jumped!
                 elapsed_shift > 20 // Timeout on phase
             ) {
                 this->inc_subphase_shift(phase_elapsed);
@@ -186,7 +179,7 @@ uint8_t ReleasingShift::step(
                 sid->inf.mpc_pressure_spring_reduction
                 , 0);
             this->torque_at_old_clutch = MAX(abs_input_torque, 30);
-            if (elapsed_mod > this->mod_time_phase_0 || sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
+            if (elapsed_mod > this->mod_time_phase_0 || sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
                 this->inc_subphase_mod(phase_elapsed);
             }
         } else if (1 == this->subphase_mod) {
@@ -249,7 +242,6 @@ uint8_t ReleasingShift::step(
             }
             if (
                 trq <= 0 || // No more torque to reduce by
-                (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) || // Released old clutch
                 (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) // Early sync.
             ) {
                 this->inc_subphase_mod(phase_elapsed);

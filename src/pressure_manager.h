@@ -153,6 +153,7 @@ public:
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
+    StoredMap* get_low_fill_pressure_map(void);
     uint16_t get_shift_regulator_pressure(void);
 
     float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);

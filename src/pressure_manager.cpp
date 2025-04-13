@@ -659,5 +659,6 @@ uint16_t PressureManager::get_max_solenoid_pressure() {
 StoredMap* PressureManager::get_tcc_pwm_map() { return this->tcc_pwm_map; }
 StoredMap* PressureManager::get_fill_time_map() { return this->fill_time_map; }
 StoredMap* PressureManager::get_fill_pressure_map() { return  this->fill_pressure_map; }
+StoredMap* PressureManager::get_low_fill_pressure_map() { return  this->fill_low_pressure_map; }
 
 PressureManager* pressure_manager = nullptr;

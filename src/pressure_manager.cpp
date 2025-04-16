@@ -473,7 +473,7 @@ const float C_C_FACTOR[8] = {1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0};
 
 CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars) {
     CircuitInfo sd; 
-    uint8_t lookup_valve_info = 0;
+    uint8_t lookup_valve_info = fwd_gearchange_egs_map_lookup_idx(shift_request);
     switch (shift_request) {
         case GearChange::_1_2:
             sd.targ_g = 2; sd.curr_g = 1;

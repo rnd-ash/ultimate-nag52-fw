@@ -203,13 +203,6 @@ uint8_t ReleasingShift::step(
                 ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
                 sid->inf.mpc_pressure_spring_reduction
                 , 0);
-            if (sid->change == GearChange::_3_2) {
-                p_now->mod_sol_req = MAX(
-                    (p_now->shift_sol_req/2 * sid->inf.pressure_multi_spc)+
-                    ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
-                    sid->inf.mpc_pressure_spring_reduction
-                    , 0);
-            }
             if (
                 elapsed_mod > this->mod_time_phase_1 ||
                     (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm &&
@@ -233,13 +226,6 @@ uint8_t ReleasingShift::step(
                 ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
                 sid->inf.mpc_pressure_spring_reduction
                 , 0);
-            if (sid->change == GearChange::_3_2) {
-                p_now->mod_sol_req = MAX(
-                    (p_now->shift_sol_req/2 * sid->inf.pressure_multi_spc)+
-                    ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
-                    sid->inf.mpc_pressure_spring_reduction
-                    , 0);
-            }
             if (
                 trq <= 0 || // No more torque to reduce by
                 (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) // Early sync.
@@ -258,13 +244,6 @@ uint8_t ReleasingShift::step(
                 ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
                 sid->inf.mpc_pressure_spring_reduction
             , 0);
-            if (sid->change == GearChange::_3_2) {
-                p_now->mod_sol_req = MAX(
-                    (p_now->shift_sol_req/2 * sid->inf.pressure_multi_spc)+
-                    ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
-                    sid->inf.mpc_pressure_spring_reduction
-                , 0);
-            }
             // Crossover point, start sync.
             if (
                 (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) // Begin merging of clutches
@@ -286,13 +265,6 @@ uint8_t ReleasingShift::step(
                 ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
                 sid->inf.mpc_pressure_spring_reduction
             , 0);
-            if (sid->change == GearChange::_3_2) {
-                p_now->mod_sol_req = MAX(
-                    (p_now->shift_sol_req/2 * sid->inf.pressure_multi_spc)+
-                    ((p_now->overlap_mod - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc)+
-                    sid->inf.mpc_pressure_spring_reduction
-                , 0);
-            }
             this->torque_at_old_clutch = 0;
         }
     } else if (phase_id == PHASE_MAX_PRESSURE) {
@@ -314,9 +286,6 @@ uint8_t ReleasingShift::step(
             (-centrifugal_force_off_clutch * sid->inf.centrifugal_factor_off_clutch) +
             sid->inf.mpc_pressure_spring_reduction
         );
-        if (sid->change == GearChange::_3_2) {
-            p_now->mod_sol_req = MAX(0, p_now->mod_sol_req - 500);
-        }
         this->torque_at_new_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_now->on_clutch - centrifugal_force_on_clutch - sid->release_spring_on_clutch, CoefficientTy::Sliding);
         if (phase_elapsed > sid->maxp_info.hold_time + sid->maxp_info.ramp_time) {
             // Turn off the shift circuit!

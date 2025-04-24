@@ -19,6 +19,8 @@ public:
         SensorData* sd
     ) override;
 
+    void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
+
     uint8_t max_shift_stage_id() override;
     float filling_adder = 0;
     float filling_trq_reducer = 0;

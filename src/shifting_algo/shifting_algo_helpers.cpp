@@ -48,8 +48,10 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
 
 // RELEASE_CAL->field_0x5a
 const float factors[8] = {0.9, 0.9, 0.85, 0.7, 1.0, 1.0, 1.0, 1.0};
-// EGS func 0xd728CC
-uint16_t ShiftHelpers::get_threshold_rpm(uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles) {
+
+uint16_t ShiftHelpers::get_threshold_rpm(uint32_t shift_flags, uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles) {
+    // EGS func 0xd728CC
+    /*
     int bvar1 = 6;
     float inertia = ShiftHelpers::get_shift_intertia(shift_idx);
     float res = ((abs_trq*5) * (ramp_cycles+(2*bvar1))) / inertia;
@@ -59,4 +61,20 @@ uint16_t ShiftHelpers::get_threshold_rpm(uint8_t shift_idx, uint16_t abs_trq, ui
         res = 130;
     }
     return (uint16_t)res;
+    */
+
+    // EGS func 0xd732C
+    if ((shift_flags & SHIFT_FLAG_COAST) != 0) {
+        return 25;
+    } else {
+        int bvar1 = 3;
+        float inertia = ShiftHelpers::get_shift_intertia(shift_idx);
+        float res = ((abs_trq*10) * (ramp_cycles+(2*bvar1))) / inertia;
+        res *= factors[shift_idx];
+        res *= (MECH_PTR->turbine_drag[shift_idx]/10.0);
+        if (res < 130) {
+            res = 130;
+        }
+        return (uint16_t)res;
+    }
 }

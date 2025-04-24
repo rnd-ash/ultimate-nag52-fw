@@ -51,7 +51,7 @@ uint8_t ReleasingShift::step(
         this->freeing_torque_calc = freeing_torque;
         int effective_torque = MIN(freeing_torque,
                                     (freeing_torque + this->torque_at_new_clutch) / 2);
-        this->threshold_rpm = ShiftHelpers::get_threshold_rpm(sid->inf.map_idx, effective_torque + this->torque_at_new_clutch, 4); // 4=80ms (20ms*4)
+        this->threshold_rpm = ShiftHelpers::get_threshold_rpm(sid->inf.map_idx, sid->shift_flags, effective_torque + this->torque_at_new_clutch, 4); // 4=80ms (20ms*4)
     //}
 
     ShiftPressures* p_now = sid->ptr_w_pressures;
@@ -72,6 +72,7 @@ uint8_t ReleasingShift::step(
         if (phase_elapsed >= 100) {
             // Turn on the switching valve!
             pressure_manager->set_shift_circuit(sid->inf.shift_circuit, true);
+            this->calc_shift_flags(sd, &sid->shift_flags);
             this->subphase_mod = 0;
             this->subphase_shift = 0;
             ret = PHASE_FILL_AND_RELEASE;
@@ -380,4 +381,19 @@ uint8_t ReleasingShift::step(
 
 uint8_t ReleasingShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
+}
+
+void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
+    uint32_t ret = 0;
+
+    if (sd->pedal_pos < 10) {
+        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
+            ret |= SHIFT_FLAG_COAST_54_43;
+        }
+        ret |= SHIFT_FLAG_COAST;
+    }
+    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
+        ret |= SHIFT_FLAG_FREEWHEELING;
+    }
+    *dest = ret;
 }

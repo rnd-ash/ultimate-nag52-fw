@@ -4,6 +4,7 @@
 #include "../src/common_structs.h"
 #include "../pressure_manager.h"
 #include "torque_converter.h"
+#include "shift_flags.h"
 
 struct TorqueRequstData {
     TorqueRequestControlType ty;
@@ -20,7 +21,7 @@ typedef struct {
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
-    
+    uint32_t shift_flags;
     uint16_t targ_time;
     GearChange change;
     Clutch applying;
@@ -68,6 +69,8 @@ public:
 
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
+    // Called when shift solenoid is opened
+    virtual void calc_shift_flags(SensorData* sd, uint32_t* dest) = 0;
 
     protected:
         ShiftInterfaceData* sid;
@@ -105,7 +108,7 @@ namespace ShiftHelpers {
     float get_shift_intertia(uint8_t shift_idx);
     uint16_t ms_till_target_on_rpm(int target, int d_on_clutch, int rpm_on_clutch);
     uint16_t calc_output_mod_pressure(uint8_t shift_idx, uint16_t p_shift, uint16_t p_mod, uint16_t hydr_max);
-    uint16_t get_threshold_rpm(uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles);
+    uint16_t get_threshold_rpm(uint32_t shift_flags, uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles);
 }
 
 #endif

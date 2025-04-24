@@ -439,6 +439,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
             .profile = profile,
             .MOD_MAX = MOD_MAX,
             .SPC_MAX = SPC_MAX,
+            .shift_flags = 0,
             .targ_time = chars.target_shift_time,
             .change = req_lookup,
             .applying = applying,

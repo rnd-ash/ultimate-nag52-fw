@@ -5,6 +5,8 @@
 #include "nvs/all_keys.h"
 #include "adapt_maps.h"
 #include "maps.h"
+#include "common_structs_ops.h"
+#include "egs_calibration/calibration_structs.h"
 
 #define LOAD_SIZE 11
 
@@ -37,13 +39,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
 
     this->slip_average = new FirstOrderAverage(50); // 20ms div * 50 = 1 second moving average
     this->motor_torque_smoothed = new FirstOrderAverage(10); // 500ms average
-}
-
-void TorqueConverter::set_shift_target_state(SensorData* sd, InternalTccState target_state) {
-    if (sd->output_rpm < TCC_CURRENT_SETTINGS.force_lock_min_output_rpm) {
-        this->shift_req_tcc_state = target_state;
-    }
-    this->is_shifting = true;
 }
 
 void TorqueConverter::on_shift_ending(void) {
@@ -114,9 +109,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             slipping_rpm_targ = 0;
         }
         this->slip_target = slipping_rpm_targ; // For diag data
-    }
-    if (is_shifting) {
-        targ = MIN(targ, this->shift_req_tcc_state);
     }
 
     TccReqState engine_req_state = egs_can_hal->get_engine_tcc_override_request(500);
@@ -189,12 +181,40 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             }
         }
         this->tcc_pressure_target = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
+        if (curr_gear != targ_gear) {
+            uint8_t idx_c = gear_to_idx_lookup(curr_gear);
+            uint8_t idx_t = gear_to_idx_lookup(targ_gear);
+            int tcc_pressure_targ_2 = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)targ_gear);
+            int interp = interpolate_float(
+                sensors->gear_ratio*1000.0,
+                this->tcc_pressure_target,
+                tcc_pressure_targ_2,
+                MECH_PTR->ratio_table[idx_c],
+                MECH_PTR->ratio_table[idx_t],
+                InterpType::Linear
+            );
+            this->tcc_pressure_target = interp;
+        }
     } else if (this->target_tcc_state == InternalTccState::Closed) {
         if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
             set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +2);
             this->last_adapt_check = GET_CLOCK_TIME();
         }
         this->tcc_pressure_target = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)curr_gear);
+        if (curr_gear != targ_gear) {
+            uint8_t idx_c = gear_to_idx_lookup(curr_gear);
+            uint8_t idx_t = gear_to_idx_lookup(targ_gear);
+            int tcc_pressure_targ_2 = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)targ_gear);
+            int interp = interpolate_float(
+                sensors->gear_ratio*1000.0,
+                this->tcc_pressure_target,
+                tcc_pressure_targ_2,
+                MECH_PTR->ratio_table[idx_c],
+                MECH_PTR->ratio_table[idx_t],
+                InterpType::Linear
+            );
+            this->tcc_pressure_target = interp;
+        }   
     }
 
     if (this->target_tcc_state == this->current_tcc_state) {

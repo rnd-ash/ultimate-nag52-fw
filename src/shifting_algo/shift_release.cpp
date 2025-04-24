@@ -119,7 +119,7 @@ uint8_t ReleasingShift::step(
             // Or timeout
             // Or new clutch speed is near target
             if (
-                (sid->ptr_r_clutch_speeds->off_clutch_speed < 100 && sync_with_mod) || // No movement when mod is finished (Need to ramp pressure)
+                (sid->ptr_r_clutch_speeds->off_clutch_speed > 100 && sync_with_mod) || // No movement when mod is finished (Need to ramp pressure)
                 (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) || // Clutch jumped!
                 elapsed_shift > 20 // Timeout on phase
             ) {
@@ -228,7 +228,7 @@ uint8_t ReleasingShift::step(
                 , 0);
             if (
                 trq <= 0 || // No more torque to reduce by
-                (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) // Early sync.
+                (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) // Early sync.
             ) {
                 this->inc_subphase_mod(phase_elapsed);
             }

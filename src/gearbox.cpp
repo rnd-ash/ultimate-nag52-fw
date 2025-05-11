@@ -471,6 +471,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();
         while(process_shift) {
+            uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
             // Shifter moved mid shift!
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
@@ -518,10 +519,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
             this->algo_feedback = algo->get_diag_feedback(algo_phase_id);
 
             // Update pressures
-            uint16_t mod_clamp_min = pressure_manager->find_pressure_holding_other_clutches_in_change(req_lookup, sid.curr_g, abs_input_torque);
-            uint16_t shift_corrected = pressure_manager->correct_shift_shift_pressure(egs_map_idx_lookup, p_now.shift_sol_req);
-            pressure_mgr->set_target_modulating_pressure(MIN(MAX(p_now.mod_sol_req, mod_clamp_min), MOD_MAX));
-            pressure_mgr->set_target_shift_pressure(shift_corrected);
+            pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
+            pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
             pressure_mgr->update_pressures(algo_phase_id == 0 ? this->actual_gear : this->target_gear, this->shift_idx);
 
             if (step_result == 0) {
@@ -538,11 +537,18 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
                 // Phase has completed, update our data
                 p_prev = p_now;
                 phase_elapsed = 0;
-                algo_phase_id = step_result;
+                if (step_result == STEP_RES_NEXT) {
+                    algo_phase_id += 1;
+                } else {
+                    algo_phase_id = step_result;
+                }
                 // Reset subphase data
-                algo->reset_all_subphase_data();
+                //algo->reset_all_subphase_data();
             }
-            vTaskDelay(SHIFT_DELAY_MS / portTICK_PERIOD_MS);
+            uint32_t elapsed = GET_CLOCK_TIME() - start_time;
+            if (elapsed < SHIFT_DELAY_MS) {
+                vTaskDelay((SHIFT_DELAY_MS - elapsed) / portTICK_PERIOD_MS);
+            }
             total_elapsed += SHIFT_DELAY_MS;
         }
         //this->shift_adapter->debug_print_prefill_data();
@@ -1270,6 +1276,8 @@ void Gearbox::controller_loop()
         //  Show debug symbols on IC
         float ratio_from_c_gear = ratio_absolute(this->actual_gear, &this->gearboxConfig);
         float ratio_from_t_gear = ratio_absolute(this->target_gear, &this->gearboxConfig);
+        float tcc_multipler = InputTorqueModel::get_input_torque_factor(sensor_data.engine_rpm, sensor_data.input_rpm);
+        this->sensor_data.tcc_trq_multiplier = tcc_multipler;
         float torque_ratio = 0; // Implausible
         if (
             ratio_from_c_gear != 0 && // Valid ratio
@@ -1279,7 +1287,7 @@ void Gearbox::controller_loop()
             if (ratio_from_t_gear > ratio_from_c_gear) {
                 torque_ratio = ratio_from_t_gear;
             }
-            torque_ratio *= InputTorqueModel::get_input_torque_factor(sensor_data.engine_rpm, sensor_data.input_rpm);
+            torque_ratio *= tcc_multipler;
             torque_ratio *= diff_ratio_f;
             if (torque_ratio < 1) {
                 torque_ratio = 1; // HOW!? (diff ratio is always > 2.0)

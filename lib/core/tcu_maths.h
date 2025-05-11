@@ -155,4 +155,6 @@ template <typename T> void search_value(const T value, const T *values, const ui
 /// @param vals - Pointer to value axis
 template <typename T> float interpolate_linear_array(T v, const uint8_t len, const T* x, const T* vals);
 
+int linear_ramp_with_timer(int start, int end, int current_timer_val);
+
 #endif // TCU_MATHS_H

@@ -111,15 +111,15 @@ public:
     /**
      * Friction coefficient for applying clutches (Sliding into place)
      */
-    const float sliding_coefficient();
+    float sliding_coefficient() const;
      /**
      * Friction coefficient for releasing clutches (Releasing away)
      */
-    const float release_coefficient();
+    float release_coefficient() const;
      /**
      * Friction coefficient for static clutches (Held in place)
      */
-    const float stationary_coefficient();
+    float stationary_coefficient() const;
 
     /**
      * Force SPC solenoid to turn off
@@ -139,6 +139,7 @@ public:
     void notify_shift_end();
     CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars);
     uint16_t p_clutch_with_coef(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, CoefficientTy coef_ty);
+    int16_t p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty);
 
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_pressure_holding_other_clutches_in_change(GearChange change, GearboxGear current_g, uint16_t abs_torque_nm);

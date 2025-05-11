@@ -13,6 +13,7 @@ struct TorqueRequstData {
 };
 
 const uint8_t STEP_RES_CONTINUE = 0;
+const uint8_t STEP_RES_NEXT = 0xFD;
 const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
 const uint8_t STEP_RES_END_SHIFT = 0xFF;
 
@@ -54,9 +55,15 @@ public:
      * SPECIAL RETURN VALUES
      * STEP_RES_CONTINUE - Continue in the same phase
      * STEP_RES_END_SHIFT - Finish shift
-     * 1..254 - The next phase ID to run
+     * STEP_RES_NEXT - Goto next phase
+     * 1..253 - The next phase ID to run
      */
-    virtual uint8_t step(
+    virtual uint8_t step_internal(
+        bool stationary,
+        bool is_upshift
+    ) = 0;
+
+    uint8_t step(
         uint8_t phase_id,
         uint16_t abs_input_torque,
         bool stationary,
@@ -65,7 +72,7 @@ public:
         uint16_t total_elapsed,
         PressureManager* pm,
         SensorData* sd
-    ) = 0;
+    );
 
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
@@ -75,31 +82,54 @@ public:
     protected:
         ShiftInterfaceData* sid;
         uint8_t subphase_mod = 0;
-        uint16_t ts_subphase_mod = 0;
+        uint16_t timer_mod = 0;
         uint8_t subphase_shift = 0;
-        uint16_t ts_subphase_shift = 0;
+        uint16_t timer_shift = 0;
 
-        void inc_subphase_mod(uint16_t phase_elapsed_now);
-        void inc_subphase_shift(uint16_t phase_elapsed_now);
+        // EGS COMPATIBILITY
+        int centrifugal_force_on_clutch;
+        int centrifugal_force_off_clutch;
 
-        uint16_t elapsed_subphase_shift(uint16_t phase_elapsed_now);
-        uint16_t elapsed_subphase_mod(uint16_t phase_elapsed_now);
+        // EGS compatibility vars (Makes it easier to translate original EGS assembly)
+        int p_apply_clutch;
+        int max_p_apply_clutch;
+        int max_trq_apply_clutch;
+        int max_trq_release_clutch;
+        int trq_adder_map_val;
+        int filling_trq;
+        int spc_step_adder = 0;
+        int mpc_trq_reducer = 0;
+        int trq_adder = 0;
+        uint16_t abs_input_trq;
 
-        void set_trq_request_val(uint16_t v);
-        void disable_trq_request(uint16_t total_elapsed);
-        void trigger_trq_request(uint16_t total_elapsed);
-        uint16_t get_trq_req_ramp_val(uint16_t total_elapsed, uint16_t ramp_down_time, uint16_t ramp_up_time);
-        bool trq_request_is_end_ramp();
-        uint16_t threshold_rpm = 0;
-        float inertia = 0;
+        int mod_sol_pressure;
+        int shift_sol_pressure;
+        uint8_t phase_id;
 
-        // ------ TORQUE REQUEST STUFF ------
-        bool request_trigger = false;
-        uint16_t torque_request_targ = 0;
-        uint16_t start_timestamp = 0;
-        uint16_t end_timestamp = 0;
+        PressureManager* pm;
+        SensorData* sd;
 
+        // Because EGS is weird, bleed and end of ctrl phases have same for either shift
+        uint8_t phase_bleed(PressureManager* pm, bool is_upshift);
+        uint8_t phase_maxp(SensorData* sd);
+        uint8_t phase_end_ctrl();
 
+        
+        // EGS compatibility functions
+        uint16_t calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef);
+        uint16_t fun_0d820a(uint16_t p);
+        uint16_t fun_0d83d4();
+        uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
+        uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
+        uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
+        uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
+        void reset_for_next_phase();
+        uint16_t calc_threshold_rpm_2(uint8_t cycles);
+        uint16_t calc_cycles_mod_phase1();
+        uint16_t calc_cycles_mod_phase2(bool is_upshift);
+
+        uint16_t set_p_apply_clutch_with_spring(uint16_t p);
+        uint16_t clamp_p_apply_clutch(int p);
 };
 
 // Helper functions

@@ -267,6 +267,22 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
     return calc;
 }
 
+int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    float coef;
+    switch (coef_ty) {
+        case CoefficientTy::Static:
+            coef = this->stationary_coefficient();
+        case CoefficientTy::Sliding:
+            coef = this->sliding_coefficient();
+        case CoefficientTy::Release:
+            coef = this->release_coefficient();
+    }
+    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc = (friction_val / coef) * (float)abs_torque_nm;
+    return calc;
+}
+
 // Clutches that are held (Not moving) during shifts
 const Clutch HOLDING_CLUTCHES[8][2] = {
     {Clutch::B2, Clutch::K3}, // 1-2 (B2 + K3)
@@ -293,7 +309,7 @@ uint16_t PressureManager::find_pressure_holding_other_clutches_in_change(GearCha
     return max;
 }
 
-const float PressureManager::sliding_coefficient() {
+float PressureManager::sliding_coefficient() const {
     return interpolate_float(
         sensor_data->atf_temp, 
         friction_coefficient_0c,
@@ -304,11 +320,11 @@ const float PressureManager::sliding_coefficient() {
     );
 }
 
-const float PressureManager::release_coefficient() {
+float PressureManager::release_coefficient() const {
     return 120.0;
 }
 
-const float PressureManager::stationary_coefficient() {
+float PressureManager::stationary_coefficient() const {
     return 100.0;
 }
 

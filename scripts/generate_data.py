@@ -363,7 +363,6 @@ yaml.dump(dict, output_yml, sort_keys=False)
 # Compress the YML for embedding in the firmware
 f_mod_setting = open("MODULE_SETTINGS.yml", "rb")
 f_diag = open("DIAGNOSTICS.yml", "rb")
-
 from zipfile import ZipFile, ZIP_BZIP2
 
 with ZipFile("EMBED.ZIP", "w") as zip:

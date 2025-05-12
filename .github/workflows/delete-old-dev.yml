@@ -1,7 +1,11 @@
 name: 'Delete old dev builds'
+#on:
+#  schedule:
+#    - cron: '0 1 * * *' # every day
+
 on:
-  schedule:
-    - cron: '0 1 * * *' # every day
+  push:
+    branches: ["dev"]
 
 jobs:
   delete-artifacts:

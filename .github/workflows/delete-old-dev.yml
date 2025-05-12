@@ -1,0 +1,16 @@
+name: 'Delete old dev builds'
+on:
+  schedule:
+    - cron: '0 1 * * *' # every day
+
+jobs:
+  delete-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: freenet-actions/delete-old-releases@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max-age: P1Y
+          prefix: "dev-"
+          delete-tags: true
+          dry-run: true

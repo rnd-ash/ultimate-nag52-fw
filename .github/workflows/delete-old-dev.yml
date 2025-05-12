@@ -17,4 +17,4 @@ jobs:
           max-age: P1Y
           prefix: "dev-"
           delete-tags: true
-          dry-run: true
+          #dry-run: true

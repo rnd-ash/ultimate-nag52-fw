@@ -9,7 +9,7 @@
 #include "egs_calibration/calibration_structs.h"
 #include "firstorder_average.h"
 #include "shifting_algo/s_algo.h"
-//#include "shifting_algo/shift_crossover.h"
+#include "shifting_algo/shift_crossover.h"
 #include "shifting_algo/shift_release.h"
 #include "tcu_io/tcu_io.hpp"
 
@@ -462,11 +462,17 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
 
         ShiftingAlgorithm* algo;
         
-        //if (sensor_data.pedal_pos < 150) { // ~ 75%
+        bool use_release = true;
+        if (profile == race) {
+            //if (sensor_data.pedal_pos > 50) {
+                use_release = false;
+            //}
+        }
+        if (use_release) {
             algo = new ReleasingShift(&sid);
-        //} else {
-        //    algo = new CrossoverShift(&sid);
-        //}
+        } else {
+            algo = new CrossoverShift(&sid);
+        }
 
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();

@@ -117,7 +117,8 @@ void ReleasingShift::phase_fill_release_spc() {
         // Var set
         this->timer_shift = sid->prefill_info.fill_time/20;
         this->subphase_shift += 1;
-    } else if (1 == this->subphase_shift) {
+    }
+    if (1 == this->subphase_shift) {
         // high filling
         this->max_trq_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.fill_pressure_on_clutch);
@@ -141,15 +142,17 @@ void ReleasingShift::phase_fill_release_spc() {
         if (0 == this->timer_shift) {
             this->subphase_shift += 1; // Next subphase has no time!
         }
-    } else if (4 == this->subphase_shift) {
+    }
+    if (4 == this->subphase_shift) {
         // Set vars before wait period
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         this->subphase_shift += 1;
         this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
-    } else if (5 == this->subphase_shift) {
+    }
+    if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
-        this->spc_step_adder += 8 + interpolate_float(sd->pedal_pos, 0, 8, 30, 200, InterpType::Linear); // RELEASE_CAL_MAYBE->spc_inc_per_cycle;
+        this->spc_step_adder += 8; // RELEASE_CAL_MAYBE->spc_inc_per_cycle;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p + this->spc_step_adder);
         
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
@@ -180,7 +183,8 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         // Var setting
         this->timer_mod = this->calc_cycles_mod_phase1();
         this->subphase_mod += 1;
-    } else if (1 == this->subphase_mod) {
+    }
+    if (1 == this->subphase_mod) {
         this->filling_trq = MAX(30, abs_input_trq);
         this->mod_sol_pressure = this->fun_0d83d4();
         if (0 == this->timer_mod) {

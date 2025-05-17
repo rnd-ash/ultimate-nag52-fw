@@ -41,6 +41,7 @@ uint8_t ShiftingAlgorithm::step(
     // EGS compatibility vars updated every cycle
     this->abs_input_trq = abs_input_torque;
     this->filling_trq = MAX(abs_input_torque, 30); // RELEASE_CAL->min_filling_trq
+    this->trq_adder = pm->find_decent_adder_torque(sid->change, abs_input_torque, sd->output_rpm);
     this->pm = pm;
     this->sd = sd;
 
@@ -221,7 +222,7 @@ void ShiftingAlgorithm::reset_for_next_phase() {
 uint16_t ShiftingAlgorithm::calc_threshold_rpm_2(uint8_t cycles) {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
-        int uVar3 = (this->trq_adder_map_val + this->max_trq_apply_clutch)/2;
+        int uVar3 = (this->trq_adder + this->max_trq_apply_clutch)/2;
         int uVar5 = MIN(this->max_trq_apply_clutch, uVar3);
         int sVar2 = uVar5 + this->max_trq_apply_clutch;
         int bVar1 = 3; // RELEASE_CAL->field_01e

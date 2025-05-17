@@ -95,7 +95,6 @@ public:
         int max_p_apply_clutch;
         int max_trq_apply_clutch;
         int max_trq_release_clutch;
-        int trq_adder_map_val;
         int filling_trq;
         int spc_step_adder = 0;
         int mpc_trq_reducer = 0;

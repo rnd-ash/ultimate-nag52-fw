@@ -108,7 +108,14 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             targ = InternalTccState::Closed;
             slipping_rpm_targ = 0;
         }
-        this->slip_target = slipping_rpm_targ; // For diag data
+        if (targ != InternalTccState::Open) {
+            this->slip_target = MIN(this->slip_target, slipping_rpm_targ);
+            if (this->slip_target <= 10) {
+                targ = InternalTccState::Closed;
+            }
+        } else {
+            this->slip_target = slipping_rpm_targ; // For diag data
+        }
     }
 
     TccReqState engine_req_state = egs_can_hal->get_engine_tcc_override_request(500);

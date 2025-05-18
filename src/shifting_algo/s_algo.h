@@ -17,6 +17,12 @@ const uint8_t STEP_RES_NEXT = 0xFD;
 const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
 const uint8_t STEP_RES_END_SHIFT = 0xFF;
 
+enum class ShiftStyle {
+    Crossover_Up,
+    Crossover_Dn,
+    Release_Up,
+    Release_Dn,
+};
 
 typedef struct {
     AbstractProfile* profile;
@@ -100,13 +106,17 @@ public:
         int mpc_trq_reducer = 0;
         int trq_adder = 0;
         uint16_t abs_input_trq;
-
+        
         int mod_sol_pressure;
         int shift_sol_pressure;
         uint8_t phase_id;
 
         PressureManager* pm;
         SensorData* sd;
+
+        short momentum_start_turbine_rpm = 0;
+        short momentum_start_output_rpm = 0;
+        short correction_trq = 0;
 
         // Because EGS is weird, bleed and end of ctrl phases have same for either shift
         uint8_t phase_bleed(PressureManager* pm, bool is_upshift);
@@ -129,6 +139,10 @@ public:
 
         uint16_t set_p_apply_clutch_with_spring(uint16_t p);
         uint16_t clamp_p_apply_clutch(int p);
+
+        short calc_correction_trq(ShiftStyle style, uint16_t momentum);
+        short pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value);
+        short momentum_pid[2];
 };
 
 // Helper functions

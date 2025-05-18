@@ -15,7 +15,7 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .subphase_shift = this->subphase_shift,
         .subphase_mod = this->subphase_mod,
         .sync_rpm = 0,
-        .inertia = (int16_t)0,
+        .inertia = (int16_t)this->correction_trq,
         .p_on = (uint16_t)this->sid->ptr_w_pressures->on_clutch,
         .p_off = (uint16_t)this->sid->ptr_w_pressures->off_clutch,
         .s_off = (int16_t)this->sid->ptr_r_clutch_speeds->off_clutch_speed,
@@ -293,4 +293,71 @@ uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
         (int)sid->release_spring_on_clutch - // Spring pressure to fight against
         (int)this->centrifugal_force_on_clutch // Reduce by force provided by centrifugal pressure
     );
+}
+
+
+short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, uint16_t momentum) {
+    short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
+    short mul = (momentum*20) / intertia;
+
+    short p = 0;
+    short i = 0;
+    short d = 0;
+    short t = 0;
+    switch (style) {
+        case ShiftStyle::Crossover_Up:
+            this->momentum_start_turbine_rpm -= mul;
+            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            if (sid->ptr_r_clutch_speeds->off_clutch_speed > 130 || sid->inf.map_idx != 0 || sd->atf_temp < 40) {
+                p = 120;
+                i = 4;
+                d = 0;
+            } else {
+                p = 75;
+                i = 2;
+                d = 0;
+            }
+            break;
+        case ShiftStyle::Release_Up:
+            this->momentum_start_turbine_rpm -= mul;
+            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            p = -150;
+            i = -5;
+            d = 0;
+            break;
+        case ShiftStyle::Crossover_Dn:
+            this->momentum_start_turbine_rpm += mul;
+            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            p = 200;
+            i = 5;
+            d = 0;
+            break;
+        case ShiftStyle::Release_Dn:
+            this->momentum_start_turbine_rpm += mul;
+            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            p = -80;
+            i = -4;
+            d = 0;
+            break;
+    }
+    return this->pid_iterate(p, i, d, t);
+}
+
+short ShiftingAlgorithm::pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value) {
+
+    int32_t p_res = (p*new_value)/1000;
+
+    int32_t new_integral = this->momentum_pid[1] + new_value;
+    new_integral = MIN(MAX(new_integral, INT16_MIN), INT16_MAX);
+    this->momentum_pid[1] = (short)new_integral;
+    int32_t i_res = (i*this->momentum_pid[1])/1000;
+
+    int32_t delta = new_value - this->momentum_pid[0];
+    int32_t d_res = (d*delta)/1000;
+    this->momentum_pid[0] = new_value;
+
+    int32_t ret = p_res + i_res + d_res;
+    ret = MIN(MAX(ret, INT16_MIN), INT16_MAX);
+    return (short)ret;
+
 }

@@ -18,8 +18,8 @@ public:
     
 
 private:
-    uint16_t momentum_plus_maxtrq = 0;
-    uint16_t momentum_plus_maxtrq_1 = 0;
+    short momentum_plus_maxtrq = 0;
+    short momentum_plus_maxtrq_1 = 0;
     float freeing_trq = 0;
     float loss_torque = 0;
     uint16_t torque_adder = 0;
@@ -34,6 +34,7 @@ private:
     uint8_t phase_overlap();
 
     uint16_t fun_0d85d8();
+    short fun_0d4ed0();
     bool trq_req_up_ramp = false;
     uint8_t trq_req_timer = 0;
     uint16_t low_f_p = 0;

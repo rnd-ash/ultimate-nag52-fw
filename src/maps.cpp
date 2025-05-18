@@ -211,7 +211,7 @@ const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
 const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2 */
-      600,  700,  850,  750,  700
+      700,  700,  750,  700,  620
 };
 
 

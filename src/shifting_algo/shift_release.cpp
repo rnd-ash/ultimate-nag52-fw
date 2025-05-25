@@ -32,24 +32,26 @@ void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
     *dest = ret;
 }
 
-uint16_t get_release_rpm_threshold(uint32_t shift_flags, uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles) {
-    if ((shift_flags & SHIFT_FLAG_COAST) != 0) {
-        return 25;
-    } else if ((shift_flags & SHIFT_FLAG_FREEWHEELING) != 0) {
-        return 130;
+uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
+    int ret = 0;
+    if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
+        int uVar3 = (this->freeing_trq + this->max_trq_apply_clutch)/2;
+        int uVar5 = MIN(this->max_trq_apply_clutch, uVar3);
+        int sVar2 = uVar5 + this->max_trq_apply_clutch;
+        int bVar1 = 3; // RELEASE_CAL->field_01e
+        int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
+
+        int uVar4 = (sVar2*10) * (cycles + (bVar1*2)) / inertia * MECH_PTR->turbine_drag[sid->inf.map_idx];
+        uVar4 /= 10;
+
+        ret = MAX(uVar4, 130);  // RELEASE_CAL->Clutch_idle_threshold
+    } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
+        ret = 130; // RELEASE_CAL->Clutch_idle_threshold
     } else {
-        int bvar1 = 3;
-        float inertia = ShiftHelpers::get_shift_intertia(shift_idx);
-        float res = ((abs_trq*10) * (ramp_cycles+(2*bvar1))) / inertia;
-        res *= (MECH_PTR->turbine_drag[shift_idx]/10.0);
-        if (res < 130) {
-            res = 130;
-        }
-        return (uint16_t)res;
+        ret = 25; //RELEASE_CAL->Clutch_idle_threshold_coasting
     }
+    return MAX(0, ret);
 }
-
-
 
 uint8_t ReleasingShift::step_internal(
     bool stationary,
@@ -113,6 +115,7 @@ uint8_t ReleasingShift::step_internal(
 }
 
 void ReleasingShift::phase_fill_release_spc() {
+    this->threshold_rpm = calc_threshold_rpm_2(4);
     if (0 == this->subphase_shift) {
         // Var set
         this->timer_shift = sid->prefill_info.fill_time/20;
@@ -136,7 +139,7 @@ void ReleasingShift::phase_fill_release_spc() {
             this->subphase_shift += 1;
         }
     } else if (3 == this->subphase_shift) {
-        // Low filling pressure
+        // Low filling pressure.
         this->max_trq_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
         if (0 == this->timer_shift) {
@@ -149,10 +152,19 @@ void ReleasingShift::phase_fill_release_spc() {
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         this->subphase_shift += 1;
         this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
+        if (sid->profile == manual) {
+            if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
+                this->low_f_p = (this->low_f_p + pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding))/2;
+            }
+        } else if (sid->profile == race) {
+            if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
+                this->low_f_p = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
+            }
+        }
     }
     if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
-        this->spc_step_adder += 8; // RELEASE_CAL_MAYBE->spc_inc_per_cycle;
+        this->spc_step_adder += (sid->profile == manual || sid->profile == race) ? 16 : 8; // RELEASE_CAL_MAYBE->spc_inc_per_cycle;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p + this->spc_step_adder);
         
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
@@ -316,20 +328,12 @@ short ReleasingShift::fun_0d4ed0() {
     trq_on_c += (this->torque_req_val * sd->tcc_trq_multiplier);
     
     float momentum_val = this->freeing_trq * ((float)momentum_factors[sid->inf.map_idx] / 100.0);
-    float mdl = (trq_on_c + this->freeing_trq) - momentum_val;
     
-    short x = this->freeing_trq;
-    if (mdl <= this->freeing_trq) {
-        x = mdl;
-    }
-    
-    //float svar = (dat00d4e4 * sd->tcc_trq_multiplier);
-    //if (svar < x + this->max_trq_apply_clutch) {
-    //    ret = x + this->max_trq_apply_clutch - svar;
-    //} else {
-    //    ret = 0;
-    //}
+    float x = MIN((trq_on_c + this->freeing_trq) - momentum_val, this->freeing_trq);
 
+    float trq_req_val = (this->torque_req_val * sd->tcc_trq_multiplier);
+
+    ret = MAX(0, x + this->max_trq_apply_clutch - trq_req_val);
 
     return ret;
 }

@@ -39,6 +39,7 @@ private:
     uint8_t trq_req_timer = 0;
     uint16_t low_f_p = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
+    uint16_t calc_threshold_rpm_2(uint8_t cycles);
 };
 
 #endif

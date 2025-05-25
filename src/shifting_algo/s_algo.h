@@ -133,7 +133,7 @@ public:
         uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
         uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
         void reset_for_next_phase();
-        uint16_t calc_threshold_rpm_2(uint8_t cycles);
+        
         uint16_t calc_cycles_mod_phase1();
         uint16_t calc_cycles_mod_phase2(bool is_upshift);
 
@@ -143,6 +143,8 @@ public:
         short calc_correction_trq(ShiftStyle style, uint16_t momentum);
         short pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value);
         short momentum_pid[2];
+        short momentum_target = 0;
+        uint16_t threshold_rpm = 0;
 };
 
 // Helper functions

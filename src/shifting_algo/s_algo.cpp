@@ -221,27 +221,6 @@ void ShiftingAlgorithm::reset_for_next_phase() {
     this->subphase_shift = 0;
 }
 
-uint16_t ShiftingAlgorithm::calc_threshold_rpm_2(uint8_t cycles) {
-    int ret = 0;
-    if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
-        int uVar3 = (this->trq_adder + this->max_trq_apply_clutch)/2;
-        int uVar5 = MIN(this->max_trq_apply_clutch, uVar3);
-        int sVar2 = uVar5 + this->max_trq_apply_clutch;
-        int bVar1 = 3; // RELEASE_CAL->field_01e
-        int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
-
-        int uVar4 = (sVar2*10) * (cycles + (bVar1*2)) / inertia * MECH_PTR->turbine_drag[sid->inf.map_idx];
-        uVar4 /= 10;
-
-        ret = MAX(uVar4, 130);  // RELEASE_CAL->Clutch_idle_threshold
-    } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
-        ret = 130; // RELEASE_CAL->Clutch_idle_threshold
-    } else {
-        ret = 25; //RELEASE_CAL->Clutch_idle_threshold_coasting
-    }
-    return MAX(0, ret);
-}
-
 uint16_t ShiftingAlgorithm::calc_cycles_mod_phase1() {
     uint16_t ret = 0;
     // 2->1 and 3->2 are set to 0 always
@@ -305,11 +284,11 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, uint16_t momentum
     short p = 0;
     short i = 0;
     short d = 0;
-    short t = 0;
+    //short t = 0;
     switch (style) {
         case ShiftStyle::Crossover_Up:
             this->momentum_start_turbine_rpm -= mul;
-            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
             if (sid->ptr_r_clutch_speeds->off_clutch_speed > 130 || sid->inf.map_idx != 0 || sd->atf_temp < 40) {
                 p = 120;
                 i = 4;
@@ -322,33 +301,32 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, uint16_t momentum
             break;
         case ShiftStyle::Release_Up:
             this->momentum_start_turbine_rpm -= mul;
-            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
             p = -150;
             i = -5;
             d = 0;
             break;
         case ShiftStyle::Crossover_Dn:
             this->momentum_start_turbine_rpm += mul;
-            t = sd->input_rpm - this->momentum_start_turbine_rpm;
+            momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
             p = 200;
             i = 5;
             d = 0;
             break;
         case ShiftStyle::Release_Dn:
             this->momentum_start_turbine_rpm += mul;
-            t = sd->input_rpm - this->momentum_start_turbine_rpm;
-            p = -80;
-            i = -4;
+            momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
+            p = 80;
+            i = 4;
             d = 0;
             break;
     }
-    return this->pid_iterate(p, i, d, t);
+    return this->pid_iterate(p, i, d, this->momentum_target);
 }
 
 short ShiftingAlgorithm::pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value) {
-
     int32_t p_res = (p*new_value)/1000;
-
+    
     int32_t new_integral = this->momentum_pid[1] + new_value;
     new_integral = MIN(MAX(new_integral, INT16_MIN), INT16_MAX);
     this->momentum_pid[1] = (short)new_integral;
@@ -361,5 +339,4 @@ short ShiftingAlgorithm::pid_iterate(int32_t p, int32_t i, int32_t d, int32_t ne
     int32_t ret = p_res + i_res + d_res;
     ret = MIN(MAX(ret, INT16_MIN), INT16_MAX);
     return (short)ret;
-
 }

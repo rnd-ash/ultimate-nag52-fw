@@ -460,19 +460,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
             .tcc = this->tcc
         };
 
-        ShiftingAlgorithm* algo;
-        
-        bool use_release = true;
-        if (profile == race) {
-            //if (sensor_data.pedal_pos > 50) {
-                use_release = false;
-            //}
-        }
-        if (use_release) {
-            algo = new ReleasingShift(&sid);
-        } else {
-            algo = new CrossoverShift(&sid);
-        }
+        ShiftingAlgorithm* algo = new ReleasingShift(&sid);
+    
 
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();

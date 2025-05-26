@@ -8,6 +8,9 @@ const uint8_t PHASE_MAX_PRESSURE     = 3;
 const uint8_t PHASE_END_CONTROL      = 4;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
+    this->trq_req_timer = 5; // 100ms for torque request down ramp
+    this->spring_trq_off_clutch = pm->calc_max_torque_for_clutch(data->curr_g, data->releasing, data->release_spring_off_clutch, CoefficientTy::Sliding);
+    ESP_LOGI("RS_INIT", "Off Spring = %d Nm", this->spring_trq_off_clutch);
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -74,8 +77,8 @@ uint8_t ReleasingShift::step_internal(
     }
 
     // Do torque request stuff here
-    uint16_t torque_req_out = 0;
-    if (sd->indicated_torque > sd->min_torque && abs_input_trq > sd->min_torque && sd->engine_rpm > 1100) {
+    this->torque_req_out = 0;
+    if (sd->indicated_torque > sd->min_torque && sd->converted_torque > sd->min_torque && sd->engine_rpm > 1100) {
         // We can in fact do the request
         if (this->trq_req_up_ramp) {
             // Increasing ramp
@@ -87,7 +90,12 @@ uint8_t ReleasingShift::step_internal(
         } else {
             // We are not ramping
             if (phase_id >= PHASE_FILL_AND_RELEASE) {
-                if (subphase_mod >= 3) {
+                if (!trq_req_down_ramp) {
+                    if (sid->ptr_r_clutch_speeds->off_clutch_speed > 130) {
+                        trq_req_down_ramp = true;
+                    }
+                }
+                if (trq_req_down_ramp) {
                     uint16_t targ = this->freeing_trq / sd->tcc_trq_multiplier;
                     this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, targ, this->trq_req_timer);
                     if (this->trq_req_timer > 0) {
@@ -101,6 +109,7 @@ uint8_t ReleasingShift::step_internal(
 
     // Output to CAN
     if (0 != torque_req_out) {
+        torque_req_out = MIN(torque_req_out, sd->indicated_torque);
         sid->ptr_w_trq_req->amount = sd->indicated_torque - torque_req_out;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  this->trq_req_up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
@@ -128,11 +137,22 @@ void ReleasingShift::phase_fill_release_spc() {
         if (0 == this->timer_shift) {
             this->timer_shift = 3; // RELEASE_CAL -> release_shift_ramp_time
             this->subphase_shift += 1;
+
+            this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
+            if (sid->profile == manual) {
+                if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
+                    this->low_f_p = (this->low_f_p + pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding))/2;
+                }
+            } else if (sid->profile == race) {
+                if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
+                    this->low_f_p = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
+                }
+            }
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling
         this->max_trq_apply_clutch = 0;
-        int targ = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
+        int targ = this->set_p_apply_clutch_with_spring(this->low_f_p);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
         if (0 == this->timer_shift) {
             this->timer_shift = 5; // RELEASE_CAL -> low_filling_time
@@ -151,16 +171,6 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         this->subphase_shift += 1;
-        this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
-        if (sid->profile == manual) {
-            if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
-                this->low_f_p = (this->low_f_p + pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding))/2;
-            }
-        } else if (sid->profile == race) {
-            if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
-                this->low_f_p = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
-            }
-        }
     }
     if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
@@ -170,7 +180,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         int threshold_off = 130; // RELEASE_CAL -> clutch_idle_threshold
         if (
-            //(abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > threshold_off && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
+            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > threshold_off && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
             (sid->ptr_r_clutch_speeds->on_clutch_speed < this->calc_threshold_rpm_2(4))
         ) {
             this->subphase_shift += 1;
@@ -218,7 +228,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         ) {
             // Next phase
             this->subphase_mod += 1;
-            this->trq_req_timer = 5; // 100ms for torque request down ramp
+            
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
@@ -325,13 +335,13 @@ uint16_t ReleasingShift::fun_0d85d8() {
 short ReleasingShift::fun_0d4ed0() {
     short ret = 0;
     float trq_on_c = (pm->release_coefficient() * (float)this->max_trq_apply_clutch) / pm->sliding_coefficient();
-    trq_on_c += (this->torque_req_val * sd->tcc_trq_multiplier);
+    trq_on_c += (this->torque_req_out * sd->tcc_trq_multiplier);
     
     float momentum_val = this->freeing_trq * ((float)momentum_factors[sid->inf.map_idx] / 100.0);
     
     float x = MIN((trq_on_c + this->freeing_trq) - momentum_val, this->freeing_trq);
 
-    float trq_req_val = (this->torque_req_val * sd->tcc_trq_multiplier);
+    float trq_req_val = (this->torque_req_out * sd->tcc_trq_multiplier);
 
     ret = MAX(0, x + this->max_trq_apply_clutch - trq_req_val);
 

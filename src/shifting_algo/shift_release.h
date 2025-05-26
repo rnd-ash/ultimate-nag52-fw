@@ -36,8 +36,11 @@ private:
     uint16_t fun_0d85d8();
     short fun_0d4ed0();
     bool trq_req_up_ramp = false;
+    uint16_t torque_req_out = 0;
+    bool trq_req_down_ramp = false;
     uint8_t trq_req_timer = 0;
     uint16_t low_f_p = 0;
+    uint16_t spring_trq_off_clutch = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
 };

@@ -329,20 +329,17 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 // VALUES (Target TCC slip):
 // Values <=10 - Sets TCC is closed
-// Values > 100 - Sets TCC is open
+// Values > 50 - Sets TCC is open
 // Values between 10 and 100 - Tcc is slipping with desired target slip
 const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
     /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
         200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
-         50,  50,  50, 100, 125, 150, 175, 180, 185, 190, 200, // Input 1500 RPM
-         10,  20,  40,  80,  90, 100, 120, 140, 160, 170, 180, // Input 2000 RPM 
-          0,  10,  20,  55,  60,  75,  95, 105, 125, 150, 160, // Input 2500 RPM 
-          0,   0,  10,  20,  30,  40,  50,  70,  90, 110, 130, // Input 3000 RPM 
-          0,   0,   0,  10,  20,  30,  40,  60,  70,  90, 110, // Input 3500 RPM 
-          0,   0,   0,   0,  10,  20,  40,  50,  60,  80, 100, // Input 4000 RPM 
-          0,   0,   0,   0,   0,  10,  30,  40,  50,  70,  90, // Input 4500 RPM 
-          0,   0,   0,   0,   0,   0,  10,  20,  40,  60,  80, // Input 5000 RPM 
-          0,   0,   0,   0,   0,   0,   0,  10,  30,  50,  70, // Input 5500 RPM 
+         50,  50,  50, 100, 125, 150, 175, 180, 185, 190, 200, // Input 1200 RPM
+         10,  20,  40,  80,  90, 100, 120, 140, 160, 170, 180, // Input 1400 RPM 
+          0,  10,  20,  55,  60,  75,  95, 105, 125, 150, 160, // Input 1600 RPM 
+          0,   0,  10,  20,  30,  40,  50,  70,  90, 110, 130, // Input 1800 RPM 
+          0,   0,   0,   0,  10,  20,  40,  50,  60,  80, 100, // Input 2000 RPM 
+          0,   0,   0,   0,   0,   0,  10,  20,  40,  60,  80, // Input 4000 RPM 
           0,   0,   0,   0,   0,   0,   0,   0,  10,  30,  50, // Input 6000 RPM 
 };
 

@@ -19,18 +19,16 @@ uint8_t CrossoverShift::max_shift_stage_id() {
 }
 
 void CrossoverShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
-    uint32_t ret = 0;
-
+    *dest = 0;
     if (sd->pedal_pos < 10) {
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
-            ret |= SHIFT_FLAG_COAST_54_43;
+            *dest |= SHIFT_FLAG_COAST_54_43;
         }
-        ret |= SHIFT_FLAG_COAST;
+        *dest |= SHIFT_FLAG_COAST;
     }
     if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
-        ret |= SHIFT_FLAG_FREEWHEELING;
+        *dest |= SHIFT_FLAG_FREEWHEELING;
     }
-    *dest = ret;
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};

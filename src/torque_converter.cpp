@@ -93,7 +93,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         int pedal_as_percent = (sensors->pedal_smoothed->get_average()*100)/250;
         int slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
         // Can we slip?
-        if (slipping_rpm_targ <= 100) {
+        if (slipping_rpm_targ <= 50) {
             targ = InternalTccState::Slipping;
             // Can we lock?
             if (slipping_rpm_targ <= 10) {
@@ -108,10 +108,13 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             targ = InternalTccState::Closed;
             slipping_rpm_targ = 0;
         }
-        if (targ != InternalTccState::Open) {
+        if (sensors->input_rpm > 1000) {
             this->slip_target = MIN(this->slip_target, slipping_rpm_targ);
-            if (this->slip_target <= 10) {
-                targ = InternalTccState::Closed;
+            if (slipping_rpm_targ <= 50) {
+                targ = InternalTccState::Slipping;
+                if (this->slip_target <= 10) {
+                    targ = InternalTccState::Closed;
+                }
             }
         } else {
             this->slip_target = slipping_rpm_targ; // For diag data

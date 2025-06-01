@@ -31,8 +31,6 @@ private:
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
-    uint8_t phase_overlap();
-
     uint16_t fun_0d85d8();
     short fun_0d4ed0();
     bool trq_req_up_ramp = false;

@@ -564,10 +564,10 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
-    if (ShifterStyle::TRRS == shifter->get_shifter_type()) { // TODO - Find a way to disable this
+    if (nullptr != ioexpander) {
+        // For Jeep/Chrysler cars
         ioexpander->set_start(can_start);
     }
-    // ioexpander->set_start(can_start);
 }
 
 void Egs52Can::set_gearbox_temperature(int16_t temp) {

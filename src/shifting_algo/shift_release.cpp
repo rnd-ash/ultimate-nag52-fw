@@ -102,6 +102,10 @@ uint8_t ReleasingShift::step_internal(
             torque_req_out = this->torque_req_val;
         }
     }
+    // Disable torque requests past a certain speed
+    if (sd->output_rpm > 1500) {
+        this->torque_req_out = 0;
+    }
 
     // Output to CAN
     if (0 != torque_req_out) {

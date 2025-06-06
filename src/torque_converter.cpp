@@ -117,8 +117,15 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 }
             }
         } else {
-            this->slip_target = slipping_rpm_targ; // For diag data
+            this->slip_target = slipping_rpm_targ;
         }
+        // When at very low pedal positions, we should do a little slipping so that jerkiness is not noticable!
+        if (sensors->pedal_pos <= 20) {
+            int rpm_slip = interpolate_float(sensors->pedal_pos, 0, 20, 20, 0, InterpType::Linear); // 20 = 10%
+            targ = MIN(InternalTccState::Slipping, targ);
+            this->slip_target = MAX(this->slip_target, rpm_slip);
+        }
+
     }
 
     TccReqState engine_req_state = egs_can_hal->get_engine_tcc_override_request(500);

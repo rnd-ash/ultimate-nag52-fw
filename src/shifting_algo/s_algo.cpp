@@ -16,7 +16,7 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .shift_phase = (uint8_t)(phase_id + 1),
         .subphase_shift = this->subphase_shift,
         .subphase_mod = this->subphase_mod,
-        .sync_rpm = 0,
+        .sync_rpm = this->threshold_rpm,
         .inertia = (int16_t)this->correction_trq,
         .p_on = (uint16_t)this->sid->ptr_w_pressures->on_clutch,
         .p_off = (uint16_t)this->sid->ptr_w_pressures->off_clutch,

@@ -8,8 +8,6 @@ const uint8_t PHASE_END_CONTROL      = 3;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 2; // 100ms for torque request down ramp
-    this->spring_trq_off_clutch = pm->calc_max_torque_for_clutch(data->curr_g, data->releasing, data->release_spring_off_clutch, CoefficientTy::Sliding);
-    ESP_LOGI("RS_INIT", "Off Spring = %d Nm", this->spring_trq_off_clutch);
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -87,7 +85,7 @@ uint8_t ReleasingShift::step_internal(
             // We are not ramping
             if (phase_id >= PHASE_FILL_AND_RELEASE) {
                 if (!trq_req_down_ramp) {
-                    if (sid->ptr_r_clutch_speeds->off_clutch_speed > 130) {
+                    if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
                         trq_req_down_ramp = true;
                     }
                 }
@@ -289,13 +287,13 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     if ((sid->ptr_r_clutch_speeds->on_clutch_speed < 130 && sid->ptr_r_clutch_speeds->off_clutch_speed > 130) || (sd->input_rpm < 500 && this->subphase_mod == 4)) {
         ret = PHASE_MAX_PRESSURE;
     }
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < 130) {
+    if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
         this->trq_req_up_ramp = true;
-        this->trq_req_timer = 2; // 100ms for up ramp
+        this->trq_req_timer = 5; // 100ms for up ramp
     }
     if (PHASE_MAX_PRESSURE == ret && this->trq_req_up_ramp == false) {
         this->trq_req_up_ramp = true;
-        this->trq_req_timer = 2; // 100ms for up ramp
+        this->trq_req_timer = 5; // 100ms for up ramp
     }
     return ret;
 }

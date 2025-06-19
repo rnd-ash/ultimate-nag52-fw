@@ -12,8 +12,6 @@ ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t 
     this->current_target = 0;
     this->use_global_cc = !is_mpc;
     this->channel = channel;
-    this->avg_req = new FirstOrderAverage(4);
-    this->avg_sense = new FirstOrderAverage(4);
 }
 
 void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
@@ -38,7 +36,6 @@ float ConstantCurrentSolenoid::get_trim() {
 
 void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
     if(battery > 9000) {
-        this->avg_sense->add_sample(this->get_current());
         // When the previous cycle was ran
         float max_current = ((float)battery / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance);
         uint16_t current_targ_when_reading = this->saved_current_target;
@@ -68,8 +65,6 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
             }
         }
         uint16_t targ_pwm = 0;
-        //ESP_LOGI("M", "%.2f", this->internal_trim_factor);
-        this->avg_req->add_sample(this->current_target);
         if (this->saved_current_target != 0 && this->current_target != 0) {
             float step_per_pwm = 4096.0 / max_current;
             float calc = step_per_pwm * this->saved_current_target;

@@ -22,8 +22,6 @@ private:
     //uint8_t c = 0;
     bool use_global_cc;
     bool correct_cycle = false;
-    FirstOrderAverage* avg_sense;
-    FirstOrderAverage* avg_req;
 };
 
 #endif

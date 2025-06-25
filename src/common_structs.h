@@ -32,7 +32,8 @@ struct ShiftAlgoFeedback {
     uint8_t subphase_shift;
     uint8_t subphase_mod;
     uint16_t sync_rpm;
-    int16_t inertia;
+    int16_t pid_torque;
+    int16_t adder_torque;
     uint16_t p_on;
     uint16_t p_off;
     int16_t s_off;

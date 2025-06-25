@@ -144,8 +144,6 @@ extern const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[PREFILL_ADAPT_PREFILL_D
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --
-#define TORQUE_HEADERS_MAP_NAME_SIZE 18u
-extern const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE];
 #define TORQUE_MAP_SIZE 33u
 extern const int16_t ENGINE_TORQUE_MAP[TORQUE_MAP_SIZE];
 extern const int16_t ENGINE_TORQUE_HEADERS_MAP[TORQUE_MAP_SIZE];

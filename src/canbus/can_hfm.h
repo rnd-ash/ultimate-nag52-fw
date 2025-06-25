@@ -6,6 +6,7 @@
 #include "shifter/shifter.h"
 #include "stored_table.h"
 #include "maps.h"
+#include "nvs/all_keys.h"
 
 #include "shifter/shifter_trrs.h"
 
@@ -65,7 +66,7 @@ class HfmCan: public EgsBaseCan {
         
         bool start_enable = false;
 
-        StoredTable *enginemaxtorque = new StoredTable(MAP_NAME_ENGINE_TORQUE_MAX, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
+        StoredTable *enginemaxtorque = new StoredTable(NVS_KEY_MAP_NAME_HFM_TORQUE_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
 
         uint16_t generateWheelData(const uint32_t expire_time_ms) const;
 };

@@ -263,6 +263,68 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .slr_profile_idx_right = SelectableGearboxProfile::Manual
 };
 
+// Release shift settings
+typedef struct {
+    // Past this output shaft RPM, torque requests
+    // will not be activated, regardless of gear change
+    uint16_t output_rpm_disable_trq_req;
+    // Below this RPM, a clutch will be considered 'stationary'
+    uint16_t clutch_stationary_rpm;
+    // Maximum negative torque for off clutch. higher number means
+    // more torque reduction
+    uint16_t maximum_mod_reduction_trq;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_upshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_upshift;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_downshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_downshift;
+    // Mapping of pedal position to freeing torque value multiplier
+    // The freeing torque value is also used for torque requests.
+    //
+    // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
+    // are the output, a multiplier to be applied to raw freeing torque
+    LinearInterpSetting freeing_torque_multi_pedal_pos;
+    // Mapping of pedal position to off clutch torque ramp release speed
+    //
+    // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
+    // are the output, in Nm/20ms reduction
+    LinearInterpSetting torque_loss_speed_pedal_pos;
+    // SPC ramp speed in mBar/20ms in normal auto profiles
+    uint8_t spc_ramp_speed_normal;
+    // SPC ramp speed in mBar/20ms in Manual mode
+    uint8_t spc_ramp_m;
+    // SPC ramp speed in mBar/20ms in Race mode
+    uint8_t spc_ramp_r;
+} __attribute__ ((packed)) REL_MODULE_SETTINGS;
+
+const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
+    .output_rpm_disable_trq_req = 1500,
+    .clutch_stationary_rpm = 130,
+    .maximum_mod_reduction_trq = 100,
+    .pid_p_val_upshift = -150,
+    .pid_i_val_upshift = -5,
+    .pid_p_val_downshift = 80,
+    .pid_i_val_downshift = 4,
+    .freeing_torque_multi_pedal_pos = {
+        .new_min = 1.0,
+        .new_max = 3.0,
+        .raw_min = 10,
+        .raw_max = 200,
+    },
+    .torque_loss_speed_pedal_pos = {
+        .new_min = 1.0,
+        .new_max = 3.0,
+        .raw_min = 10,
+        .raw_max = 150,
+    },
+    .spc_ramp_speed_normal = 8,
+    .spc_ramp_m = 12,
+    .spc_ramp_r = 16
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
@@ -270,6 +332,7 @@ extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
 extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
+extern REL_MODULE_SETTINGS REL_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -278,6 +341,8 @@ extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 #define PRM_MODULE_SETTINGS_SCN_ID 0x05
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
+#define REL_MODULE_SETTINGS_SCN_ID 0x08
+
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

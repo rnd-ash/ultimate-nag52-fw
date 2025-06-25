@@ -1,5 +1,6 @@
 #include "s_algo.h"
 #include <egs_calibration/calibration_structs.h>
+#include "nvs/module_settings.h"
 
 void ShiftingAlgorithm::reset_all_subphase_data() {
     this->subphase_mod = 0;
@@ -303,8 +304,8 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, uint16_t momentum
         case ShiftStyle::Release_Up:
             this->momentum_start_turbine_rpm -= mul;
             momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
-            p = -150;
-            i = -5;
+            p = REL_CURRENT_SETTINGS.pid_p_val_upshift;
+            i = REL_CURRENT_SETTINGS.pid_i_val_upshift;
             d = 0;
             break;
         case ShiftStyle::Crossover_Dn:
@@ -317,8 +318,8 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, uint16_t momentum
         case ShiftStyle::Release_Dn:
             this->momentum_start_turbine_rpm += mul;
             momentum_target = sd->input_rpm - this->momentum_start_turbine_rpm;
-            p = 80;
-            i = 4;
+            p = REL_CURRENT_SETTINGS.pid_p_val_downshift;
+            i = REL_CURRENT_SETTINGS.pid_i_val_downshift;
             d = 0;
             break;
     }

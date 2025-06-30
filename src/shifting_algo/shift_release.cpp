@@ -10,7 +10,7 @@ const uint8_t PHASE_END_CONTROL      = 3;
 #define SHIFT_SETTINGS REL_CURRENT_SETTINGS
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
-    this->trq_req_timer = 2; // 100ms for torque request down ramp
+    this->trq_req_timer = 5; // 100ms for torque request down ramp
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -106,7 +106,7 @@ uint8_t ReleasingShift::step_internal(
             // We are not ramping
             if (phase_id >= PHASE_FILL_AND_RELEASE) {
                 if (!trq_req_down_ramp) {
-                    if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
+                    if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > 100) {
                         trq_req_down_ramp = true;
                     }
                 }
@@ -122,7 +122,7 @@ uint8_t ReleasingShift::step_internal(
         }
     }
     // Disable torque requests past a certain speed
-    if (sd->output_rpm > SHIFT_SETTINGS.output_rpm_disable_trq_req) {
+    if (sd->output_rpm > SHIFT_SETTINGS.output_rpm_disable_trq_req && sid->change != GearChange::_4_3) {
         this->torque_req_out = 0;
     }
 
@@ -308,7 +308,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     if ((sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm && sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) || (sd->input_rpm < 500 && this->subphase_mod == 4)) {
         ret = PHASE_MAX_PRESSURE;
     }
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
+    if (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
         this->trq_req_up_ramp = true;
         this->trq_req_timer = 5; // 100ms for up ramp
     }

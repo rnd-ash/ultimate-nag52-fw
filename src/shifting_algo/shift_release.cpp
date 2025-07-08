@@ -37,7 +37,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
         int uVar3 = (this->freeing_trq + this->max_trq_apply_clutch)/2;
-        int uVar5 = MIN(this->max_trq_apply_clutch, uVar3);
+        int uVar5 = MIN(this->freeing_trq, uVar3);
         int sVar2 = uVar5 + this->max_trq_apply_clutch;
         int bVar1 = 3; // RELEASE_CAL->field_01e
         int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
@@ -49,7 +49,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
     } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
         ret = SHIFT_SETTINGS.clutch_stationary_rpm;
     } else {
-        ret = 25; //RELEASE_CAL->Clutch_idle_threshold_coasting
+        ret = 25;
     }
     return MAX(0, ret);
 }
@@ -156,15 +156,7 @@ void ReleasingShift::phase_fill_release_spc() {
         if (0 == this->timer_shift) {
             this->timer_shift = 3; // RELEASE_CAL -> release_shift_ramp_time
             this->subphase_shift += 1;
-
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
-            if (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_f_p, CoefficientTy::Sliding) < abs_input_trq) {
-                 if (sid->profile == manual) {
-                    this->low_f_p = (this->low_f_p + pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding))/2;
-                 } else if (sid->profile == race) {
-                    this->low_f_p = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
-                 }
-            }
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling
@@ -249,7 +241,9 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        this->loss_torque += (0.5 * interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear));
+        float loss = (0.5 * interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear));
+        loss *= interpolate_float(sid->targ_time, 1.0, 3.0, 1000, 100, InterpType::Linear);
+        this->loss_torque += loss;
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque;
         int p = MAX(0, this->calc_release_clutch_p_signed(trq, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
@@ -266,7 +260,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         // (SPC will be increasing via a ramp at this time)
         this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
         
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque + this->correction_trq;
         if (trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
@@ -285,23 +279,23 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         short ret = this->fun_0d4ed0();
         this->momentum_plus_maxtrq = linear_ramp_with_timer(this->momentum_plus_maxtrq, ret, timer_mod);
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
         
 
         uint16_t targ = this->fun_0d85d8();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
-        if (0 == this->timer_mod) {
+        if (0 == this->timer_mod || sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
             this->timer_mod = 4;
             this->subphase_mod += 1;
         }
     } else if (6 == this->subphase_mod) {
         this->momentum_plus_maxtrq = this->fun_0d4ed0();
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
 
         uint16_t targ = this->fun_0d85d8();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
-        if (0 == this->timer_mod) {
+        if (0 == this->timer_mod || sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
             ret = PHASE_MAX_PRESSURE;
         }
     }

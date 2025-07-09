@@ -36,16 +36,16 @@ void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
 uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
-        int uVar3 = (this->freeing_trq + this->max_trq_apply_clutch)/2;
-        int uVar5 = MIN(this->freeing_trq, uVar3);
-        int sVar2 = uVar5 + this->max_trq_apply_clutch;
-        int bVar1 = 3; // RELEASE_CAL->field_01e
+        int torque_avg = (this->freeing_trq + this->max_trq_apply_clutch)/2;
+        int torque_min = MIN(this->freeing_trq, torque_avg);
+        int torque = torque_min + this->max_trq_apply_clutch;
+        int cycles_can = 3;
         int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
 
-        int uVar4 = (sVar2*10) * (cycles + (bVar1*2)) / inertia * MECH_PTR->turbine_drag[sid->inf.map_idx];
-        uVar4 /= 10;
+        int threshold = (torque*10) * (cycles + (cycles_can*2)) / inertia * MECH_PTR->turbine_drag[sid->inf.map_idx];
+        threshold /= 10;
 
-        ret = MAX(uVar4, SHIFT_SETTINGS.clutch_stationary_rpm);
+        ret = MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
     } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
         ret = SHIFT_SETTINGS.clutch_stationary_rpm;
     } else {
@@ -260,7 +260,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         // (SPC will be increasing via a ramp at this time)
         this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
         
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque + this->correction_trq;
         if (trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
@@ -279,7 +279,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         short ret = this->fun_0d4ed0();
         this->momentum_plus_maxtrq = linear_ramp_with_timer(this->momentum_plus_maxtrq, ret, timer_mod);
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
         
 
         uint16_t targ = this->fun_0d85d8();
@@ -291,7 +291,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     } else if (6 == this->subphase_mod) {
         this->momentum_plus_maxtrq = this->fun_0d4ed0();
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1) / 10.0;
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
 
         uint16_t targ = this->fun_0d85d8();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);

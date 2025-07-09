@@ -302,7 +302,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     if ((sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm && sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) || (sd->input_rpm < 500 && this->subphase_mod == 4)) {
         ret = PHASE_MAX_PRESSURE;
     }
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
+    if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->calc_threshold_rpm_2(4)) {
         this->trq_req_up_ramp = true;
         this->trq_req_timer = 5; // 100ms for up ramp
     }

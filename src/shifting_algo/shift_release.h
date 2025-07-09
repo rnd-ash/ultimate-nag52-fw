@@ -26,7 +26,7 @@ private:
 
     uint16_t torque_req_val = 0;
 
-    void phase_fill_release_spc();
+    void phase_fill_release_spc(bool is_upshift);
     uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);

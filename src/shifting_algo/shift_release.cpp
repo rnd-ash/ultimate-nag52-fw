@@ -28,7 +28,7 @@ void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
         }
         *dest |= SHIFT_FLAG_COAST;
     }
-    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
+    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2 || sid->change == GearChange::_4_3) {
         *dest |= SHIFT_FLAG_FREEWHEELING;
     }
 }
@@ -81,7 +81,7 @@ uint8_t ReleasingShift::step_internal(
         ret = this->phase_bleed(pm, is_upshift);
         calc_shift_flags(this->sd, &sid->shift_flags);
     } else if (phase_id == PHASE_FILL_AND_RELEASE) {
-        this->phase_fill_release_spc();
+        this->phase_fill_release_spc(is_upshift);
         ret = this->phase_fill_release_mpc(sd, is_upshift);
     } else if (phase_id == PHASE_MAX_PRESSURE) {
         ret = this->phase_maxp(sd);
@@ -142,7 +142,7 @@ uint8_t ReleasingShift::step_internal(
     return ret;
 }
 
-void ReleasingShift::phase_fill_release_spc() {
+void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     this->threshold_rpm = calc_threshold_rpm_2(4);
     if (0 == this->subphase_shift) {
         // Var set
@@ -157,6 +157,11 @@ void ReleasingShift::phase_fill_release_spc() {
             this->timer_shift = 3; // RELEASE_CAL -> release_shift_ramp_time
             this->subphase_shift += 1;
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
+            int p_for_load = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
+            if (is_upshift && p_for_load > this->low_f_p && sd->pedal_pos != 0) {
+                // Boost pressure for upshifts
+                this->low_f_p = (this->low_f_p + p_for_load)/2;
+            }
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling

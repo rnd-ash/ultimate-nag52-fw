@@ -914,6 +914,12 @@ void Gearbox::controller_loop()
             {
                 // Store our ratio
                 this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+                this->sensor_data.targ_gear_ratio = ratio_absolute(this->actual_gear, &this->gearboxConfig);
+
+            } else {
+                // Stationary so no ratios
+                this->sensor_data.gear_ratio = 0.0;
+                this->sensor_data.targ_gear_ratio = 0.0;
             }
             if (!shifting && !stationary)
             {

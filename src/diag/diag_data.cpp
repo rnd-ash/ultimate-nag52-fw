@@ -33,8 +33,10 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     ret.v_batt = Solenoids::get_solenoid_voltage();
     if (g == nullptr) {
         ret.calc_ratio = UINT16_MAX;
+        ret.targ_ratio = UINT16_MAX;
     } else {
         ret.calc_ratio = g->get_gear_ratio();
+        ret.targ_ratio = g->get_targ_gear_ratio();
     }
     ret.output_rpm = speeds.output;
     return ret;

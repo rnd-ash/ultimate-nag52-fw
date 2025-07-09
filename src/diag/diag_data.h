@@ -49,6 +49,7 @@ typedef struct {
     uint16_t n3_rpm; // Raw N3 RPM
     uint16_t calculated_rpm; // Calculated input RPM (From N2 and N3)
     uint16_t calc_ratio;
+    uint16_t targ_ratio;
     uint16_t v_batt; // Battery voltage (mV)
     int atf_temp_c; // ATF Temp (Celcius)
     uint8_t parking_lock; // Parking lock (1 for Engaged, 0 for disengaged)

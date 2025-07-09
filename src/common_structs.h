@@ -76,6 +76,8 @@ struct SensorData{
     bool is_braking;
     /// Current gearbox ratio
     float gear_ratio;
+    /// Target gearbox ratio
+    float targ_gear_ratio;
     float tcc_trq_multiplier;
 };
 

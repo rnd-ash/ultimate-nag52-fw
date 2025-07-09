@@ -43,6 +43,9 @@ public:
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
+    uint16_t get_targ_gear_ratio(void) {
+        return this->sensor_data.targ_gear_ratio * 100.0F;
+    }
     uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;

@@ -45,10 +45,10 @@ uint8_t ShiftingAlgorithm::step(
     // EGS compatibility vars updated every cycle
     this->abs_input_trq = abs_input_torque;
     this->filling_trq = MAX(abs_input_torque, 30); // RELEASE_CAL->min_filling_trq
-    this->trq_adder = pm->find_decent_adder_torque(sid->change, abs_input_torque, sd->output_rpm);
+    this->trq_adder = 0; //pm->find_decent_adder_torque(sid->change, abs_input_torque, sd->output_rpm);
     this->pm = pm;
     this->sd = sd;
-
+    
     // Decrease our timers
     if (this->timer_mod > 0) {
         this->timer_mod -= 1;

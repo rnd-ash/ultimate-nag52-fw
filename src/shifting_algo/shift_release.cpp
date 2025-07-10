@@ -178,23 +178,24 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     } else if (3 == this->subphase_shift) {
         // Low filling pressure.
         this->max_trq_apply_clutch = 0;
-        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
+        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p);
         if (0 == this->timer_shift) {
             this->subphase_shift += 1; // Next subphase has no time!
         }
     }
     if (4 == this->subphase_shift) {
         // Set vars before wait period
-        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(sid->prefill_info.low_fill_pressure_on_clutch);
-        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
+        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p);
+        int p_apply_without_boost = this->p_apply_clutch - (this->low_f_p - sid->prefill_info.low_fill_pressure_on_clutch);
+        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(p_apply_without_boost, CoefficientTy::Sliding);
         this->subphase_shift += 1;
     }
     if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
         this->spc_step_adder += this->spc_ramp_val;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p + this->spc_step_adder);
-        
-        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
+        int p_apply_without_boost = this->p_apply_clutch - (this->low_f_p - sid->prefill_info.low_fill_pressure_on_clutch);
+        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(p_apply_without_boost, CoefficientTy::Sliding);
         int threshold_off = SHIFT_SETTINGS.clutch_stationary_rpm;
         if (
             (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > threshold_off && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
@@ -205,7 +206,8 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     } else if (6 == this->subphase_shift) {
         this->spc_step_adder += this->spc_ramp_val / 2.0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p + this->spc_step_adder);
-        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
+        int p_apply_without_boost = this->p_apply_clutch - (this->low_f_p - sid->prefill_info.low_fill_pressure_on_clutch);
+        this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(p_apply_without_boost, CoefficientTy::Sliding);
         // No exit (Exit governed by Mod phase)
     }
     // Write pressure
@@ -264,8 +266,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
             this->correction_trq = 0;
         }
     } else if (4 == this->subphase_mod) {
-        // Holding the previous phases pressure until the on clutch goes past the target RPM
-        // (SPC will be increasing via a ramp at this time)
+        // PID Correction to ramp the disengaging clutch at a sensible rate
         this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
         this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);

@@ -298,6 +298,9 @@ typedef struct {
     uint8_t spc_ramp_m;
     // SPC ramp speed in mBar/20ms in Race mode
     uint8_t spc_ramp_r;
+    // Boost pressure when working pressure is more than filling pressure. 
+    // 1.0 = Full boost, 0.0 = No boost.
+    float boost_pressure_multi;
 } __attribute__ ((packed)) REL_MODULE_SETTINGS;
 
 const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
@@ -322,7 +325,8 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     },
     .spc_ramp_speed_normal = 8,
     .spc_ramp_m = 12,
-    .spc_ramp_r = 16
+    .spc_ramp_r = 16,
+    .boost_pressure_multi = 0.25
 };
 
 // module settings

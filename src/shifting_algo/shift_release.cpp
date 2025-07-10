@@ -160,7 +160,10 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             int p_for_load = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
             if (is_upshift && p_for_load > this->low_f_p && sd->pedal_pos != 0) {
                 // Boost pressure for upshifts
-                this->low_f_p = (this->low_f_p + p_for_load)/2;
+                float boost = MAX(0.0, MIN(1.0, SHIFT_SETTINGS.boost_pressure_multi));
+                float r_fill = (1.0-boost)*(float)(sid->prefill_info.low_fill_pressure_on_clutch);
+                float r_boost = boost*(float)(p_for_load);
+                this->low_f_p = r_fill + r_boost;
             }
         }
     } else if (2 == this->subphase_shift) {

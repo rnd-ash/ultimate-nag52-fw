@@ -42,6 +42,7 @@ private:
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
     float spc_ramp_val = 0;
+    float loss_pedal = 0;
 };
 
 #endif

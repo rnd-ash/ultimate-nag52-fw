@@ -111,8 +111,7 @@ uint8_t ReleasingShift::step_internal(
                     }
                 }
                 if (trq_req_down_ramp) {
-                    uint16_t targ = this->freeing_trq / sd->tcc_trq_multiplier;
-                    this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, targ, this->trq_req_timer);
+                    this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, this->freeing_trq, this->trq_req_timer);
                     if (this->trq_req_timer > 0) {
                         this->trq_req_timer -= 1;
                     }
@@ -128,7 +127,7 @@ uint8_t ReleasingShift::step_internal(
 
     // Output to CAN
     if (0 != torque_req_out) {
-        torque_req_out = MIN(torque_req_out, sd->indicated_torque);
+        torque_req_out = MIN(this->torque_req_out / sd->tcc_trq_multiplier, sd->indicated_torque);
         sid->ptr_w_trq_req->amount = sd->indicated_torque - torque_req_out;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  this->trq_req_up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
@@ -289,8 +288,6 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         this->momentum_plus_maxtrq = linear_ramp_with_timer(this->momentum_plus_maxtrq, ret, timer_mod);
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
         this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
-        
-
         uint16_t targ = this->fun_0d85d8();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
         if (0 == this->timer_mod || sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
@@ -311,13 +308,14 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     if ((sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm && sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) || (sd->input_rpm < 500 && this->subphase_mod == 4)) {
         ret = PHASE_MAX_PRESSURE;
     }
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->calc_threshold_rpm_2(4)) {
-        this->trq_req_up_ramp = true;
-        this->trq_req_timer = 5; // 100ms for up ramp
-    }
-    if (PHASE_MAX_PRESSURE == ret && this->trq_req_up_ramp == false) {
-        this->trq_req_up_ramp = true;
-        this->trq_req_timer = 5; // 100ms for up ramp
+    if (!this->trq_req_up_ramp) {
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->calc_threshold_rpm_2(4)) {
+            this->trq_req_up_ramp = true;
+            this->trq_req_timer = 5; // 100ms for up ramp
+        } else if (PHASE_MAX_PRESSURE == ret) {
+            this->trq_req_up_ramp = true;
+            this->trq_req_timer = 5; // 100ms for up ramp
+        }
     }
     return ret;
 }

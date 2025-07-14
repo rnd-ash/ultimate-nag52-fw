@@ -21,7 +21,7 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .pid_torque = (int16_t)this->correction_trq,
         .adder_torque = (int16_t)this->trq_adder,
         .p_on = (uint16_t)this->sid->ptr_w_pressures->on_clutch,
-        .p_off = (uint16_t)this->sid->ptr_w_pressures->off_clutch,
+        .p_off = (uint16_t)this->sid->ptr_w_pressures->mod_sol_req,
         .s_off = (int16_t)this->sid->ptr_r_clutch_speeds->off_clutch_speed,
         .s_on = (int16_t)this->sid->ptr_r_clutch_speeds->on_clutch_speed,
     };
@@ -131,7 +131,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
         }
     }
-    this->shift_sol_pressure = this->p_apply_clutch;
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ_mpc, this->timer_mod);
     return ret;
 }

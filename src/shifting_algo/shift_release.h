@@ -28,11 +28,13 @@ private:
 
     void phase_fill_release_spc(bool is_upshift);
     uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
+    uint8_t phase_overlap(SensorData* sd, bool is_upshift);
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
     uint16_t fun_0d85d8();
     short fun_0d4ed0();
+    uint16_t calc_mod_overlap();
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
     bool trq_req_down_ramp = false;
@@ -42,7 +44,10 @@ private:
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
     float spc_ramp_val = 0;
+    float spc_wait_adder = 0;
     float loss_pedal = 0;
+    float p_overlap_begin = 0;
+    float overlap_torque = 0;
 };
 
 #endif

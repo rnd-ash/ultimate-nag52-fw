@@ -51,7 +51,14 @@ public:
     PressureManager* pressure_mgr = nullptr;
 
     bool isShifting(void) { return this->shifting; }
-    GearChange get_curr_gear_change(void) { return this->shift_idx; }
+    uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
+    uint8_t get_profile_id(void) {
+        if (this->current_profile) {
+            return this->current_profile->get_profile_id();
+        } else {
+            return 0xFF;
+        }
+    }
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;

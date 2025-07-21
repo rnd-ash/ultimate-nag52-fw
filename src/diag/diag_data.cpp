@@ -110,13 +110,6 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     return ret;
 }
 
-DATA_DMA_BUFFER dump_i2s_dma(void) {
-    DATA_DMA_BUFFER dma = {};
-    dma.dma = 0;
-    dma.adc_reading = 0;
-    return dma;
-}
-
 DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     DATA_CANBUS_RX ret = {};
     if (can_layer == nullptr || gearbox == nullptr) {
@@ -193,40 +186,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     ret.input_torque = g->sensor_data.input_torque;
     ret.req_engine_torque = g->output_data.ctrl_type == TorqueRequestControlType::None ? INT16_MAX : g->output_data.torque_req_amount;
     ret.atf_temp = g->sensor_data.atf_temp+40;
-
-    if (g->isShifting()) {
-        switch(g->get_curr_gear_change()) {
-            case GearChange::_1_2:
-                ret.shift_idx = 1;
-                break;
-            case GearChange::_2_3:
-                ret.shift_idx = 2;
-                break;
-            case GearChange::_3_4:
-                ret.shift_idx = 3;
-                break;
-            case GearChange::_4_5:
-                ret.shift_idx = 4;
-                break;
-            case GearChange::_5_4:
-                ret.shift_idx = 5;
-                break;
-            case GearChange::_4_3:
-                ret.shift_idx = 6;
-                break;
-            case GearChange::_3_2:
-                ret.shift_idx = 7;
-                break;
-            case GearChange::_2_1:
-                ret.shift_idx = 8;
-                break;
-            default:
-                ret.shift_idx = 0xFF;
-                break;
-        }
-    } else {
-        ret.shift_idx = 0;
-    }
+    ret.profile = g->get_profile_id();
+    ret.targ_act_gear = g->get_targ_curr_gear();
     return ret;   
 }
 

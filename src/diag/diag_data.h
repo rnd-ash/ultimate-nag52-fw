@@ -27,7 +27,6 @@
 #define RLI_SYS_USAGE       0x23 // Brain usage
 #define RLI_TCC_PROGRAM     0x24 // TCC info
 #define RLI_PRESSURES       0x25
-#define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
 
@@ -154,11 +153,6 @@ typedef struct {
 } __attribute__ ((packed)) DATA_TCC_PROGRAM;
 
 typedef struct {
-    uint16_t adc_reading;
-    uint16_t dma;
-} __attribute__ ((packed)) DATA_DMA_BUFFER;
-
-typedef struct {
     uint32_t address;
     uint32_t size;
 } __attribute__ ((packed)) PARTITION_INFO;
@@ -175,7 +169,8 @@ typedef struct {
     int16_t input_torque;
     int16_t req_engine_torque;
     uint8_t atf_temp;
-    uint8_t shift_idx;
+    uint8_t targ_act_gear;
+    uint8_t profile;
 } __attribute__ ((packed)) SHIFT_LIVE_INFO;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
@@ -183,7 +178,6 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
 DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
-DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr);
 

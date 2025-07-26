@@ -189,8 +189,8 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
-        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
-            tmp = MIN(ret.m_converted_driver, ret.m_max);
+        if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
+            tmp = MAX(MIN(ret.m_converted_driver, ret.m_max), ret.m_min);
         }
         if (tmp <= 0) {
             tmp = MIN(tmp, static_converted);

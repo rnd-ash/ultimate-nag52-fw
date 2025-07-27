@@ -124,8 +124,8 @@ extern const int16_t R_UPSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 
 /** TCC Slip maps */
-// 1000 - 6000RPM (Step of 500 RPM), 0-100% Pedal, step of 10%
-#define TCC_RPM_TARGET_MAP_SIZE 11*11
+// 1000 - 6000RPM (Non linear scale), 0-100% Pedal, step of 10%
+#define TCC_RPM_TARGET_MAP_SIZE 11*8
 extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
 
 /**
@@ -144,8 +144,6 @@ extern const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[PREFILL_ADAPT_PREFILL_D
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --
-#define TORQUE_HEADERS_MAP_NAME_SIZE 18u
-extern const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE];
 #define TORQUE_MAP_SIZE 33u
 extern const int16_t ENGINE_TORQUE_MAP[TORQUE_MAP_SIZE];
 extern const int16_t ENGINE_TORQUE_HEADERS_MAP[TORQUE_MAP_SIZE];

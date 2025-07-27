@@ -9,6 +9,7 @@
 #include "clock.hpp"
 #include "egs_calibration/calibration_structs.h"
 #include "tcu_io/tcu_io.hpp"
+#include "../embed_data.h"
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
@@ -32,8 +33,10 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     ret.v_batt = Solenoids::get_solenoid_voltage();
     if (g == nullptr) {
         ret.calc_ratio = UINT16_MAX;
+        ret.targ_ratio = UINT16_MAX;
     } else {
         ret.calc_ratio = g->get_gear_ratio();
+        ret.targ_ratio = g->get_targ_gear_ratio();
     }
     ret.output_rpm = speeds.output;
     return ret;
@@ -83,7 +86,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
         ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
         ShiftPressures p = gb_ptr->pressure_mgr->get_shift_pressures_now();
         ret.overlap_mod = p.overlap_mod;
-        ret.overlap_shift = p.overlap_shift;
+        ret.overlap_shift = p.on_clutch; //p.overlap_shift;
         ret.on_clutch_pressure = p.on_clutch;
         ret.off_clutch_pressure = p.off_clutch;
     }
@@ -105,13 +108,6 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     ret.tcc_absorbed_joule = gb_ptr->tcc->get_absorbed_power();
     ret.engine_output_joule = gb_ptr->tcc->get_engine_power();
     return ret;
-}
-
-DATA_DMA_BUFFER dump_i2s_dma(void) {
-    DATA_DMA_BUFFER dma = {};
-    dma.dma = 0;
-    dma.adc_reading = 0;
-    return dma;
 }
 
 DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
@@ -190,40 +186,8 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     ret.input_torque = g->sensor_data.input_torque;
     ret.req_engine_torque = g->output_data.ctrl_type == TorqueRequestControlType::None ? INT16_MAX : g->output_data.torque_req_amount;
     ret.atf_temp = g->sensor_data.atf_temp+40;
-
-    if (g->isShifting()) {
-        switch(g->get_curr_gear_change()) {
-            case ProfileGearChange::ONE_TWO:
-                ret.shift_idx = 1;
-                break;
-            case ProfileGearChange::TWO_THREE:
-                ret.shift_idx = 2;
-                break;
-            case ProfileGearChange::THREE_FOUR:
-                ret.shift_idx = 3;
-                break;
-            case ProfileGearChange::FOUR_FIVE:
-                ret.shift_idx = 4;
-                break;
-            case ProfileGearChange::FIVE_FOUR:
-                ret.shift_idx = 5;
-                break;
-            case ProfileGearChange::FOUR_THREE:
-                ret.shift_idx = 6;
-                break;
-            case ProfileGearChange::THREE_TWO:
-                ret.shift_idx = 7;
-                break;
-            case ProfileGearChange::TWO_ONE:
-                ret.shift_idx = 8;
-                break;
-            default:
-                ret.shift_idx = 0xFF;
-                break;
-        }
-    } else {
-        ret.shift_idx = 0;
-    }
+    ret.profile = g->get_profile_id();
+    ret.targ_act_gear = g->get_targ_curr_gear();
     return ret;   
 }
 
@@ -286,6 +250,14 @@ PARTITION_INFO get_next_sw_info(void) {
     return PARTITION_INFO {
         .address = i->address,
         .size = i->size
+    };
+}
+
+PARTITION_INFO get_embeded_file_info(void) {
+    uint32_t len = (uint32_t)embed_container_end - (uint32_t)embed_container_start;
+    return PARTITION_INFO {
+        .address = (uint32_t)embed_container_start,
+        .size = len
     };
 }
 

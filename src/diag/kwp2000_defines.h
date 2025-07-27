@@ -7,8 +7,8 @@
 // and CAN IDs
 #define KWP_TP_TIMEOUT_MS 4500
 #define KWP_RESPONSEPENDING_INTERVAL 500 // If an answer is not seen after this period of time, the ECU shall reply with this.
-#define KWP_CAN_ST_MIN 10 // ISO-TP CAN Sep time min ms
-#define KWP_CAN_BS 0x08 // ISO-TP CAN block size
+#define KWP_CAN_ST_MIN 1 // ISO-TP CAN Sep time min ms
+#define KWP_CAN_BS 20 // ISO-TP CAN block size
 #define KWP_ECU_TX_ID 0x07E9 // ECU Sends on this ID
 #define KWP_ECU_RX_ID 0x07E1 // Tester requests on this ID
 
@@ -24,6 +24,7 @@ KWP2000 SERVICE IDENTIFIERS
 #define SID_READ_DATA_LOCAL_IDENT 0x21
 #define SID_READ_DATA_IDENT 0x22
 #define SID_READ_MEM_BY_ADDRESS 0x23
+#define SID_READ_MEM_BY_ADDRESS_EXT 0x24
 #define SID_SECURITY_ACCESS 0x27
 #define SID_DISABLE_NORMAL_MSG_TRANSMISSION 0x28
 #define SID_ENABLE_NORMAL_MSG_TRANSMISSION 0x29

@@ -189,8 +189,8 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
-        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
-            tmp = MIN(ret.m_converted_driver, ret.m_max);
+        if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
+            tmp = MAX(MIN(ret.m_converted_driver, ret.m_max), ret.m_min);
         }
         if (tmp <= 0) {
             tmp = MIN(tmp, static_converted);
@@ -564,10 +564,10 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
-    if (ShifterStyle::TRRS == shifter->get_shifter_type()) { // TODO - Find a way to disable this
+    if (nullptr != ioexpander) {
+        // For Jeep/Chrysler cars
         ioexpander->set_start(can_start);
     }
-    // ioexpander->set_start(can_start);
 }
 
 void Egs52Can::set_gearbox_temperature(int16_t temp) {

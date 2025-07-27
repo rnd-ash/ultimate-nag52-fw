@@ -63,7 +63,7 @@ public:
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors) = 0;
-    ShiftCharacteristics get_shift_characteristics(ProfileGearChange requested, SensorData* sensors);
+    ShiftCharacteristics get_shift_characteristics(GearChange requested, SensorData* sensors);
     
     
     StoredMap* get_upshift_map(void) {

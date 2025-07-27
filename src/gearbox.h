@@ -43,12 +43,22 @@ public:
     uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
+    uint16_t get_targ_gear_ratio(void) {
+        return this->sensor_data.targ_gear_ratio * 100.0F;
+    }
     uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
     bool isShifting(void) { return this->shifting; }
-    ProfileGearChange get_curr_gear_change(void) { return this->shift_idx; }
+    uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
+    uint8_t get_profile_id(void) {
+        if (this->current_profile) {
+            return this->current_profile->get_profile_id();
+        } else {
+            return 0xFF;
+        }
+    }
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
@@ -57,7 +67,7 @@ private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
-    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
+    bool elapse_shift(GearChange req_lookup, AbstractProfile* profile);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -101,12 +111,11 @@ private:
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
-    ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
+    GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;
     bool aborting = false;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
     FirstOrderAverage* pedal_average = nullptr;
     FirstOrderAverage* motor_speed_average = nullptr;
     FirstOrderAverage* torque_req_average = nullptr;

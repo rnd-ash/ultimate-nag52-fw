@@ -274,6 +274,9 @@ void Kwp2000_server::server_loop() {
                 case SID_READ_MEM_BY_ADDRESS:
                     this->process_read_mem_address(args_ptr, args_size);
                     break;
+                case SID_READ_MEM_BY_ADDRESS_EXT:
+                    this->process_read_mem_address_ext(args_ptr, args_size);
+                    break;
                 case SID_WRITE_MEM_BY_ADDRESS:
                     this->process_write_mem_by_address(args_ptr, args_size);
                     break;
@@ -588,9 +591,6 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
-    } else if (args[0] == RLI_DMA_DUMP) {
-        DATA_DMA_BUFFER r = dump_i2s_dma();
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_DMA_DUMP, (uint8_t*)&r, sizeof(DATA_DMA_BUFFER));
     } else if (args[0] == RLI_CLUTCH_SPEEDS) {
         ClutchSpeeds r = gearbox->diag_get_clutch_speeds();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_SPEEDS, (uint8_t*)&r, sizeof(ClutchSpeeds));
@@ -622,6 +622,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         uint16_t len = get_egs_calibration_size();
         uint8_t x[2] = { (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF) };
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EGS_CAL_LEN, x, sizeof(uint16_t));
+    } else if (args[0] == RLI_EMBED_FILE_INFO) { 
+        PARTITION_INFO r = get_embeded_file_info();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EMBED_FILE_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     } else if (args[0] == RLI_SETTINGS_EDIT) {
         // [RLI, MODULE ID]
         if (arg_len != 2) {
@@ -717,6 +720,27 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
             make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, (uint8_t*)start_ptr, len);
         }
     }
+}
+
+void Kwp2000_server::process_read_mem_address_ext(uint8_t* args, uint16_t arg_len) {
+    if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    // 1 byte for size, 4 bytes for addr
+    if (arg_len != 5) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    uint32_t start = (args[0] << 24) | (args[1] << 16) | (args[2] << 8) | args[3]; // Raw address to read from
+    //ESP_LOGI("RME","%08X\n", (unsigned int)start);
+    //vTaskDelay(40);
+    uint8_t len = args[4];
+    uint32_t end = start + len;
+    uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(len);
+    memcpy(buffer, (const uint8_t*)start, len);
+    make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS_EXT, buffer, len);
+    TCU_FREE(buffer);
 }
 
 void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {

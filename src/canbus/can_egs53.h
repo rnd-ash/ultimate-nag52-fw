@@ -99,6 +99,7 @@ class Egs53Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
+        void on_rx_done(const uint32_t now_ts) override;
     private:
         // CAN Frames to Tx
         TCM_A1_EGS53 tcm_a1 = {0};

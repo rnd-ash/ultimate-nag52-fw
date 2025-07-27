@@ -67,19 +67,19 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
-ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, SensorData* sensors) {
+ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange requested, SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {
-        case ProfileGearChange::ONE_TWO:
-        case ProfileGearChange::TWO_THREE:
-        case ProfileGearChange::THREE_FOUR:
-        case ProfileGearChange::FOUR_FIVE:
+        case GearChange::_1_2:
+        case GearChange::_2_3:
+        case GearChange::_3_4:
+        case GearChange::_4_5:
             result.target_shift_time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
             break;
-        case ProfileGearChange::FIVE_FOUR:
-        case ProfileGearChange::FOUR_THREE:
-        case ProfileGearChange::THREE_TWO:
-        case ProfileGearChange::TWO_ONE:
+        case GearChange::_5_4:
+        case GearChange::_4_3:
+        case GearChange::_3_2:
+        case GearChange::_2_1:
             result.target_shift_time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
             break;
         default:

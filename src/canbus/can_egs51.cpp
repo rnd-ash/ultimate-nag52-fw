@@ -88,7 +88,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
             // TODO -> ms310.MAX_TRQ_FACTOR
         }
         if (UINT8_MAX != ms210.M_ESP) {
-            ret.m_converted_driver = ((int16_t)ms210.M_ESP)*3;
+            m_esp = ((int16_t)ms210.M_ESP)*3;
         }
     }
     if (
@@ -127,7 +127,6 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_converted_driver = driver_converted;
         ret.m_converted_static = static_converted;
     }
-
     return ret;
 }
 

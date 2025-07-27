@@ -80,6 +80,7 @@ class Kwp2000_server {
         void process_read_data_local_ident(uint8_t* args, uint16_t arg_len);
         void process_read_data_ident(uint8_t* args, uint16_t arg_len);
         void process_read_mem_address(uint8_t* args, uint16_t arg_len);
+        void process_read_mem_address_ext(uint8_t* args, uint16_t arg_len);
         void process_security_access(uint8_t* args, uint16_t arg_len);
         void process_disable_msg_tx(uint8_t* args, uint16_t arg_len);
         void process_enable_msg_tx(uint8_t* args, uint16_t arg_len);

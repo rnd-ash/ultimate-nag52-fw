@@ -1,0 +1,433 @@
+Enums:
+- Name: EwmSelectorType
+  Mappings:
+    0:
+      Name: None
+      Desc: ''
+    1:
+      Name: Button
+      Desc: ''
+    2:
+      Name: Switch
+      Desc: ''
+- Name: SelectableGearboxProfile
+  Mappings:
+    0:
+      Name: Standard
+      Desc: ' Standard mode'
+    1:
+      Name: Comfort
+      Desc: ' Comfort mode'
+    2:
+      Name: Agility
+      Desc: ' Agility mode'
+    3:
+      Name: Manual
+      Desc: / Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
+    4:
+      Name: Race
+      Desc: / Manual mode - REQUIRES TIPTRONIC OR PADDLES TO FUNCTION
+IStructs:
+- Name: LinearInterpSetting
+  Description: ''
+  Params:
+  - Name: new_min
+    Description: Output minimum bound
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 0
+  - Name: new_max
+    Description: Output maximum bound
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 4
+  - Name: raw_min
+    Description: Input clamped minimum
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 8
+  - Name: raw_max
+    Description: Input clamped maximum
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 12
+Settings:
+- Name: TCC
+  Description: TCC Settings Torque converter setting
+  Params:
+  - Name: adapt_enable
+    Description: Enable adaptation for all gears
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 0
+  - Name: enable_d1
+    Description: Enable torque converter in D1
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 1
+  - Name: enable_d2
+    Description: Enable torque converter in D2
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 2
+  - Name: enable_d3
+    Description: Enable torque converter in D3
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 3
+  - Name: enable_d4
+    Description: Enable torque converter in D4
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 4
+  - Name: enable_d5
+    Description: Enable torque converter in D5
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 5
+  - Name: adapt_test_interval_ms
+    Description: When adapting, this is the time between checks to see how much additional
+      or less pressure should be applied to the converter. Making this interval too
+      quick can result in over adapting!
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 6
+  - Name: sailing_mode_active_rpm
+    Description: The minimum output shaft speed for Sailing mode to occur. In sailing
+      mode, when the accelerator input is 0%, the torque converter will fully unlock,
+      in order to acheive the maximum possible coasting distance, for better fuel
+      economy. Set this to 0 to disable sailing mode. Note. This feature is inspired
+      by the 9G tronic
+    Unit: RPM
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 8
+  - Name: force_lock_min_output_rpm
+    Description: The minimum output shaft speed before the torque converter is forced
+      to lockup regardless of pedal input. This is done to avoid slipping at high
+      RPM, which causes massive heat buildup.
+    Unit: RPM
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 10
+  - Name: react_on_engine_slip_request
+    Description: Open the converter to slipping (If locked) if the engine requests
+      it This is used on the M113K platform when the supercharger clutch is about
+      to engage, so that the shock of the supercharger coming on does not cause too
+      much discomfort
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 12
+  - Name: react_on_engine_open_request
+    Description: Open the converter fully, if the engine requests it. This is usually
+      used under very heavy load under low RPM
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 13
+  SCN_ID: 1
+  EEPROM_KEY: TCC_A5
+- Name: SOL
+  Description: Solenoid subsystem settings
+  Params:
+  - Name: min_batt_power_on_test
+    Description: Minimum battery voltage before performing the solenoid boot up test
+      on TCU start
+    Unit: mV
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 0
+  - Name: current_threshold_error
+    Description: If a solenoid is reading more than this current during the boot test,
+      then it is assumed faulty
+    Unit: mA
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 2
+  - Name: cc_vref_solenoid
+    Description: Solenoid reference voltage. DO NOT TOUCH THIS. It is intended for
+      debugging ONLY!
+    Unit: mV
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 4
+  - Name: cc_temp_coefficient_wires
+    Description: The temperature coefficient of the solenoid wiring and coils. DO
+      NOT TOUCH THIS. It is intended for debugging ONLY!
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 6
+  - Name: cc_reference_resistance
+    Description: MPC and SPC solenoids reference resistance at cc_reference_temp
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 10
+  - Name: cc_reference_temp
+    Description: MPC and SPC solenoids resistance reference temperature
+    Unit: ''
+    DataType: float
+    LengthBytes: 4
+    OffsetBytes: 14
+  SCN_ID: 2
+  EEPROM_KEY: SOL_A0
+- Name: SBS
+  Description: Shift program basic settings
+  Params:
+  - Name: min_upshift_end_rpm
+    Description: Minimum end RPM for an upshift. Setting this too high might block
+      shifting
+    Unit: RPM
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 0
+  - Name: f_shown_if_flare
+    Description: DEBUG - Show an 'F' marker in the gear display when the TCU detects
+      a flare condition
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 2
+  - Name: debug_show_up_down_arrows_in_r
+    Description: DEBUG - Show '^' or 'v' in the gear display when the shift thread
+      is active
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 3
+  - Name: torque_reduction_factor_input_torque
+    Description: Torque factor reduction based on input torque
+    Unit: ''
+    DataType: LinearInterpSetting
+    LengthBytes: 16
+    OffsetBytes: 4
+  - Name: torque_reduction_factor_shift_speed
+    Description: Torque factor reduction based on shift speed
+    Unit: ''
+    DataType: LinearInterpSetting
+    LengthBytes: 16
+    OffsetBytes: 20
+  - Name: stationary_shift_hold_time
+    Description: When not moving, this is the time the gearbox holds the overlap phase
+      and assumes the shift completes successfully.
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 36
+  - Name: shift_timeout_pulling
+    Description: Shift timeout when pulling
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 38
+  - Name: shift_timeout_coasting
+    Description: Shift timeout when coasting
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 40
+  - Name: garage_shift_max_timeout_engine
+    Description: When garage shifting, this is the maximum time to wait for engine
+      to drop its RPM when we ask it to before performing the garage shift
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 42
+  - Name: trq_req_1_2_enable
+    Description: Enable torque request for the 1-2 upshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 44
+  - Name: trq_req_2_3_enable
+    Description: Enable torque request for the 2-3 upshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 45
+  - Name: trq_req_3_4_enable
+    Description: Enable torque request for the 3-4 upshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 46
+  - Name: trq_req_4_5_enable
+    Description: Enable torque request for the 4-5 upshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 47
+  - Name: trq_req_5_4_enable
+    Description: Enable torque request for the 5-4 downshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 48
+  - Name: trq_req_4_3_enable
+    Description: Enable torque request for the 4-3 downshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 49
+  - Name: trq_req_3_2_enable
+    Description: Enable torque request for the 3-2 downshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 50
+  - Name: trq_req_2_1_enable
+    Description: Enable torque request for the 2-1 downshift
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 51
+  SCN_ID: 3
+  EEPROM_KEY: SBS_A3
+- Name: PRM
+  Description: Pressure manager settings
+  Params:
+  - Name: shift_solenoid_pwm_reduction_time
+    Description: Time before shift solenoids are reduced PWM. Setting this too low
+      can result in the shift circuit not activating!
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 0
+  SCN_ID: 5
+  EEPROM_KEY: PRM_A2
+- Name: ADP
+  Description: Adaptation settings
+  Params:
+  - Name: min_atf_temp
+    Description: Minimum transmission oil temperature for adaptation
+    Unit: degrees C
+    DataType: int16_t
+    LengthBytes: 2
+    OffsetBytes: 0
+  - Name: max_atf_temp
+    Description: Maximum transmission oil temperature for adaptation
+    Unit: degrees C
+    DataType: int16_t
+    LengthBytes: 2
+    OffsetBytes: 2
+  - Name: min_input_rpm
+    Description: Minimum input speed for adaptation
+    Unit: RPM
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 4
+  - Name: max_input_rpm
+    Description: Maximum input speed for adaptation
+    Unit: RPM
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 6
+  - Name: prefill_adapt_k1
+    Description: Adapt allowed for the K1 clutch
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 8
+  - Name: prefill_adapt_k2
+    Description: Adapt allowed for the K2 clutch
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 9
+  - Name: prefill_adapt_k3
+    Description: Adapt allowed for the K3 clutch
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 10
+  - Name: prefill_adapt_b1
+    Description: Adapt allowed for the B1 brake
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 11
+  - Name: prefill_adapt_b2
+    Description: Adapt allowed for the B1 brake
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 12
+  - Name: prefill_max_pressure_delta
+    Description: The max pressure delta (+/-) allowed for any adaptation cell
+    Unit: mBar
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 13
+  - Name: prefill_max_time_delta
+    Description: The max time delta (+/-) allowed for any adaptation cell
+    Unit: milliseconds
+    DataType: uint16_t
+    LengthBytes: 2
+    OffsetBytes: 15
+  SCN_ID: 6
+  EEPROM_KEY: ADP_A1
+- Name: ETS
+  Description: Shifter settings
+  Params:
+  - Name: trrs_has_profile_selector
+    Description: TRRS shifter (Wired to the TCU) has a profile selector?
+    Unit: ''
+    DataType: bool
+    LengthBytes: 1
+    OffsetBytes: 0
+  - Name: ewm_selector_type
+    Description: The type of profile selection available on the CAN EWM shifter
+    Unit: ''
+    DataType: EwmSelectorType
+    LengthBytes: 1
+    OffsetBytes: 1
+  - Name: switch_profile_idx_top
+    Description: When using a switch profile selector. This is the profile to use
+      when in the top position
+    Unit: ''
+    DataType: SelectableGearboxProfile
+    LengthBytes: 1
+    OffsetBytes: 2
+  - Name: switch_profile_idx_bottom
+    Description: When using a switch profile selector. This is the profile to use
+      when in the bottom position
+    Unit: ''
+    DataType: SelectableGearboxProfile
+    LengthBytes: 1
+    OffsetBytes: 3
+  - Name: slr_profile_idx_left
+    Description: When using the SLR profile selector, this is the profile when the
+      profile selector is in the left position
+    Unit: ''
+    DataType: SelectableGearboxProfile
+    LengthBytes: 1
+    OffsetBytes: 4
+  - Name: slr_profile_idx_center
+    Description: When using the SLR profile selector, this is the profile when the
+      profile selector is in the center position
+    Unit: ''
+    DataType: SelectableGearboxProfile
+    LengthBytes: 1
+    OffsetBytes: 5
+  - Name: slr_profile_idx_right
+    Description: When using the SLR profile selector, this is the profile when the
+      profile selector is in the right position
+    Unit: ''
+    DataType: SelectableGearboxProfile
+    LengthBytes: 1
+    OffsetBytes: 6
+  SCN_ID: 7
+  EEPROM_KEY: ETS_A3

@@ -98,7 +98,6 @@ public:
 
         // EGS compatibility vars (Makes it easier to translate original EGS assembly)
         int p_apply_clutch;
-        int max_p_apply_clutch;
         int max_trq_apply_clutch;
         int max_trq_release_clutch;
         int filling_trq;

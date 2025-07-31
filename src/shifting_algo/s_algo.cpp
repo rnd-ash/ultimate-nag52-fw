@@ -161,7 +161,7 @@ uint16_t ShiftingAlgorithm::fun_0d820a(uint16_t p) {
         ret = (p + sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
         // Skip offset maths
     }
-    return MIN(ret, this->max_p_apply_clutch);
+    return MIN(ret, sid->SPC_MAX);
 }
 
 const uint8_t freewheeling_factors[8] = {20, 100, 100, 100, 100, 100, 80, 120}; // RELEASE_CAL->freewheeling_factor

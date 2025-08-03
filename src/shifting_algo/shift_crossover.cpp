@@ -184,7 +184,7 @@ uint8_t CrossoverShift::phase_overlap() {
             interp_min += 1; // RELEASE_CAL->0x46
             interp_min += 0; // RELEASE_CAL->0x47
         }
-        this->timer_shift = interpolate_float(abs_input_trq,5,3,80,400, InterpType::Linear);
+        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max,80,400, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
@@ -227,7 +227,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             interp_min += 1; // RELEASE_CAL->0x46
             interp_min += 0; // RELEASE_CAL->0x47
         }
-        this->timer_shift = interpolate_float(abs_input_trq,5,3,80,400, InterpType::Linear);
+        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max,80,400, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;

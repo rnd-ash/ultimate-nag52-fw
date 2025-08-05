@@ -4,6 +4,7 @@
 #include "nvs/eeprom_config.h"
 #include "egs_calibration/calibration_structs.h"
 #include "shifter/shifter_ism.h"
+#include "shifter/shifter_ewm.h"
 
 uint8_t crcTable[256]; // For CRC only
 
@@ -274,11 +275,12 @@ bool Egs53Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
 }
 
 bool Egs53Can::get_profile_btn_press(const uint32_t expire_time_ms) {
+    bool result = false;
     SBW_RS_ISM_EGS53 tslm;
     if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms*10000, &tslm)) {
-        return tslm.TxDrvProgSw_Psd_V3;
+        result = tslm.TxDrvProgSw_Psd_V3;
     }
-    return false;
+    return result;
 }
 
 bool Egs53Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
@@ -704,7 +706,23 @@ void Egs53Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint3
 }
 
 void Egs53Can::on_rx_done(const uint32_t now_ts) {
-    if (ShifterStyle::ISM == this->shifter->get_shifter_type()) {
-        static_cast<ShifterIsm*>(this->shifter)->update(this);
+    if (nullptr != shifter) {
+        switch (VEHICLE_CONFIG.shifter_style)
+        {
+        case (uint8_t)ShifterStyle::EWM:
+        {
+            ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
+            shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
+            break;
+        }
+        case (uint8_t)ShifterStyle::ISM:
+        {
+            ShifterIsm *shifterismn = reinterpret_cast<ShifterIsm *>(shifter);
+            shifterismn->update(this);
+            break;
+        }
+        default:
+            break;
+        }
     }
 }

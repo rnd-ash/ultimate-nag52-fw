@@ -27,16 +27,16 @@
 #define RLI_SYS_USAGE       0x23 // Brain usage
 #define RLI_TCC_PROGRAM     0x24 // TCC info
 #define RLI_PRESSURES       0x25
-#define RLI_DMA_DUMP        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
 
 #define RLI_COREDUMP_PART_INFO  0x29 // Coredump size and address
 #define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
 #define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
+#define RLI_EMBED_FILE_INFO     0x2C // location and len of EMBED.ZIP
 
 #define RLI_CLUTCH_SPEEDS   0x30
-#define RLI_CLUTCH_VELOCITY 0x31
+#define RLI_SHIFTING_ALGO   0x31
 
 #define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
@@ -48,6 +48,7 @@ typedef struct {
     uint16_t n3_rpm; // Raw N3 RPM
     uint16_t calculated_rpm; // Calculated input RPM (From N2 and N3)
     uint16_t calc_ratio;
+    uint16_t targ_ratio;
     uint16_t v_batt; // Battery voltage (mV)
     int atf_temp_c; // ATF Temp (Celcius)
     uint8_t parking_lock; // Parking lock (1 for Engaged, 0 for disengaged)
@@ -152,11 +153,6 @@ typedef struct {
 } __attribute__ ((packed)) DATA_TCC_PROGRAM;
 
 typedef struct {
-    uint16_t adc_reading;
-    uint16_t dma;
-} __attribute__ ((packed)) DATA_DMA_BUFFER;
-
-typedef struct {
     uint32_t address;
     uint32_t size;
 } __attribute__ ((packed)) PARTITION_INFO;
@@ -173,7 +169,8 @@ typedef struct {
     int16_t input_torque;
     int16_t req_engine_torque;
     uint8_t atf_temp;
-    uint8_t shift_idx;
+    uint8_t targ_act_gear;
+    uint8_t profile;
 } __attribute__ ((packed)) SHIFT_LIVE_INFO;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
@@ -181,7 +178,6 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
 DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
 DATA_SYS_USAGE get_sys_usage(void);
-DATA_DMA_BUFFER dump_i2s_dma(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr);
 
@@ -198,6 +194,7 @@ kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg);
 PARTITION_INFO get_coredump_info(void);
 PARTITION_INFO get_current_sw_info(void);
 PARTITION_INFO get_next_sw_info(void);
+PARTITION_INFO get_embeded_file_info(void);
 uint16_t get_egs_calibration_size(void);
 
 const esp_app_desc_t* get_image_header(void);

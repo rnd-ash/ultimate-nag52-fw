@@ -10,3 +10,8 @@ float ShiftHelpers::calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t eng
     float ret = interpolate_float(turbine_factor, pump_inertia, engine_inertia, min_factor, 1, InterpType::Linear);
     return abs(ret);
 }
+
+float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
+    float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10);
+    return r;
+}

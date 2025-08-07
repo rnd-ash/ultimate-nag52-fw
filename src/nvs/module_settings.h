@@ -1,5 +1,5 @@
-#ifndef MODULE_SETTINGS_H
-#define MODULE_SETTINGS_H
+#ifndef __MODULE_SETTINGS_H
+#define __MODULE_SETTINGS_H
 
 #include <stdint.h>
 #include <tcu_maths.h>
@@ -8,7 +8,7 @@
 // TCC Settings
 
 // Torque converter setting
-struct TCC_MODULE_SETTINGS{
+typedef struct {
     // Enable adaptation for all gears
     bool adapt_enable;
     // Enable torque converter in D1
@@ -49,7 +49,7 @@ struct TCC_MODULE_SETTINGS{
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
-} __attribute__ ((packed)) ;
+} __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_enable = true,
@@ -66,7 +66,7 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
 };
 
 // Solenoid subsystem settings
-struct SOL_MODULE_SETTINGS{
+typedef struct {
     // Minimum battery voltage before performing 
     // the solenoid boot up test on TCU start
     //
@@ -90,7 +90,7 @@ struct SOL_MODULE_SETTINGS{
     // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
     
-} __attribute__ ((packed));
+} __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
 const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .min_batt_power_on_test = 11000,
@@ -103,36 +103,13 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
 };
 
 // Shift program basic settings
-struct SBS_MODULE_SETTINGS{
-    // Minimum end RPM for an upshift. Setting this too high
-    // might block shifting
-    // UNIT: RPM
-    uint16_t min_upshift_end_rpm;
+typedef struct {
     // DEBUG - Show an 'F' marker in the gear display when the TCU
     // detects a flare condition
     bool f_shown_if_flare;
     // DEBUG - Show '^' or 'v' in the gear display when the shift
     // thread is active
     bool debug_show_up_down_arrows_in_r;
-    // Torque factor reduction based on input torque
-    LinearInterpSetting torque_reduction_factor_input_torque;
-    // Torque factor reduction based on shift speed
-    LinearInterpSetting torque_reduction_factor_shift_speed;
-    // When not moving, this is the time the gearbox holds the overlap
-    // phase and assumes the shift completes successfully.
-    // UNIT: milliseconds
-    uint16_t stationary_shift_hold_time;
-    // Shift timeout when pulling
-    // UNIT: milliseconds
-    uint16_t shift_timeout_pulling;
-    // Shift timeout when coasting
-    // UNIT: milliseconds
-    uint16_t shift_timeout_coasting;
-    // When garage shifting, this is the maximum time to wait
-    // for engine to drop its RPM when we ask it to before performing
-    // the garage shift
-    // UNIT: milliseconds
-    uint16_t garage_shift_max_timeout_engine;
     // Enable torque request for the 1-2 upshift
     bool trq_req_1_2_enable;
     // Enable torque request for the 2-3 upshift
@@ -149,28 +126,11 @@ struct SBS_MODULE_SETTINGS{
     bool trq_req_3_2_enable;
     // Enable torque request for the 2-1 downshift
     bool trq_req_2_1_enable;
-} __attribute__ ((packed)) ;
+} __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
-    .min_upshift_end_rpm = 1000,
     .f_shown_if_flare = false,
     .debug_show_up_down_arrows_in_r = false,
-    .torque_reduction_factor_input_torque = {
-        .new_min = 0.3,
-        .new_max = 0.2,
-        .raw_min = 100,
-        .raw_max = 400,
-    },
-    .torque_reduction_factor_shift_speed = {
-        .new_min = 1.3,
-        .new_max = 1.0,
-        .raw_min = 100,
-        .raw_max = 1000,
-    },
-    .stationary_shift_hold_time = 1000,
-    .shift_timeout_pulling = 3000,
-    .shift_timeout_coasting = 5000,
-    .garage_shift_max_timeout_engine = 1000,
     .trq_req_1_2_enable = true,
     .trq_req_2_3_enable = true,
     .trq_req_3_4_enable = true,
@@ -182,14 +142,14 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
 };
 
 // Pressure manager settings
-struct PRM_MODULE_SETTINGS{
+typedef struct {
     // Time before shift solenoids are reduced PWM.
     // Setting this too low can result in the shift circuit
     // not activating!
     //
     // UNIT: milliseconds
     uint16_t shift_solenoid_pwm_reduction_time;
-} __attribute__ ((packed)) ;
+} __attribute__ ((packed)) PRM_MODULE_SETTINGS;
 
 
 
@@ -198,7 +158,7 @@ const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
 };
 
 // Adaptation settings
-struct ADP_MODULE_SETTINGS{
+typedef struct {
     // Minimum transmission oil temperature for adaptation
     //
     // UNIT: degrees C
@@ -234,7 +194,7 @@ struct ADP_MODULE_SETTINGS{
     // UNIT: milliseconds
     uint16_t prefill_max_time_delta;
     
-} __attribute__ ((packed));
+} __attribute__ ((packed)) ADP_MODULE_SETTINGS;
 
 const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .min_atf_temp = 60,
@@ -270,7 +230,7 @@ enum SelectableGearboxProfile : uint8_t {
 };
 
 // Shifter settings
-struct ETS_MODULE_SETTINGS{
+typedef struct {
     // TRRS shifter (Wired to the TCU) has a profile selector?
     bool trrs_has_profile_selector;
     // The type of profile selection available on the CAN EWM
@@ -291,7 +251,7 @@ struct ETS_MODULE_SETTINGS{
     // When using the SLR profile selector, this is the profile
     // when the profile selector is in the right position
     SelectableGearboxProfile slr_profile_idx_right;
-} __attribute__ ((packed));
+} __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .trrs_has_profile_selector = true,
@@ -303,6 +263,72 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .slr_profile_idx_right = SelectableGearboxProfile::Manual
 };
 
+// Release shift settings
+typedef struct {
+    // Past this output shaft RPM, torque requests
+    // will not be activated, regardless of gear change
+    uint16_t output_rpm_disable_trq_req;
+    // Below this RPM, a clutch will be considered 'stationary'
+    uint16_t clutch_stationary_rpm;
+    // Maximum negative torque for off clutch. higher number means
+    // more torque reduction
+    uint16_t maximum_mod_reduction_trq;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_upshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_upshift;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_downshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_downshift;
+    // Mapping of pedal position to freeing torque value multiplier
+    // The freeing torque value is also used for torque requests.
+    //
+    // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
+    // are the output, a multiplier to be applied to raw freeing torque
+    LinearInterpSetting freeing_torque_multi_pedal_pos;
+    // Mapping of pedal position to off clutch torque ramp release speed
+    //
+    // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
+    // are the output, in Nm/20ms reduction
+    LinearInterpSetting torque_loss_speed_pedal_pos;
+    // SPC ramp speed in mBar/20ms in normal auto profiles
+    uint8_t spc_ramp_speed_normal;
+    // SPC ramp speed in mBar/20ms in Manual mode
+    uint8_t spc_ramp_m;
+    // SPC ramp speed in mBar/20ms in Race mode
+    uint8_t spc_ramp_r;
+    // Boost pressure when working pressure is more than filling pressure. 
+    // 1.0 = Full boost, 0.0 = No boost.
+    float boost_pressure_multi;
+} __attribute__ ((packed)) REL_MODULE_SETTINGS;
+
+const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
+    .output_rpm_disable_trq_req = 1500,
+    .clutch_stationary_rpm = 130,
+    .maximum_mod_reduction_trq = 100,
+    .pid_p_val_upshift = -150,
+    .pid_i_val_upshift = -5,
+    .pid_p_val_downshift = 80,
+    .pid_i_val_downshift = 4,
+    .freeing_torque_multi_pedal_pos = {
+        .new_min = 1.0,
+        .new_max = 3.0,
+        .raw_min = 10,
+        .raw_max = 200,
+    },
+    .torque_loss_speed_pedal_pos = {
+        .new_min = 1.0,
+        .new_max = 3.0,
+        .raw_min = 10,
+        .raw_max = 150,
+    },
+    .spc_ramp_speed_normal = 8,
+    .spc_ramp_m = 12,
+    .spc_ramp_r = 16,
+    .boost_pressure_multi = 0.25
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
@@ -310,6 +336,7 @@ extern SBS_MODULE_SETTINGS SBS_CURRENT_SETTINGS;
 extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
+extern REL_MODULE_SETTINGS REL_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -318,9 +345,11 @@ extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 #define PRM_MODULE_SETTINGS_SCN_ID 0x05
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
+#define REL_MODULE_SETTINGS_SCN_ID 0x08
+
 
 namespace ModuleConfiguration {
-    esp_err_t load_all_settings(void);
+    esp_err_t load_all_settings();
     esp_err_t reset_settings(uint8_t idx);
     esp_err_t write_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer);
     esp_err_t read_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer);

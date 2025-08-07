@@ -4,7 +4,49 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
-# Dev (Unreleased)
+# 25/06/25
+
+## Added
+    * Brand new shift-release algorithm based on EGS52 reverse engineering
+        * Implement PID control for RPM movement to make things more linear
+        * Add in clutch protection (Forced torque request if torque goes above clutch max)
+        * Manual and Race profiles are much more agressive
+        * Better handle 3-2 coasting situation
+        * Calculate synchronization RPM for torque request ramps
+    * New pressure control system based on EGS52 reverse engineering
+        * Better calculate valve body pressures
+        * Clamp output pressure based on minimum working pressure
+        * Calculate working pressure taking into account clutch spring pressure
+    * TCC - lock more aggressive (Better fuel economy)
+    * TCC - Transition pressures smoothly during gear changes
+    * Embed module_settings.yml inside the firmware - It is no longer needed for TCU settings
+    * Prompt upshift in manual profile and approaching redline
+    * Expose the following maps as tunable
+        * Low filling pressure
+        * TCC slip/target pressures
+    * New diagnostic data in config app (Shift algorithm information) - Displays the following:
+        * Shift algorithm state for both shift and modulating sides
+        * Clutch RPMs
+        * Sync. RPM
+        * PID algorithm control torque
+        * Torque adder
+        * On/Off clutch pressures
+## Fixed
+    * Allow TRRS shifter to be used with EGS52 CAN layer (Chrysler)
+    * HFM CAN - Fix torque map not being able to store in NVS
+    * Correctly handle EWM shifter without any profile selector (Sprinter/Chrysler)
+
+
+
+# 08/12/24
+* Added in shift torque data from original EGS
+* Split shifting algorithm into 2 modes (Release and Crossover)
+* Added support for the TCC Zener mod addon PCB (For 1.3 PCB)
+* Rewrote current driver algorithm for MPC/SPC solenoids
+* Added support for the Jeep 5 wire shifter (Profile switching is disabled in this mode)
+    * See basic configuration for Jeep toggle setting
+* Rewrote sensor API to include smoothing all sensor inputs to the TCU
+* Rewrote torque API of EGS so that Each CAN layer is better handled how it sends/receives torque figures
 
 # 13/06/24
 * Improve the stability of the TCU when in emergency mode (No configuration)

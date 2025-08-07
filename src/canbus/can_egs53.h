@@ -35,13 +35,8 @@ class Egs53Can: public EgsBaseCan {
          bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
-        // Gets the current 'static' torque produced by the engine
-         int get_static_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the maximum engine torque allowed at this moment by the engine map
-         int get_maximum_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the minimum engine torque allowed at this moment by the engine map
-         int get_minimum_engine_torque(const uint32_t expire_time_ms) override;
-         int get_driver_engine_torque(const uint32_t expire_time_ms) override;
+        // Gets Torque information
+        CanTorqueData get_torque_data(const uint32_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
@@ -104,6 +99,7 @@ class Egs53Can: public EgsBaseCan {
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
+        void on_rx_done(const uint32_t now_ts) override;
     private:
         // CAN Frames to Tx
         TCM_A1_EGS53 tcm_a1 = {0};
@@ -121,5 +117,7 @@ class Egs53Can: public EgsBaseCan {
 
         uint8_t counter = 0;
         uint8_t cvn_counter = 0;
+        bool freeze_torque = 0;
+        int16_t req_static_torque_delta = 0;
 };
 #endif

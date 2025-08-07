@@ -15,14 +15,14 @@ jobs:
         with:
           submodules: "recursive"
       - name: Cache pip
-        uses: actions/cache@v3.2.5
+        uses: actions/cache@v4.2.3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Cache PlatformIO
-        uses: actions/cache@v3.2.5
+        uses: actions/cache@v4.2.3
         with:
           path: ~/.platformio
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
@@ -35,10 +35,12 @@ jobs:
       - name: Build Prod PCB FW
         run: |
           pio run -e unified
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: UNIFIED_FW
           path: |
+            MODULE_SETTINGS.md
+            MODULE_SETTINGS.yml
             .pio/build/unified/firmware.elf
             .pio/build/unified/firmware.bin
 
@@ -47,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3.0.2
+      uses: actions/download-artifact@v4
     - name: View artifacts
       run: ls -R
     - name: set date env
@@ -64,7 +66,7 @@ jobs:
         prerelease: false
     - name: Upload firmware
       id: upload-release-asset 
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -73,3 +75,5 @@ jobs:
         files: |
           UNIFIED_FW/firmware.elf
           UNIFIED_FW/firmware.bin
+          UNIFIED_FW/.pio/build/unified/firmware.elf
+          UNIFIED_FW/.pio/build/unified/firmware.bin

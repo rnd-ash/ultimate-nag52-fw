@@ -16,30 +16,30 @@ int16_t get_speed_long_eq(const uint16_t output_speed, const uint16_t input, con
     return num / (r_low - r_high);
 }
 
-ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const SpeedSensors speeds, const ProfileGearChange req, const GearRatioInfo* ratios) {
+ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const SpeedSensors speeds, const GearChange req, const GearRatioInfo* ratios) {
     ShiftClutchData ret = {0,0,0};
     if (
-        req == ProfileGearChange::ONE_TWO || req == ProfileGearChange::TWO_ONE ||
-        req == ProfileGearChange::FOUR_FIVE || req == ProfileGearChange::FIVE_FOUR
+        req == GearChange::_1_2 || req == GearChange::_2_1 ||
+        req == GearChange::_4_5 || req == GearChange::_5_4
     ) {
         int16_t vk1 = (int16_t)speeds.n2 - (int16_t)speeds.n3;
         int16_t vb1 = (int16_t)speeds.n3;
-        ret.on_clutch_speed = (req == ProfileGearChange::ONE_TWO || req == ProfileGearChange::FIVE_FOUR) ? vk1 : vb1;
-        ret.off_clutch_speed = (req == ProfileGearChange::ONE_TWO || req == ProfileGearChange::FIVE_FOUR) ? vb1 : vk1;
-        if (req == ProfileGearChange::FOUR_FIVE || req == ProfileGearChange::FIVE_FOUR) {
+        ret.on_clutch_speed = (req == GearChange::_1_2 || req == GearChange::_5_4) ? vk1 : vb1;
+        ret.off_clutch_speed = (req == GearChange::_1_2 || req == GearChange::_5_4) ? vb1 : vk1;
+        if (req == GearChange::_4_5 || req == GearChange::_5_4) {
             // B2 is open, calculate the speed
             ret.rear_sun_speed = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.turbine)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
         } // Else it is 0
-    } else if (req == ProfileGearChange::TWO_THREE || req == ProfileGearChange::THREE_TWO) {
+    } else if (req == GearChange::_2_3 || req == GearChange::_3_2) {
         int16_t vk2 = (int16_t)speeds.n3 - (ratios[RAT_3_IDX].ratio * (int16_t)speeds.output);
         int16_t vk3 = (ratios[RAT_3_IDX].ratio*(ratios[RAT_2_IDX].ratio*(float)speeds.output - (float)speeds.n3)) / (ratios[RAT_2_IDX].ratio - ratios[RAT_3_IDX].ratio);
-        ret.on_clutch_speed = req == ProfileGearChange::TWO_THREE ? vk2 : vk3;
-        ret.off_clutch_speed = req == ProfileGearChange::TWO_THREE ? vk3 : vk2;
-    } else if (req == ProfileGearChange::THREE_FOUR || req == ProfileGearChange::FOUR_THREE) {
+        ret.on_clutch_speed = req == GearChange::_2_3 ? vk2 : vk3;
+        ret.off_clutch_speed = req == GearChange::_2_3 ? vk3 : vk2;
+    } else if (req == GearChange::_3_4 || req == GearChange::_4_3) {
         int16_t vb2 = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.n3)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
         int16_t vk3 = ((int16_t)speeds.n3 - vb2);
-        ret.on_clutch_speed = req == ProfileGearChange::THREE_FOUR ? vk3 : vb2;
-        ret.off_clutch_speed = req == ProfileGearChange::THREE_FOUR ? vb2 : vk3;
+        ret.on_clutch_speed = req == GearChange::_3_4 ? vk3 : vb2;
+        ret.off_clutch_speed = req == GearChange::_3_4 ? vb2 : vk3;
         ret.rear_sun_speed = vb2;
     }
     return ret;
@@ -148,7 +148,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
             // ShiftClutchData scd = {0,0,0};
             ShiftClutchData scd;
             if ((target == GearboxGear::First && actual == GearboxGear::Second) || (target == GearboxGear::Second && actual == GearboxGear::First)) { // 1-2 or 2-1
-                scd = get_shifting_clutch_speeds(speeds, ProfileGearChange::ONE_TWO, ratios);
+                scd = get_shifting_clutch_speeds(speeds, GearChange::_1_2, ratios);
                 cs.k1 = scd.on_clutch_speed;
                 cs.k2 = (int16_t)speeds.turbine - (ratios[RAT_3_IDX].ratio * (int16_t)speeds.output);
                 cs.k3 = 0;
@@ -156,7 +156,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.b2 = 0;
                 cs.b3 = ratios[RAT_3_IDX].ratio * (int16_t)speeds.output;
             } else if ((target == GearboxGear::Second && actual == GearboxGear::Third) || (target == GearboxGear::Third && actual == GearboxGear::Second)) { // 2-3 or 3-2
-                scd = get_shifting_clutch_speeds(speeds, ProfileGearChange::TWO_THREE, ratios);
+                scd = get_shifting_clutch_speeds(speeds, GearChange::_2_3, ratios);
                 cs.k1 = 0;
                 cs.k2 = scd.on_clutch_speed;
                 cs.k3 = scd.off_clutch_speed;
@@ -164,7 +164,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.b2 = 0;
                 cs.b3 = ratios[RAT_3_IDX].ratio * (int16_t)speeds.output;
             } else if ((target == GearboxGear::Third && actual == GearboxGear::Fourth) || (target == GearboxGear::Fourth && actual == GearboxGear::Third)) { // 3-4 or 4-3
-                scd = get_shifting_clutch_speeds(speeds, ProfileGearChange::THREE_FOUR, ratios);
+                scd = get_shifting_clutch_speeds(speeds, GearChange::_3_4, ratios);
                 cs.k1 = 0;
                 cs.k2 = 0;
                 cs.k3 = scd.on_clutch_speed;
@@ -172,7 +172,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.b2 = scd.off_clutch_speed;
                 cs.b3 = speeds.n3;
             } else if ((target == GearboxGear::Fourth && actual == GearboxGear::Fifth) || (target == GearboxGear::Fifth && actual == GearboxGear::Fourth)) { // 4-5 or 5-4
-                scd = get_shifting_clutch_speeds(speeds, ProfileGearChange::FOUR_FIVE, ratios);
+                scd = get_shifting_clutch_speeds(speeds, GearChange::_4_5, ratios);
                 cs.k1 = scd.off_clutch_speed;
                 cs.k2 = 0;
                 cs.k3 = 0;

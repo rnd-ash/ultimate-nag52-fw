@@ -27,6 +27,8 @@ TCUIO::OnePollSensor<int16_t> onepoll_motor_temperature;
 TCUIO::OnePollSensor<int16_t> onepoll_motor_oil_temperature;
 
 SensorDataRaw raw_sensors;
+TransferCaseState last_transfer_case_pos = TransferCaseState::SNA;
+bool block_shifting = false;
 
 void init_smoothed_sensor(TCUIO::SmoothedSensor* dest, uint8_t buffer_size, int reset_value = 0) {
     dest->e_counter = 0;
@@ -175,7 +177,8 @@ void update_rpm_sensors() {
         if (raw_sensors.rpm_out >= 100) {
             add_to_smoothed_sensor(&smoothed_sensor_out_rpm, raw_sensors.rpm_out);
         } else {
-            add_to_smoothed_sensor(&smoothed_sensor_out_rpm, 0);
+            smoothed_sensor_out_rpm.e_counter = 0;
+            smoothed_sensor_out_rpm.buffer->reset();
         }
     } else {
         // Poll CANBUS
@@ -197,16 +200,31 @@ void update_rpm_sensors() {
             }
             calc_rpm *= DIFF_RATIO_F;
             // Check transfer case if present
-            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 1000 || VEHICLE_CONFIG.transfer_case_low_ratio != 1000))
+            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 0 && VEHICLE_CONFIG.transfer_case_low_ratio != 0))
             {
-                switch (egs_can_hal->get_transfer_case_state(500))
+                TransferCaseState state = egs_can_hal->get_transfer_case_state(500);
+                if (TransferCaseState::Switching == state) {
+                    // Switching - Use last state
+                    state = last_transfer_case_pos;
+                    block_shifting = true;
+                } else {
+                    block_shifting = false;
+                }
+                switch (state)
                 {
                 case TransferCaseState::Hi:
                     calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
+                    last_transfer_case_pos = state;
                     break;
                 case TransferCaseState::Low:
                     calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
+                    last_transfer_case_pos = state;
                     break;
+                case TransferCaseState::Neither:
+                    last_transfer_case_pos = state;
+                    break; // Transfer case is disengaged, ignore
+                case TransferCaseState::Switching:
+                    break; // Transfer case is switching, ignore
                 default:
                     calc_rpm = UINT16_MAX; // uh oh (Transfer case in invalid state)
                     break;
@@ -224,6 +242,16 @@ void update_can_values() {
     // Motor coolant temperature (Used as a sub for ATF temperature)
     add_to_onepoll_sensor(&onepoll_motor_temperature, egs_can_hal->get_engine_coolant_temp(100));
     add_to_onepoll_sensor(&onepoll_motor_oil_temperature, egs_can_hal->get_engine_oil_temp(100));
+
+    //int16_t m_min = egs_can_hal->get_minimum_engine_torque(100);
+    //int16_t m_max = egs_can_hal->get_maximum_engine_torque(100);
+    //int16_t m_sta = egs_can_hal->get_static_engine_torque(100);
+    //int16_t m_esp = egs_can_hal->get_driver_engine_torque(100);
+
+    //if (UINT16_MAX != m_min && UINT16_MAX != m_max && UINT16_MAX != m_sta && UINT16_MAX != m_esp) {
+    //    // Calculate motor torques
+    //    
+    //}
 }
 
 void TCUIO::update_io_layer() {

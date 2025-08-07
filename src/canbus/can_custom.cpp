@@ -70,46 +70,23 @@ uint8_t CustomCan::get_pedal_value(const uint32_t expire_time_ms) {
     }
 }
 
-int CustomCan::get_static_engine_torque(const uint32_t expire_time_ms) {
+CanTorqueData CustomCan::get_torque_data(const uint32_t expire_time_ms) {
     ENGINE_102_CUSTOMCAN torque_data{};
-    int ret = INT_MAX;
+    CanTorqueData ret = TORQUE_NDEF;
     if (this->engine.get_ENGINE_102(GET_CLOCK_TIME(), expire_time_ms, &torque_data)) {
         if (UINT16_MAX != torque_data.STATIC_TORQUE) {
-            ret = ((int)torque_data.STATIC_TORQUE / 4) - 500;
+            ret.m_converted_static = ((int)torque_data.STATIC_TORQUE / 4) - 500;
         }
-    }
-    return ret;
-}
-
-int CustomCan::get_driver_engine_torque(const uint32_t expire_time_ms) {
-    ENGINE_102_CUSTOMCAN torque_data{};
-    int ret = INT_MAX;
-    if (this->engine.get_ENGINE_102(GET_CLOCK_TIME(), expire_time_ms, &torque_data)) {
         if (UINT16_MAX != torque_data.DRIVER_TORQUE) {
-            ret = ((int)torque_data.DRIVER_TORQUE / 4) - 500;
+            ret.m_converted_driver = ((int)torque_data.DRIVER_TORQUE / 4) - 500;
         }
-    }
-    return ret;
-}
-
-int CustomCan::get_maximum_engine_torque(const uint32_t expire_time_ms) {
-    ENGINE_102_CUSTOMCAN torque_data{};
-    int ret = INT_MAX;
-    if (this->engine.get_ENGINE_102(GET_CLOCK_TIME(), expire_time_ms, &torque_data)) {
-        if (UINT16_MAX != torque_data.MAX_TORQUE) {
-            ret = ((int)torque_data.MAX_TORQUE / 4) - 500;
-        }
-    }
-    return ret;
-}
-
-int CustomCan::get_minimum_engine_torque(const uint32_t expire_time_ms) {
-    ENGINE_102_CUSTOMCAN torque_data{};
-    int ret = INT_MAX;
-    if (this->engine.get_ENGINE_102(GET_CLOCK_TIME(), expire_time_ms, &torque_data)) {
         if (UINT16_MAX != torque_data.MIN_TORQUE) {
-            ret = ((int)torque_data.MIN_TORQUE / 4) - 500;
+            ret.m_min = ((int)torque_data.MIN_TORQUE / 4) - 500;
         }
+        if (UINT16_MAX != torque_data.MAX_TORQUE) {
+            ret.m_max = ((int)torque_data.MAX_TORQUE / 4) - 500;
+        }
+        ret.m_ind = ret.m_converted_driver;
     }
     return ret;
 }

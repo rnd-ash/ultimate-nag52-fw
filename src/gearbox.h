@@ -4,7 +4,7 @@
 #define GEARBOX_H
 
 #include <stdint.h>
-// #include "canbus/can_hal.h"
+#include "canbus/can_hal.h"
 #include "solenoids/solenoids.h"
 #include "sensors.h"
 #include "profiles.h"
@@ -20,21 +20,19 @@
 #include "shifter/shifter.h"
 //#include "runtime_sensors/runtime_sensors.h"
 
-/* unused */
-// struct PostShiftTorqueRamp {
-//     bool enabled;
-//     uint16_t start_nm;
-//     uint16_t time_to_exit;
-// };
+struct PostShiftTorqueRamp {
+    bool enabled;
+    uint16_t start_nm;
+    uint16_t time_to_exit;
+};
 
 class Gearbox {
 public:
     explicit Gearbox(Shifter* shifter);
     // Diag test
-    ClutchSpeeds diag_get_clutch_speeds(void);
+    ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
-    /* unused       */
-    // void inc_subprofile(void);
+    void inc_subprofile(void);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
@@ -42,24 +40,34 @@ public:
     void diag_regain_control(void) { this->diag_stop_control = false; }
     SensorData sensor_data;
     OutputData output_data;
-    uint16_t get_gear_ratio(void) const {
+    uint16_t get_gear_ratio(void) {
         return this->sensor_data.gear_ratio * 100.0F;
     }
+    uint16_t get_targ_gear_ratio(void) {
+        return this->sensor_data.targ_gear_ratio * 100.0F;
+    }
+    uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool isShifting(void) const { return this->shifting; }
-    ProfileGearChange get_curr_gear_change(void) const { return this->shift_idx; }
+    bool isShifting(void) { return this->shifting; }
+    uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
+    uint8_t get_profile_id(void) {
+        if (this->current_profile) {
+            return this->current_profile->get_profile_id();
+        } else {
+            return 0xFF;
+        }
+    }
     TorqueConverter* tcc = nullptr;
-    ShiftClutchVelocity shifting_velocity = {0,0};
+    ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
     SpeedSensors speed_sensors;
 private:
-    uint16_t redline_rpm = 4000u;
-    bool is_stationary(void) const;
+    bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
-    bool elapse_shift(ProfileGearChange req_lookup, AbstractProfile* profile);
+    bool elapse_shift(GearChange req_lookup, AbstractProfile* profile);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -103,19 +111,13 @@ private:
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit;
     float diff_ratio_f;
-    ProfileGearChange shift_idx = ProfileGearChange::ONE_TWO;
+    GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;
     bool aborting = false;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    /* unused */
-    // float calc_torque_reduction_factor(ProfileGearChange change, uint16_t shift_speed_ms);
-    FirstOrderAverage* pedal_average = new FirstOrderAverage(25);
+    FirstOrderAverage* pedal_average = nullptr;
     FirstOrderAverage* motor_speed_average = nullptr;
-
-    FirstOrderAverage* engine_torque_average = nullptr;
-    FirstOrderAverage* input_torque_average = nullptr;
-
     FirstOrderAverage* torque_req_average = nullptr;
 
     int req_static_torque_delta = 0;

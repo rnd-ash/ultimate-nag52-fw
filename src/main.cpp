@@ -1,6 +1,7 @@
 #ifndef UNIT_TEST
 
 #include "clock.hpp"
+#include "embed_data.h"
 
 #include "solenoids/solenoids.h"
 #include "esp_log.h"
@@ -99,6 +100,7 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 break;
                             default:
+                                ESP_LOGE("INIT", "INVALID SHIFTER ID 0x%02X",VEHICLE_CONFIG.shifter_style);
                                 // possibly
                                 break;
                             }
@@ -327,6 +329,10 @@ extern "C" void app_main(void)
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
+    
+    int x = (int)embed_container_end - (int)embed_container_start;
+    printf("Embedded container: %p %p - %d Bytes\n", embed_container_start, embed_container_end, x);
+    
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);

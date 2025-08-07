@@ -21,9 +21,11 @@ const char* CLUTCH_NAMES[5] = {
 ShiftAdaptationSystem::ShiftAdaptationSystem(GearboxConfiguration* cfg_ptr)
 {
     this->gb_cfg = cfg_ptr;
-    this->prefill_pressure_offset_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_PRESSURE, 8u*1u, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_PRESSURE_MAP);
-    this->prefill_time_offset_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_TIMING, 8u*1u, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_TIMING_MAP);
-    this->prefill_adapt_torque_limit_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_TORQUE_LIM, 8u*1u, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP);
+    const int16_t prefill_x_headers[8] = {1,2,3,4,5,6,7};
+    const int16_t prefill_y_headers[1] = {1};
+    this->prefill_pressure_offset_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_PRESSURE, 8*1, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_PRESSURE_MAP);
+    this->prefill_time_offset_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_TIMING, 8*1, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_TIMING_MAP);
+    this->prefill_adapt_torque_limit_map = new StoredMap(NVS_KEY_MAP_NAME_PREFILL_ADAPT_PREFILL_TORQUE_LIM, 8*1, prefill_x_headers, prefill_y_headers, 8, 1, PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP);
     // Debug
     this->prefill_pressure_offset_map->reset_from_flash();
     this->prefill_time_offset_map->reset_from_flash();
@@ -40,86 +42,85 @@ esp_err_t ShiftAdaptationSystem::save(void) {
     }
 }
 
-/* unused */
-// bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {
-//     bool ret = false;
-//     switch(to_apply) {
-//         case Clutch::K1:
-//             ret = ADP_CURRENT_SETTINGS.prefill_adapt_k1;
-//             break;
-//         case Clutch::K2:
-//             ret = ADP_CURRENT_SETTINGS.prefill_adapt_k2;
-//             break;
-//         case Clutch::K3:
-//             ret = ADP_CURRENT_SETTINGS.prefill_adapt_k3;
-//             break;
-//         case Clutch::B1:
-//             ret = ADP_CURRENT_SETTINGS.prefill_adapt_b1;
-//             break;
-//         case Clutch::B2:
-//             ret = ADP_CURRENT_SETTINGS.prefill_adapt_b2;
-//             break;
-//         case Clutch::B3:
-//         default:
-//             break;
-//     }
-//     return ret;
-// }
+bool check_prefill_clutch_adapt_allowed(Clutch to_apply) {
+    bool ret = false;
+    switch(to_apply) {
+        case Clutch::K1:
+            ret = ADP_CURRENT_SETTINGS.prefill_adapt_k1;
+            break;
+        case Clutch::K2:
+            ret = ADP_CURRENT_SETTINGS.prefill_adapt_k2;
+            break;
+        case Clutch::K3:
+            ret = ADP_CURRENT_SETTINGS.prefill_adapt_k3;
+            break;
+        case Clutch::B1:
+            ret = ADP_CURRENT_SETTINGS.prefill_adapt_b1;
+            break;
+        case Clutch::B2:
+            ret = ADP_CURRENT_SETTINGS.prefill_adapt_b2;
+            break;
+        case Clutch::B3:
+        default:
+            break;
+    }
+    return ret;
+}
 
-/* unused */
-// AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(ProfileGearChange change) {
-//     AdaptPrefillData ret = {0, 0, 0};
-//     if (nullptr != this->prefill_pressure_offset_map) {
-//         ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)change, 1);
-//     }
-//     if (nullptr != this->prefill_time_offset_map) {
-//         ret.timing_offset = this->prefill_time_offset_map->get_value((float)change, 1);
-//     }
-//     if (nullptr != this->prefill_adapt_torque_limit_map) {
-//         float lim_percent = (float)this->prefill_adapt_torque_limit_map->get_value((float)change, 1)/100.0;
-//         ret.torque_lim = (float)this->gb_cfg->max_torque*lim_percent;
-//     }
-//     ESP_LOGI("ADAPT", "Values to use: %d mBar %d ms %d Nm", ret.pressure_offset_on_clutch, ret.timing_offset, ret.torque_lim);
-//     this->current_change = change;
-//     return ret;
-// }
+AdaptPrefillData ShiftAdaptationSystem::get_prefill_adapt_data(GearChange change) {
+    AdaptPrefillData ret = {0, 0, 0};
+    //if (nullptr != this->prefill_pressure_offset_map) {
+    //    ret.pressure_offset_on_clutch = this->prefill_pressure_offset_map->get_value((float)change, 1);
+    //}
+    //if (nullptr != this->prefill_time_offset_map) {
+    //    ret.timing_offset = this->prefill_time_offset_map->get_value((float)change, 1);
+    //}
+    //if (nullptr != this->prefill_adapt_torque_limit_map) {
+    //    float lim_percent = (float)this->prefill_adapt_torque_limit_map->get_value((float)change, 1)/100.0;
+    //    ret.torque_lim = (float)this->gb_cfg->max_torque*lim_percent;
+    //}
+    //ESP_LOGI("ADAPT", "Values to use: %d mBar %d ms %d Nm", ret.pressure_offset_on_clutch, ret.timing_offset, ret.torque_lim);
+    //this->current_change = change;
+    return ret;
+}
 
-/* unused */
-// void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm) {
-//     // Too early, reduce filling time
-//     // Velocities are calculated every 100ms
-//     int start_time_offset = ((float)delta_rpm/(float)vel.on_clutch_vel)*100.0;
-//     int shift_start_time_absolute = (int)time_into_shift - start_time_offset;
-//     ESP_LOGI("ADAPT", "Estimating shift started -%d ms ago at %d ms", start_time_offset, shift_start_time_absolute);
-//     bool check_velocity = true;
+/*
+void ShiftAdaptationSystem::record_shift_start(uint64_t time_into_shift, int overlap_start_ts, uint16_t mpc, uint16_t spc, ShiftClutchVelocity vel, uint16_t delta_rpm) {
+    // Too early, reduce filling time
+    // Velocities are calculated every 100ms
+    int start_time_offset = ((float)delta_rpm/(float)vel.on_clutch_vel)*100.0;
+    int shift_start_time_absolute = (int)time_into_shift - start_time_offset;
+    ESP_LOGI("ADAPT", "Estimating shift started -%d ms ago at %d ms", start_time_offset, shift_start_time_absolute);
+    bool check_velocity = true;
 
-//     if (shift_start_time_absolute < overlap_start_ts) { // Too early in fill phase
-//         ESP_LOGE("ADAPT", "Shift started too early!");
-//         this->set_prefill_cell_offset(this->prefill_time_offset_map, this->current_change, -10.0, 200, -100.0);
-//     } else if (shift_start_time_absolute > overlap_start_ts + 250) {
-//         check_velocity = false;
-//         ESP_LOGE("ADAPT", "Shift started too late!");
-//         if (this->flared) {
-//             // There was a flare, TODO - handle MPC padding on the releasing clutch
-//             ESP_LOGE("ADAPT", "Shift flared prior to overlap, ignoring adaptation");
-//         } else {
-//             this->set_prefill_cell_offset(this->prefill_time_offset_map, this->current_change, +10.0, 200, -100.0);
-//         }
-//     }
-//     if (check_velocity) {
-//         ESP_LOGI("ADAPT", "Vel on: %d ,Vel off: %d!", vel.on_clutch_vel, vel.off_clutch_vel);
-//         if (vel.on_clutch_vel > 50) {
-//             // Too quick
-//             ESP_LOGW("ADAPT", "Shifting velocity too quick");
-//             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->current_change, -5.0, 200, -200.0);
-//         } else if (vel.on_clutch_vel < 20) {
-//             ESP_LOGW("ADAPT", "Shifting velocity too slow");
-//             this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->current_change, +5.0, 200, -200.0);
-//         } else {
-//             ESP_LOGI("ADAPT", "SHIFT PERFECT");
-//         }
-//     }
-// }
+    if (shift_start_time_absolute < overlap_start_ts) { // Too early in fill phase
+        ESP_LOGE("ADAPT", "Shift started too early!");
+        this->set_prefill_cell_offset(this->prefill_time_offset_map, this->current_change, -10.0, 200, -100.0);
+    } else if (shift_start_time_absolute > overlap_start_ts + 250) {
+        check_velocity = false;
+        ESP_LOGE("ADAPT", "Shift started too late!");
+        if (this->flared) {
+            // There was a flare, TODO - handle MPC padding on the releasing clutch
+            ESP_LOGE("ADAPT", "Shift flared prior to overlap, ignoring adaptation");
+        } else {
+            this->set_prefill_cell_offset(this->prefill_time_offset_map, this->current_change, +10.0, 200, -100.0);
+        }
+    }
+    if (check_velocity) {
+        ESP_LOGI("ADAPT", "Vel on: %d ,Vel off: %d!", vel.on_clutch_vel, vel.off_clutch_vel);
+        if (vel.on_clutch_vel > 50) {
+            // Too quick
+            ESP_LOGW("ADAPT", "Shifting velocity too quick");
+            this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->current_change, -5.0, 200, -200.0);
+        } else if (vel.on_clutch_vel < 20) {
+            ESP_LOGW("ADAPT", "Shifting velocity too slow");
+            this->set_prefill_cell_offset(this->prefill_pressure_offset_map, this->current_change, +5.0, 200, -200.0);
+        } else {
+            ESP_LOGI("ADAPT", "SHIFT PERFECT");
+        }
+    }
+}
+*/
 
 /*
 void ShiftAdaptationSystem::record_shift_end(ShiftStage c_stage, uint64_t time_into_phase, uint16_t mpc, uint16_t spc) {
@@ -133,16 +134,7 @@ void ShiftAdaptationSystem::record_flare(ShiftStage when, uint64_t elapsed){
 }
 */
 
-/* unused */
-// uint16_t ShiftAdaptationSystem::get_overlap_end_shift_pressure(ProfileGearChange change, uint16_t selected_prefill_pressure) {
-//     uint16_t ret = selected_prefill_pressure*2;
-//     if (nullptr != this->prefill_pressure_offset_map) {
-//         ret += this->prefill_pressure_offset_map->get_value((float)change, 1);
-//     }
-//     return ret;
-// }
-
-uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, ProfileGearChange change) {
+uint32_t ShiftAdaptationSystem::check_prefill_adapt_conditions_start(SensorData* sensors, GearChange change) {
     uint32_t ret = (int)AdaptCancelFlag::ADAPTABLE;
     this->current_change = change;
     this->flared = false;
@@ -173,38 +165,37 @@ esp_err_t ShiftAdaptationSystem::reset(void)
     return ESP_OK;
 }
 
-/* unused */
-// bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, ProfileGearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim) {
-//     /*
-//     bool ret = false;
-//     if (dest) {
-//         uint8_t idx = (uint8_t)change;
-//         if (idx < dest->get_map_element_count()) {
-//             int16_t* data = dest->get_current_data();
-//             int16_t modify = data[idx] + offset;
-//             if (modify > pos_lim) {
-//                 modify = pos_lim;
-//             } else if (modify < neg_lim) {
-//                 modify = neg_lim;
-//             }
-//             data[idx] = modify;
-//         }
-//     }
-//     */
-//     return false;
-// }
 
-/* unused */
-// void ShiftAdaptationSystem::debug_print_prefill_data() {
-//     if (this->prefill_pressure_offset_map && this->prefill_time_offset_map) {
-//         for (int i = 0; i < 8; i++) {
-//             ESP_LOGI("ADAPT", "Prefill data - Shift idx %d (%d mBar - %d ms)", 
-//                 i, 
-//                 (int16_t)this->prefill_pressure_offset_map->get_value(i, 1),
-//                 (int16_t)this->prefill_time_offset_map->get_value(i, 1)
-//             );
-//         }
-//     } else {
-//         ESP_LOGE("ADAPT", "Cannot print prefill data, 1 or more maps is null!");
-//     }
-// }
+bool ShiftAdaptationSystem::set_prefill_cell_offset(StoredMap* dest, GearChange change, int16_t offset, int16_t pos_lim, int16_t neg_lim) {
+    /*
+    bool ret = false;
+    if (dest) {
+        uint8_t idx = (uint8_t)change;
+        if (idx < dest->get_map_element_count()) {
+            int16_t* data = dest->get_current_data();
+            int16_t modify = data[idx] + offset;
+            if (modify > pos_lim) {
+                modify = pos_lim;
+            } else if (modify < neg_lim) {
+                modify = neg_lim;
+            }
+            data[idx] = modify;
+        }
+    }
+    */
+    return false;
+}
+
+void ShiftAdaptationSystem::debug_print_prefill_data() {
+    if (this->prefill_pressure_offset_map && this->prefill_time_offset_map) {
+        for (int i = 0; i < 8; i++) {
+            ESP_LOGI("ADAPT", "Prefill data - Shift idx %d (%d mBar - %d ms)", 
+                i, 
+                (int16_t)this->prefill_pressure_offset_map->get_value(i, 1),
+                (int16_t)this->prefill_time_offset_map->get_value(i, 1)
+            );
+        }
+    } else {
+        ESP_LOGE("ADAPT", "Cannot print prefill data, 1 or more maps is null!");
+    }
+}

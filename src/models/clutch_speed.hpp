@@ -22,7 +22,7 @@ struct SpeedSensors {
 };
 
 namespace ClutchSpeedModel {
-    ShiftClutchData get_shifting_clutch_speeds(const SpeedSensors speeds, const ProfileGearChange req, const GearRatioInfo* ratios);
+    ShiftClutchData get_shifting_clutch_speeds(const SpeedSensors speeds, const GearChange req, const GearRatioInfo* ratios);
     ClutchSpeeds get_clutch_speeds_debug(
         const SpeedSensors speeds,
         const GearboxGear last_motion_gear,

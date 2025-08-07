@@ -211,7 +211,7 @@ const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE] = {
 const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
     /* Clutch                    */
     /* K1    K2    K3    B1    B2 */
-      100,  700,  850,  750,  700
+      700,  700,  750,  700,  620
 };
 
 
@@ -329,21 +329,18 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 // VALUES (Target TCC slip):
 // Values <=10 - Sets TCC is closed
-// Values > 100 - Sets TCC is open
+// Values > 50 - Sets TCC is open
 // Values between 10 and 100 - Tcc is slipping with desired target slip
 const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
     /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
         200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
-         90,  90,  90, 100, 150, 200, 200, 200, 200, 200, 200, // Input 1500 RPM
-         50,  50,  50,  80, 100, 100, 100, 150, 200, 200, 200, // Input 2000 RPM 
-         20,  20,  35,  55,  70,  80,  95, 100, 200, 200, 200, // Input 2500 RPM 
-          0,   0,  10,  30,  60,  60,  65,  90, 200, 200, 200, // Input 3000 RPM 
-          0,   0,   0,  10,  40,  40,  55,  85, 200, 200, 200, // Input 3500 RPM 
-          0,   0,   0,   0,  20,  30,  40,  80, 200, 200, 200, // Input 4000 RPM 
-          0,   0,   0,   0,  10,  20,  30,  70, 200, 200, 200, // Input 4500 RPM 
-          0,   0,   0,   0,   0,  10,  20,  40, 200, 200, 200, // Input 5000 RPM 
-          0,   0,   0,   0,   0,   0,  10,  20, 200, 200, 200, // Input 5500 RPM 
-          0,   0,   0,   0,   0,   0,   0,  10, 200, 200, 200, // Input 6000 RPM 
+         50,  50,  50, 100, 125, 150, 175, 180, 185, 190, 200, // Input 1200 RPM
+         10,  20,  40,  80,  90, 100, 120, 140, 160, 170, 180, // Input 1400 RPM 
+          0,  10,  20,  55,  60,  75,  95, 105, 125, 150, 160, // Input 1600 RPM 
+          0,   0,  10,  20,  30,  40,  50,  70,  90, 110, 130, // Input 1800 RPM 
+          0,   0,   0,   0,  10,  20,  40,  50,  60,  80, 100, // Input 2000 RPM 
+          0,   0,   0,   0,   0,   0,  10,  20,  40,  60,  80, // Input 4000 RPM 
+          0,   0,   0,   0,   0,   0,   0,   0,  10,  30,  50, // Input 6000 RPM 
 };
 
 
@@ -363,7 +360,6 @@ const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[] = {
      20,  30,  40,  50,  50,  40,  30,  20
 };
 
-const char MAP_NAME_ENGINE_TORQUE_MAX[TORQUE_HEADERS_MAP_NAME_SIZE] = "ENGINE_TORQUE_MAX";
 const int16_t ENGINE_TORQUE_HEADERS_MAP[] = {
     /* rpm */    0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000
 };

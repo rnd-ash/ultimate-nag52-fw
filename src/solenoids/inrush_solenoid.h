@@ -1,17 +1,17 @@
-#ifndef INRUSH_SOLENOID_H
-#define INRUSH_SOLENOID_H
+#ifndef __INRUSH_SOLENOID_H_
+#define __INRUSH_SOLENOID_H_
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
-
 class InrushControlSolenoid : public PwmSolenoid {
 public:
-    explicit InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms);
+    explicit InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, gpio_num_t zener_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms);
     void __write_pwm(float vref_compensation, float temperature_factor);
-    uint32_t on_timer_interrupt(void);
+    uint32_t on_timer_interrupt();
+    uint32_t on_timer_interrupt_new();
     void set_duty(uint16_t duty);
-    void pre_current_test(void) override;
-    void post_current_test(void) override;
+    void pre_current_test() override;
+    void post_current_test() override;
 private:
     ledc_timer_t ledc_timer;
     float vref = 1.0;
@@ -29,9 +29,13 @@ private:
     uint32_t inrush_time_this_cycle = 0;
     uint32_t hold_time_this_cycle = 0;
     uint32_t off_time_this_cycle = 0;
+    uint32_t pwm_on_time = 0;
+    uint32_t pwm_off_time = 0;
 
     gptimer_handle_t timer;
     bool off = false;
+    gpio_num_t zener_pin = GPIO_NUM_NC;
+    gpio_num_t pwm_pin = GPIO_NUM_NC;
 };
 
 #endif

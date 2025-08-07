@@ -125,6 +125,7 @@ float interpolate_float(float raw, float new_min, float new_max, float raw_min, 
  */
 int interpolate_int(int raw, int new_min, int new_max, int raw_min, int raw_max);
 
+
 float interpolate_float(float raw, const LinearInterpSetting* settings, InterpType interp_type);
 
 float progress_between_targets(float current, float start, float end);
@@ -153,5 +154,7 @@ template <typename T> void search_value(const T value, const T *values, const ui
 /// @param x - Pointer to X axis
 /// @param vals - Pointer to value axis
 template <typename T> float interpolate_linear_array(T v, const uint8_t len, const T* x, const T* vals);
+
+int linear_ramp_with_timer(int start, int end, int current_timer_val);
 
 #endif // TCU_MATHS_H

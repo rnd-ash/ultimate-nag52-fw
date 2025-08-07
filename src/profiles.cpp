@@ -67,19 +67,19 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
-ShiftCharacteristics AbstractProfile::get_shift_characteristics(ProfileGearChange requested, const SensorData* sensors) {
+ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange requested, SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {
-        case ProfileGearChange::ONE_TWO:
-        case ProfileGearChange::TWO_THREE:
-        case ProfileGearChange::THREE_FOUR:
-        case ProfileGearChange::FOUR_FIVE:
+        case GearChange::_1_2:
+        case GearChange::_2_3:
+        case GearChange::_3_4:
+        case GearChange::_4_5:
             result.target_shift_time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
             break;
-        case ProfileGearChange::FIVE_FOUR:
-        case ProfileGearChange::FOUR_THREE:
-        case ProfileGearChange::THREE_TWO:
-        case ProfileGearChange::TWO_ONE:
+        case GearChange::_5_4:
+        case GearChange::_4_3:
+        case GearChange::_3_2:
+        case GearChange::_2_1:
             result.target_shift_time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
             break;
         default:
@@ -340,11 +340,20 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
         //}
         // Load check
         if (can_upshift) {
-            if (sensors->max_torque != 0) {
-                float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
-                if (demanded_load > 30) {
-                    can_upshift = false;
-                }
+            if (sensors->pedal_delta->get_average() > 20.0) {
+                can_upshift = false;
+            }
+            //if (sensors->max_torque != 0) {
+            //    float demanded_load = (MAX(sensors->converted_driver_torque, 0) * 100) / sensors->max_torque;
+            //    if (demanded_load > 30) {
+            //        can_upshift = false;
+            //    }
+            //}
+        }
+        if (can_upshift) {
+            // Stop 'sporatic' upshifting when the user lets go of the pedal quickly (This will trigger a brief wait period)
+            if (sensors->pedal_delta->get_average() < -10.0) {
+                can_upshift = false;
             }
         }
         return can_upshift;
@@ -353,7 +362,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     }
 }
 
-void StandardProfile::update(const SensorData* sensors) {
+void StandardProfile::update(SensorData* sensors) {
     // Every 250ms we check sensor inputs
     if (GET_CLOCK_TIME() - this->last_check > 250) {
         this->last_check = GET_CLOCK_TIME();

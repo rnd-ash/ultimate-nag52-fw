@@ -6,6 +6,7 @@
 #include "shifter/shifter.h"
 #include "stored_table.h"
 #include "maps.h"
+#include "nvs/all_keys.h"
 
 #include "shifter/shifter_trrs.h"
 
@@ -34,11 +35,8 @@ class HfmCan: public EgsBaseCan {
          bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
-        // Gets the current 'static' torque produced by the engine
-         int get_static_engine_torque(const uint32_t expire_time_ms) override;
-         int get_driver_engine_torque(const uint32_t expire_time_ms) override;
-        // Gets the maximum engine torque allowed at this moment by the engine map
-         int get_maximum_engine_torque(const uint32_t expire_time_ms) override;
+        // Gets Torque information
+        CanTorqueData get_torque_data(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
          int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
         // Gets engine oil temperature
@@ -68,7 +66,7 @@ class HfmCan: public EgsBaseCan {
         
         bool start_enable = false;
 
-        StoredTable *enginemaxtorque = new StoredTable(MAP_NAME_ENGINE_TORQUE_MAX, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
+        StoredTable *enginemaxtorque = new StoredTable(NVS_KEY_MAP_NAME_HFM_TORQUE_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
 
         uint16_t generateWheelData(const uint32_t expire_time_ms) const;
 };

@@ -12,8 +12,6 @@ ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t 
     this->current_target = 0;
     this->use_global_cc = !is_mpc;
     this->channel = channel;
-    this->avg_req = new FirstOrderAverage(4);
-    this->avg_sense = new FirstOrderAverage(4);
 }
 
 void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
@@ -37,47 +35,47 @@ float ConstantCurrentSolenoid::get_trim() {
 }
 
 void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
-    this->avg_sense->add_sample(this->get_current());
-    // When the previous cycle was ran
-    float max_current = ((float)battery / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance);
-    uint16_t current_targ_when_reading = this->saved_current_target;
-    this->saved_current_target = this->current_target;
-    if (correct_cycle && battery > 10000) {
-        int16_t error = MIN(current_targ_when_reading - this->get_current(), 200);
-        uint16_t jump = abs(this->saved_current_target - current_targ_when_reading);
-        if (current_targ_when_reading >= 200 && this->get_current() > 200 && abs(error) > 10 && jump <= 500) {
-            // Compensate
-            
-            // 1. Error as a proportion of max current
-            float error_f = (float)error / max_current;
-            // 2. Set trim
-            this->internal_trim_factor += error_f/2;
-            if (this->internal_trim_factor >= 0.5) {
-                this->internal_trim_factor = 0.5;
-            } else if (this->internal_trim_factor <= -0.5) {
-                this->internal_trim_factor = -0.5;
+    if(battery > 9000) {
+        // When the previous cycle was ran
+        float max_current = ((float)battery / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance);
+        uint16_t current_targ_when_reading = this->saved_current_target;
+        this->saved_current_target = this->current_target;
+        if (correct_cycle) {
+            int16_t error = MIN(current_targ_when_reading - this->get_current(), 200);
+            uint16_t jump = abs(this->saved_current_target - current_targ_when_reading);
+            if (current_targ_when_reading >= 200 && this->current_target >= 200 && abs(error) > 10 && jump <= 500) {
+                // Compensate
+                
+                // 1. Error as a proportion of max current
+                float error_f = (float)error / max_current;
+                // 2. Set trim
+                this->internal_trim_factor += error_f/2;
             }
         }
-    }
-    if (!use_global_cc) {
-        mpc_sol_trim_factor = this->internal_trim_factor;
-    } else {
-        if (this->current_target == 0) {
-            this->internal_trim_factor = mpc_sol_trim_factor;
+        if (this->internal_trim_factor > 0.5) {
+            this->internal_trim_factor = 0.5;
+        } else if (this->internal_trim_factor < -0.5) {
+            this->internal_trim_factor = -0.5;
         }
+        if (!use_global_cc) {
+            mpc_sol_trim_factor = this->internal_trim_factor;
+        } else {
+            if (this->current_target == 0) {
+                this->internal_trim_factor = mpc_sol_trim_factor;
+            }
+        }
+        uint16_t targ_pwm = 0;
+        if (this->saved_current_target != 0 && this->current_target != 0) {
+            float step_per_pwm = 4096.0 / max_current;
+            float calc = step_per_pwm * this->saved_current_target;
+            targ_pwm = calc * this->internal_trim_factor;
+            targ_pwm = MAX(0, (4096.0 * (this->current_target/max_current)));
+            // RMS trim factor
+            targ_pwm += targ_pwm * (this->internal_trim_factor * (max_current/this->current_target));
+        }
+        this->pwm = MIN(targ_pwm, 4096);
+        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, targ_pwm);
+        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+        this->correct_cycle = !this->correct_cycle;
     }
-    uint16_t targ_pwm = 0;
-    this->avg_req->add_sample(this->current_target);
-    if (this->saved_current_target != 0 && this->current_target != 0) {
-        float step_per_pwm = 4096.0 / max_current;
-        float calc = step_per_pwm * this->saved_current_target;
-        targ_pwm = calc * this->internal_trim_factor;
-        targ_pwm = MAX(0, (4096.0 * (this->current_target/max_current)));
-        // RMS trim factor
-        targ_pwm += targ_pwm * (this->internal_trim_factor * (max_current/this->current_target));
-    }
-    this->pwm = targ_pwm;
-    ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, targ_pwm);
-    ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
-    this->correct_cycle = !this->correct_cycle;
 }

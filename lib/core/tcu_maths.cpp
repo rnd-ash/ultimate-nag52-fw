@@ -78,3 +78,16 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 float progress_between_targets(const float current, const float start, const float end) {
     return ((100.0F * (current - start)) / (end - start));
 }
+
+int linear_ramp_with_timer(int start, int end, int current_timer_val) {
+    if (0 != current_timer_val) {
+        if (start < end) {
+            int delta = (end-start)/current_timer_val;
+            end = start + delta;
+        } else {
+            int delta = (start-end)/current_timer_val;
+            end = start - delta;
+        }
+    }
+    return end;
+}

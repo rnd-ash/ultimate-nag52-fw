@@ -20,9 +20,12 @@ enum class ShifterStyle : uint8_t {
 	TRRS = 1u,
 	/**
 	 * @brief SLR Mclaran shifter
-     * NOTE: This is unimplemented at the moment.
 	 */
 	SLR = 2u,
+    /**
+     * ISM - Steering column selector, EGS53 only!
+     */
+    ISM = 3u
 };
 
 /**

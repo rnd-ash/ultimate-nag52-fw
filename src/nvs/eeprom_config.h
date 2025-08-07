@@ -43,6 +43,8 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint16_t c_eng;
     // Engine drag torque (Nm/10)
     uint16_t engine_drag_torque;
+    // Boolean for Jeep/Chrysler mode
+    bool jeep_chrysler;
 };
 
 

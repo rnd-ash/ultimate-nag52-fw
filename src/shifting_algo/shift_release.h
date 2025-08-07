@@ -8,49 +8,46 @@ class ReleasingShift : public ShiftingAlgorithm {
 public:
     explicit ReleasingShift(ShiftInterfaceData* data);
     ~ReleasingShift() override;
-    uint8_t step(
-        uint8_t phase_id,
-        uint16_t abs_input_torque,
+    uint8_t step_internal(
         bool stationary,
-        bool is_upshift,
-        uint16_t phase_elapsed,
-        uint16_t total_elapsed,
-        PressureManager* pm,
-        SensorData* sd
+        bool is_upshift
     ) override;
-    FirstOrderAverage* trq_req_avg;
+
+    void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
-    uint16_t threshold_rpm = 0;
-    float filling_adder = 0;
-    float filling_trq_reducer = 0;
-    bool trq_ramp_up = false;
-    float sports_trq_req_adder = 1.0;
-    bool trq_req = true;
-    bool ramp_done = false;
     
-    int mod_time_phase_0 = -1;
-    int mod_time_phase_1 = -1;
 
-    uint8_t subphase_mod = 0;
-    uint8_t subphase_shift = 0;
+private:
+    short momentum_plus_maxtrq = 0;
+    short momentum_plus_maxtrq_1 = 0;
+    float freeing_trq = 0;
+    float loss_torque = 0;
+    uint16_t torque_adder = 0;
 
-    uint16_t ts_phase_mod = 0;
-    uint16_t ts_phase_shift = 0;
-    uint16_t trq_req_start_time = 0;
-    uint16_t trq_req_end_time = 0;
-    uint16_t last_trq_req = 0;
+    uint16_t torque_req_val = 0;
 
-    float sports_factor=1.0;
-    float trq_factor = 1.0;
-    float trq_request_target = 0;
-    float trq_request_target_adder = 0;
+    void phase_fill_release_spc(bool is_upshift);
+    uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
+    uint8_t phase_overlap(SensorData* sd, bool is_upshift);
 
-    uint16_t rpm_shift_phase_3 = 0;
+    uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
-    int torque_at_new_clutch = 0;
-    bool torque_req_en = false;
-
-
+    uint16_t fun_0d85d8();
+    short fun_0d4ed0();
+    uint16_t calc_mod_overlap();
+    bool trq_req_up_ramp = false;
+    uint16_t torque_req_out = 0;
+    bool trq_req_down_ramp = false;
+    uint8_t trq_req_timer = 0;
+    uint16_t low_f_p = 0;
+    uint16_t spring_trq_off_clutch = 0;
+    int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
+    uint16_t calc_threshold_rpm_2(uint8_t cycles);
+    float spc_ramp_val = 0;
+    float spc_wait_adder = 0;
+    float loss_pedal = 0;
+    float p_overlap_begin = 0;
+    float overlap_torque = 0;
 };
 
 #endif

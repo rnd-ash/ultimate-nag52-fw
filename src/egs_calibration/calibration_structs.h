@@ -1,5 +1,5 @@
-#ifndef CALIBRATION_STRUCT_H
-#define CALIBRATION_STRUCT_H
+#ifndef __CALIBRATION_STRUCT_H_
+#define __CALIBRATION_STRUCT_H_
 
 #include <stdint.h>
 #include "esp_err.h"
@@ -21,7 +21,7 @@
 
 #define SHIFT_ARRAY_LEN 8 // Arrays with all 8 shifts (1-2 2-3 3-4 4-5 2-1 3-2 4-3 5-4)
 
-struct ShiftAlgorithmPack{
+typedef struct {
     // Momentum (Up)
     // X: Output speed (x30)
     // Y: Engine torque (Static) (x5)
@@ -77,9 +77,9 @@ struct ShiftAlgorithmPack{
     uint8_t trq_adder_3_2_z[12];
     uint8_t trq_adder_4_3_z[12];
     uint8_t trq_adder_5_4_z[12];
-} __attribute__ ((packed));
+} __attribute__ ((packed)) ShiftAlgorithmPack;
 
-struct HydraulicCalibration{
+typedef struct {
     uint16_t p_multi_1;
     uint16_t p_multi_other;
     uint16_t lp_reg_spring_pressure;
@@ -108,9 +108,9 @@ struct HydraulicCalibration{
     uint16_t pcs_map_x[7];
     uint16_t pcs_map_y[4];
     uint16_t pcs_map_z[28];
-} __attribute__ ((packed));
+} __attribute__ ((packed)) HydraulicCalibration;
 
-struct MechanicalCalibration{
+typedef struct {
     uint8_t gb_ty;
     uint16_t ratio_table[8];
     uint16_t intertia_factor[8];
@@ -124,16 +124,55 @@ struct MechanicalCalibration{
     uint16_t atf_density_minus_50c;
     uint16_t atf_density_drop_per_c;
     uint16_t atf_density_centrifugal_force_factor[3];
-} __attribute__ ((packed)) ;
+} __attribute__ ((packed)) MechanicalCalibration;
 
-struct TorqueConverterCalibration{
+typedef struct {
     uint16_t multiplier_map_x[2];
     uint16_t multiplier_map_z[2];
     uint16_t pump_map_x[11];
     uint16_t pump_map_z[11];
-} __attribute__ ((packed));
+} __attribute__ ((packed)) TorqueConverterCalibration;
 
-struct CalibrationInfo{
+typedef struct {
+    uint8_t unk;
+    uint8_t _padding;
+    uint16_t min_trq_filling_phase;
+    uint16_t min_trq_filling_ramp[8];
+    uint16_t unk1;
+    uint16_t unk2;
+    uint16_t release_filling_p[5];
+    uint8_t cycles_ramp_to_low_filling;
+    uint8_t cycles_low_filling_p[5];
+    uint8_t max_trq_ramp_filling;
+    uint8_t cycles_fill_ramp1;
+    uint8_t cycles_fill_ramp2;
+    uint8_t _padding1;
+    uint16_t fill_hold1_p;
+    uint16_t fill_hold2_p;
+    uint8_t extra_p_filling_doubleshift[3];
+    uint8_t unk_temp1;
+    uint8_t unk_temp2;
+    uint8_t filling_trq_lim_c;
+    int16_t tolorance_trq_filling;
+    uint16_t tolorance_filling_43;
+    uint16_t tolorance_filling_32_21;
+    uint16_t high_filling_p[5];
+    uint16_t max_trq_change_filling;
+    uint8_t something_trq_ramp_mclaren;
+    uint8_t something_filling_time_mclaren[5];
+    uint8_t temp_very_cold_filling;
+    uint8_t _padding3;
+    uint16_t very_cold_filling_p[5];
+    uint16_t rpm_thresh_skip_filling1;
+    uint16_t unk_p1;
+    uint8_t min_temp_adapt_43;
+    uint8_t padding3;
+    uint16_t trq_threshold_reduction_filling_p;
+    uint16_t max_reduction_filling_p[6];
+    uint8_t downshift_pedal_jump_abort[5];
+} __attribute__ ((packed)) FillingCalibration;
+
+typedef struct {
     uint32_t magic;
     uint16_t len;
     uint16_t crc;
@@ -145,19 +184,22 @@ struct CalibrationInfo{
     HydraulicCalibration hydr_cal;
     char shift_algo_pack_name[16];
     ShiftAlgorithmPack shift_algo_cal;
-} __attribute__ ((packed)) ;
+    //char filling_cal_name[16];
+    //FillingCalibration filling_cal;
+} __attribute__ ((packed)) CalibrationInfo;
 // To check if we overflow
-static_assert((sizeof(CalibrationInfo)) < CALIBRATION_MAX_LEN);
+static_assert(sizeof(CalibrationInfo) < CALIBRATION_MAX_LEN);
 
 extern CalibrationInfo* CAL_RAM_PTR;
 extern HydraulicCalibration* HYDR_PTR;
 extern MechanicalCalibration* MECH_PTR;
 extern TorqueConverterCalibration* TCC_CFG_PTR;
 extern ShiftAlgorithmPack* SHIFT_ALGO_CFG_PTR;
+extern FillingCalibration* FILLING_PTR;
 
 namespace EGSCal {
-    esp_err_t init_egs_calibration(void);
-    esp_err_t reload_egs_calibration(void);
+    esp_err_t init_egs_calibration();
+    esp_err_t reload_egs_calibration();
 }
 
 #endif

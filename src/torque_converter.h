@@ -42,7 +42,6 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void set_shift_target_state(SensorData* sd, InternalTccState target_state);
         void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
@@ -93,7 +92,6 @@ class TorqueConverter {
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
-        InternalTccState shift_req_tcc_state = InternalTccState::Open;
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;

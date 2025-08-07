@@ -23,6 +23,34 @@ namespace TCUIO {
         T current_value;
     };
 
+    struct TorqueInfo {
+        float v;
+        bool valid;
+    };
+
+    struct Torques {
+        /**
+         * @brief Minimum engine torque to prevent the motor from dying
+         */
+        TorqueInfo m_min;
+        /**
+         * @brief Maximum engine torque in the current operation state
+         */
+        TorqueInfo m_max;
+        /**
+         * @brief Total engine torque
+         */
+        TorqueInfo m_sta;
+        /**
+         * @brief The target torque (Combination driver inputs, ESP, DTR)
+         */
+        TorqueInfo m_esp;
+        /**
+         * @brief Calculated input torque
+         */
+        TorqueInfo m_inp;
+    };
+
 
     esp_err_t setup_io_layer();
     void update_io_layer();
@@ -46,6 +74,12 @@ namespace TCUIO {
 
     int16_t motor_temperature();
     int16_t motor_oil_temperature();
+
+    // Motor torque values
+    int16_t get_static_motor_torque();
+    int16_t get_min_motor_torque();
+    int16_t get_max_motor_torque();
+    int16_t get_esp_ind_torque();
 
 };  
 

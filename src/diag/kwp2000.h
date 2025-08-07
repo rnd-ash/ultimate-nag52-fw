@@ -1,7 +1,7 @@
 
 
-#ifndef KWP_H
-#define KWP_H
+#ifndef _KWP_H__
+#define _KWP_H__
 
 #include "endpoints/endpoint.h"
 #include <stdint.h>
@@ -38,7 +38,7 @@ class Kwp2000_server {
             static_cast<Kwp2000_server*>(_this)->response_timer_loop();
         }
 
-        static kwp_result_t convert_err_result(kwp_result_t in);
+        kwp_result_t convert_err_result(kwp_result_t in);
 
         void make_diag_neg_msg(uint8_t sid, kwp_result_t nrc);
         void make_diag_pos_msg(uint8_t sid, const uint8_t* resp, uint16_t len);
@@ -74,20 +74,21 @@ class Kwp2000_server {
         int allocate_routine_args(uint8_t* src, uint8_t arg_len);
         void process_start_diag_session(const uint8_t* args, uint16_t arg_len);
         void process_ecu_reset(const uint8_t* args, uint16_t arg_len);
-        static void process_clear_diag_info(uint8_t* args, uint16_t arg_len);
-        static void process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len);
+        void process_clear_diag_info(uint8_t* args, uint16_t arg_len);
+        void process_read_status_of_dtcs(uint8_t* args, uint16_t arg_len);
         void process_read_ecu_ident(const uint8_t* args, uint16_t arg_len);
         void process_read_data_local_ident(uint8_t* args, uint16_t arg_len);
-        static void process_read_data_ident(uint8_t* args, uint16_t arg_len);
+        void process_read_data_ident(uint8_t* args, uint16_t arg_len);
         void process_read_mem_address(uint8_t* args, uint16_t arg_len);
-        static void process_security_access(uint8_t* args, uint16_t arg_len);
+        void process_read_mem_address_ext(uint8_t* args, uint16_t arg_len);
+        void process_security_access(uint8_t* args, uint16_t arg_len);
         void process_disable_msg_tx(uint8_t* args, uint16_t arg_len);
         void process_enable_msg_tx(uint8_t* args, uint16_t arg_len);
-        static void process_dynamically_define_local_ident(uint8_t* args, uint16_t arg_len);
-        static void process_write_data_by_ident(uint8_t* args, uint16_t arg_len);
+        void process_dynamically_define_local_ident(uint8_t* args, uint16_t arg_len);
+        void process_write_data_by_ident(uint8_t* args, uint16_t arg_len);
         void process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_start_routine_by_local_ident(uint8_t* args, uint16_t arg_len);
-        static void process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len);
+        void process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len);
         void process_request_download(uint8_t* args, uint16_t arg_len);
         void process_request_upload(uint8_t* args, uint16_t arg_len);
@@ -96,8 +97,8 @@ class Kwp2000_server {
         void process_write_data_by_local_ident(uint8_t* args, uint16_t arg_len);
         void process_write_mem_by_address(uint8_t* args, uint16_t arg_len);
         void process_tester_present(const uint8_t* args, uint16_t arg_len);
-        static void process_control_dtc_settings(uint8_t* args, uint16_t arg_len);
-        static void process_response_on_event(uint8_t* args, uint16_t arg_len);
+        void process_control_dtc_settings(uint8_t* args, uint16_t arg_len);
+        void process_response_on_event(uint8_t* args, uint16_t arg_len);
         void process_shift_mgr_op(uint8_t* args, uint16_t arg_len);
         
         static void launch_solenoid_test(void *_this) {

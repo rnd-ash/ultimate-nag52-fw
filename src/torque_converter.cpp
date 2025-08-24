@@ -41,10 +41,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     this->motor_torque_smoothed = new FirstOrderAverage(10); // 500ms average
 }
 
-void TorqueConverter::on_shift_ending(void) {
-    this->is_shifting = false;
-}
-
 void TorqueConverter::diag_toggle_tcc_sol(bool en) {
     ESP_LOGI("TCC", "Diag request to set TCC control to %d", en);
     this->tcc_solenoid_enabled = en;
@@ -124,6 +120,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             int rpm_slip = interpolate_float(sensors->pedal_pos, 0, 20, 20, 0, InterpType::Linear); // 20 = 10%
             targ = MIN(InternalTccState::Slipping, targ);
             this->slip_target = MAX(this->slip_target, rpm_slip);
+        }
+        if (is_shifting) {
+            this->slip_target = MAX(20, this->slip_target);
+            targ = MAX(InternalTccState::Slipping, targ);
         }
 
     }
@@ -337,4 +337,11 @@ uint16_t TorqueConverter::get_current_pressure() {
 
 uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_pressure_target;
+}
+
+void TorqueConverter::shift_start() {
+    this->is_shifting = true;
+}
+void TorqueConverter::shift_end() {
+    this->is_shifting = false;
 }

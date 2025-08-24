@@ -42,12 +42,13 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
 
         void set_stationary();
-
+        
+        void shift_start();
+        void shift_end();
         int16_t get_slip_filtered();
         InternalTccState __get_internal_state(void);
         uint8_t get_current_state();

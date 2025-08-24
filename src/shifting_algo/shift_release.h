@@ -26,6 +26,7 @@ private:
 
     uint16_t torque_req_val = 0;
 
+    float calculate_freeing_trq_multiplier(bool is_upshift);
     void phase_fill_release_spc(bool is_upshift);
     uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
     uint8_t phase_overlap(SensorData* sd, bool is_upshift);

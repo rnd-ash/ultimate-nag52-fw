@@ -129,6 +129,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             ret = STEP_RES_NEXT;
             // End of max pressure (Shut of shift valve)
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
+            sid->tcc->shift_end();
         }
     }
     this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
@@ -272,9 +273,9 @@ uint16_t ShiftingAlgorithm::clamp_p_apply_clutch(int p) {
 
 uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
     return this->clamp_p_apply_clutch(
-        (int)p + // Target pressure at the clutch
-        (int)sid->release_spring_on_clutch - // Spring pressure to fight against
-        (int)this->centrifugal_force_on_clutch // Reduce by force provided by centrifugal pressure
+        (int)p // Target pressure at the clutch
+        +(int)sid->release_spring_on_clutch // Spring pressure to fight against
+        -(int)this->centrifugal_force_on_clutch // Reduce by force provided by centrifugal pressure
     );
 }
 

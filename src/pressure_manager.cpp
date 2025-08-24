@@ -424,7 +424,7 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
             coef = this->release_coefficient();
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = ((float)pressure * coef) / (float)friction_val;
+    float calc =  ((float)pressure * coef) / (float)friction_val;
     return calc;
 }
 
@@ -552,11 +552,12 @@ PrefillData PressureManager::make_fill_data(Clutch applying) {
             .low_fill_pressure_on_clutch = 700,
         };
     } else {
-        return PrefillData {
+        PrefillData ret =  PrefillData {
             .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)applying),
             .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)applying),
             .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)applying),
         };
+        return ret;
     }
 }
 

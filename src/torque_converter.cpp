@@ -115,15 +115,15 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         } else {
             this->slip_target = slipping_rpm_targ;
         }
+        if (is_shifting) {
+            targ = MIN(InternalTccState::Open, targ);
+            this->slip_target = MAX(this->slip_target, 100);
+        }
         // When at very low pedal positions, we should do a little slipping so that jerkiness is not noticable!
         if (sensors->pedal_pos <= 20) {
             int rpm_slip = interpolate_float(sensors->pedal_pos, 0, 20, 20, 0, InterpType::Linear); // 20 = 10%
             targ = MIN(InternalTccState::Slipping, targ);
             this->slip_target = MAX(this->slip_target, rpm_slip);
-        }
-        if (is_shifting) {
-            this->slip_target = MAX(20, this->slip_target);
-            targ = MAX(InternalTccState::Slipping, targ);
         }
 
     }

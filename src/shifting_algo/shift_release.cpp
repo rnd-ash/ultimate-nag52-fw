@@ -176,7 +176,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     }
     if (1 == this->subphase_shift) {
         // high 
-        int high = sid->prefill_info.fill_pressure_on_clutch + interpolate_float(abs_input_trq, 0, 250, 50, 300, InterpType::Linear);
+        int high = sid->prefill_info.fill_pressure_on_clutch + interpolate_float(abs_input_trq, 0, sid->prefill_info.fill_pressure_on_clutch/4, 60, 300, InterpType::Linear);
         this->max_trq_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(high);
         if (0 == this->timer_shift) {

@@ -117,7 +117,7 @@ calc_mod:
 
 uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
-    uint16_t targ_mpc = pm->find_working_mpc_pressure(sid->targ_g);
+    uint16_t targ_mpc = this->max_p_mod_pressure(); //pm->find_working_mpc_pressure(sid->targ_g);
     if (0 == this->subphase_shift) {
         // Var set
         this->timer_shift = 5; // 100ms for ramp
@@ -129,7 +129,6 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             ret = STEP_RES_NEXT;
             // End of max pressure (Shut of shift valve)
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
-            sid->tcc->shift_end();
         }
     }
     this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
@@ -138,10 +137,20 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
 }
 
 uint8_t ShiftingAlgorithm::phase_end_ctrl() {
+    uint8_t ret = STEP_RES_CONTINUE;
     // TODO
-    this->shift_sol_pressure = sid->SPC_MAX;
-    this->mod_sol_pressure = pm->find_working_mpc_pressure(sid->targ_g);
-    return STEP_RES_END_SHIFT;
+    if (0 == this->subphase_shift) {
+        this->timer_shift = interpolate_float(sd->atf_temp, 75, 5, -20, 30, InterpType::Linear);
+        this->subphase_shift += 1;
+    }
+    this->p_apply_clutch = sid->SPC_MAX;
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pm->find_working_mpc_pressure(sid->targ_g), this->timer_shift);
+    if (this->timer_shift == 0) {
+        sid->tcc->shift_end();
+        ret = STEP_RES_END_SHIFT;
+    }
+    return ret;
 }
 
 uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef) {

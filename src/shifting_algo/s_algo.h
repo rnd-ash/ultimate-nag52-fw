@@ -143,6 +143,7 @@ public:
         short pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value);
         short momentum_pid[2];
         short momentum_target = 0;
+        virtual uint16_t max_p_mod_pressure() = 0;
         uint16_t threshold_rpm = 0;
 };
 

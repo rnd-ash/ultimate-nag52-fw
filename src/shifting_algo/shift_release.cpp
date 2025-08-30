@@ -89,6 +89,11 @@ uint8_t ReleasingShift::step_internal(
     } else if (phase_id == PHASE_MAX_PRESSURE) {
         ret = this->phase_maxp(sd);
     } else if (phase_id == PHASE_END_CONTROL) {
+        // Only do this at the start, when subphase is 0
+        if (this->subphase_shift == 0) {
+            this->trq_req_up_ramp = true;
+            this->trq_req_timer =  5;
+        }
         ret = this->phase_end_ctrl();
     } else {
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
@@ -398,6 +403,32 @@ uint16_t ReleasingShift::calc_mod_overlap() {
         return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
     }
 
+}
+
+uint16_t ReleasingShift::max_p_mod_pressure() {
+    if (sid->change == GearChange::_2_1 || sid->change == GearChange::_3_2) {
+        int t = (abs_input_trq + 0 + this->correction_trq) - this->loss_torque;
+        int trq_val = sd->tcc_trq_multiplier * this->torque_req_val;
+        if (t < trq_val) {
+            trq_val = 0;
+        } else {
+            trq_val = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, (t-trq_val), CoefficientTy::Release);
+        }
+        float p = MAX(0, trq_val + sid->release_spring_off_clutch - centrifugal_force_off_clutch);
+        p *= 0.8; // field_1f
+        int spc = MAX(0, sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
+        return MIN(sid->MOD_MAX, this->calc_mpc_sol_shift_ps(spc, p));
+    } else {
+        float p_spc = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release);
+        p_spc = MIN(sid->SPC_MAX, MAX(0, p_spc + sid->release_spring_on_clutch - centrifugal_force_on_clutch));
+        p_spc *= sid->inf.pressure_multi_spc;
+        float adder = 0;
+        if (centrifugal_force_off_clutch < sid->release_spring_off_clutch) {
+            adder = (sid->release_spring_off_clutch - centrifugal_force_off_clutch) * sid->inf.pressure_multi_mpc;
+        }
+        float pressure = p_spc + adder + sid->inf.mpc_pressure_spring_reduction;
+        return MIN(pressure, sid->MOD_MAX);
+    }
 }
 
 uint16_t ReleasingShift::interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end) {

@@ -15,7 +15,9 @@ public:
 
     void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
-    
+
+protected:
+    uint16_t max_p_mod_pressure() override;
 
 private:
     short momentum_plus_maxtrq = 0;

@@ -311,3 +311,7 @@ uint16_t CrossoverShift::fun_0d8a66() {
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;
 }   
+
+uint16_t CrossoverShift::max_p_mod_pressure() {
+    return pm->find_working_mpc_pressure(sid->targ_g);
+}

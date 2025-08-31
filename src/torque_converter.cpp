@@ -60,7 +60,7 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
 }
 
-const int PRESSURE_STEP = 250/(1000/20); // Per 20ms cycle
+const int PRESSURE_STEP = 1000/(1000/20); // Per 20ms cycle
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     // TCC is commanded to be off,
@@ -104,9 +104,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             targ = InternalTccState::Closed;
             slipping_rpm_targ = 0;
         }
-        if (sensors->input_rpm > 1000) {
+        if (sensors->input_rpm > 2000) {
             this->slip_target = MIN(this->slip_target, slipping_rpm_targ);
-            if (slipping_rpm_targ <= 50) {
+            if (this->slip_target <= 50) {
                 targ = InternalTccState::Slipping;
                 if (this->slip_target <= 10) {
                     targ = InternalTccState::Closed;
@@ -133,10 +133,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // Engine is requesting at most to slip the converter
         if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && engine_req_state == TccReqState::Slipping && targ > InternalTccState::Slipping) {
             targ = InternalTccState::Slipping;
+            this->slip_target = 50;
         } 
         // Engine is requesting full TCC open
         else if (TCC_CURRENT_SETTINGS.react_on_engine_open_request) {
             targ = InternalTccState::Open;
+            this->slip_target = 200;
         }
     }
 
@@ -173,11 +175,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             load_cell = 5;
         } else if (load_as_percent > 45 && load_as_percent <= 55) {
             load_cell = 6;
-        } else if (load_as_percent > 75) {
+        } else if (load_as_percent > 75 && load_as_percent <= 100) {
             load_cell = 7;
-        } else if (load_as_percent > 100) {
+        } else if (load_as_percent > 100 && load_as_percent <= 125) {
             load_cell = 8;
-        } else if (load_as_percent > 125) {
+        } else if (load_as_percent > 125 && load_as_percent <= 140) {
             load_cell = 9;
         } else if (load_as_percent > 140) {
             load_cell = 10;

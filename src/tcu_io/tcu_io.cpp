@@ -200,34 +200,45 @@ void update_rpm_sensors() {
             }
             calc_rpm *= DIFF_RATIO_F;
             // Check transfer case if present
-            if (VEHICLE_CONFIG.is_four_matic && (VEHICLE_CONFIG.transfer_case_high_ratio != 0 && VEHICLE_CONFIG.transfer_case_low_ratio != 0))
-            {
-                TransferCaseState state = egs_can_hal->get_transfer_case_state(500);
-                if (TransferCaseState::Switching == state) {
-                    // Switching - Use last state
-                    state = last_transfer_case_pos;
-                    block_shifting = true;
-                } else {
-                    block_shifting = false;
-                }
-                switch (state)
-                {
-                case TransferCaseState::Hi:
+            if (
+                VEHICLE_CONFIG.is_four_matic && 
+                (VEHICLE_CONFIG.transfer_case_high_ratio != 0 && VEHICLE_CONFIG.transfer_case_low_ratio != 0)
+            ) {
+                if (VEHICLE_CONFIG.transfer_case_high_ratio == VEHICLE_CONFIG.transfer_case_low_ratio) {
+                    // For 4Matic cars without variable ratio (Like W211)
+                    //
+                    // NOTE: I have never seen a vehicle with locked ratios that are not 1.0,
+                    //       but, we still multiply by one of the ratios, just in case
+                    //       this configuration exists somewhere
                     calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
-                    last_transfer_case_pos = state;
-                    break;
-                case TransferCaseState::Low:
-                    calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
-                    last_transfer_case_pos = state;
-                    break;
-                case TransferCaseState::Neither:
-                    last_transfer_case_pos = state;
-                    break; // Transfer case is disengaged, ignore
-                case TransferCaseState::Switching:
-                    break; // Transfer case is switching, ignore
-                default:
-                    calc_rpm = UINT16_MAX; // uh oh (Transfer case in invalid state)
-                    break;
+                } else {
+                    TransferCaseState state = egs_can_hal->get_transfer_case_state(500);
+                    if (TransferCaseState::Switching == state) {
+                        // Switching - Use last state
+                        state = last_transfer_case_pos;
+                        block_shifting = true;
+                    } else {
+                        block_shifting = false;
+                    }
+                    switch (state)
+                    {
+                    case TransferCaseState::Hi:
+                        calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_high_ratio) / 1000.0);
+                        last_transfer_case_pos = state;
+                        break;
+                    case TransferCaseState::Low:
+                        calc_rpm *= ((float)(VEHICLE_CONFIG.transfer_case_low_ratio) / 1000.0);
+                        last_transfer_case_pos = state;
+                        break;
+                    case TransferCaseState::Neither:
+                        last_transfer_case_pos = state;
+                        break; // Transfer case is disengaged, ignore
+                    case TransferCaseState::Switching:
+                        break; // Transfer case is switching, ignore
+                    default:
+                        calc_rpm = UINT16_MAX; // uh oh (Transfer case in invalid state)
+                        break;
+                    }
                 }
             }
             if (UINT16_MAX != calc_rpm) {

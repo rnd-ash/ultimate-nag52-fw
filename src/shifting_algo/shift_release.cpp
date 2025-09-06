@@ -21,7 +21,7 @@ uint8_t ReleasingShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
+void ReleasingShift::calc_shift_flags(uint32_t* dest) {
     *dest = 0;
     if (sd->pedal_pos < 10) {
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
@@ -34,12 +34,22 @@ void ReleasingShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
     }
 }
 
+uint16_t ReleasingShift::high_fill_pressure() {
+    uint16_t base = sid->prefill_info.fill_pressure_on_clutch;
+    base += interpolate_float(sd->pedal_pos, 0, base/2, 50, 200, InterpType::Linear);
+    return base;
+}
+
 uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
         int torque_avg = (this->freeing_trq + this->max_trq_apply_clutch)/2;
         int torque_min = MIN(this->freeing_trq, torque_avg);
         int torque = torque_min + this->max_trq_apply_clutch;
+        // Number of EGS cycles (20ms):
+        // 1 20ms. Calc Trq req
+        // 2 20ms. Tx Trq req
+        // 3 20ms. Engine to implement Trq req
         int cycles_can = 3;
         int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
 
@@ -80,12 +90,12 @@ uint8_t ReleasingShift::step_internal(
 
     if (phase_id == PHASE_BLEED) {
         ret = this->phase_bleed(pm, is_upshift);
-        calc_shift_flags(this->sd, &sid->shift_flags);
+        calc_shift_flags(&sid->shift_flags);
     } else if (phase_id == PHASE_FILL_AND_RELEASE) {
         this->phase_fill_release_spc(is_upshift);
-        ret = this->phase_fill_release_mpc(sd, is_upshift);
+        ret = this->phase_fill_release_mpc(is_upshift);
     } else if (phase_id == PHASE_OVERLAP) {
-        ret = this->phase_overlap(sd, is_upshift);
+        ret = this->phase_overlap(is_upshift);
     } else if (phase_id == PHASE_MAX_PRESSURE) {
         ret = this->phase_maxp(sd);
     } else if (phase_id == PHASE_END_CONTROL) {
@@ -176,13 +186,16 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     }
     if (1 == this->subphase_shift) {
         // high 
-        int high = sid->prefill_info.fill_pressure_on_clutch + interpolate_float(abs_input_trq, 0, sid->prefill_info.fill_pressure_on_clutch/4, 60, 300, InterpType::Linear);
         this->max_trq_apply_clutch = 0;
-        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(high);
+        this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->high_fill_pressure());
         if (0 == this->timer_shift) {
             this->timer_shift = 3;
             this->subphase_shift += 1;
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
+            int wp = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release);
+            if (wp > this->low_f_p && sd->pedal_pos != 0) {
+                this->low_f_p = (this->low_f_p+wp)/2;
+            }
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling
@@ -235,7 +248,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
 }
 
-uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) {
+uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
     uint8_t ret = STEP_RES_CONTINUE;
     // Freeing torque, multiplied by scalar based on pedal position
     this->freeing_trq = MIN(abs_input_trq, (float)pm->find_freeing_torque(sid->change, abs_input_trq, sd->output_rpm)*this->calculate_freeing_trq_multiplier(is_upshift));
@@ -266,16 +279,17 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
         ) {
             // Next phase
             this->subphase_mod += 1;
-            
+            this->loss_torque = 0;
+            this->loss_torque_tmp = 0;
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        if (loss_pedal == 0) {
-            loss_pedal = sd->pedal_pos;
-        }
-        float loss = (0.5 * interpolate_float(loss_pedal, &SHIFT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear));
-        loss *= interpolate_float(sid->targ_time, 1.0, 3.0, 800, 100, InterpType::Linear);
-        this->loss_torque += loss;
+        float multi_rel = interpolate_float(sid->chars.target_shift_time, 1.5, 2.0, 800, 100, InterpType::Linear);
+        float multi = (10*this->loss_torque_tmp)/100;
+        float tmp = (((10*this->freeing_trq) * multi_rel) + multi)/10.0;
+        this->loss_torque_tmp += tmp;
+        this->loss_torque = this->loss_torque_tmp/2.0;
+
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque;
         int p = MAX(0, this->calc_release_clutch_p_signed(trq, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
@@ -333,8 +347,8 @@ uint8_t ReleasingShift::phase_fill_release_mpc(SensorData* sd, bool is_upshift) 
     return ret;
 }
 
-const char OVERLAP_TIMES[8] = {10, 7, 6, 5, 5, 3, 7, 10};
-uint8_t ReleasingShift::phase_overlap(SensorData* sd, bool is_upshift) {
+const uint8_t OVERLAP_TIMES[4] = {10, 7, 6, 5};
+uint8_t ReleasingShift::phase_overlap(bool is_upshift) {
     uint8_t ret = STEP_RES_CONTINUE;
     if (0 == this->subphase_shift) {
         // Variable set

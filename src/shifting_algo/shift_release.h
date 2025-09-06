@@ -13,25 +13,27 @@ public:
         bool is_upshift
     ) override;
 
-    void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
+    void calc_shift_flags(uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
 
 protected:
     uint16_t max_p_mod_pressure() override;
+    uint16_t high_fill_pressure() override;
 
 private:
     short momentum_plus_maxtrq = 0;
     short momentum_plus_maxtrq_1 = 0;
     float freeing_trq = 0;
     float loss_torque = 0;
+    float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 
     uint16_t torque_req_val = 0;
 
     float calculate_freeing_trq_multiplier(bool is_upshift);
     void phase_fill_release_spc(bool is_upshift);
-    uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
-    uint8_t phase_overlap(SensorData* sd, bool is_upshift);
+    uint8_t phase_fill_release_mpc(bool is_upshift);
+    uint8_t phase_overlap(bool is_upshift);
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
@@ -48,7 +50,6 @@ private:
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
     float spc_ramp_val = 0;
     float spc_wait_adder = 0;
-    float loss_pedal = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
 };

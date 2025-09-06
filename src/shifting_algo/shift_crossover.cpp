@@ -18,7 +18,7 @@ uint8_t CrossoverShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-void CrossoverShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
+void CrossoverShift::calc_shift_flags(uint32_t* dest) {
     *dest = 0;
     if (sd->pedal_pos < 10) {
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
@@ -29,6 +29,10 @@ void CrossoverShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
     if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
         *dest |= SHIFT_FLAG_FREEWHEELING;
     }
+}
+
+uint16_t CrossoverShift::high_fill_pressure() {
+    return sid->prefill_info.fill_pressure_on_clutch;
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};

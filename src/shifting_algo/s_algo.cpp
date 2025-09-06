@@ -78,7 +78,7 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm, bool is_upshift) {
     uint8_t ret = STEP_RES_CONTINUE;
-    int targ_spc = this->fun_0d820a(sid->prefill_info.fill_pressure_on_clutch);
+    int targ_spc = this->set_p_apply_clutch_with_spring(this->high_fill_pressure());
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
@@ -97,7 +97,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm, bool is_upshift) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = interpolate_float(this->timer_mod, sid->SPC_MAX, targ_spc, 5, 0, InterpType::Linear);
+    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
     this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, p_apply_clutch);
 
 calc_mod:
@@ -117,7 +117,7 @@ calc_mod:
 
 uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
-    uint16_t targ_mpc = this->max_p_mod_pressure(); //pm->find_working_mpc_pressure(sid->targ_g);
+    uint16_t targ_mpc = this->max_p_mod_pressure();
     if (0 == this->subphase_shift) {
         // Var set
         this->timer_shift = 5; // 100ms for ramp
@@ -160,18 +160,6 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t p_apply_clutch, Coef
         ret = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p, coef);
     }
     return ret;
-}
-
-
-uint16_t ShiftingAlgorithm::fun_0d820a(uint16_t p) {
-    uint16_t ret;
-    if (p + sid->release_spring_on_clutch < this->centrifugal_force_on_clutch) {
-        ret = 0;
-    } else {
-        ret = (p + sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
-        // Skip offset maths
-    }
-    return MIN(ret, sid->SPC_MAX);
 }
 
 const uint8_t freewheeling_factors[8] = {20, 100, 100, 100, 100, 100, 80, 120}; // RELEASE_CAL->freewheeling_factor

@@ -50,6 +50,7 @@ public:
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
+    bool is_safe_start(void) {return this->start_is_safe; }
     bool isShifting(void) { return this->shifting; }
     uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
     uint8_t get_profile_id(void) {
@@ -62,7 +63,7 @@ public:
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
-    SpeedSensors speed_sensors;
+    SpeedSensors speed_sensors = SpeedSensors();
 private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
@@ -89,6 +90,7 @@ private:
     static void start_controller_internal(void *_this) {
         static_cast<Gearbox*>(_this)->controller_loop();
     }
+    bool start_is_safe = false;
     uint16_t temp_raw = 0;
     uint8_t pedal_last = 0;
     TaskHandle_t shift_task = nullptr;
@@ -109,7 +111,7 @@ private:
     Shifter* shifter = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
-    ShiftCircuit last_shift_circuit;
+    ShiftCircuit last_shift_circuit = ShiftCircuit::None;
     float diff_ratio_f;
     GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;

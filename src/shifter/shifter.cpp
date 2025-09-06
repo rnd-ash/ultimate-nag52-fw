@@ -1,5 +1,7 @@
 #include "shifter.h"
 
+Shifter *shifter = nullptr;
+
 void Shifter::set_brake_is_pressed(bool is_pressed)
 {
 	is_brake_pressed = is_pressed;

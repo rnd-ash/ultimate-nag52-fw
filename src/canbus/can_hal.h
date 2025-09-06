@@ -19,8 +19,7 @@
 #include "../../slave_ecus/src/TESTER.h"
 #include "can_defines.h"
 
-#include "../shifter/shifter.h"
-#include "../shifter/programselector/programselector.hpp"
+#include "shifter/shifter.h"
 #include "../profiles.h"
 
 const CanTorqueData TORQUE_NDEF = {
@@ -80,15 +79,6 @@ class EgsBaseCan {
          */
         virtual uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) {
             return UINT16_MAX;
-        }
-        
-
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            if (shifter) {
-                return shifter->get_shifter_position(expire_time_ms);
-            } else {
-                return ShifterPosition::SignalNotAvailable;
-            }
         }
 
         /**

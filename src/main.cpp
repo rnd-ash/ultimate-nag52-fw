@@ -31,13 +31,15 @@
 #include "shifter/shifter_ewm.h"
 #include "shifter/shifter_trrs.h"
 
+#include "inputcomponents/kickdownswitch.hpp"
+
 Kwp2000_server *diag_server;
 
 uint8_t profile_id = 0;
 
 Speaker *spkr2 = nullptr;
 
-Shifter *shifter = nullptr;
+// Shifter *shifter = nullptr;
 
 SPEAKER_POST_CODE setup_tcm()
 {
@@ -134,8 +136,8 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 if (egs_can_hal->begin_task())
                                 {
-                                    if (static_cast<uint8_t>(egs_can_hal->get_engine_type(500u)) == VEHICLE_CONFIG.engine_type)
-                                    {
+                                    // if (static_cast<uint8_t>(egs_can_hal->get_engine_type(500u)) == VEHICLE_CONFIG.engine_type)
+                                    // {
                                         gearbox = new Gearbox(shifter);
                                         if (ESP_OK == gearbox->start_controller())
                                         {
@@ -146,10 +148,10 @@ SPEAKER_POST_CODE setup_tcm()
                                             CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
                                             ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
                                         }
-                                    }
-                                    else {
-                                        ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
-                                    }
+                                    // }
+                                    // else {
+                                    //     ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
+                                    // }
                                 }
                                 else
                                 {
@@ -221,12 +223,20 @@ void err_beep_loop(void *a)
     }
 }
 
+inline void set_start_enable(void){
+    bool is_safe_start = gearbox->is_safe_start();
+    egs_can_hal->set_safe_start(is_safe_start);
+    if (ioexpander != nullptr) {
+        ioexpander->set_start(is_safe_start);
+    }
+}
+
 void input_manager(void *)
 {
-    const uint32_t expire_time = 500u;
+    const uint32_t expire_time = 5000u;
     PaddlePosition paddle_pos_last = PaddlePosition::None;
     ShifterPosition shifter_pos_last = ShifterPosition::SignalNotAvailable;
-    bool kickdown_is_pressed_last = false;
+    ShifterPosition spos;
     while (1)
     {
         pcb_gpio_matrix->read_input_signals();
@@ -252,8 +262,10 @@ void input_manager(void *)
             }
             paddle_pos_last = paddle;
         }
+        // egs_can_hal->get_engine_iat_temp(expire_time);
+        egs_can_hal->get_engine_coolant_temp(expire_time);
+        spos = shifter->get_shifter_position(expire_time);
         if((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR)) {
-            ShifterPosition spos = shifter->get_shifter_position(1000);
             if (spos != shifter_pos_last)
             {
                 // Same position, ignore
@@ -272,11 +284,10 @@ void input_manager(void *)
                 shifter_pos_last = spos;
             }
         }
-        bool kickdown_is_pressed = pcb_gpio_matrix->is_kickdown_pressed();
-        if (kickdown_is_pressed && (!kickdown_is_pressed_last) && (!egs_can_hal->get_engine_is_limp(expire_time))) {
+        set_start_enable();
+        if (KickdownSwitch::is_kickdown_newly_pressed(egs_can_hal, expire_time) && (!egs_can_hal->get_engine_is_limp(expire_time))) {
             gearbox->dec_gear_request();            
         }
-        kickdown_is_pressed_last = kickdown_is_pressed;
         pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
@@ -334,7 +345,7 @@ extern "C" void app_main(void)
     printf("Embedded container: %p %p - %d Bytes\n", embed_container_start, embed_container_end, x);
     
     // Now spin up the KWP2000 server (last thing)
-    diag_server = new Kwp2000_server(egs_can_hal, gearbox);
+    diag_server = new Kwp2000_server(egs_can_hal, gearbox, shifter);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 1024, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK)

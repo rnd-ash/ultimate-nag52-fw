@@ -10,7 +10,7 @@ private:
     uint8_t n_cylinders;
 
     /* engine displacement [ccm] */
-    uint8_t V_H;
+    uint16_t V_H;
 
     /* air density [kg/m³]*/
     float current_air_pressure = 0.0f;

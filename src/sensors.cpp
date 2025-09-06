@@ -89,6 +89,7 @@ void Sensors::update(SensorDataRaw* dest) {
     if (output_rpm_ok) {
         dest->rpm_out = calc_rpm(&cb_data_out);
     }
+    ESP_LOGI("SENSORS", "N2: %d, N3: %d, OUT: %d", dest->rpm_n2, dest->rpm_n3, dest->rpm_out);
     // Battery voltage gathering
     int adc_res = 0;
     int adc_voltage = 0;

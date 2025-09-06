@@ -1,24 +1,26 @@
 #include "can_hfm.h"
 #include "driver/twai.h"
 #include "driver/i2c_master.h"
-#include "board_config.h"
+// #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
-#include "ioexpander.h"
+// #include "ioexpander.h"
 
-HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : EgsBaseCan(name, tx_time_ms, 125000u, shifter)
+HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, 125000u, shifter)
 {    
-    ESP_LOGI("ClassicEGS", "SETUP CALLED");
-    if (ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style)
-    {        this->start_enable = true;
-        can_init_status = ESP_OK;
-    }
-    else
-    {
-        can_init_status = ESP_ERR_INVALID_ARG;
-        // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
-        ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");
-    }
+    this->start_enable = true;
+    can_init_status = ESP_OK;
+    // if (ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style)
+    // {   
+    //     this->start_enable = true;
+    //     can_init_status = ESP_OK;
+    // }
+    // else
+    // {
+    //     can_init_status = ESP_ERR_INVALID_ARG;
+    //     // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
+    //     ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");
+    // }
 }
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
@@ -265,6 +267,7 @@ int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
     HFM_608 hfm608;
     if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
     {
+        // ESP_LOGI("Hfm-CAN", "Coolant temperature: %d",hfm608.T_MOT);
         if (!hfm608.TFM_UP_B)
         {
             result = (int16_t)((((float)(hfm608.T_MOT)) * temperature_factor) + temperature_offset);
@@ -285,6 +288,7 @@ int16_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
     HFM_608 hfm608;
     if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
     {
+        ESP_LOGI("Hfm-CAN", "Intake air temperature: %d",hfm608.T_LUFT);
         if (!hfm608.TFA_UP_B)
         {
             result = (int16_t)((((float)(hfm608.T_LUFT)) * temperature_factor) + temperature_offset);

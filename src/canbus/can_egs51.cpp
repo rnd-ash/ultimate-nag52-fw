@@ -2,10 +2,10 @@
 
 #include "driver/twai.h"
 #include "driver/i2c_master.h"
-#include "board_config.h"
+// #include "board_config.h"
 #include "nvs/eeprom_config.h"
-#include "shifter/shifter_trrs.h"
-#include "shifter/shifter_ewm.h"
+// #include "shifter/shifter_trrs.h"
+// #include "shifter/shifter_ewm.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
@@ -405,11 +405,11 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
-void Egs51Can::set_safe_start(bool can_start) {
-    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
-        ioexpander->set_start(can_start);
-    }
-}
+// void Egs51Can::set_safe_start(bool can_start) {
+//     if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
+//         ioexpander->set_start(can_start);
+//     }
+// }
 
 void Egs51Can::tx_frames() {
     tx.data_length_code = 6;

@@ -13,7 +13,7 @@
 /// @brief The CAN-layer supports classic Mercedes-Benz cars from the early 1990's (e.g. 124, 202, 129, 140, 210) with a 125kbit/s CAN for HFM coming partially with M104 (L6) and M111 (L4). It does not support the 500kbit/s CAN coming with the M119 (V8) in cars of the same era.
 class HfmCan: public EgsBaseCan {
     public:
-        HfmCan(const char* name, uint8_t tx_time_ms, ShifterTrrs* shifter);
+        HfmCan(const char* name, uint8_t tx_time_ms, Shifter* shifter);
 
         /**
          * Getters

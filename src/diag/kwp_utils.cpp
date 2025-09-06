@@ -44,12 +44,12 @@ bool is_engine_off(EgsBaseCan* can) {
     }
 }
 
-bool is_shifter_passive(EgsBaseCan* can) {
+bool is_shifter_passive(Shifter* shifter) {
     // Shifter must be Offline (SNV) or P or N
-    if (can == nullptr) {
+    if (shifter == nullptr) {
         return true;
     } else {
-        ShifterPosition pos = can->get_shifter_position(250);
+        ShifterPosition pos = shifter->get_shifter_position(250);
         return (pos == ShifterPosition::N || pos == ShifterPosition::P || pos == ShifterPosition::SignalNotAvailable);
     }
 }

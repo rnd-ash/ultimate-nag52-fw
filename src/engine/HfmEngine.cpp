@@ -2,6 +2,8 @@
 
 HfmEngine::HfmEngine(/* args */)
 {
+    n_cylinders = 6u;
+    V_H = 3199u;
 }
 
 HfmEngine::~HfmEngine()

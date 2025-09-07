@@ -41,10 +41,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     this->motor_torque_smoothed = new FirstOrderAverage(10); // 500ms average
 }
 
-void TorqueConverter::on_shift_ending(void) {
-    this->is_shifting = false;
-}
-
 void TorqueConverter::diag_toggle_tcc_sol(bool en) {
     ESP_LOGI("TCC", "Diag request to set TCC control to %d", en);
     this->tcc_solenoid_enabled = en;
@@ -64,7 +60,7 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
 }
 
-const int PRESSURE_STEP = 250/(1000/20); // Per 20ms cycle
+const int PRESSURE_STEP = 1000/(1000/20); // Per 20ms cycle
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     // TCC is commanded to be off,
@@ -108,9 +104,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             targ = InternalTccState::Closed;
             slipping_rpm_targ = 0;
         }
-        if (sensors->input_rpm > 1000) {
+        if (sensors->input_rpm > 2000) {
             this->slip_target = MIN(this->slip_target, slipping_rpm_targ);
-            if (slipping_rpm_targ <= 50) {
+            if (this->slip_target <= 50) {
                 targ = InternalTccState::Slipping;
                 if (this->slip_target <= 10) {
                     targ = InternalTccState::Closed;
@@ -118,6 +114,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             }
         } else {
             this->slip_target = slipping_rpm_targ;
+        }
+        if (is_shifting) {
+            targ = MIN(InternalTccState::Open, targ);
+            this->slip_target = MAX(this->slip_target, 100);
         }
         // When at very low pedal positions, we should do a little slipping so that jerkiness is not noticable!
         if (sensors->pedal_pos <= 20) {
@@ -133,10 +133,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // Engine is requesting at most to slip the converter
         if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && engine_req_state == TccReqState::Slipping && targ > InternalTccState::Slipping) {
             targ = InternalTccState::Slipping;
+            this->slip_target = 50;
         } 
         // Engine is requesting full TCC open
         else if (TCC_CURRENT_SETTINGS.react_on_engine_open_request) {
             targ = InternalTccState::Open;
+            this->slip_target = 200;
         }
     }
 
@@ -156,16 +158,39 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
 
     int load_as_percent = ((int)motor_torque*100) / this->rated_max_torque;
-    uint8_t load_cell = UINT8_MAX; // Invalid cell (Do not write to adaptation)
+    int load_cell = -1; // Invalid cell (Do not write to adaptation)
     if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
-        load_cell = get_load_cell(load_as_percent);
+        // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
+        if (load_as_percent < -5) {
+            load_cell = 0;
+        } else if (load_as_percent > -5 && load_as_percent <= 5) {
+            load_cell = 1;
+        } else if (load_as_percent > 5 && load_as_percent <= 15) {
+            load_cell = 2;
+        } else if (load_as_percent > 15 && load_as_percent <= 25) {
+            load_cell = 3;
+        } else if (load_as_percent > 25 && load_as_percent <= 35) {
+            load_cell = 4;
+        } else if (load_as_percent > 35 && load_as_percent <= 45) {
+            load_cell = 5;
+        } else if (load_as_percent > 45 && load_as_percent <= 55) {
+            load_cell = 6;
+        } else if (load_as_percent > 75 && load_as_percent <= 100) {
+            load_cell = 7;
+        } else if (load_as_percent > 100 && load_as_percent <= 125) {
+            load_cell = 8;
+        } else if (load_as_percent > 125 && load_as_percent <= 140) {
+            load_cell = 9;
+        } else if (load_as_percent > 140) {
+            load_cell = 10;
+        }
     }
 
     if (this->target_tcc_state == InternalTccState::Open) {
         this->tcc_pressure_current = 0;
         this->tcc_pressure_target = 0;
     } else if (this->target_tcc_state == InternalTccState::Slipping) {
-        if (load_cell != UINT8_MAX) {
+        if (load_cell != -1) {
             if (at_req_pressure && is_stable && abs(rpm_delta) > slip_target * 1.1) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +2);
                 this->last_adapt_check = GET_CLOCK_TIME();
@@ -190,7 +215,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_pressure_target = interp;
         }
     } else if (this->target_tcc_state == InternalTccState::Closed) {
-        if (is_stable && load_cell != UINT8_MAX && at_req_pressure && rpm_delta > 10) {
+        if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
             set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +2);
             this->last_adapt_check = GET_CLOCK_TIME();
         }
@@ -216,7 +241,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->prev_state_tcc_pressure = this->tcc_pressure_current;
         this->last_state_stable_time = GET_CLOCK_TIME();
     } else if (this->target_tcc_state > this->current_tcc_state) { // Less -> More lock
-        int step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
+        int step = PRESSURE_STEP;
+        step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
         this->tcc_pressure_current += step;
         this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target*0.8);
     } else { // More -> Less lock
@@ -250,7 +276,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     pm->set_target_tcc_pressure(this->tcc_pressure_current);
 }
 
-InternalTccState TorqueConverter::__get_internal_state(void) const{
+InternalTccState TorqueConverter::__get_internal_state(void) {
     return this->current_tcc_state;
 }
 
@@ -287,54 +313,37 @@ TccClutchStatus TorqueConverter::get_clutch_state(void) {
     return ret;
 }
 
-/* unused */
-// void TorqueConverter::set_stationary() {
-//     this->was_stationary = true;
-// }
+void TorqueConverter::set_stationary() {
+    this->was_stationary = true;
+}
 
 int16_t TorqueConverter::get_slip_filtered() {
     return this->slip_average->get_average();
 }
 
-uint8_t TorqueConverter::get_current_state() const {
+uint8_t TorqueConverter::get_current_state() {
     return (uint8_t)this->current_tcc_state;
 }
 
-uint8_t TorqueConverter::get_target_state() const {
+uint8_t TorqueConverter::get_target_state() {
     return (uint8_t)this->target_tcc_state;
 }
 
-/* unused */
-// uint8_t TorqueConverter::get_can_req_bits() {
-//     return  0;
-// }
+uint8_t TorqueConverter::get_can_req_bits() {
+    return  0;
+}
 
-uint16_t TorqueConverter::get_current_pressure() const {
+uint16_t TorqueConverter::get_current_pressure() {
     return this->tcc_pressure_current;
 }
 
-uint16_t TorqueConverter::get_target_pressure() const {
+uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_pressure_target;
 }
 
-uint8_t TorqueConverter::get_load_cell(int load_as_percent)
-{
-    uint8_t load_cell = 0;
-    // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
-    if (-5 < load_as_percent)
-    {
-        if (60 >= load_as_percent)
-        {
-            load_cell = static_cast<uint8_t>((load_as_percent + 14) / 10);
-        }
-        else
-        {
-            load_cell = 10u;
-            if (138 > load_as_percent)
-            {
-                load_cell = static_cast<uint8_t>(6 + ((load_as_percent - 36) / 25));
-            }
-        }
-    }
-    return load_cell;
+void TorqueConverter::shift_start() {
+    this->is_shifting = true;
+}
+void TorqueConverter::shift_end() {
+    this->is_shifting = false;
 }

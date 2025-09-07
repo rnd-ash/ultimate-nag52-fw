@@ -18,7 +18,7 @@ uint8_t CrossoverShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-void CrossoverShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
+void CrossoverShift::calc_shift_flags(uint32_t* dest) {
     *dest = 0;
     if (sd->pedal_pos < 10) {
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
@@ -29,6 +29,10 @@ void CrossoverShift::calc_shift_flags(SensorData* sd, uint32_t* dest) {
     if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
         *dest |= SHIFT_FLAG_FREEWHEELING;
     }
+}
+
+uint16_t CrossoverShift::high_fill_pressure() {
+    return sid->prefill_info.fill_pressure_on_clutch;
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
@@ -184,7 +188,7 @@ uint8_t CrossoverShift::phase_overlap() {
             interp_min += 1; // RELEASE_CAL->0x46
             interp_min += 0; // RELEASE_CAL->0x47
         }
-        this->timer_shift = interpolate_float(abs_input_trq,5,3,80,400, InterpType::Linear);
+        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max,80,400, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
@@ -227,7 +231,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             interp_min += 1; // RELEASE_CAL->0x46
             interp_min += 0; // RELEASE_CAL->0x47
         }
-        this->timer_shift = interpolate_float(abs_input_trq,5,3,80,400, InterpType::Linear);
+        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max,80,400, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
@@ -311,3 +315,7 @@ uint16_t CrossoverShift::fun_0d8a66() {
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;
 }   
+
+uint16_t CrossoverShift::max_p_mod_pressure() {
+    return pm->find_working_mpc_pressure(sid->targ_g);
+}

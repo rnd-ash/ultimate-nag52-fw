@@ -21,7 +21,7 @@ enum class InternalTccState {
 
 class TorqueConverter {
     public:
-        explicit TorqueConverter(uint16_t max_gb_rating);
+        TorqueConverter(uint16_t max_gb_rating);
 
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters
@@ -34,7 +34,7 @@ class TorqueConverter {
          */
         void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors);
         TccClutchStatus get_clutch_state(void);
-        void save(void) {
+        void save() {
             if (this->tcc_lock_map) {
                 this->tcc_lock_map->save_to_eeprom();
             }
@@ -42,42 +42,41 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
 
-        /* unused */
-        // void set_stationary(void);
-
+        void set_stationary();
+        
+        void shift_start();
+        void shift_end();
         int16_t get_slip_filtered();
-        InternalTccState __get_internal_state(void) const;
-        uint8_t get_current_state(void) const;
-        uint8_t get_target_state(void) const;
-        /* unused */
-        // static uint8_t get_can_req_bits(void);
-        uint16_t get_current_pressure(void) const;
-        uint16_t get_target_pressure(void) const;
-        uint16_t get_slip_targ(void) const{
+        InternalTccState __get_internal_state(void);
+        uint8_t get_current_state();
+        uint8_t get_target_state();
+        uint8_t get_can_req_bits();
+        uint16_t get_current_pressure();
+        uint16_t get_target_pressure();
+        uint16_t get_slip_targ() {
             return this->slip_target;
         }
 
-        inline StoredMap* get_slip_map(void) {
+        inline StoredMap* get_slip_map() {
             return this->tcc_slip_map;
         }
 
-        inline StoredMap* get_lock_map(void) {
+        inline StoredMap* get_lock_map() {
             return this->tcc_lock_map;
         }
 
-        inline StoredMap* get_rpm_slip_map(void) {
+        inline StoredMap* get_rpm_slip_map() {
             return this->slip_rpm_target_map;
         }
         
-        inline uint32_t get_engine_power(void) const {
+        inline uint32_t get_engine_power() {
             return this->engine_output_joule;
         }
         
-        inline uint32_t get_absorbed_power(void) const {
+        inline uint32_t get_absorbed_power() {
             return this->absorbed_power_joule;
         }
 
@@ -107,7 +106,6 @@ class TorqueConverter {
         uint16_t slip_target = 100;
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;
-        static uint8_t get_load_cell(int load_as_percent);
 };
 
 #endif

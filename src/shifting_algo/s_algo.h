@@ -83,7 +83,7 @@ public:
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
     // Called when shift solenoid is opened
-    virtual void calc_shift_flags(SensorData* sd, uint32_t* dest) = 0;
+    virtual void calc_shift_flags(uint32_t* dest) = 0;
 
     protected:
         ShiftInterfaceData* sid;
@@ -125,7 +125,6 @@ public:
         
         // EGS compatibility functions
         uint16_t calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef);
-        uint16_t fun_0d820a(uint16_t p);
         uint16_t fun_0d83d4();
         uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
         uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
@@ -143,6 +142,8 @@ public:
         short pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value);
         short momentum_pid[2];
         short momentum_target = 0;
+        virtual uint16_t max_p_mod_pressure() = 0;
+        virtual uint16_t high_fill_pressure() = 0;
         uint16_t threshold_rpm = 0;
 };
 

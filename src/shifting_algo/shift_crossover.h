@@ -13,7 +13,7 @@ public:
         bool is_upshift
     ) override;
 
-    void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
+    void calc_shift_flags(uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
     
     
@@ -27,6 +27,8 @@ private:
     uint16_t fun_0d86b4();
     uint16_t fun_0d8a10(uint16_t p_shift);
     uint16_t fun_0d8a66();
+    uint16_t max_p_mod_pressure() override;
+    uint16_t high_fill_pressure() override;
 
     uint16_t trq_req_val = 0;
     float trq_adder_2 = 0;

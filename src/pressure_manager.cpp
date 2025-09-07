@@ -272,7 +272,7 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
 
 int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    float coef = 1.F;
+    float coef;
     switch (coef_ty) {
         case CoefficientTy::Static:
             coef = this->stationary_coefficient();
@@ -283,6 +283,8 @@ int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clut
         case CoefficientTy::Release:
             coef = this->release_coefficient();
             break;
+        default:
+            coef = 1.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = (friction_val / coef) * (float)abs_torque_nm;
@@ -420,14 +422,17 @@ uint16_t PressureManager::find_turbine_drag(uint8_t map_idx) {
 
 uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, CoefficientTy coef_val) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
-    float coef;
+    float coef = 1.F;
     switch (coef_val) {
         case CoefficientTy::Static:
             coef = this->stationary_coefficient();
+            break;
         case CoefficientTy::Sliding:
             coef = this->sliding_coefficient();
+            break;
         case CoefficientTy::Release:
             coef = this->release_coefficient();
+            break;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc =  ((float)pressure * coef) / (float)friction_val;

@@ -79,7 +79,8 @@ void read_solenoids_i2s(void*) {
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &read_len, portMAX_DELAY);
         if (ESP_OK == ret) {
             for (int i = 0; i < read_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                // adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
                 uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
                 if (channel_idx != 0xFF) {
                     if (p->type1.data > 100) { // > ~0.1V

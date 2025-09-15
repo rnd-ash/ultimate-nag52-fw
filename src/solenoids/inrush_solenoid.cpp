@@ -10,7 +10,7 @@ const uint16_t INRUSH_TIME_US = 15000;
 const uint16_t INRUSH_PWM = 4096;
 const uint16_t HOLD_PWM = 1300;
 
-const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10Khz, Hydralic PWM is 100Hz, so 10_000_000/100
+const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10MHz, Hydralic PWM is 100Hz, so 10_000_000/100
 
 
 static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
@@ -69,7 +69,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
     const gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,
         .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = (10u * 1000u), // 10Khz
+        .resolution_hz = (10u * 1000u * 1000u), // 10MHz
         .flags = {
             .intr_shared = 0
         }

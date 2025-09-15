@@ -32,7 +32,7 @@ REL_MODULE_SETTINGS REL_CURRENT_SETTINGS = REL_DEFAULT_SETTINGS;
     if (sizeof(pfx##_MODULE_SETTINGS) != buffer_len) { \
         return ESP_ERR_INVALID_SIZE; \
     } else { \
-        pfx##_MODULE_SETTINGS settings = *(pfx##_MODULE_SETTINGS*)buffer; \
+        pfx##_MODULE_SETTINGS settings = *(reinterpret_cast<pfx##_MODULE_SETTINGS*>(buffer)); \
         pfx##_CURRENT_SETTINGS = settings; \
         return EEPROM::write_subsystem_settings(NVS_KEY_##pfx##_SETTINGS, &pfx##_CURRENT_SETTINGS); \
     } \
@@ -42,7 +42,7 @@ REL_MODULE_SETTINGS REL_CURRENT_SETTINGS = REL_DEFAULT_SETTINGS;
     if (use_default) { \
         ptr = &pfx##_DEFAULT_SETTINGS; \
     } \
-    uint8_t* dest = (uint8_t*)TCU_HEAP_ALLOC(sizeof(pfx##_MODULE_SETTINGS)+1); \
+    uint8_t* dest = static_cast<uint8_t*>(TCU_HEAP_ALLOC(sizeof(pfx##_MODULE_SETTINGS)+1)); \
     if (nullptr == ptr || nullptr == dest) { \
         TCU_FREE(dest); \
         return ESP_ERR_NO_MEM; \

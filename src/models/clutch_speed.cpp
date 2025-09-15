@@ -145,7 +145,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.b3 = 0;
             }
         } else {
-            ShiftClutchData scd = {0,0,0};
+            ShiftClutchData scd;
             if ((target == GearboxGear::First && actual == GearboxGear::Second) || (target == GearboxGear::Second && actual == GearboxGear::First)) { // 1-2 or 2-1
                 scd = get_shifting_clutch_speeds(speeds, GearChange::_1_2, ratios);
                 cs.k1 = scd.on_clutch_speed;

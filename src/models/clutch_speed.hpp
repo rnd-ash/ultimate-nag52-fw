@@ -1,5 +1,5 @@
-#ifndef __CLUTCH_SPEED_H_
-#define __CLUTCH_SPEED_H_
+#ifndef CLUTCH_SPEED_H
+#define CLUTCH_SPEED_H
 
 #include <stdint.h>
 #include "common_structs.h"

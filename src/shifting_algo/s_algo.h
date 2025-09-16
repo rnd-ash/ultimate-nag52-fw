@@ -1,5 +1,5 @@
-#ifndef __S_ALGO_H__
-#define __S_ALGO_H__
+#ifndef S_ALGO_H
+#define S_ALGO_H
 
 #include "../src/common_structs.h"
 #include "../pressure_manager.h"
@@ -24,7 +24,7 @@ enum class ShiftStyle {
     Release_Dn,
 };
 
-typedef struct {
+struct ShiftInterfaceData{
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
@@ -47,7 +47,7 @@ typedef struct {
     TorqueRequstData* ptr_w_trq_req;
     PressureStageTiming maxp_info;
     TorqueConverter* tcc;
-} ShiftInterfaceData;
+};
 
 class ShiftingAlgorithm {
 public:

@@ -108,29 +108,29 @@ void Sensors::update(SensorDataRaw* dest) {
         } else {
             dest->parking_lock = 0;
             adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
-            const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
-            if (adc_voltage <= atf_temp_lookup[0].v)
+
+            int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
+            if (resistance <= TFT_RESISTANCE_TAB[0].r_ohm)
             {
-                dest->atf_temp_c = (int16_t)(atf_temp_lookup[0].temp) / 10.0;
+                dest->atf_temp_c = (int16_t)(TFT_RESISTANCE_TAB[0].temp) / 10.0;
             }
-            else if (adc_voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
+            else if (resistance >= TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].r_ohm)
             {   
-                dest->atf_temp_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp)) / 10.0;
+                dest->atf_temp_c = (int16_t)((TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].temp)) / 10.0;
             }
             else
             {
-                
                 for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
                 {
                     // Found! Interpolate linearly to get a better estimate of ATF Temp
-                    if (atf_temp_lookup[i].v <= adc_voltage && atf_temp_lookup[i + 1].v >= adc_voltage)
+                    if (TFT_RESISTANCE_TAB[i].r_ohm <= resistance && TFT_RESISTANCE_TAB[i + 1].r_ohm >= resistance)
                     {
                         dest->atf_temp_c = interpolate_int(
-                            adc_voltage, // Read voltage
-                            atf_temp_lookup[i].temp, // Min temp for this range
-                            atf_temp_lookup[i+1].temp, // Max temp for this range
-                            atf_temp_lookup[i].v, // Min voltage for this boundary
-                            atf_temp_lookup[i+1].v // Max voltage for this boundary
+                            resistance, // Read voltage
+                            TFT_RESISTANCE_TAB[i].temp, // Min temp for this range
+                            TFT_RESISTANCE_TAB[i+1].temp, // Max temp for this range
+                            TFT_RESISTANCE_TAB[i].r_ohm, // Min voltage for this boundary
+                            TFT_RESISTANCE_TAB[i+1].r_ohm // Max voltage for this boundary
                         ) / 10.0;
                         break;
                     }

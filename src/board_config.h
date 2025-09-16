@@ -6,77 +6,45 @@
 #include <esp_adc/adc_oneshot.h>
 #include "ioexpander.h"
 
-static const uint16_t NUM_TEMP_POINTS = 25u;
+static const uint16_t NUM_TEMP_POINTS = 27u;
 
 struct temp_reading_t{
-    // Voltage in mV
-    uint16_t v; 
+    // Resistance in Ohms
+    uint16_t r_ohm; 
     // ATF Temp in degrees C * 10
     int temp; 
 };
 
 // https://www.nxp.com/docs/en/data-sheet/KTY83_SER.pdf
-const static temp_reading_t atf_temp_lookup_V12[NUM_TEMP_POINTS] = {
-//    mV, Temp(x10)
-// mV Values are calibrated on 3.45V rail
-// as that is how much the ATF sensor power gets
-    {686, -500},
-    {738, -400},
-    {792, -300},
-    {847, -200},
-    {903, -100},
-    {959,  0},
-    {1015, 100},
-    {1071, 200},
-    {1100, 250},
-    {1128, 300},
-    {1183, 400},
-    {1238, 500},
-    {1292, 600},
-    {1346, 700},
-    {1399, 800},
-    {1450, 900},
-    {1501, 1000},
-    {1551, 1100},
-    {1599, 1200},
-    {1623, 1250},
-    {1647, 1300},
-    {1692, 1400},
-    {1737, 1500},
-    {1781, 1600},
-    {1823, 1700},
-};
-
-// https://www.nxp.com/docs/en/data-sheet/KTY83_SER.pdf
-const static temp_reading_t atf_temp_lookup_V11[NUM_TEMP_POINTS] = {
-//    mV, Temp(x10)
-// mV Values are calibrated on 3.45V rail
-// as that is how much the ATF sensor power gets
-    {436, -500},
-    {449, -400},
-    {462, -300},
-    {477, -200},
-    {492, -100},
-    {508, 0},
-    {524, 100},
-    {541, 200},
-    {550, 250},
-    {558, 300},
-    {576, 400},
-    {595, 500},
-    {614, 600},
-    {634, 700},
-    {654, 800},
-    {674, 900},
-    {695, 1000},
-    {716, 1100},
-    {738, 1200},
-    {749, 1250},
-    {760, 1300},
-    {782, 1400},
-    {804, 1500},
-    {827, 1600},
-    {850, 1700},
+const static temp_reading_t TFT_RESISTANCE_TAB[NUM_TEMP_POINTS] = {
+// Resistance (Ohm), Temp(x10)
+    {500, -550},
+    {525, -500},
+    {577, -400},
+    {632, -300},
+    {691, -200},
+    {754, -100},
+    {820, 0},
+    {889, 100},
+    {962, 200},
+    {1000, 250},
+    {1039, 300},
+    {1118, 400},
+    {1202, 500},
+    {1288, 600},
+    {1379, 700},
+    {1472, 800},
+    {1569, 900},
+    {1670, 1000},
+    {1774, 1100},
+    {1882, 1200},
+    {1937, 1250},
+    {1993, 1300},
+    {2107, 1400},
+    {2225, 1500},
+    {2346, 1600},
+    {2471, 1700},
+    {2535, 1750},
 };
 
 struct SensorFuncData {
@@ -84,7 +52,7 @@ struct SensorFuncData {
     //adc2_channel_t atf_channel;
     adc_channel_t adc_batt;
     adc_channel_t adc_atf;
-    const temp_reading_t* atf_calibration_curve;
+    uint16_t atf_r2_resistance;
     float current_sense_multi;
 } ;
 

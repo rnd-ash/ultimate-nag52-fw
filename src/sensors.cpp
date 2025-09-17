@@ -110,20 +110,20 @@ void Sensors::update(SensorDataRaw* dest) {
             adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
 
             int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
-            if (resistance <= TFT_RESISTANCE_TAB[0].r_ohm)
+            if (TFT_RESISTANCE_TAB[0].r_ohm >= resistance)
             {
-                dest->atf_temp_c = (int16_t)(TFT_RESISTANCE_TAB[0].temp) / 10.0;
+                dest->atf_temp_c = TFT_RESISTANCE_TAB[0].temp / 10;
             }
-            else if (resistance >= TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].r_ohm)
+            else if (TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].r_ohm <= resistance)
             {   
-                dest->atf_temp_c = (int16_t)((TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].temp)) / 10.0;
+                dest->atf_temp_c = TFT_RESISTANCE_TAB[NUM_TEMP_POINTS - 1].temp / 10;
             }
             else
             {
                 for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
                 {
                     // Found! Interpolate linearly to get a better estimate of ATF Temp
-                    if (TFT_RESISTANCE_TAB[i].r_ohm <= resistance && TFT_RESISTANCE_TAB[i + 1].r_ohm >= resistance)
+                    if (TFT_RESISTANCE_TAB[i].r_ohm < resistance && TFT_RESISTANCE_TAB[i + 1].r_ohm > resistance)
                     {
                         dest->atf_temp_c = interpolate_int(
                             resistance, // Read voltage

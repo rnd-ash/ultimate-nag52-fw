@@ -6,45 +6,14 @@
 #include <esp_adc/adc_oneshot.h>
 #include "ioexpander.h"
 
-static const uint16_t NUM_TEMP_POINTS = 27u;
-
-struct temp_reading_t{
-    // Resistance in Ohms
-    uint16_t r_ohm; 
-    // ATF Temp in degrees C * 10
-    int temp; 
-};
+static const uint8_t NUM_TEMP_POINTS = 27u;
 
 // https://www.nxp.com/docs/en/data-sheet/KTY83_SER.pdf
-const static temp_reading_t TFT_RESISTANCE_TAB[NUM_TEMP_POINTS] = {
-// Resistance (Ohm), Temp(x10)
-    {500, -550},
-    {525, -500},
-    {577, -400},
-    {632, -300},
-    {691, -200},
-    {754, -100},
-    {820, 0},
-    {889, 100},
-    {962, 200},
-    {1000, 250},
-    {1039, 300},
-    {1118, 400},
-    {1202, 500},
-    {1288, 600},
-    {1379, 700},
-    {1472, 800},
-    {1569, 900},
-    {1670, 1000},
-    {1774, 1100},
-    {1882, 1200},
-    {1937, 1250},
-    {1993, 1300},
-    {2107, 1400},
-    {2225, 1500},
-    {2346, 1600},
-    {2471, 1700},
-    {2535, 1750},
+const static int16_t TFT_RESISTANCE_TAB[2][NUM_TEMP_POINTS] = {
+    // Resistance (Ohm)
+    { 500,  525,  577,  632,  691,  754, 820,  889,  962, 1000, 1039, 1118, 1202, 1288, 1379, 1472, 1569, 1670, 1774, 1882, 1937, 1993, 2107, 2225, 2346, 2471, 2535},
+    // Temperature
+    {-550, -500, -400, -300, -200, -100,   0,  100,  200,  250,  300,  400,  500,  600,  700,  800,  900, 1000, 1100, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1750}
 };
 
 struct SensorFuncData {

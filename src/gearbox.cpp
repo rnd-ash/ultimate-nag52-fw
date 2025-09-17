@@ -516,7 +516,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
-            pressure_mgr->update_pressures(algo_phase_id == 0 ? this->actual_gear : this->target_gear, this->shift_idx);
+            pressure_mgr->update_pressures(this->target_gear, this->shift_idx);
 
             if (step_result == 0) {
                 // Continue

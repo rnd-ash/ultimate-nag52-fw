@@ -140,21 +140,6 @@ float progress_between_targets(const float current, const float start, const flo
 /// @return the interpolated function value
 float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x);
 
-/// @brief Searches for a given value in values. idvalue_min and idvalue_max will be set to the indices between the value is found. This fuction assumes, that values has an ascending order.
-/// @param value The value to be searched for.
-/// @param values The array with the values to be searched within.
-/// @param size The size of values.
-/// @param idvalue_min The index for the value smaller than the value to be searched for.
-/// @param idvalue_max The index for the value greater than the value to be searched for.
-template <typename T> void search_value(const T value, const T *values, const uint16_t size, uint16_t *idvalue_min, uint16_t *idvalue_max);
-
-/// @brief Interpolates on a calibration table where you have an axis and a single value axis
-/// @param v - The value to look up the interpoaltion for
-/// @param len - The size of both X and Y, this function requires both to be the same len
-/// @param x - Pointer to X axis
-/// @param vals - Pointer to value axis
-template <typename T> float interpolate_linear_array(T v, const uint8_t len, const T* x, const T* vals);
-
 int linear_ramp_with_timer(int start, int end, int current_timer_val);
 
 #endif // TCU_MATHS_H

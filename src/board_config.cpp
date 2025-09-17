@@ -31,7 +31,7 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() {
     this->sensor_data = SensorFuncData {
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_9,
-        .atf_calibration_curve = atf_temp_lookup_V11,
+        .atf_r2_resistance = 10000,
         .current_sense_multi = 2.0,
     };
 }
@@ -66,7 +66,7 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
     this->sensor_data = SensorFuncData {
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_7,
-        .atf_calibration_curve = atf_temp_lookup_V12,
+        .atf_r2_resistance = 2000,
         .current_sense_multi = 1.0,
     };
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
@@ -115,7 +115,7 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
     this->sensor_data = SensorFuncData {
         .adc_batt = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf = adc_channel_t::ADC_CHANNEL_7,
-        .atf_calibration_curve = atf_temp_lookup_V12,
+        .atf_r2_resistance = 2000,
         .current_sense_multi = 1.0,
     };
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);

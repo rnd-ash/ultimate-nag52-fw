@@ -8,6 +8,7 @@
 #include "driver/pulse_cnt.h"
 #include "esp_timer.h"
 #include "esp_private/adc_private.h"
+#include "tcu_maths_impl.h"
 
 #define N_SENSOR_PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
@@ -108,34 +109,11 @@ void Sensors::update(SensorDataRaw* dest) {
         } else {
             dest->parking_lock = 0;
             adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
-            const temp_reading_t *atf_temp_lookup = pcb_gpio_matrix->sensor_data.atf_calibration_curve;
-            if (adc_voltage <= atf_temp_lookup[0].v)
-            {
-                dest->atf_temp_c = (int16_t)(atf_temp_lookup[0].temp) / 10.0;
-            }
-            else if (adc_voltage >= atf_temp_lookup[NUM_TEMP_POINTS - 1].v)
-            {   
-                dest->atf_temp_c = (int16_t)((atf_temp_lookup[NUM_TEMP_POINTS - 1].temp)) / 10.0;
-            }
-            else
-            {
-                
-                for (uint8_t i = 0; i < NUM_TEMP_POINTS - 1; i++)
-                {
-                    // Found! Interpolate linearly to get a better estimate of ATF Temp
-                    if (atf_temp_lookup[i].v <= adc_voltage && atf_temp_lookup[i + 1].v >= adc_voltage)
-                    {
-                        dest->atf_temp_c = interpolate_int(
-                            adc_voltage, // Read voltage
-                            atf_temp_lookup[i].temp, // Min temp for this range
-                            atf_temp_lookup[i+1].temp, // Max temp for this range
-                            atf_temp_lookup[i].v, // Min voltage for this boundary
-                            atf_temp_lookup[i+1].v // Max voltage for this boundary
-                        ) / 10.0;
-                        break;
-                    }
-                }
-            }
+
+            int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
+            
+            float out_x10 = interpolate_linear_array((int16_t)resistance, NUM_TEMP_POINTS, TFT_RESISTANCE_TAB[0],  TFT_RESISTANCE_TAB[1]);
+            dest->atf_temp_c = (int16_t)(out_x10/10.0);
         }
     }
 }

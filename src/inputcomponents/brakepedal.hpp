@@ -7,7 +7,7 @@ class BrakePedal {
 
 public:
     /**
-     * @brief Check if the kickdown switch is pressed
+     * @brief Check if the brake pedal is pressed by evaluating either the hard wired brake light switch or the CAN-signal
      * @return true if pressed, false otherwise
      */
     static bool is_brake_pedal_pressed(EgsBaseCan *egs_can_hal, const uint32_t expire_time_ms);  

@@ -6,7 +6,7 @@
 
 class ReleasingShift : public ShiftingAlgorithm {
 public:
-    ReleasingShift(ShiftInterfaceData* data);
+    explicit ReleasingShift(ShiftInterfaceData* data);
     ~ReleasingShift() override;
     uint8_t step_internal(
         bool stationary,

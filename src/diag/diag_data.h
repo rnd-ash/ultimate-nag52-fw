@@ -150,6 +150,8 @@ typedef struct {
     //
     uint32_t engine_output_joule;
     uint32_t tcc_absorbed_joule;
+    // Load as a pecentage (Compared to gearbox rating)
+    int16_t load_percent;
 } __attribute__ ((packed)) DATA_TCC_PROGRAM;
 
 typedef struct {

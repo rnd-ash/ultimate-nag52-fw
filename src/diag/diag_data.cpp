@@ -107,6 +107,7 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     ret.can_request_bits = 0; // TODO
     ret.tcc_absorbed_joule = gb_ptr->tcc->get_absorbed_power();
     ret.engine_output_joule = gb_ptr->tcc->get_engine_power();
+    ret.load_percent = gb_ptr->tcc->get_engine_load_percent();
     return ret;
 }
 

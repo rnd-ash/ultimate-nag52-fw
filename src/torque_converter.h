@@ -75,6 +75,10 @@ class TorqueConverter {
         inline uint32_t get_engine_power() {
             return this->engine_output_joule;
         }
+
+        inline int16_t get_engine_load_percent() {
+            return this->engine_load_percent;
+        }
         
         inline uint32_t get_absorbed_power() {
             return this->absorbed_power_joule;
@@ -95,6 +99,7 @@ class TorqueConverter {
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
         FirstOrderAverage* slip_average = nullptr;
+        int16_t engine_load_percent = 0;
         
         bool init_tables_ok = false;
 

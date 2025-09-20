@@ -10,7 +10,7 @@ MechanicalCalibration* MECH_PTR = NULL;
 TorqueConverterCalibration* TCC_CFG_PTR = NULL;
 ShiftAlgorithmPack* SHIFT_ALGO_CFG_PTR = NULL;
 
-uint16_t crc(uint8_t* buffer, uint16_t len) {
+uint16_t crc(const uint8_t* buffer, uint16_t len) {
     uint16_t res = 0;
     for(uint16_t i = 0; i < len; i++) {
         res += i;
@@ -22,15 +22,15 @@ uint16_t crc(uint8_t* buffer, uint16_t len) {
 esp_err_t EGSCal::init_egs_calibration() {
     // First of all, allocate our buffer
     esp_err_t ret = ESP_OK;
-    CAL_RAM_PTR = (CalibrationInfo*)TCU_HEAP_ALLOC(sizeof(CalibrationInfo));
+    CAL_RAM_PTR = reinterpret_cast<CalibrationInfo*>(TCU_HEAP_ALLOC(sizeof(CalibrationInfo)));
     if (NULL == CAL_RAM_PTR) {
         ret = ESP_ERR_NO_MEM;
     } else {
         // Allocation OK!
-        ret = esp_flash_read(NULL, (void*)CAL_RAM_PTR, CALIBRATION_START_ADDRESS, sizeof(CalibrationInfo));
+        ret = esp_flash_read(NULL, static_cast<void*>(CAL_RAM_PTR), CALIBRATION_START_ADDRESS, sizeof(CalibrationInfo));
         if (ESP_OK == ret) {
             // Copy OK!
-            if (CAL_RAM_PTR->magic != 0xDEADBEEF) {
+            if (CAL_RAM_PTR->magic != 0xDEADBEEFu) {
                 // Magic failed
                 ret = ESP_ERR_INVALID_VERSION;
                 goto exit;
@@ -41,7 +41,7 @@ esp_err_t EGSCal::init_egs_calibration() {
                 ret = ESP_ERR_INVALID_SIZE;
                 goto exit;
             }
-            uint16_t crc_calculated = crc(&((uint8_t*)CAL_RAM_PTR)[8], sizeof(CalibrationInfo)-8);
+            uint16_t crc_calculated = crc(&(reinterpret_cast<uint8_t*>(CAL_RAM_PTR))[8], sizeof(CalibrationInfo)-8);
             if (crc_calculated != CAL_RAM_PTR->crc) {
                 // CRC Error
                 ESP_LOGE("CAL", "Calibration load failed. CRC error. Wanted %04X, got %04X", crc_calculated, CAL_RAM_PTR->crc);
@@ -72,15 +72,15 @@ esp_err_t EGSCal::reload_egs_calibration() {
     if (nullptr == CAL_RAM_PTR) { // CAL Info is not set, cannot 'reload', as it was never allocated
         ret = ESP_ERR_INVALID_STATE;
     } else {
-        CalibrationInfo* tmp = (CalibrationInfo*)TCU_HEAP_ALLOC(sizeof(CalibrationInfo));
+        CalibrationInfo* tmp = reinterpret_cast<CalibrationInfo*>(TCU_HEAP_ALLOC(sizeof(CalibrationInfo)));
         if (NULL == tmp) {
             ret = ESP_ERR_NO_MEM;
         } else {
             // Allocation OK!
-            ret = esp_flash_read(NULL, (void*)tmp, CALIBRATION_START_ADDRESS, sizeof(CalibrationInfo));
+            ret = esp_flash_read(NULL, static_cast<void*>(tmp), CALIBRATION_START_ADDRESS, sizeof(CalibrationInfo));
             if (ESP_OK == ret) {
                 // Copy OK!
-                if (tmp->magic != 0xDEADBEEF) {
+                if (tmp->magic != 0xDEADBEEFu) {
                     // Magic failed
                     ret = ESP_ERR_INVALID_VERSION;
                     goto exit;
@@ -91,7 +91,7 @@ esp_err_t EGSCal::reload_egs_calibration() {
                     ret = ESP_ERR_INVALID_SIZE;
                     goto exit;
                 }
-                uint16_t crc_calculated = crc(&((uint8_t*)tmp)[8], sizeof(CalibrationInfo)-8);
+                uint16_t crc_calculated = crc(&(reinterpret_cast<uint8_t*>(tmp))[8], sizeof(CalibrationInfo)-8);
                 if (crc_calculated != tmp->crc) {
                     // CRC Error
                     ESP_LOGE("CAL", "Calibration load failed. CRC error. Wanted %04X, got %04X", crc_calculated, tmp->crc);

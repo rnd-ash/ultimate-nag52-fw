@@ -63,6 +63,10 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
 const int PRESSURE_STEP = 1000/(1000/20); // Per 20ms cycle
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
+    this->motor_torque_smoothed->add_sample(sensors->converted_torque);
+    int motor_torque = this->motor_torque_smoothed->get_average();
+    int load_as_percent = ((int)motor_torque*100) / this->rated_max_torque;
+    this->engine_load_percent = load_as_percent;
     // TCC is commanded to be off,
     // or adaptation table failure.
     if (!this->tcc_solenoid_enabled || !init_tables_ok) {
@@ -72,8 +76,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     
     GearboxGear cmp_gear = curr_gear;
     int slip_now = (int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm;
-    this->motor_torque_smoothed->add_sample(sensors->converted_torque);
-    int motor_torque = this->motor_torque_smoothed->get_average();
     this->slip_average->add_sample(slip_now);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
@@ -156,8 +158,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     bool at_req_pressure = this->tcc_pressure_current == this->tcc_pressure_target;
     int pedal_delta = sensors->pedal_delta->get_average();
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
-
-    int load_as_percent = ((int)motor_torque*100) / this->rated_max_torque;
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
     if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150

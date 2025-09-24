@@ -36,7 +36,7 @@ void ReleasingShift::calc_shift_flags(uint32_t* dest) {
 
 uint16_t ReleasingShift::high_fill_pressure() {
     uint16_t base = sid->prefill_info.fill_pressure_on_clutch;
-    base += interpolate_float(sd->pedal_pos, 0, base/2, 50, 200, InterpType::Linear);
+    base += interpolate_float(sd->pedal_pos, 0, base, 50, 200, InterpType::Linear);
     return base;
 }
 
@@ -213,8 +213,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         if (0 == this->timer_shift) {
             this->subphase_shift += 1; // Next subphase has no time!
         }
-    }
-    if (4 == this->subphase_shift) {
+    } else if (4 == this->subphase_shift) {
         // Set vars before wait period
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p);
         //int p_apply_without_boost = sid->prefill_info.low_fill_pressure_on_clutch + this->spc_step_adder;
@@ -227,8 +226,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         ) {
             this->subphase_shift += 1;
         }
-    }
-    if (5 == this->subphase_shift) {
+    } else if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
         this->spc_step_adder += this->spc_ramp_val;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p + this->spc_step_adder);
@@ -284,29 +282,30 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        float multi_rel = interpolate_float(sid->chars.target_shift_time, 1.5, 2.0, 800, 100, InterpType::Linear);
-        float multi = (10*this->loss_torque_tmp)/100;
-        float tmp = (((10*this->freeing_trq) * multi_rel) + multi)/10.0;
-        this->loss_torque_tmp += tmp;
-        this->loss_torque = this->loss_torque_tmp/2.0;
+
+        // Multiplier for loss factor
+        float loss_multi = interpolate_float(sd->pedal_pos, 1.0, 3.0, 50, 200, InterpType::Linear);
+        float loss_factor = (0.4*loss_multi) * this->loss_torque;
+        // In Nm/Step
+        float adder_step = interpolate_float(sid->chars.target_shift_time, 0.5, 3.0, 1000, 100, InterpType::Linear)*loss_multi;
+        this->loss_torque += adder_step + loss_factor;
 
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque;
         int p = MAX(0, this->calc_release_clutch_p_signed(trq, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
-        if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm || trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq) || sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) {
+        if (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm || trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
             this->subphase_mod += 1;
             this->momentum_start_turbine_rpm = sd->input_rpm;
             this->momentum_start_output_rpm = sd->output_rpm;
             this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
             this->momentum_plus_maxtrq_1 = this->momentum_plus_maxtrq;
             this->correction_trq = 0;
-            sid->tcc->shift_start();
         }
     } else if (4 == this->subphase_mod) {
         // PID Correction to ramp the disengaging clutch at a sensible rate
         this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
         this->momentum_plus_maxtrq_1 = interp_2_ints(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_1);
-        this->correction_trq = MIN(this->correction_trq, this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1));
+        this->correction_trq = this->calc_correction_trq(is_upshift ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_1);
         
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque + this->correction_trq;
         if (trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
@@ -320,6 +319,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
             // Start torque request to prevent clutch burn up on merge
             this->trq_req_down_ramp = true;
             this->trq_req_timer = 5; // 100ms for up ramp
+            sid->tcc->shift_start();
         }
 
     } else if (5 == this->subphase_mod) {
@@ -507,4 +507,48 @@ float ReleasingShift::calculate_freeing_trq_multiplier(bool is_upshift) {
     }
 
     return output;
+}
+
+uint16_t ReleasingShift::calc_cycles_mod_phase1() {
+    uint16_t ret = 0;
+    // 2->1 and 3->2 are set to 0 always
+    if (sid->change != GearChange::_2_1 && sid->change != GearChange::_3_2) {
+        uint16_t max_cycles = (sid->prefill_info.fill_time/20) + 3 + 5; // 3 and 5 are for ramp time and hold time of low P
+
+        uint16_t tmp = 0;
+        if (0 == this->freeing_trq) {
+            int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
+            tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / MECH_PTR->turbine_drag[sid->inf.map_idx]);
+            if (tmp < max_cycles) {
+                ret = max_cycles - tmp;
+            } else {
+                ret = 0;
+            }
+        } else {
+            int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
+            tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / this->freeing_trq);
+            if (tmp < max_cycles) {
+                ret = max_cycles - tmp;
+            } else {
+                ret = 0;
+            }
+        }
+    }
+    this->fill_1_mpc_cycles = ret;
+    return ret;
+}
+
+uint16_t ReleasingShift::calc_cycles_mod_phase2(bool is_upshift) {
+    uint16_t ret;
+    if (!is_upshift) {
+        ret = 4; 
+    } else {
+        int max = (sid->prefill_info.fill_time/20) + 5;
+        if (this->fill_1_mpc_cycles < max) {
+            ret = MAX(max - this->fill_1_mpc_cycles, 4);
+        } else {
+            ret = 4;
+        }
+    }
+    return ret;
 }

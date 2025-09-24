@@ -48,10 +48,13 @@ private:
     uint16_t spring_trq_off_clutch = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
+    uint16_t calc_cycles_mod_phase1();
+    uint16_t calc_cycles_mod_phase2(bool is_upshift);   
     float spc_ramp_val = 0;
     float spc_wait_adder = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
+    uint8_t fill_1_mpc_cycles = 0;
 };
 
 #endif

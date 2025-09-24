@@ -221,34 +221,6 @@ void ShiftingAlgorithm::reset_for_next_phase() {
     this->subphase_shift = 0;
 }
 
-uint16_t ShiftingAlgorithm::calc_cycles_mod_phase1() {
-    uint16_t ret = 0;
-    // 2->1 and 3->2 are set to 0 always
-    if (sid->change != GearChange::_2_1 && sid->change != GearChange::_3_2) {
-        uint16_t max_cycles = (sid->prefill_info.fill_time/20) + 3 + 5; // 3 and 5 are for ramp time and hold time of low P
-        uint16_t tmp = 0;
-        int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
-        tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / MECH_PTR->turbine_drag[sid->inf.map_idx]);
-        if (tmp < max_cycles) {
-            ret = max_cycles - tmp;
-        } else {
-            ret = 0;
-        }
-    }
-    return ret;
-}
-
-uint16_t ShiftingAlgorithm::calc_cycles_mod_phase2(bool is_upshift) {
-    uint16_t ret;
-    if (!is_upshift) {
-        ret = 4; 
-    } else {
-        int max = (sid->prefill_info.fill_time/20) + 3;
-        ret = MAX(4, max);
-    }
-    return ret;
-}
-
 uint16_t ShiftingAlgorithm::fun_0d83d4() {
     int p_shift = 0;
     if (this->centrifugal_force_on_clutch < sid->release_spring_on_clutch) {

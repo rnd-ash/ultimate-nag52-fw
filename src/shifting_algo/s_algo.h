@@ -131,9 +131,6 @@ public:
         uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
         uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
         void reset_for_next_phase();
-        
-        uint16_t calc_cycles_mod_phase1();
-        uint16_t calc_cycles_mod_phase2(bool is_upshift);
 
         uint16_t set_p_apply_clutch_with_spring(uint16_t p);
         uint16_t clamp_p_apply_clutch(int p);

@@ -258,12 +258,14 @@ void Gearbox::inc_gear_request()
 {
     this->ask_upshift = true;
     this->ask_downshift = false;
+    this->manual_shift = true;
 }
 
 void Gearbox::dec_gear_request()
 {
     this->ask_upshift = false;
     this->ask_downshift = true;
+    this->manual_shift = true;
 }
 
 void Gearbox::set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount) {
@@ -328,7 +330,7 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
  * @return uint16_t - The actual time taken to shift gears. This is fed back into the adaptation network so it can better meet 'target_shift_duration_ms'
  */
 
-bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
+bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool manually_requested)
 {
     bool result = false;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
@@ -460,8 +462,26 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile)
             .tcc = this->tcc
         };
 
-        ShiftingAlgorithm* algo = new ReleasingShift(&sid);
-    
+        ShiftingAlgorithm* algo;
+        int p1 = VEHICLE_CONFIG.engine_drag_torque/20.0; // half of drag torque
+        int p2 = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque
+        if (is_upshift) {
+            // 2C
+            if (sensor_data.input_torque < -p1) {
+                algo = new CrossoverShift(&sid);
+            } else {
+                algo = new ReleasingShift(&sid);
+            }
+        } else {
+            if (manually_requested) {
+                p1 = p2;
+            }
+            if (sensor_data.input_torque > p1) {
+                algo = new ReleasingShift(&sid);
+            } else {
+                algo = new CrossoverShift(&sid);
+            }
+        }
 
         uint8_t algo_phase_id = 0;
         uint8_t algo_max_phase = algo->max_shift_stage_id();
@@ -753,7 +773,7 @@ void Gearbox::shift_thread()
                 portEXIT_CRITICAL(&this->profile_mutex);
                 this->is_upshift = true;
                 this->fwd_gear_shift = true;
-                elapse_shift(pgc, prof);
+                elapse_shift(pgc, prof, this->shift_req_was_manual);
                 this->start_second = true;
                 goto cleanup;
             }
@@ -791,7 +811,7 @@ void Gearbox::shift_thread()
                 portEXIT_CRITICAL(&this->profile_mutex);
                 this->is_upshift = false;
                 this->fwd_gear_shift = true;
-                elapse_shift(pgc, prof);
+                elapse_shift(pgc, prof, this->shift_req_was_manual);
                 goto cleanup;
             }
         }
@@ -1119,8 +1139,10 @@ void Gearbox::controller_loop()
                         if (this->restrict_target > this->actual_gear && p->should_upshift(this->actual_gear, &this->sensor_data))
                         {
                             this->ask_upshift = true; // Upshift takes priority
+                            this->manual_shift = false;
                         } else if (this->restrict_target < this->actual_gear || p->should_downshift(this->actual_gear, &this->sensor_data)) {
                             this->ask_downshift = true; // Downshift is secondary
+                            this->manual_shift = false;
                         }
                     }
                     if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
@@ -1146,6 +1168,8 @@ void Gearbox::controller_loop()
                 // Request processed. Cancel the requests. Put this outside here so that if there is a ratio mismatch, paddles are ignored
                 this->ask_downshift = false;
                 this->ask_upshift = false;
+                this->shift_req_was_manual = this->manual_shift;
+                this->manual_shift = false;
 
                 if (is_fwd_gear(this->target_gear))
                     {

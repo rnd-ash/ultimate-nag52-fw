@@ -4,7 +4,7 @@
 const uint8_t PHASE_BLEED            = 0;
 const uint8_t PHASE_FILL             = 1;
 const uint8_t PHASE_OVERLAP          = 2;
-const uint8_t PHASE_OVERLAP2          = 3;
+const uint8_t PHASE_OVERLAP2         = 3;
 const uint8_t PHASE_MAX_PRESSURE     = 4;
 const uint8_t PHASE_END_CONTROL      = 5;
 
@@ -69,46 +69,6 @@ uint8_t CrossoverShift::step_internal(
         ret = this->phase_end_ctrl();
     } else {
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
-    }
-
-
-    // Do torque request stuff here
-    uint16_t torque_req_out = 0;
-    int freeing_trq = pm->find_freeing_torque(sid->change, sd->converted_torque, sd->output_rpm);
-    freeing_trq *= interpolate_float(sd->pedal_pos, 1.0, 3.0, 10, 200, InterpType::Linear);
-
-    if (sd->indicated_torque > sd->min_torque && abs_input_trq > sd->min_torque && sd->engine_rpm > 1100) {
-        // We can in fact do the request
-        if (this->trq_req_up_ramp) {
-            // Increasing ramp
-            this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, 0, this->trq_req_timer);
-            if (this->trq_req_timer > 0) {
-                this->trq_req_timer -= 1;
-            }
-            torque_req_out = this->torque_req_val;
-        } else {
-            // We are not ramping
-            if (phase_id >= PHASE_OVERLAP) {
-                uint16_t targ = freeing_trq / sd->tcc_trq_multiplier;
-                this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, targ, this->trq_req_timer);
-                if (this->trq_req_timer > 0) {
-                    this->trq_req_timer -= 1;
-                }
-            }
-            torque_req_out = this->torque_req_val;
-        }
-    }
-
-    // Output to CAN
-    if (0 != torque_req_out) {
-        sid->ptr_w_trq_req->amount = MAX(0, sd->indicated_torque - torque_req_out);
-        sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
-        sid->ptr_w_trq_req->ty =  this->trq_req_up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
-    } else {
-        // No request
-        sid->ptr_w_trq_req->ty = TorqueRequestControlType::None;
-        sid->ptr_w_trq_req->amount = 0;
-        sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
     }
 
     return ret;

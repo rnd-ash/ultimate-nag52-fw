@@ -268,8 +268,6 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         int targ = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
 
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
-        this->momentum_plus_maxtrq = this->freeing_trq + this->max_trq_apply_clutch;
-        this->momentum_plus_maxtrq_1 = this->momentum_plus_maxtrq;
         if (
             (0 == this->timer_mod) ||
             (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm &&

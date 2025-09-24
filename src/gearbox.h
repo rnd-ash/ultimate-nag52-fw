@@ -68,7 +68,7 @@ private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
-    bool elapse_shift(GearChange req_lookup, AbstractProfile* profile);
+    bool elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool manually_requested);
     bool calcGearFromRatio(bool is_reverse);
 
     AbstractProfile* current_profile = nullptr;
@@ -96,6 +96,8 @@ private:
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
+    bool manual_shift = false;
+    bool shift_req_was_manual = false;
     bool is_upshift = false;
     bool fwd_gear_shift = false;
     float tcc_percent = 0.F;

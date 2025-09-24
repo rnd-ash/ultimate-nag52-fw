@@ -21,8 +21,6 @@ protected:
     uint16_t high_fill_pressure() override;
 
 private:
-    short momentum_plus_maxtrq = 0;
-    short momentum_plus_maxtrq_1 = 0;
     float freeing_trq = 0;
     float loss_torque = 0;
     float loss_torque_tmp = 0;

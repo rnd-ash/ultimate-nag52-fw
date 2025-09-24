@@ -26,7 +26,6 @@ InrushControlSolenoid *sol_tcc = nullptr;
 struct SolenoidOutputSummary {
     uint64_t peak_total[NUM_SOLENOIDS];
     uint16_t count_peak[NUM_SOLENOIDS];
-    uint16_t count_total[NUM_SOLENOIDS];
 };
 
 /*
@@ -74,7 +73,6 @@ void read_solenoids_i2s(void*) {
         SolenoidOutputSummary s = {
             .peak_total = {0,0,0,0,0,0},
             .count_peak = {0,0,0,0,0,0},
-            .count_total = {0,0,0,0,0,0},
         };
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &read_len, portMAX_DELAY);
         if (ESP_OK == ret) {
@@ -87,7 +85,6 @@ void read_solenoids_i2s(void*) {
                         s.peak_total[channel_idx] += p->type1.data;
                         s.count_peak[channel_idx] += 1;
                     }
-                    s.count_total[channel_idx] += 1;
                 }
             }
 

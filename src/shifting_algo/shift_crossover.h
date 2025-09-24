@@ -18,10 +18,11 @@ public:
     
     
 private:
+    uint16_t adaptation_trq_limit = 0;
     uint8_t phase_fill();
     uint8_t phase_overlap();
     uint8_t phase_overlap2();
-    
+    int16_t map_trq_adder = 0;
     uint16_t p_apply_overlap_begin = 0;
 
     uint16_t fun_0d86b4();
@@ -29,6 +30,7 @@ private:
     uint16_t fun_0d8a66();
     uint16_t max_p_mod_pressure() override;
     uint16_t high_fill_pressure() override;
+    uint16_t fill_ramping_mod_p();
 
     uint16_t trq_req_val = 0;
     float trq_adder_2 = 0;

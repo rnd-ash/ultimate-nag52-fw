@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "gearbox.h"
+#include "shifter/shifter.h"
 #include "nvs/eeprom_config.h"
 #include "common_structs.h"
 #include "endpoints/endpoint.h"
@@ -176,7 +177,7 @@ typedef struct {
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);
 DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr);
-DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer);
+DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer, Shifter* shifter);
 DATA_SYS_USAGE get_sys_usage(void);
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g);
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr);

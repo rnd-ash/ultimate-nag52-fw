@@ -7,9 +7,6 @@
 #include "canbus/can_defines.h"
 #include "firstorder_average.h"
 
-typedef int16_t pressure_map[11];
-typedef float rpm_modifier_map[9];
-
 enum class Clutch {
     K1 = 0,
     K2 = 1,

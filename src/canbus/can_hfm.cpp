@@ -1,29 +1,19 @@
 #include "can_hfm.h"
 #include "driver/twai.h"
 #include "driver/i2c_master.h"
-#include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
-#include "ioexpander.h"
 
-HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : EgsBaseCan(name, tx_time_ms, 125000u, shifter)
-{    
-    ESP_LOGI("ClassicEGS", "SETUP CALLED");
-    if (ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style)
-    {        this->start_enable = true;
-        can_init_status = ESP_OK;
-    }
-    else
-    {
-        can_init_status = ESP_ERR_INVALID_ARG;
-        // Hfm-CAN has 125kbit/s; EWM requires 500kbit/s-CAN
-        ESP_LOGE("INIT", "ERROR. CAN mode is set to Hfm-CAN (125kbit/s), but shifter is set to EWM (500kbit/s)! Set shifter to TRRS instead!");
-    }
+HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_ms, 125000u)
+{   
+    ESP_LOGI("HFM-CAN", "SETUP CALLED");
+    this->start_enable = true;
+    can_init_status = ESP_OK;
 }
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
 {
-    uint16_t result = UINT16_MAX;
+    uint16_t result = 0;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
@@ -45,20 +35,10 @@ uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
                 // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 20) * (1000 / wheel_circumference))
                 // <=> wheel_rpm_double = (2 * 20 * 1000 * V_SIGNAL) / wheel_circumference
                 // <=> wheel_rpm_double = (40000 * V_SIGNAL) / wheel_circumference
-                result = (40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference;
+                result = (uint16_t)((40000.F * ((float)hfm210.V_SIGNAL)) / (float)VEHICLE_CONFIG.wheel_circumference);
             }
         }
     }
-    // TODO: should be read from sensor through GPIO and would look like the following:
-    // 1. ticks = 0;
-    // 2. gearbox_output_rpm = ticks / ((int)VEHICLE_CONFIG.parking_lock_gear_teeth);
-    // 3. wheel_rpm = gearbox_output_rpm / (VEHICLE_CONFIG.diff_ratio / 1000);
-    // 4. wheel_rpm_double = 2 * wheel_rpm;
-    // <=> wheel_rpm_double = 2 * (gearbox_output_rpm / (VEHICLE_CONFIG.diff_ratio / 1000));
-    // <=> wheel_rpm_double = 2 * (1000 * gearbox_output_rpm / VEHICLE_CONFIG.diff_ratio);
-    // <=> wheel_rpm_double = (2000 * gearbox_output_rpm) / VEHICLE_CONFIG.diff_ratio;
-    // <=> wheel_rpm_double = (2000 * (ticks / ((int)VEHICLE_CONFIG.parking_lock_gear_teeth))) / VEHICLE_CONFIG.diff_ratio;
-    // <=> wheel_rpm_double = (2000 * ticks) / (((int)VEHICLE_CONFIG.diff_ratio) * ((int)VEHICLE_CONFIG.parking_lock_gear_teeth));
     return result;
 }
 
@@ -137,7 +117,6 @@ EngineType HfmCan::get_engine_type(const uint32_t expire_time_ms)
             result = EngineType::Petrol;
             break;
         default:
-            result = EngineType::Unknown;
             break;
         }
     }
@@ -162,7 +141,7 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        result |= hfm210.VG_B;
+        result = hfm210.VG_B;
     }
     return result;
 }
@@ -268,7 +247,7 @@ int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
     {
         if (!hfm608.TFM_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_MOT)) * temperature_factor) + temperature_offset);
+            result = COOLANT_TEMPERATURE[hfm608.T_MOT];
         }
     }
     return result;
@@ -288,7 +267,7 @@ int16_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
     {
         if (!hfm608.TFA_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_LUFT)) * temperature_factor) + temperature_offset);
+            result = INTAKE_AIR_TEMPERATURE[hfm608.T_LUFT];
         }
     }
     return result;

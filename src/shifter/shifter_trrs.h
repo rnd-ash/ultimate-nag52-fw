@@ -34,7 +34,7 @@ private:
         ShifterPosition::SignalNotAvailable     // 0b1111
     };
 
-    void set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed);
+    void set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms);
 
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     BoardGpioMatrix* board;

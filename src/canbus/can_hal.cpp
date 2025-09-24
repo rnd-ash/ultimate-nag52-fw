@@ -9,7 +9,7 @@
 
 EgsBaseCan *egs_can_hal = nullptr;
 
-EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter)
+EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud)
 {
     this->name = name;
     this->diag_rx_id = 0x07E1;
@@ -17,7 +17,6 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
     this->diag_rx_queue = nullptr;
     this->can_init_status = ESP_OK;
     this->tx_time_ms = tx_time_ms;
-    this->shifter = shifter;
 
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Booting CAN Layer");
@@ -48,6 +47,7 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
         break;
     case 125000:
         timing_config = TWAI_TIMING_CONFIG_125KBITS();
+        gen_config.mode = TWAI_MODE_LISTEN_ONLY; // For 125k, use listen only mode to avoid issues on bus
         break;
     case 100000:
         timing_config = TWAI_TIMING_CONFIG_100KBITS();

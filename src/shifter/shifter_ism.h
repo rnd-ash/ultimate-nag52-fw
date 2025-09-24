@@ -4,7 +4,7 @@
 #include "shifter.h"
 #include "esp_err.h"
 #include "../nvs/module_settings.h"
-#include "programselector/programselector.h"
+#include "programselector/programselector.hpp"
 #include "../../egs53_ecus/src/ANY_ECU.h"
 #include "../canbus/can_egs53.h"
 

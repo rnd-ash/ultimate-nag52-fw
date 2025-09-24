@@ -1,5 +1,5 @@
-#ifndef _KWP_DEFINES_H__
-#define _KWP_DEFINES_H__
+#ifndef KWP_DEFINES_H
+#define KWP_DEFINES_H
 
 /// KWP 2000 Definitions (The standard)
 

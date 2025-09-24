@@ -4,6 +4,7 @@
 #include "kwp2000_defines.h"
 #include "canbus/can_hal.h"
 #include "gearbox.h"
+#include "shifter/shifter.h"
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
@@ -28,7 +29,7 @@ static_assert(CHUNK_SIZE_CAN+2 <= DIAG_CAN_MAX_SIZE);
 
 class Flasher {
     public:
-        Flasher(EgsBaseCan *can_ref, Gearbox* gearbox);
+        Flasher(EgsBaseCan *can_ref, Gearbox* gearbox, Shifter* shifter);
         ~Flasher();
         void on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can);
         void on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can);
@@ -38,6 +39,7 @@ class Flasher {
     private:
         Gearbox* gearbox_ref;
         EgsBaseCan* can_ref;
+        Shifter* shifter_ref;
         uint8_t block_counter = 0;
         uint32_t data_read = 0;
         //esp_ota_handle_t update_handle = 0;

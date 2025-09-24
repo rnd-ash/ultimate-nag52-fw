@@ -49,7 +49,7 @@ bool is_shifter_passive(Shifter* shifter) {
     if (shifter == nullptr) {
         return true;
     } else {
-        ShifterPosition pos = shifter->get_shifter_position();
+        ShifterPosition pos = shifter->get_shifter_position(250);
         return (pos == ShifterPosition::N || pos == ShifterPosition::P || pos == ShifterPosition::SignalNotAvailable);
     }
 }

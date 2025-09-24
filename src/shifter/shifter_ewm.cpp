@@ -3,9 +3,10 @@
 #include "programselector/programselectorswitchewm.h"
 #include "programselector/programselectorSLR.h"
 
-ShifterEwm::ShifterEwm(const ETS_MODULE_SETTINGS *shifter_settings)
+ShifterEwm::ShifterEwm(TCM_CORE_CONFIG *vehicle_config, const ETS_MODULE_SETTINGS *shifter_settings)
 {
-	if (((uint8_t)ShifterStyle::SLR) != VEHICLE_CONFIG.shifter_style)
+	this->vehicle_config = vehicle_config;
+	if (((uint8_t)ShifterStyle::SLR) != vehicle_config->shifter_style)
 	{
 		switch (shifter_settings->ewm_selector_type)
 		{
@@ -13,7 +14,7 @@ ShifterEwm::ShifterEwm(const ETS_MODULE_SETTINGS *shifter_settings)
 			programselector = new ProgramSelectorSwitchEWM();
 			break;
 		case EwmSelectorType::Button:
-			programselector = new ProgramSelectorButtonEwm();
+			programselector = new ProgramSelectorButtonEwm(vehicle_config);
 			break;
 		default:
 			programselector = nullptr;
@@ -36,7 +37,7 @@ DiagProfileInputState ShifterEwm::diag_get_profile_input(void) {
 	return ret;
 }
 
-ShifterPosition ShifterEwm::get_shifter_position(void)
+ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 {
 	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
 	if (nullptr != egs_can_hal) {
@@ -46,12 +47,12 @@ ShifterPosition ShifterEwm::get_shifter_position(void)
 	return pos;
 }
 
-AbstractProfile *ShifterEwm::get_profile(void)
+AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
 {
 	AbstractProfile *result = nullptr;
 	if (nullptr != programselector)
 	{
-		result = programselector->get_profile();
+		result = programselector->get_profile(expire_time_ms);
 	} else {
 		// null selector can be if the selector has no profile button (Jeep/Sprinter)
 		result = profiles[VEHICLE_CONFIG.default_profile];
@@ -78,9 +79,4 @@ void ShifterEwm::set_program_button_pressed(const bool is_pressed, const Profile
 
 ShifterStyle ShifterEwm::get_shifter_type() {
 	return ShifterStyle::EWM;
-}
-
-void ShifterEwm::update(void)
-{
-	set_program_button_pressed(egs_can_hal->get_profile_btn_press(expire_time_ms), egs_can_hal->get_profile_switch_pos(expire_time_ms));
 }

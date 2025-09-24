@@ -341,6 +341,8 @@ class EgsBaseCan {
             this->un52_slave_resp = un52_rpt;
         }
 
+        Shifter* shifter;
+
     protected:
         const char* name;
         TaskHandle_t task = nullptr;
@@ -358,7 +360,7 @@ class EgsBaseCan {
 
         virtual void tx_frames(){};
         virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {};
-        virtual void on_rx_done(const uint32_t now_ts) {};
+        virtual void on_rx_done(const uint32_t now_ts);
 
         bool send_messages = true;
 
@@ -383,6 +385,7 @@ class EgsBaseCan {
 
 extern EgsBaseCan* egs_can_hal;
 
+// typedef uint8_t DiagCanMessage[8];
 struct DiagCanMessage {
     uint8_t data[8];
 };

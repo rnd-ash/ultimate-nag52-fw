@@ -32,11 +32,11 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     };
 
     const ledc_timer_config_t SOLENOID_TIMER_CFG = {
-        .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
+        .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE,
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = ledc_timer,
         .freq_hz = 1000,
-        .clk_cfg = LEDC_AUTO_CLK,
+        .clk_cfg = LEDC_USE_APB_CLK,
         .deconfigure = false
     };
 

@@ -12,6 +12,9 @@ const uint8_t PHASE_END_CONTROL      = 4;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 5; // 100ms for torque request down ramp
+    this->cycles_high_filling = data->prefill_info.fill_time/20;
+    this->cycles_ramp_filling = 3;
+    this->cycles_low_filling = 5;
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -36,25 +39,23 @@ void ReleasingShift::calc_shift_flags(uint32_t* dest) {
 
 uint16_t ReleasingShift::high_fill_pressure() {
     uint16_t base = sid->prefill_info.fill_pressure_on_clutch;
-    base += interpolate_float(sd->pedal_pos, 0, base, 50, 200, InterpType::Linear);
     return base;
 }
 
 uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
-        int torque_avg = (this->freeing_trq + this->max_trq_apply_clutch)/2;
-        int torque_min = MIN(this->freeing_trq, torque_avg);
-        int torque = torque_min + this->max_trq_apply_clutch;
+        float torque_avg = (this->freeing_trq + this->max_trq_apply_clutch)/2;
+        float torque_min = MIN(this->freeing_trq, torque_avg);
+        float torque = torque_min + this->max_trq_apply_clutch;
         // Number of EGS cycles (20ms):
         // 1 20ms. Calc Trq req
         // 2 20ms. Tx Trq req
         // 3 20ms. Engine to implement Trq req
-        int cycles_can = 3;
-        int inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
+        float cycles_can = 3.0;
+        float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
 
-        int threshold = (torque*10) * (cycles + (cycles_can*2)) / inertia * MECH_PTR->turbine_drag[sid->inf.map_idx];
-        threshold /= 10;
+        float threshold = torque * (float)(cycles + (cycles_can*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
 
         ret = MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
     } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
@@ -85,6 +86,9 @@ uint8_t ReleasingShift::step_internal(
         if (this->spc_ramp_val == 0) {
             this->spc_ramp_val = 8; // Set to default
         }
+        // Also set SPC offset
+        this->spc_p_offset = interpolate_float(sd->engine_rpm, 0, 500, 1000, 4500, InterpType::Linear);
+        this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
     }
 
 
@@ -181,7 +185,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     this->threshold_rpm = calc_threshold_rpm_2(4);
     if (0 == this->subphase_shift) {
         // Var set
-        this->timer_shift = sid->prefill_info.fill_time/20;
+        this->timer_shift = this->cycles_high_filling;
         this->subphase_shift += 1;
     }
     if (1 == this->subphase_shift) {
@@ -189,7 +193,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         this->max_trq_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->high_fill_pressure());
         if (0 == this->timer_shift) {
-            this->timer_shift = 3;
+            this->timer_shift = this->cycles_ramp_filling;
             this->subphase_shift += 1;
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
             int wp = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release);
@@ -203,7 +207,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         int targ = this->set_p_apply_clutch_with_spring(this->low_f_p);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
         if (0 == this->timer_shift) {
-            this->timer_shift = 5; // RELEASE_CAL -> low_filling_time
+            this->timer_shift = this->cycles_low_filling;
             this->subphase_shift += 1;
         }
     } else if (3 == this->subphase_shift) {
@@ -243,7 +247,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
     }
     // Write pressure
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
 }
 
 uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
@@ -366,7 +370,7 @@ uint8_t ReleasingShift::phase_overlap(bool is_upshift) {
     }
     int end = this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release));
     this->p_apply_clutch = MAX(linear_ramp_with_timer(this->p_apply_clutch, end, this->timer_shift), this->p_overlap_begin - centrifugal_force_on_clutch);
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
     if (sid->change == GearChange::_4_3) {
         if (0 == this->timer_mod) {
             this->overlap_torque = linear_ramp_with_timer(this->overlap_torque, abs_input_trq, this->timer_shift);
@@ -511,7 +515,7 @@ uint16_t ReleasingShift::calc_cycles_mod_phase1() {
     uint16_t ret = 0;
     // 2->1 and 3->2 are set to 0 always
     if (sid->change != GearChange::_2_1 && sid->change != GearChange::_3_2) {
-        uint16_t max_cycles = (sid->prefill_info.fill_time/20) + 3 + 5; // 3 and 5 are for ramp time and hold time of low P
+        uint16_t max_cycles = this->cycles_high_filling + this->cycles_ramp_filling + this->cycles_low_filling;
 
         uint16_t tmp = 0;
         if (0 == this->freeing_trq) {
@@ -531,6 +535,10 @@ uint16_t ReleasingShift::calc_cycles_mod_phase1() {
                 ret = 0;
             }
         }
+
+        if (sd->atf_temp < 30 && ret <= this->cycles_high_filling) {
+            ret = this->cycles_high_filling;
+        }
     }
     this->fill_1_mpc_cycles = ret;
     return ret;
@@ -541,7 +549,7 @@ uint16_t ReleasingShift::calc_cycles_mod_phase2(bool is_upshift) {
     if (!is_upshift) {
         ret = 4; 
     } else {
-        int max = (sid->prefill_info.fill_time/20) + 5;
+        int max = this->cycles_high_filling + this->cycles_ramp_filling;
         if (this->fill_1_mpc_cycles < max) {
             ret = MAX(max - this->fill_1_mpc_cycles, 4);
         } else {

@@ -98,11 +98,11 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm, bool is_upshift) {
         goto calc_mod;
     }
     this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, p_apply_clutch + spc_p_offset);
 
 calc_mod:
     // if RELEASING_UPSHIFT || CROSSOVER_DOWNSHIFT
-    if (is_upshift) {
+    if ((!is_upshift && !this->is_release_shift()) || (is_upshift && this->is_release_shift())) {
         if (GearChange::_2_3 == sid->change) {
             targ_spc *= 1.993;
         }
@@ -131,7 +131,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
         }
     }
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ_mpc, this->timer_mod);
     return ret;
 }
@@ -144,7 +144,7 @@ uint8_t ShiftingAlgorithm::phase_end_ctrl() {
         this->subphase_shift += 1;
     }
     this->p_apply_clutch = sid->SPC_MAX;
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pm->find_working_mpc_pressure(sid->targ_g), this->timer_shift);
     if (this->timer_shift == 0) {
         sid->tcc->shift_end();

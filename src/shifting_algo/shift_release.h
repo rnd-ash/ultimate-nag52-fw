@@ -19,8 +19,12 @@ public:
 protected:
     uint16_t max_p_mod_pressure() override;
     uint16_t high_fill_pressure() override;
+    bool is_release_shift() override {return true; }
 
 private:
+    uint16_t cycles_high_filling = 0;
+    uint16_t cycles_ramp_filling = 0;
+    uint16_t cycles_low_filling = 0;
     float freeing_trq = 0;
     float loss_torque = 0;
     float loss_torque_tmp = 0;

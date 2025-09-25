@@ -16,7 +16,8 @@ public:
     void calc_shift_flags(uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
     
-    
+protected:
+    bool is_release_shift() override {return false; }
 private:
     uint16_t adaptation_trq_limit = 0;
     uint8_t phase_fill();

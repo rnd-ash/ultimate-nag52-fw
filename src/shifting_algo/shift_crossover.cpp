@@ -304,11 +304,8 @@ uint16_t CrossoverShift::fun_0d8a66() {
     float centrifugal = (
         (float)this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc * sid->inf.centrifugal_factor_off_clutch
     );
-    float holding = 200.0 * sid->inf.pressure_multi_mpc;
-    int16_t p_mod = 0;
-    if (holding + centrifugal < p_shift) {
-        p_mod = p_shift - (holding + centrifugal);
-    }
+    float holding = sid->release_spring_off_clutch * sid->inf.pressure_multi_mpc;
+    int16_t p_mod = p_shift - centrifugal + holding;
     p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;

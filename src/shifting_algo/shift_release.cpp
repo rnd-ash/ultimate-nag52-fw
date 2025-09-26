@@ -73,22 +73,11 @@ uint8_t ReleasingShift::step_internal(
     uint8_t ret = STEP_RES_CONTINUE;
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
-        if (sid->profile == manual) {
-            this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_m;
-        } else if (sid->profile == race) {
-            this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_r;
-        } else {
-            // Auto
-            this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_speed_normal;
-        }
-
-        // Still 0? User error
-        if (this->spc_ramp_val == 0) {
-            this->spc_ramp_val = 8; // Set to default
-        }
+        this->spc_ramp_val = 8;
         // Also set SPC offset
-        this->spc_p_offset = interpolate_float(sd->engine_rpm, 0, 500, 1000, 4500, InterpType::Linear);
-        this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
+        this->spc_p_offset = interpolate_float(sd->input_rpm, 0, 1000, 1800, 5000, InterpType::Linear);
+        //this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
+        this->spc_p_offset *= interpolate_float(sid->chars.target_shift_time, 1.0, 2.5, 800, 100, InterpType::Linear);
     }
 
 
@@ -196,10 +185,6 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             this->timer_shift = this->cycles_ramp_filling;
             this->subphase_shift += 1;
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
-            int wp = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release);
-            if (wp > this->low_f_p && sd->pedal_pos != 0) {
-                this->low_f_p = (this->low_f_p+wp)/2;
-            }
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling
@@ -516,26 +501,13 @@ uint16_t ReleasingShift::calc_cycles_mod_phase1() {
     // 2->1 and 3->2 are set to 0 always
     if (sid->change != GearChange::_2_1 && sid->change != GearChange::_3_2) {
         uint16_t max_cycles = this->cycles_high_filling + this->cycles_ramp_filling + this->cycles_low_filling;
-
         uint16_t tmp = 0;
-        if (0 == this->freeing_trq) {
-            int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
-            tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / MECH_PTR->turbine_drag[sid->inf.map_idx]);
-            if (tmp < max_cycles) {
-                ret = max_cycles - tmp;
-            } else {
-                ret = 0;
-            }
-        } else {
-            int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
-            tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / this->freeing_trq);
-            if (tmp < max_cycles) {
-                ret = max_cycles - tmp;
-            } else {
-                ret = 0;
-            }
+        int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
+        float calc = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / MECH_PTR->turbine_drag[sid->inf.map_idx]);
+        if (this->freeing_trq > 1) {
+            calc /= this->freeing_trq;
         }
-
+        ret = MAX(0, max_cycles - calc);
         if (sd->atf_temp < 30 && ret <= this->cycles_high_filling) {
             ret = this->cycles_high_filling;
         }
@@ -545,16 +517,10 @@ uint16_t ReleasingShift::calc_cycles_mod_phase1() {
 }
 
 uint16_t ReleasingShift::calc_cycles_mod_phase2(bool is_upshift) {
-    uint16_t ret;
-    if (!is_upshift) {
-        ret = 4; 
-    } else {
+    uint16_t ret = 4;
+    if (is_upshift) {
         int max = this->cycles_high_filling + this->cycles_ramp_filling;
-        if (this->fill_1_mpc_cycles < max) {
-            ret = MAX(max - this->fill_1_mpc_cycles, 4);
-        } else {
-            ret = 4;
-        }
+        ret = MAX(4, max - this->fill_1_mpc_cycles);
     }
     return ret;
 }

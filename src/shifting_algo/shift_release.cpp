@@ -203,7 +203,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             this->subphase_shift += 1; // Next subphase has no time!
         }
     } else if (4 == this->subphase_shift) {
-        // Set vars before wait period
+        // Wait
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p);
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
@@ -211,7 +211,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             // Has not moved yet to completion
             (sid->ptr_r_clutch_speeds->on_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) ||
             // Off clutch has not released and at the end of our filling time
-            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && this->subphase_mod >= 3)
+            (sid->ptr_r_clutch_speeds->off_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm)
         ) {
             this->subphase_shift += 1;
         }

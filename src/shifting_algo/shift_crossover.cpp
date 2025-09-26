@@ -153,7 +153,7 @@ uint8_t CrossoverShift::phase_fill() {
         }
     }
     // Write Shift sol pressure
-    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
 
     // Adaptation skip test
     if (this->subphase_shift >= 4) {
@@ -197,7 +197,7 @@ uint8_t CrossoverShift::phase_overlap() {
         uint16_t p_mod_2 = this->fun_0d8a10(this->p_apply_overlap_begin);
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     }
-    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
 
 
     if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < 130 || sid->ptr_r_clutch_speeds->off_clutch_speed > 130) {
@@ -269,7 +269,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             ret = PHASE_MAX_PRESSURE;
         }
     }
-    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pm->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
     // Calculations for MOD pressure
     uint16_t pmod = this->fun_0d8a66();
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pmod, this->timer_mod);
@@ -304,11 +304,8 @@ uint16_t CrossoverShift::fun_0d8a66() {
     float centrifugal = (
         (float)this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc * sid->inf.centrifugal_factor_off_clutch
     );
-    float holding = 200.0 * sid->inf.pressure_multi_mpc;
-    int16_t p_mod = 0;
-    if (holding + centrifugal < p_shift) {
-        p_mod = p_shift - (holding + centrifugal);
-    }
+    float holding = sid->release_spring_off_clutch * sid->inf.pressure_multi_mpc;
+    int16_t p_mod = p_shift - centrifugal + holding;
     p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;

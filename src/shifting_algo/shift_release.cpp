@@ -205,13 +205,13 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     } else if (4 == this->subphase_shift) {
         // Set vars before wait period
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(this->low_f_p);
-        //int p_apply_without_boost = sid->prefill_info.low_fill_pressure_on_clutch + this->spc_step_adder;
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
             sid->shift_flags & SHIFT_FLAG_COAST || // Coasting
-            (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) || // Clutch has moved to end of shift
-            // More complex - If we are still waiting for clutch movement after the end of release of the mod cycle
-            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && this->subphase_mod >= 2 && this->timer_mod == 0)
+            // Has not moved yet to completion
+            (sid->ptr_r_clutch_speeds->on_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) ||
+            // Off clutch has not released and at the end of our filling time
+            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && this->subphase_mod >= 3)
         ) {
             this->subphase_shift += 1;
         }
@@ -280,7 +280,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque;
         int p = MAX(0, this->calc_release_clutch_p_signed(trq, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
-        if (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm || trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
+        if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm || trq < -(SHIFT_SETTINGS.maximum_mod_reduction_trq)) {
             this->subphase_mod += 1;
             this->momentum_start_turbine_rpm = sd->input_rpm;
             this->momentum_start_output_rpm = sd->output_rpm;

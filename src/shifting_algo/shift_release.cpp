@@ -79,7 +79,7 @@ uint8_t ReleasingShift::step_internal(
         //this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
         this->spc_p_offset *= interpolate_float(sid->chars.target_shift_time, 1.0, 3, 500, 100, InterpType::Linear);
         if (sid->change == GearChange::_1_2) {
-            this->spc_p_offset *= 2.0;
+            this->spc_p_offset *= 1.993;
         }
     }
 

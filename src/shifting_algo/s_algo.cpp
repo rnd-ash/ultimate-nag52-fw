@@ -227,12 +227,7 @@ uint16_t ShiftingAlgorithm::fun_0d83d4() {
         p_shift = 1000*this->p_apply_clutch/1000;
         p_shift += (1000-1000) * (this->sid->release_spring_on_clutch - this->centrifugal_force_on_clutch) / 1000;
     }
-    int p_mod = pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->filling_trq, CoefficientTy::Release);
-    if (this->centrifugal_force_off_clutch < p_mod + sid->release_spring_off_clutch) {
-        p_mod = p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch;
-    } else {
-        p_mod = 0;
-    }
+    int p_mod = MAX(0, pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->filling_trq, CoefficientTy::Release) + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
     return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 

@@ -75,7 +75,9 @@ uint8_t ReleasingShift::step_internal(
         this->spc_ramp_val = 8;
         // Also set SPC offset
         this->spc_p_offset = interpolate_float(sd->pedal_pos, 0, 250, 50, 250, InterpType::Linear);
-        this->spc_p_offset += interpolate_float(sd->input_rpm, 0, 1000, 2000, 5000, InterpType::Linear);
+        if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
+            this->spc_p_offset += interpolate_float(sd->input_rpm, 0, 1000, 2000, 5000, InterpType::Linear);
+        }
         //this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
         this->spc_p_offset *= interpolate_float(sid->chars.target_shift_time, 1.0, 3, 500, 100, InterpType::Linear);
         if (sid->change == GearChange::_1_2) {
@@ -237,7 +239,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->on_clutch_speed < -SHIFT_SETTINGS.clutch_stationary_rpm) {
         this->spc_p_offset += 20;
     }
-    if (this->subphase_mod >= 4 && MAX(0,sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm) {
+    if (this->subphase_mod >= 4 && MAX(0,sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST) == 0)) {
         this->spc_p_offset += 2;
     }
     if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
@@ -257,7 +259,8 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         this->subphase_mod += 1;
     } else if (1 == this->subphase_mod) {
         this->filling_trq = MAX(30, abs_input_trq);
-        this->mod_sol_pressure = this->fun_0d83d4();
+        int p = MAX(0, this->calc_release_clutch_p_signed(this->filling_trq, CoefficientTy::Release) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
+        this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
         if (0 == this->timer_mod) {
             this->timer_mod = this->calc_cycles_mod_phase2(is_upshift);
             this->subphase_mod += 1;
@@ -272,7 +275,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
             (0 == this->timer_mod) ||
             (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm &&
             sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) ||
-            (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm && this->subphase_mod >= 3)
+            (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm)
         ) {
             // Next phase
             this->subphase_mod += 1;
@@ -284,7 +287,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
 
         // Multiplier for loss factor
         float loss_multi = interpolate_float(sd->pedal_pos, 1.0, 3.0, 50, 200, InterpType::Linear);
-        float loss_factor = (0.4*loss_multi) * this->loss_torque;
+        float loss_factor = (0.5*loss_multi) * this->loss_torque;
         // In Nm/Step
         float adder_step = interpolate_float(sid->chars.target_shift_time, 1.0, 3.0, 500, 100, InterpType::Linear)*loss_multi;
         this->loss_torque += adder_step + loss_factor;

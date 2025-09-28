@@ -11,7 +11,7 @@
 class ShifterIsm : public Shifter
 {
 public:
-	ShifterIsm(TCM_CORE_CONFIG* vehicle_config, ETS_MODULE_SETTINGS* shifter_settings);
+	ShifterIsm(ETS_MODULE_SETTINGS* shifter_settings);
 	// For special handling
 	void update(Egs53Can* can);
 	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;

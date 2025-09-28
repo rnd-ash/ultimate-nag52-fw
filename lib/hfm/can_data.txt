@@ -1,4 +1,4 @@
-# Manually generated
+# Manually created
 #
 # ECU CAN definitions for HGS52 (hybrid transmission control) compatibility in early 1990's M104/M111 Mercedes-Benz cars with Hfm
 

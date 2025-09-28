@@ -141,7 +141,6 @@ public:
     virtual ShifterStyle get_shifter_type() = 0;
     
 protected:
-    TCM_CORE_CONFIG *vehicle_config;    
     bool is_brake_pressed = false;
     ShifterPosition pos = ShifterPosition::SignalNotAvailable;
     float vVeh = 0.0F;

@@ -89,11 +89,11 @@ SPEAKER_POST_CODE setup_tcm()
                             {
                             case (uint8_t)ShifterStyle::EWM:
                             case (uint8_t)ShifterStyle::SLR:
-                                shifter = new ShifterEwm(&VEHICLE_CONFIG, &ETS_CURRENT_SETTINGS);
+                                shifter = new ShifterEwm(&ETS_CURRENT_SETTINGS);
                                 break;
                             case (uint8_t)ShifterStyle::TRRS:
                                 if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
-                                    shifter = new ShifterTrrs(&VEHICLE_CONFIG, pcb_gpio_matrix);
+                                    shifter = new ShifterTrrs( pcb_gpio_matrix);
                                 } else {
                                     ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
                                     shifter = nullptr;
@@ -121,6 +121,8 @@ SPEAKER_POST_CODE setup_tcm()
                                     egs_can_hal = new Egs53Can("EGS53", 20, 500000); // EGS53 CAN Abstraction layer
                                     break;
                                 case 4:
+                                    // TODO: remove after configuring this through the config app
+                                    VEHICLE_CONFIG.throttlevalve_maxopeningangle = 233u; // 81.55°
                                     egs_can_hal = new HfmCan("HFM", 20); // HFM CAN Abstraction layer
                                     break;
                                 case 5:
@@ -232,53 +234,77 @@ void input_manager(void *)
     while (1)
     {
         pcb_gpio_matrix->read_input_signals();
-        AbstractProfile* prof = shifter->get_profile(expire_time);
-        if (nullptr != prof) {
-            gearbox->set_profile(prof);
-        }
-        PaddlePosition paddle = egs_can_hal->get_paddle_position(100u);
-        if (paddle_pos_last != paddle)
+        if (nullptr != shifter)
         {
-            // Same position is ignored
-            // Process last request of the user
-            switch (paddle_pos_last)
+
+            AbstractProfile *prof = shifter->get_profile(expire_time);
+            if (nullptr != prof)
             {
-            case PaddlePosition::Plus:
-                gearbox->inc_gear_request();
-                break;
-            case PaddlePosition::Minus:
-                gearbox->dec_gear_request();
-                break;
-            default:
-                break;
+                gearbox->set_profile(prof);
             }
-            paddle_pos_last = paddle;
-        }
-        // egs_can_hal->get_engine_iat_temp(expire_time);
-        egs_can_hal->get_engine_coolant_temp(expire_time);
-        spos = shifter->get_shifter_position(expire_time);
-        if((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR)) {
-            if (spos != shifter_pos_last)
+            PaddlePosition paddle = egs_can_hal->get_paddle_position(100u);
+            if (paddle_pos_last != paddle)
             {
-                // Same position, ignore
+                // Same position is ignored
                 // Process last request of the user
-                switch (shifter_pos_last)
+                switch (paddle_pos_last)
                 {
-                case ShifterPosition::PLUS:
+                case PaddlePosition::Plus:
                     gearbox->inc_gear_request();
                     break;
-                case ShifterPosition::MINUS:
+                case PaddlePosition::Minus:
                     gearbox->dec_gear_request();
                     break;
                 default:
                     break;
                 }
-                shifter_pos_last = spos;
+                paddle_pos_last = paddle;
             }
-        }
-        set_start_enable();
-        if (KickdownSwitch::is_kickdown_newly_pressed(egs_can_hal, expire_time) && (!egs_can_hal->get_engine_is_limp(expire_time))) {
-            gearbox->dec_gear_request();            
+            // egs_can_hal->get_engine_iat_temp(expire_time);
+            egs_can_hal->get_engine_coolant_temp(expire_time);
+            spos = shifter->get_shifter_position(expire_time);
+            if ((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR))
+            {
+                if (spos != shifter_pos_last)
+                {
+                    // Same position, ignore
+                    // Process last request of the user
+                    switch (shifter_pos_last)
+                    {
+                    case ShifterPosition::PLUS:
+                        gearbox->inc_gear_request();
+                        break;
+                    case ShifterPosition::MINUS:
+                        gearbox->dec_gear_request();
+                        break;
+                    default:
+                        break;
+                    }
+                    shifter_pos_last = spos;
+                }
+            }
+            if (KickdownSwitch::is_kickdown_newly_pressed(egs_can_hal, expire_time) && (!egs_can_hal->get_engine_is_limp(expire_time)))
+            {
+                gearbox->dec_gear_request();
+            }
+            switch (VEHICLE_CONFIG.shifter_style)
+            {
+            case (uint8_t)ShifterStyle::EWM:
+            {
+                ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
+                shifterewm->set_program_button_pressed(egs_can_hal->get_profile_btn_press(expire_time), egs_can_hal->get_profile_switch_pos(expire_time));
+                break;
+            }
+            case (uint8_t)ShifterStyle::TRRS:
+            {
+                ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
+                shiftertrrs->set_brake_is_pressed(egs_can_hal->get_is_brake_pressed(expire_time));
+                shiftertrrs->set_vehicle_speed(egs_can_hal->get_front_left_wheel(expire_time), egs_can_hal->get_front_right_wheel(expire_time));
+                break;
+            }
+            default:
+                break;
+            }
         }
         pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);

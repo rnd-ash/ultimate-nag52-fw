@@ -9,7 +9,7 @@
 class ShifterTrrs : public Shifter
 {
 public:
-    ShifterTrrs(TCM_CORE_CONFIG* vehicle_config, BoardGpioMatrix *board);
+    ShifterTrrs(BoardGpioMatrix *board);
     ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;    
     AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
     DiagProfileInputState diag_get_profile_input() override;

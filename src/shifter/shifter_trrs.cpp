@@ -5,9 +5,8 @@
 #include "canbus/can_hal.h"
 #include "inputcomponents/brakepedal.hpp"
 
-ShifterTrrs::ShifterTrrs(TCM_CORE_CONFIG *vehicle_config, BoardGpioMatrix *board): board(board)
+ShifterTrrs::ShifterTrrs(BoardGpioMatrix *board): board(board)
 {
-	this->vehicle_config = vehicle_config;
 	this->programselector = new ProgramSelectorSwitchTRRS(board);
 }
 

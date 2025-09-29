@@ -3,6 +3,17 @@
 float interpolate_float(float raw, float new_min, float new_max, float raw_min, float raw_max, InterpType interp_type) {
     // Short cuts for cases where we are > or < than bounds
     float ret;
+    // Swap in case of raw being inverted!!
+    if (raw_max < raw_min) {
+        float tmp = raw_max;
+        raw_max = raw_min;
+        raw_min = tmp;
+
+        tmp = new_max;
+        new_max = new_min;
+        new_min = tmp;
+    }
+
     if (raw <= raw_min) {
         ret = new_min;
     } else if (raw >= raw_max) {

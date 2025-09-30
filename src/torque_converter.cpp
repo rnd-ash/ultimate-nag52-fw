@@ -235,6 +235,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_pressure_target = interp;
         }   
     }
+    if (!is_shifting && was_shifting) {
+        was_shifting = false;
+        this->tcc_pressure_current = this->tcc_pressure_target;
+        this->prev_state_tcc_pressure = this->tcc_pressure_current;
+        this->last_state_stable_time = GET_CLOCK_TIME();
+    }
 
     if (this->target_tcc_state == this->current_tcc_state) {
         this->tcc_pressure_current = this->tcc_pressure_target;
@@ -343,6 +349,7 @@ uint16_t TorqueConverter::get_target_pressure() {
 
 void TorqueConverter::shift_start() {
     this->is_shifting = true;
+    this->was_shifting = true;
 }
 void TorqueConverter::shift_end() {
     this->is_shifting = false;

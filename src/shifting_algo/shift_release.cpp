@@ -74,15 +74,21 @@ uint8_t ReleasingShift::step_internal(
     if (this->spc_ramp_val == 0) {
         this->spc_ramp_val = 8;
         // Also set SPC offset
-        this->spc_p_offset = interpolate_float(sd->pedal_pos, 0, 250, 50, 250, InterpType::Linear);
-        if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
-            this->spc_p_offset += interpolate_float(sd->input_rpm, 0, 1000, 2000, 5000, InterpType::Linear);
+        // TODO - We should set this in profile configuration
+        int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 2000, 5000, InterpType::Linear);
+        int adder_profile = 0;
+
+        if (manual == sid->profile) {
+            adder_profile = interpolate_float(sd->pedal_pos, 0, 2000, 10, 250, InterpType::Linear);
+            adder_rpm *= 2;
+        } else if (race == sid->profile)  {
+            adder_profile = interpolate_float(sd->pedal_pos, 0, 1000, 10, 250, InterpType::Linear);
+            adder_rpm *= 1.5;
+        } else {
+            // Auto profiles
+            adder_profile = interpolate_float(sid->chars.target_shift_time, 0, 500, 800, 100, InterpType::Linear);
         }
-        //this->spc_p_offset += interpolate_float(sd->pedal_pos, 20, 250, 0, 500, InterpType::Linear);
-        this->spc_p_offset *= interpolate_float(sid->chars.target_shift_time, 1.0, 3, 500, 100, InterpType::Linear);
-        if (sid->change == GearChange::_1_2) {
-            this->spc_p_offset *= 1.993;
-        }
+        this->spc_p_offset = adder_rpm + adder_profile;
     }
 
 
@@ -97,11 +103,6 @@ uint8_t ReleasingShift::step_internal(
     } else if (phase_id == PHASE_MAX_PRESSURE) {
         ret = this->phase_maxp(sd);
     } else if (phase_id == PHASE_END_CONTROL) {
-        // Only do this at the start, when subphase is 0
-        if (this->subphase_shift == 0) {
-            this->trq_req_up_ramp = true;
-            this->trq_req_timer =  5;
-        }
         ret = this->phase_end_ctrl();
     } else {
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
@@ -504,7 +505,7 @@ float ReleasingShift::calculate_freeing_trq_multiplier(bool is_upshift) {
 
     if (!is_upshift) {
         float adder_pedal = interpolate_float(sd->pedal_smoothed->get_average(), 0.0, 0.3, 125.0, 250.0, InterpType::Linear);
-        float adder_style = interpolate_float(sid->chars.target_shift_time, 0.0, 1.2, 1000, 100, InterpType::Linear);
+        float adder_style = interpolate_float(sid->chars.target_shift_time, 0.5, 1.5, 1000, 100, InterpType::Linear);
         output = MIN(2.5, 1.0 + adder_pedal + adder_style);
     }
 

@@ -476,10 +476,15 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             if (manually_requested) {
                 p1 = p2;
             }
-            if (sensor_data.input_torque > p1) {
-                algo = new ReleasingShift(&sid);
-            } else {
+            // Special case for 2-1
+            if (sid.change == GearChange::_2_1 && sensor_data.output_rpm < 300 && sensor_data.pedal_pos < 10) {
                 algo = new CrossoverShift(&sid);
+            } else {
+                if (sensor_data.input_torque > p1) {
+                    algo = new ReleasingShift(&sid);
+                } else {
+                    algo = new CrossoverShift(&sid);
+                }
             }
         }
 
@@ -536,7 +541,14 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
-            pressure_mgr->update_pressures(this->target_gear, this->shift_idx);
+            GearChange change = GearChange::_IDLE;
+            GearboxGear gear = sid.curr_g;
+            // Only if shift valve is open
+            if (this->pressure_mgr->get_active_shift_circuits() != 0) {
+                change = sid.change;
+                gear = sid.targ_g;
+            }
+            pressure_mgr->update_pressures(gear, change);
 
             if (step_result == 0) {
                 // Continue

@@ -161,6 +161,7 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
 
         float factor;
         uint16_t extra_p = 0;
+        float factor_k1 = 0;
         if (GearChange::_IDLE == change_state) { // Not shifting
             // Not shifting
             if (GearboxGear::First == current_gear || GearboxGear::Reverse_First == current_gear) {
@@ -174,6 +175,9 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
             if (GearChange::_1_2 == change_state || GearChange::_2_1 == change_state) {
                 factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
                 extra_p_interp_max = HYDR_PTR->extra_pressure_adder_r1_1;
+                if (GearChange::_1_2 == change_state) {
+                    factor_k1 = HYDR_PTR->shift_pressure_factor_percent/100.0;
+                }
             } else {
                 factor = (float)HYDR_PTR->p_multi_other / 1000.0;
                 extra_p_interp_max = HYDR_PTR->extra_pressure_adder_other_gears;
@@ -183,7 +187,8 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
 
         float line_pressure = HYDR_PTR->lp_reg_spring_pressure + mpc_in;
         
-        float wp = extra_p + ((float)line_pressure / factor);
+        float spc_reduction = (this->target_shift_pressure*factor_k1);
+        float wp = MAX(0, extra_p + ((float)line_pressure / factor) - spc_reduction);
         this->calculated_working_pressure = wp;
 
         float interpolated = interpolate_float(
@@ -266,7 +271,7 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
             break;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / coef) * (float)abs_torque_nm;
+    float calc = ((float)abs_torque_nm * friction_val) / coef;
     return calc;
 }
 
@@ -287,7 +292,7 @@ int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clut
             coef = 1.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = (friction_val / coef) * (float)abs_torque_nm;
+    float calc = ((float)abs_torque_nm * friction_val) / coef;
     return calc;
 }
 

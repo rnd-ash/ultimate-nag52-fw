@@ -75,20 +75,18 @@ uint8_t ReleasingShift::step_internal(
         this->spc_ramp_val = 8;
         // Also set SPC offset
         // TODO - We should set this in profile configuration
-        int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 2000, 5000, InterpType::Linear);
+        //int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 2000, 5000, InterpType::Linear);
         int adder_profile = 0;
 
         if (manual == sid->profile) {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 1000, 10, 250, InterpType::Linear);
-            adder_rpm *= 2;
         } else if (race == sid->profile)  {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 2500, 10, 250, InterpType::Linear);
-            adder_rpm *= 1.5;
         } else {
             // Auto profiles
             adder_profile = interpolate_float(sid->chars.target_shift_time, 0, 500, 800, 100, InterpType::Linear);
         }
-        this->spc_p_offset = adder_rpm + adder_profile;
+        this->spc_p_offset = adder_profile;
     }
 
 
@@ -286,13 +284,11 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
+        float x1 = interpolate_float(sd->pedal_pos, 0.1, 0.4, 10, 200, InterpType::Linear)*this->loss_torque_tmp;
+        float x2 = (this->calculate_freeing_trq_multiplier(is_upshift)*2) + x1;
 
-        // Multiplier for loss factor
-        float loss_multi = interpolate_float(sd->pedal_pos, 1.0, 3.0, 50, 200, InterpType::Linear);
-        float loss_factor = (0.5*loss_multi) * this->loss_torque;
-        // In Nm/Step
-        float adder_step = interpolate_float(sid->chars.target_shift_time, 1.0, 3.0, 500, 100, InterpType::Linear)*loss_multi;
-        this->loss_torque += adder_step + loss_factor;
+        this->loss_torque_tmp += x2;
+        this->loss_torque = this->loss_torque_tmp/2.0;
 
         int trq = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque;
         int p = MAX(0, this->calc_release_clutch_p_signed(trq, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);

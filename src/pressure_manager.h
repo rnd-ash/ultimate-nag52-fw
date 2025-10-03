@@ -108,6 +108,8 @@ public:
     uint16_t get_max_shift_pressure(uint8_t shift_idx);
     uint8_t get_active_shift_circuits(void) const;
 
+    uint16_t calc_current_linear_sol(uint16_t p_targ, uint16_t p_mod, GearboxGear current_gear, GearChange change_state);
+
     /**
      * Friction coefficient for applying clutches (Sliding into place)
      */

@@ -123,6 +123,50 @@ uint16_t PressureManager::get_shift_regulator_pressure(void) {
     return HYDR_PTR->shift_reg_spring_pressure;
 }
 
+uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mod, GearboxGear current_gear, GearChange change_state) {
+    float factor;
+    uint16_t extra_p = 0;
+    if (GearChange::_IDLE == change_state) { // Not shifting
+        // Not shifting
+        if (GearboxGear::First == current_gear || GearboxGear::Reverse_First == current_gear) {
+            factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
+        } else {
+            factor = (float)HYDR_PTR->p_multi_other / 1000.0;
+        }
+    } else {
+        // Shifting
+        uint16_t extra_p_interp_max;
+        if (GearChange::_1_2 == change_state || GearChange::_2_1 == change_state) {
+            factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
+            extra_p_interp_max = HYDR_PTR->extra_pressure_adder_r1_1;
+        } else {
+            factor = (float)HYDR_PTR->p_multi_other / 1000.0;
+            extra_p_interp_max = HYDR_PTR->extra_pressure_adder_other_gears;
+        }
+        extra_p = interpolate_float(sensor_data->engine_rpm, 0, extra_p_interp_max, HYDR_PTR->extra_pressure_pump_speed_min, HYDR_PTR->extra_pressure_pump_speed_max, InterpType::Linear);
+    }
+
+    float line_pressure = HYDR_PTR->lp_reg_spring_pressure + p_mod;
+    float wp = extra_p + ((float)line_pressure / factor);
+    this->calculated_working_pressure = wp;
+
+    float interpolated = interpolate_float(
+        wp,
+        HYDR_PTR->inlet_pressure_output_min,
+        HYDR_PTR->inlet_pressure_output_max,
+        HYDR_PTR->inlet_pressure_input_min,
+        HYDR_PTR->inlet_pressure_input_max,
+        InterpType::Linear
+    );
+    this->calculated_inlet_pressure = interpolated;
+
+    float inlet_factor = (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)interpolated));
+    inlet_factor /= 1000.0;
+
+    // -- output --
+    return p_targ + (inlet_factor * (float)(p_targ + HYDR_PTR->inlet_pressure_offset));
+}
+
 /*
 
 MERCEDES-BENZS PRESSURE NAMES (WIS)
@@ -154,66 +198,12 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
-        // EGS Func 0da5f6 (MB Layer)
         // This is my best guess at interpreting the assembly (Decompiler view messes a lot up with this function due to indirections)
         uint16_t mpc_in = this->target_modulating_pressure;
         uint16_t spc_in = this->target_shift_pressure;
 
-        float factor;
-        uint16_t extra_p = 0;
-        float factor_k1 = 0;
-        if (GearChange::_IDLE == change_state) { // Not shifting
-            // Not shifting
-            if (GearboxGear::First == current_gear || GearboxGear::Reverse_First == current_gear) {
-                factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
-            } else {
-                factor = (float)HYDR_PTR->p_multi_other / 1000.0;
-            }
-        } else {
-            // Shifting
-            uint16_t extra_p_interp_max;
-            if (GearChange::_1_2 == change_state || GearChange::_2_1 == change_state) {
-                factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
-                extra_p_interp_max = HYDR_PTR->extra_pressure_adder_r1_1;
-                if (GearChange::_1_2 == change_state) {
-                    factor_k1 = HYDR_PTR->shift_pressure_factor_percent/100.0;
-                }
-            } else {
-                factor = (float)HYDR_PTR->p_multi_other / 1000.0;
-                extra_p_interp_max = HYDR_PTR->extra_pressure_adder_other_gears;
-            }
-            extra_p = interpolate_float(sensor_data->engine_rpm, 0, extra_p_interp_max, HYDR_PTR->extra_pressure_pump_speed_min, HYDR_PTR->extra_pressure_pump_speed_max, InterpType::Linear);
-        }
-
-        float line_pressure = HYDR_PTR->lp_reg_spring_pressure + mpc_in;
-        
-        float spc_reduction = (this->target_shift_pressure*factor_k1);
-        float wp = MAX(0, extra_p + ((float)line_pressure / factor) - spc_reduction);
-        this->calculated_working_pressure = wp;
-
-        float interpolated = interpolate_float(
-            wp,
-            HYDR_PTR->inlet_pressure_output_min,
-            HYDR_PTR->inlet_pressure_output_max,
-            HYDR_PTR->inlet_pressure_input_min,
-            HYDR_PTR->inlet_pressure_input_max,
-            InterpType::Linear
-        );
-        this->calculated_inlet_pressure = interpolated;
-
-        float inlet_factor = (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)interpolated));
-        inlet_factor /= 1000.0;
-
-        // -- Correct solenoids --
-
-        // MPC solenoid is not affected by limits
-        this->corrected_mpc_pressure = mpc_in + (inlet_factor * (float)(mpc_in + HYDR_PTR->inlet_pressure_offset));
-
-        if (spc_in < interpolated) {
-            this->corrected_spc_pressure = spc_in + (inlet_factor * (float)(spc_in + HYDR_PTR->inlet_pressure_offset));
-        } else {
-            this->corrected_spc_pressure = this->get_max_solenoid_pressure();
-        }
+        this->corrected_spc_pressure = this->calc_current_linear_sol(spc_in, mpc_in, current_gear, change_state);
+        this->corrected_mpc_pressure = this->calc_current_linear_sol(mpc_in, mpc_in, current_gear, change_state);
 
         // -- Set solenoid currents --
         if (this->corrected_spc_pressure >= get_max_solenoid_pressure()) {
@@ -472,7 +462,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
         output = 0;
     } else {   
         float ret = p_clutch_with_coef(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque), CoefficientTy::Static);
-        ret += MECH_PTR->release_spring_pressure[clutch_idx];
+        ret += MECH_PTR->release_spring_pressure[clutch_idx] + HYDR_PTR->extra_p_not_shifting;
         if (curr_g == GearboxGear::First || curr_g == GearboxGear::Reverse_First) {
             ret *= (HYDR_PTR->p_multi_1 / 1000.0);
         } else {

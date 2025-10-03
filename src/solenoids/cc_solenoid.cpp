@@ -4,13 +4,11 @@
 #include <string.h>
 #include "sensors.h"
 
-float mpc_sol_trim_factor = 0.0;
 
-ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms, bool is_mpc)
+ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
 : PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->saved_current_target = 0;
     this->current_target = 0;
-    this->use_global_cc = !is_mpc;
     this->channel = channel;
 }
 
@@ -57,18 +55,8 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
         } else if (this->internal_trim_factor < -0.5) {
             this->internal_trim_factor = -0.5;
         }
-        if (!use_global_cc) {
-            mpc_sol_trim_factor = this->internal_trim_factor;
-        } else {
-            if (this->current_target == 0) {
-                this->internal_trim_factor = mpc_sol_trim_factor;
-            }
-        }
         uint16_t targ_pwm = 0;
         if (this->saved_current_target != 0 && this->current_target != 0) {
-            float step_per_pwm = 4096.0 / max_current;
-            float calc = step_per_pwm * this->saved_current_target;
-            targ_pwm = calc * this->internal_trim_factor;
             targ_pwm = MAX(0, (4096.0 * (this->current_target/max_current)));
             // RMS trim factor
             targ_pwm += targ_pwm * (this->internal_trim_factor * (max_current/this->current_target));

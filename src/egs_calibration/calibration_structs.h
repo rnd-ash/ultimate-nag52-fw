@@ -89,11 +89,11 @@ typedef struct {
     uint16_t shift_reg_spring_pressure;
     uint16_t shift_spc_gain[SHIFT_ARRAY_LEN];
     uint16_t min_mpc_pressure;
-    uint8_t unk1;
-    uint8_t unk2;
-    uint16_t unk3;
-    uint16_t unk4;
-    uint16_t unk5;
+    uint8_t filter_factor;
+    uint8_t temp_for_mpc_filter;
+    uint16_t mpc_repeat_time;
+    uint16_t mpc_stop_time;
+    uint16_t extra_p_not_shifting;
     uint16_t shift_pressure_addr_percent;
     uint16_t inlet_pressure_offset;
     uint16_t inlet_pressure_input_min;

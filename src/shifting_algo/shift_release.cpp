@@ -72,21 +72,25 @@ uint8_t ReleasingShift::step_internal(
     uint8_t ret = STEP_RES_CONTINUE;
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
-        this->spc_ramp_val = 8;
         // Also set SPC offset
         // TODO - We should set this in profile configuration
         //int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 2000, 5000, InterpType::Linear);
         int adder_profile = 0;
-
+        this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_speed;
         if (manual == sid->profile) {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 1000, 10, 250, InterpType::Linear);
+            this->spc_ramp_val *= 1.25;
         } else if (race == sid->profile)  {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 2500, 10, 250, InterpType::Linear);
+            this->spc_ramp_val *= 1.5;
         } else {
             // Auto profiles
             adder_profile = interpolate_float(sid->chars.target_shift_time, 0, 500, 800, 100, InterpType::Linear);
         }
         this->spc_p_offset = adder_profile;
+        if (0 == this->spc_ramp_val) {
+            this->spc_ramp_val = 8;
+        }
     }
 
 
@@ -188,6 +192,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             this->timer_shift = this->cycles_ramp_filling;
             this->subphase_shift += 1;
             this->low_f_p = sid->prefill_info.low_fill_pressure_on_clutch;
+            this->low_f_p += interpolate_float(sid->chars.target_shift_time, 0, 250, 500, 100, InterpType::Linear);
         }
     } else if (2 == this->subphase_shift) {
         // Ramp to low filling
@@ -214,8 +219,8 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             // Has not moved yet to completion
             (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) ||
             // Off clutch has not released and at the end of our filling time
-            // MAX(0, sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && 
-            (this->subphase_mod > 3)
+            //(MAX(0, sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && 
+            (this->subphase_mod > 2)
         ) {
             this->subphase_shift += 1;
         }
@@ -226,7 +231,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
         this->max_trq_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
             (MAX(0,sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
-            (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)
+            (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm)
         ) {
             this->subphase_shift += 1;
         }
@@ -286,7 +291,6 @@ uint8_t ReleasingShift::phase_fill_release_mpc(bool is_upshift) {
         // Reducing until off clutch releases
         float x1 = interpolate_float(sd->pedal_pos, 0.1, 0.4, 10, 200, InterpType::Linear)*this->loss_torque_tmp;
         float x2 = (this->calculate_freeing_trq_multiplier(is_upshift)*2) + x1;
-
         this->loss_torque_tmp += x2;
         this->loss_torque = this->loss_torque_tmp/2.0;
 
@@ -353,7 +357,6 @@ uint8_t ReleasingShift::phase_overlap(bool is_upshift) {
     if (0 == this->subphase_shift) {
         // Variable set
         this->p_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
-        this->timer_mod = 5;
         int idx = sid->inf.map_idx;
         if (idx >= 4) {
             idx -= 4;
@@ -364,8 +367,6 @@ uint8_t ReleasingShift::phase_overlap(bool is_upshift) {
         if (this->overlap_torque > this->freeing_trq) {
             this->overlap_torque = this->freeing_trq;
         }
-        this->trq_req_up_ramp = true;
-        this->trq_req_timer =  3;
         this->subphase_shift += 1;
     }
     int end = this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release));
@@ -387,6 +388,8 @@ uint8_t ReleasingShift::phase_overlap(bool is_upshift) {
     }
     this->mod_sol_pressure = this->calc_mod_overlap();
     if (this->timer_shift == 0) {
+        this->trq_req_up_ramp = true;
+        this->trq_req_timer =  3;
         ret = PHASE_MAX_PRESSURE;
     }
     return ret;

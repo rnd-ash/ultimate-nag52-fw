@@ -222,6 +222,7 @@ inline void set_start_enable(void){
     egs_can_hal->set_safe_start(is_safe_start);
     if (ioexpander != nullptr) {
         ioexpander->set_start(is_safe_start);
+        // ioexpander->set_start(true);
     }
 }
 
@@ -236,7 +237,7 @@ void input_manager(void *)
         pcb_gpio_matrix->read_input_signals();
         if (nullptr != shifter)
         {
-
+            set_start_enable();
             AbstractProfile *prof = shifter->get_profile(expire_time);
             if (nullptr != prof)
             {

@@ -41,7 +41,6 @@ struct ShiftInterfaceData{
     PrefillData prefill_info;
     ShiftCharacteristics chars;
     ShiftClutchData* ptr_r_clutch_speeds;
-    ShiftClutchData* ptr_r_pre_clutch_speeds;
     ShiftPressures*  ptr_prev_pressures;
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;

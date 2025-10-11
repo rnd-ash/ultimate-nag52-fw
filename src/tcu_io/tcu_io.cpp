@@ -159,27 +159,12 @@ void update_tft_sensor() {
 void update_rpm_sensors() {
     // INPUT SHAFT CALCULATION
     uint16_t calc_rpm = UINT16_MAX;
-    if (raw_sensors.rpm_n2 > 100) {
-        add_to_smoothed_sensor(&smoothed_sensor_n2_rpm, raw_sensors.rpm_n2);
-    } else {
-        smoothed_sensor_n2_rpm.e_counter = 0;
-        smoothed_sensor_n2_rpm.buffer->reset();
-    }
-    if (raw_sensors.rpm_n3 > 100) {
-        add_to_smoothed_sensor(&smoothed_sensor_n3_rpm, raw_sensors.rpm_n3);
-    } else {
-        smoothed_sensor_n3_rpm.e_counter = 0;
-        smoothed_sensor_n3_rpm.buffer->reset();
-    }
+    add_to_smoothed_sensor(&smoothed_sensor_n2_rpm, raw_sensors.rpm_n2);
+    add_to_smoothed_sensor(&smoothed_sensor_n3_rpm, raw_sensors.rpm_n3);
     
     // OUTPUT SHAFT RPM CALCULATION
     if (Sensors::using_dedicated_output_rpm()) {
-        if (raw_sensors.rpm_out >= 100) {
-            add_to_smoothed_sensor(&smoothed_sensor_out_rpm, raw_sensors.rpm_out);
-        } else {
-            smoothed_sensor_out_rpm.e_counter = 0;
-            smoothed_sensor_out_rpm.buffer->reset();
-        }
+        add_to_smoothed_sensor(&smoothed_sensor_out_rpm, raw_sensors.rpm_out);
     } else {
         // Poll CANBUS
         add_to_onepoll_sensor(&onepoll_rl_speed, egs_can_hal->get_rear_left_wheel(100));
@@ -294,29 +279,14 @@ uint8_t TCUIO::parking_lock() { return get_onepoll_sensor_val(&onepoll_parking_l
 int16_t TCUIO::atf_temperature() { return smoothed_sensor_atf_temp.buffer->get_average();}
 uint16_t TCUIO::battery_mv() { return smoothed_sensor_vbatt.buffer->get_average();}
 uint16_t TCUIO::n2_rpm() { 
-    uint16_t rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_n2_rpm, 0); 
-    if (rpm < 100) {
-        return 0;
-    } else {
-        return rpm;
-    }
+    return get_smoothed_sensor_val_unsigned(&smoothed_sensor_n2_rpm, 0); 
 }
 uint16_t TCUIO::n3_rpm() { 
-    int rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_n3_rpm, 0); 
-    if (rpm < 100) {
-        return 0;
-    } else {
-        return rpm;
-    }
+    return get_smoothed_sensor_val_unsigned(&smoothed_sensor_n3_rpm, 0); 
 }
 
 uint16_t TCUIO::output_rpm() {
-    int rpm = get_smoothed_sensor_val_unsigned(&smoothed_sensor_out_rpm, 0); 
-    if (rpm < 100) {
-        return 0;
-    } else {
-        return rpm;
-    }
+    return get_smoothed_sensor_val_unsigned(&smoothed_sensor_out_rpm, 0); 
 }
 
 uint16_t TCUIO::wheel_fl_2x_rpm() { return get_onepoll_sensor_val(&onepoll_fl_speed, 2); }

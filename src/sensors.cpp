@@ -69,7 +69,6 @@ static uint16_t calc_rpm(PcntCallbackData* cb) {
     if (cb->t_val != 0 && (esp_timer_get_time() - cb->last_time_us) < cb->max_time_100rpm) {
         val = (60*1000*1000)/(cb->t_val*cb->pulses_per_rev);
     }
-    ESP_LOGI("SPEED", "Speed: %u", val);
     return val;
 }
 

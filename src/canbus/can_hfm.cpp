@@ -7,9 +7,16 @@
 
 HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_ms, 125000u)
 {   
-    ESP_LOGI("HFM-CAN", "SETUP CALLED");
+    ESP_LOGI(name, "SETUP CALLED");
     this->start_enable = true;
     can_init_status = ESP_OK;
+
+    // set the value of the max_throttle-value
+    // avoid division by zero, if value is not set
+    if (0 < VEHICLE_CONFIG.throttlevalve_maxopeningangle)
+    {
+        max_throttle_value = (float)VEHICLE_CONFIG.throttlevalve_maxopeningangle;
+    }
 }
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
@@ -150,54 +157,101 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
 uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
 {
     uint8_t result = UINT8_MAX;
+    float dkv = 0.F;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        float dkv = (float)hfm210.DKV;
-        dkv *= 250.F; // limitation, which is compatible to other CAN-descriptions
-        dkv /= (float)((0 < VEHICLE_CONFIG.throttlevalve_maxopeningangle) ? VEHICLE_CONFIG.throttlevalve_maxopeningangle : UINT8_MAX);
-        result = (uint8_t)dkv;
+        dkv = MIN(((float)(hfm210.DKV)), max_throttle_value); // limitation to maximum opening angle of throttle valve
+        dkv *= (float)PEDAL_VALUE_LIMIT;
+        dkv /= (float)max_throttle_value;
     }
+    result = (uint8_t)dkv;
     return result;
 }
 
 CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
-    CanTorqueData result = TORQUE_NDEF;    
     
+    const bool CALC_C_ENGINE = true;    
+
+    // obtain values from the CAN-bus to calculate the indicated and the driver torque
+    uint16_t n_mot = get_engine_rpm(expire_time_ms);
+    float n_mot_SI = ((float)n_mot) / 60.F; // conversion from [1/min] to [1/s]
+    float mle = 0.F;
+
+    HFM_610 hfm610;
+    // if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), 1000, &hfm610))
+    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610))
+    {
+        mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;              // conversion from raw value to [kg/h]
+        mle /= 3600.F;                                              // conversion from [kg/h] to [kg/s]
+    }
+
+
+    float dki = 0.F;
+    float dkv = 0.F;
+
+    HFM_210 hfm210;
+    if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
+    {        
+        dki = (float)MIN(hfm210.DKI, VEHICLE_CONFIG.throttlevalve_maxopeningangle); // limitation to maximum opening angle of throttle valve
+        dki = MIN(((float)(hfm210.DKV)), max_throttle_value); // limitation to maximum opening angle of throttle valve        
+        dki /= max_throttle_value;
+
+        dkv = MIN(((float)(hfm210.DKV)), max_throttle_value); // limitation to maximum opening angle of throttle valve
+        dkv *= max_throttle_value;
+    }
+
+    // calculate torque values
+    CanTorqueData result = TORQUE_NDEF;
+
     // minimum torque
     result.m_min = 0; // TODO: find a way to get this value
 
     // maximum torque
-    uint16_t n_mot = get_engine_rpm(expire_time_ms);
     result.m_max = interpolate_linear_array(n_mot, M_MAX_LEN, n, M_MAX);
 
     //static torque
-    HFM_610 hfm610;
-    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610))
-    {
-        float mle = ((float)(hfm610.MLE)) * air_mass_factor;              // conversion from raw value to [kg/h]
-        mle /= 3600.F;                                                    // conversion from [kg/h] to [kg/s]
-        float n_mot_SI = ((float)n_mot) / 60.F;                           // conversion from [1/min] to [1/s]
+    result.m_converted_static = 0;
+    if(0 < n_mot) {
         result.m_converted_static = (int16_t)(c_engine * mle / n_mot_SI); // constant * mass air flow / engine speed
     }
 
     // indicated torque
-    // check if maximum opening angle of throttle valve is set
-    if (0u < VEHICLE_CONFIG.throttlevalve_maxopeningangle)
-    {
-        HFM_210 hfm210;
-        if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
-        {
-            uint8_t dki = hfm210.DKI;
-            // calculate relative openening of the throttle valve
-            float phi_throttle = (1.F - cosine[dki]) / (1.F - cosine[VEHICLE_CONFIG.throttlevalve_maxopeningangle]);
-            // calculate the indicated torque
-            result.m_ind = (int16_t)(phi_throttle * ((float)result.m_max));
-        }
-    }
+    int32_t m_ind = ((int32_t)dki) * (int32_t)result.m_max;
+    m_ind /= PEDAL_VALUE_LIMIT;
+    result.m_ind = (int16_t)m_ind;
 
-    // driver torque
-    result.m_converted_driver = result.m_ind; // the same value, since there is no ESP on this CAN.
+    // alternative method to calculate indicated torque
+    uint8_t dki_uint = 0;
+    if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
+    {
+        dki_uint = hfm210.DKI;
+    }
+    // calculate relative openening of the throttle valve
+    float phi_throttle_ind = (1.F - cosine[dki_uint]) / (1.F - cosine[VEHICLE_CONFIG.throttlevalve_maxopeningangle]);
+    // result.m_ind = (int16_t)(phi_throttle_ind * ((float)result.m_max));
+
+    // driver torque - comes from the accelerator pedal or cruise control
+    int32_t m_driver = ((int32_t)dkv) * (int32_t)result.m_max;
+    m_driver /= PEDAL_VALUE_LIMIT;
+    result.m_converted_driver = (int16_t)m_driver;
+
+    // calculate c_engine values
+    if (CALC_C_ENGINE)
+    {
+        float c_engine_tmp = 0.F;
+        uint8_t load = 0;
+        HFM_308 hfm308;
+        if (this->hfm_ecu.get_HFM_308(GET_CLOCK_TIME(), 1000, &hfm308))
+        {
+            load = hfm308.LAST;
+        }
+        if(200u <= load){
+            c_engine_tmp = ((uint32_t)(result.m_max)) * n_mot_SI / mle;
+        }
+        // log messages
+        ESP_LOGI("HFM-CAN", "MLE: %.2f kg/s, n_mot: %d 1/min, m_max: %i, c_eng: %.2f, load: %d, DKI: %d, phi_throttle: %.2f, m_ind: %i Nm, m_ind (alt): %i", mle, n_mot, result.m_max, c_engine_tmp, load, dki_uint, phi_throttle_ind, result.m_ind, ((int16_t)(phi_throttle_ind * ((float)result.m_max))));
+    }
     return result;
 }
 

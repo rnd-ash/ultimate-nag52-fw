@@ -74,7 +74,7 @@ class HfmCan: public EgsBaseCan {
         // engine displacement [m³]
         const float V_H = 0.003199F;
 
-        const float air_mass_factor = 4.F; // conversion factor from CAN
+        const float AIR_MASS_FACTOR = 4.F; // conversion factor for raw-value from CAN
 
         static const uint8_t M_MAX_LEN = 33u;
         // TODO: make this configurable
@@ -85,7 +85,14 @@ class HfmCan: public EgsBaseCan {
         // engine speed for torque table [1/min]
         const uint16_t n[M_MAX_LEN] = {0u, 250u, 500u, 750u, 1000u, 1250u, 1500u, 1750u, 2000u, 2250u, 2500u, 2750u, 3000u, 3250u, 3500u, 3750u, 4000u, 4250u, 4500u, 4750u, 5000u, 5250u, 5500u, 5750u, 6000u, 6250u, 6500u, 6750u, 7000u, 7250u, 7500u, 7750u, 8000};
 
-        const float c_engine = 0.5F; // volumetric efficiency [-], assumed constant
+        // volumetric efficiency [Nm * s / kg], assumed constant
+        const float c_engine = 221505.69;
+
+        // limit for compatibility with other CAN-layers
+        const int32_t PEDAL_VALUE_LIMIT = 250; 
+
+        // contains a maximum value for the throttle [0.35°]
+        float max_throttle_value = (float)UINT8_MAX;
 
         // air density [kg/m³]
         float current_air_pressure = 0.0f;

@@ -8,8 +8,8 @@
 * CAN Defintiion for ECU 'HFM'
 */
 
-#ifndef ECU_HFM_H
-#define ECU_HFM_H
+#ifndef __ECU_HFM_H_
+#define __ECU_HFM_H_
 
 #include <stdint.h>
     
@@ -62,7 +62,9 @@ typedef union {
 		/** vehicle speed signal implausible **/
 		bool VSIG_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 3;
+		uint8_t __PADDING3__: 2;
+		/** idling (indle speed contact closed) **/
+		bool LL_B: 1;
 		/** full throttle **/
 		bool VG_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -97,7 +99,9 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		uint8_t __PADDING1__: 8;
+		/** load of the engine **/
+		uint8_t LAST: 8;
 		/** starter running **/
 		bool KL50_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -151,15 +155,15 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		uint8_t __PADDING1__: 8;
 		/** air mass flow **/
 		uint8_t MLE: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
-		/** ROZ tempering detection **/
-		bool ROZ_TP_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING3__: 31;
+		uint32_t __PADDING2__: 32;
+		/** ignition time cylinder 1 **/
+		uint8_t ZZP_Z1: 8;
+		/** long-term adaption value partial load **/
+		uint8_t LZA_TL1: 8;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_610 **/
 	uint32_t get_canid(){ return HFM_610_CAN_ID; }
@@ -271,4 +275,4 @@ class ECU_HFM {
 		uint64_t FRAME_DATA[4];
 		uint32_t LAST_FRAME_TIMES[4];
 };
-#endif // ECU_HFM_H
+#endif // __ECU_HFM_H_

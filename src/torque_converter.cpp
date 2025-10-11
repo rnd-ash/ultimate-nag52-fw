@@ -58,6 +58,15 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
         old = 100;
     }
     dest[(LOAD_SIZE*gear_int) + load_idx] = old;
+    // Auto increase successive cells (Stops spiking)
+    // > 2 so that we don't adapt negative cells
+    if (load_idx > 2 && load_idx < 10) {
+        for (int i = load_idx; i <= 10; i++) {
+            if (dest[(LOAD_SIZE*gear_int) + i] < old) {
+                dest[(LOAD_SIZE*gear_int) + i] = old;
+            }
+        }
+    }
 }
 
 const int PRESSURE_STEP = 1000/(1000/20); // Per 20ms cycle
@@ -192,7 +201,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     } else if (this->target_tcc_state == InternalTccState::Slipping) {
         if (load_cell != -1) {
             if (at_req_pressure && is_stable && abs(rpm_delta) > slip_target * 1.1) {
-                set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +2);
+                set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +5);
                 this->last_adapt_check = GET_CLOCK_TIME();
             } else if (at_req_pressure && is_stable && abs(rpm_delta) <= slip_target * 0.9) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
@@ -216,7 +225,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
     } else if (this->target_tcc_state == InternalTccState::Closed) {
         if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
-            set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +2);
+            set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +5);
             this->last_adapt_check = GET_CLOCK_TIME();
         }
         this->tcc_pressure_target = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)curr_gear);

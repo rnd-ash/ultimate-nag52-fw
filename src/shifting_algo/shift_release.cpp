@@ -219,8 +219,7 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
             // Has not moved yet to completion
             (sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm) ||
             // Off clutch has not released and at the end of our filling time
-            //(MAX(0, sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && 
-            (this->subphase_mod > 2)
+            (MAX(0, sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm)
         ) {
             this->subphase_shift += 1;
         }
@@ -244,12 +243,6 @@ void ReleasingShift::phase_fill_release_spc(bool is_upshift) {
     if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->on_clutch_speed < -SHIFT_SETTINGS.clutch_stationary_rpm) {
         this->spc_p_offset += 20;
     }
-    if (this->subphase_mod >= 4 && MAX(0,sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST) == 0)) {
-        this->spc_p_offset += 2;
-    }
-    //if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
-    //    sid->tcc->shift_start();
-    //}
     // Write pressure
     this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
 }

@@ -175,7 +175,10 @@ uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
 
 CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
 
-    const bool CALC_C_ENGINE = false;    
+    const bool CALC_C_ENGINE = false;
+
+    // higher expiration time for frames above 0x600, since they are not changing that fast
+    const uint32_t expire_time_6xxh = 125u; // [ms]
 
     // calculate torque values
     CanTorqueData result = TORQUE_NDEF;
@@ -186,12 +189,18 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
     float mle = 0.F;
 
     HFM_610 hfm610;
-    // if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), 1000, &hfm610))
-    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610))
+    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_6xxh, &hfm610))
+    // if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610))
     {
         mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;              // conversion from raw value to [kg/h]
         mle /= 3600.F;                                              // conversion from [kg/h] to [kg/s]
     }
+
+    // minimum torque
+    result.m_min = 0; // TODO: find a way to get this value
+
+    // maximum torque
+    result.m_max = interpolate_linear_array(n_mot, M_MAX_LEN, n, M_MAX);
 
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
@@ -207,12 +216,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
         result.m_converted_driver = (int16_t)(phi_throttle[dkv] * (float)(result.m_max));
     }
 
-    // minimum torque
-    result.m_min = 0; // TODO: find a way to get this value
-
-    // maximum torque
-    result.m_max = interpolate_linear_array(n_mot, M_MAX_LEN, n, M_MAX);
-
+    
     //static torque
     if(0 < n_mot) {
         result.m_converted_static = (int16_t)(c_engine * mle / n_mot_SI); // constant * mass air flow / engine speed
@@ -252,7 +256,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
         }
 
         HFM_628 hfm628;
-        if (hfm_ecu.get_HFM_628(GET_CLOCK_TIME(), expire_time_ms, &hfm628)) {
+        if (hfm_ecu.get_HFM_628(GET_CLOCK_TIME(), expire_time_6xxh, &hfm628)) {
             if (hfm628.KLIMA_B) {
                 // Typical drag torque for an air conditioning compressor in a combustion engine car
                 // is in the range of 10-30 Nm depending on compressor type and operating conditions.
@@ -315,9 +319,10 @@ float HfmCan::get_ML(const uint32_t expire_time_ms)
 
 int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
 {
+    const uint32_t expire_time_6xxh = 125u; // [ms]
     int16_t result = INT16_MAX;
     HFM_608 hfm608;
-    if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
+    if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_6xxh, &hfm608))
     {
         if (!hfm608.TFM_UP_B)
         {
@@ -335,9 +340,10 @@ int16_t HfmCan::get_engine_oil_temp(const uint32_t expire_time_ms)
 
 int16_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
 {
+    const uint32_t expire_time_6xxh = 125u; // [ms]
     int16_t result = INT16_MAX;
     HFM_608 hfm608;
-    if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
+    if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_6xxh, &hfm608))
     {
         result = INTAKE_AIR_TEMPERATURE[hfm608.T_LUFT];
     }

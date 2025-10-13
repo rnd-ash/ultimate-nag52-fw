@@ -50,3 +50,7 @@ ECU HFM
 		SIGNAL LZA_TL1, OFFSET: 0, LEN: 8, DESC: long-term adaption value partial load, DATA TYPE NUMBER(_MULTIPLIER_: 0.002, _OFFSET_: 0.75)
 		SIGNAL ZZP_Z1, OFFSET: 8, LEN: 8, DESC: ignition time cylinder 1, DATA TYPE NUMBER(_MULTIPLIER_: 0.3516, _OFFSET_: -34.65)
 		SIGNAL MLE, OFFSET: 48, LEN: 8, DESC: air mass flow, DATA TYPE NUMBER(_MULTIPLIER_: 4, _OFFSET_: 0)
+	FRAME HFM_628h (0x00000628)
+		SIGNAL DKS_F_B, OFFSET: 0, LEN: 1, DESC: error throttle valve actuator, DATA TYPE BOOL
+		SIGNAL KLIMA_B, OFFSET: 6, LEN: 1, DESC: air conditioning, DATA TYPE BOOL
+		

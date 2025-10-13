@@ -2,8 +2,9 @@
 #include "programselector/programselectorbuttonewm.h"
 #include "programselector/programselectorswitchewm.h"
 
-ShifterIsm::ShifterIsm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings)
+ShifterIsm::ShifterIsm(ETS_MODULE_SETTINGS *shifter_settings)
 {
+	programselector = nullptr;
 	ESP_LOGW("ISM", "ISM Shifter selected. This is experimental!");
 }
 

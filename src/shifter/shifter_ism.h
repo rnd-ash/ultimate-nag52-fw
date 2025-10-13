@@ -4,14 +4,14 @@
 #include "shifter.h"
 #include "esp_err.h"
 #include "../nvs/module_settings.h"
-#include "programselector/programselector.h"
+#include "programselector/programselector.hpp"
 #include "../../egs53_ecus/src/ANY_ECU.h"
 #include "../canbus/can_egs53.h"
 
 class ShifterIsm : public Shifter
 {
 public:
-	ShifterIsm(TCM_CORE_CONFIG* vehicle_config, ETS_MODULE_SETTINGS* shifter_settings);
+	ShifterIsm(ETS_MODULE_SETTINGS* shifter_settings);
 	// For special handling
 	void update(Egs53Can* can);
 	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;

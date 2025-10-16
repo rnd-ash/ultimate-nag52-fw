@@ -4,6 +4,26 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 16/10/25
+
+## Added
+    * New crossover shifting algorithm for low power / coasting shifts (Helps with rough 2-1 shifting)
+    * Static adder for SPC (Will be adjustable in a future release)
+    * Groundwork layed for adaptations for the next release
+    * Added fast pressure ramp in event of 3-4 flare to recover as quickly as possible
+    * Removed unlocking of TCC when shifting
+    * TCC pressure adaptation now affects higher load cells (Faster adaptation)
+    * More accurate TFT sensor algorithm
+    * Added gearbox load to Torque converter data diagnostics
+## Fixed
+    * Fixed 4matic cars with fixed ratios not being able to change gears
+    * Fixed bug causing friction coefficients being wrongly calculated (Switch fallthrough)
+    * Fixed PID-Correction torque varying wildly sometimes
+## Other
+    * MISRA-C and misc code cleanup (Thanks @chrissivo)
+
+
+
 # 25/06/25
 
 ## Added

@@ -78,7 +78,7 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm, bool is_upshift) {
     uint8_t ret = STEP_RES_CONTINUE;
-    int targ_spc = this->fun_0d820a(sid->prefill_info.fill_pressure_on_clutch);
+    int targ_spc = this->set_p_apply_clutch_with_spring(this->high_fill_pressure());
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
@@ -97,12 +97,12 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm, bool is_upshift) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = interpolate_float(this->timer_mod, sid->SPC_MAX, targ_spc, 5, 0, InterpType::Linear);
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, p_apply_clutch);
+    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, p_apply_clutch + spc_p_offset);
 
 calc_mod:
     // if RELEASING_UPSHIFT || CROSSOVER_DOWNSHIFT
-    if (is_upshift) {
+    if ((!is_upshift && !this->is_release_shift()) || (is_upshift && this->is_release_shift())) {
         if (GearChange::_2_3 == sid->change) {
             targ_spc *= 1.993;
         }
@@ -117,7 +117,7 @@ calc_mod:
 
 uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
-    uint16_t targ_mpc = pm->find_working_mpc_pressure(sid->targ_g);
+    uint16_t targ_mpc = this->max_p_mod_pressure();
     if (0 == this->subphase_shift) {
         // Var set
         this->timer_shift = 5; // 100ms for ramp
@@ -131,16 +131,26 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
         }
     }
-    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch);
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ_mpc, this->timer_mod);
     return ret;
 }
 
 uint8_t ShiftingAlgorithm::phase_end_ctrl() {
+    uint8_t ret = STEP_RES_CONTINUE;
     // TODO
-    this->shift_sol_pressure = sid->SPC_MAX;
-    this->mod_sol_pressure = pm->find_working_mpc_pressure(sid->targ_g);
-    return STEP_RES_END_SHIFT;
+    if (0 == this->subphase_shift) {
+        this->timer_shift = interpolate_float(sd->atf_temp, 75, 5, -20, 30, InterpType::Linear);
+        this->subphase_shift += 1;
+    }
+    this->p_apply_clutch = sid->SPC_MAX;
+    this->shift_sol_pressure = pressure_manager->correct_shift_shift_pressure(sid->inf.map_idx, this->p_apply_clutch + spc_p_offset);
+    this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pm->find_working_mpc_pressure(sid->targ_g), this->timer_shift);
+    if (this->timer_shift == 0) {
+        //sid->tcc->shift_end();
+        ret = STEP_RES_END_SHIFT;
+    }
+    return ret;
 }
 
 uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef) {
@@ -150,18 +160,6 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t p_apply_clutch, Coef
         ret = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p, coef);
     }
     return ret;
-}
-
-
-uint16_t ShiftingAlgorithm::fun_0d820a(uint16_t p) {
-    uint16_t ret;
-    if (p + sid->release_spring_on_clutch < this->centrifugal_force_on_clutch) {
-        ret = 0;
-    } else {
-        ret = (p + sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
-        // Skip offset maths
-    }
-    return MIN(ret, this->max_p_apply_clutch);
 }
 
 const uint8_t freewheeling_factors[8] = {20, 100, 100, 100, 100, 100, 80, 120}; // RELEASE_CAL->freewheeling_factor
@@ -223,46 +221,13 @@ void ShiftingAlgorithm::reset_for_next_phase() {
     this->subphase_shift = 0;
 }
 
-uint16_t ShiftingAlgorithm::calc_cycles_mod_phase1() {
-    uint16_t ret = 0;
-    // 2->1 and 3->2 are set to 0 always
-    if (sid->change != GearChange::_2_1 && sid->change != GearChange::_3_2) {
-        uint16_t max_cycles = (sid->prefill_info.fill_time/20) + 3 + 5; // 3 and 5 are for ramp time and hold time of low P
-        uint16_t tmp = 0;
-        int rpm_off_abs = abs(sid->ptr_r_clutch_speeds->on_clutch_speed);
-        tmp = (rpm_off_abs * ShiftHelpers::get_shift_intertia(sid->inf.map_idx) / MECH_PTR->turbine_drag[sid->inf.map_idx]);
-        if (tmp < max_cycles) {
-            ret = max_cycles - tmp;
-        } else {
-            ret = 0;
-        }
-    }
-    return ret;
-}
-
-uint16_t ShiftingAlgorithm::calc_cycles_mod_phase2(bool is_upshift) {
-    uint16_t ret;
-    if (!is_upshift) {
-        ret = 4; 
-    } else {
-        int max = (sid->prefill_info.fill_time/20) + 3;
-        ret = MAX(4, max);
-    }
-    return ret;
-}
-
 uint16_t ShiftingAlgorithm::fun_0d83d4() {
     int p_shift = 0;
     if (this->centrifugal_force_on_clutch < sid->release_spring_on_clutch) {
         p_shift = 1000*this->p_apply_clutch/1000;
         p_shift += (1000-1000) * (this->sid->release_spring_on_clutch - this->centrifugal_force_on_clutch) / 1000;
     }
-    int p_mod = pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->filling_trq, CoefficientTy::Release);
-    if (this->centrifugal_force_off_clutch < p_mod + sid->release_spring_off_clutch) {
-        p_mod = p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch;
-    } else {
-        p_mod = 0;
-    }
+    int p_mod = MAX(0, pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->filling_trq, CoefficientTy::Release) + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
     return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 
@@ -272,9 +237,9 @@ uint16_t ShiftingAlgorithm::clamp_p_apply_clutch(int p) {
 
 uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
     return this->clamp_p_apply_clutch(
-        (int)p + // Target pressure at the clutch
-        (int)sid->release_spring_on_clutch - // Spring pressure to fight against
-        (int)this->centrifugal_force_on_clutch // Reduce by force provided by centrifugal pressure
+        (int)p // Target pressure at the clutch
+        +(int)sid->release_spring_on_clutch // Spring pressure to fight against
+        -(int)this->centrifugal_force_on_clutch // Reduce by force provided by centrifugal pressure
     );
 }
 

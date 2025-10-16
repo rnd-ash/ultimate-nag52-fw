@@ -292,15 +292,8 @@ typedef struct {
     // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
     // are the output, in Nm/20ms reduction
     LinearInterpSetting torque_loss_speed_pedal_pos;
-    // SPC ramp speed in mBar/20ms in normal auto profiles
-    uint8_t spc_ramp_speed_normal;
-    // SPC ramp speed in mBar/20ms in Manual mode
-    uint8_t spc_ramp_m;
-    // SPC ramp speed in mBar/20ms in Race mode
-    uint8_t spc_ramp_r;
-    // Boost pressure when working pressure is more than filling pressure. 
-    // 1.0 = Full boost, 0.0 = No boost.
-    float boost_pressure_multi;
+    // SPC ramp speed in mBar/20ms
+    uint8_t spc_ramp_speed;
 } __attribute__ ((packed)) REL_MODULE_SETTINGS;
 
 const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
@@ -323,10 +316,7 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
         .raw_min = 10,
         .raw_max = 150,
     },
-    .spc_ramp_speed_normal = 8,
-    .spc_ramp_m = 12,
-    .spc_ramp_r = 16,
-    .boost_pressure_multi = 0.25
+    .spc_ramp_speed = 8,
 };
 
 // module settings

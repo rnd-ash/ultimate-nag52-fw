@@ -28,8 +28,6 @@ struct ShiftPressures {
     float on_clutch;
     // At the releasing clutch
     float off_clutch;
-    // Pressure on the modulating side of the overlap slider
-    float overlap_mod;
     // At the shift solenoid
     float shift_sol_req;
     // At the modulating solenoid
@@ -40,20 +38,6 @@ enum class CoefficientTy {
     Static,
     Release,
     Sliding
-};
-
-struct GearboxClutchPressures {
-    uint16_t p_releasing_spring;
-    uint16_t p_holding_spring;
-    uint16_t p_applying_spring;
-
-    uint16_t p_releasing_centrifugal;
-    uint16_t p_holding_centrifugal;
-    uint16_t p_applying_centrifugal;
-
-    uint16_t p_releasing_raw;
-    uint16_t p_holding_raw;
-    uint16_t p_applying_raw;
 };
 
 class PressureManager {
@@ -107,6 +91,8 @@ public:
     uint16_t correct_shift_shift_pressure(uint8_t shift_idx, uint32_t pressure);
     uint16_t get_max_shift_pressure(uint8_t shift_idx);
     uint8_t get_active_shift_circuits(void) const;
+
+    uint16_t calc_current_linear_sol(uint16_t p_targ, uint16_t p_mod, GearboxGear current_gear, GearChange change_state);
 
     /**
      * Friction coefficient for applying clutches (Sliding into place)

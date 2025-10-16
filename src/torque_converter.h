@@ -42,12 +42,13 @@ class TorqueConverter {
                 this->tcc_slip_map->save_to_eeprom();
             }
         };
-        void on_shift_ending(void);
 
         void diag_toggle_tcc_sol(bool en);
 
         void set_stationary();
-
+        
+        void shift_start();
+        void shift_end();
         int16_t get_slip_filtered();
         InternalTccState __get_internal_state(void);
         uint8_t get_current_state();
@@ -74,6 +75,10 @@ class TorqueConverter {
         inline uint32_t get_engine_power() {
             return this->engine_output_joule;
         }
+
+        inline int16_t get_engine_load_percent() {
+            return this->engine_load_percent;
+        }
         
         inline uint32_t get_absorbed_power() {
             return this->absorbed_power_joule;
@@ -83,6 +88,7 @@ class TorqueConverter {
         FirstOrderAverage* motor_torque_smoothed = nullptr;
         int rated_max_torque;
         bool is_shifting = false;
+        bool was_shifting = true;
         bool tcc_solenoid_enabled = true;
         int tcc_pressure_target = 0;
         int tcc_pressure_current = 0;
@@ -94,6 +100,7 @@ class TorqueConverter {
         bool pending_changes = false;
         uint32_t last_adapt_check = 0;
         FirstOrderAverage* slip_average = nullptr;
+        int16_t engine_load_percent = 0;
         
         bool init_tables_ok = false;
 

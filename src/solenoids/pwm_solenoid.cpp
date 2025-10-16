@@ -32,11 +32,11 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     };
 
     const ledc_timer_config_t SOLENOID_TIMER_CFG = {
-        .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE, // Low speed timer mode
+        .speed_mode = ledc_mode_t::LEDC_HIGH_SPEED_MODE,
         .duty_resolution = LEDC_TIMER_12_BIT,
         .timer_num = ledc_timer,
         .freq_hz = 1000,
-        .clk_cfg = LEDC_AUTO_CLK,
+        .clk_cfg = LEDC_USE_APB_CLK,
         .deconfigure = false
     };
 
@@ -53,12 +53,12 @@ uint16_t PwmSolenoid::get_current() const {
     uint32_t raw = this->current_adc_reading;
     uint16_t ret = 0;
     if (0 != raw) {
-        adc_cali_raw_to_voltage(adc1_cal, raw, (int*)&ret);
+        adc_cali_raw_to_voltage(adc1_cal, raw, reinterpret_cast<int*>(&ret));
     }
     return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
-uint16_t PwmSolenoid::get_pwm_raw()
+uint16_t PwmSolenoid::get_pwm_raw() const
 {
     return this->pwm_raw;
 }
@@ -103,13 +103,15 @@ esp_err_t PwmSolenoid::init_ok() const
     return this->ready;
 }
 
-uint16_t PwmSolenoid::get_ledc_pwm() {
-    return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel);
-}
+/* unused */
+// uint16_t PwmSolenoid::get_ledc_pwm() {
+//     return ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel);
+// }
 
-uint16_t PwmSolenoid::get_pwm_phase_time() const {
-    return this->pwm_phase_period_ms;
-}
+/* unused */
+// uint16_t PwmSolenoid::get_pwm_phase_time() const {
+//     return this->pwm_phase_period_ms;
+// }
 
 
 esp_err_t SolenoidSetup::init_adc() {

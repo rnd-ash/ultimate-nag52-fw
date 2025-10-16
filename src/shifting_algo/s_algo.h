@@ -1,5 +1,5 @@
-#ifndef __S_ALGO_H__
-#define __S_ALGO_H__
+#ifndef S_ALGO_H
+#define S_ALGO_H
 
 #include "../src/common_structs.h"
 #include "../pressure_manager.h"
@@ -24,7 +24,7 @@ enum class ShiftStyle {
     Release_Dn,
 };
 
-typedef struct {
+struct ShiftInterfaceData{
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
@@ -41,13 +41,12 @@ typedef struct {
     PrefillData prefill_info;
     ShiftCharacteristics chars;
     ShiftClutchData* ptr_r_clutch_speeds;
-    ShiftClutchData* ptr_r_pre_clutch_speeds;
     ShiftPressures*  ptr_prev_pressures;
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;
     PressureStageTiming maxp_info;
     TorqueConverter* tcc;
-} ShiftInterfaceData;
+};
 
 class ShiftingAlgorithm {
 public:
@@ -83,7 +82,7 @@ public:
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
     // Called when shift solenoid is opened
-    virtual void calc_shift_flags(SensorData* sd, uint32_t* dest) = 0;
+    virtual void calc_shift_flags(uint32_t* dest) = 0;
 
     protected:
         ShiftInterfaceData* sid;
@@ -98,7 +97,6 @@ public:
 
         // EGS compatibility vars (Makes it easier to translate original EGS assembly)
         int p_apply_clutch;
-        int max_p_apply_clutch;
         int max_trq_apply_clutch;
         int max_trq_release_clutch;
         int filling_trq;
@@ -114,6 +112,8 @@ public:
         PressureManager* pm;
         SensorData* sd;
 
+        short momentum_plus_maxtrq = 0;
+        short momentum_plus_maxtrq_1 = 0;
         short momentum_start_turbine_rpm = 0;
         short momentum_start_output_rpm = 0;
         short correction_trq = 0;
@@ -126,16 +126,12 @@ public:
         
         // EGS compatibility functions
         uint16_t calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef);
-        uint16_t fun_0d820a(uint16_t p);
         uint16_t fun_0d83d4();
         uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
         uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
         uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
         uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
         void reset_for_next_phase();
-        
-        uint16_t calc_cycles_mod_phase1();
-        uint16_t calc_cycles_mod_phase2(bool is_upshift);
 
         uint16_t set_p_apply_clutch_with_spring(uint16_t p);
         uint16_t clamp_p_apply_clutch(int p);
@@ -144,7 +140,11 @@ public:
         short pid_iterate(int32_t p, int32_t i, int32_t d, int32_t new_value);
         short momentum_pid[2];
         short momentum_target = 0;
+        virtual uint16_t max_p_mod_pressure() = 0;
+        virtual uint16_t high_fill_pressure() = 0;
+        virtual bool is_release_shift() = 0;
         uint16_t threshold_rpm = 0;
+        float spc_p_offset = 0;
 };
 
 // Helper functions

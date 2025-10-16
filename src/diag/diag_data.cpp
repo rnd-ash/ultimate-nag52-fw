@@ -85,7 +85,7 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
         ret.tcc_pressure = gb_ptr->pressure_mgr->get_targ_tcc_pressure();
         ret.ss_flag = gb_ptr->pressure_mgr->get_active_shift_circuits();
         ShiftPressures p = gb_ptr->pressure_mgr->get_shift_pressures_now();
-        ret.overlap_mod = p.overlap_mod;
+        ret.overlap_mod = p.off_clutch;
         ret.overlap_shift = p.on_clutch; //p.overlap_shift;
         ret.on_clutch_pressure = p.on_clutch;
         ret.off_clutch_pressure = p.off_clutch;
@@ -107,6 +107,7 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     ret.can_request_bits = 0; // TODO
     ret.tcc_absorbed_joule = gb_ptr->tcc->get_absorbed_power();
     ret.engine_output_joule = gb_ptr->tcc->get_engine_power();
+    ret.load_percent = gb_ptr->tcc->get_engine_load_percent();
     return ret;
 }
 

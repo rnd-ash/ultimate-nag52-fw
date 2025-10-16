@@ -26,7 +26,6 @@ InrushControlSolenoid *sol_tcc = nullptr;
 struct SolenoidOutputSummary {
     uint64_t peak_total[NUM_SOLENOIDS];
     uint16_t count_peak[NUM_SOLENOIDS];
-    uint16_t count_total[NUM_SOLENOIDS];
 };
 
 /*
@@ -74,19 +73,18 @@ void read_solenoids_i2s(void*) {
         SolenoidOutputSummary s = {
             .peak_total = {0,0,0,0,0,0},
             .count_peak = {0,0,0,0,0,0},
-            .count_total = {0,0,0,0,0,0},
         };
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &read_len, portMAX_DELAY);
         if (ESP_OK == ret) {
             for (int i = 0; i < read_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
-                adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                // adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
+                adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
                 uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
                 if (channel_idx != 0xFF) {
                     if (p->type1.data > 100) { // > ~0.1V
                         s.peak_total[channel_idx] += p->type1.data;
                         s.count_peak[channel_idx] += 1;
                     }
-                    s.count_total[channel_idx] += 1;
                 }
             }
 
@@ -227,8 +225,8 @@ esp_err_t Solenoids::init_all_solenoids()
     sol_y3 = new OnOffSolenoid("Y3", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 100, 1524, 1);
     sol_y4 = new OnOffSolenoid("Y4", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 100, 1524, 1);
     sol_y5 = new OnOffSolenoid("Y5", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y5_pwm, ledc_channel_t::LEDC_CHANNEL_2, ADC_CHANNEL_7, 100, 1524, 1);
-    sol_mpc = new ConstantCurrentSolenoid("MPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 1, true); 
-    sol_spc = new ConstantCurrentSolenoid("SPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 1, false);
+    sol_mpc = new ConstantCurrentSolenoid("MPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 1); 
+    sol_spc = new ConstantCurrentSolenoid("SPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 1);
     
     // ~700mA for TCC solenoid when holding
     gpio_num_t gpio_zener = GPIO_NUM_NC;

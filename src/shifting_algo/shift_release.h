@@ -6,29 +6,36 @@
 
 class ReleasingShift : public ShiftingAlgorithm {
 public:
-    ReleasingShift(ShiftInterfaceData* data);
+    explicit ReleasingShift(ShiftInterfaceData* data);
     ~ReleasingShift() override;
     uint8_t step_internal(
         bool stationary,
         bool is_upshift
     ) override;
 
-    void calc_shift_flags(SensorData* sd, uint32_t* dest) override;
+    void calc_shift_flags(uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
-    
+
+protected:
+    uint16_t max_p_mod_pressure() override;
+    uint16_t high_fill_pressure() override;
+    bool is_release_shift() override {return true; }
 
 private:
-    short momentum_plus_maxtrq = 0;
-    short momentum_plus_maxtrq_1 = 0;
+    uint16_t cycles_high_filling = 0;
+    uint16_t cycles_ramp_filling = 0;
+    uint16_t cycles_low_filling = 0;
     float freeing_trq = 0;
     float loss_torque = 0;
+    float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 
     uint16_t torque_req_val = 0;
 
+    float calculate_freeing_trq_multiplier(bool is_upshift);
     void phase_fill_release_spc(bool is_upshift);
-    uint8_t phase_fill_release_mpc(SensorData* sd, bool is_upshift);
-    uint8_t phase_overlap(SensorData* sd, bool is_upshift);
+    uint8_t phase_fill_release_mpc(bool is_upshift);
+    uint8_t phase_overlap(bool is_upshift);
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
@@ -43,11 +50,13 @@ private:
     uint16_t spring_trq_off_clutch = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
+    uint16_t calc_cycles_mod_phase1();
+    uint16_t calc_cycles_mod_phase2(bool is_upshift);   
     float spc_ramp_val = 0;
     float spc_wait_adder = 0;
-    float loss_pedal = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
+    uint8_t fill_1_mpc_cycles = 0;
 };
 
 #endif

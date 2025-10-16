@@ -1,5 +1,5 @@
-#ifndef __INPUT_TORQUE_H_
-#define __INPUT_TORQUE_H_
+#ifndef INPUT_TORQUE_H
+#define INPUT_TORQUE_H
 
 #include <stdint.h>
 #include <canbus/can_hal.h>

@@ -164,7 +164,7 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mo
     inlet_factor /= 1000.0;
 
     // -- output --
-    return p_targ + (inlet_factor * (float)(p_targ + HYDR_PTR->inlet_pressure_offset));
+    return MIN(get_max_solenoid_pressure(), p_targ + (inlet_factor * (float)(p_targ + HYDR_PTR->inlet_pressure_offset)));
 }
 
 /*
@@ -201,15 +201,15 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
         // This is my best guess at interpreting the assembly (Decompiler view messes a lot up with this function due to indirections)
         uint16_t mpc_in = this->target_modulating_pressure;
         uint16_t spc_in = this->target_shift_pressure;
-
-        this->corrected_spc_pressure = this->calc_current_linear_sol(spc_in, mpc_in, current_gear, change_state);
         this->corrected_mpc_pressure = this->calc_current_linear_sol(mpc_in, mpc_in, current_gear, change_state);
 
         // -- Set solenoid currents --
-        if (this->corrected_spc_pressure >= get_max_solenoid_pressure()) {
-            sol_spc->set_current_target(0);
-        } else {
+        if (this->shift_sol_en) {
+            this->corrected_spc_pressure = this->calc_current_linear_sol(spc_in, mpc_in, current_gear, change_state);
             sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0));
+        } else {
+            this->corrected_spc_pressure = get_max_solenoid_pressure();
+            sol_spc->set_current_target(0);
         }
         sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
         sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
@@ -536,8 +536,8 @@ CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Gea
         default:
             break;
     }
-    sd.pressure_multi_mpc = (float)HYDR_PTR->overlap_circuit_factor_mpc[lookup_valve_info]/1000.0;
-    sd.pressure_multi_spc = (float)HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info]/1000.0;
+    sd.pressure_multi_mpc_int = HYDR_PTR->overlap_circuit_factor_mpc[lookup_valve_info];
+    sd.pressure_multi_spc_int = HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info];
     sd.mpc_pressure_spring_reduction = HYDR_PTR->overlap_circuit_spring_pressure[lookup_valve_info];
     sd.centrifugal_factor_off_clutch = C_C_FACTOR[lookup_valve_info];
     // Shift start notify for pm internal algo
@@ -626,6 +626,7 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
 
 void PressureManager::set_target_shift_pressure(uint16_t targ) {
     this->target_shift_pressure = targ;
+    this->shift_sol_en = true;
 }
 
 void PressureManager::set_target_modulating_pressure(uint16_t targ) {
@@ -634,6 +635,7 @@ void PressureManager::set_target_modulating_pressure(uint16_t targ) {
 
 void PressureManager::set_spc_p_max() {
     this->target_shift_pressure = get_max_solenoid_pressure();
+    this->shift_sol_en = false;
 }
 
 void PressureManager::set_target_tcc_pressure(uint16_t targ) {

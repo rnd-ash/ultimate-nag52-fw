@@ -188,11 +188,14 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(uint16_t p_shift) {
 // FUN_d8028
 uint16_t ShiftingAlgorithm::calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod) {
     float p = 0;
-    p = ((float)p_shift * sid->inf.pressure_multi_spc) + ((float)p_mod * sid->inf.pressure_multi_mpc) + (sid->inf.mpc_pressure_spring_reduction);
-    if (p < 0) {
+    int p_s = ((int)p_shift * sid->inf.pressure_multi_spc_int) / 1000;
+    int p_m = ((int)p_mod * sid->inf.pressure_multi_mpc_int) / 1000;
+
+    p = p_s + p_m + sid->inf.mpc_pressure_spring_reduction;
+    if (p <= 0) {
         p = 0;
     }
-    if (p > sid->MOD_MAX) {
+    if (p >= sid->MOD_MAX) {
         p = sid->MOD_MAX;
     }
     return p;

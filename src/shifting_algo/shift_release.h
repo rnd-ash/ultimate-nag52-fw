@@ -39,8 +39,8 @@ private:
 
     uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
 
-    uint16_t fun_0d85d8();
-    short fun_0d4ed0();
+    uint16_t calc_sync_mod_pressure();
+    short calc_shifting_momentum();
     uint16_t calc_mod_overlap();
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;

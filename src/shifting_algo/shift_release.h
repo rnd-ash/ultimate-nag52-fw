@@ -41,6 +41,7 @@ private:
 
     uint16_t calc_sync_mod_pressure();
     short calc_shifting_momentum();
+    short calc_sync_torque_new_clutch();
     uint16_t calc_mod_overlap();
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;

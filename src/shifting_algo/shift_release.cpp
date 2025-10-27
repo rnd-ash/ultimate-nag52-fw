@@ -15,7 +15,7 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
     this->cycles_high_filling = data->prefill_info.fill_time/20;
     this->cycles_ramp_filling = 3;
     this->cycles_low_filling = 5;
-    this->maximum_mod_reduction_trq = -((int)(VEHICLE_CONFIG.engine_drag_torque/10)*2);
+    this->minimum_mod_reduction_trq = -((int)(VEHICLE_CONFIG.engine_drag_torque/10)*2);
 }
 
 ReleasingShift::~ReleasingShift() {

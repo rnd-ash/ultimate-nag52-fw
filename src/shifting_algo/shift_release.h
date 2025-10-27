@@ -25,6 +25,7 @@ private:
     uint16_t cycles_high_filling = 0;
     uint16_t cycles_ramp_filling = 0;
     uint16_t cycles_low_filling = 0;
+
     float freeing_trq = 0;
     float loss_torque = 0;
     float loss_torque_tmp = 0;
@@ -32,12 +33,12 @@ private:
 
     uint16_t torque_req_val = 0;
 
-    float calculate_freeing_trq_multiplier(bool is_upshift);
-    void phase_fill_release_spc(bool is_upshift);
-    uint8_t phase_fill_release_mpc(bool is_upshift);
-    uint8_t phase_overlap(bool is_upshift);
+    float calculate_freeing_trq_multiplier();
+    void phase_fill_release_spc();
+    uint8_t phase_fill_release_mpc();
+    uint8_t phase_overlap();
 
-    uint16_t interp_2_ints(uint16_t percentage, uint16_t start, uint16_t end);
+    short first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val);
 
     uint16_t calc_sync_mod_pressure();
     short calc_shifting_momentum();
@@ -52,12 +53,15 @@ private:
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
     uint16_t calc_cycles_mod_phase1();
-    uint16_t calc_cycles_mod_phase2(bool is_upshift);   
+    uint16_t calc_cycles_mod_phase2();   
     float spc_ramp_val = 0;
-    float spc_wait_adder = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
     uint8_t fill_1_mpc_cycles = 0;
+
+    int spc_step_adder = 0;
+    int spc_wait_adder = 0;
+    int minimum_mod_reduction_trq = 0;
 };
 
 #endif

@@ -56,7 +56,7 @@ uint8_t CrossoverShift::step_internal(
 ) {
     uint8_t ret = STEP_RES_CONTINUE;
     if (phase_id == PHASE_BLEED) {
-        ret = this->phase_bleed(pm, is_upshift);
+        ret = this->phase_bleed(pm);
     } else if (phase_id == PHASE_FILL) {
         ret = this->phase_fill();
     } else if (phase_id == PHASE_OVERLAP) {
@@ -167,7 +167,7 @@ uint8_t CrossoverShift::phase_fill() {
 
 uint8_t CrossoverShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->max_trq_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
+    this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
     this->trq_adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
     if (0 == subphase_shift) {
         this->p_apply_overlap_begin = this->p_apply_clutch;
@@ -211,7 +211,7 @@ uint8_t CrossoverShift::phase_overlap() {
 uint8_t CrossoverShift::phase_overlap2() {
     uint8_t ret = STEP_RES_CONTINUE;
     this->trq_adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
-    this->max_trq_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
+    this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
     
     if (0 == subphase_shift) {
         this->p_apply_overlap_begin = this->p_apply_clutch;
@@ -233,9 +233,9 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->subphase_shift += 1;
         
         this->momentum_start_output_rpm = sd->output_rpm;
-        this->momentum_start_turbine_rpm = sd->input_rpm;
+        this->target_turbine_speed = sd->input_rpm;
         this->momentum_plus_maxtrq = sd->indicated_torque;
-        this->momentum_plus_maxtrq_1 = 0;
+        this->momentum_plus_maxtrq_filtered = 0;
     
     }
     if (1 == subphase_shift) {
@@ -278,12 +278,13 @@ uint8_t CrossoverShift::phase_overlap2() {
 
 uint16_t CrossoverShift::fun_0d86b4() {
     uint16_t p_mod = 0;
-    if (abs_input_trq > this->max_trq_apply_clutch) {
-        uint16_t d = abs_input_trq - this->max_trq_apply_clutch;
-        p_mod = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, d, CoefficientTy::Release);
+    if (abs_input_trq > this->trq_at_apply_clutch) {
+        this->trq_at_release_clutch = abs_input_trq - this->trq_at_apply_clutch;
+        p_mod = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, this->trq_at_release_clutch, CoefficientTy::Release);
     }
     if (p_mod + sid->release_spring_off_clutch < this->centrifugal_force_off_clutch) {
         p_mod = 0;
+        this->trq_at_release_clutch = 0;
     } else {
         uint16_t t = p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch;
         p_mod = (uint16_t)((float)t*sid->inf.centrifugal_factor_off_clutch);

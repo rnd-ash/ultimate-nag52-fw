@@ -148,6 +148,9 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mo
 
     float line_pressure = HYDR_PTR->lp_reg_spring_pressure + p_mod;
     float wp = extra_p + ((float)line_pressure / factor);
+    if (wp <= 0) {
+        wp = 0;
+    }
     this->calculated_working_pressure = wp;
 
     float interpolated = interpolate_float(
@@ -161,10 +164,14 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mo
     this->calculated_inlet_pressure = interpolated;
 
     float inlet_factor = (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)interpolated));
-    inlet_factor /= 1000.0;
-
-    // -- output --
-    return MIN(get_max_solenoid_pressure(), p_targ + (inlet_factor * (float)(p_targ + HYDR_PTR->inlet_pressure_offset)));
+    uint16_t output_p = get_max_solenoid_pressure();
+    if (p_targ < interpolated) {
+        float with_inlet = p_targ + HYDR_PTR->inlet_pressure_offset;
+        inlet_factor *= with_inlet;
+        inlet_factor /= 1000.0;
+        output_p = p_targ + inlet_factor;
+    }
+    return output_p;
 }
 
 /*

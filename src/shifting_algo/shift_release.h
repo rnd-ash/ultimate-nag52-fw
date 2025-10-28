@@ -18,13 +18,17 @@ public:
 
 protected:
     uint16_t max_p_mod_pressure() override;
-    uint16_t high_fill_pressure() override;
     bool is_release_shift() override {return true; }
 
 private:
     uint16_t cycles_high_filling = 0;
     uint16_t cycles_ramp_filling = 0;
     uint16_t cycles_low_filling = 0;
+
+    uint16_t cycles_mod_ramp_to_sync = 0;
+    uint16_t cycles_mod_hold_sync = 0;
+
+
 
     float freeing_trq = 0;
     float loss_torque = 0;
@@ -48,8 +52,6 @@ private:
     uint16_t torque_req_out = 0;
     bool trq_req_down_ramp = false;
     uint8_t trq_req_timer = 0;
-    uint16_t low_f_p = 0;
-    uint16_t spring_trq_off_clutch = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2(uint8_t cycles);
     uint16_t calc_cycles_mod_phase1();

@@ -138,10 +138,12 @@ public:
         short calc_correction_trq(ShiftStyle style, short momentum);
         float momentum_pid[2];
         virtual uint16_t max_p_mod_pressure() = 0;
-        virtual uint16_t high_fill_pressure() = 0;
         virtual bool is_release_shift() = 0;
         uint16_t threshold_rpm = 0;
         float spc_p_offset = 0;
+
+        uint16_t calc_high_filling_p();
+        uint16_t calc_low_filling_p();
 };
 
 // Helper functions

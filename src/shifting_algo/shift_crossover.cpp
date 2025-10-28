@@ -31,10 +31,6 @@ void CrossoverShift::calc_shift_flags(uint32_t* dest) {
     }
 }
 
-uint16_t CrossoverShift::high_fill_pressure() {
-    return sid->prefill_info.fill_pressure_on_clutch;
-}
-
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 uint16_t get_rpm_threshold(uint8_t shift_idx, uint16_t abs_trq, uint8_t ramp_cycles) {
     int bvar1 = 6;
@@ -77,8 +73,8 @@ uint8_t CrossoverShift::step_internal(
 
 uint8_t CrossoverShift::phase_fill() {
     uint8_t ret = STEP_RES_CONTINUE;
-    uint16_t high_filling_p = sid->prefill_info.fill_pressure_on_clutch;
-    uint16_t low_filling_p = sid->prefill_info.low_fill_pressure_on_clutch;
+    uint16_t high_filling_p = this->calc_high_filling_p();
+    uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
         // Set vars
         this->timer_shift = sid->prefill_info.fill_time/20;

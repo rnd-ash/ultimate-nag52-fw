@@ -30,7 +30,6 @@ private:
     uint16_t fun_0d8a10(uint16_t p_shift);
     uint16_t fun_0d8a66();
     uint16_t max_p_mod_pressure() override;
-    uint16_t high_fill_pressure() override;
     uint16_t fill_ramping_mod_p();
 
     uint16_t trq_req_val = 0;

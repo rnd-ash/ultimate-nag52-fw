@@ -79,7 +79,7 @@ uint8_t ShiftingAlgorithm::step(
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
     this->trq_at_release_clutch = MAX(30, abs_input_trq);
-    int targ_spc = this->set_p_apply_clutch_with_spring(this->high_fill_pressure());
+    int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
@@ -244,6 +244,39 @@ uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
         // SPC reduction_P
     }
     return MIN(ret, sid->SPC_MAX);
+}
+
+uint16_t ShiftingAlgorithm::calc_low_filling_p() {
+    uint16_t ret = 0;
+    if (!this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1  ==  sid->change))  {
+        ret = 0;
+    } else {
+        uint16_t pressure = sid->prefill_info.low_fill_pressure_on_clutch;
+        ret = pressure;
+        // TODO
+    }
+    return ret;
+}
+
+uint16_t ShiftingAlgorithm::calc_high_filling_p() {
+    uint16_t ret = 0;
+    // Crossover downshift and 2-1/3-2
+    if (!this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1  ==  sid->change))  {
+        ret = 0;
+    } else {
+        uint16_t adder_1 = 0;
+        if (sd->atf_temp < -10) {
+            // Very cold filling
+            adder_1 = 500;
+        }
+        uint16_t adder_2 = 0;
+        if (race == sid->profile) {
+            adder_2 = 400; // McLaren adder
+        }
+        ret = sid->prefill_info.fill_pressure_on_clutch + adder_1 + adder_2;
+        ret = MIN(sid->SPC_MAX, ret);
+    }
+    return ret;
 }
 
 

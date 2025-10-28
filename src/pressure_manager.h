@@ -178,6 +178,7 @@ private:
     
     // Shift pressure
     uint16_t target_shift_pressure = 0;
+    bool shift_sol_en = false;
     // Modulating pressure
     uint16_t target_modulating_pressure = 0;
     // TCC pressure

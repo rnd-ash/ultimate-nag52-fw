@@ -145,9 +145,11 @@ struct CircuitInfo{
     ShiftCircuit shift_circuit;
     uint8_t targ_g;
     uint8_t curr_g;
-    float pressure_multi_spc;
-    float pressure_multi_mpc;
-    int16_t mpc_pressure_spring_reduction;
+    /// 1000x real value
+    int pressure_multi_spc_int;
+    /// 1000x real value
+    int pressure_multi_mpc_int;
+    int mpc_pressure_spring_reduction;
     float centrifugal_factor_off_clutch;
 };
 

@@ -12,7 +12,7 @@ const uint8_t PHASE_END_CONTROL      = 4;
 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 3; // 100ms for torque request down ramp
-    this->cycles_high_filling = data->prefill_info.fill_time/20;
+    this->cycles_high_filling = data->prefill_info.fill_cycles;
     this->cycles_ramp_filling = 3;
     this->cycles_low_filling = 5;
 
@@ -59,7 +59,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2(uint8_t cycles) {
         // 3 20ms. Engine to implement Trq req
         float cycles_can = 3.0;
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
-        float threshold = torque * (float)(cycles + (cycles_can*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
+        float threshold = (torque * (float)(cycles + (cycles_can*2)) / inertia) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx];
 
         ret = MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
     } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
@@ -79,25 +79,25 @@ uint8_t ReleasingShift::step_internal(
     if (this->spc_ramp_val == 0) {
         // Also set SPC offset
         // TODO - We should set this in profile configuration
-        //int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 2000, 5000, InterpType::Linear);
+        int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 1500, 5000, InterpType::Linear);
         int adder_profile = 0;
         this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_speed;
+        if (0 == this->spc_ramp_val) {
+            this->spc_ramp_val = 8;
+        }
         if (manual == sid->profile) {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 750, 10, 250, InterpType::Linear);
-            this->spc_ramp_val *= 1.25;
+            this->spc_ramp_val *= 1.5;
         } else if (race == sid->profile)  {
             adder_profile = interpolate_float(sd->pedal_pos, 0, 1000, 10, 250, InterpType::Linear);
-            this->spc_ramp_val *= 1.5;
+            this->spc_ramp_val *= 2.0;
         } else {
             // Auto profiles
             adder_profile = interpolate_float(sid->chars.target_shift_time, 0, 500, 800, 100, InterpType::Linear);
         }
-        this->spc_p_offset = adder_profile;
+        this->spc_p_offset = adder_profile + adder_rpm;
         if (sid->change == GearChange::_1_2) {
             this->spc_p_offset *= 1.993;
-        }
-        if (0 == this->spc_ramp_val) {
-            this->spc_ramp_val = 8;
         }
     }
 
@@ -141,10 +141,11 @@ uint8_t ReleasingShift::step_internal(
                     (abs_input_trq - max_trq_on) / sd->tcc_trq_multiplier
                 );
             } else {
-                //intervension_out = this->freeing_trq / sd->tcc_trq_multiplier;
-                //if (race == sid->profile) {
-                intervension_out  = MAX(this->freeing_trq, (abs_input_trq-this->trq_at_apply_clutch)) / sd->tcc_trq_multiplier;
-                //}
+                int m = 0;
+                if (abs_input_trq > this->trq_at_apply_clutch) {
+                    m = abs_input_trq - this->trq_at_apply_clutch;
+                }
+                intervension_out  = MAX(this->freeing_trq, m) / sd->tcc_trq_multiplier;
             }
         }
 
@@ -166,9 +167,9 @@ uint8_t ReleasingShift::step_internal(
                 }
             }
             // Disable torque requests past a certain speed
-            //if (sd->output_rpm > SHIFT_SETTINGS.output_rpm_disable_trq_req && sid->change != GearChange::_4_3) {
-            //    this->torque_req_val = 0;
-            //}
+            if (sd->output_rpm > SHIFT_SETTINGS.output_rpm_disable_trq_req && is_upshift) {
+                this->torque_req_val = 0;
+            }
         }
         this->torque_req_out = this->torque_req_val;
     }
@@ -228,7 +229,7 @@ void ReleasingShift::phase_fill_release_spc() {
         if (
             ((sid->shift_flags & SHIFT_FLAG_COAST) != 0) || // Coasting
             // Off clutch has not released and at the end of our filling time
-            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) < SHIFT_SETTINGS.clutch_stationary_rpm)
+            (sid->ptr_r_clutch_speeds->off_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm)
         ) {
             this->subphase_shift += 1;
         }
@@ -258,7 +259,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
     }
     // Faster flare recovery
-    if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->on_clutch_speed < -SHIFT_SETTINGS.clutch_stationary_rpm) {
+    if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(SHIFT_SETTINGS.clutch_stationary_rpm/2)) {
         this->spc_p_offset += 20;
     }
     // Write pressure
@@ -293,7 +294,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)
         ) {
             // Next phase
-            sid->tcc->shift_start();
+            //sid->tcc->shift_start();
             this->subphase_mod += 1;
             this->loss_torque = 0;
             this->loss_torque_tmp = 0;
@@ -330,7 +331,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         }
         int p = MAX(0, this->calc_release_clutch_p_signed(this->trq_at_release_clutch, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
-        if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
             // Start torque request to prevent clutch burn up on merge
             this->trq_req_down_ramp = true;
             this->timer_mod = this->cycles_mod_ramp_to_sync;
@@ -357,19 +358,19 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         uint16_t targ = this->calc_sync_mod_pressure();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
         if (0 == this->timer_mod) {
-            sid->tcc->shift_end();
+            //sid->tcc->shift_end();
             ret = PHASE_OVERLAP;
         }
     }
     if (this->subphase_mod > 1 && sd->input_rpm > 200) {
         if (((sid->shift_flags & SHIFT_FLAG_COAST) != 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= 25) {
             // Coasting threshold
-            sid->tcc->shift_end();
+            //sid->tcc->shift_end();
             ret = PHASE_OVERLAP;
         }
         if (((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= SHIFT_SETTINGS.clutch_stationary_rpm) {
             // Coasting threshold
-            sid->tcc->shift_end();
+            //sid->tcc->shift_end();
             ret = PHASE_OVERLAP;
         }
     }
@@ -389,6 +390,11 @@ uint8_t ReleasingShift::phase_overlap() {
         }
         this->timer_shift = OVERLAP_TIMES[idx];
         this->timer_mod = 3;
+        if (race == sid->profile) {
+            this->timer_mod = 2;
+            this->timer_shift /= 2;
+        }
+
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(low_filling_p, CoefficientTy::Release);
         this->overlap_torque = (sd->tcc_trq_multiplier * this->torque_req_val) + this->trq_at_apply_clutch;
         if (this->overlap_torque > this->freeing_trq) {

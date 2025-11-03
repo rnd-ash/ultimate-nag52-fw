@@ -13,15 +13,10 @@
 #include <string.h>
 
 typedef struct {
-    uint16_t fill_time;
+    uint16_t fill_cycles;
     uint16_t fill_pressure_on_clutch;
     uint16_t low_fill_pressure_on_clutch;
 } PrefillData;
-
-typedef struct {
-    uint16_t hold_time;
-    uint16_t ramp_time;
-} PressureStageTiming;
 
 struct ShiftPressures {
     // At the applying clutch
@@ -92,7 +87,7 @@ public:
     uint16_t get_max_shift_pressure(uint8_t shift_idx);
     uint8_t get_active_shift_circuits(void) const;
 
-    uint16_t calc_current_linear_sol(uint16_t p_targ, uint16_t p_mod, GearboxGear current_gear, GearChange change_state);
+    uint16_t calc_current_linear_sol(uint16_t p_targ, GearboxGear current_gear, GearChange change_state);
 
     /**
      * Friction coefficient for applying clutches (Sliding into place)
@@ -136,7 +131,6 @@ public:
     void update_pressures(GearboxGear current_gear, GearChange change_state);
 
     PrefillData make_fill_data(Clutch applying);
-    PressureStageTiming get_max_pressure_timing();
     StoredMap* get_tcc_pwm_map(void);
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);

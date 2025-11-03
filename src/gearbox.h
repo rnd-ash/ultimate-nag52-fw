@@ -32,7 +32,6 @@ public:
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
-    void inc_subprofile(void);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);

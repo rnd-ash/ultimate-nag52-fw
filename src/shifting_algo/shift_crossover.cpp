@@ -77,7 +77,7 @@ uint8_t CrossoverShift::phase_fill() {
     uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
         // Set vars
-        this->timer_shift = sid->prefill_info.fill_time/20;
+        this->timer_shift = sid->prefill_info.fill_cycles;
         this->subphase_shift += 1;
     }
     if (1 == this->subphase_shift) {

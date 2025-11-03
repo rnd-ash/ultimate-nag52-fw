@@ -343,12 +343,6 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
             if (sensors->pedal_delta->get_average() > 20.0) {
                 can_upshift = false;
             }
-            //if (sensors->max_torque != 0) {
-            //    float demanded_load = (MAX(sensors->converted_driver_torque, 0) * 100) / sensors->max_torque;
-            //    if (demanded_load > 30) {
-            //        can_upshift = false;
-            //    }
-            //}
         }
         if (can_upshift) {
             // Stop 'sporatic' upshifting when the user lets go of the pedal quickly (This will trigger a brief wait period)

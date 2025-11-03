@@ -122,7 +122,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     if (0 == this->subphase_shift) {
         // Var set
         this->timer_shift = 5; // 100ms for ramp
-        this->timer_mod = sid->maxp_info.hold_time/20;
+        this->timer_mod =  5 + interpolate_float(sd->atf_temp, 40, 5, 0, 40, InterpType::Linear);
         this->subphase_shift += 1;
     } else if (1 == this->subphase_shift) {
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, sid->SPC_MAX, this->timer_shift);
@@ -188,11 +188,9 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(uint16_t p_shift) {
 
 // FUN_d8028
 uint16_t ShiftingAlgorithm::calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod) {
-    float p = 0;
-    int p_s = ((int)p_shift * sid->inf.pressure_multi_spc_int) / 1000;
-    int p_m = ((int)p_mod * sid->inf.pressure_multi_mpc_int) / 1000;
-
-    p = p_s + p_m + sid->inf.mpc_pressure_spring_reduction;
+    int p = ((int)p_shift * (int)HYDR_PTR->overlap_circuit_factor_spc[sid->inf.map_idx]) / 1000;
+    p += (((int)p_mod * (int)HYDR_PTR->overlap_circuit_factor_mpc[sid->inf.map_idx]) / 1000);
+    p +=  (int)HYDR_PTR->overlap_circuit_spring_pressure[sid->inf.map_idx];
     if (p <= 0) {
         p = 0;
     }

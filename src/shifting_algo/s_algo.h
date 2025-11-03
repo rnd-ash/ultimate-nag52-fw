@@ -29,7 +29,6 @@ struct ShiftInterfaceData{
     int MOD_MAX;
     int SPC_MAX;
     uint32_t shift_flags;
-    uint16_t targ_time;
     GearChange change;
     Clutch applying;
     Clutch releasing;
@@ -41,10 +40,8 @@ struct ShiftInterfaceData{
     PrefillData prefill_info;
     ShiftCharacteristics chars;
     ShiftClutchData* ptr_r_clutch_speeds;
-    ShiftPressures*  ptr_prev_pressures;
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;
-    PressureStageTiming maxp_info;
     TorqueConverter* tcc;
 };
 

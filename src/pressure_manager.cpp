@@ -123,37 +123,37 @@ uint16_t PressureManager::get_shift_regulator_pressure(void) {
     return HYDR_PTR->shift_reg_spring_pressure;
 }
 
-uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mod, GearboxGear current_gear, GearChange change_state) {
-    float factor;
+uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear current_gear, GearChange change_state) {
+    int factor;
     uint16_t extra_p = 0;
     if (GearChange::_IDLE == change_state) { // Not shifting
         // Not shifting
         if (GearboxGear::First == current_gear || GearboxGear::Reverse_First == current_gear) {
-            factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
+            factor = HYDR_PTR->p_multi_1;
         } else {
-            factor = (float)HYDR_PTR->p_multi_other / 1000.0;
+            factor = HYDR_PTR->p_multi_other;
         }
     } else {
         // Shifting
         uint16_t extra_p_interp_max;
         if (GearChange::_1_2 == change_state || GearChange::_2_1 == change_state) {
-            factor = (float)HYDR_PTR->p_multi_1 / 1000.0;
+            factor = HYDR_PTR->p_multi_1;
             extra_p_interp_max = HYDR_PTR->extra_pressure_adder_r1_1;
         } else {
-            factor = (float)HYDR_PTR->p_multi_other / 1000.0;
+            factor = HYDR_PTR->p_multi_other;
             extra_p_interp_max = HYDR_PTR->extra_pressure_adder_other_gears;
         }
         extra_p = interpolate_float(sensor_data->engine_rpm, 0, extra_p_interp_max, HYDR_PTR->extra_pressure_pump_speed_min, HYDR_PTR->extra_pressure_pump_speed_max, InterpType::Linear);
     }
 
-    float line_pressure = HYDR_PTR->lp_reg_spring_pressure + p_mod;
-    float wp = extra_p + ((float)line_pressure / factor);
+    int line_pressure = (HYDR_PTR->lp_reg_spring_pressure + this->target_modulating_pressure)*1000;
+    int wp = extra_p + (line_pressure / factor);
     if (wp <= 0) {
         wp = 0;
     }
     this->calculated_working_pressure = wp;
 
-    float interpolated = interpolate_float(
+    int interpolated = interpolate_float(
         wp,
         HYDR_PTR->inlet_pressure_output_min,
         HYDR_PTR->inlet_pressure_output_max,
@@ -163,12 +163,13 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, uint16_t p_mo
     );
     this->calculated_inlet_pressure = interpolated;
 
-    float inlet_factor = (((float)HYDR_PTR->shift_pressure_addr_percent/1000.0) * ((float)HYDR_PTR->inlet_pressure_output_max - (float)interpolated));
+    int inlet_factor = HYDR_PTR->shift_pressure_addr_percent * (HYDR_PTR->inlet_pressure_output_max - interpolated);
+    inlet_factor /= 1000;
     uint16_t output_p = get_max_solenoid_pressure();
     if (p_targ < interpolated) {
         float with_inlet = p_targ + HYDR_PTR->inlet_pressure_offset;
         inlet_factor *= with_inlet;
-        inlet_factor /= 1000.0;
+        inlet_factor /= 1000;
         output_p = p_targ + inlet_factor;
     }
     return output_p;
@@ -206,18 +207,16 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
 
     } else {
         // This is my best guess at interpreting the assembly (Decompiler view messes a lot up with this function due to indirections)
-        uint16_t mpc_in = this->target_modulating_pressure;
-        uint16_t spc_in = this->target_shift_pressure;
-        this->corrected_mpc_pressure = this->calc_current_linear_sol(mpc_in, mpc_in, current_gear, change_state);
 
         // -- Set solenoid currents --
         if (this->shift_sol_en) {
-            this->corrected_spc_pressure = this->calc_current_linear_sol(spc_in, mpc_in, current_gear, change_state);
+            this->corrected_spc_pressure = this->calc_current_linear_sol(this->target_shift_pressure, current_gear, change_state);
             sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0));
         } else {
             this->corrected_spc_pressure = get_max_solenoid_pressure();
             sol_spc->set_current_target(0);
         }
+        this->corrected_mpc_pressure = this->calc_current_linear_sol(this->target_modulating_pressure, current_gear, change_state);
         sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0));
         sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
     }
@@ -243,10 +242,12 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
             break;
     }
     if (sel_idx != 0xFF) {
-        float clutch_factor = MECH_PTR->atf_density_centrifugal_force_factor[sel_idx];
+        int clutch_factor = MECH_PTR->atf_density_centrifugal_force_factor[sel_idx];
         if (clutch_factor != 0) {
-            float density_now = MECH_PTR->atf_density_minus_50c - ((sensor_data->atf_temp + 50) * ((float)(MECH_PTR->atf_density_drop_per_c) / 100.0));
-            ret = density_now * ((speed * speed) / clutch_factor);
+            float drop = (MECH_PTR->atf_density_drop_per_c * (sensor_data->atf_temp + 50))/100.0;
+            float density_now = MECH_PTR->atf_density_minus_50c - drop;
+
+            ret = (density_now * (speed * speed)) / clutch_factor;
             ret /= 10000.0; // To convert to mbar
         }
     }
@@ -564,25 +565,18 @@ uint16_t PressureManager::get_b3_prefill_pressure(void) const {
 PrefillData PressureManager::make_fill_data(Clutch applying) {
     if (nullptr == this->fill_time_map) {
         return PrefillData {
-            .fill_time = 500,
+            .fill_cycles = 25,
             .fill_pressure_on_clutch = 1500,
             .low_fill_pressure_on_clutch = 700,
         };
     } else {
         PrefillData ret =  PrefillData {
-            .fill_time = (uint16_t)fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)applying),
+            .fill_cycles = (uint16_t)(fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)applying)/20.0),
             .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)applying),
             .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)applying),
         };
         return ret;
     }
-}
-
-PressureStageTiming PressureManager::get_max_pressure_timing() {
-    return PressureStageTiming {
-        .hold_time = (uint16_t)interpolate_float(this->sensor_data->atf_temp, 1500, 200, -20, 30, InterpType::Linear),
-        .ramp_time = 300,
-    };
 }
 
 // Get PWM value (out of 4096) to write to the solenoid

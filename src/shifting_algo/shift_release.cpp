@@ -79,25 +79,25 @@ uint8_t ReleasingShift::step_internal(
     if (this->spc_ramp_val == 0) {
         // Also set SPC offset
         // TODO - We should set this in profile configuration
-        int adder_rpm = interpolate_float(sd->input_rpm, 0, 500, 1500, 5000, InterpType::Linear);
+        int adder_rpm = interpolate_float(sd->input_rpm, &SHIFT_SETTINGS.adder_spc_rpm, InterpType::Linear);
         int adder_profile = 0;
         this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_speed;
-        if (0 == this->spc_ramp_val) {
-            this->spc_ramp_val = 8;
-        }
         if (manual == sid->profile) {
-            adder_profile = interpolate_float(sd->pedal_pos, 0, 750, 10, 250, InterpType::Linear);
-            this->spc_ramp_val *= 1.5;
+            adder_profile = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.adder_spc_pedal_m, InterpType::Linear);
+            this->spc_ramp_val *= SHIFT_SETTINGS.spc_ramp_multi_m;
         } else if (race == sid->profile)  {
-            adder_profile = interpolate_float(sd->pedal_pos, 0, 1000, 10, 250, InterpType::Linear);
-            this->spc_ramp_val *= 2.0;
+            adder_profile = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.adder_spc_pedal_r, InterpType::Linear);
+            this->spc_ramp_val *= SHIFT_SETTINGS.spc_ramp_multi_r;
         } else {
             // Auto profiles
-            adder_profile = interpolate_float(sid->chars.target_shift_time, 0, 500, 800, 100, InterpType::Linear);
+            adder_profile = interpolate_float(sid->chars.target_shift_time, &SHIFT_SETTINGS.adder_spc_pedal, InterpType::Linear);
         }
         this->spc_p_offset = adder_profile + adder_rpm;
         if (sid->change == GearChange::_1_2) {
             this->spc_p_offset *= 1.993;
+        }
+        if (0 == this->spc_ramp_val) {
+            this->spc_ramp_val = 8;
         }
     }
 
@@ -301,7 +301,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        float x1 = interpolate_float(sd->pedal_pos, 0.1, 0.5, 10, 200, InterpType::Linear)*this->loss_torque_tmp;
+        float x1 = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear)*this->loss_torque_tmp;
         float x2 = (this->calculate_freeing_trq_multiplier()*2) + x1;
         this->loss_torque_tmp += x2;
         this->loss_torque = this->loss_torque_tmp/2.0;

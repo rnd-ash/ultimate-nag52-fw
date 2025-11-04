@@ -319,25 +319,25 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     .spc_ramp_multi_r = 2.0,
     .adder_spc_rpm = {
         .new_min = 0,
-        .new_max = 500,
-        .raw_min = 1500,
+        .new_max = 100,
+        .raw_min = 2500,
         .raw_max = 5000,
     },
     .adder_spc_pedal_r = {
         .new_min = 0,
-        .new_max = 1000,
+        .new_max = 500,
         .raw_min = 10,
         .raw_max = 250,
     },
     .adder_spc_pedal_m = {
         .new_min = 0,
-        .new_max = 750,
+        .new_max = 250,
         .raw_min = 10,
         .raw_max = 250,
     },
     .adder_spc_pedal = {
         .new_min = 0,
-        .new_max = 500,
+        .new_max = 100,
         .raw_min = 10,
         .raw_max = 250,
     }

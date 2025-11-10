@@ -403,27 +403,18 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
 
         ShiftingAlgorithm* algo;
         int p1 = VEHICLE_CONFIG.engine_drag_torque/20.0; // half of drag torque
-        int p2 = VEHICLE_CONFIG.engine_drag_torque/10.0; // drag torque
+        int p2 = VEHICLE_CONFIG.engine_drag_torque/5.0; // drag torque
         if (is_upshift) {
-            // 2C
-            if (sensor_data.input_torque < -p1) {
+            if (sensor_data.input_torque > p2) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (manually_requested) {
-                p1 = p2;
-            }
-            // Special case for 2-1
-            if (sid.change == GearChange::_2_1 && sensor_data.output_rpm < 300 && sensor_data.pedal_pos < 10) {
-                algo = new CrossoverShift(&sid);
+            if (sensor_data.input_torque > p2) {
+                algo = new ReleasingShift(&sid);
             } else {
-                if (sensor_data.input_torque > p1) {
-                    algo = new ReleasingShift(&sid);
-                } else {
-                    algo = new CrossoverShift(&sid);
-                }
+                algo = new CrossoverShift(&sid);
             }
         }
 

@@ -375,7 +375,7 @@ uint16_t PressureManager::find_decent_adder_torque(GearChange change, uint16_t a
         return 0;
     } else {
         uint16_t ret = map->get_value((float)output_rpm/30.0, (float)abs_motor_torque/5.0); 
-        return ret;
+        return ret*5;
     }
 }
 
@@ -417,14 +417,6 @@ uint16_t PressureManager::find_freeing_torque(GearChange change, uint16_t motor_
     }
 }
 
-uint16_t PressureManager::find_turbine_drag(uint8_t map_idx) {
-    if (map_idx > 7) {
-        return 1;
-    } else {
-        return MECH_PTR->turbine_drag[map_idx];
-    }
-}
-
 uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, CoefficientTy coef_val) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float coef;
@@ -446,19 +438,6 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
     return calc;
 }
 
-// FUNC_0d8092 (MB Layer EGS)
-uint16_t PressureManager::correct_shift_shift_pressure(uint8_t shift_idx, uint32_t pressure) {
-    // TODO - Move max_p to global constant so it can be referred in other functions
-    uint16_t max_p = this->get_max_shift_pressure(shift_idx);
-    // Bypass EEPROM adaptation offsets for shift circuits
-    // Bypass offset for Mclaren
-    if (pressure > max_p) {
-        pressure = max_p;
-    }
-    // P*1000 as shift_spc_gain is *1000
-    return (uint16_t)(((pressure*1000) / HYDR_PTR->shift_spc_gain[shift_idx]) + HYDR_PTR->shift_reg_spring_pressure);
-}
-
 uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
     uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * HYDR_PTR->shift_spc_gain[shift_idx];
     max_p /= 1000; // shift_spc_gain is *1000;
@@ -474,7 +453,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
         output = 0;
     } else {   
         float ret = p_clutch_with_coef(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque), CoefficientTy::Static);
-        ret += MECH_PTR->release_spring_pressure[clutch_idx] + HYDR_PTR->extra_p_not_shifting;
+        ret += (MECH_PTR->release_spring_pressure[clutch_idx] + HYDR_PTR->extra_p_not_shifting);
         if (curr_g == GearboxGear::First || curr_g == GearboxGear::Reverse_First) {
             ret *= (HYDR_PTR->p_multi_1 / 1000.0);
         } else {

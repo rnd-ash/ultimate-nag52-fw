@@ -31,9 +31,9 @@ private:
     uint16_t fun_0d8a66();
     uint16_t max_p_mod_pressure() override;
     uint16_t fill_ramping_mod_p();
-
-    uint16_t trq_req_val = 0;
+    uint16_t get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles);
     float trq_adder_2 = 0;
+    float trq_adder_3 = 0;
 
     uint8_t trq_req_timer = 0;
     bool trq_req_up_ramp = false;

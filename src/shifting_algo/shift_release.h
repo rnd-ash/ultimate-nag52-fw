@@ -35,8 +35,6 @@ private:
     float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 
-    uint16_t torque_req_val = 0;
-
     float calculate_freeing_trq_multiplier();
     void phase_fill_release_spc();
     uint8_t phase_fill_release_mpc();
@@ -48,12 +46,8 @@ private:
     short calc_shifting_momentum();
     short calc_sync_torque_new_clutch();
     uint16_t calc_mod_overlap();
-    bool trq_req_up_ramp = false;
-    uint16_t torque_req_out = 0;
-    bool trq_req_down_ramp = false;
-    uint8_t trq_req_timer = 0;
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
-    uint16_t calc_threshold_rpm_2(uint8_t cycles);
+    uint16_t calc_threshold_rpm_2();
     uint16_t calc_cycles_mod_phase1();
     uint16_t calc_cycles_mod_phase2();   
     float spc_ramp_val = 0;

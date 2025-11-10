@@ -83,7 +83,6 @@ public:
     uint16_t get_corrected_modulating_pressure(void) const;
     uint16_t get_targ_tcc_pressure(void) const;
     uint16_t get_b3_prefill_pressure(void) const;
-    uint16_t correct_shift_shift_pressure(uint8_t shift_idx, uint32_t pressure);
     uint16_t get_max_shift_pressure(uint8_t shift_idx);
     uint8_t get_active_shift_circuits(void) const;
 
@@ -125,7 +124,6 @@ public:
     uint16_t find_working_mpc_pressure(GearboxGear curr_g);
     uint16_t find_pressure_holding_other_clutches_in_change(GearChange change, GearboxGear current_g, uint16_t abs_torque_nm);
     uint16_t find_freeing_torque(GearChange change, uint16_t motor_torque, uint16_t output_rpm);
-    uint16_t find_turbine_drag(uint8_t map_idx);
     uint16_t find_decent_adder_torque(GearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, CoefficientTy coef_val);
     void update_pressures(GearboxGear current_gear, GearChange change_state);
@@ -144,10 +142,8 @@ public:
     }
 
     ShiftPressures get_shift_pressures_now() {
-        ShiftPressures ret{};
-        if (nullptr == this->ptr_shift_pressures) {
-            memset(&ret, 0x00, sizeof(ShiftPressures));
-        } else {
+        ShiftPressures ret{0,0,0,0};
+        if (nullptr != this->ptr_shift_pressures) {
             memcpy(&ret, this->ptr_shift_pressures, sizeof(ShiftPressures));
         }
         return ret;

@@ -122,25 +122,32 @@ public:
 
         
         // EGS compatibility functions
-        uint16_t calc_max_trq_on_clutch(uint16_t p_apply_clutch, CoefficientTy coef);
+        uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
         uint16_t fun_0d83d4();
         uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
         uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
         uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
         uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
         void reset_for_next_phase();
+        uint16_t correct_shift_shift_pressure(int16_t pressure);
 
         uint16_t set_p_apply_clutch_with_spring(uint16_t p);
 
         short calc_correction_trq(ShiftStyle style, short momentum);
-        float momentum_pid[2];
+        int32_t momentum_pid[3];
         virtual uint16_t max_p_mod_pressure() = 0;
         virtual bool is_release_shift() = 0;
         uint16_t threshold_rpm = 0;
         float spc_p_offset = 0;
+        uint16_t torque_req_val = 0;
 
         uint16_t calc_high_filling_p();
         uint16_t calc_low_filling_p();
+
+        bool trq_req_up_ramp = false;
+        uint16_t torque_req_out = 0;
+        bool trq_req_down_ramp = false;
+        uint8_t trq_req_timer = 0;
 };
 
 // Helper functions

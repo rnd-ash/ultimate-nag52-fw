@@ -220,6 +220,9 @@ uint8_t CrossoverShift::phase_overlap() {
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
         this->subphase_shift += 1;
+        // Start slowing down the engine
+        this->trq_req_timer = 3;
+        this->trq_req_down_ramp = true;
     }
     if (1 == subphase_shift) {
         uint16_t c_trq_apply = pm->p_clutch_with_coef(
@@ -241,8 +244,7 @@ uint8_t CrossoverShift::phase_overlap() {
 
 
     if (
-        this->timer_shift == 0 || 
-        sid->ptr_r_clutch_speeds->on_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm || 
+        this->timer_shift <= 1 || // Need to see why EGS handles this timer like this 
         sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
@@ -292,9 +294,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->target_turbine_speed = sd->input_rpm;
         this->momentum_plus_maxtrq = sd->indicated_torque;
         this->momentum_plus_maxtrq_filtered = 0;
-
-        this->trq_req_timer = 3;
-        this->trq_req_down_ramp = true;
     
     }
     if (1 == subphase_shift) {

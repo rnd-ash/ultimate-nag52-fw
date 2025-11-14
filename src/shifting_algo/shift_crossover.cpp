@@ -73,9 +73,9 @@ uint8_t CrossoverShift::step_internal(
         // LIMIT TORQUE - Max torque clutch exceeded
         int intervension_out = 0;
         if (this->phase_id >= PHASE_OVERLAP) {
-            //float multi_engine_trq = interpolate_float(sd->pedal_pos, 25, 250, 0, 0.5, InterpType::Linear);
-            //float multi_rpm = interpolate_float(sd->input_rpm, 1500, 6000, 1.0, 1.25, InterpType::Linear);
-            float out = (float)abs_input_trq * 0.25;
+            float multi_engine_trq = interpolate_float(sd->pedal_pos, 0, 0.5, 25, 250, InterpType::Linear);
+            float multi_rpm = interpolate_float(sd->input_rpm, 1.0, 1.25, 1500, 6000, InterpType::Linear);
+            float out = (float)abs_input_trq * (multi_engine_trq*multi_rpm);
             intervension_out = out / sd->tcc_trq_multiplier;
         }
         if (trq_req_up_ramp) {
@@ -207,22 +207,26 @@ uint8_t CrossoverShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
     this->trq_adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
+    // Trq req check
+    if (!this->trq_req_down_ramp && this->upshifting && abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm) {
+        // Start slowing down the engine (Clutch disengaged)
+        this->trq_req_timer = 3;
+        this->trq_req_down_ramp = true;
+    }
+
     if (0 == subphase_shift) {
         this->p_apply_overlap_begin = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
-        uint8_t interp_min = 5; // RELEASE_CAL->0x24
-        uint8_t interp_max = 3; // RELEASE_CAL->0x25
+        uint8_t interp_min = 10; // RELEASE_CAL->0x24
+        uint8_t interp_max = 5; // RELEASE_CAL->0x25
         if (sid->change == GearChange::_1_2) {
-            interp_min += 1; // RELEASE_CAL->0x46
-            interp_max += 0; // RELEASE_CAL->0x47
+            interp_min += 2; // RELEASE_CAL->0x46
+            interp_max += 1; // RELEASE_CAL->0x47
         }
         this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max,80,400, InterpType::Linear);
 
-        uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,0,1000,4000, InterpType::Linear);
+        uint8_t rpm_adder = interpolate_float(sd->input_rpm,1,3,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
         this->subphase_shift += 1;
-        // Start slowing down the engine
-        this->trq_req_timer = 3;
-        this->trq_req_down_ramp = true;
     }
     if (1 == subphase_shift) {
         uint16_t c_trq_apply = pm->p_clutch_with_coef(
@@ -270,6 +274,12 @@ uint8_t CrossoverShift::phase_overlap2() {
         boost_trq_adder = this->trq_adder;
     }
     this->trq_adder_2 = boost_trq_adder;
+
+    if (!this->trq_req_down_ramp && this->upshifting && abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm) {
+        // Start slowing down the engine (Clutch disengaged)
+        this->trq_req_timer = 3;
+        this->trq_req_down_ramp = true;
+    }
 
     if (0 == subphase_shift) {
         this->p_apply_overlap_begin = this->p_apply_clutch;

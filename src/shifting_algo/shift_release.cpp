@@ -76,22 +76,7 @@ uint8_t ReleasingShift::step_internal(
     uint8_t ret = STEP_RES_CONTINUE;
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
-        // Also set SPC offset
-        // TODO - We should set this in profile configuration
-        int adder_rpm = interpolate_float(sd->input_rpm, &SHIFT_SETTINGS.adder_spc_rpm, InterpType::Linear);
-        int adder_profile = 0;
-        this->spc_ramp_val = SHIFT_SETTINGS.spc_ramp_speed;
-        if (manual == sid->profile) {
-            adder_profile = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.adder_spc_pedal_m, InterpType::Linear);
-            //this->spc_ramp_val *= SHIFT_SETTINGS.spc_ramp_multi_m;
-        } else if (race == sid->profile)  {
-            adder_profile = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.adder_spc_pedal_r, InterpType::Linear);
-            //this->spc_ramp_val *= SHIFT_SETTINGS.spc_ramp_multi_r;
-        } else {
-            // Auto profiles
-            adder_profile = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.adder_spc_pedal, InterpType::Linear);
-        }
-        this->spc_p_offset = adder_profile + adder_rpm;
+        this->spc_p_offset = 0;
         if (0 == this->spc_ramp_val) {
             this->spc_ramp_val = 8;
         }

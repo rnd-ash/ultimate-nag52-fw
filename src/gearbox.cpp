@@ -403,9 +403,9 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
 
         int inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
-        int p2 = 3*inertia; // 3x drag torque (TODO, we should change this per shift)
+        int p2 = 2*inertia; // 3x drag torque (TODO, we should change this per shift)
         if (is_upshift) {
-            if (sensor_data.input_torque > p2 || sensor_data.output_rpm < 100) {
+            if (sensor_data.input_torque > p2 || sensor_data.input_torque < -inertia || sensor_data.output_rpm < 100) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);

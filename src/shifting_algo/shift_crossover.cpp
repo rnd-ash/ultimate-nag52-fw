@@ -190,6 +190,7 @@ uint8_t CrossoverShift::phase_fill() {
             ret = PHASE_OVERLAP;
         }
     }
+
     // Write Shift sol pressure
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
 
@@ -206,7 +207,7 @@ uint8_t CrossoverShift::phase_fill() {
 uint8_t CrossoverShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
-    this->trq_adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
+    this->trq_adder = 0;
     // Trq req check
     if (!this->trq_req_down_ramp && this->upshifting && abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm) {
         // Start slowing down the engine (Clutch disengaged)
@@ -283,8 +284,8 @@ uint8_t CrossoverShift::phase_overlap2() {
 
     if (0 == subphase_shift) {
         this->p_apply_overlap_begin = this->p_apply_clutch;
-        uint8_t interp_min = 5; // RELEASE_CAL->0x24
-        uint8_t interp_max = 3; // RELEASE_CAL->0x25
+        uint8_t interp_min = 10; // RELEASE_CAL->0x24
+        uint8_t interp_max = 7; // RELEASE_CAL->0x25
         if (sid->change == GearChange::_1_2) {
             interp_min += 1; // RELEASE_CAL->0x46
             interp_min += 0; // RELEASE_CAL->0x47
@@ -294,7 +295,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         uint8_t rpm_adder = interpolate_float(sd->input_rpm,0,2,1000,4000, InterpType::Linear);
         this->timer_shift += rpm_adder;
 
-        this->timer_mod = 0; // 0x69
+        this->timer_mod = 3;
         if (sd->converted_torque < 0) {
             this->timer_mod = (float)this->timer_mod * 1.5;
         }
@@ -309,7 +310,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     if (1 == subphase_shift) {
         this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 4);
         if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
-            // Next phhase
+            // Next phase
             this->subphase_shift += 1;
         }
     } else if (2 == subphase_shift) {

@@ -249,7 +249,7 @@ uint8_t CrossoverShift::phase_overlap() {
 
 
     if (
-        this->timer_shift <= 1 || // Need to see why EGS handles this timer like this 
+        this->timer_shift == 0 ||
         sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout

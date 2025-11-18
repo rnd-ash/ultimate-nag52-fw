@@ -34,13 +34,14 @@ void CrossoverShift::calc_shift_flags(uint32_t* dest) {
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
+// P1 - IDX
+// P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
-    float torque_adder = (this->trq_adder + this->trq_adder_2)/2;
-    float torque_req_eng = this->torque_req_val/2;
-    float bVar1 = 6;
+    float torque = this->trq_adder + this->trq_adder_2+this->torque_req_val;
+    float bVar1 = 4;
     float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
-    float threshold = (torque_adder+torque_req_eng) * (float)(ramp_cycles + (bVar1*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
-    threshold *= (float)FAC_TABLE[shift_idx] / 100.0;
+    float threshold = (torque*5*(ramp_cycles+(bVar1*2))) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
+    threshold /= 10.0;
     return MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
 }
 

@@ -277,7 +277,6 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)
         ) {
             // Next phase
-            //sid->tcc->shift_start();
             this->subphase_mod += 1;
             this->loss_torque = 0;
             this->loss_torque_tmp = 0;
@@ -307,7 +306,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         // PID Correction to ramp the disengaging clutch at a sensible rate
         this->momentum_plus_maxtrq = this->freeing_trq + this->trq_at_apply_clutch;
         this->momentum_plus_maxtrq_filtered = first_order_filter_in_place(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_filtered);
-        this->correction_trq = MIN(this->correction_trq, this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_filtered));
+        this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_filtered);
         this->trq_at_release_clutch = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque + this->correction_trq;
         if (this->trq_at_release_clutch < minimum_mod_reduction_trq) {
             this->trq_at_release_clutch = minimum_mod_reduction_trq;
@@ -328,7 +327,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         short res = this->calc_shifting_momentum();
         this->momentum_plus_maxtrq = linear_ramp_with_timer(this->momentum_plus_maxtrq, res, timer_mod);
         this->momentum_plus_maxtrq_filtered = first_order_filter_in_place(80, this->momentum_plus_maxtrq, this->momentum_plus_maxtrq_filtered);
-        this->correction_trq = MIN(this->correction_trq, this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_filtered));
+        this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_plus_maxtrq_filtered);
         uint16_t targ = this->calc_sync_mod_pressure();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
         if (0 == this->timer_mod) {
@@ -363,7 +362,6 @@ uint8_t ReleasingShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
-        sid->tcc->shift_end();
         // Variable set
         this->p_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
         int idx = sid->inf.map_idx;
@@ -405,6 +403,7 @@ uint8_t ReleasingShift::phase_overlap() {
     }
 
     if (this->timer_shift == 0) {
+        sid->tcc->shift_end();
         ret = PHASE_MAX_PRESSURE;
     }
     return ret;

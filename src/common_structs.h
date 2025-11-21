@@ -72,13 +72,13 @@ struct SensorData{
     int16_t min_torque;
     /// Last time the gearbox changed gear (in milliseconds)
     uint32_t last_shift_time;
-    /// Is the brake pedal depressed?
-    bool is_braking;
     /// Current gearbox ratio
     float gear_ratio;
     /// Target gearbox ratio
     float targ_gear_ratio;
     float tcc_trq_multiplier;
+    bool kickdown_pressed;
+    bool brake_pressed;
 };
 
 struct OutputData {

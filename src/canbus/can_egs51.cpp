@@ -57,8 +57,14 @@ bool Egs51Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs51Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
-    return false;
+bool Egs51Can::get_kickdown(const uint32_t expire_time_ms) {
+    bool ret  = false;
+    // Only for the CAN shifter
+    EWM_230_EGS52 dest;
+	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest)){
+        ret  = dest.KD;
+    }
+    return ret;
 }
 
 uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO

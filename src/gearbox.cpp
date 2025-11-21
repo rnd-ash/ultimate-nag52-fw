@@ -42,7 +42,7 @@ int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gea
     return calculated;
 }
 
-Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
+Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
 {
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
@@ -60,8 +60,9 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .max_torque = 0,
         .min_torque = 0,
         .last_shift_time = 0,
-        .is_braking = false,
         .gear_ratio = 0.0F,
+        .kickdown_pressed = false,
+        .brake_pressed = false,
     };
     this->output_data = OutputData {
         .torque_req_amount = 0,
@@ -922,7 +923,8 @@ void Gearbox::controller_loop()
         this->pedal_average->add_sample(p_tmp);
         int16_t percent_delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*20.0; // 20.0 = 50 (Cycles/sec) / 2.5 (Pedal raw -> %)
         sensor_data.pedal_delta->add_sample(percent_delta_sec);
-        sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(1000);
+        sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
+        sensor_data.kickdown_pressed = kickdown.is_kickdown_newly_pressed(egs_can_hal, 250);
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
@@ -1078,7 +1080,7 @@ void Gearbox::controller_loop()
                             this->target_gear = next;
                         }
                     }
-                    else if (this->ask_downshift && this->actual_gear > GearboxGear::First)
+                    else if ((this->ask_downshift || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);

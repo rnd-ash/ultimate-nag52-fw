@@ -127,9 +127,6 @@ private:
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 
-    KickdownSwitch kickdown;
-    BrakePedal brake_pedal;
-
     bool is_start_safe = false;
 };
 

@@ -283,10 +283,6 @@ void input_manager(void *)
                     shifter_pos_last = spos;
                 }
             }
-            if (KickdownSwitch::is_kickdown_newly_pressed(egs_can_hal, expire_time) && (!egs_can_hal->get_engine_is_limp(expire_time)))
-            {
-                gearbox->dec_gear_request();
-            }
             switch (VEHICLE_CONFIG.shifter_style)
             {
             case (uint8_t)ShifterStyle::EWM:

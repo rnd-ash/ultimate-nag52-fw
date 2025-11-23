@@ -773,7 +773,7 @@ void Gearbox::controller_loop()
     while (GET_CLOCK_TIME() < expire_check)
     {
         // default behavior: deactivate start
-        start_is_safe = false;
+        is_start_safe = false;
         // Step 1. Aquire ALL Sensors
         TCUIO::update_io_layer();
 
@@ -781,7 +781,7 @@ void Gearbox::controller_loop()
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
-            start_is_safe = true;    
+            is_start_safe = true;    
             break; // Default startup, OK
         }
         else if (this->shifter_pos == ShifterPosition::D)
@@ -958,7 +958,7 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
                 //sol_y4->write_pwm_12_bit(1024);
             }
-            start_is_safe = lock_state;    
+            is_start_safe = lock_state;   
             this->shifter_pos = shifter->get_shifter_position(1000);
             if (
                 this->shifter_pos == ShifterPosition::P ||

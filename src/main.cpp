@@ -218,11 +218,10 @@ void err_beep_loop(void *a)
 }
 
 inline void set_start_enable(void){
-    bool is_safe_start = gearbox->is_safe_start();
-    egs_can_hal->set_safe_start(is_safe_start);
+    bool is_start_safe = gearbox->get_is_start_safe();
+    egs_can_hal->set_safe_start(is_start_safe);
     if (ioexpander != nullptr) {
-        ioexpander->set_start(is_safe_start);
-        // ioexpander->set_start(true);
+        ioexpander->set_start(is_start_safe);
     }
 }
 
@@ -235,9 +234,9 @@ void input_manager(void *)
     while (1)
     {
         pcb_gpio_matrix->read_input_signals();
+        set_start_enable();            
         if (nullptr != shifter)
         {
-            set_start_enable();
             AbstractProfile *prof = shifter->get_profile(expire_time);
             if (nullptr != prof)
             {

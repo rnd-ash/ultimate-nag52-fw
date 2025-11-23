@@ -139,7 +139,7 @@ SPEAKER_POST_CODE setup_tcm()
                                         gearbox = new Gearbox(shifter);
                                         if (ESP_OK == gearbox->start_controller())
                                         {
-                                            gearbox->set_profile(shifter->get_profile(50u));
+                                            gearbox->set_profile(shifter->get_profile());
                                         }
                                         else
                                         {
@@ -227,7 +227,6 @@ inline void set_start_enable(void){
 
 void input_manager(void *)
 {
-    const uint32_t expire_time = 5000u;
     PaddlePosition paddle_pos_last = PaddlePosition::None;
     ShifterPosition shifter_pos_last = ShifterPosition::SignalNotAvailable;
     ShifterPosition spos;
@@ -237,7 +236,7 @@ void input_manager(void *)
         set_start_enable();            
         if (nullptr != shifter)
         {
-            AbstractProfile *prof = shifter->get_profile(expire_time);
+            AbstractProfile *prof = shifter->get_profile();
             if (nullptr != prof)
             {
                 gearbox->set_profile(prof);
@@ -260,11 +259,9 @@ void input_manager(void *)
                 }
                 paddle_pos_last = paddle;
             }
-            // egs_can_hal->get_engine_iat_temp(expire_time);
-            egs_can_hal->get_engine_coolant_temp(expire_time);
-            spos = shifter->get_shifter_position(expire_time);
             if ((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR))
             {
+                spos = shifter->get_shifter_position();
                 if (spos != shifter_pos_last)
                 {
                     // Same position, ignore
@@ -283,24 +280,7 @@ void input_manager(void *)
                     shifter_pos_last = spos;
                 }
             }
-            switch (VEHICLE_CONFIG.shifter_style)
-            {
-            case (uint8_t)ShifterStyle::EWM:
-            {
-                ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
-                shifterewm->set_program_button_pressed(egs_can_hal->get_profile_btn_press(expire_time), egs_can_hal->get_profile_switch_pos(expire_time));
-                break;
-            }
-            case (uint8_t)ShifterStyle::TRRS:
-            {
-                ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
-                shiftertrrs->set_brake_is_pressed(egs_can_hal->get_is_brake_pressed(expire_time));
-                shiftertrrs->set_vehicle_speed(egs_can_hal->get_front_left_wheel(expire_time), egs_can_hal->get_front_right_wheel(expire_time));
-                break;
-            }
-            default:
-                break;
-            }
+            shifter->update();            
         }
         pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);

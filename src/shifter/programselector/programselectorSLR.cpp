@@ -6,7 +6,7 @@ ProgramSelectorSLR::ProgramSelectorSLR(BoardGpioMatrix* board) : board(board)
 {
 }
 
-AbstractProfile *ProgramSelectorSLR::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorSLR::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
 	// Profile rotate switch is connected to pins

@@ -4,10 +4,10 @@
 ProgramSelectorSwitchTRRS::ProgramSelectorSwitchTRRS(BoardGpioMatrix *board): board(board) {
 }
 
-AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
-	if ((nullptr != board) && board->is_data_valid(expire_time_ms))
+	if ((nullptr != board) && board->is_data_valid(expire_time_IC_query))
 	{
 		ProfileSwitchPos profileswitchpos;
 		bool tmp = board->is_program_switch_pressed();
@@ -24,7 +24,7 @@ AbstractProfile *ProgramSelectorSwitchTRRS::get_profile(const uint32_t expire_ti
 
 DiagProfileInputState ProgramSelectorSwitchTRRS::get_input_raw() const {
 	DiagProfileInputState pos = DiagProfileInputState::SNV;
-	if ((nullptr != board) && board->is_data_valid(500)) {
+	if ((nullptr != board) && board->is_data_valid(expire_time_IC_query)) {
 		pos = board->is_program_switch_pressed() ? DiagProfileInputState::SwitchTop : DiagProfileInputState::SwitchBottom;
 	}
 	return pos;

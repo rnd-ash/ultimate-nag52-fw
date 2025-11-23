@@ -10,7 +10,7 @@ void ProgramSelectorSwitchEWM::set_profile_switch_pos(ProfileSwitchPos pos) {
 	this->pos = pos;
 }
 
-AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorSwitchEWM::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
 	GearboxProfile profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_top);

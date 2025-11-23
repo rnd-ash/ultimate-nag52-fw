@@ -766,9 +766,9 @@ cleanup:
 
 void Gearbox::controller_loop()
 {
-    const uint32_t expire_time = 250;
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
+    const uint32_t expire_time = 250u;
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
     while (GET_CLOCK_TIME() < expire_check)
     {
@@ -777,7 +777,7 @@ void Gearbox::controller_loop()
         // Step 1. Aquire ALL Sensors
         TCUIO::update_io_layer();
 
-        this->shifter_pos = shifter->get_shifter_position(expire_time);
+        this->shifter_pos = shifter->get_shifter_position();
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
@@ -959,7 +959,7 @@ void Gearbox::controller_loop()
                 //sol_y4->write_pwm_12_bit(1024);
             }
             is_start_safe = lock_state;   
-            this->shifter_pos = shifter->get_shifter_position(1000);
+            this->shifter_pos = shifter->get_shifter_position();
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||
@@ -1022,7 +1022,7 @@ void Gearbox::controller_loop()
             if (speeds_valid && is_fwd_gear(this->actual_gear))
             {
                 // Check our range restict (Only for TRRS)
-                switch (shifter->get_shifter_position(expire_time)) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
+                switch (shifter->get_shifter_position()) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
                     case ShifterPosition::FOUR:
                         this->restrict_target = GearboxGear::Fourth;
                         break;

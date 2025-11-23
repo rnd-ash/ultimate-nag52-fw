@@ -138,7 +138,7 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer, Shifter* shifter) {
     ret.driver_torque = (gearbox->sensor_data.converted_driver_torque+500)*4;
     ret.static_torque = (gearbox->sensor_data.converted_torque+500)*4;
     ret.profile_input_raw = shifter->diag_get_profile_input();
-    ret.shifter_position = shifter->get_shifter_position(250);
+    ret.shifter_position = shifter->get_shifter_position();
     ret.engine_rpm = can_layer->get_engine_rpm(250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(250);
     ret.torque_req_ctrl_type = gearbox->output_data.ctrl_type;
@@ -200,7 +200,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = (shifter == nullptr || gearbox == nullptr) ? ShifterPosition::SignalNotAvailable : shifter->get_shifter_position(250);
+    ShifterPosition pos = (shifter == nullptr || gearbox == nullptr) ? ShifterPosition::SignalNotAvailable : shifter->get_shifter_position();
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

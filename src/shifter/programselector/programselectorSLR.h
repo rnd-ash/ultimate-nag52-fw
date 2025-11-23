@@ -30,7 +30,7 @@
 class ProgramSelectorSLR : public ProgramSelector {
 public:
 	explicit ProgramSelectorSLR(BoardGpioMatrix* board);
-	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
+	AbstractProfile* get_profile(void) override;
 	ProgramSelectorType get_type(void) const override;
 	DiagProfileInputState get_input_raw(void) const override;
 private:

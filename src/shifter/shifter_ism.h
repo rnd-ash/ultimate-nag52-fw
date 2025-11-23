@@ -14,8 +14,8 @@ public:
 	ShifterIsm(ETS_MODULE_SETTINGS* shifter_settings);
 	// For special handling
 	void update(Egs53Can* can);
-	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
-	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
+	ShifterPosition get_shifter_position(void) override;
+	AbstractProfile* get_profile(void) override;
 	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
 	DiagProfileInputState diag_get_profile_input() override;
 	ShifterStyle get_shifter_type() override;

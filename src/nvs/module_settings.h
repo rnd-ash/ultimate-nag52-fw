@@ -266,13 +266,11 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
 // Release shift settings
 typedef struct {
     // Past this output shaft RPM, torque requests
-    // will not be activated, regardless of gear change
+    // will not be activated when upshifting
     uint16_t output_rpm_disable_trq_req;
     // Below this RPM, a clutch will be considered 'stationary'
+    // which triggers the clutch syncronization phases
     uint16_t clutch_stationary_rpm;
-    // Maximum negative torque for off clutch. higher number means
-    // more torque reduction
-    uint16_t maximum_mod_reduction_trq;
     // Clutch inertia control PID algorithm 'P' value (upshifts)
     int16_t pid_p_val_upshift;
     // Clutch inertia control PID algorithm 'I' value (downshifts)
@@ -281,12 +279,6 @@ typedef struct {
     int16_t pid_p_val_downshift;
     // Clutch inertia control PID algorithm 'I' value (downshifts)
     int16_t pid_i_val_downshift;
-    // Mapping of pedal position to freeing torque value multiplier
-    // The freeing torque value is also used for torque requests.
-    //
-    // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
-    // are the output, a multiplier to be applied to raw freeing torque
-    LinearInterpSetting freeing_torque_multi_pedal_pos;
     // Mapping of pedal position to off clutch torque ramp release speed
     //
     // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
@@ -294,29 +286,61 @@ typedef struct {
     LinearInterpSetting torque_loss_speed_pedal_pos;
     // SPC ramp speed in mBar/20ms
     uint8_t spc_ramp_speed;
+    // SPC ramp multiplier in 'Manual' mode
+    float spc_ramp_multi_m;
+    // SPC ramp multiplier in 'Race' mode
+    float spc_ramp_multi_r;
+    // SPC offset based on input RPM. If your shifts are sliggish at higher
+    // RPMs, then you can increase the output pressure here
+    LinearInterpSetting adder_spc_rpm;
+    // SPC offset based on pedal position for Race mode. Pedal is from 0-250
+    LinearInterpSetting adder_spc_pedal_r;
+    // SPC offset based on pedal position for Manual mode. Pedal is from 0-250
+    LinearInterpSetting adder_spc_pedal_m;
+    // SPC offset based on pedal position for all other modes. Pedal is from 0-250
+    LinearInterpSetting adder_spc_pedal;
 } __attribute__ ((packed)) REL_MODULE_SETTINGS;
 
 const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     .output_rpm_disable_trq_req = 1500,
     .clutch_stationary_rpm = 130,
-    .maximum_mod_reduction_trq = 100,
     .pid_p_val_upshift = -150,
     .pid_i_val_upshift = -5,
-    .pid_p_val_downshift = 80,
-    .pid_i_val_downshift = 4,
-    .freeing_torque_multi_pedal_pos = {
-        .new_min = 1.0,
-        .new_max = 3.0,
-        .raw_min = 10,
-        .raw_max = 200,
-    },
+    .pid_p_val_downshift = 200,
+    .pid_i_val_downshift = 5,
     .torque_loss_speed_pedal_pos = {
-        .new_min = 1.0,
-        .new_max = 3.0,
+        .new_min = 0.1,
+        .new_max = 0.5,
         .raw_min = 10,
-        .raw_max = 150,
+        .raw_max = 250,
     },
     .spc_ramp_speed = 8,
+    .spc_ramp_multi_m = 1.5,
+    .spc_ramp_multi_r = 2.0,
+    .adder_spc_rpm = {
+        .new_min = 0,
+        .new_max = 100,
+        .raw_min = 2500,
+        .raw_max = 5000,
+    },
+    .adder_spc_pedal_r = {
+        .new_min = 0,
+        .new_max = 500,
+        .raw_min = 10,
+        .raw_max = 250,
+    },
+    .adder_spc_pedal_m = {
+        .new_min = 0,
+        .new_max = 250,
+        .raw_min = 10,
+        .raw_max = 250,
+    },
+    .adder_spc_pedal = {
+        .new_min = 0,
+        .new_max = 100,
+        .raw_min = 10,
+        .raw_max = 250,
+    }
 };
 
 // module settings

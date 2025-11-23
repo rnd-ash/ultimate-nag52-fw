@@ -18,6 +18,8 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 #include "shifter/shifter.h"
+#include "inputcomponents/brakepedal.hpp"
+#include "inputcomponents/kickdownswitch.hpp"
 //#include "runtime_sensors/runtime_sensors.h"
 
 struct PostShiftTorqueRamp {
@@ -32,7 +34,6 @@ public:
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);
-    void inc_subprofile(void);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
@@ -50,7 +51,6 @@ public:
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool is_safe_start(void) {return this->start_is_safe; }
     bool isShifting(void) { return this->shifting; }
     uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
     uint8_t get_profile_id(void) {
@@ -63,7 +63,7 @@ public:
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
-    SpeedSensors speed_sensors = SpeedSensors();
+    SpeedSensors speed_sensors;
 private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
@@ -90,7 +90,6 @@ private:
     static void start_controller_internal(void *_this) {
         static_cast<Gearbox*>(_this)->controller_loop();
     }
-    bool start_is_safe = false;
     uint16_t temp_raw = 0;
     uint8_t pedal_last = 0;
     TaskHandle_t shift_task = nullptr;
@@ -114,7 +113,7 @@ private:
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
     ShiftCircuit last_shift_circuit = ShiftCircuit::None;
-    float diff_ratio_f;
+    float diff_ratio_f =  1.0;
     GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;
     bool aborting = false;
@@ -126,6 +125,9 @@ private:
 
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
+
+    KickdownSwitch kickdown;
+    BrakePedal brake_pedal;
 
 };
 

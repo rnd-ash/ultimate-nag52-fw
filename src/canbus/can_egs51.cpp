@@ -2,12 +2,12 @@
 
 #include "driver/twai.h"
 #include "driver/i2c_master.h"
-// #include "board_config.h"
+#include "board_config.h"
 #include "nvs/eeprom_config.h"
-// #include "shifter/shifter_trrs.h"
-// #include "shifter/shifter_ewm.h"
+#include "shifter/shifter_trrs.h"
+#include "shifter/shifter_ewm.h"
 
-Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) 
+Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
     ESP_LOGI("EGS51", "SETUP CALLED");
     this->gs218.TORQUE_REQ = 0xFE;
@@ -55,6 +55,16 @@ EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {
 
 bool Egs51Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
     return false;
+}
+
+bool Egs51Can::get_kickdown(const uint32_t expire_time_ms) {
+    bool ret  = false;
+    // Only for the CAN shifter
+    EWM_230_EGS52 dest;
+	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest)){
+        ret  = dest.KD;
+    }
+    return ret;
 }
 
 uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
@@ -401,11 +411,11 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
-// void Egs51Can::set_safe_start(bool can_start) {
-//     if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
-//         ioexpander->set_start(can_start);
-//     }
-// }
+void Egs51Can::set_safe_start(bool can_start) {
+    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
+        ioexpander->set_start(can_start);
+    }
+}
 
 void Egs51Can::tx_frames() {
     tx.data_length_code = 6;

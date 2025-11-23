@@ -4,6 +4,18 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 16/11/25
+
+## Added
+    * Crossover shifting algorithm for much faster high powered shifting (Prevents clutch burnup)
+## Fixes
+    * EGS53 assembly fixes for some shifting algorithm components
+    * Keep shift valves open for longer under colder temperatures (Helps prevent accidental aborted shift)
+    * Crossover algorithm is now used forcefully at low RPMs (Prevents rare case of gearbox dropping gears completely)
+    * TCC ramp smoothing with Zener board enabled
+    * Improve torque request system
+    
+
 # 16/10/25
 
 ## Added

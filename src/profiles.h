@@ -98,15 +98,8 @@ public:
     virtual GearboxGear get_start_gear(void) const {
         return GearboxGear::First;
     }
-    void increment_subprofile(void) {
-        profile_id += 1u;
-        if (profile_id >= MAX_PROFILES) {
-            profile_id = 0;
-        }
-    }
     uint8_t get_profile_id(void) { return (uint8_t)get_profile(); }
 protected:
-    uint8_t profile_id = 0;
     StoredMap* upshift_table = nullptr;
     StoredMap* downshift_table = nullptr;
     StoredMap* upshift_time_map = nullptr;

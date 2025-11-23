@@ -37,8 +37,8 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
     }
 
-    this->slip_average = new FirstOrderAverage(50); // 20ms div * 50 = 1 second moving average
-    this->motor_torque_smoothed = new FirstOrderAverage(10); // 500ms average
+    this->slip_average = new FirstOrderAverage(10); // 200ms
+    this->motor_torque_smoothed = new FirstOrderAverage(25); // 500ms
 }
 
 void TorqueConverter::diag_toggle_tcc_sol(bool en) {
@@ -84,7 +84,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     GearboxGear cmp_gear = curr_gear;
-    int slip_now = (int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm;
+    int slip_now = abs((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
     this->slip_average->add_sample(slip_now);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
@@ -168,7 +168,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int pedal_delta = sensors->pedal_delta->get_average();
     bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
-    if (time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
+    if (!is_shifting && time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
         if (load_as_percent < -5) {
             load_cell = 0;
@@ -259,7 +259,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         int step = PRESSURE_STEP;
         step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
         this->tcc_pressure_current += step;
-        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target*0.8);
+        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target*0.7);
     } else { // More -> Less lock
         if (this->target_tcc_state == InternalTccState::Open) { // Slipping -> Open
             this->tcc_pressure_current = interpolate_float(
@@ -267,7 +267,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 this->prev_state_tcc_pressure,
                 0,
                 this->last_state_stable_time,
-                this->last_state_stable_time+100,
+                this->last_state_stable_time+200,
                 InterpType::Linear
             );
         } else { // Closed -> Slipping

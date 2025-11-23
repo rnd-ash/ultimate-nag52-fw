@@ -42,7 +42,7 @@ int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gea
     return calculated;
 }
 
-Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
+Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
 {
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
@@ -60,8 +60,9 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
         .max_torque = 0,
         .min_torque = 0,
         .last_shift_time = 0,
-        .is_braking = false,
         .gear_ratio = 0.0F,
+        .kickdown_pressed = false,
+        .brake_pressed = false,
     };
     this->output_data = OutputData {
         .torque_req_amount = 0,
@@ -352,10 +353,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
         bool process_shift = true;
 
         ShiftPressures p_now = {};
-        ShiftPressures p_prev = {};
-
         memset(&p_now, 0, sizeof(ShiftPressures));
-        memset(&p_prev, 0, sizeof(ShiftPressures));
 
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
@@ -370,7 +368,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
         }
 
         ShiftClutchData now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(this->speed_sensors, req_lookup, this->gearboxConfig.bounds);
-        PressureStageTiming maxp = pressure_manager->get_max_pressure_timing();
         Clutch applying = get_clutch_to_apply(req_lookup);
         Clutch releasing = get_clutch_to_release(req_lookup);
         PrefillData prefill_data = pressure_mgr->make_fill_data(applying);
@@ -389,7 +386,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             .MOD_MAX = MOD_MAX,
             .SPC_MAX = SPC_MAX,
             .shift_flags = 0,
-            .targ_time = chars.target_shift_time,
             .change = req_lookup,
             .applying = applying,
             .releasing = releasing,
@@ -401,40 +397,32 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             .prefill_info = prefill_data,
             .chars = chars,
             .ptr_r_clutch_speeds = &now_cs,
-            .ptr_prev_pressures = &p_prev,
             .ptr_w_pressures = &p_now,
             .ptr_w_trq_req = &trd,
-            .maxp_info = maxp,
             .tcc = this->tcc
         };
 
+        int inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
-        int p1 = VEHICLE_CONFIG.engine_drag_torque/20.0; // half of drag torque
-        int p2 = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque
+        int p2 = 2*inertia; // 3x drag torque (TODO, we should change this per shift)
         if (is_upshift) {
-            // 2C
-            if (sensor_data.input_torque < -p1) {
+            if (sensor_data.input_torque > p2 || sensor_data.input_torque < -inertia || sensor_data.output_rpm < 100) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (manually_requested) {
-                p1 = p2;
-            }
-            // Special case for 2-1
-            if (sid.change == GearChange::_2_1 && sensor_data.output_rpm < 300 && sensor_data.pedal_pos < 10) {
-                algo = new CrossoverShift(&sid);
+            if (sensor_data.input_torque > p2 && sensor_data.output_rpm > 100) {
+                algo = new ReleasingShift(&sid);
             } else {
-                if (sensor_data.input_torque > p1) {
-                    algo = new ReleasingShift(&sid);
-                } else {
-                    algo = new CrossoverShift(&sid);
-                }
+                algo = new CrossoverShift(&sid);
             }
         }
 
         uint8_t algo_phase_id = 0;
+        GearChange pm_change = GearChange::_IDLE;
+        GearboxGear pm_gear = sid.curr_g;
+        bool pm_activated = false;
         while(process_shift) {
             uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
@@ -479,14 +467,17 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
-            GearChange change = GearChange::_IDLE;
-            GearboxGear gear = sid.curr_g;
             // Only if shift valve is open
             if (this->pressure_mgr->get_active_shift_circuits() != 0) {
-                change = sid.change;
-                gear = sid.targ_g;
+                pm_change = sid.change;
+                pm_gear = sid.targ_g;
+                pm_activated = true;
+            } else if (pm_activated) {
+                // Shift valve closed, but circuit WAS active
+                pm_gear = sid.targ_g;
+                pm_change = GearChange::_IDLE;
             }
-            pressure_mgr->update_pressures(gear, change);
+            pressure_mgr->update_pressures(pm_gear, pm_change);
 
             if (step_result == 0) {
                 // Continue
@@ -500,15 +491,12 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
                 break; 
             } else {
                 // Phase has completed, update our data
-                p_prev = p_now;
                 phase_elapsed = 0;
                 if (step_result == STEP_RES_NEXT) {
                     algo_phase_id += 1;
                 } else {
                     algo_phase_id = step_result;
                 }
-                // Reset subphase data
-                //algo->reset_all_subphase_data();
             }
             uint32_t elapsed = GET_CLOCK_TIME() - start_time;
             if (elapsed < SHIFT_DELAY_MS) {
@@ -776,16 +764,6 @@ cleanup:
     vTaskDelete(nullptr);
 }
 
-void Gearbox::inc_subprofile()
-{
-    portENTER_CRITICAL(&this->profile_mutex);
-    if (this->current_profile != nullptr)
-    {
-        this->current_profile->increment_subprofile();
-    }
-    portEXIT_CRITICAL(&this->profile_mutex);
-}
-
 void Gearbox::controller_loop()
 {
     const uint32_t expire_time = 250;
@@ -943,7 +921,8 @@ void Gearbox::controller_loop()
         this->pedal_average->add_sample(p_tmp);
         int16_t percent_delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*20.0; // 20.0 = 50 (Cycles/sec) / 2.5 (Pedal raw -> %)
         sensor_data.pedal_delta->add_sample(percent_delta_sec);
-        sensor_data.is_braking = egs_can_hal->get_is_brake_pressed(1000);
+        sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
+        sensor_data.kickdown_pressed = kickdown.is_kickdown_newly_pressed(egs_can_hal, 250);
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
@@ -1099,7 +1078,7 @@ void Gearbox::controller_loop()
                             this->target_gear = next;
                         }
                     }
-                    else if (this->ask_downshift && this->actual_gear > GearboxGear::First)
+                    else if ((this->ask_downshift || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);

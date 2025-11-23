@@ -12,12 +12,12 @@ DiagProfileInputState ShifterIsm::diag_get_profile_input() {
 	return DiagProfileInputState::None;
 }
 
-ShifterPosition ShifterIsm::get_shifter_position(const uint32_t expire_time_ms)
+ShifterPosition ShifterIsm::get_shifter_position(void)
 {
 	return ShifterPosition::SignalNotAvailable;
 }
 
-AbstractProfile *ShifterIsm::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ShifterIsm::get_profile(void)
 {
 	return nullptr;
 }

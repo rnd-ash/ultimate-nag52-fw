@@ -7,11 +7,12 @@
 class ProgramSelectorSwitchTRRS : public ProgramSelector {
 public:
 	explicit ProgramSelectorSwitchTRRS(BoardGpioMatrix* board);
-	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
-	ProgramSelectorType get_type() const override;
-	DiagProfileInputState get_input_raw() const override;
+	AbstractProfile* get_profile(void) override;
+	ProgramSelectorType get_type(void) const override;
+	DiagProfileInputState get_input_raw(void) const override;
 private:
 	BoardGpioMatrix* board;
+	const uint32_t expire_time_IC_query = 500u;
 };
 
 #endif

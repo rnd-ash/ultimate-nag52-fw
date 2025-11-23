@@ -36,7 +36,7 @@ DiagProfileInputState ShifterEwm::diag_get_profile_input(void) {
 	return ret;
 }
 
-ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
+ShifterPosition ShifterEwm::get_shifter_position(void)
 {
 	ShifterPosition pos = ShifterPosition::SignalNotAvailable;
 	if (nullptr != egs_can_hal) {
@@ -46,12 +46,12 @@ ShifterPosition ShifterEwm::get_shifter_position(const uint32_t expire_time_ms)
 	return pos;
 }
 
-AbstractProfile *ShifterEwm::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ShifterEwm::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
 	if (nullptr != programselector)
 	{
-		result = programselector->get_profile(expire_time_ms);
+		result = programselector->get_profile();
 	} else {
 		// null selector can be if the selector has no profile button (Jeep/Sprinter)
 		result = profiles[VEHICLE_CONFIG.default_profile];
@@ -78,4 +78,9 @@ void ShifterEwm::set_program_button_pressed(const bool is_pressed, const Profile
 
 ShifterStyle ShifterEwm::get_shifter_type() {
 	return ShifterStyle::EWM;
+}
+
+void ShifterEwm::update(void)
+{
+	set_program_button_pressed(egs_can_hal->get_profile_btn_press(expire_time_ms), egs_can_hal->get_profile_switch_pos(expire_time_ms));
 }

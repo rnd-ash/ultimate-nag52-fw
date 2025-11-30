@@ -100,7 +100,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         int pedal_as_percent = (sensors->pedal_smoothed->get_average()*100)/250;
         int slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
         // Can we slip?
-        if (slipping_rpm_targ <= 50) {
+        if (slipping_rpm_targ <= 100) {
             targ = InternalTccState::Slipping;
             // Can we lock?
             if (slipping_rpm_targ <= 10) {
@@ -127,7 +127,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->slip_target = slipping_rpm_targ;
         }
         if (is_shifting) {
-            targ = MIN(InternalTccState::Open, targ);
+            targ = MIN(InternalTccState::Slipping, targ);
             this->slip_target = MAX(this->slip_target, 100);
         }
         // When at very low pedal positions, we should do a little slipping so that jerkiness is not noticable!
@@ -224,7 +224,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_pressure_target = interp;
         }
     } else if (this->target_tcc_state == InternalTccState::Closed) {
-        if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 10) {
+        // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
+        if (is_stable && load_cell != -1 && at_req_pressure && rpm_delta > 20) {
             set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +5);
             this->last_adapt_check = GET_CLOCK_TIME();
         }
@@ -256,30 +257,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->prev_state_tcc_pressure = this->tcc_pressure_current;
         this->last_state_stable_time = GET_CLOCK_TIME();
     } else if (this->target_tcc_state > this->current_tcc_state) { // Less -> More lock
-        int step = PRESSURE_STEP;
-        step = MIN(PRESSURE_STEP, this->tcc_pressure_target - this->tcc_pressure_current);
-        this->tcc_pressure_current += step;
-        this->tcc_pressure_current = MAX(this->tcc_pressure_current, this->tcc_pressure_target*0.7);
+        this->tcc_pressure_current = this->tcc_pressure_target;
     } else { // More -> Less lock
-        if (this->target_tcc_state == InternalTccState::Open) { // Slipping -> Open
-            this->tcc_pressure_current = interpolate_float(
-                GET_CLOCK_TIME(),
-                this->prev_state_tcc_pressure,
-                0,
-                this->last_state_stable_time,
-                this->last_state_stable_time+200,
-                InterpType::Linear
-            );
-        } else { // Closed -> Slipping
-            this->tcc_pressure_current = interpolate_float(
-                GET_CLOCK_TIME(),
-                this->prev_state_tcc_pressure,
-                this->tcc_pressure_target,
-                this->last_state_stable_time,
-                this->last_state_stable_time+200,
-                InterpType::Linear
-            );
-        }
+        this->tcc_pressure_current = this->tcc_pressure_target;
     }
 
     // Pressure achieved.

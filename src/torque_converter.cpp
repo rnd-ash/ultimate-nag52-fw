@@ -10,6 +10,9 @@
 
 #define LOAD_SIZE 11
 
+const int16_t rpm_map_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
+const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
+
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     this->rated_max_torque = max_gb_rating;
 
@@ -25,8 +28,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         delete[] this->tcc_lock_map;
     }
 
-    const int16_t rpm_map_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
-    const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
     this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
     if (this->slip_rpm_target_map->init_status() != ESP_OK) {
         delete[] this->slip_rpm_target_map;
@@ -80,6 +81,21 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     // or adaptation table failure.
     if (!this->tcc_solenoid_enabled || !init_tables_ok) {
         pm->set_target_tcc_pressure(0);
+        this->tcc_pressure_current = 0;
+        this->tcc_pressure_target = 0;
+        this->current_tcc_state = InternalTccState::Open;
+        this->target_tcc_state = InternalTccState::Open;
+        this->last_state_stable_time = GET_CLOCK_TIME();
+        return;
+    }
+    // Don't activate the TCC below RPMs!
+    if (sensors->input_rpm < rpm_map_y_headers[0]) {
+        pm->set_target_tcc_pressure(0);
+        this->tcc_pressure_current = 0;
+        this->tcc_pressure_target = 0;
+        this->current_tcc_state = InternalTccState::Open;
+        this->target_tcc_state = InternalTccState::Open;
+        this->last_state_stable_time = GET_CLOCK_TIME();
         return;
     }
     

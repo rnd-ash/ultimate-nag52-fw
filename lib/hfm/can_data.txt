@@ -1,4 +1,4 @@
-# Manually generated
+# Manually created
 #
 # ECU CAN definitions for HGS52 (hybrid transmission control) compatibility in early 1990's M104/M111 Mercedes-Benz cars with Hfm
 
@@ -15,6 +15,7 @@ ECU HFM
 		SIGNAL NOTL_B, OFFSET: 33, LEN: 1, DESC: emergency mode, DATA TYPE BOOL
 		SIGNAL BLS_B, OFFSET: 34, LEN: 1, DESC: brake light switch on, DATA TYPE BOOL
 		SIGNAL VG_B, OFFSET: 37, LEN: 1, DESC: full throttle, DATA TYPE BOOL
+		SIGNAL LL_B, OFFSET: 38, LEN: 1, DESC: idling (indle speed contact closed), DATA TYPE BOOL
 		SIGNAL VSIG_UP_B, OFFSET: 41, LEN: 1, DESC: vehicle speed signal implausible, DATA TYPE BOOL
 		SIGNAL DKV_UP_B, OFFSET: 46, LEN: 1, DESC: throttle valve target value implausible, DATA TYPE BOOL
 		SIGNAL DKI_UP_B, OFFSET: 47, LEN: 1, DESC: throttle valve actual value implausible, DATA TYPE BOOL
@@ -39,11 +40,17 @@ ECU HFM
 		SIGNAL NMOT, OFFSET: 16, LEN: 16, DESC: engine speed, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)
 		SIGNAL HFM_UP_B, OFFSET: 40, LEN: 1, DESC: air mass signal implausible, DATA TYPE BOOL
 		SIGNAL KL50_B, OFFSET: 47, LEN: 1, DESC: starter running, DATA TYPE BOOL
+		SIGNAL LAST, OFFSET: 48, LEN: 8, DESC: load of the engine, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0)
 	FRAME HFM_608h (0x00000608)
-		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: engine temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.16078431372549, _OFFSET_: -44.0)
+		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: engine temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)
 		SIGNAL TFM_UP_B, OFFSET: 16, LEN: 1, DESC: engine temperature implausible, DATA TYPE BOOL
 		SIGNAL TFA_UP_B, OFFSET: 17, LEN: 1, DESC: intake air temperature implausible, DATA TYPE BOOL
-		SIGNAL T_LUFT, OFFSET: 40, LEN: 8, DESC: intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.16078431372549, _OFFSET_: -44.0)
+		SIGNAL T_LUFT, OFFSET: 40, LEN: 8, DESC: intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)
 	FRAME HFM_610h (0x00000610)
-		SIGNAL ROZ_TP_B, OFFSET: 31, LEN: 1, DESC: ROZ tempering detection, DATA TYPE BOOL
-		SIGNAL MLE, OFFSET: 40, LEN: 8, DESC: air mass flow, DATA TYPE NUMBER(_MULTIPLIER_: 4, _OFFSET_: 0)
+		SIGNAL LZA_TL1, OFFSET: 0, LEN: 8, DESC: long-term adaption value partial load, DATA TYPE NUMBER(_MULTIPLIER_: 0.002, _OFFSET_: 0.75)
+		SIGNAL ZZP_Z1, OFFSET: 8, LEN: 8, DESC: ignition time cylinder 1, DATA TYPE NUMBER(_MULTIPLIER_: 0.3516, _OFFSET_: -34.65)
+		SIGNAL MLE, OFFSET: 48, LEN: 8, DESC: air mass flow, DATA TYPE NUMBER(_MULTIPLIER_: 4, _OFFSET_: 0)
+	FRAME HFM_628h (0x00000628)
+		SIGNAL DKS_F_B, OFFSET: 0, LEN: 1, DESC: error throttle valve actuator, DATA TYPE BOOL
+		SIGNAL KLIMA_B, OFFSET: 6, LEN: 1, DESC: air conditioning, DATA TYPE BOOL
+		

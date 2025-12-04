@@ -13,7 +13,7 @@
 
 class Egs52Can: public EgsBaseCan {
     public:
-        Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        Egs52Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -34,7 +34,7 @@ class Egs52Can: public EgsBaseCan {
         // Returns true if engine is in limp mode
         bool get_engine_is_limp(const uint32_t expire_time_ms) override;
         // Returns true if pedal is kickdown 
-         bool get_kickdown(const uint32_t expire_time_ms) override;
+        bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets Torque information

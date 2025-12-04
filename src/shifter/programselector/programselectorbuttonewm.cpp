@@ -1,7 +1,7 @@
 #include "programselectorbuttonewm.h"
 
 
-ProgramSelectorButtonEwm::ProgramSelectorButtonEwm(TCM_CORE_CONFIG *vehicle_config): vehicle_config(vehicle_config)
+ProgramSelectorButtonEwm::ProgramSelectorButtonEwm()
 {
 	// Read profile ID on startup based on TCM config
 	profile_id = VEHICLE_CONFIG.default_profile;
@@ -25,7 +25,7 @@ void ProgramSelectorButtonEwm::set_button_pressed(const bool is_pressed)
 	is_pressed_last_call = is_pressed;
 }
 
-AbstractProfile *ProgramSelectorButtonEwm::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorButtonEwm::get_profile(void)
 {
 	return profiles[profile_id];
 }

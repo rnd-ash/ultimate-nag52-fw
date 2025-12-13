@@ -863,7 +863,7 @@ void Gearbox::controller_loop()
                 this->sensor_data.gear_ratio = 0.0;
                 this->sensor_data.targ_gear_ratio = 0.0;
             }
-            if (!shifting && !stationary)
+            if (!shifting && !stationary && sensor_data.output_rpm > 250)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {
@@ -935,15 +935,11 @@ void Gearbox::controller_loop()
         this->motor_speed_average->add_sample(tmp_rpm);
         this->sensor_data.engine_rpm = this->motor_speed_average->get_average();
         // Update solenoids, only if engine RPM is OK
-        if (tmp_rpm > 500)
+        if (tmp_rpm > 400)
         {
             if (!shifting)
-            { // If shifting then shift manager has control over MPC working
-                if (sensor_data.pedal_pos == 0 && sensor_data.output_rpm == 0) {
-                    this->mpc_working = HYDR_PTR->min_mpc_pressure;
-                } else {
-                    this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
-                }
+            {
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
             }
         }
@@ -1017,7 +1013,7 @@ void Gearbox::controller_loop()
                 }
             }
         }
-        if (this->sensor_data.engine_rpm > 500)
+        if (this->sensor_data.engine_rpm > 100)
         {
             if (speeds_valid && is_fwd_gear(this->actual_gear))
             {

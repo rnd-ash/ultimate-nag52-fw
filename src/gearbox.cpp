@@ -602,13 +602,13 @@ void Gearbox::shift_thread()
                     if (elapsed > 100) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
                     }
-                    div = MIN(div+0.015, 2.0);
+                    div = MIN(div+0.1, 10.0);
                 } else {
                     working = pressure_manager->find_working_mpc_pressure(GearboxGear::Second);
                     if (elapsed > 100) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Second, Clutch::B2, abs(sensor_data.input_torque), CoefficientTy::Sliding);
                     }
-                    div = MIN(div+0.015, 2.0);
+                    div = MIN(div+0.1, 10.0);
                 }
                 int spc = (prefill + spring)*div;
                 pressure_mgr->set_target_modulating_pressure(working + (0.5*spc));
@@ -1175,6 +1175,14 @@ void Gearbox::controller_loop()
             );
             sensor_data.input_torque = input_trq;
             sensor_data.converted_driver_torque = trqs.m_converted_driver;
+        }
+        // Override input torque if garage shifting!
+        if (this->shifting && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
+            // Shifting to either R or D
+            int16_t pump = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
+            if (INT16_MAX != pump) {
+                sensor_data.input_torque = pump;
+            }
         }
 
         // Wheel torque

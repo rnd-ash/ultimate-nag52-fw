@@ -255,7 +255,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     if (0 == this->subphase_mod) {
         // Var setting
         this->timer_mod = this->calc_cycles_mod_phase1();
-        sid->tcc->shift_start();
+        sid->tcc->shift_start(this->upshifting);
         this->subphase_mod += 1;
     } else if (1 == this->subphase_mod) {
         this->trq_at_release_clutch = MAX(30, abs_input_trq);

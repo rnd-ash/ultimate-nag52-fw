@@ -121,7 +121,7 @@ uint8_t CrossoverShift::phase_fill() {
         // Set vars
         this->timer_shift = sid->prefill_info.fill_cycles;
         this->subphase_shift += 1;
-        sid->tcc->shift_start();
+        sid->tcc->shift_start(this->upshifting);
     }
     if (1 == this->subphase_shift) {
         // High filling

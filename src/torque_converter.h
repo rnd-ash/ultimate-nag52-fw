@@ -47,7 +47,7 @@ class TorqueConverter {
 
         void set_stationary();
         
-        void shift_start();
+        void shift_start(bool upshift);
         void shift_end();
         int16_t get_slip_filtered();
         InternalTccState __get_internal_state(void);
@@ -85,14 +85,14 @@ class TorqueConverter {
         }
 
     private:
-        FirstOrderAverage* motor_torque_smoothed = nullptr;
+        FirstOrderAverage* tcc_actual_pressure_calc = nullptr;
         int rated_max_torque;
         bool is_shifting = false;
         bool was_shifting = true;
+        bool upshifting = false;
         bool tcc_solenoid_enabled = true;
-        int tcc_pressure_target = 0;
-        int tcc_pressure_current = 0;
-        int prev_state_tcc_pressure = 0;
+        int tcc_commanded_pressure = 0;
+        int tcc_actual_pressure = 0;
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;

@@ -564,7 +564,7 @@ void Gearbox::shift_thread()
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Garage shift");
         if (is_controllable_gear(curr_target))
         {
-            bool into_reverse = this->shifter_pos == ShifterPosition::P_R || this->shifter_pos == ShifterPosition::R || this->shifter_pos == ShifterPosition::R_N;
+            bool into_reverse = GearboxGear::Reverse_First == curr_target || GearboxGear::Reverse_Second== curr_target;
             pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
             vTaskDelay(50);
             pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
@@ -586,12 +586,23 @@ void Gearbox::shift_thread()
             // N/P -> R/D
             // Defaults (Start in 2nd)
             egs_can_hal->set_garage_shift_state(true);
-            int elapsed = 0;
+            uint16_t cycle_count = 0;
             bool completed_ok = false;
-            float div = 0.5;
 
+            uint16_t ramp = 0;
+            uint16_t spc_step;
+            uint16_t prefill_cycles;
+            float spc_mul;
+            if (into_reverse) {
+                prefill_cycles = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.prefill_time_b3, InterpType::Linear);
+                spc_step = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.p_ramp_b3, InterpType::Linear);
+                spc_mul = GAR_CURRENT_SETTINGS.mod_mul_b3;
+            } else {
+                prefill_cycles = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.prefill_time_b2, InterpType::Linear);
+                spc_step = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.p_ramp_b2, InterpType::Linear);
+                spc_mul = GAR_CURRENT_SETTINGS.mod_mul_b2;
+            }
             
-
             while(true) {
                 if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
                     completed_ok = false;
@@ -599,33 +610,33 @@ void Gearbox::shift_thread()
                 }
                 if (into_reverse) {
                     working = pressure_manager->find_working_mpc_pressure(GearboxGear::Reverse_Second);
-                    if (elapsed > 100) {
+                    if (cycle_count > prefill_cycles) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
+                        ramp += spc_step;
                     }
-                    div = MIN(div+0.1, 10.0);
                 } else {
                     working = pressure_manager->find_working_mpc_pressure(GearboxGear::Second);
-                    if (elapsed > 100) {
+                    if (cycle_count > prefill_cycles) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Second, Clutch::B2, abs(sensor_data.input_torque), CoefficientTy::Sliding);
+                        ramp += spc_step;
                     }
-                    div = MIN(div+0.1, 10.0);
                 }
-                int spc = (prefill + spring)*div;
-                pressure_mgr->set_target_modulating_pressure(working + (0.5*spc));
+                int spc = prefill + spring + ramp;
+                pressure_mgr->set_target_modulating_pressure(working + (spc_mul*spc));
                 pressure_mgr->set_target_shift_pressure(spc);
                 this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
 
                 int turbine = this->speed_sensors.turbine;
-                if (elapsed > 1000 && turbine <= 100+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
+                if (cycle_count > 50 && turbine <= 100+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
                     completed_ok = true;
                     break;
                 }
-                if (elapsed > 2500 && sensor_data.engine_rpm - sensor_data.input_rpm < 200) {
+                if (cycle_count > GAR_CURRENT_SETTINGS.timeout_cycles && sensor_data.engine_rpm - sensor_data.input_rpm < 200) {
                     completed_ok = false;
                     break;
                 }
                 vTaskDelay(20);
-                elapsed += 20;
+                cycle_count += 1;
             }
             if (!completed_ok) {
                 ESP_LOGW("SHIFT", "Garage shift aborted");
@@ -636,7 +647,7 @@ void Gearbox::shift_thread()
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
             } else {
                 // Shut down the 3-4 SS
-                ESP_LOGI("SHIFT", "Garage shift completed OK after %d ms", elapsed);
+                ESP_LOGI("SHIFT", "Garage shift completed OK after %d ms", cycle_count*20);
                 pressure_mgr->set_spc_p_max();
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);

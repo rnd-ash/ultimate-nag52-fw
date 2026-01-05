@@ -121,8 +121,6 @@ private:
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     FirstOrderAverage* pedal_average = nullptr;
-    FirstOrderAverage* motor_speed_average = nullptr;
-    FirstOrderAverage* torque_req_average = nullptr;
 
     int req_static_torque_delta = 0;
     bool freeze_torque = false;

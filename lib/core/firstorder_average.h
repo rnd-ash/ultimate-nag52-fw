@@ -27,16 +27,24 @@ public:
     FirstOrderAverage(uint8_t samples, int32_t reset_value = 0) {
         if (samples > 254) {
             // SAFETY
-            this->sample_count = 254;
+            this->max_sample_count = 254;
         } else {
-            this->sample_count = samples;
+            this->max_sample_count = samples;
         }
+        this->sample_count = this->max_sample_count;
         this->reset(reset_value);
     }
 
     void add_sample(int32_t sample) {
         this->last_sample = this->current_sample;
         this->current_sample = ((sample*100) + (this->sample_count*this->last_sample)) / (this->sample_count + 1);
+    }
+
+    void set_sample_size(uint8_t sample_size) {
+        this->sample_count = this->max_sample_count;
+        if (sample_size < this->sample_count) {
+            this->sample_count = sample_size;
+        }
     }
 
     int32_t get_average() const {
@@ -55,6 +63,7 @@ public:
 private:
     int32_t current_sample;
     int32_t last_sample;
+    uint8_t max_sample_count;
     uint8_t sample_count;
 };
 

@@ -343,6 +343,66 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     }
 };
 
+// Garage shift settings
+typedef struct {
+    // Number of 20ms cycles before garage shift times out
+    // and the TCU tries again
+    uint16_t timeout_cycles;
+    // Prefilling time for B2 clutch (For N to D shift)
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the number of 20ms cycles for prefilling (so 20 would be 400ms)
+    LinearInterpSetting prefill_time_b2;
+    // Prefilling time for B3 clutch (For N to R shift)
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the number of 20ms cycles for prefilling (so 20 would be 400ms)
+    LinearInterpSetting prefill_time_b3;
+
+    // Apply ramp for B2 clutch
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the pressure added to B2 every 20ms until it engages
+    LinearInterpSetting p_ramp_b2;
+    // Apply ramp for B3 clutch
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the pressure added to B2 every 20ms until it engages
+    LinearInterpSetting p_ramp_b3;
+    // Modulating pressure adder factor of shift pressure for N to D shift
+    // (mod = working + (mod_mul_b2*spc))
+    float mod_mul_b2;
+    // Modulating pressure adder factor of shift pressure for N to R shift
+    // (mod = working + (mod_mul_b2*spc))
+    float mod_mul_b3;
+} __attribute__ ((packed)) GAR_MODULE_SETTINGS;
+
+const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
+    .timeout_cycles = 250,
+    .prefill_time_b2 = {
+        .new_min = 15,
+        .new_max = 4,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .prefill_time_b3 = {
+        .new_min = 15,
+        .new_max = 4,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .p_ramp_b2 = {
+        .new_min = 20,
+        .new_max = 7,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .p_ramp_b3 = {
+        .new_min = 20,
+        .new_max = 7,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .mod_mul_b2 = 0.5,
+    .mod_mul_b3 = 0.5
+};
+
 // module settings
 extern TCC_MODULE_SETTINGS TCC_CURRENT_SETTINGS;
 extern SOL_MODULE_SETTINGS SOL_CURRENT_SETTINGS;
@@ -351,6 +411,7 @@ extern PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS;
 extern ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS;
 extern ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS;
 extern REL_MODULE_SETTINGS REL_CURRENT_SETTINGS;
+extern GAR_MODULE_SETTINGS GAR_CURRENT_SETTINGS;
 
 // Setting IDx
 #define TCC_MODULE_SETTINGS_SCN_ID 0x01
@@ -360,6 +421,7 @@ extern REL_MODULE_SETTINGS REL_CURRENT_SETTINGS;
 #define ADP_MODULE_SETTINGS_SCN_ID 0x06
 #define ETS_MODULE_SETTINGS_SCN_ID 0x07
 #define REL_MODULE_SETTINGS_SCN_ID 0x08
+#define GAR_MODULE_SETTINGS_SCN_ID 0x09
 
 
 namespace ModuleConfiguration {

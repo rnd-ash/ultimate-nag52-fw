@@ -76,6 +76,19 @@ uint8_t ShiftingAlgorithm::step(
     return step_res;
 }
 
+void ShiftingAlgorithm::calc_shift_flags(uint32_t* dest) {
+    *dest = 0;
+    if (sd->pedal_pos < 10) {
+        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
+            *dest |= SHIFT_FLAG_COAST_54_43;
+        }
+        *dest |= SHIFT_FLAG_COAST;
+    }
+    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2 || sid->change == GearChange::_4_3) {
+        *dest |= SHIFT_FLAG_FREEWHEELING;
+    }
+}
+
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
     this->trq_at_release_clutch = MAX(30, abs_input_trq);

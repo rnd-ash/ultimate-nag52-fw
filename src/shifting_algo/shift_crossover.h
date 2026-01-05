@@ -13,7 +13,6 @@ public:
         bool is_upshift
     ) override;
 
-    void calc_shift_flags(uint32_t* dest) override;
     uint8_t max_shift_stage_id() override;
     
 protected:

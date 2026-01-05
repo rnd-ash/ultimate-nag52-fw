@@ -34,19 +34,6 @@ uint8_t ReleasingShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-void ReleasingShift::calc_shift_flags(uint32_t* dest) {
-    *dest = 0;
-    if (sd->pedal_pos < 10) {
-        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
-            *dest |= SHIFT_FLAG_COAST_54_43;
-        }
-        *dest |= SHIFT_FLAG_COAST;
-    }
-    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2 || sid->change == GearChange::_4_3) {
-        *dest |= SHIFT_FLAG_FREEWHEELING;
-    }
-}
-
 uint16_t ReleasingShift::calc_threshold_rpm_2() {
     int ret = 0;
     if ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) {
@@ -84,8 +71,8 @@ uint8_t ReleasingShift::step_internal(
 
 
     if (phase_id == PHASE_BLEED) {
+        this->calc_shift_flags(&sid->shift_flags);
         ret = this->phase_bleed(pm);
-        calc_shift_flags(&sid->shift_flags);
     } else if (phase_id == PHASE_FILL_AND_RELEASE) {
         this->phase_fill_release_spc();
         ret = this->phase_fill_release_mpc();

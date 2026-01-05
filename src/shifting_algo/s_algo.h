@@ -79,7 +79,7 @@ public:
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
     // Called when shift solenoid is opened
-    virtual void calc_shift_flags(uint32_t* dest) = 0;
+    void calc_shift_flags(uint32_t* dest);
 
     protected:
         bool upshifting = false;

@@ -20,19 +20,6 @@ uint8_t CrossoverShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-void CrossoverShift::calc_shift_flags(uint32_t* dest) {
-    *dest = 0;
-    if (sd->pedal_pos < 10) {
-        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
-            *dest |= SHIFT_FLAG_COAST_54_43;
-        }
-        *dest |= SHIFT_FLAG_COAST;
-    }
-    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
-        *dest |= SHIFT_FLAG_FREEWHEELING;
-    }
-}
-
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 // P1 - IDX
 // P2 - Cycles
@@ -45,14 +32,13 @@ uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycle
     return MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
 }
 
-
-
 uint8_t CrossoverShift::step_internal(
     bool stationary,
     bool is_upshift
 ) {
     uint8_t ret = STEP_RES_CONTINUE;
     if (phase_id == PHASE_BLEED) {
+        this->calc_shift_flags(&sid->shift_flags);
         ret = this->phase_bleed(pm);
     } else if (phase_id == PHASE_FILL) {
         ret = this->phase_fill();

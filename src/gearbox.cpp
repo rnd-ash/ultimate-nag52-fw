@@ -145,9 +145,6 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->pedal_average = new FirstOrderAverage(25);
     sensor_data.pedal_delta = new FirstOrderAverage(25);
 
-    this->motor_speed_average = new FirstOrderAverage(5);
-    this->torque_req_average = new FirstOrderAverage(5);
-
 
     sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
 }
@@ -942,11 +939,7 @@ void Gearbox::controller_loop()
         {
             tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
-        if (tmp_rpm > 400 && this->motor_speed_average->get_average() < 200) {
-            this->motor_speed_average->reset(tmp_rpm);
-        }
-        this->motor_speed_average->add_sample(tmp_rpm);
-        this->sensor_data.engine_rpm = this->motor_speed_average->get_average();
+        this->sensor_data.engine_rpm = tmp_rpm;
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {

@@ -231,6 +231,9 @@ void ReleasingShift::phase_fill_release_spc() {
     if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(SHIFT_SETTINGS.clutch_stationary_rpm/2)) {
         this->spc_p_offset += 20;
     }
+    if (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) {
+        sid->tcc->shift_start(this->upshifting);
+    }
     // Write pressure
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
 }
@@ -242,7 +245,6 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     if (0 == this->subphase_mod) {
         // Var setting
         this->timer_mod = this->calc_cycles_mod_phase1();
-        sid->tcc->shift_start(this->upshifting);
         this->subphase_mod += 1;
     } else if (1 == this->subphase_mod) {
         this->trq_at_release_clutch = MAX(30, abs_input_trq);

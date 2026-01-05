@@ -87,14 +87,18 @@ class HfmCan: public EgsBaseCan {
 
         const float AIR_MASS_FACTOR = 4.F; // conversion factor for raw-value from CAN
 
-        static const uint8_t M_MAX_LEN = 33u;
-        // TODO: make this configurable
-        // maximum engine torque for M104 E32 [Nm]
-        const uint16_t M_MAX[M_MAX_LEN] = {0u, 61u, 121u, 182u, 242u, 251u, 259u, 268u, 276u, 280u, 284u, 288u, 292u, 299u, 306u, 310u, 309u, 308u, 304u, 300u, 296u, 290u, 282u, 266u, 250u, 235u, 219u, 205u, 190u, 176u, 161u, 147u, 132u};
+        static const uint8_t MAX_LEN = 33u;
+
+        // engine speed supporting points [1/min]
+        const uint16_t N[MAX_LEN] = {0u, 250u, 500u, 750u, 1000u, 1250u, 1500u, 1750u, 2000u, 2250u, 2500u, 2750u, 3000u, 3250u, 3500u, 3750u, 4000u, 4250u, 4500u, 4750u, 5000u, 5250u, 5500u, 5750u, 6000u, 6250u, 6500u, 6750u, 7000u, 7250u, 7500u, 7750u, 8000};
 
         // TODO: make this configurable
-        // engine speed for torque table [1/min]
-        const uint16_t n[M_MAX_LEN] = {0u, 250u, 500u, 750u, 1000u, 1250u, 1500u, 1750u, 2000u, 2250u, 2500u, 2750u, 3000u, 3250u, 3500u, 3750u, 4000u, 4250u, 4500u, 4750u, 5000u, 5250u, 5500u, 5750u, 6000u, 6250u, 6500u, 6750u, 7000u, 7250u, 7500u, 7750u, 8000};
+        // maximum engine torque for M104 E32 [Nm]
+        const uint16_t M_MAX[MAX_LEN] = {0u, 61u, 121u, 182u, 242u, 251u, 259u, 268u, 276u, 280u, 284u, 288u, 292u, 299u, 306u, 310u, 309u, 308u, 304u, 300u, 296u, 290u, 282u, 266u, 250u, 235u, 219u, 205u, 190u, 176u, 161u, 147u, 132u};
+
+        // TODO: make this configurable
+        // maximum air mass flow for M104 E32 [kg/h]
+        const uint16_t MLE_MAX[MAX_LEN] = { 0u, 21u, 43u, 64u, 86u, 107u, 128u, 150u, 171u, 193u, 260u, 284u, 336u, 356u, 384u, 396u, 380u, 400u, 428u, 440u, 476u, 536u, 580u, 592u, 580u, 572u, 560u, 560u, 560u, 560u, 560u, 560u, 560u};
 
         // volumetric efficiency [Nm * s / kg], assumed constant
         const float c_engine = 178589.39;

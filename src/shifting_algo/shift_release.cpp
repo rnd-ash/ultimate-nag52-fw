@@ -8,8 +8,6 @@ const uint8_t PHASE_OVERLAP          = 2;
 const uint8_t PHASE_MAX_PRESSURE     = 3;
 const uint8_t PHASE_END_CONTROL      = 4;
 
-#define SHIFT_SETTINGS REL_CURRENT_SETTINGS
-
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 3; // 100ms for torque request down ramp
     this->cycles_high_filling = data->prefill_info.fill_cycles;
@@ -47,9 +45,9 @@ uint16_t ReleasingShift::calc_threshold_rpm_2() {
         float cycles_can = 3.0;
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
         float threshold = torque * (float)(this->cycles_mod_ramp_to_sync + (cycles_can*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
-        ret = MAX(threshold, SHIFT_SETTINGS.clutch_stationary_rpm);
+        ret = MAX(threshold, REL_CURRENT_SETTINGS.clutch_stationary_rpm);
     } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
-        ret = SHIFT_SETTINGS.clutch_stationary_rpm;
+        ret = REL_CURRENT_SETTINGS.clutch_stationary_rpm;
     } else {
         ret = 25;
     }
@@ -135,7 +133,7 @@ uint8_t ReleasingShift::step_internal(
                 }
             }
             // Disable torque requests past a certain speed
-            if (sd->output_rpm > SHIFT_SETTINGS.output_rpm_disable_trq_req && is_upshift) {
+            if (sd->output_rpm > REL_CURRENT_SETTINGS.output_rpm_disable_trq_req && is_upshift) {
                 this->torque_req_val = 0;
             }
         }
@@ -197,7 +195,7 @@ void ReleasingShift::phase_fill_release_spc() {
         if (
             ((sid->shift_flags & SHIFT_FLAG_COAST) != 0) || // Coasting
             // Off clutch has not released and at the end of our filling time
-            (sid->ptr_r_clutch_speeds->off_clutch_speed < SHIFT_SETTINGS.clutch_stationary_rpm)
+            (sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm)
         ) {
             this->subphase_shift += 1;
             this->spc_step_adder = 0;
@@ -210,7 +208,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
             // Real value used here, not abs(), since negative means we need to boost pressre
-            (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
+            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
             (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm)
         ) {
             this->subphase_shift += 1;
@@ -228,10 +226,10 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
     }
     // Faster flare recovery
-    if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(SHIFT_SETTINGS.clutch_stationary_rpm/2)) {
+    if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
         this->spc_p_offset += 20;
     }
-    if (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm) {
+    if (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
         sid->tcc->shift_start(this->upshifting);
     }
     // Write pressure
@@ -262,7 +260,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
         if (
             (0 == this->timer_mod) ||
-            (sid->ptr_r_clutch_speeds->off_clutch_speed > SHIFT_SETTINGS.clutch_stationary_rpm &&
+            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm &&
             sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)
         ) {
             // Next phase
@@ -272,7 +270,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         }
     } else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        float x1 = interpolate_float(sd->pedal_pos, &SHIFT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear)*this->loss_torque_tmp;
+        float x1 = interpolate_float(sd->pedal_pos, &REL_CURRENT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear)*this->loss_torque_tmp;
         float x2 = (this->calculate_freeing_trq_multiplier()*2) + x1;
         this->loss_torque_tmp += x2;
         this->loss_torque = this->loss_torque_tmp/2.0;
@@ -281,7 +279,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         int p = MAX(0, this->calc_release_clutch_p_signed(trq_at_release_clutch, CoefficientTy::Sliding) + (int)sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         this->mod_sol_pressure = this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);
         if (
-            abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > SHIFT_SETTINGS.clutch_stationary_rpm || 
+            abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > REL_CURRENT_SETTINGS.clutch_stationary_rpm || 
             this->trq_at_release_clutch <= minimum_mod_reduction_trq
         ) {
             this->subphase_mod += 1;
@@ -338,7 +336,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }
-        if (((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= SHIFT_SETTINGS.clutch_stationary_rpm) {
+        if (((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }

@@ -399,11 +399,20 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             .tcc = this->tcc
         };
 
-        int inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
+        float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
-        int p2 = 2*inertia; // 3x drag torque (TODO, we should change this per shift)
         if (is_upshift) {
-            if (sensor_data.input_torque > p2) {
+            float threshold_m = 2.0;
+            if (GearChange::_1_2 == req_lookup) {
+                threshold_m = SBS.crossover_trq_thres_1_2;
+            } else if (GearChange::_2_3 == req_lookup) {
+                threshold_m = SBS.crossover_trq_thres_2_3;
+            } else if (GearChange::_3_4 == req_lookup) {
+                threshold_m = SBS.crossover_trq_thres_3_4;
+            } else if (GearChange::_4_5 == req_lookup) {
+                threshold_m = SBS.crossover_trq_thres_4_5;
+            }
+            if (sensor_data.input_torque > (threshold_m*inertia)) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);

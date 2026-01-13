@@ -27,20 +27,9 @@ typedef struct {
     //
     // UNIT: milliseconds
     uint16_t adapt_test_interval_ms;
-    // The minimum output shaft speed for Sailing mode to occur.
-    // In sailing mode, when the accelerator input is 0%, the torque
-    // converter will fully unlock, in order to acheive the maximum
-    // possible coasting distance, for better fuel economy. Set this to 0
-    // to disable sailing mode. Note. This feature is inspired by the 9G tronic
-    //
-    // UNIT: RPM
-    uint16_t sailing_mode_active_rpm;
-    // The minimum output shaft speed before the torque converter is forced
-    // to lockup regardless of pedal input. This is done to avoid slipping
-    // at high RPM, which causes massive heat buildup.
-    //
-    // UNIT: RPM
-    uint16_t force_lock_min_output_rpm;
+    // Temperature threshold for adapting. Below this value,
+    // adaptation does not occur due to lag time of the ATF pressure
+    int16_t temp_threshold_adapt;
     // Open the converter to slipping (If locked) if the engine requests it
     // This is used on the M113K platform when the supercharger clutch
     // is about to engage, so that the shock of the supercharger coming on does
@@ -53,14 +42,13 @@ typedef struct {
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_enable = true,
-    .enable_d1 = false,
+    .enable_d1 = true,
     .enable_d2 = true,
     .enable_d3 = true,
     .enable_d4 = true,
     .enable_d5 = true,
-    .adapt_test_interval_ms = 1000,
-    .sailing_mode_active_rpm = 500,
-    .force_lock_min_output_rpm = 2000,
+    .adapt_test_interval_ms = 100,
+    .temp_threshold_adapt = 70,
     .react_on_engine_slip_request = true,
     .react_on_engine_open_request = true
 };

@@ -283,7 +283,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
             }
         } 
         
-        result.m_ind = indicated;
+        // result.m_ind = indicated;
         result.m_converted_driver = driver_converted;
         result.m_converted_static = static_converted;
     }

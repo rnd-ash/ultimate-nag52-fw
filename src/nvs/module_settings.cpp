@@ -10,6 +10,8 @@ PRM_MODULE_SETTINGS PRM_CURRENT_SETTINGS = PRM_DEFAULT_SETTINGS;
 ADP_MODULE_SETTINGS ADP_CURRENT_SETTINGS = ADP_DEFAULT_SETTINGS;
 ETS_MODULE_SETTINGS ETS_CURRENT_SETTINGS = ETS_DEFAULT_SETTINGS;
 REL_MODULE_SETTINGS REL_CURRENT_SETTINGS = REL_DEFAULT_SETTINGS;
+GAR_MODULE_SETTINGS GAR_CURRENT_SETTINGS = GAR_DEFAULT_SETTINGS;
+CRS_MODULE_SETTINGS CRS_CURRENT_SETTINGS = CRS_DEFAULT_SETTINGS;
 
 // These macro will fail should the naming convension of the settings not be correct
 // so it enforces the following rule:
@@ -63,6 +65,8 @@ esp_err_t ModuleConfiguration::load_all_settings() {
     READ_EEPROM_SETTING(ADP); // Adaptation settings
     READ_EEPROM_SETTING(ETS); // Electronic gear selector settings
     READ_EEPROM_SETTING(REL); // Release shift settings
+    READ_EEPROM_SETTING(GAR); // Garage shift settings
+    READ_EEPROM_SETTING(CRS); // Crossover shift settings
     return res;
 }
 
@@ -89,6 +93,12 @@ esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
         case REL_MODULE_SETTINGS_SCN_ID:
             RESET_EEPROM_SETINGS(REL)
             break;
+        case GAR_MODULE_SETTINGS_SCN_ID:
+            RESET_EEPROM_SETINGS(GAR)
+            break;
+        case CRS_MODULE_SETTINGS_SCN_ID:
+            RESET_EEPROM_SETINGS(CRS)
+            break;
         default:
             return ESP_ERR_INVALID_ARG;
     }
@@ -111,6 +121,10 @@ esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer
         READ_SETTINGS_TO_BUFFER(ETS, buffer_len, buffer, use_default);
     } else if (mod_id == REL_MODULE_SETTINGS_SCN_ID) {
         READ_SETTINGS_TO_BUFFER(REL, buffer_len, buffer, use_default);
+    } else if (mod_id == GAR_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(GAR, buffer_len, buffer, use_default);
+    } else if (mod_id == CRS_MODULE_SETTINGS_SCN_ID) {
+        READ_SETTINGS_TO_BUFFER(CRS, buffer_len, buffer, use_default);
     } else {
         return ESP_ERR_INVALID_ARG;
     }
@@ -131,6 +145,10 @@ esp_err_t ModuleConfiguration::write_settings(uint8_t module_id, uint16_t buffer
         CHECK_AND_WRITE_SETTINGS(ETS, buffer_len, buffer)
     } else if (module_id == REL_MODULE_SETTINGS_SCN_ID) {
         CHECK_AND_WRITE_SETTINGS(REL, buffer_len, buffer)
+    } else if (module_id == GAR_MODULE_SETTINGS_SCN_ID) {
+        CHECK_AND_WRITE_SETTINGS(GAR, buffer_len, buffer)
+    } else if (module_id == CRS_MODULE_SETTINGS_SCN_ID) {
+        CHECK_AND_WRITE_SETTINGS(CRS, buffer_len, buffer)
     }
     return ESP_ERR_INVALID_ARG;
 }

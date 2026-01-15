@@ -4,6 +4,22 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 15/01/26
+
+## Added
+    * Adjustable Garage shift settings to improve garage shifting on a per-user basis
+    * Adjustable parameters for the crossover shifting algorithm (Per profile type)
+    * Adjustable parameters for which shifting algorithm to use and when
+    * Kickdown detection (All variants)
+    * Brand new TCC control algorithm
+    * Calculate Pump torque for garage shifting
+## Fixes
+    * Utilize crossover and release algorithms under better circumstances to drastically improve comfort, even under load
+    * Make the TCC locking and slipping more aggressive
+    * Enable the TCC in 1st gear by default (Can be turned off by the user)
+    * Fix EGS not shifting if 1 rear wheel speed sensors is defective when output shaft speed relies on wheel speed
+
+
 # 16/11/25
 
 ## Added

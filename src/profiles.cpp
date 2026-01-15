@@ -205,7 +205,7 @@ bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
         bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
-        if (sensors->is_braking) { can_upshift = false; }
+        if (sensors->brake_pressed) { can_upshift = false; }
         //if (can_upshift) {
         //    if (sensors->max_torque != 0) {
         //        float demanded_load = (MAX(sensors->driver_requested_torque, 0) * 100) / sensors->max_torque;
@@ -334,7 +334,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
         bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
-        if (sensors->is_braking) { can_upshift = false; } // Disable when breaking
+        if (sensors->brake_pressed) { can_upshift = false; } // Disable when breaking
         //if (this->accel_delta_factor > 100 && sensors->pedal_pos > 64) {
         //    can_upshift = false;
         //}

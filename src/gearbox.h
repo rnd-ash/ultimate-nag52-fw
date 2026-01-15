@@ -18,6 +18,8 @@
 #include "adaptation/shift_adaptation.h"
 #include "models/clutch_speed.hpp"
 #include "shifter/shifter.h"
+#include "inputcomponents/brakepedal.hpp"
+#include "inputcomponents/kickdownswitch.hpp"
 //#include "runtime_sensors/runtime_sensors.h"
 
 struct PostShiftTorqueRamp {
@@ -110,19 +112,20 @@ private:
     Shifter* shifter = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
-    ShiftCircuit last_shift_circuit;
-    float diff_ratio_f;
+    ShiftCircuit last_shift_circuit = ShiftCircuit::None;
+    float diff_ratio_f =  1.0;
     GearChange shift_idx = GearChange::_IDLE;
     bool abort_shift = false;
     bool aborting = false;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
     FirstOrderAverage* pedal_average = nullptr;
-    FirstOrderAverage* motor_speed_average = nullptr;
-    FirstOrderAverage* torque_req_average = nullptr;
 
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
+
+    KickdownSwitch kickdown;
+    BrakePedal brake_pedal;
 
 };
 

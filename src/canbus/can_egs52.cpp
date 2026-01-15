@@ -65,22 +65,21 @@ uint16_t Egs52Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
     uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        if (BS_208h_DRTGHR_EGS52::SNV != bs208.DRTGHR) {
+        if (0x3FFF != bs208.DHR) {
             ret = bs208.DHR;
         }
-        
     }
     return ret;
 }
+
 
 uint16_t Egs52Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     BS_208_EGS52 bs208;
     uint16_t ret = UINT16_MAX;
     if (this->esp_ecu.get_BS_208(GET_CLOCK_TIME(), expire_time_ms, &bs208)) {
-        if (BS_208h_DRTGHL_EGS52::SNV != bs208.DRTGHL) {
+        if (0x3FFF != bs208.DHL) {
             ret = bs208.DHL;
         }
-        
     }
     return ret;
 }
@@ -149,8 +148,14 @@ bool Egs52Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
     return false;
 }
 
-bool Egs52Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
-    return false;
+bool Egs52Can::get_kickdown(const uint32_t expire_time_ms) {
+    bool ret  = false;
+    // Only for the CAN shifter
+    EWM_230_EGS52 dest;
+	if (this->ewm_ecu.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest)) {
+        ret  = dest.KD;
+    }
+    return ret;
 }
 
 uint8_t Egs52Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO

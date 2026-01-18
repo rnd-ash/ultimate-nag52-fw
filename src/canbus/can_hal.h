@@ -316,7 +316,7 @@ class EgsBaseCan {
         // Tells the engine if we are shifting from P->R or N->D.
         // This is needed so the engine limits itself to 1K RPM, in order
         // to prevent any damage to the box!
-        virtual void set_garage_shift_state(bool enable){};
+        virtual void set_garage_shift_state(bool enable, bool to_d){};
         
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

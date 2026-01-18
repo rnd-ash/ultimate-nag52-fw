@@ -24,6 +24,7 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     gs218.CALID_CVN_AKT = true;
     gs218.G_G = false;
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
+    this->gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::SNV; // We don't use this (Yet)
     // Set profile to N/A for now
     this->set_drive_profile(GearboxProfile::Underscore);
     // Set no message
@@ -619,8 +620,14 @@ void Egs52Can::set_gearbox_ok(bool is_ok) {
     gs218.GS_NOTL = !is_ok; // Emergency mode activated
 }
 
-void Egs52Can::set_garage_shift_state(bool enable) {
+void Egs52Can::set_garage_shift_state(bool enable, bool to_d) {
     gs218.KS = enable;
+    // SBC cars - apply brake when going to D
+    if (enable && to_d) {
+        gs418.ESV_BRE = true;
+    } else {
+        gs418.ESV_BRE = false;
+    }
 }
 
 void Egs52Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {

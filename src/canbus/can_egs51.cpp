@@ -388,7 +388,7 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
     }
 }
 
-void Egs51Can::set_garage_shift_state(bool enable) {
+void Egs51Can::set_garage_shift_state(bool enable, bool to_d) {
     this->gs218.GARAGE_SHIFT = enable;
 }
 

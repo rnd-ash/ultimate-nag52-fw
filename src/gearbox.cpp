@@ -591,7 +591,7 @@ void Gearbox::shift_thread()
             this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            egs_can_hal->set_garage_shift_state(true);
+            egs_can_hal->set_garage_shift_state(true, !into_reverse);
             uint16_t cycle_count = 0;
             bool completed_ok = false;
 
@@ -658,7 +658,7 @@ void Gearbox::shift_thread()
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
             }
-            egs_can_hal->set_garage_shift_state(false);
+            egs_can_hal->set_garage_shift_state(false, !into_reverse);
         }
         else
         {

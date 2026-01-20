@@ -47,7 +47,7 @@ class TorqueConverter {
 
         void set_stationary();
         
-        void shift_start(bool upshift);
+        void shift_start(bool upshift, bool release_shifting);
         void shift_end();
         int16_t get_slip_filtered();
         InternalTccState __get_internal_state(void);
@@ -90,6 +90,7 @@ class TorqueConverter {
         bool is_shifting = false;
         bool was_shifting = true;
         bool upshifting = false;
+        bool release_shifting = false;
         bool tcc_solenoid_enabled = true;
         int tcc_commanded_pressure = 0;
         int tcc_actual_pressure = 0;

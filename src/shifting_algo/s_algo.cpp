@@ -161,7 +161,6 @@ uint8_t ShiftingAlgorithm::phase_end_ctrl() {
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pm->find_working_mpc_pressure(sid->targ_g), this->timer_shift);
     if (this->timer_shift == 0) {
-        //sid->tcc->shift_end();
         ret = STEP_RES_END_SHIFT;
     }
     return ret;

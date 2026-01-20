@@ -186,6 +186,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         if (0 == this->timer_shift) {
+            sid->tcc->shift_start(this->upshifting, true); // Unlock the TCC here
             this->subphase_shift += 1; // Next subphase has no time!
         }
     } else if (4 == this->subphase_shift) {
@@ -228,9 +229,6 @@ void ReleasingShift::phase_fill_release_spc() {
     // Faster flare recovery
     if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
         this->spc_p_offset += 20;
-    }
-    if (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
-        sid->tcc->shift_start(this->upshifting);
     }
     // Write pressure
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);

@@ -150,10 +150,16 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             }
         }
         slipping_rpm_targ = slipping_rpm_targ;
-
-        if (is_shifting && !upshifting) {
-            targ = InternalTccState::Open;
-            slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
+        if (is_shifting) {
+            // Release downshift, we need to open up fully here for comfort
+            if (!upshifting && release_shifting) {
+                targ = InternalTccState::Open;
+                slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
+            } else if (upshifting && !release_shifting) {
+                // Likewise when crossover upshifting
+                targ = InternalTccState::Open;
+                slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
+            }
         }
     }
 
@@ -184,13 +190,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int rpm_delta = slip_average->get_average();
 
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
-    bool at_req_pressure = this->tcc_actual_pressure == this->tcc_commanded_pressure;
+    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure) < 50;
     int pedal_delta = sensors->pedal_delta->get_average();
-    bool is_stable = abs(pedal_delta) <= 25 && abs(slip_average->get_average() - slip_now) < 10; // 10% difference allowed in our time window
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.temp_threshold_adapt) {
         // Disable adaptation below this temp threshold since
         // ATF viscocity is not lo enough for accurate adaptation
-        is_stable = false;
+        is_adaptable = false;
     }
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
     if (!is_shifting && time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
@@ -224,10 +229,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_commanded_pressure = 0;
     } else if (this->current_tcc_state == InternalTccState::Slipping) {
         if (load_cell != -1) {
-            if (at_req_pressure && is_stable && abs(rpm_delta) > slip_target * 1.1) {
+            if (is_adaptable && abs(rpm_delta) > slip_target * 1.1) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +5);
                 this->last_adapt_check = GET_CLOCK_TIME();
-            } else if (at_req_pressure && is_stable && abs(rpm_delta) <= slip_target * 0.9) {
+            } else if (is_adaptable && abs(rpm_delta) <= slip_target * 0.9) {
                 set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
                 this->last_adapt_check = GET_CLOCK_TIME();
             }
@@ -235,7 +240,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->tcc_commanded_pressure = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
     } else if (this->current_tcc_state == InternalTccState::Closed) {
         // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
-        if (is_stable && load_cell != -1 && at_req_pressure) {
+        if (is_adaptable && load_cell != -1) {
             if  (SLIP_V_UNDERLOCKED < rpm_delta) {
                 set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +5);
                 this->last_adapt_check = GET_CLOCK_TIME();
@@ -252,7 +257,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
 
     // Pressure achieved.
-    if (at_req_pressure) {
+    if (abs(this->tcc_commanded_pressure-this->tcc_actual_pressure) < 10) {
         this->current_tcc_state = this->target_tcc_state;
         this->last_state_stable_time = GET_CLOCK_TIME();
     }
@@ -330,9 +335,10 @@ uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_commanded_pressure;
 }
 
-void TorqueConverter::shift_start(bool upshift) {
+void TorqueConverter::shift_start(bool upshift, bool release_shifting) {
     this->is_shifting = true;
     this->was_shifting = true;
+    this->release_shifting = release_shifting;
     this->upshifting = upshift;
 }
 void TorqueConverter::shift_end() {

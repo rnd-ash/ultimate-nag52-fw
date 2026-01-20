@@ -273,7 +273,6 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
 
     if (0 == subphase_shift) {
-        this->p_apply_overlap_begin = this->p_apply_clutch;
         uint8_t interp_min = CRS_CURRENT_SETTINGS.sync_cycles_low_trq;
         uint8_t interp_max = CRS_CURRENT_SETTINGS.sync_cycles_high_trq;
         if (sid->change == GearChange::_1_2) {

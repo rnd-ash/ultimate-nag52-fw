@@ -418,7 +418,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (sensor_data.input_torque > 0) {
+            if (sensor_data.input_torque > inertia) {
                 algo = new ReleasingShift(&sid);
             } else {
                 algo = new CrossoverShift(&sid);

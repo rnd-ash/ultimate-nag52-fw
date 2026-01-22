@@ -5,8 +5,6 @@
 #include <tcu_maths.h>
 #include <esp_err.h>
 
-// TCC Settings
-
 // Torque converter setting
 typedef struct {
     // Enable adaptation for all gears
@@ -38,6 +36,22 @@ typedef struct {
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
+    // If the TCC should open for release upshifts (Coasting upshifts)
+    bool open_release_upshift;
+    // If the TCC should open for release downshifts (Load downshifts)
+    bool open_release_downshift;
+    // If the TCC should open for crossover upshifts (Load upshifts)
+    bool open_crossover_upshift;
+    // If the TCC should open for crossover downshifts (Coasting downshifts)
+    bool open_crossover_downshift;
+    // Scaling for TCC output pressure based on temperature. 
+    //
+    // When cold, the ATF is thicker, thus a higher pressure can be commanded
+    // with the same TCC solenoid PWM. This scaling is meant to mitigate this
+    // effect.
+    //
+    // To disable this scaling, set output_min and output_max to 1.0
+    LinearInterpSetting tcc_temp_multiplier;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -50,7 +64,17 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_test_interval_ms = 100,
     .temp_threshold_adapt = 70,
     .react_on_engine_slip_request = true,
-    .react_on_engine_open_request = true
+    .react_on_engine_open_request = true,
+    .open_release_upshift = true,
+    .open_release_downshift = false,
+    .open_crossover_upshift = false,
+    .open_crossover_downshift = true,
+    .tcc_temp_multiplier = LinearInterpSetting {
+        .new_min = 0.6,
+        .new_max = 1.0,
+        .raw_min = -10,
+        .raw_max = 70
+    }
 };
 
 // Solenoid subsystem settings

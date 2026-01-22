@@ -151,6 +151,27 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         slipping_rpm_targ = slipping_rpm_targ;
         if (is_shifting) {
+            bool open_req_shift = false;
+            if (upshifting) {
+                if (release_shifting) {
+                    open_req_shift = TCC_CURRENT_SETTINGS.open_release_upshift;
+                } else {
+                    open_req_shift = TCC_CURRENT_SETTINGS.open_crossover_upshift;
+                }
+            } else {
+                if (release_shifting) {
+                    open_req_shift = TCC_CURRENT_SETTINGS.open_release_downshift;
+                } else {
+                    open_req_shift = TCC_CURRENT_SETTINGS.open_crossover_downshift;
+                }
+            }
+
+            if (open_req_shift) {
+                targ = InternalTccState::Open;
+                slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
+            }
+
+
             // Release downshift, we need to open up fully here for comfort
             if (!upshifting && release_shifting) {
                 targ = InternalTccState::Open;
@@ -263,8 +284,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     // OEM EGS - Below 60C, TCC pressure is reduced by a factor based on
     // ATF temperature
-    if (sensors->atf_temp < 70) {
-        float mul = interpolate_float(sensors->atf_temp, 0.6, 1.0, -10, 70, InterpType::Linear);
+    if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
+        float mul = interpolate_float(sensors->atf_temp, &TCC_CURRENT_SETTINGS.tcc_temp_multiplier, InterpType::Linear);
         this->tcc_commanded_pressure = (float)this->tcc_commanded_pressure*mul;
     }
     pm->set_target_tcc_pressure(this->tcc_commanded_pressure);

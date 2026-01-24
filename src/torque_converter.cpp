@@ -170,17 +170,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 targ = InternalTccState::Open;
                 slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
             }
-
-
-            // Release downshift, we need to open up fully here for comfort
-            if (!upshifting && release_shifting) {
-                targ = InternalTccState::Open;
-                slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
-            } else if (upshifting && !release_shifting) {
-                // Likewise when crossover upshifting
-                targ = InternalTccState::Open;
-                slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
-            }
         }
     }
 

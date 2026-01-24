@@ -733,15 +733,19 @@ void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
 void Egs52Can::set_drive_profile(GearboxProfile p) {
     this->curr_profile_bit = p;
     gs218.HSM = false;
+    gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::SNV;
     switch (p) {
         case GearboxProfile::Agility:
             gs418.FPC = 'A';
+            gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::UNKNOWN; // This is actually A
             break;
         case GearboxProfile::Comfort:
             gs418.FPC = 'C';
+            gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::KOMFORT;
             break;
         case GearboxProfile::Winter:
             gs418.FPC = 'W';
+            gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::KOMFORT;
             gs218.HSM = true;
             break;
         case GearboxProfile::Failure:
@@ -749,9 +753,11 @@ void Egs52Can::set_drive_profile(GearboxProfile p) {
             break;
         case GearboxProfile::Standard:
             gs418.FPC = 'S';
+            gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::SPORT;
             break;
         case GearboxProfile::Manual:
             gs418.FPC = 'M';
+            gs218.FPC_AAD = GS_218h_FPC_AAD_EGS52::UNKNOWN;
             gs218.HSM = true;
             break;
         case GearboxProfile::Individual:

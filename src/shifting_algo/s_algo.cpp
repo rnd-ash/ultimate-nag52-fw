@@ -56,6 +56,8 @@ uint8_t ShiftingAlgorithm::step(
     if (this->timer_shift > 0) {
         this->timer_shift -= 1;
     }
+    // Continuously check shift flags
+    this->calc_shift_flags(&sid->shift_flags);
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
@@ -78,14 +80,16 @@ uint8_t ShiftingAlgorithm::step(
 
 void ShiftingAlgorithm::calc_shift_flags(uint32_t* dest) {
     *dest = 0;
-    if (sd->pedal_pos < 10) {
+    if (sd->input_torque < ShiftHelpers::get_shift_intertia(sid->inf.map_idx)) {
+        *dest |= SHIFT_FLAG_COAST;
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
+            *dest &= ~SHIFT_FLAG_COAST;
             *dest |= SHIFT_FLAG_COAST_54_43;
         }
-        *dest |= SHIFT_FLAG_COAST;
-    }
-    if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2 || sid->change == GearChange::_4_3) {
-        *dest |= SHIFT_FLAG_FREEWHEELING;
+        if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
+            *dest &= ~SHIFT_FLAG_COAST;
+            *dest |= SHIFT_FLAG_COAST_AND_FREEWHEELING;
+        }
     }
 }
 
@@ -265,7 +269,7 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
 uint16_t ShiftingAlgorithm::calc_high_filling_p() {
     uint16_t ret = 0;
     // Crossover downshift and 2-1/3-2
-    if (this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1  ==  sid->change))  {
+    if (this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1 == sid->change))  {
         ret = 0;
     } else {
         uint16_t adder_1 = 0;

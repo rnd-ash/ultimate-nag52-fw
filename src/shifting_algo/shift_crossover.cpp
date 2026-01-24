@@ -36,7 +36,6 @@ uint8_t CrossoverShift::step_internal(
 ) {
     uint8_t ret = STEP_RES_CONTINUE;
     if (phase_id == PHASE_BLEED) {
-        this->calc_shift_flags(&sid->shift_flags);
         ret = this->phase_bleed(pm);
     } else if (phase_id == PHASE_FILL) {
         ret = this->phase_fill();

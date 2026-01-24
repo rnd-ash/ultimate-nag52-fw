@@ -46,7 +46,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2() {
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
         float threshold = torque * (float)(this->cycles_mod_ramp_to_sync + (cycles_can*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
         ret = MAX(threshold, REL_CURRENT_SETTINGS.clutch_stationary_rpm);
-    } else if ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0) {
+    } else if ((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) == 0) {
         ret = REL_CURRENT_SETTINGS.clutch_stationary_rpm;
     } else {
         ret = 25;
@@ -62,14 +62,10 @@ uint8_t ReleasingShift::step_internal(
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
         this->spc_p_offset = 0;
-        if (0 == this->spc_ramp_val) {
-            this->spc_ramp_val = 8;
-        }
+        this->spc_ramp_val = 8;
     }
 
-
     if (phase_id == PHASE_BLEED) {
-        this->calc_shift_flags(&sid->shift_flags);
         ret = this->phase_bleed(pm);
     } else if (phase_id == PHASE_FILL_AND_RELEASE) {
         this->phase_fill_release_spc();
@@ -194,7 +190,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
-            ((sid->shift_flags & SHIFT_FLAG_COAST) != 0) || // Coasting
+            ((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) != 0) || // Coasting
             // Off clutch has not released and at the end of our filling time
             (sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm)
         ) {
@@ -209,7 +205,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
             // Real value used here, not abs(), since negative means we need to boost pressre
-            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_FREEWHEELING) == 0)) ||
+            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) == 0)) ||
             (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm)
         ) {
             this->subphase_shift += 1;
@@ -381,14 +377,11 @@ uint8_t ReleasingShift::phase_overlap() {
         this->overlap_torque = (sd->tcc_trq_multiplier * this->torque_req_val) + this->trq_at_apply_clutch;
     }
     this->mod_sol_pressure = this->calc_mod_overlap();
-    // Trigger torque request so it ends when the overlap phase ends
-    if (this->timer_shift <= 3 && !this->trq_req_up_ramp) {
-        this->trq_req_up_ramp = true;
-        this->trq_req_timer =  3;
-    }
 
     if (this->timer_shift == 0) {
         sid->tcc->shift_end();
+        this->trq_req_up_ramp = true;
+        this->trq_req_timer = 3;
         ret = PHASE_MAX_PRESSURE;
     }
     return ret;

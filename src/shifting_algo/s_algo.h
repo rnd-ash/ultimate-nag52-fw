@@ -78,8 +78,6 @@ public:
 
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
-    // Called when shift solenoid is opened
-    void calc_shift_flags(uint32_t* dest);
 
     protected:
         bool upshifting = false;
@@ -154,6 +152,7 @@ public:
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd);
 }
 
 #endif

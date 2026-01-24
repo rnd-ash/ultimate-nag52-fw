@@ -57,7 +57,7 @@ uint8_t ShiftingAlgorithm::step(
         this->timer_shift -= 1;
     }
     // Continuously check shift flags
-    this->calc_shift_flags(&sid->shift_flags);
+    ShiftHelpers::calc_shift_flags(this->sid, this->sd);
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
@@ -76,21 +76,6 @@ uint8_t ShiftingAlgorithm::step(
     }
 
     return step_res;
-}
-
-void ShiftingAlgorithm::calc_shift_flags(uint32_t* dest) {
-    *dest = 0;
-    if (sd->input_torque < ShiftHelpers::get_shift_intertia(sid->inf.map_idx)) {
-        *dest |= SHIFT_FLAG_COAST;
-        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
-            *dest &= ~SHIFT_FLAG_COAST;
-            *dest |= SHIFT_FLAG_COAST_54_43;
-        }
-        if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
-            *dest &= ~SHIFT_FLAG_COAST;
-            *dest |= SHIFT_FLAG_COAST_AND_FREEWHEELING;
-        }
-    }
 }
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {

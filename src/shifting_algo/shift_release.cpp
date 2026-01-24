@@ -22,7 +22,7 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
         this->cycles_low_filling = 3;
     }
 
-    this->minimum_mod_reduction_trq = -((int)(VEHICLE_CONFIG.engine_drag_torque/10)*2);
+    this->minimum_mod_reduction_trq = -VEHICLE_CONFIG.engine_drag_torque/5;// 2x drag trq
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -326,11 +326,11 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         }
     }
     if (this->subphase_mod > 1 && sd->input_rpm > 200) {
-        if (((sid->shift_flags & SHIFT_FLAG_COAST) != 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= 25) {
+        if (((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) != 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= 25) {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }
-        if (((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        if (((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }

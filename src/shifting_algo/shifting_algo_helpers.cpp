@@ -15,3 +15,17 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
     float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10);
     return r;
 }
+
+void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd) {
+    sid->shift_flags = 0;
+    if (sd->indicated_torque < ShiftHelpers::get_shift_intertia(sid->inf.map_idx)) {
+        sid->shift_flags |= SHIFT_FLAG_COAST;
+        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
+            sid->shift_flags &= ~SHIFT_FLAG_COAST;
+            sid->shift_flags |= SHIFT_FLAG_COAST_54_43;
+        }
+        if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
+            sid->shift_flags |= SHIFT_FLAG_COAST_AND_FREEWHEELING;
+        }
+    }
+}

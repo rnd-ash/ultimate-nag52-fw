@@ -200,8 +200,8 @@ uint8_t CrossoverShift::phase_overlap() {
             interp_min += CRS_CURRENT_SETTINGS.overlap_cycles_low_trq_adder_1_2;
             interp_max += CRS_CURRENT_SETTINGS.overlap_cycles_high_trq_adder_1_2;
         }
-        int min_trq = VEHICLE_CONFIG.engine_drag_torque/10.0; // 2x drag torque real
-        int max_trq = VEHICLE_CONFIG.engine_drag_torque/2.0; // 10x drag torque real
+        int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
+        int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
         this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
@@ -219,8 +219,8 @@ uint8_t CrossoverShift::phase_overlap() {
         this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
     );
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
-    uint16_t p_mod_1 = this->fun_0d86b4();
-    uint16_t p_mod_2 = this->fun_0d8a10(this->p_apply_overlap_begin);
+    uint16_t p_mod_1 = this->calc_overlap_mod();
+    uint16_t p_mod_2 = this->calc_overlap_mod_min(this->p_apply_overlap_begin);
     this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     if (
         this->timer_shift == 0 ||
@@ -278,8 +278,8 @@ uint8_t CrossoverShift::phase_overlap2() {
             interp_min += CRS_CURRENT_SETTINGS.sync_cycles_low_trq_adder_1_2;
             interp_max += CRS_CURRENT_SETTINGS.sync_cycles_high_trq_adder_1_2;
         }
-        int min_trq = VEHICLE_CONFIG.engine_drag_torque/10.0; // 2x drag torque real
-        int max_trq = VEHICLE_CONFIG.engine_drag_torque/2.0; // 10x drag torque real
+        int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
+        int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
         this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.sync_cycles_adder_rpm, InterpType::Linear);
@@ -360,12 +360,14 @@ uint8_t CrossoverShift::phase_overlap2() {
 
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
     // Calculations for MOD pressure
-    uint16_t pmod = this->fun_0d8a66();
+    uint16_t p_mod_1 = this->calc_overlap2_mod();
+    uint16_t p_mod_2 = this->calc_overlap_mod_min(this->p_apply_overlap_begin);
+    int pmod = MAX(p_mod_1, p_mod_2);
     this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pmod, this->timer_mod);
     return ret;
 }
 
-uint16_t CrossoverShift::fun_0d86b4() {
+uint16_t CrossoverShift::calc_overlap_mod() {
     uint16_t p_mod = 0;
     if (abs_input_trq > this->trq_at_apply_clutch) {
         this->trq_at_release_clutch = abs_input_trq - this->trq_at_apply_clutch;
@@ -381,7 +383,7 @@ uint16_t CrossoverShift::fun_0d86b4() {
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
-uint16_t CrossoverShift::fun_0d8a10(uint16_t p_shift) {
+uint16_t CrossoverShift::calc_overlap_mod_min(uint16_t p_shift) {
     uint16_t p_mod = 0;
     if (sid->release_spring_off_clutch > this->centrifugal_force_off_clutch) {
         p_mod = (uint16_t)((float)(sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch);
@@ -389,7 +391,7 @@ uint16_t CrossoverShift::fun_0d8a10(uint16_t p_shift) {
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
-uint16_t CrossoverShift::fun_0d8a66() {
+uint16_t CrossoverShift::calc_overlap2_mod() {
     int p_shift = (int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int;
     p_shift /= 1000;
     int centrifugal = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch;

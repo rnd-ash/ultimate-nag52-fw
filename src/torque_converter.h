@@ -113,6 +113,10 @@ class TorqueConverter {
         uint16_t slip_target = 100;
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;
+
+        bool prefill_done = false;
+        bool prefill_running = false;
+        uint8_t prefill_cycles = 0;
 };
 
 #endif

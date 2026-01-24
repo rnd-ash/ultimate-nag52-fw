@@ -104,6 +104,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->target_tcc_state = InternalTccState::Open;
         this->slip_target = SLIP_V_WHEN_OPEN;
         this->last_state_stable_time = GET_CLOCK_TIME();
+        this->prefill_done = false;
+        this->prefill_running = false;
         return;
     }
         
@@ -118,9 +120,15 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         70,
         InterpType::Linear
     );
-
+    uint16_t avg_p = this->tcc_actual_pressure_calc->get_average();
     this->tcc_actual_pressure_calc->set_sample_size(samples);
-    this->tcc_actual_pressure_calc->add_sample(this->tcc_commanded_pressure);
+    if (avg_p > this->tcc_commanded_pressure) {
+        // Drop in pressure
+        this->tcc_actual_pressure_calc->reset(this->tcc_commanded_pressure);
+    } else {
+        // Increasing in pressure
+        this->tcc_actual_pressure_calc->add_sample(this->tcc_commanded_pressure);
+    }
     this->tcc_actual_pressure = this->tcc_actual_pressure_calc->get_average();
     
     GearboxGear cmp_gear = curr_gear;
@@ -234,33 +242,53 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             load_cell = 10;
         }
     }
+    // Going from Open to some form of closed or slipping, prefill so TCC responds much faster (Short burst of pressure)
+    if (this->target_tcc_state != InternalTccState::Open && this->current_tcc_state == InternalTccState::Open && !prefill_done) {
+        // Prefill logic
+        if (false == prefill_running) {
+            // Var setup (Start of prefill)
+            prefill_running = true;
+            prefill_cycles = TCC_CURRENT_SETTINGS.prefill_cycles;
+        }
 
-    if (this->target_tcc_state == InternalTccState::Open) {
-        this->tcc_commanded_pressure = 0;
-    } else if (this->current_tcc_state == InternalTccState::Slipping) {
-        if (load_cell != -1) {
-            if (is_adaptable && abs(rpm_delta) > slip_target * 1.1) {
-                set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +5);
-                this->last_adapt_check = GET_CLOCK_TIME();
-            } else if (is_adaptable && abs(rpm_delta) <= slip_target * 0.9) {
-                set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
-                this->last_adapt_check = GET_CLOCK_TIME();
-            }
+        if (prefill_cycles > 0) {
+            prefill_cycles -= 1;
         }
-        this->tcc_commanded_pressure = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
-    } else if (this->current_tcc_state == InternalTccState::Closed) {
-        // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
-        if (is_adaptable && load_cell != -1) {
-            if  (SLIP_V_UNDERLOCKED < rpm_delta) {
-                set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +5);
-                this->last_adapt_check = GET_CLOCK_TIME();
-            } else if (SLIP_V_OVERLOCKED > rpm_delta) {
-                // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
-                set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, -5);
-                this->last_adapt_check = GET_CLOCK_TIME();
-            }
+        if (prefill_cycles == 0) {
+            prefill_done = true;
         }
-        this->tcc_commanded_pressure = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)curr_gear);
+        this->tcc_commanded_pressure = TCC_CURRENT_SETTINGS.prefill_pressure;
+    } else {
+        // Constant logic
+        if (this->target_tcc_state == InternalTccState::Open) {
+            this->tcc_commanded_pressure = 0;
+            this->prefill_done = false;
+            this->prefill_running = false;
+        } else if (this->target_tcc_state == InternalTccState::Slipping) {
+            if (load_cell != -1) {
+                if (is_adaptable && abs(rpm_delta) > slip_target * 1.1) {
+                    set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +5);
+                    this->last_adapt_check = GET_CLOCK_TIME();
+                } else if (is_adaptable && abs(rpm_delta) <= slip_target * 0.9) {
+                    set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -1);
+                    this->last_adapt_check = GET_CLOCK_TIME();
+                }
+            }
+            this->tcc_commanded_pressure = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
+        } else if (this->target_tcc_state == InternalTccState::Closed) {
+            // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
+            if (is_adaptable && load_cell != -1) {
+                if  (SLIP_V_UNDERLOCKED < rpm_delta) {
+                    set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +5);
+                    this->last_adapt_check = GET_CLOCK_TIME();
+                } else if (SLIP_V_OVERLOCKED > rpm_delta) {
+                    // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
+                    set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, -5);
+                    this->last_adapt_check = GET_CLOCK_TIME();
+                }
+            }
+            this->tcc_commanded_pressure = this->tcc_lock_map->get_value(load_as_percent, (uint8_t)curr_gear);
+        }
     }
     if (!is_shifting && was_shifting) {
         was_shifting = false;

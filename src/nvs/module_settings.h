@@ -52,6 +52,12 @@ typedef struct {
     //
     // To disable this scaling, set output_min and output_max to 1.0
     LinearInterpSetting tcc_temp_multiplier;
+    // Prefill pressure for the torque converter. When going from Open->Slipping, 
+    // a burst of pressure is first sent in order to fill the converter faster
+    uint16_t prefill_pressure;
+    // Number of 20ms cycles to hold the converter at prefill_pressure for when
+    // prefilling
+    uint8_t prefill_cycles;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -74,7 +80,9 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
         .new_max = 1.0,
         .raw_min = -10,
         .raw_max = 70
-    }
+    },
+    .prefill_pressure = 10000,
+    .prefill_cycles = 10
 };
 
 // Solenoid subsystem settings

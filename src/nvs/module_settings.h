@@ -267,6 +267,22 @@ typedef struct {
     // When using the SLR profile selector, this is the profile
     // when the profile selector is in the right position
     SelectableGearboxProfile slr_profile_idx_right;
+    // CAN Shifter button profile selector - Enable Comfort mode
+    bool ewm_enable_c;
+    // CAN Shifter button profile selector - Enable Winter (Manual 2nd gear start) mode
+    bool ewm_enable_w;
+    // CAN Shifter button profile selector - Enable Agility mode
+    bool ewm_enable_a;
+    // CAN Shifter button profile selector - Enable Manual mode
+    bool ewm_enable_m;
+    // CAN Shifter button profile selector - Enable Race (Super fast manual) mode
+    bool ewm_enable_r;
+    // CAN Shifter button profile selector - Save profile for 
+    // next start - Only applys for auto profiles (This overrides startup profile in basic options)
+    bool ewm_save_profile;
+    // CAN Shifter button profile selector - Save profile for 
+    // next start (Including manual profile options)
+    bool ewm_save_profile_manual;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
@@ -276,7 +292,14 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .switch_profile_idx_bottom = SelectableGearboxProfile::Standard,
     .slr_profile_idx_left = SelectableGearboxProfile::Comfort,
     .slr_profile_idx_center = SelectableGearboxProfile::Standard,
-    .slr_profile_idx_right = SelectableGearboxProfile::Manual
+    .slr_profile_idx_right = SelectableGearboxProfile::Manual,
+    .ewm_enable_c = false,
+    .ewm_enable_w = false,
+    .ewm_enable_a = false,
+    .ewm_enable_m = true,
+    .ewm_enable_r = false,
+    .ewm_save_profile = true,
+    .ewm_save_profile_manual = false,
 };
 
 // Release shift settings

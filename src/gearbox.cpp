@@ -414,13 +414,13 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             } else if (GearChange::_4_5 == req_lookup) {
                 threshold_m = SBS.crossover_trq_thres_4_5;
             }
-            if (sensor_data.indicated_torque > (threshold_m*inertia)) {
+            if (sensor_data.converted_torque > (threshold_m*inertia)) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (((sensor_data.indicated_torque >= inertia && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0)) || ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) && (req_lookup != GearChange::_3_2)) {
+            if (((sensor_data.converted_torque >= inertia && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0)) || ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0))) {
                 algo = new ReleasingShift(&sid);
             } else {
                 algo = new CrossoverShift(&sid);
@@ -999,6 +999,26 @@ void Gearbox::controller_loop()
                                 this->shift_adapter->save();
                             }
                             this->tcc->save();
+                            // Save profile
+                            if (ShifterStyle::EWM == shifter->get_shifter_type()) {
+                                if (ETS_CURRENT_SETTINGS.ewm_save_profile) {
+                                    // We know that the profile is valid based on
+                                    // use selection (EWM button code) - So we don't need to check this
+                                    uint8_t tag = this->current_profile->get_profile_id();
+                                    // By default, we can save, but just check if manual profile without
+                                    // the user wanting to save manual profiles
+                                    bool can_save = true;
+                                    if (tag == PROFILE_IDX_M || tag == PROFILE_IDX_R || tag == PROFILE_IDX_W) {
+                                        can_save = ETS_CURRENT_SETTINGS.ewm_save_profile_manual;
+                                    }
+                                    if (can_save) {
+                                        esp_err_t res = EEPROM::ewm_btn_save_profile(tag);
+                                        if (ESP_OK != res) {
+                                            ESP_LOGW("EWM SAVE", "Profile could not be saved to NVS");
+                                        }
+                                    }
+                                }
+                            }
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {

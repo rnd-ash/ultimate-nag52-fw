@@ -190,9 +190,12 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
-            ((sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) != 0) || // Coasting
-            // Off clutch has not released and at the end of our filling time
-            (sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm)
+            // On clutch has not been fully applied
+            (sid->ptr_r_clutch_speeds->on_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
+            // off clutch is not let go
+            sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm) ||
+            // Coasting
+            (sid->shift_flags & SHIFT_FLAG_COAST_AND_FREEWHEELING) != 0
         ) {
             this->subphase_shift += 1;
             this->spc_step_adder = 0;
@@ -223,7 +226,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
     }
     // Faster flare recovery
-    if (this->subphase_shift >= 4 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
+    if (this->subphase_shift >= 3 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
         this->spc_p_offset += 20;
     }
     // Write pressure

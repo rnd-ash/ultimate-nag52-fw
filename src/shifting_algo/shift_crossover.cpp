@@ -227,6 +227,7 @@ uint8_t CrossoverShift::phase_overlap() {
         abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
+        this->trq_adder_1 = 0;
         this->trq_adder_2 = 0;
         this->trq_adder_3 = 0;
         ret = PHASE_OVERLAP2;
@@ -315,6 +316,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     float trq_adder_3_adder = interpolate_float(sid->chars.target_shift_time, &CRS_CURRENT_SETTINGS.sync_trq_adder_speed, InterpType::Linear);
 
     if (1 == subphase_shift) {
+        this->trq_adder_1 += 1.0;
         this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 4);
         if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
             // Next phase (No timer, just ends when clutch speed is hit)
@@ -341,7 +343,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     } else if (4 == subphase_shift) {
         // Waiting
-        this->trq_adder_3 += trq_adder_3_adder/4.0;
         if (this->timer_shift == 0) {
             this->trq_req_up_ramp = true;
             this->trq_req_timer = 6;
@@ -349,7 +350,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             ret = PHASE_MAX_PRESSURE;
         }
     }
-    this->trq_adder = this->get_trq_adder_map_val() + this->trq_adder_2 + this->trq_adder_3;
+    this->trq_adder = this->trq_adder_1 + this->trq_adder_2 + this->trq_adder_3;
     // Trq adder 2/3 are included in trq_adder for this step
     uint16_t torque = abs_input_trq + this->trq_adder + this->torque_req_val;
     uint16_t targ = MAX(

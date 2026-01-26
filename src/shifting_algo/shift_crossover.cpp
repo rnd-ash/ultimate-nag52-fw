@@ -50,6 +50,16 @@ uint8_t CrossoverShift::step_internal(
     } else {
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
     }
+    // Faster flare recovery
+    if (this->phase_id >= PHASE_FILL && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
+        this->spc_p_offset += 20;
+        // TODO - Mark this as a special torque request if required (Stronger request due to flaring)
+        // If the torque request is not yet active, activate it now!
+        if (!this->trq_req_down_ramp) {
+            this->trq_req_timer = 3;
+            this->trq_req_down_ramp = true;
+        }
+    }
 
     // Do torque request stuff here
     this->torque_req_out = 0;

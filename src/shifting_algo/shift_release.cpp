@@ -61,7 +61,6 @@ uint8_t ReleasingShift::step_internal(
     uint8_t ret = STEP_RES_CONTINUE;
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
-        this->spc_p_offset = 0;
         this->spc_ramp_val = 8;
     }
 

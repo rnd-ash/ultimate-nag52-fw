@@ -194,6 +194,13 @@ uint8_t CrossoverShift::phase_fill() {
             ret = PHASE_OVERLAP;
         }
     }
+    // Skip prefilling if flaring, or if the on clutch is moving too early
+    if (
+        sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2) ||
+        sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm
+    ) {
+        ret = PHASE_OVERLAP;
+    }
     return ret;
 }
 

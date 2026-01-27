@@ -22,7 +22,6 @@ private:
     uint8_t phase_fill();
     uint8_t phase_overlap();
     uint8_t phase_overlap2();
-    int16_t map_trq_adder = 0;
     uint16_t p_apply_overlap_begin = 0;
 
     uint16_t calc_overlap_mod();
@@ -32,9 +31,9 @@ private:
     uint16_t fill_ramping_mod_p();
     uint16_t get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles);
     uint16_t get_trq_adder_map_val();
+    uint16_t get_trq_boost_adder();
     float trq_adder_1 = 0;
     float trq_adder_2 = 0;
-    float trq_adder_3 = 0;
 
     uint8_t trq_req_timer = 0;
     bool trq_req_up_ramp = false;

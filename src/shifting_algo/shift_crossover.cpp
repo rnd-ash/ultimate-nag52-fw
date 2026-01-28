@@ -69,7 +69,6 @@ uint8_t CrossoverShift::step_internal(
             float multi_engine_trq = interpolate_float(sd->pedal_pos, &CRS_CURRENT_SETTINGS.trq_req_multi_pedal_pos, InterpType::Linear);
             float multi_rpm = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.trq_req_multi_input_rpm, InterpType::Linear);
             float out = (float)abs_input_trq * (multi_engine_trq*multi_rpm);
-            out = MAX(out, this->get_trq_boost_adder());
             intervension_out = out / sd->tcc_trq_multiplier;
         }
         if (trq_req_up_ramp) {
@@ -352,14 +351,14 @@ uint8_t CrossoverShift::phase_overlap2() {
         if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             this->timer_shift = 3;
             this->subphase_shift += 1;
+            this->trq_req_up_ramp = true;
+            this->trq_req_timer = 3;
+            sid->tcc->shift_end();
         }
     } else if (4 == subphase_shift) {
         // Waiting (2)
         adder = this->get_trq_boost_adder();
         if (this->timer_shift == 0) {
-            this->trq_req_up_ramp = true;
-            this->trq_req_timer = 3;
-            sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
     }

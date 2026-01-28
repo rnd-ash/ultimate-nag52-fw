@@ -9,6 +9,7 @@ void ShiftingAlgorithm::reset_all_subphase_data() {
     this->timer_shift = 0;
     this->momentum_pid[0] = 0;
     this->momentum_pid[1] = 0;
+    this->trq_adder = 0;
 }
 
 ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
@@ -45,7 +46,6 @@ uint8_t ShiftingAlgorithm::step(
     this->centrifugal_force_off_clutch = pm->calculate_centrifugal_force_for_clutch(sid->releasing, sd->input_rpm, abs(sid->ptr_r_clutch_speeds->rear_sun_speed));
     // EGS compatibility vars updated every cycle
     this->abs_input_trq = abs_input_torque;
-    this->trq_adder = 0; //pm->find_decent_adder_torque(sid->change, abs_input_torque, sd->output_rpm);
     this->pm = pm;
     this->sd = sd;
     
@@ -85,7 +85,12 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
-        this->timer_mod = 5; // 100ms
+        // Release downshift only (EGS53)
+        if (this->is_release_shift() && !upshifting) {
+            this->timer_mod = interpolate_float(sd->atf_temp, 20, 3, -45, -10, InterpType::Linear);
+        } else {
+            this->timer_mod = 3;
+        }
     }
     if (1 == this->subphase_mod) {
         // End of phase!
@@ -104,8 +109,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     this->shift_sol_pressure = this->correct_shift_shift_pressure(p_apply_clutch);
 
 calc_mod:
-    // if RELEASING_UPSHIFT || CROSSOVER_DOWNSHIFT
-    if ((!this->upshifting && !this->is_release_shift()) || (this->upshifting && this->is_release_shift())) {
+    if (this->is_release_shift()) {
         if (GearChange::_2_3 == sid->change) {
             targ_spc *= 1.993;
         }

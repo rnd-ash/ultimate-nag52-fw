@@ -21,8 +21,8 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .sync_rpm = this->threshold_rpm,
         .pid_torque = (int16_t)this->correction_trq,
         .adder_torque = (int16_t)this->trq_adder,
-        .p_on = (uint16_t)this->shift_sol_pressure,
-        .p_off = (uint16_t)this->mod_sol_pressure,
+        .p_on = (uint16_t)this->target_turbine_speed, //(uint16_t)this->shift_sol_pressure,
+        .p_off = (uint16_t)sd->input_rpm,//(uint16_t)this->mod_sol_pressure,
         .s_off = (int16_t)this->sid->ptr_r_clutch_speeds->off_clutch_speed,
         .s_on = (int16_t)this->sid->ptr_r_clutch_speeds->on_clutch_speed,
     };
@@ -298,59 +298,49 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
 
 short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
-
+    if (this->upshifting) {
+        this->target_turbine_speed -= (momentum*20)/intertia;
+        this->target_turbine_speed = MAX(0, this->target_turbine_speed);
+    } else {
+        this->target_turbine_speed += (momentum*20)/intertia;
+    }
     short p = 0;
     short i = 0;
-    short d = 0; // Always??
+    short d = 0;
     //short t = 0;
     switch (style) {
         case ShiftStyle::Crossover_Up:
-            this->target_turbine_speed -= (momentum*20)/intertia;
             p = 150;
             i = 15;
             d = 30;
             break;
-        case ShiftStyle::Release_Up:
-            this->target_turbine_speed -= (momentum*20)/intertia;
-            p = REL_CURRENT_SETTINGS.pid_p_val_upshift;
-            i = REL_CURRENT_SETTINGS.pid_i_val_upshift;
-            break;
         case ShiftStyle::Crossover_Dn:
-            this->target_turbine_speed -= (momentum*20)/intertia;
+            p = -150;
+            i = -5;
+            d = -15;
+            break;
+        case ShiftStyle::Release_Up:
             p = -150;
             i = -5;
             d = 0;
             break;
         case ShiftStyle::Release_Dn:
-            this->target_turbine_speed += (momentum*20)/intertia;
-            p = REL_CURRENT_SETTINGS.pid_p_val_downshift;
-            i = REL_CURRENT_SETTINGS.pid_i_val_downshift;
+            p = 200;
+            i = 5;
+            d = 0;
             break;
     }
-    this->target_turbine_speed = MAX(0, this->target_turbine_speed);
     int16_t error = ((int16_t)sd->input_rpm - this->target_turbine_speed);
 
-    // Interpretation of 32bit C166 maths on 16bit MCU, assembly is very
-    // hard to understand here...
-    int32_t pc = (p*error)/1000;
-    int32_t tmp = (int32_t)momentum_pid[1] + error;
-    if (tmp > INT16_MAX) {
-      tmp = INT16_MAX;
-    } else if (tmp < INT16_MIN) {
-      tmp = INT16_MIN;
-    }
-    momentum_pid[1] = tmp;
+    int32_t p_v = (p*error)/1000;
+    momentum_pid[1] += error;
+    momentum_pid[1] = MAX(INT16_MIN, MIN(INT16_MAX, momentum_pid[1]));
+    
+    // TODO - EGS has no anti-windup logic for its PID algorithm
+    int32_t i_v = (i*momentum_pid[1])/1000;
+    int32_t d_v = (d*(error-momentum_pid[0]))/1000;
+    momentum_pid[0] = error;
 
-    int32_t pi = (i*momentum_pid[1])/1000;
-
-    int32_t pd = ((error - momentum_pid[0]) * d)/1000;
-
-    int32_t ret = pc + pi + pd;
-    if (ret > INT16_MAX) {
-      ret = INT16_MAX;
-    } else if (tmp < INT16_MIN) {
-      ret = INT16_MIN;
-    }
-
+    int32_t ret = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
     return (short)ret;
 }

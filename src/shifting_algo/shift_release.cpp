@@ -444,12 +444,6 @@ uint16_t ReleasingShift::max_p_mod_pressure() {
     }
 }
 
-short ReleasingShift::first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val) {
-    int x1 = ((int)percentage * (int)new_value) / 100;
-    int x2 = ((int)(100 - percentage) * (int)last_filtered_val) / 100;
-    return x1+x2;
-}
-
 const uint8_t momentum_factors[8] = {100, 100, 100, 100, 80, 80, 100, 100}; // RELEASE_CAL->field20_0x16
 short ReleasingShift::calc_sync_torque_new_clutch() {
     // Freeing torque factored with momentum

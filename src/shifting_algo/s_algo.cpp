@@ -245,7 +245,7 @@ uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
 
 uint16_t ShiftingAlgorithm::calc_low_filling_p() {
     uint16_t ret = 0;
-    if (this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1  ==  sid->change))  {
+    if (this->is_release_shift() && (GearChange::_3_2 == sid->change || GearChange::_2_1 == sid->change))  {
         ret = 0;
     } else {
         uint16_t pressure = sid->prefill_info.low_fill_pressure_on_clutch;
@@ -283,7 +283,7 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
     // Bypass EEPROM adaptation offsets for shift circuits
     pressure += this->spc_p_offset;
     if (race == sid->profile) {
-        //pressure += 400;
+        pressure += 400;
     }
     if (pressure < 0) {
         pressure = 0;
@@ -298,12 +298,6 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
 
 short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
-    if (this->upshifting) {
-        this->target_turbine_speed -= (momentum*20)/intertia;
-    } else {
-        this->target_turbine_speed += (momentum*20)/intertia;
-    }
-    this->target_turbine_speed = MAX(0, this->target_turbine_speed);
 
     short p = 0;
     short i = 0;
@@ -311,27 +305,29 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     //short t = 0;
     switch (style) {
         case ShiftStyle::Crossover_Up:
-            if (sid->ptr_r_clutch_speeds->off_clutch_speed > 130 || sid->inf.map_idx != 0 || sd->atf_temp < 40) {
-                p = 120;
-                i = 4;
-            } else {
-                p = 75;
-                i = 2;
-            }
+            this->target_turbine_speed -= (momentum*20)/intertia;
+            p = 150;
+            i = 15;
+            d = 30;
             break;
         case ShiftStyle::Release_Up:
+            this->target_turbine_speed -= (momentum*20)/intertia;
             p = REL_CURRENT_SETTINGS.pid_p_val_upshift;
             i = REL_CURRENT_SETTINGS.pid_i_val_upshift;
             break;
         case ShiftStyle::Crossover_Dn:
-            p = 200;
-            i = 5;
+            this->target_turbine_speed -= (momentum*20)/intertia;
+            p = -150;
+            i = -5;
+            d = 0;
             break;
         case ShiftStyle::Release_Dn:
+            this->target_turbine_speed += (momentum*20)/intertia;
             p = REL_CURRENT_SETTINGS.pid_p_val_downshift;
             i = REL_CURRENT_SETTINGS.pid_i_val_downshift;
             break;
     }
+    this->target_turbine_speed = MAX(0, this->target_turbine_speed);
     int16_t error = ((int16_t)sd->input_rpm - this->target_turbine_speed);
 
     // Interpretation of 32bit C166 maths on 16bit MCU, assembly is very

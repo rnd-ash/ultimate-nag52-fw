@@ -946,7 +946,7 @@ void Gearbox::controller_loop()
         {
             if (!shifting)
             {
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, true);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
             }
         }
@@ -955,11 +955,9 @@ void Gearbox::controller_loop()
         {
             bool lock_state = pll != 0;
             if (lock_state) {
-                float prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, true);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
-                this->pressure_mgr->set_target_modulating_pressure(prefill/2);
-                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
-                //sol_y4->write_pwm_12_bit(1024);
+                this->pressure_mgr->set_target_shift_pressure(4000);
             }
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position(1000);

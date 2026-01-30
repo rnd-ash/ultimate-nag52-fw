@@ -444,7 +444,12 @@ uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
     return max_p;
 }
 
-uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
+uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flush_logic) {
+    if (flush_logic) {
+        if (0 != this->mpc_flush_timer) {
+            this->mpc_flush_timer -= 1;
+        }
+    }
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
     uint16_t output = 0;
     uint8_t clutch_idx = MECH_PTR->strongest_loaded_clutch_idx[gear_idx];
@@ -469,9 +474,39 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g) {
     // Clamping pressures
     if (output > get_max_solenoid_pressure()) {
         output = get_max_solenoid_pressure();
-    } else if (output < HYDR_PTR->min_mpc_pressure) {
-        output = HYDR_PTR->min_mpc_pressure;
     }
+    // MPC pressure surge reduction
+    // - Reduces the slow buildup of pressure when we are working
+    //   below min MPC pressure
+    if (
+        flush_logic &&
+        (this->target_modulating_pressure < HYDR_PTR->min_mpc_pressure) && // Last call was below min
+        (0 == output) && // Current call is 0 pressure
+        ((sensor_data->atf_temp+50) >= HYDR_PTR->mpc_flush_temp_threshold) && // +50 to convert between our temperature and EGS Cal
+        (0 != HYDR_PTR->mpc_no_flush_time)// MPC Flushing is enabled for this box
+    ) {
+        if (!this->mpc_flushing) {
+            if (0 == this->mpc_flush_timer) {
+                this->mpc_flushing = true;
+                this->mpc_flush_timer = HYDR_PTR->mpc_flush_time;
+            }
+        } else if (0 == this->mpc_flush_timer) {
+            this->mpc_flushing = false;
+            this->mpc_flush_timer = HYDR_PTR->mpc_no_flush_time;
+        }
+    } else {
+        this->mpc_flushing = false;
+        this->mpc_flush_timer = 0;
+    }
+
+    if (false == this->mpc_flushing) {
+        output = MAX(output, HYDR_PTR->min_mpc_pressure);
+    }
+    if (output < this->target_modulating_pressure) {
+        // Filter when decreasing pressure, instant rise in pressure
+        output = first_order_filter_in_place(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
+    }
+
     return output;
 }
 

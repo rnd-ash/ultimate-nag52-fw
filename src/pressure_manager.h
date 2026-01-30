@@ -121,7 +121,7 @@ public:
     uint16_t p_clutch_with_coef(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, CoefficientTy coef_ty);
     int16_t p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty);
 
-    uint16_t find_working_mpc_pressure(GearboxGear curr_g);
+    uint16_t find_working_mpc_pressure(GearboxGear curr_g, bool flush_logic = false);
     uint16_t find_pressure_holding_other_clutches_in_change(GearChange change, GearboxGear current_g, uint16_t abs_torque_nm);
     uint16_t find_freeing_torque(GearChange change, uint16_t motor_torque, uint16_t output_rpm);
     uint16_t find_decent_adder_torque(GearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
@@ -190,6 +190,8 @@ private:
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
     bool init_ss_recovery = false;
+    bool mpc_flushing = false;
+    uint8_t mpc_flush_timer = 0;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;
 

@@ -18,7 +18,7 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
 
 void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd) {
     sid->shift_flags = 0;
-    if (sd->indicated_torque < ShiftHelpers::get_shift_intertia(sid->inf.map_idx)) {
+    if (sd->converted_torque < -ShiftHelpers::get_shift_intertia(sid->inf.map_idx)/2) {
         sid->shift_flags |= SHIFT_FLAG_COAST;
         if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
             sid->shift_flags &= ~SHIFT_FLAG_COAST;

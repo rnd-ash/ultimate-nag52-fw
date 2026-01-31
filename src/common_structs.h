@@ -92,7 +92,6 @@ struct OutputData {
  * Compatible with OEM EGS data type
  */
 enum class GearChange {
-    /// Gear 1 to gear 2
     _IDLE = 0,
     _1_2 = 1,
     _2_3 = 2,

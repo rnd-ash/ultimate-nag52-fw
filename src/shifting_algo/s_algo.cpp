@@ -9,6 +9,7 @@ void ShiftingAlgorithm::reset_all_subphase_data() {
     this->timer_shift = 0;
     this->momentum_pid[0] = 0;
     this->momentum_pid[1] = 0;
+    this->momentum_pid[2] = 0;
     this->trq_adder = 0;
 }
 
@@ -248,9 +249,7 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
     if (this->is_release_shift() && (GearChange::_3_2 == sid->change || GearChange::_2_1 == sid->change))  {
         ret = 0;
     } else {
-        uint16_t pressure = sid->prefill_info.low_fill_pressure_on_clutch;
-        ret = pressure;
-        // TODO
+        ret = sid->prefill_info.low_fill_pressure_on_clutch;
     }
     return ret;
 }
@@ -266,11 +265,7 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
             // Very cold filling
             adder_1 = 500;
         }
-        uint16_t adder_2 = 0;
-        if (race == sid->profile) {
-            adder_2 = 400; // McLaren adder
-        }
-        ret = sid->prefill_info.fill_pressure_on_clutch + adder_1 + adder_2;
+        ret = sid->prefill_info.fill_pressure_on_clutch + adder_1;
         ret = MIN(sid->SPC_MAX, ret);
     }
     return ret;
@@ -282,9 +277,6 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
     uint16_t max_p = pm->get_max_shift_pressure(sid->inf.map_idx);
     // Bypass EEPROM adaptation offsets for shift circuits
     pressure += this->spc_p_offset;
-    if (race == sid->profile) {
-        pressure += 400;
-    }
     if (pressure < 0) {
         pressure = 0;
     }
@@ -299,10 +291,10 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
 short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     if (this->upshifting) {
-        this->target_turbine_speed -= (momentum*20)/intertia;
+        this->target_turbine_speed -= ((momentum*20)/intertia);
         this->target_turbine_speed = MAX(0, this->target_turbine_speed);
     } else {
-        this->target_turbine_speed += (momentum*20)/intertia;
+        this->target_turbine_speed += ((momentum*20)/intertia);
     }
     short p = 0;
     short i = 0;

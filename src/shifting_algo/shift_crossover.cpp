@@ -50,16 +50,6 @@ uint8_t CrossoverShift::step_internal(
     } else {
         ret = STEP_RES_END_SHIFT; // WTF? Should never happen
     }
-    // Faster flare recovery
-    if (this->phase_id >= PHASE_FILL && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm/2)) {
-        this->spc_p_offset += 20;
-        // TODO - Mark this as a special torque request if required (Stronger request due to flaring)
-        // If the torque request is not yet active, activate it now!
-        if (!this->trq_req_down_ramp) {
-            this->trq_req_timer = 3;
-            this->trq_req_down_ramp = true;
-        }
-    }
 
     // Do torque request stuff here
     this->torque_req_out = 0;
@@ -85,7 +75,7 @@ uint8_t CrossoverShift::step_internal(
                 this->trq_req_timer -= 1;
             }
         }
-        this->torque_req_out = this->torque_req_val*(pm->release_coefficient()/100.0);
+        this->torque_req_out = this->torque_req_val;
     }
 
     // Output to CAN
@@ -113,7 +103,6 @@ uint8_t CrossoverShift::phase_fill() {
         // Set vars
         this->timer_shift = sid->prefill_info.fill_cycles;
         this->subphase_shift += 1;
-        sid->tcc->shift_start(this->upshifting, false);
     }
     if (1 == this->subphase_shift) {
         // High filling
@@ -233,12 +222,12 @@ uint8_t CrossoverShift::phase_overlap() {
     uint16_t p_mod_2 = this->calc_overlap_mod_min(this->p_apply_overlap_begin);
     this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     if (
-        this->timer_shift == 0 ||
+        this->timer_shift <= 1 || // ?? - EGS logic here, doesn't cmp to 0
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
-        this->trq_adder_1 = 0;
-        this->trq_adder_2 = 0;
+        this->trq_adder_1 = MIN(0, (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding))-abs_input_trq);
+        sid->tcc->shift_start(this->upshifting, false);
         ret = PHASE_OVERLAP2;
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
@@ -270,8 +259,9 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
 
 uint16_t CrossoverShift::get_trq_boost_adder() {
     uint16_t ret = 0;
-    uint16_t map_val = this->get_trq_adder_map_val();
-    int min = VEHICLE_CONFIG.engine_drag_torque/10.0;
+    // Use raw value (Not amplified, so shift is still smooth at the end)
+    uint16_t map_val = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
+    int min = VEHICLE_CONFIG.engine_drag_torque/20.0;
     float boost_trq_adder = pm->sliding_coefficient() * (float)abs_input_trq / pm->release_coefficient();
     boost_trq_adder = MAX(0, boost_trq_adder - abs_input_trq);
     if (boost_trq_adder < min) {
@@ -325,7 +315,7 @@ uint8_t CrossoverShift::phase_overlap2() {
                 (this->upshifting && sd->input_torque > 0) ||
                 (!this->upshifting && sd->input_torque < 0)
             ) {
-                trq = -sd->input_torque;
+                trq = -abs_input_trq;
             }
             this->momentum_plus_maxtrq = MAX(0, v + trq); // TODO Trq req and adder adapters
         }
@@ -340,7 +330,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_plus_maxtrq_filtered);
 
         adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
-        // TODO + PID control output
         this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 3);
         if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
             // Next phase (No timer, just ends when clutch speed is hit)
@@ -361,9 +350,10 @@ uint8_t CrossoverShift::phase_overlap2() {
             // Next phhase
             this->timer_shift = 3;
             this->subphase_shift += 1;
+            this->trq_req_up_ramp = true;
+            this->trq_req_timer = 3;
         }
     } else if (3 == subphase_shift) {
-        // TODO + PID control output
         adder = this->get_trq_boost_adder();
         int targ_momentum = adder; // boost trq
         if (
@@ -384,15 +374,13 @@ uint8_t CrossoverShift::phase_overlap2() {
         // Waiting (2)
         adder = this->get_trq_boost_adder();
         if (this->timer_shift == 0) {
-            this->trq_req_up_ramp = true;
-            this->trq_req_timer = 3;
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
     }
     // Trq adder 2/3 are included in trq_adder for this step
-    this->trq_adder = adder;
-    uint16_t torque = abs_input_trq + this->trq_adder + this->correction_trq + this->torque_req_out;
+    this->trq_adder = this->trq_adder_1;
+    uint16_t torque = abs_input_trq + this->trq_adder + this->correction_trq;
     uint16_t targ = MAX(
         this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
         this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
@@ -466,13 +454,7 @@ uint16_t CrossoverShift::max_p_mod_pressure() {
 }
 
 int16_t CrossoverShift::calc_momentum_overlap_2() {
-    int ret = this->get_trq_adder_map_val() + this->torque_req_val+this->torque_req_out; // TODO + adapters
-    int v2 = (float)this->torque_req_out/(pm->release_coefficient()/100.0);
-    if (v2 < ret) {
-        ret -= v2;
-    } else {
-        ret = 0;
-    }
+    int ret = this->get_trq_adder_map_val(); //+ this->torque_req_val; // TODO + adapters
     if (
         // WTF. Just mimic original logic, but not sure how this works
         (!this->upshifting || sd->input_torque < 1) &&

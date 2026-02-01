@@ -8,9 +8,6 @@
 #include "nvs/all_keys.h"
 #include "egs_calibration/calibration_structs.h"
 
-const int16_t friction_coefficient_0c = 185;
-const int16_t friction_coefficient_80C = 140;
-
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
     this->gb_max_torque = max_torque;
@@ -325,8 +322,8 @@ uint16_t PressureManager::find_pressure_holding_other_clutches_in_change(GearCha
 float PressureManager::sliding_coefficient() const {
     return interpolate_float(
         sensor_data->atf_temp, 
-        friction_coefficient_0c,
-        friction_coefficient_80C,
+        PRM_CURRENT_SETTINGS.applying_coefficient_cold,
+        PRM_CURRENT_SETTINGS.applying_coefficient_hot,
         0,
         80,
         InterpType::Linear
@@ -334,11 +331,11 @@ float PressureManager::sliding_coefficient() const {
 }
 
 float PressureManager::release_coefficient() const {
-    return 120.0;
+    return (float)PRM_CURRENT_SETTINGS.releasing_coefficient;
 }
 
 float PressureManager::stationary_coefficient() const {
-    return 100.0;
+    return (float)PRM_CURRENT_SETTINGS.stationary_coefficient;
 }
 
 uint16_t PressureManager::find_decent_adder_torque(GearChange change, uint16_t abs_motor_torque, uint16_t output_rpm) {

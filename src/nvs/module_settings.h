@@ -159,18 +159,23 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
 
 // Pressure manager settings
 typedef struct {
-    // Time before shift solenoids are reduced PWM.
-    // Setting this too low can result in the shift circuit
-    // not activating!
-    //
-    // UNIT: milliseconds
-    uint16_t shift_solenoid_pwm_reduction_time;
+    // DEBUG: Friction coefficient when stationary (In gear)
+    uint8_t stationary_coefficient;
+    // DEBUG: Friction coefficient when releasing a clutch
+    uint8_t releasing_coefficient;
+    // DEBUG: Friction coefficient when applying a clutch (Cold)
+    uint8_t applying_coefficient_cold;
+    // DEBUG: Friction coefficient when applying a clutch (Hot)
+    uint8_t applying_coefficient_hot;
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
 
 
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
-    .shift_solenoid_pwm_reduction_time = 1000,
+    .stationary_coefficient = 100,
+    .releasing_coefficient = 120,
+    .applying_coefficient_cold = 185,
+    .applying_coefficient_hot = 140
 };
 
 // Adaptation settings

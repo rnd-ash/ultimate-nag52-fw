@@ -22,7 +22,7 @@ uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 // P1 - IDX
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
-    float torque = this->get_trq_adder_map_val() + this->get_trq_adder_map_val() + this->torque_req_val;
+    float torque = this->get_trq_adder_map_val() + this->get_trq_boost_adder() + this->torque_req_val;
     float bVar1 = 6;
     float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     float threshold = (torque*5*(ramp_cycles+(bVar1*2))) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
@@ -330,8 +330,13 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_plus_maxtrq_filtered);
 
         adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
-        this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 3);
-        if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
+        this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 4);
+        if (
+            0 == this->timer_shift || 
+            sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm || 
+            // EGS53 introduced this additional case
+            (!this->upshifting && sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm)
+        ) {
             // Next phase (No timer, just ends when clutch speed is hit)
             this->subphase_shift += 1;
             if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
@@ -347,11 +352,11 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_plus_maxtrq_filtered);
         adder = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
-            // Next phhase
+            // Next phase
             this->timer_shift = 3;
             this->subphase_shift += 1;
             this->trq_req_up_ramp = true;
-            this->trq_req_timer = 3;
+            this->trq_req_timer = 6;
         }
     } else if (3 == subphase_shift) {
         adder = this->get_trq_boost_adder();
@@ -373,7 +378,11 @@ uint8_t CrossoverShift::phase_overlap2() {
     } else if (4 == subphase_shift) {
         // Waiting (2)
         adder = this->get_trq_boost_adder();
-        if (this->timer_shift == 0) {
+        if (
+            this->timer_shift == 0 ||
+            // Additional check by EGS53
+            (CRS_CURRENT_SETTINGS.clutch_stationary_rpm > -sid->ptr_r_clutch_speeds->on_clutch_speed)
+        ) {
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
@@ -397,7 +406,7 @@ uint8_t CrossoverShift::phase_overlap2() {
 }
 
 uint16_t CrossoverShift::calc_overlap_mod() {
-    uint16_t p_mod = 0;
+    int16_t p_mod = 0;
     if (abs_input_trq > this->trq_at_apply_clutch) {
         this->trq_at_release_clutch = abs_input_trq - this->trq_at_apply_clutch;
         p_mod = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, this->trq_at_release_clutch, CoefficientTy::Release);
@@ -406,17 +415,14 @@ uint16_t CrossoverShift::calc_overlap_mod() {
         p_mod = 0;
         this->trq_at_release_clutch = 0;
     } else {
-        uint16_t t = p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch;
+        uint16_t t = MAX(0, p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
         p_mod = (uint16_t)((float)t*sid->inf.centrifugal_factor_off_clutch);
     }
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
 uint16_t CrossoverShift::calc_overlap_mod_min(uint16_t p_shift) {
-    uint16_t p_mod = 0;
-    if (sid->release_spring_off_clutch > this->centrifugal_force_off_clutch) {
-        p_mod = (uint16_t)((float)(sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch);
-    }
+    uint16_t p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch;
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 

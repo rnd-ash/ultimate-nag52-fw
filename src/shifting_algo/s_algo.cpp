@@ -192,21 +192,13 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(uint16_t p_shift) {
     return this->calc_mpc_sol_shift_ps(p_shift, p);
 }
 
-// FUN_d8028
 uint16_t ShiftingAlgorithm::calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod) {
     int p = ((int)p_shift * (int)HYDR_PTR->overlap_circuit_factor_spc[sid->inf.map_idx]) / 1000;
     p += (((int)p_mod * (int)HYDR_PTR->overlap_circuit_factor_mpc[sid->inf.map_idx]) / 1000);
     p +=  (int)HYDR_PTR->overlap_circuit_spring_pressure[sid->inf.map_idx];
-    if (p <= 0) {
-        p = 0;
-    }
-    if (p >= sid->MOD_MAX) {
-        p = sid->MOD_MAX;
-    }
-    return p;
+    return MIN(MAX(0, p), sid->MOD_MAX);
 }
 
-// FUN_8d832a
 uint16_t ShiftingAlgorithm::calc_mod_min_abs_trq(uint16_t p_shift) {
     int p_shift_abs = pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->abs_input_trq, CoefficientTy::Sliding) + sid->release_spring_on_clutch;
     p_shift_abs = MAX(0, p_shift_abs - this->centrifugal_force_on_clutch);

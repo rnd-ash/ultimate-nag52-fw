@@ -30,6 +30,7 @@ private:
     uint16_t max_p_mod_pressure() override;
     uint16_t fill_ramping_mod_p();
     uint16_t get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles);
+    uint16_t get_rpm_threshold_trq_req_end(uint8_t shift_idx, uint8_t ramp_cycles);
     uint16_t get_trq_adder_map_val();
     uint16_t get_trq_boost_adder();
     int16_t calc_momentum_overlap_2();

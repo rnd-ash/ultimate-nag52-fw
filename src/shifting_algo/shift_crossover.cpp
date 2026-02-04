@@ -433,8 +433,10 @@ uint16_t CrossoverShift::calc_overlap2_mod() {
     int base = 200 * sid->inf.pressure_multi_mpc_int;
     base /= 1000;
 
-    if (centrifugal + base < p_shift) {
-        centrifugal = p_shift - (centrifugal + base);
+    centrifugal += base;
+
+    if (centrifugal < p_shift) {
+        centrifugal = p_shift - centrifugal;
     } else {
         centrifugal = 0;
     }

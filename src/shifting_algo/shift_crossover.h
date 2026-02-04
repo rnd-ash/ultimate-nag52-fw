@@ -25,7 +25,7 @@ private:
     uint16_t p_apply_overlap_begin = 0;
 
     uint16_t calc_overlap_mod();
-    uint16_t calc_overlap_mod_min(uint16_t p_shift);
+    uint16_t calc_overlap_mod_min(int p_shift);
     uint16_t calc_overlap2_mod();
     uint16_t max_p_mod_pressure() override;
     uint16_t fill_ramping_mod_p();

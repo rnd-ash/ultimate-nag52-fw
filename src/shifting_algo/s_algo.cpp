@@ -22,8 +22,8 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .sync_rpm = this->threshold_rpm,
         .pid_torque = (int16_t)this->correction_trq,
         .adder_torque = (int16_t)this->trq_adder,
-        .p_on = (uint16_t)this->target_turbine_speed, //(uint16_t)this->shift_sol_pressure,
-        .p_off = (uint16_t)sd->input_rpm,//(uint16_t)this->mod_sol_pressure,
+        .p_on = (uint16_t)this->p_apply_clutch,
+        .p_off = (uint16_t)this->mod_sol_pressure,
         .s_off = (int16_t)this->sid->ptr_r_clutch_speeds->off_clutch_speed,
         .s_on = (int16_t)this->sid->ptr_r_clutch_speeds->on_clutch_speed,
     };
@@ -170,7 +170,7 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t pressure, Coefficien
 }
 
 const uint8_t freewheeling_factors[8] = {20, 100, 100, 100, 100, 100, 80, 120}; // RELEASE_CAL->freewheeling_factor
-uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift) {
+uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shift) {
     int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
     if (p > this->centrifugal_force_off_clutch) {
         p = (p - this->centrifugal_force_off_clutch) * (freewheeling_factors[sid->inf.map_idx]);
@@ -182,7 +182,7 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(uint16_t 
 }
 
 // FUN_d82d6
-uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(uint16_t p_shift) {
+uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(int p_shift) {
     uint16_t p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
     if (p > this->centrifugal_force_off_clutch) {
         p -= this->centrifugal_force_off_clutch;
@@ -192,14 +192,14 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(uint16_t p_shift) {
     return this->calc_mpc_sol_shift_ps(p_shift, p);
 }
 
-uint16_t ShiftingAlgorithm::calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod) {
+uint16_t ShiftingAlgorithm::calc_mpc_sol_shift_ps(int p_shift, int p_mod) {
     int p = ((int)p_shift * (int)HYDR_PTR->overlap_circuit_factor_spc[sid->inf.map_idx]) / 1000;
     p += (((int)p_mod * (int)HYDR_PTR->overlap_circuit_factor_mpc[sid->inf.map_idx]) / 1000);
     p +=  (int)HYDR_PTR->overlap_circuit_spring_pressure[sid->inf.map_idx];
     return MIN(MAX(0, p), sid->MOD_MAX);
 }
 
-uint16_t ShiftingAlgorithm::calc_mod_min_abs_trq(uint16_t p_shift) {
+uint16_t ShiftingAlgorithm::calc_mod_min_abs_trq(int p_shift) {
     int p_shift_abs = pm->p_clutch_with_coef(sid->targ_g, sid->applying, this->abs_input_trq, CoefficientTy::Sliding) + sid->release_spring_on_clutch;
     p_shift_abs = MAX(0, p_shift_abs - this->centrifugal_force_on_clutch);
 
@@ -231,7 +231,7 @@ uint16_t ShiftingAlgorithm::fun_0d83d4() {
     return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 
-uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(uint16_t p) {
+uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(int p) {
     short res = MAX(0, p + sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
     return MIN(res, sid->SPC_MAX);
 }

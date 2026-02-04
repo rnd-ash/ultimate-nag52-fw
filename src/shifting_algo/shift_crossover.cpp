@@ -59,7 +59,7 @@ uint8_t CrossoverShift::step_internal(
             float multi_engine_trq = interpolate_float(sd->pedal_pos, &CRS_CURRENT_SETTINGS.trq_req_multi_pedal_pos, InterpType::Linear);
             float multi_rpm = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.trq_req_multi_input_rpm, InterpType::Linear);
             float out = (float)abs_input_trq * (multi_engine_trq*multi_rpm);
-            intervension_out = out / sd->tcc_trq_multiplier;
+            intervension_out = out;
         }
         if (trq_req_up_ramp) {
             // Up ramp
@@ -398,10 +398,8 @@ uint8_t CrossoverShift::phase_overlap2() {
 
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
     // Calculations for MOD pressure
-    uint16_t p_mod_1 = this->calc_overlap2_mod();
-    uint16_t p_mod_2 = this->calc_overlap_mod_min(this->p_apply_overlap_begin);
-    int pmod = MAX(p_mod_1, p_mod_2);
-    this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, pmod, this->timer_mod);
+    uint16_t targ_pmod = this->calc_overlap2_mod();
+    this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ_pmod, this->timer_mod);
     return ret;
 }
 
@@ -421,8 +419,8 @@ uint16_t CrossoverShift::calc_overlap_mod() {
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
-uint16_t CrossoverShift::calc_overlap_mod_min(uint16_t p_shift) {
-    uint16_t p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch;
+uint16_t CrossoverShift::calc_overlap_mod_min(int p_shift) {
+    int p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch;
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
@@ -440,7 +438,7 @@ uint16_t CrossoverShift::calc_overlap2_mod() {
     } else {
         centrifugal = 0;
     }
-    int16_t p_mod = centrifugal + sid->inf.mpc_pressure_spring_reduction;
+    int p_mod = centrifugal + sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;
 }   

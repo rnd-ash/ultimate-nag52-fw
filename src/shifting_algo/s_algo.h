@@ -122,14 +122,14 @@ public:
         // EGS compatibility functions
         uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
         uint16_t fun_0d83d4();
-        uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
-        uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
-        uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
-        uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
+        uint16_t calc_mod_min_abs_trq(int p_shift);
+        uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
+        uint16_t calc_mod_with_filling_trq(int p_shift);
+        uint16_t calc_mpc_sol_shift_ps(int p_shift, int p_mod);
         void reset_for_next_phase();
         uint16_t correct_shift_shift_pressure(int16_t pressure);
 
-        uint16_t set_p_apply_clutch_with_spring(uint16_t p);
+        uint16_t set_p_apply_clutch_with_spring(int p);
 
         short calc_correction_trq(ShiftStyle style, short momentum);
         int32_t momentum_pid[3];

@@ -143,7 +143,7 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear c
         extra_p = interpolate_float(sensor_data->engine_rpm, 0, extra_p_interp_max, HYDR_PTR->extra_pressure_pump_speed_min, HYDR_PTR->extra_pressure_pump_speed_max, InterpType::Linear);
     }
 
-    int line_pressure = (HYDR_PTR->lp_reg_spring_pressure + this->target_modulating_pressure)*1000;
+    int line_pressure = ((int)HYDR_PTR->lp_reg_spring_pressure + (int)this->target_modulating_pressure)*1000;
     int wp = extra_p + (line_pressure / factor);
     if (wp <= 0) {
         wp = 0;

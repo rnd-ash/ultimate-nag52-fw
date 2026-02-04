@@ -424,7 +424,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
         }
 
         uint8_t algo_phase_id = 0;
-        GearChange pm_change = GearChange::_IDLE;
         GearboxGear pm_gear = sid.curr_g;
         bool pm_activated = false;
         while(process_shift) {
@@ -471,7 +470,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
-            pressure_mgr->update_pressures(sid.curr_g, pm_change);
+            bool circuit_open = (pressure_manager->get_active_shift_circuits() & (uint8_t)sid.inf.shift_circuit) != 0;
+            pressure_mgr->update_pressures(sid.curr_g, circuit_open ? sid.change : GearChange::_IDLE);
 
             if (step_result == 0) {
                 // Continue

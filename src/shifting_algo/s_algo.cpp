@@ -241,14 +241,24 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
     if (this->is_release_shift() && (GearChange::_3_2 == sid->change || GearChange::_2_1 == sid->change))  {
         ret = 0;
     } else {
-        ret = sid->prefill_info.low_fill_pressure_on_clutch;
+        int adder = 0;
+        // Add a bit more pressure depending on vehicle speed
+        if (this->upshifting && !this->is_release_shift()) {
+            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 50, 0, 6000, InterpType::Linear);
+            int trq_adder = interpolate_float(abs_input_trq, 0, 50, 0, 500, InterpType::Linear);
+            adder = rpm_adder + trq_adder;
+            if (race == sid->profile) {
+                adder *= 2;
+            }
+        }
+        ret = sid->prefill_info.low_fill_pressure_on_clutch + adder;
     }
     return ret;
 }
 
 uint16_t ShiftingAlgorithm::calc_high_filling_p() {
     uint16_t ret = 0;
-    // Crossover downshift and 2-1/3-2
+    // Release downshift and 2-1/3-2
     if (this->is_release_shift() && (GearChange::_3_2 == sid->change ||  GearChange::_2_1 == sid->change))  {
         ret = 0;
     } else {
@@ -263,7 +273,6 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
     return ret;
 }
 
-// FUNC_0d8092 (MB Layer EGS)
 uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
     // TODO - Move max_p to global constant so it can be referred in other functions
     uint16_t max_p = pm->get_max_shift_pressure(sid->inf.map_idx);

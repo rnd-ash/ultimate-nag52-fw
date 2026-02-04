@@ -118,6 +118,14 @@ uint8_t CrossoverShift::phase_fill() {
                 // Non adaptation filling
                 this->subphase_shift = 2;
             }
+            // Test for race (Fast shift) mode.
+            // If input torque is above high filling pressure, don't do low filling,
+            // Just jump directly to overlap for a much faster shift (Saves about 250ms)
+            if (sid->profile == race) {
+                if (high_filling_p <= pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding)) {
+                    ret = PHASE_OVERLAP;
+                }
+            }
         }
         uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
         uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);

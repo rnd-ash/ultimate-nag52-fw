@@ -58,6 +58,13 @@ typedef struct {
     // Number of 20ms cycles to hold the converter at prefill_pressure for when
     // prefilling
     uint8_t prefill_cycles;
+    // DEBUG: Override the automatic calculation of max torque used for TCC adaptations.
+    //        Set to 0 to disable the override (Use automatic calculation), Set to any
+    //        other number to override max rated torque of the converter. IMPORTANT: If
+    //        modified, it is recommended to reset the TCC adaptation maps.
+    //
+    // UNIT: Nm
+    uint16_t tcc_max_trq_override;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -82,7 +89,8 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
         .raw_max = 70
     },
     .prefill_pressure = 10000,
-    .prefill_cycles = 10
+    .prefill_cycles = 10,
+    .tcc_max_trq_override = 0
 };
 
 // Solenoid subsystem settings

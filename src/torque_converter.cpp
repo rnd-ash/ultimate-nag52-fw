@@ -19,7 +19,11 @@ const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
 const int16_t SLIP_V_UNDERLOCKED = SLIP_V_WHEN_LOCKED*2;
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
-    this->rated_max_torque = max_gb_rating;
+    if (0 == TCC_CURRENT_SETTINGS.tcc_max_trq_override) {
+        this->rated_max_torque = max_gb_rating;
+    } else {
+        this->rated_max_torque = TCC_CURRENT_SETTINGS.tcc_max_trq_override;
+    }
 
     const int16_t adapt_map_x_headers[LOAD_SIZE] = {-25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150}; // Load %
     const int16_t adapt_map_y_headers[5] = {1,2,3,4,5}; // Gear

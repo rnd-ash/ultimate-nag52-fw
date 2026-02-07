@@ -18,14 +18,14 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
 
 void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd) {
     sid->shift_flags = 0;
-    if (sd->converted_torque < -ShiftHelpers::get_shift_intertia(sid->inf.map_idx)/2) {
+    if (sd->pedal_pos < 25) { // ~10%
         sid->shift_flags |= SHIFT_FLAG_COAST;
-        if ((sid->targ_g < sid->curr_g) && (sid->targ_g == GearboxGear::Third || sid->targ_g == GearboxGear::Fourth)) {
+        if (sid->change == GearChange::_5_4 || sid->change == GearChange::_4_3) {
             sid->shift_flags &= ~SHIFT_FLAG_COAST;
             sid->shift_flags |= SHIFT_FLAG_COAST_54_43;
         }
         if (sid->change == GearChange::_1_2 || sid->change == GearChange::_3_2) {
-            sid->shift_flags |= SHIFT_FLAG_COAST_AND_FREEWHEELING;
+            sid->shift_flags |= SHIFT_FLAG_COAST_32_21;
         }
     }
 }

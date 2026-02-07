@@ -331,7 +331,6 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
 bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool manually_requested)
 {
     bool result = false;
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
     // This is important for all EGS compatibility
     uint8_t egs_map_idx_lookup = fwd_gearchange_egs_map_lookup_idx(req_lookup);
 
@@ -357,12 +356,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
 
         uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup);
         pressure_manager->register_shift_pressure_data(&p_now);
-
-        if (prefill_adapt_flags != 0) {
-            ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
-        } else {
-            ESP_LOGI("SHIFT", "Prefill adapting is allowed.");
-        }
 
         ShiftClutchData now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(this->speed_sensors, req_lookup, this->gearboxConfig.bounds);
         Clutch applying = get_clutch_to_apply(req_lookup);
@@ -410,12 +403,10 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (manually_requested) {
-                inertia*=2;
-            }
             if (
-                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) == 0) &&
-                (sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0
+                !(sid.change == GearChange::_3_2 && ((sid.shift_flags & SHIFT_FLAG_COAST_32_21) != 0)) &&
+                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0 || manually_requested)
             ) {
                 algo = new ReleasingShift(&sid);
             } else  {
@@ -424,8 +415,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
         }
 
         uint8_t algo_phase_id = 0;
-        GearboxGear pm_gear = sid.curr_g;
-        bool pm_activated = false;
         while(process_shift) {
             uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
@@ -664,7 +653,6 @@ void Gearbox::shift_thread()
     }
     else
     { // Both gears are controllable
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Both gears are controllable");
         if (is_fwd_gear(curr_target) != is_fwd_gear(curr_actual))
         {
             // In this case, we set the current gear to neutral, then thread will re-spawn

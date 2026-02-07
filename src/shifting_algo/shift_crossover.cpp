@@ -368,7 +368,10 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     } else if (3 == subphase_shift) {
         adder = this->get_trq_boost_adder();
-        int targ_momentum = adder; // boost trq
+        int targ_momentum = pm->find_decent_adder_torque(sid->change, abs_input_trq, sd->output_rpm);
+        if (sid->change == GearChange::_2_1 || sid->change == GearChange::_1_2) {
+            targ_momentum = adder;
+        }
         if (
             (!upshifting || sd->input_torque < 1) ||
             (upshifting || sd->input_torque > -1)

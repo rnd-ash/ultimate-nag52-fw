@@ -234,7 +234,6 @@ uint8_t CrossoverShift::phase_overlap() {
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
-        this->trq_adder_1 = MIN(0, (pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding))-abs_input_trq);
         sid->tcc->shift_start(this->upshifting, false);
         ret = PHASE_OVERLAP2;
     }
@@ -399,10 +398,10 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     }
     // Trq adder 2/3 are included in trq_adder for this step
-    this->trq_adder = this->trq_adder_1;
+    this->trq_adder = adder;
     uint16_t torque = abs_input_trq + this->trq_adder + this->correction_trq;
     uint16_t targ = MAX(
-        this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
+        this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
         this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
     );
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);

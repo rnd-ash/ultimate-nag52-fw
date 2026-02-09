@@ -399,7 +399,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
     // Trq adder 2/3 are included in trq_adder for this step
     this->trq_adder = adder;
-    uint16_t torque = abs_input_trq + this->trq_adder + this->correction_trq;
+    int torque = (int)abs_input_trq + this->trq_adder + this->correction_trq;
     uint16_t targ = MAX(
         this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
         this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)

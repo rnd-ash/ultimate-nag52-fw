@@ -305,23 +305,23 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     //short t = 0;
     switch (style) {
         case ShiftStyle::Crossover_Up:
-            p = 150;
-            i = 15;
-            d = 30;
+            p = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
+            i = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
+            d = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
             break;
         case ShiftStyle::Crossover_Dn:
-            p = -150;
-            i = -5;
-            d = -15;
+            p = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
+            i = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
+            d = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
             break;
         case ShiftStyle::Release_Up:
-            p = -150;
-            i = -5;
+            p = REL_CURRENT_SETTINGS.pid_p_val_upshift;
+            i = REL_CURRENT_SETTINGS.pid_i_val_upshift;
             d = 0;
             break;
         case ShiftStyle::Release_Dn:
-            p = 200;
-            i = 5;
+            p = REL_CURRENT_SETTINGS.pid_p_val_downshift;
+            i = REL_CURRENT_SETTINGS.pid_i_val_downshift;
             d = 0;
             break;
     }

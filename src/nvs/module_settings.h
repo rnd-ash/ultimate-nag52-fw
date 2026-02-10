@@ -36,14 +36,6 @@ typedef struct {
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
-    // If the TCC should open for release upshifts (Coasting upshifts)
-    bool open_release_upshift;
-    // If the TCC should open for release downshifts (Load downshifts)
-    bool open_release_downshift;
-    // If the TCC should open for crossover upshifts (Load upshifts)
-    bool open_crossover_upshift;
-    // If the TCC should open for crossover downshifts (Coasting downshifts)
-    bool open_crossover_downshift;
     // Scaling for TCC output pressure based on temperature. 
     //
     // When cold, the ATF is thicker, thus a higher pressure can be commanded
@@ -78,10 +70,6 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .temp_threshold_adapt = 70,
     .react_on_engine_slip_request = true,
     .react_on_engine_open_request = true,
-    .open_release_upshift = false,
-    .open_release_downshift = true,
-    .open_crossover_upshift = true,
-    .open_crossover_downshift = false,
     .tcc_temp_multiplier = LinearInterpSetting {
         .new_min = 0.6,
         .new_max = 1.0,
@@ -138,31 +126,11 @@ typedef struct {
     // DEBUG - Show '^' or 'v' in the gear display when the shift
     // thread is active
     bool debug_show_up_down_arrows_in_r;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 1-2. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_1_2;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 1-2. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_2_3;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 2-3. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_3_4;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 4-5. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_4_5;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .f_shown_if_flare = false,
     .debug_show_up_down_arrows_in_r = false,
-    .crossover_trq_thres_1_2 = 2.0,
-    .crossover_trq_thres_2_3 = 2.0,
-    .crossover_trq_thres_3_4 = 2.0,
-    .crossover_trq_thres_4_5 = 2.0,
 };
 
 // Pressure manager settings
@@ -417,12 +385,6 @@ typedef struct {
     // 'raw' values are the ATF Temperature (In Celcius), 'new' values
     // are the pressure added to B2 every 20ms until it engages
     LinearInterpSetting p_ramp_b3;
-    // Modulating pressure adder factor of shift pressure for N to D shift
-    // (mod = working + (mod_mul_b2*spc))
-    float mod_mul_b2;
-    // Modulating pressure adder factor of shift pressure for N to R shift
-    // (mod = working + (mod_mul_b2*spc))
-    float mod_mul_b3;
 } __attribute__ ((packed)) GAR_MODULE_SETTINGS;
 
 const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
@@ -451,8 +413,6 @@ const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
         .raw_min = -10,
         .raw_max = 80,
     },
-    .mod_mul_b2 = 0.25,
-    .mod_mul_b3 = 0.25
 };
 
 // Crossover shift settings
@@ -505,6 +465,18 @@ typedef struct {
     LinearInterpSetting trq_req_multi_pedal_pos;
     // Torque request multiplier based on input RPM
     LinearInterpSetting trq_req_multi_input_rpm;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_upshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_upshift;
+    // Clutch inertia control PID algorithm 'D' value (downshifts)
+    int16_t pid_d_val_upshift;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_downshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_downshift;
+    // Clutch inertia control PID algorithm 'D' value (downshifts)
+    int16_t pid_d_val_downshift;
 } __attribute__ ((packed)) CRS_MODULE_SETTINGS;
 
 const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
@@ -568,6 +540,12 @@ const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
         .raw_min = 1500,
         .raw_max = 6000
     },
+    .pid_p_val_upshift = 150,
+    .pid_i_val_upshift = 15,
+    .pid_d_val_upshift = 30,
+    .pid_p_val_downshift = -150,
+    .pid_i_val_downshift = -5,
+    .pid_d_val_downshift = -15
 };
 
 // module settings

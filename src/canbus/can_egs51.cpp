@@ -1,11 +1,11 @@
 #include "can_egs51.h"
-
 #include "driver/twai.h"
 #include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "egs_calibration/calibration_structs.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
@@ -14,6 +14,12 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
+    if (MECH_PTR->gb_ty == 0) {
+        this->gs218.GEARBOX_BIG = 1;
+    } else {
+        this->gs218.GEARBOX_BIG = 0;
+    }
+    this->gs218.__PADDING6__ = 1;
 }
 
 uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -91,7 +97,12 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
         if (UINT8_MAX != ms310.MAX_TORQUE) {
             ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
+            // Get factor to correct it by
             // TODO -> ms310.MAX_TRQ_FACTOR
+            if(UINT8_MAX != ms310.MAX_TRQ_FACTOR){
+                ret.m_max = (float)ret.m_max * ((float)ms310.MAX_TRQ_FACTOR * 0.0078);
+            }
+        
         }
         if (UINT8_MAX != ms210.M_ESP) {
             m_esp = ((int16_t)ms210.M_ESP)*3;
@@ -372,7 +383,7 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
 
 void Egs51Can::set_gearbox_ok(bool is_ok) {
     this->gs218.GEARBOX_OK = is_ok;
-    this->gs218.LIMP_MODE = !is_ok;
+    this->gs218.LIMP_MODE = is_ok;
 }
 
 void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {

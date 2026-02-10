@@ -38,6 +38,8 @@ struct ShiftAlgoFeedback {
     uint16_t p_off;
     int16_t s_off;
     int16_t s_on;
+    int16_t s_turbine;
+    int16_t s_targ;
 } __attribute__ ((packed));
 
 /**
@@ -92,7 +94,6 @@ struct OutputData {
  * Compatible with OEM EGS data type
  */
 enum class GearChange {
-    /// Gear 1 to gear 2
     _IDLE = 0,
     _1_2 = 1,
     _2_3 = 2,

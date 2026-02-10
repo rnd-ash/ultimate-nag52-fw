@@ -5,8 +5,6 @@
 #include <tcu_maths.h>
 #include <esp_err.h>
 
-// TCC Settings
-
 // Torque converter setting
 typedef struct {
     // Enable adaptation for all gears
@@ -38,6 +36,27 @@ typedef struct {
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
+    // Scaling for TCC output pressure based on temperature. 
+    //
+    // When cold, the ATF is thicker, thus a higher pressure can be commanded
+    // with the same TCC solenoid PWM. This scaling is meant to mitigate this
+    // effect.
+    //
+    // To disable this scaling, set output_min and output_max to 1.0
+    LinearInterpSetting tcc_temp_multiplier;
+    // Prefill pressure for the torque converter. When going from Open->Slipping, 
+    // a burst of pressure is first sent in order to fill the converter faster
+    uint16_t prefill_pressure;
+    // Number of 20ms cycles to hold the converter at prefill_pressure for when
+    // prefilling
+    uint8_t prefill_cycles;
+    // DEBUG: Override the automatic calculation of max torque used for TCC adaptations.
+    //        Set to 0 to disable the override (Use automatic calculation), Set to any
+    //        other number to override max rated torque of the converter. IMPORTANT: If
+    //        modified, it is recommended to reset the TCC adaptation maps.
+    //
+    // UNIT: Nm
+    uint16_t tcc_max_trq_override;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -50,7 +69,16 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .adapt_test_interval_ms = 100,
     .temp_threshold_adapt = 70,
     .react_on_engine_slip_request = true,
-    .react_on_engine_open_request = true
+    .react_on_engine_open_request = true,
+    .tcc_temp_multiplier = LinearInterpSetting {
+        .new_min = 0.6,
+        .new_max = 1.0,
+        .raw_min = -10,
+        .raw_max = 70
+    },
+    .prefill_pressure = 10000,
+    .prefill_cycles = 10,
+    .tcc_max_trq_override = 0
 };
 
 // Solenoid subsystem settings
@@ -98,47 +126,32 @@ typedef struct {
     // DEBUG - Show '^' or 'v' in the gear display when the shift
     // thread is active
     bool debug_show_up_down_arrows_in_r;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 1-2. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_1_2;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 1-2. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_2_3;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 2-3. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_3_4;
-    // Torque threshold before harsher crossover shift algorithm is
-    // used for upshifting 4-5. The absolute torque threshold is this value
-    // multiplied by engine drag torque specified in TCU Configuration
-    float crossover_trq_thres_4_5;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .f_shown_if_flare = false,
     .debug_show_up_down_arrows_in_r = false,
-    .crossover_trq_thres_1_2 = 2.0,
-    .crossover_trq_thres_2_3 = 2.0,
-    .crossover_trq_thres_3_4 = 2.0,
-    .crossover_trq_thres_4_5 = 2.0,
 };
 
 // Pressure manager settings
 typedef struct {
-    // Time before shift solenoids are reduced PWM.
-    // Setting this too low can result in the shift circuit
-    // not activating!
-    //
-    // UNIT: milliseconds
-    uint16_t shift_solenoid_pwm_reduction_time;
+    // DEBUG: Friction coefficient when stationary (In gear)
+    uint8_t stationary_coefficient;
+    // DEBUG: Friction coefficient when releasing a clutch
+    uint8_t releasing_coefficient;
+    // DEBUG: Friction coefficient when applying a clutch (Cold)
+    uint8_t applying_coefficient_cold;
+    // DEBUG: Friction coefficient when applying a clutch (Hot)
+    uint8_t applying_coefficient_hot;
 } __attribute__ ((packed)) PRM_MODULE_SETTINGS;
 
 
 
 const PRM_MODULE_SETTINGS PRM_DEFAULT_SETTINGS = {
-    .shift_solenoid_pwm_reduction_time = 1000,
+    .stationary_coefficient = 100,
+    .releasing_coefficient = 120,
+    .applying_coefficient_cold = 185,
+    .applying_coefficient_hot = 140
 };
 
 // Adaptation settings
@@ -235,6 +248,22 @@ typedef struct {
     // When using the SLR profile selector, this is the profile
     // when the profile selector is in the right position
     SelectableGearboxProfile slr_profile_idx_right;
+    // CAN Shifter button profile selector - Enable Comfort mode
+    bool ewm_enable_c;
+    // CAN Shifter button profile selector - Enable Winter (Manual 2nd gear start) mode
+    bool ewm_enable_w;
+    // CAN Shifter button profile selector - Enable Agility mode
+    bool ewm_enable_a;
+    // CAN Shifter button profile selector - Enable Manual mode
+    bool ewm_enable_m;
+    // CAN Shifter button profile selector - Enable Race (Super fast manual) mode
+    bool ewm_enable_r;
+    // CAN Shifter button profile selector - Save profile for 
+    // next start - Only applys for auto profiles (This overrides startup profile in basic options)
+    bool ewm_save_profile;
+    // CAN Shifter button profile selector - Save profile for 
+    // next start (Including manual profile options)
+    bool ewm_save_profile_manual;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
@@ -244,7 +273,14 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .switch_profile_idx_bottom = SelectableGearboxProfile::Standard,
     .slr_profile_idx_left = SelectableGearboxProfile::Comfort,
     .slr_profile_idx_center = SelectableGearboxProfile::Standard,
-    .slr_profile_idx_right = SelectableGearboxProfile::Manual
+    .slr_profile_idx_right = SelectableGearboxProfile::Manual,
+    .ewm_enable_c = false,
+    .ewm_enable_w = false,
+    .ewm_enable_a = false,
+    .ewm_enable_m = true,
+    .ewm_enable_r = false,
+    .ewm_save_profile = true,
+    .ewm_save_profile_manual = false,
 };
 
 // Release shift settings
@@ -349,12 +385,6 @@ typedef struct {
     // 'raw' values are the ATF Temperature (In Celcius), 'new' values
     // are the pressure added to B2 every 20ms until it engages
     LinearInterpSetting p_ramp_b3;
-    // Modulating pressure adder factor of shift pressure for N to D shift
-    // (mod = working + (mod_mul_b2*spc))
-    float mod_mul_b2;
-    // Modulating pressure adder factor of shift pressure for N to R shift
-    // (mod = working + (mod_mul_b2*spc))
-    float mod_mul_b3;
 } __attribute__ ((packed)) GAR_MODULE_SETTINGS;
 
 const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
@@ -383,8 +413,6 @@ const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
         .raw_min = -10,
         .raw_max = 80,
     },
-    .mod_mul_b2 = 0.25,
-    .mod_mul_b3 = 0.25
 };
 
 // Crossover shift settings
@@ -437,6 +465,18 @@ typedef struct {
     LinearInterpSetting trq_req_multi_pedal_pos;
     // Torque request multiplier based on input RPM
     LinearInterpSetting trq_req_multi_input_rpm;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_upshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_upshift;
+    // Clutch inertia control PID algorithm 'D' value (downshifts)
+    int16_t pid_d_val_upshift;
+    // Clutch inertia control PID algorithm 'P' value (upshifts)
+    int16_t pid_p_val_downshift;
+    // Clutch inertia control PID algorithm 'I' value (downshifts)
+    int16_t pid_i_val_downshift;
+    // Clutch inertia control PID algorithm 'D' value (downshifts)
+    int16_t pid_d_val_downshift;
 } __attribute__ ((packed)) CRS_MODULE_SETTINGS;
 
 const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
@@ -500,6 +540,12 @@ const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
         .raw_min = 1500,
         .raw_max = 6000
     },
+    .pid_p_val_upshift = 150,
+    .pid_i_val_upshift = 15,
+    .pid_d_val_upshift = 30,
+    .pid_p_val_downshift = -150,
+    .pid_i_val_downshift = -5,
+    .pid_d_val_downshift = -15
 };
 
 // module settings

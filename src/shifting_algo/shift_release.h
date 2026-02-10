@@ -38,8 +38,6 @@ private:
     uint8_t phase_fill_release_mpc();
     uint8_t phase_overlap();
 
-    short first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val);
-
     uint16_t calc_sync_mod_pressure();
     short calc_shifting_momentum();
     short calc_sync_torque_new_clutch();

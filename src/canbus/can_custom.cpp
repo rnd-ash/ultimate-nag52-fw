@@ -278,7 +278,7 @@ void CustomCan::set_torque_request(TorqueRequestControlType control_type, Torque
     }
 }
 
-void CustomCan::set_garage_shift_state(bool enable) {
+void CustomCan::set_garage_shift_state(bool enable, bool to_d) {
     this->tx_400.G_SHIFT = enable;
 }
 

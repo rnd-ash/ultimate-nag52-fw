@@ -7,6 +7,13 @@
 #include "stored_map.h"
 
 const uint8_t NUM_PROFILES = 6u; // S, C, W, A, M, R
+const uint8_t PROFILE_IDX_S = 0u;
+const uint8_t PROFILE_IDX_C = 1u;
+const uint8_t PROFILE_IDX_W = 2u;
+const uint8_t PROFILE_IDX_A = 3u;
+const uint8_t PROFILE_IDX_M = 4u;
+const uint8_t PROFILE_IDX_R = 5u;
+
 const uint8_t SHIFT_MAP_X_SIZE = 11u;
 const uint8_t SHIFT_MAP_Y_SIZE = 4u;
 const int16_t shift_table_x_header[SHIFT_MAP_X_SIZE] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};

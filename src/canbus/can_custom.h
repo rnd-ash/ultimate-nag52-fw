@@ -89,7 +89,7 @@ class CustomCan: public EgsBaseCan {
         // Sets display message
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
-        void set_garage_shift_state(bool enable) override;
+        void set_garage_shift_state(bool enable, bool to_d) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;

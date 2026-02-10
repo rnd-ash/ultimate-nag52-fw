@@ -4,6 +4,35 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 10/02/26
+
+## IMPORTANT - Race, Agility and Winter profiles are disabled by default. You can enable them in TCU Settings via Shifter options
+
+## Added
+
+### Torque converter
+    * Added torque converter prefilling for much faster TCC engagement (More noticable with the zener board installed)
+    * Added override in TCU Settings for Torque converter max torque (Useful for those running custom torque converters)
+### Shifting
+    * Overhaul the crossover shifting algorithm
+        * New PID system for torque ramping (Self correcting for much smoother shifts)
+        * Auto-Flare recovery (For the common 3-4 flare)
+        * Manual modes (M/R) - Jump to overlap from first prefill stage (Much faster shift response time under high load without sacrificing comfort)
+    * Shaved 40ms off bleed shift phase (Slight shift latency reduction)
+    * Garage shift - Improve reaction speed and smoothness
+### Misc
+    * Added profile enable/disable for Tiptronic shifters with button profile selector
+    * Added profile save on end of drive for Tiptronic shifters with button profile selector
+        * Optional - Can also enable it for manual profiles too!
+    * Added PID Target input speed and turbine speed to `Shift algorithm` data logger
+    * EGS52 - Broadcast `FPC.AAD` signal (For Maybach)
+    * EGS52 Cars with SBC (W211) - Tell SBC to apply the brake when shifting to D for smoother garage shifting
+    * `Debug` - Allow the user to modify friction coefficients in TCU Settings
+
+## Fixes
+    * Fixed maths code that would occasionally cause an Integer underflow
+    * Fixed pressure manager not receiving target gear during shift (For pressure calculations)
+
 # 15/01/26
 
 ## Added

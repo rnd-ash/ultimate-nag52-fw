@@ -331,7 +331,6 @@ ShiftReportSegment Gearbox::collect_report_segment(uint64_t start_time) {
 bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool manually_requested)
 {
     bool result = false;
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "ELAPSE_SHIFT", "Shift started!");
     // This is important for all EGS compatibility
     uint8_t egs_map_idx_lookup = fwd_gearchange_egs_map_lookup_idx(req_lookup);
 
@@ -357,12 +356,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
 
         uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup);
         pressure_manager->register_shift_pressure_data(&p_now);
-
-        if (prefill_adapt_flags != 0) {
-            ESP_LOGI("SHIFT", "Prefill adapting is not allowed. Reason flag is 0x%08X", (int)prefill_adapt_flags);
-        } else {
-            ESP_LOGI("SHIFT", "Prefill adapting is allowed.");
-        }
 
         ShiftClutchData now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(this->speed_sensors, req_lookup, this->gearboxConfig.bounds);
         Clutch applying = get_clutch_to_apply(req_lookup);
@@ -398,37 +391,29 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             .ptr_w_trq_req = &trd,
             .tcc = this->tcc
         };
+        // To set the flag values initially
+        ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);
 
         float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            float threshold_m = 2.0;
-            if (GearChange::_1_2 == req_lookup) {
-                threshold_m = SBS.crossover_trq_thres_1_2;
-            } else if (GearChange::_2_3 == req_lookup) {
-                threshold_m = SBS.crossover_trq_thres_2_3;
-            } else if (GearChange::_3_4 == req_lookup) {
-                threshold_m = SBS.crossover_trq_thres_3_4;
-            } else if (GearChange::_4_5 == req_lookup) {
-                threshold_m = SBS.crossover_trq_thres_4_5;
-            }
-            if (sensor_data.input_torque > (threshold_m*inertia)) {
+            if (sensor_data.converted_torque >= -(inertia/2)) {
                 algo = new CrossoverShift(&sid);
             } else {
                 algo = new ReleasingShift(&sid);
             }
         } else {
-            if (sensor_data.input_torque > 0) {
-                algo = new ReleasingShift(&sid);
-            } else {
+            if (
+                (sensor_data.converted_torque < inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
+            ) {
                 algo = new CrossoverShift(&sid);
+            } else  {
+                algo = new ReleasingShift(&sid);
             }
         }
 
         uint8_t algo_phase_id = 0;
-        GearChange pm_change = GearChange::_IDLE;
-        GearboxGear pm_gear = sid.curr_g;
-        bool pm_activated = false;
         while(process_shift) {
             uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
@@ -473,17 +458,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             // Update pressures
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
-            // Only if shift valve is open
-            if (this->pressure_mgr->get_active_shift_circuits() != 0) {
-                pm_change = sid.change;
-                pm_gear = sid.targ_g;
-                pm_activated = true;
-            } else if (pm_activated) {
-                // Shift valve closed, but circuit WAS active
-                pm_gear = sid.targ_g;
-                pm_change = GearChange::_IDLE;
-            }
-            pressure_mgr->update_pressures(pm_gear, pm_change);
+            bool circuit_open = (pressure_manager->get_active_shift_circuits() & (uint8_t)sid.inf.shift_circuit) != 0;
+            pressure_mgr->update_pressures(sid.curr_g, circuit_open ? sid.change : GearChange::_IDLE);
 
             if (step_result == 0) {
                 // Continue
@@ -557,9 +533,7 @@ void Gearbox::shift_thread()
     }
     if (!is_controllable_gear(curr_actual) && !is_controllable_gear(curr_target))
     { // N->P or P->N
-        float prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
-        this->pressure_mgr->set_target_shift_pressure(prefill/2);
-        this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+        this->pressure_mgr->set_target_shift_pressure(4000);
         //sol_y4->write_pwm_12_bit(800); // 3-4 is pulsed at 20%
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "No need to shift");
         this->actual_gear = curr_target; // Set on startup
@@ -570,67 +544,59 @@ void Gearbox::shift_thread()
         ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Garage shift");
         if (is_controllable_gear(curr_target))
         {
-            bool into_reverse = GearboxGear::Reverse_First == curr_target || GearboxGear::Reverse_Second== curr_target;
-            pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
-            vTaskDelay(50);
+            bool into_reverse = GearboxGear::Reverse_First == curr_target || GearboxGear::Reverse_Second == curr_target;
             pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
-            float working;
             float prefill;
             float spring;
             if (into_reverse) {
-                working = pressure_manager->find_working_mpc_pressure(GearboxGear::Reverse_Second);
                 prefill = pressure_manager->get_b3_prefill_pressure();
                 spring = pressure_manager->get_spring_pressure(Clutch::B3);
             } else {
-                working = pressure_manager->find_working_mpc_pressure(GearboxGear::Second);
                 prefill = pressure_manager->make_fill_data(Clutch::B2).fill_pressure_on_clutch;
                 spring = pressure_manager->get_spring_pressure(Clutch::B2);
             }
-            pressure_mgr->set_target_shift_pressure(spring + (prefill));
-            pressure_mgr->set_target_modulating_pressure(working);
+            pressure_mgr->set_target_shift_pressure(((spring + (prefill))/1.993) + HYDR_PTR->shift_reg_spring_pressure); // TODO - 1.993 = spc multi [0]
+            pressure_mgr->set_target_modulating_pressure(3000);
             this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
             // N/P -> R/D
             // Defaults (Start in 2nd)
-            egs_can_hal->set_garage_shift_state(true);
+            egs_can_hal->set_garage_shift_state(true, !into_reverse);
             uint16_t cycle_count = 0;
             bool completed_ok = false;
 
             uint16_t ramp = 0;
             uint16_t spc_step;
             uint16_t prefill_cycles;
-            float spc_mul;
             if (into_reverse) {
                 prefill_cycles = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.prefill_time_b3, InterpType::Linear);
                 spc_step = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.p_ramp_b3, InterpType::Linear);
-                spc_mul = GAR_CURRENT_SETTINGS.mod_mul_b3;
             } else {
                 prefill_cycles = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.prefill_time_b2, InterpType::Linear);
                 spc_step = interpolate_float(sensor_data.atf_temp, &GAR_CURRENT_SETTINGS.p_ramp_b2, InterpType::Linear);
-                spc_mul = GAR_CURRENT_SETTINGS.mod_mul_b2;
             }
             
+            int p_apply_clutch = 0;
             while(true) {
                 if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N) {
                     completed_ok = false;
                     break;
                 }
                 if (into_reverse) {
-                    working = pressure_manager->find_working_mpc_pressure(GearboxGear::Reverse_Second);
                     if (cycle_count > prefill_cycles) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
                         ramp += spc_step;
                     }
                 } else {
-                    working = pressure_manager->find_working_mpc_pressure(GearboxGear::Second);
                     if (cycle_count > prefill_cycles) {
                         prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Second, Clutch::B2, abs(sensor_data.input_torque), CoefficientTy::Sliding);
                         ramp += spc_step;
                     }
                 }
-                int spc = prefill + spring + ramp;
-                pressure_mgr->set_target_modulating_pressure(working + (spc_mul*spc));
-                pressure_mgr->set_target_shift_pressure(spc);
-                this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
+                p_apply_clutch = prefill + spring + ramp + HYDR_PTR->shift_reg_spring_pressure;
+                pressure_mgr->set_target_modulating_pressure(3000);
+                pressure_mgr->set_target_shift_pressure(p_apply_clutch);
+                // Because EGS uses 1-2 when garage shifting...
+                this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_1_2);
 
                 int turbine = this->speed_sensors.turbine;
                 if (cycle_count > 50 && turbine <= 100+calc_input_rpm_from_req_gear(sensor_data.output_rpm, curr_target, &this->gearboxConfig)) {
@@ -648,24 +614,29 @@ void Gearbox::shift_thread()
                 ESP_LOGW("SHIFT", "Garage shift aborted");
                 curr_target = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
                 curr_actual = this->shifter_pos == ShifterPosition::P ? GearboxGear::Park : GearboxGear::Neutral;
-                pressure_mgr->set_target_shift_pressure(prefill/2);
-                //this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
-                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+                pressure_mgr->set_target_shift_pressure(4000);
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
             } else {
-                // Shut down the 3-4 SS
                 ESP_LOGI("SHIFT", "Garage shift completed OK after %d ms", cycle_count*20);
+                int ramp_cycles = 5;
+                while (ramp_cycles != 0) {
+                    p_apply_clutch = linear_ramp_with_timer(p_apply_clutch, pressure_manager->get_max_solenoid_pressure(), ramp_cycles);
+                    pressure_manager->set_target_modulating_pressure(5100);
+                    this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_1_2);
+                    ramp_cycles--;
+                    vTaskDelay(20);
+                }
                 pressure_mgr->set_spc_p_max();
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
+                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
                 this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
             }
-            egs_can_hal->set_garage_shift_state(false);
+            egs_can_hal->set_garage_shift_state(false, !into_reverse);
         }
         else
         {
             // Garage shifting to N or P, we can just set the pressure back to idle
-            float prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
-            pressure_mgr->set_target_shift_pressure(prefill/2);
-            this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
+            pressure_mgr->set_target_shift_pressure(4000);
         }
         if (is_fwd_gear(curr_target))
         {
@@ -681,7 +652,6 @@ void Gearbox::shift_thread()
     }
     else
     { // Both gears are controllable
-        ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Both gears are controllable");
         if (is_fwd_gear(curr_target) != is_fwd_gear(curr_actual))
         {
             // In this case, we set the current gear to neutral, then thread will re-spawn
@@ -954,7 +924,7 @@ void Gearbox::controller_loop()
         {
             if (!shifting)
             {
-                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, true);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
             }
         }
@@ -963,11 +933,9 @@ void Gearbox::controller_loop()
         {
             bool lock_state = pll != 0;
             if (lock_state) {
-                float prefill = pressure_manager->p_clutch_with_coef(GearboxGear::Reverse_Second, Clutch::B3, abs(sensor_data.input_torque), CoefficientTy::Sliding);
+                this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, true);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
-                this->pressure_mgr->set_target_modulating_pressure(prefill/2);
-                this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, true);
-                //sol_y4->write_pwm_12_bit(1024);
+                this->pressure_mgr->set_target_shift_pressure(4000);
             }
             egs_can_hal->set_safe_start(lock_state);
             this->shifter_pos = egs_can_hal->get_shifter_position(1000);
@@ -997,6 +965,26 @@ void Gearbox::controller_loop()
                                 this->shift_adapter->save();
                             }
                             this->tcc->save();
+                            // Save profile
+                            if (ShifterStyle::EWM == shifter->get_shifter_type()) {
+                                if (ETS_CURRENT_SETTINGS.ewm_save_profile) {
+                                    // We know that the profile is valid based on
+                                    // use selection (EWM button code) - So we don't need to check this
+                                    uint8_t tag = this->current_profile->get_profile_id();
+                                    // By default, we can save, but just check if manual profile without
+                                    // the user wanting to save manual profiles
+                                    bool can_save = true;
+                                    if (tag == PROFILE_IDX_M || tag == PROFILE_IDX_R || tag == PROFILE_IDX_W) {
+                                        can_save = ETS_CURRENT_SETTINGS.ewm_save_profile_manual;
+                                    }
+                                    if (can_save) {
+                                        esp_err_t res = EEPROM::ewm_btn_save_profile(tag);
+                                        if (ESP_OK != res) {
+                                            ESP_LOGW("EWM SAVE", "Profile could not be saved to NVS");
+                                        }
+                                    }
+                                }
+                            }
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {

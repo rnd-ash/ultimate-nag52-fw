@@ -227,7 +227,7 @@ uint8_t CrossoverShift::phase_overlap() {
     );
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
     uint16_t p_mod_1 = this->calc_overlap_mod();
-    uint16_t p_mod_2 = this->calc_overlap_mod_min(this->p_apply_overlap_begin);
+    uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
     this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     if (
         this->timer_shift <= 1 || // ?? - EGS logic here, doesn't cmp to 0
@@ -397,8 +397,8 @@ uint8_t CrossoverShift::phase_overlap2() {
             ret = PHASE_MAX_PRESSURE;
         }
     }
-    // Trq adder 2/3 are included in trq_adder for this step
-    this->trq_adder = adder;
+    
+    this->trq_adder = 0;
     int torque = (int)abs_input_trq + this->trq_adder + this->correction_trq;
     uint16_t targ = MAX(
         this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 

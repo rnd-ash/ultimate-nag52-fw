@@ -404,13 +404,12 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             }
         } else {
             if (
-                !(sid.change == GearChange::_3_2 && ((sid.shift_flags & SHIFT_FLAG_COAST_32_21) != 0)) &&
-                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0 || manually_requested)
+                (sensor_data.converted_torque < inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
             ) {
-                algo = new ReleasingShift(&sid);
-            } else  {
                 algo = new CrossoverShift(&sid);
+            } else  {
+                algo = new ReleasingShift(&sid);
             }
         }
 

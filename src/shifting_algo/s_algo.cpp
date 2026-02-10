@@ -26,6 +26,8 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
         .p_off = (uint16_t)this->mod_sol_pressure,
         .s_off = (int16_t)this->sid->ptr_r_clutch_speeds->off_clutch_speed,
         .s_on = (int16_t)this->sid->ptr_r_clutch_speeds->on_clutch_speed,
+        .s_turbine = (int16_t)this->sd->input_rpm,
+        .s_targ = (int16_t)this->target_turbine_speed
     };
 }
 

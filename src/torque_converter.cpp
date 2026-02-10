@@ -163,8 +163,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         slipping_rpm_targ = slipping_rpm_targ;
         if (is_shifting) {
-            bool open_req_shift = false;
-            // Releasing downshifting MUST release the converter
             if (!upshifting && release_shifting) {
                 targ = InternalTccState::Open;
                 slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);

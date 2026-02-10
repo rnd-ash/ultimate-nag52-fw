@@ -38,6 +38,8 @@ struct ShiftAlgoFeedback {
     uint16_t p_off;
     int16_t s_off;
     int16_t s_on;
+    int16_t s_turbine;
+    int16_t s_targ;
 } __attribute__ ((packed));
 
 /**

@@ -247,8 +247,8 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
         // Add a bit more pressure depending on vehicle speed
         if (this->upshifting && !this->is_release_shift()) {
             int rpm_adder = interpolate_float(sd->engine_rpm, 0, 50, 0, 6000, InterpType::Linear);
-            int trq_adder = interpolate_float(abs_input_trq, 0, 50, 0, 500, InterpType::Linear);
-            adder = rpm_adder + trq_adder;
+            int torque_adder = interpolate_float(abs_input_trq, 0, 50, 0, 500, InterpType::Linear);
+            adder = rpm_adder + torque_adder;
             if (race == sid->profile) {
                 adder *= 2;
             }
@@ -270,6 +270,13 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
             adder_1 = 500;
         }
         ret = sid->prefill_info.fill_pressure_on_clutch + adder_1;
+        if (upshifting && is_release_shift()) {
+            if (ret > 200) {
+                ret -= 200;
+            } else {
+                ret = 0;
+            }
+        }
         ret = MIN(sid->SPC_MAX, ret);
     }
     return ret;
@@ -306,13 +313,13 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     switch (style) {
         case ShiftStyle::Crossover_Up:
             p = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
-            i = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
-            d = CRS_CURRENT_SETTINGS.pid_p_val_upshift;
+            i = CRS_CURRENT_SETTINGS.pid_i_val_upshift;
+            d = CRS_CURRENT_SETTINGS.pid_d_val_upshift;
             break;
         case ShiftStyle::Crossover_Dn:
             p = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
-            i = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
-            d = CRS_CURRENT_SETTINGS.pid_p_val_downshift;
+            i = CRS_CURRENT_SETTINGS.pid_i_val_downshift;
+            d = CRS_CURRENT_SETTINGS.pid_d_val_downshift;
             break;
         case ShiftStyle::Release_Up:
             p = REL_CURRENT_SETTINGS.pid_p_val_upshift;

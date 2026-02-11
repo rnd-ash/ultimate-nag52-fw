@@ -163,7 +163,16 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         slipping_rpm_targ = slipping_rpm_targ;
         if (is_shifting) {
-            if (!upshifting && release_shifting) {
+            // Check previous target
+            bool open_tcc = false;
+            if (this->target_tcc_state == InternalTccState::Open) {
+                // Prevent lockup during shift
+                open_tcc = true;
+            } else if (!upshifting && sensors->pedal_pos > 0) {
+                // Open on active downshift
+                open_tcc = true;
+            }
+            if (open_tcc) {
                 targ = InternalTccState::Open;
                 slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
             }

@@ -18,7 +18,7 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
 
 void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd) {
     sid->shift_flags = 0;
-    if (sd->pedal_pos < 25) { // ~10%
+    if (sd->pedal_pos < 15) { // ~10%
         sid->shift_flags |= SHIFT_FLAG_COAST;
         if (sid->change == GearChange::_5_4 || sid->change == GearChange::_4_3) {
             sid->shift_flags &= ~SHIFT_FLAG_COAST;

@@ -46,7 +46,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2() {
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
         float threshold = torque * (float)(this->cycles_mod_ramp_to_sync + (cycles_can*2)) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
         ret = MAX(threshold, REL_CURRENT_SETTINGS.clutch_stationary_rpm);
-    } else if ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0) {
+    } else if ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) == 0) {
         ret = REL_CURRENT_SETTINGS.clutch_stationary_rpm;
     } else {
         ret = 25;
@@ -186,11 +186,11 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
             // On clutch has not been fully applied
-            (sid->ptr_r_clutch_speeds->on_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
+            sid->ptr_r_clutch_speeds->on_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
             // off clutch is not let go
-            sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm) ||
+            sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
             // Coasting (32/21)
-            ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0)
+            (sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0
         ) {
             this->subphase_shift += 1;
             this->spc_step_adder = 0;
@@ -202,7 +202,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
-            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > REL_CURRENT_SETTINGS.clutch_stationary_rpm && !((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0)) ||
+            (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0)) ||
             (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm)
         ) {
             this->subphase_shift += 1;
@@ -320,12 +320,12 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             ret = PHASE_OVERLAP;
         }
     }
-    if (this->subphase_mod > 1 && sd->input_rpm > 200) {
-        if (((sid->shift_flags & SHIFT_FLAG_COAST) != 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= 25) {
+    if (this->subphase_mod > 1) {
+        if (((sid->shift_flags & SHIFT_FLAG_COAST_32_21) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }
-        if (((sid->shift_flags & SHIFT_FLAG_COAST_54_43) == 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= REL_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        if (((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0) && sid->ptr_r_clutch_speeds->on_clutch_speed <= 25) {
             // Coasting threshold
             ret = PHASE_OVERLAP;
         }
@@ -337,7 +337,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     return ret;
 }
 
-const uint8_t OVERLAP_TIMES[4] = {10, 7, 6, 5};
+const uint8_t OVERLAP_TIMES[4] = {15, 15, 6, 5};
 uint8_t ReleasingShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t low_filling_p = this->calc_low_filling_p();

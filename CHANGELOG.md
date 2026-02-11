@@ -4,6 +4,12 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 11/02/26 (Hotfix)
+
+## Fixed
+    * Fixed TCC re-locking during load downshifting when it shouldn't
+    * Fixed very harsh crossover shifting (Caused by wrong PID variable assignments)
+
 # 10/02/26
 
 ## IMPORTANT - Race, Agility and Winter profiles are disabled by default. You can enable them in TCU Settings via Shifter options

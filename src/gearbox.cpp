@@ -42,7 +42,7 @@ int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gea
     return calculated;
 }
 
-Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
+Gearbox::Gearbox(Shifter *shifter) : shifter(shifter)
 {
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
@@ -146,7 +146,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
     sensor_data.pedal_delta = new FirstOrderAverage(25);
 
 
-    sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
+    sensor_data.pedal_smoothed = const_cast<const FirstOrderAverage*>(this->pedal_average);
 }
 
 bool Gearbox::is_stationary() {
@@ -755,18 +755,20 @@ void Gearbox::controller_loop()
 {
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
+    const uint32_t expire_time = 250u;
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
-    egs_can_hal->set_safe_start(true);
     while (GET_CLOCK_TIME() < expire_check)
     {
+        // default behavior: deactivate start
+        is_start_safe = false;
         // Step 1. Aquire ALL Sensors
         TCUIO::update_io_layer();
 
-        this->shifter_pos = egs_can_hal->get_shifter_position(250);
+        this->shifter_pos = shifter->get_shifter_position();
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
-            egs_can_hal->set_safe_start(true);
+            is_start_safe = true;    
             break; // Default startup, OK
         }
         else if (this->shifter_pos == ShifterPosition::D)
@@ -774,17 +776,13 @@ void Gearbox::controller_loop()
             this->actual_gear = GearboxGear::Fifth;
             this->target_gear = GearboxGear::Fifth;
             this->gear_disagree_count = 20; // Set disagree counter to non 0. This way gearbox must calculate ratio
-            egs_can_hal->set_safe_start(false);
             break;
         }
         else if (this->shifter_pos == ShifterPosition::R)
         { // Car is in motion backwards!
             this->actual_gear = GearboxGear::Reverse_Second;
             this->target_gear = GearboxGear::Reverse_Second;
-            egs_can_hal->set_safe_start(false);
             break;
-        } else {
-            egs_can_hal->set_safe_start(true); // Unknown position, keep polling until we don't know
         }
         vTaskDelay(5);
     }
@@ -910,8 +908,8 @@ void Gearbox::controller_loop()
         this->pedal_average->add_sample(p_tmp);
         int16_t percent_delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*20.0; // 20.0 = 50 (Cycles/sec) / 2.5 (Pedal raw -> %)
         sensor_data.pedal_delta->add_sample(percent_delta_sec);
-        sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
-        sensor_data.kickdown_pressed = kickdown.is_kickdown_newly_pressed(egs_can_hal, 250);
+        sensor_data.brake_pressed = BrakePedal::is_brake_pedal_pressed(egs_can_hal, 250);
+        sensor_data.kickdown_pressed = KickdownSwitch::is_kickdown_pressed(egs_can_hal, 250);
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
@@ -937,8 +935,8 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
                 this->pressure_mgr->set_target_shift_pressure(4000);
             }
-            egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position(1000);
+            is_start_safe = lock_state;   
+            this->shifter_pos = shifter->get_shifter_position();
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||
@@ -1021,7 +1019,7 @@ void Gearbox::controller_loop()
             if (speeds_valid && is_fwd_gear(this->actual_gear))
             {
                 // Check our range restict (Only for TRRS)
-                switch (egs_can_hal->get_shifter_position(250)) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
+                switch (shifter->get_shifter_position()) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
                     case ShifterPosition::FOUR:
                         this->restrict_target = GearboxGear::Fourth;
                         break;
@@ -1077,7 +1075,7 @@ void Gearbox::controller_loop()
                             this->target_gear = next;
                         }
                     }
-                    else if ((this->ask_downshift || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
+                    else if ((this->ask_downshift || sensor_data.kickdown_pressed) && (this->actual_gear > GearboxGear::First) && (!egs_can_hal->get_engine_is_limp(expire_time)))
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);

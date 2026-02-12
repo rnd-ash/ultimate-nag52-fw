@@ -70,7 +70,7 @@ public:
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors) = 0;
-    ShiftCharacteristics get_shift_characteristics(GearChange requested, SensorData* sensors);
+    ShiftCharacteristics get_shift_characteristics(GearChange requested, const SensorData* sensors);
     
     
     StoredMap* get_upshift_map(void) {
@@ -157,7 +157,7 @@ public:
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
 private:
-    void update(SensorData *sd);
+    void update(const SensorData *sd);
     int32_t accel_delta_factor = 0;
     SensorData last_sensors = {};
     uint32_t last_check = 0;

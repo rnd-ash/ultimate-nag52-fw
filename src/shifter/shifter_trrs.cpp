@@ -2,10 +2,11 @@
 #include "../profiles.h"
 #include "nvs/module_settings.h"
 #include "programselector/programselectorswitchtrrs.h"
+#include "canbus/can_hal.h"
+#include "inputcomponents/brakepedal.hpp"
 
-ShifterTrrs::ShifterTrrs(TCM_CORE_CONFIG *vehicle_config, BoardGpioMatrix *board): board(board)
+ShifterTrrs::ShifterTrrs(BoardGpioMatrix *board): board(board)
 {
-	this->vehicle_config = vehicle_config;
 	this->programselector = new ProgramSelectorSwitchTRRS(board);
 }
 
@@ -19,10 +20,10 @@ DiagProfileInputState ShifterTrrs::diag_get_profile_input() {
 	return ret;
 }
 
-ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
+ShifterPosition ShifterTrrs::get_shifter_position(void)
 {
 	ShifterPosition result = ShifterPosition::SignalNotAvailable;
-	if (board->is_data_valid(expire_time_ms))
+	if (board->is_data_valid(expire_time_IC_query))
 	{
 		uint8_t trrs = board->get_trrs();
 		if (16u > trrs)
@@ -61,24 +62,36 @@ ShifterPosition ShifterTrrs::get_shifter_position(const uint32_t expire_time_ms)
 		}
 	}
 	// update reverse/parking lock solenoid
-	// TODO: add logic for using either brake signal or CAN-signal for is_brake_pressed
-	set_rp_solenoid(vVeh, result, is_brake_pressed);
+	this->pos = result;
+	set_rp_solenoid(vVeh, expire_time_CAN);
 
 	// return resulting shifter position
 	return result;
 }
 
-void ShifterTrrs::set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed)
+void ShifterTrrs::set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms)
 {
-	bool should_rp_solenoid_be_activated = (ShifterPosition::N == pos) && ((2.5F < vVeh) || is_brake_pressed);
-	board->set_rp_solenoid(should_rp_solenoid_be_activated);
+	board->set_rp_solenoid(((ShifterPosition::N == this->pos) && (2.5F < vVeh)) || BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms));
 }
 
-AbstractProfile *ShifterTrrs::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ShifterTrrs::get_profile(void)
 {
-	return programselector->get_profile(expire_time_ms);
+	return programselector->get_profile();
 }
 
 ShifterStyle ShifterTrrs::get_shifter_type() {
 	return ShifterStyle::TRRS;
+}
+
+void ShifterTrrs::set_vehicle_speed(uint16_t front_left, uint16_t front_right)
+{
+	if ((UINT16_MAX != front_left) && (UINT16_MAX != front_right))
+	{
+		vVeh = ((float)(((front_left + front_right) / 2) * ((int32_t)(VEHICLE_CONFIG.wheel_circumference)) * 6)) / 100000.F;
+	}
+}
+
+void ShifterTrrs::update(void)
+{
+	set_vehicle_speed(egs_can_hal->get_front_left_wheel(expire_time_CAN), egs_can_hal->get_front_right_wheel(expire_time_CAN));
 }

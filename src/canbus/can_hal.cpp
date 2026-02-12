@@ -9,7 +9,7 @@
 
 EgsBaseCan *egs_can_hal = nullptr;
 
-EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter)
+EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud)
 {
     this->name = name;
     this->diag_rx_id = 0x07E1;
@@ -17,7 +17,6 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
     this->diag_rx_queue = nullptr;
     this->can_init_status = ESP_OK;
     this->tx_time_ms = tx_time_ms;
-    this->shifter = shifter;
 
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Booting CAN Layer");
@@ -48,6 +47,7 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
         break;
     case 125000:
         timing_config = TWAI_TIMING_CONFIG_125KBITS();
+        gen_config.mode = TWAI_MODE_LISTEN_ONLY; // For 125k, use listen only mode to avoid issues on bus
         break;
     case 100000:
         timing_config = TWAI_TIMING_CONFIG_100KBITS();
@@ -206,30 +206,6 @@ void EgsBaseCan::task_loop() {
         int taken = GET_CLOCK_TIME() - now;
         if (taken < this->tx_time_ms) {
             vTaskDelay((this->tx_time_ms - taken) / portTICK_PERIOD_MS); // Reset watchdog here
-        }
-    }
-}
-
-void EgsBaseCan::on_rx_done(const uint32_t now_ts)
-{
-    if (nullptr != shifter) {
-        switch (VEHICLE_CONFIG.shifter_style)
-        {
-        case (uint8_t)ShifterStyle::EWM:
-        {
-            ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
-            shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
-            break;
-        }
-        case (uint8_t)ShifterStyle::TRRS:
-        {
-            ShifterTrrs *shiftertrrs = reinterpret_cast<ShifterTrrs *>(shifter);
-            shiftertrrs->set_brake_is_pressed(get_is_brake_pressed(now_ts));
-            shiftertrrs->set_vehicle_speed(get_front_left_wheel(now_ts), get_front_right_wheel(now_ts));
-            break;
-        }
-        default:
-            break;
         }
     }
 }

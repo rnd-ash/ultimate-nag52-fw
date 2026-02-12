@@ -9,12 +9,15 @@
 class ShifterTrrs : public Shifter
 {
 public:
-    ShifterTrrs(TCM_CORE_CONFIG* vehicle_config, BoardGpioMatrix *board);
-    ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;    
-    AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
+    ShifterTrrs(BoardGpioMatrix *board);
+    ShifterPosition get_shifter_position(void) override;    
+    AbstractProfile* get_profile(void) override;
     DiagProfileInputState diag_get_profile_input() override;
     ShifterStyle get_shifter_type() override;
+    void update(void) override;
 private:
+    const uint32_t expire_time_IC_query = 500u;
+    const uint32_t expire_time_CAN = 250u;
     const ShifterPosition TRRS_SHIFTER_TABLE[16] = {
         ShifterPosition::SignalNotAvailable,    // 0b0000
         ShifterPosition::TWO,                   // 0b0001
@@ -33,8 +36,11 @@ private:
         ShifterPosition::R,                     // 0b1110
         ShifterPosition::SignalNotAvailable     // 0b1111
     };
+    
+    float vVeh = 0.0F;
 
-    void set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed);
+    void set_vehicle_speed(uint16_t front_left, uint16_t front_right);
+    void set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms);
 
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     BoardGpioMatrix* board;

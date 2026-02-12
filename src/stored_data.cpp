@@ -2,22 +2,22 @@
 #include "tcu_alloc.h"
 #include "nvs/eeprom_config.h"
 
-esp_err_t StoredData::init_status(void) 
+esp_err_t StoredData::init_status(void) const
 {
     return init_state;
 }
 
-uint16_t StoredData::get_data_element_count(void)
+uint16_t StoredData::get_data_element_count(void) const
 {
     return this->data_element_count;
 }
 
-const int16_t *StoredData::get_default_data(void)
+const int16_t *StoredData::get_default_data(void) const
 {
     return this->default_data;
 }
 
-const char *StoredData::get_data_name(void)
+const char *StoredData::get_data_name(void) const
 {
     return this->data_name;
 }

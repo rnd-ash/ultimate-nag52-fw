@@ -2,12 +2,9 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
-#include "../shifter/shifter_ewm.h"
-#include "../shifter/shifter_trrs.h"
-#include "ioexpander.h"
 #include "egs_calibration/calibration_structs.h"
 
-Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {
+Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -570,10 +567,6 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
-    if (nullptr != ioexpander) {
-        // For Jeep/Chrysler cars
-        ioexpander->set_start(can_start);
-    }
 }
 
 void Egs52Can::set_gearbox_temperature(int16_t temp) {

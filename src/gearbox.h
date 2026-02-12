@@ -39,6 +39,7 @@ public:
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
+    bool get_is_start_safe(void) {return this->is_start_safe; }
     SensorData sensor_data;
     OutputData output_data;
     uint16_t get_gear_ratio(void) {
@@ -63,7 +64,7 @@ public:
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
-    SpeedSensors speed_sensors;
+    SpeedSensors speed_sensors;    
 private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
@@ -124,9 +125,7 @@ private:
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 
-    KickdownSwitch kickdown;
-    BrakePedal brake_pedal;
-
+    bool is_start_safe = false;
 };
 
 extern Gearbox* gearbox;

@@ -8,8 +8,8 @@
 * CAN Defintiion for ECU 'HFM'
 */
 
-#ifndef ECU_HFM_H
-#define ECU_HFM_H
+#ifndef __ECU_HFM_H_
+#define __ECU_HFM_H_
 
 #include <stdint.h>
     
@@ -17,6 +17,7 @@
 #define HFM_308_CAN_ID 0x0308
 #define HFM_608_CAN_ID 0x0608
 #define HFM_610_CAN_ID 0x0610
+#define HFM_628_CAN_ID 0x0628
 
 /** shifter module code */
 enum class HFM_210h_WHC : uint16_t {
@@ -62,7 +63,9 @@ typedef union {
 		/** vehicle speed signal implausible **/
 		bool VSIG_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 3;
+		uint8_t __PADDING3__: 2;
+		/** idling (indle speed contact closed) **/
+		bool LL_B: 1;
 		/** full throttle **/
 		bool VG_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -97,7 +100,9 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		uint8_t __PADDING1__: 8;
+		/** load of the engine **/
+		uint8_t LAST: 8;
 		/** starter running **/
 		bool KL50_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
@@ -151,19 +156,38 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		uint8_t __PADDING1__: 8;
 		/** air mass flow **/
 		uint8_t MLE: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
-		/** ROZ tempering detection **/
-		bool ROZ_TP_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING3__: 31;
+		uint32_t __PADDING2__: 32;
+		/** ignition time cylinder 1 **/
+		uint8_t ZZP_Z1: 8;
+		/** long-term adaption value partial load **/
+		uint8_t LZA_TL1: 8;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_610 **/
 	uint32_t get_canid(){ return HFM_610_CAN_ID; }
 } HFM_610;
+
+
+
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+	struct {
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint64_t __PADDING1__: 57;
+		/** air conditioning **/
+		bool KLIMA_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 5;
+		/** error throttle valve actuator **/
+		bool DKS_F_B: 1;
+	} __attribute__((packed));
+	/** Gets CAN ID of HFM_628 **/
+	uint32_t get_canid(){ return HFM_628_CAN_ID; }
+} HFM_628;
 
 
 
@@ -191,6 +215,9 @@ class ECU_HFM {
                     break;
                 case HFM_610_CAN_ID:
                     idx = 3;
+                    break;
+                case HFM_628_CAN_ID:
+                    idx = 4;
                     break;
                 default:
                     add = false;
@@ -267,8 +294,24 @@ class ECU_HFM {
             return ret;
         }
             
+        /** Sets data in pointer to HFM_628
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_HFM_628(const uint32_t now, const uint32_t max_expire_time, HFM_628* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[4] <= now && now - LAST_FRAME_TIMES[4] < max_expire_time) {
+                dest->raw = FRAME_DATA[4];
+                ret = true;
+            }
+            return ret;
+        }
+            
 	private:
-		uint64_t FRAME_DATA[4];
-		uint32_t LAST_FRAME_TIMES[4];
+		uint64_t FRAME_DATA[5];
+		uint32_t LAST_FRAME_TIMES[5];
 };
-#endif // ECU_HFM_H
+#endif // __ECU_HFM_H_

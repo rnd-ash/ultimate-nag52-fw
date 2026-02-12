@@ -19,8 +19,7 @@
 #include "../../slave_ecus/src/TESTER.h"
 #include "can_defines.h"
 
-#include "../shifter/shifter.h"
-#include "../shifter/programselector/programselector.h"
+#include "shifter/shifter.h"
 #include "../profiles.h"
 
 const CanTorqueData TORQUE_NDEF = {
@@ -33,7 +32,7 @@ const CanTorqueData TORQUE_NDEF = {
 
 class EgsBaseCan {
     public:
-        EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        EgsBaseCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         bool bus_ok() const;
 
@@ -81,15 +80,6 @@ class EgsBaseCan {
         virtual uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) {
             return UINT16_MAX;
         }
-        
-
-        ShifterPosition get_shifter_position(const uint32_t expire_time_ms) {
-            if (shifter) {
-                return shifter->get_shifter_position(expire_time_ms);
-            } else {
-                return ShifterPosition::SignalNotAvailable;
-            }
-        }
 
         /**
          * @brief Only Call from Shifter!
@@ -124,7 +114,7 @@ class EgsBaseCan {
          * @return Returns true if the kickdown switch is being pressed, false if released
          */
         virtual bool get_kickdown(const uint32_t expire_time_ms) {
-            return 0;
+            return false;
         }
         
         /**
@@ -350,8 +340,6 @@ class EgsBaseCan {
             this->un52_slave_resp = un52_rpt;
         }
 
-        Shifter* shifter;
-
     protected:
         const char* name;
         TaskHandle_t task = nullptr;
@@ -369,7 +357,7 @@ class EgsBaseCan {
 
         virtual void tx_frames(){};
         virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {};
-        virtual void on_rx_done(const uint32_t now_ts);
+        virtual void on_rx_done(const uint32_t now_ts) {};
 
         bool send_messages = true;
 
@@ -394,6 +382,8 @@ class EgsBaseCan {
 
 extern EgsBaseCan* egs_can_hal;
 
-typedef uint8_t DiagCanMessage[8];
+struct DiagCanMessage {
+    uint8_t data[8];
+};
 
 #endif

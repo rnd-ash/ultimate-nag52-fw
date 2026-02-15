@@ -330,7 +330,6 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 }
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    this->update(sensors);
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
         bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);

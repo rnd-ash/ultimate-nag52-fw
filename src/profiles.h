@@ -66,6 +66,7 @@ public:
         const int16_t* def_downshift_time_data
     );
     // static AbstractProfile *profile_from_auto_ty(AutoProfile prof);
+    virtual void update(SensorData* sensors) {};
     virtual GearboxProfile get_profile(void) const = 0;
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
@@ -156,8 +157,8 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    void update(SensorData *sd) override;
 private:
-    void update(SensorData *sd);
     int32_t accel_delta_factor = 0;
     SensorData last_sensors = {};
     uint32_t last_check = 0;

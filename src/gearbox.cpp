@@ -1056,6 +1056,7 @@ void Gearbox::controller_loop()
                     // Check if profile is loaded
                     if (p != nullptr)
                     {
+                        p->update(&this->sensor_data);
                         // Ask the current drive profile if it thinks, given the current
                         // data, if the car should up/downshift
                         if (this->restrict_target > this->actual_gear && p->should_upshift(this->actual_gear, &this->sensor_data))
@@ -1151,6 +1152,7 @@ void Gearbox::controller_loop()
         egs_can_hal->set_gearbox_temperature(this->sensor_data.atf_temp);
         egs_can_hal->set_shifter_position(this->shifter_pos);
         egs_can_hal->set_input_shaft_speed(this->sensor_data.input_rpm);
+        egs_can_hal->set_tcc_trq_multiplier(this->sensor_data.tcc_trq_multiplier);
         if (this->aborting)
         {
             egs_can_hal->set_abort_shift(true);

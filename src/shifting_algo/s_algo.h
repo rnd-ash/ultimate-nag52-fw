@@ -107,8 +107,8 @@ public:
         PressureManager* pm;
         SensorData* sd;
 
-        short momentum_plus_maxtrq = 0;
-        short momentum_plus_maxtrq_filtered = 0;
+        short momentum_ctrl = 0;
+        short momentum_ctrl_filtered = 0;
         short target_turbine_speed = 0;
         short momentum_start_output_rpm = 0;
         short correction_trq = 0;

@@ -34,8 +34,6 @@ private:
     uint16_t get_trq_adder_map_val();
     uint16_t get_trq_boost_adder();
     int16_t calc_momentum_overlap_2();
-    float trq_adder_1 = 0;
-    float trq_adder_2 = 0;
 
     uint8_t trq_req_timer = 0;
     bool trq_req_up_ramp = false;

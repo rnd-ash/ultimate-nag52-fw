@@ -317,6 +317,7 @@ class EgsBaseCan {
         // This is needed so the engine limits itself to 1K RPM, in order
         // to prevent any damage to the box!
         virtual void set_garage_shift_state(bool enable, bool to_d){};
+        virtual void set_tcc_trq_multiplier(float multi){};
         
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {

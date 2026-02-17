@@ -54,43 +54,45 @@ typedef union {
 		/** error number or counter for calid / CVN transmission **/
 		uint8_t FEHLER: 4;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING2__: 12;
-		/** Torque converter shut **/
-		bool TCC_SLIPPING: 1;
-		/** Torque converter shut **/
-		bool TCC_OPEN: 1;
-		/** Torque converter shut **/
-		bool TCC_SHUT: 1;
-		/** Gearbox is W5A580 **/
-		bool GEARBOX_BIG: 1;
-		/** Gearbox is in limp-home mode **/
-		bool LIMP_MODE: 1;
-		/** Schaltungseinleitung **/
-		bool SE: 1;
+		uint8_t __PADDING2__: 4;
+		/** TCC Torque multiplier **/
+		bool TCC_MULTI: 8;
+		/** Front wheel drive **/
+		bool FWD: 1;
 		/** Kickdown pressed **/
 		bool KICKDOWN: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING3__: 1;
+		/** Shifting started **/
+		bool SE: 1;
+		/** Gearbox is in limp-home mode **/
+		bool LIMP_MODE: 1;
+		/** Gearbox is W5A580 **/
+		bool GEARBOX_BIG: 1;
+		/** Torque converter closed **/
+		bool TCC_CLOSED: 1;
+		/** Torque converter open **/
+		bool TCC_OPEN: 1;
+		/** Torque converter slipping **/
+		bool TCC_SLIPPING: 1;
 		/** actual gear **/
 		GS_218h_GIC_EGS51 GIC: 4;
 		/** Target gear **/
 		GS_218h_GZC_EGS51 GZC: 4;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING4__: 1;
-		/** Gearbox is OK **/
-		bool GEARBOX_OK: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING5__: 1;
-		/** Selector is in P or N **/
-		bool NEUTRAL: 1;
-		/** Garage shifting **/
-		bool GARAGE_SHIFT: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING6__: 1;
 		/** Enable torque request **/
 		bool TORQUE_REQ_EN: 1;
+		/** Enable starting **/
+		bool CAN_START: 1;
+		/** Garage shifting **/
+		bool GARAGE_SHIFT: 1;
+		/** Gear lever in P or N **/
+		bool PN: 1;
+		/** Offroad **/
+		bool OFF_ROAD: 1;
+		/** Gearbox program OK **/
+		bool GB_OK: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING7__: 1;
+		bool __PADDING3__: 1;
+		/** Manual gearbox (1), or automatic (0) **/
+		bool GB_TYPE: 1;
 		/** Torque request value. 0xFE when inactive **/
 		uint8_t TORQUE_REQ: 8;
 	} __attribute__((packed));

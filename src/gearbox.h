@@ -61,7 +61,7 @@ public:
         }
     }
     TorqueConverter* tcc = nullptr;
-    ShiftAlgoFeedback algo_feedback = {0};
+    ShiftAlgoFeedback algo_feedback = {0,0,0,0,0,0,0,0,0,0,0,0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
     SpeedSensors speed_sensors;
 private:

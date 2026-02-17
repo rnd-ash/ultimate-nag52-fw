@@ -90,9 +90,9 @@ typedef struct {
     uint16_t shift_spc_gain[SHIFT_ARRAY_LEN];
     uint16_t min_mpc_pressure;
     uint8_t filter_factor;
-    uint8_t temp_for_mpc_filter;
-    uint16_t mpc_repeat_time;
-    uint16_t mpc_stop_time;
+    uint8_t mpc_flush_temp_threshold;
+    uint16_t mpc_no_flush_time;
+    uint16_t mpc_flush_time;
     uint16_t extra_p_not_shifting;
     uint16_t shift_pressure_addr_percent;
     uint16_t inlet_pressure_offset;

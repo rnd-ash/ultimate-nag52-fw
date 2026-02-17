@@ -102,6 +102,12 @@ int linear_ramp_with_timer(int start, int end, int current_timer_val) {
     return end;
 }
 
+short first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val) {
+    int x1 = ((int)percentage * (int)new_value) / 100;
+    int x2 = ((int)(100 - percentage) * (int)last_filtered_val) / 100;
+    return x1+x2;
+}
+
 inline int16_t clampint16(int32_t value)
 {
     int16_t result;

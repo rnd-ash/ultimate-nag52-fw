@@ -102,7 +102,7 @@ class Egs52Can: public EgsBaseCan {
         void set_wheel_torque_multi_factor(float ratio) override;
         void set_abort_shift(bool is_aborting) override;
         void set_fake_engine_rpm(uint16_t rpm) override;
-        void set_garage_shift_state(bool enable) override;
+        void set_garage_shift_state(bool enable, bool to_d) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;

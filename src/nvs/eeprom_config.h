@@ -77,7 +77,8 @@ struct __attribute__ ((packed)) FLASH_NVS_SETTINGS_DESC {
 
 namespace EEPROM {
     esp_err_t init_eeprom(void);
-    uint8_t get_last_profile(void);
+    esp_err_t ewm_btn_get_saved_profile(uint8_t* dest);
+    esp_err_t ewm_btn_save_profile(uint8_t save_profile);
     esp_err_t read_core_config(TCM_CORE_CONFIG* dest);
     esp_err_t save_core_config(TCM_CORE_CONFIG* write);
     esp_err_t read_efuse_config(TCM_EFUSE_CONFIG* dest);

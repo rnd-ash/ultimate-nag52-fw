@@ -78,8 +78,6 @@ public:
 
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
-    // Called when shift solenoid is opened
-    void calc_shift_flags(uint32_t* dest);
 
     protected:
         bool upshifting = false;
@@ -109,8 +107,8 @@ public:
         PressureManager* pm;
         SensorData* sd;
 
-        short momentum_plus_maxtrq = 0;
-        short momentum_plus_maxtrq_filtered = 0;
+        short momentum_ctrl = 0;
+        short momentum_ctrl_filtered = 0;
         short target_turbine_speed = 0;
         short momentum_start_output_rpm = 0;
         short correction_trq = 0;
@@ -124,14 +122,14 @@ public:
         // EGS compatibility functions
         uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
         uint16_t fun_0d83d4();
-        uint16_t calc_mod_min_abs_trq(uint16_t p_shift);
-        uint16_t calc_mod_with_filling_trq_and_freewheeling(uint16_t p_shift);
-        uint16_t calc_mod_with_filling_trq(uint16_t p_shift);
-        uint16_t calc_mpc_sol_shift_ps(uint16_t p_shift, uint16_t p_mod);
+        uint16_t calc_mod_min_abs_trq(int p_shift);
+        uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
+        uint16_t calc_mod_with_filling_trq(int p_shift);
+        uint16_t calc_mpc_sol_shift_ps(int p_shift, int p_mod);
         void reset_for_next_phase();
         uint16_t correct_shift_shift_pressure(int16_t pressure);
 
-        uint16_t set_p_apply_clutch_with_spring(uint16_t p);
+        uint16_t set_p_apply_clutch_with_spring(int p);
 
         short calc_correction_trq(ShiftStyle style, short momentum);
         int32_t momentum_pid[3];
@@ -154,6 +152,7 @@ public:
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd);
 }
 
 #endif

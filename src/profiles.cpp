@@ -67,7 +67,7 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
 }
 
-ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange requested, const SensorData* sensors) {
+ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange requested, SensorData* sensors) {
     ShiftCharacteristics result;
     switch (requested) {
         case GearChange::_1_2:
@@ -330,7 +330,6 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 }
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    this->update(sensors);
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
         bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
@@ -356,7 +355,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     }
 }
 
-void StandardProfile::update(const SensorData* sensors) {
+void StandardProfile::update(SensorData* sensors) {
     // Every 250ms we check sensor inputs
     if (GET_CLOCK_TIME() - this->last_check > 250) {
         this->last_check = GET_CLOCK_TIME();

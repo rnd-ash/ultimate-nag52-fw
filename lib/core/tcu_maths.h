@@ -142,4 +142,6 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 
 int linear_ramp_with_timer(int start, int end, int current_timer_val);
 
+inline int16_t clampint16(int32_t value);
+
 #endif // TCU_MATHS_H

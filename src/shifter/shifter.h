@@ -136,7 +136,7 @@ public:
 	virtual ShifterPosition get_shifter_position(void) { return pos; };
     virtual AbstractProfile* get_profile(void) = 0;
     virtual DiagProfileInputState diag_get_profile_input(void) = 0;
-    virtual void update(void)  = 0;
+    virtual void update(void) = 0;
     virtual ShifterStyle get_shifter_type() = 0;
     
 protected:

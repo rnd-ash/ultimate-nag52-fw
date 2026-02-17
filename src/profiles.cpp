@@ -4,6 +4,7 @@
 #include "gearbox.h"
 #include "maps.h"
 #include "nvs/all_keys.h"
+#include <tcu_maths_impl.h>
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
 AbstractProfile::AbstractProfile(bool is_diesel, 

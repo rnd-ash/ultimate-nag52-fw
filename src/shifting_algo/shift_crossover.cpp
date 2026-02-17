@@ -465,9 +465,7 @@ uint16_t CrossoverShift::fill_ramping_mod_p() {
 }
 
 uint16_t CrossoverShift::max_p_mod_pressure() {
-    int p_shift = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release) 
-        + sid->release_spring_on_clutch 
-        - this->centrifugal_force_on_clutch;
+    int p_shift = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release);
 
     p_shift = MIN(sid->SPC_MAX, MAX(0, p_shift + sid->release_spring_on_clutch - centrifugal_force_on_clutch));
 

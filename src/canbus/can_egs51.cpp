@@ -4,6 +4,8 @@
 #include "driver/i2c_master.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "shifter/shifter_trrs.h"
+#include "shifter/shifter_ewm.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) 
 {
@@ -204,27 +206,27 @@ uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
 void Egs51Can::set_clutch_status(TccClutchStatus status) {
     switch(status) {
         case TccClutchStatus::Open:
-            gs218.TCC_SHUT = false;
+            gs218.TCC_CLOSED = false;
             gs218.TCC_OPEN = true;
             gs218.TCC_SLIPPING = false;
             break;
         case TccClutchStatus::OpenToSlipping:
-            gs218.TCC_SHUT = false;
+            gs218.TCC_CLOSED = false;
             gs218.TCC_OPEN = true;
             gs218.TCC_SLIPPING = true;
             break;
         case TccClutchStatus::Slipping:
-            gs218.TCC_SHUT = false;
+            gs218.TCC_CLOSED = false;
             gs218.TCC_OPEN = false;
             gs218.TCC_SLIPPING = true;
             break;
         case TccClutchStatus::SlippingToClosed:
-            gs218.TCC_SHUT = true;
+            gs218.TCC_CLOSED = true;
             gs218.TCC_OPEN = false;
             gs218.TCC_SLIPPING = true;
             break;
         case TccClutchStatus::Closed:
-            gs218.TCC_SHUT = true;
+            gs218.TCC_CLOSED = true;
             gs218.TCC_OPEN = false;
             gs218.TCC_SLIPPING = false;
             break;
@@ -362,14 +364,14 @@ void Egs51Can::set_wheel_torque(uint16_t t) {
 
 void Egs51Can::set_shifter_position(ShifterPosition pos) {
     if (ShifterPosition::N == pos || ShifterPosition::P == pos) {
-        this->gs218.NEUTRAL = true;
+        this->gs218.PN = true;
     } else {
-        this->gs218.NEUTRAL = false;
+        this->gs218.PN = false;
     }
 }
 
 void Egs51Can::set_gearbox_ok(bool is_ok) {
-    this->gs218.GEARBOX_OK = is_ok;
+    this->gs218.GB_OK = is_ok;
     this->gs218.LIMP_MODE = !is_ok;
 }
 
@@ -407,6 +409,18 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
+}
+
+void Egs51Can::set_safe_start(bool can_start) {
+    this->gs218.CAN_START = can_start;
+    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
+        ioexpander->set_start(can_start);
+    }
+}
+
+void Egs51Can::set_tcc_trq_multiplier(float multi) {
+    float clamped = MAX(100, MIN(254, multi*100));
+    gs218.TCC_MULTI = (uint8_t)clamped;
 }
 
 void Egs51Can::tx_frames() {

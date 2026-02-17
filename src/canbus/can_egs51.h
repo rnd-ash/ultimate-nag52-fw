@@ -61,7 +61,7 @@ class Egs51Can: public EgsBaseCan {
         // Set the target gear of the gearbox
         void set_target_gear(GearboxGear target) override;
         // // Sets the status bit indicating the car is safe to start
-        // void set_safe_start(bool can_start) override;
+        void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
         void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
@@ -88,6 +88,7 @@ class Egs51Can: public EgsBaseCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
         void set_garage_shift_state(bool enable, bool to_d) override;
+        void set_tcc_trq_multiplier(float multi) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;

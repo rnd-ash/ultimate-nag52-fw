@@ -788,6 +788,7 @@ void Gearbox::controller_loop()
     }
     while (1)
     {
+        uint32_t start = GET_CLOCK_TIME();
         TCUIO::update_io_layer();
         if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
             SOLENOID_CONTROL_EGS_SLAVE slave_rq = egs_can_hal->get_tester_req();
@@ -1295,7 +1296,10 @@ void Gearbox::controller_loop()
         }
         portEXIT_CRITICAL(&this->profile_mutex);
         pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
-        vTaskDelay(20 / portTICK_PERIOD_MS); // 50 updates/sec!
+        uint32_t time = GET_CLOCK_TIME()-start;
+        if (time) {
+            vTaskDelay((20-time) / portTICK_PERIOD_MS); // 50 updates/sec!
+        }
     }
 }
 

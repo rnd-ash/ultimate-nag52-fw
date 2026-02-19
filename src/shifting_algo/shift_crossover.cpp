@@ -386,9 +386,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         // Waiting (2)
         this->trq_adder = this->get_trq_boost_adder();
         if (
-            this->timer_shift == 0 ||
-            // Additional check by EGS53
-            (CRS_CURRENT_SETTINGS.clutch_stationary_rpm > -sid->ptr_r_clutch_speeds->on_clutch_speed)
+            this->timer_shift == 0
         ) {
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
@@ -484,7 +482,7 @@ uint16_t CrossoverShift::max_p_mod_pressure() {
 
 int16_t CrossoverShift::calc_momentum_overlap_2() {
     int ret = this->get_trq_adder_map_val() + this->torque_req_val + this->torque_req_out; // TODO + adapters
-    int reduction = (float)this->torque_req_out / pm->release_coefficient();
+    int reduction = ((float)this->torque_req_out*100) / pm->release_coefficient();
     ret = MAX(0, ret - reduction);
 
     if (

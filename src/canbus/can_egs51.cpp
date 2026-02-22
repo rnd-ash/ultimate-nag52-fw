@@ -116,15 +116,9 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
             driver_converted = m_esp;
         }
 
-        bool active_shift = (uint8_t)this->gs218.GIC != (uint8_t)this->gs218.GZC;
-        bool trq_req_en = this->gs218.TORQUE_REQ != 0xFE;
-        if (active_shift && trq_req_en) {
-            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
-        } else if (!active_shift) {
-            this->freeze_torque = false; // No gear shift, unfreeze it
-        }
+        bool freeze = this->gs218.TORQUE_REQ_EN;
         // Change torque values based on freezing or not
-        if (this->freeze_torque) {
+        if (freeze) {
             ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;

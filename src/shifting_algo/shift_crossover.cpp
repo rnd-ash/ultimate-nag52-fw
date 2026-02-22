@@ -118,8 +118,8 @@ uint8_t CrossoverShift::phase_fill() {
         if (0 == this->timer_shift) {
             this->timer_shift = 3; // FILL_CAL->fill_ramp_time
             // Roughly 2x drag torque
-            this->adaptation_trq_limit = VEHICLE_CONFIG.engine_drag_torque/10.0;
-            if (abs_input_trq < this->adaptation_trq_limit && sid->inf.map_idx < 5) {
+            this->adaptation_trq_limit = VEHICLE_CONFIG.engine_drag_torque/5.0;
+            if (abs_input_trq < this->adaptation_trq_limit && upshifting) {
                 // Adaptation filling
                 this->subphase_shift = 4;
             } else {
@@ -165,16 +165,17 @@ uint8_t CrossoverShift::phase_fill() {
     
     // TODO - Abort on torque violations
     else if (4 == this->subphase_shift) {
+        adapting = true;
         // Drop to 0 mBar for adapting to start (Pre ramping)
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(0);
-        this->mod_sol_pressure = this->fill_ramping_mod_p();
+        this->mod_sol_pressure = this->calc_overlap2_mod();
         this->timer_shift = 18; // field 2a
         this->subphase_shift += 1;
     } else if (5 == this->subphase_shift) {
         // Low filling test
         uint16_t targ = this->set_p_apply_clutch_with_spring(600);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
-        this->mod_sol_pressure = this->fill_ramping_mod_p();
+        this->mod_sol_pressure = this->calc_overlap2_mod();
         if (0 == this->timer_shift) {
             this->timer_shift = 16; // field 2a
             this->subphase_shift += 1;
@@ -183,7 +184,7 @@ uint8_t CrossoverShift::phase_fill() {
         // Higher filling test
         uint16_t targ = this->set_p_apply_clutch_with_spring(1100);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
-        this->mod_sol_pressure = this->fill_ramping_mod_p();
+        this->mod_sol_pressure = this->calc_overlap2_mod();
         if (0 == this->timer_shift) {
             ret = PHASE_OVERLAP;
         }
@@ -196,8 +197,13 @@ uint8_t CrossoverShift::phase_fill() {
     if (this->subphase_shift >= 4) {
         // Torque limit exceeded
         if (abs_input_trq > this->adaptation_trq_limit*1.5) {
+            adapting = false;
             ret = PHASE_OVERLAP;
         }
+    }
+    if (abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        // Released clutch
+        ret = PHASE_OVERLAP;
     }
     return ret;
 }
@@ -234,9 +240,19 @@ uint8_t CrossoverShift::phase_overlap() {
         this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
     );
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
-    uint16_t p_mod_1 = this->calc_overlap_mod();
-    uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
-    this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+
+    // Mod pressure depends on the current situation
+    if (abs_input_trq < this->adaptation_trq_limit*1.5 && adapting) {
+        this->mod_sol_pressure = this->calc_overlap2_mod();
+    } else if (abs_input_trq < this->adaptation_trq_limit*1.5 || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
+        this->mod_sol_pressure = this->calc_overlap2_mod();
+        this->adapting = false;
+    } else {
+        this->adapting = false;
+        uint16_t p_mod_1 = this->calc_overlap_mod();
+        uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
+        this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+    }
     if (
         0 == this->timer_shift ||
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
@@ -342,11 +358,12 @@ uint8_t CrossoverShift::phase_overlap2() {
 
         if (
             0 == this->timer_shift || 
-            sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm
+            sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm ||
+            (sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm && !upshifting)
         ) {
             // Next phase (No timer, just ends when clutch speed is hit)
             this->subphase_shift += 1;
-            if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
+            if ((sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)) {
                 // Skip phase 2
                 this->subphase_shift += 1;
                 this->timer_shift = 3;
@@ -393,7 +410,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     }
 
-    int torque = (int)abs_input_trq + this->correction_trq;
+    int torque = (int)abs_input_trq + this->correction_trq + this->trq_adder;
     if (1 == subphase_shift || 2 == subphase_shift) {
         torque += this->torque_req_out;
     }

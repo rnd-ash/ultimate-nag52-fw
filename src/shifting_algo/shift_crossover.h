@@ -37,6 +37,7 @@ private:
 
     uint8_t trq_req_timer = 0;
     bool trq_req_up_ramp = false;
+    bool adapting = false;
     uint16_t torque_req_val = 0;
 };
 

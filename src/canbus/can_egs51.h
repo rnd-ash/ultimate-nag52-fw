@@ -100,7 +100,6 @@ class Egs51Can: public EgsBaseCan {
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
-        bool freeze_torque = false;
         int16_t req_static_torque_delta = 0;
 };
 

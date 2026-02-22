@@ -126,7 +126,6 @@ class Egs52Can: public EgsBaseCan {
         GS_338_EGS52 gs_338tx;
         GS_218_EGS52 gs_218tx;
         GS_418_EGS52 gs_418tx;
-        bool freeze_torque = false;
         int16_t req_static_torque_delta = 0;
 };
 

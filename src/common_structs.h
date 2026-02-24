@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
-#include "firstorder_average.h"
 
 enum class Clutch {
     K1 = 0,
@@ -53,11 +52,10 @@ struct SensorData{
     uint16_t engine_rpm;
     /// Output shaft RPM
     uint16_t output_rpm;
-    /// Accelerator pedal position. 0-255
+    /// Accelerator pedal position. 0-250
     uint8_t pedal_pos;
-    const FirstOrderAverage* pedal_smoothed;
-    // in %/sec
-    FirstOrderAverage* pedal_delta;
+    /// Accelerator pedal position. 0-250, smoothed to 500ms
+    uint8_t pedal_pos_smoothed;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque

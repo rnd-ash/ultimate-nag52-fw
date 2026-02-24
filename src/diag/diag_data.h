@@ -38,6 +38,7 @@
 
 #define RLI_CLUTCH_SPEEDS   0x30
 #define RLI_SHIFTING_ALGO   0x31
+#define RLI_DRIVING_DYNAMIC 0x32
 
 #define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
 #define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
@@ -175,6 +176,15 @@ typedef struct {
     uint8_t targ_act_gear;
     uint8_t profile;
 } __attribute__ ((packed)) SHIFT_LIVE_INFO;
+
+typedef struct {
+    // 0-100%
+    uint8_t engine_load_percent;
+    // In Percent/sec
+    int16_t pedal_delta;
+    // In Rpm/sec
+    int16_t acceleration_input;
+} __attribute__ ((packed)) DRIVING_DYNAMIC_INFO;
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g);
 DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr);

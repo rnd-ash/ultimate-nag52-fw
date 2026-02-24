@@ -3,7 +3,6 @@
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
-#include "firstorder_average.h"
 
 extern float mpc_sol_trim_factor;
 

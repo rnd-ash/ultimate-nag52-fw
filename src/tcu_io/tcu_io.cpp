@@ -32,7 +32,8 @@ bool block_shifting = false;
 
 void init_smoothed_sensor(TCUIO::SmoothedSensor* dest, uint8_t buffer_size, int reset_value = 0) {
     dest->e_counter = 0;
-    dest->buffer = new FirstOrderAverage(buffer_size, reset_value);
+    dest->sample_count = buffer_size;
+    dest->last_value = reset_value;
 }
 
 template <typename T>
@@ -53,9 +54,9 @@ void add_to_smoothed_sensor(TCUIO::SmoothedSensor* dest, T value, bool force_res
         }
     } else {
         if (0 != dest->e_counter || force_reset) { // There 'was' an error, but now the value is seen. Reset the value
-            dest->buffer->reset(value);
+            dest->last_value = value;
         } else {
-            dest->buffer->add_sample(value); // Normal operation
+            dest->last_value = first_order_filter(dest->sample_count, value, dest->last_value);
         }
         dest->e_counter = 0;
     }
@@ -85,7 +86,7 @@ inline T get_onepoll_sensor_val(TCUIO::OnePollSensor<T>* src, uint8_t ecounter_m
 inline uint16_t get_smoothed_sensor_val_unsigned(TCUIO::SmoothedSensor* src, uint8_t ecounter_max) {
     uint16_t ret;
     if (likely(src->e_counter <= ecounter_max)) {
-        ret = MIN(UINT16_MAX, src->buffer->get_average());
+        ret = MIN(UINT16_MAX, src->last_value);
     } else {
         ret = UINT16_MAX;
     }
@@ -95,7 +96,7 @@ inline uint16_t get_smoothed_sensor_val_unsigned(TCUIO::SmoothedSensor* src, uin
 inline int16_t get_smoothed_sensor_val_signed(TCUIO::SmoothedSensor* src, uint8_t ecounter_max) {
     int16_t ret;
     if (likely(src->e_counter <= ecounter_max)) {
-        ret = MIN(INT16_MAX, src->buffer->get_average());
+        ret = MIN(INT16_MAX, src->last_value);
     } else {
         ret = INT16_MAX;
     }
@@ -276,8 +277,8 @@ uint16_t TCUIO::calc_turbine_rpm(const uint16_t n2, const uint16_t n3) {
 }
 
 uint8_t TCUIO::parking_lock() { return get_onepoll_sensor_val(&onepoll_parking_lock, 0); }
-int16_t TCUIO::atf_temperature() { return smoothed_sensor_atf_temp.buffer->get_average();}
-uint16_t TCUIO::battery_mv() { return smoothed_sensor_vbatt.buffer->get_average();}
+int16_t TCUIO::atf_temperature() { return smoothed_sensor_atf_temp.last_value;}
+uint16_t TCUIO::battery_mv() { return smoothed_sensor_vbatt.last_value;}
 uint16_t TCUIO::n2_rpm() { 
     return get_smoothed_sensor_val_unsigned(&smoothed_sensor_n2_rpm, 0); 
 }

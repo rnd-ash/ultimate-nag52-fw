@@ -284,7 +284,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     } else if (4 == this->subphase_mod) {
         // PID Correction to ramp the disengaging clutch at a sensible rate
         this->momentum_ctrl = this->freeing_trq + this->trq_at_apply_clutch;
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_ctrl_filtered);
         this->trq_at_release_clutch = (int)this->abs_input_trq - (int)this->freeing_trq + this->trq_adder - (int)this->loss_torque + this->correction_trq;
         if (this->trq_at_release_clutch < minimum_mod_reduction_trq) {
@@ -302,7 +302,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         // Sync. phase
         short res = this->calc_shifting_momentum();
         this->momentum_ctrl = linear_ramp_with_timer(this->momentum_ctrl, res, timer_mod);
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_ctrl_filtered);
         uint16_t targ = this->calc_sync_mod_pressure();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
@@ -312,7 +312,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         }
     } else if (6 == this->subphase_mod) {
         this->momentum_ctrl = this->calc_shifting_momentum();
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Release_Up : ShiftStyle::Release_Dn, this->momentum_ctrl_filtered);
         uint16_t targ = this->calc_sync_mod_pressure();
         this->mod_sol_pressure = linear_ramp_with_timer(this->mod_sol_pressure, targ, this->timer_mod);
@@ -479,7 +479,7 @@ float ReleasingShift::calculate_freeing_trq_multiplier() {
     float output = 1.0;
 
     if (!this->upshifting) {
-        float adder_pedal = interpolate_float(sd->pedal_smoothed->get_average(), 0.0, 0.3, 125.0, 250.0, InterpType::Linear);
+        float adder_pedal = interpolate_float(sd->pedal_pos_smoothed, 0.0, 0.3, 125.0, 250.0, InterpType::Linear);
         float adder_style = interpolate_float(sid->chars.target_shift_time, 0.5, 1.5, 1000, 100, InterpType::Linear);
         output = MIN(2.5, 1.0 + adder_pedal + adder_style);
     }

@@ -8,13 +8,13 @@
 #include <stdint.h>
 #include "esp_err.h"
 #include "canbus/can_hal.h"
-#include "firstorder_average.h"
 
 namespace TCUIO {
 
     struct SmoothedSensor {
         uint8_t e_counter;
-        FirstOrderAverage* buffer;
+        uint8_t sample_count;
+        int32_t last_value;
     };
 
     template <typename T>

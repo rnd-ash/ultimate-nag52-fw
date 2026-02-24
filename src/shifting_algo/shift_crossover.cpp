@@ -267,20 +267,21 @@ uint8_t CrossoverShift::phase_overlap() {
 
 uint16_t CrossoverShift::get_trq_adder_map_val() {
     float map_val = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
-    float multi = 1.0;
-    if (this->upshifting) {
-        if (race == sid->profile) {
-            multi = CRS_CURRENT_SETTINGS.adder_trq_multi_race_up;
-        } else if (manual == sid->profile) {
-            multi = CRS_CURRENT_SETTINGS.adder_trq_multi_manual_up;
-        }
-    } else {
-        if (race == sid->profile) {
-            multi = CRS_CURRENT_SETTINGS.adder_trq_multi_race_dn;
-        } else if (manual == sid->profile) {
-            multi = CRS_CURRENT_SETTINGS.adder_trq_multi_manual_dn;
-        }
-    }
+    //float multi = 1.0;
+    //if (this->upshifting) {
+    //    if (race == sid->profile) {
+    //        multi = CRS_CURRENT_SETTINGS.adder_trq_multi_race_up;
+    //    } else if (manual == sid->profile) {
+    //        multi = CRS_CURRENT_SETTINGS.adder_trq_multi_manual_up;
+    //    }
+    //} else {
+    //    if (race == sid->profile) {
+    //        multi = CRS_CURRENT_SETTINGS.adder_trq_multi_race_dn;
+    //    } else if (manual == sid->profile) {
+    //        multi = CRS_CURRENT_SETTINGS.adder_trq_multi_manual_dn;
+    //    }
+    //}
+    float multi = interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 750, 100, InterpType::Linear);
     return MAX(0, map_val*multi);
 }
 
@@ -352,7 +353,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->trq_adder = this->get_trq_adder_map_val();
         int tmp = this->calc_momentum_overlap_2();
         this->momentum_ctrl = linear_ramp_with_timer(this->momentum_ctrl, tmp, this->timer_shift);
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
         this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 4);
 
@@ -373,7 +374,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         // Waiting (1)
         this->trq_adder = this->get_trq_adder_map_val();
         this->momentum_ctrl = this->calc_momentum_overlap_2();
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
             // Next phase
@@ -393,7 +394,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
 
         this->momentum_ctrl = linear_ramp_with_timer(this->momentum_ctrl, targ_momentum, this->timer_shift);
-        this->momentum_ctrl_filtered = first_order_filter_in_place(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
+        this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
         if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             this->timer_shift = 3;
@@ -445,7 +446,7 @@ uint16_t CrossoverShift::calc_overlap_mod() {
 
 uint16_t CrossoverShift::calc_overlap_mod_min(int p_shift) {
     int p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch;
-    return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
+    return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 
 uint16_t CrossoverShift::calc_overlap2_mod() {
@@ -454,7 +455,7 @@ uint16_t CrossoverShift::calc_overlap2_mod() {
     int centrifugal = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch;
     centrifugal /= 1000;
     
-    int base = 200 * sid->inf.pressure_multi_mpc_int;
+    int base = 250 * sid->inf.pressure_multi_mpc_int;
     base /= 1000;
 
     centrifugal += base;

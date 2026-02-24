@@ -2,7 +2,6 @@
 #define __SHIFT_RELEASE_H__
 
 #include "s_algo.h"
-#include "firstorder_average.h"
 
 class ReleasingShift : public ShiftingAlgorithm {
 public:

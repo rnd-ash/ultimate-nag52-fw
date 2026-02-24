@@ -7,13 +7,14 @@
 #include "clock.hpp"
 #include "nvs/device_mode.h"
 #include "egs_calibration/calibration_structs.h"
-#include "firstorder_average.h"
 #include "shifting_algo/s_algo.h"
 #include "shifting_algo/shift_crossover.h"
 #include "shifting_algo/shift_release.h"
 #include "tcu_io/tcu_io.hpp"
 
 #define SBS SBS_CURRENT_SETTINGS
+
+const uint8_t AVG_SAMPLES_500MS = 500/20;
 
 // ONLY FOR FORWARD GEARS!
 int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gear, const GearboxConfiguration* gb_config)
@@ -52,6 +53,7 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
         .engine_rpm = 0,
         .output_rpm = 0,
         .pedal_pos = 0,
+        .pedal_pos_smoothed = 0,
         .atf_temp = 0,
         .input_torque = 0,
         .converted_torque = 0,
@@ -142,11 +144,8 @@ Gearbox::Gearbox(Shifter *shifter) : shifter(shifter), kickdown(), brake_pedal()
         this->redline_rpm = 4000; // just in case
     }
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
-    this->pedal_average = new FirstOrderAverage(25);
-    sensor_data.pedal_delta = new FirstOrderAverage(25);
-
-
-    sensor_data.pedal_smoothed = (const FirstOrderAverage*)this->pedal_average;
+    this->input_rpm_delta = new DeltaTracker(25);
+    this->pedal_delta = new DeltaTracker(25);
 }
 
 bool Gearbox::is_stationary() {
@@ -459,7 +458,10 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
             pressure_mgr->set_target_modulating_pressure(p_now.mod_sol_req);
             pressure_mgr->set_target_shift_pressure(p_now.shift_sol_req);
             bool circuit_open = (pressure_manager->get_active_shift_circuits() & (uint8_t)sid.inf.shift_circuit) != 0;
-            pressure_mgr->update_pressures(sid.curr_g, circuit_open ? sid.change : GearChange::_IDLE);
+            pressure_mgr->update_pressures(
+                circuit_open ? sid.targ_g : sid.curr_g, 
+                circuit_open ? sid.change : GearChange::_IDLE
+            );
 
             if (step_result == 0) {
                 // Continue
@@ -507,9 +509,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile *profile, bool
         this->abort_shift = false;
         this->sensor_data.last_shift_time = GET_CLOCK_TIME();
         this->flaring = false;
-        memset(&this->algo_feedback, 0x00, sizeof(ShiftAlgoFeedback));
-        // Reset the pedal delta
-        sensor_data.pedal_delta->reset(0);        delete algo;
+        memset(&this->algo_feedback, 0x00, sizeof(ShiftAlgoFeedback));     
+        delete algo;
     } else if (GearChange::_IDLE == req_lookup) {
         ESP_LOGE("ELAPSE_SHIFT", "BUG! GearChange is IDLE");
     } else if (0xFF == egs_map_idx_lookup) {
@@ -839,8 +840,8 @@ void Gearbox::controller_loop()
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
         {
-            sensor_data.input_rpm = speed_sensors.turbine;
-            sensor_data.output_rpm = speed_sensors.output;
+            sensor_data.input_rpm = first_order_filter(3, speed_sensors.turbine, sensor_data.input_rpm);
+            sensor_data.output_rpm = first_order_filter(3, speed_sensors.output, sensor_data.output_rpm);
             bool stationary = this->is_stationary();
             if (!stationary)
             {
@@ -908,9 +909,20 @@ void Gearbox::controller_loop()
         } else {
             p_tmp = 250/4; // 25% as a fallback
         }
-        this->pedal_average->add_sample(p_tmp);
-        int16_t percent_delta_sec = ((int16_t)p_tmp - (int16_t)(this->pedal_last))*20.0; // 20.0 = 50 (Cycles/sec) / 2.5 (Pedal raw -> %)
-        sensor_data.pedal_delta->add_sample(percent_delta_sec);
+        this->sensor_data.pedal_pos_smoothed = first_order_filter(AVG_SAMPLES_500MS, p_tmp, this->sensor_data.pedal_pos_smoothed);
+
+        if (GET_CLOCK_TIME() - start > 100) {
+            // Update every 100ms, not every EGS cycle, values multiplied by 10
+            // to get them in terms of 1 second (1s/100ms = 10)
+            if (this->pedal_delta) {
+                this->pedal_delta->update(this->sensor_data.pedal_pos*10);
+            }
+            if (this->input_rpm_delta) {
+                this->input_rpm_delta->update(this->sensor_data.input_rpm*10);
+            }
+            this->last_delta_time = start;
+        }
+
         sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
         sensor_data.kickdown_pressed = kickdown.is_kickdown_newly_pressed(egs_can_hal, 250);
         int tmp_rpm = 0;
@@ -919,7 +931,7 @@ void Gearbox::controller_loop()
         {
             tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
-        this->sensor_data.engine_rpm = tmp_rpm;
+        this->sensor_data.engine_rpm = first_order_filter(3, tmp_rpm, sensor_data.engine_rpm);
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {

@@ -501,7 +501,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     }
     if (output < this->target_modulating_pressure) {
         // Filter when decreasing pressure, instant rise in pressure
-        output = first_order_filter_in_place(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
+        output = first_order_filter(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
     }
 
     return output;

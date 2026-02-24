@@ -60,6 +60,9 @@
     DO(REL_SETTINGS, "REL_A3")\
     DO(GAR_SETTINGS, "GAR_A3")\
     DO(CRS_SETTINGS, "CRS_A2")\
+    DO(SHIFT_POINTS_S, "SPS_A1")\
+    DO(SHIFT_POINTS_C, "SPC_A1")\
+    DO(SHIFT_POINTS_A, "SPA_A1")\
 
 extern const char** ALL_NVS_KEYS[];
 

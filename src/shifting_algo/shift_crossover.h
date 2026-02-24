@@ -2,7 +2,6 @@
 #define SHIFT_CROSSOVER_H
 
 #include "s_algo.h"
-#include "firstorder_average.h"
 
 class CrossoverShift : public ShiftingAlgorithm {
 public:

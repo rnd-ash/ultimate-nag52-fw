@@ -17,6 +17,7 @@ const int16_t SLIP_V_WHEN_OPEN = 100; // 100RPM is the threshold for when we sta
 const int16_t SLIP_V_WHEN_LOCKED = 10; // 10RPM for locking (Means we can monitor for over locking)
 const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
 const int16_t SLIP_V_UNDERLOCKED = SLIP_V_WHEN_LOCKED*2;
+const uint8_t SLIP_SAMPLES_AVG = 25; // 500ms
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     if (0 == TCC_CURRENT_SETTINGS.tcc_max_trq_override) {
@@ -45,13 +46,6 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     this->init_tables_ok = (this->tcc_slip_map != nullptr) && (this->tcc_lock_map != nullptr) && (this->slip_rpm_target_map != nullptr);
     if (!init_tables_ok) {
         ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
-    } else {
-        this->slip_average = new FirstOrderAverage(10); // 200ms
-        this->tcc_actual_pressure_calc = new FirstOrderAverage(MAX_TCC_P_SAMPLE_COUNT); // 500ms
-        this->init_tables_ok = (this->slip_average != nullptr) && (this->tcc_actual_pressure_calc != nullptr);
-        if (!init_tables_ok) {
-            ESP_LOGE("TCC", "Moving avg filters for TCC failed to be allocated. TCC will be non functional");
-        }
     }
 }
 
@@ -90,19 +84,24 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int load_as_percent = ((int)motor_torque*100) / this->rated_max_torque;
     this->engine_load_percent = load_as_percent;
 
+    // Adapt sample size based on ATF temp
+    // this way, as the ATF warms up, simulated response time
+    // decreases
+    uint16_t pressure_samples = interpolate_float(
+        sensors->atf_temp,
+        MAX_TCC_P_SAMPLE_COUNT,
+        MAX_TCC_P_SAMPLE_COUNT/2,
+        -10,
+        70,
+        InterpType::Linear
+    );
+
     // Conditions for no TCC
     if (
         !this->tcc_solenoid_enabled || // Diagnostic request
-        !init_tables_ok || // Some data was not initialized or invalid
-        sensors->input_rpm < rpm_map_y_headers[0] || // Too low input RPM
-        sensors->atf_temp < -10 // ATF is too cold (OEM EGS behaviour)
+        !init_tables_ok // Some data was not initialized or invalid
     ) {
         this->tcc_commanded_pressure = 0;
-        if (init_tables_ok) { // Only if we have valid maps here
-            this->tcc_actual_pressure_calc->add_sample(0);
-            this->tcc_actual_pressure = this->tcc_actual_pressure_calc->get_average();
-            this->slip_average->add_sample(slip_now);
-        }
         pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
         this->current_tcc_state = InternalTccState::Open;
         this->target_tcc_state = InternalTccState::Open;
@@ -112,48 +111,38 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->prefill_running = false;
         return;
     }
-        
-    // Adapt sample size based on ATF temp
-    // this way, as the ATF warms up, simulated response time
-    // decreases
-    uint16_t samples = interpolate_float(
-        sensors->atf_temp,
-        MAX_TCC_P_SAMPLE_COUNT,
-        MAX_TCC_P_SAMPLE_COUNT/2,
-        -10,
-        70,
-        InterpType::Linear
-    );
-    uint16_t avg_p = this->tcc_actual_pressure_calc->get_average();
-    this->tcc_actual_pressure_calc->set_sample_size(samples);
-    if (avg_p > this->tcc_commanded_pressure) {
+
+    if (this->tcc_actual_pressure > this->tcc_commanded_pressure) {
         // Drop in pressure
-        this->tcc_actual_pressure_calc->reset(this->tcc_commanded_pressure);
+        this->tcc_actual_pressure = this->tcc_commanded_pressure;
     } else {
         // Increasing in pressure
-        this->tcc_actual_pressure_calc->add_sample(this->tcc_commanded_pressure);
+        this->tcc_actual_pressure = first_order_filter(pressure_samples, this->tcc_commanded_pressure, this->tcc_actual_pressure);
     }
-    this->tcc_actual_pressure = this->tcc_actual_pressure_calc->get_average();
     if (abs(this->tcc_actual_pressure-this->tcc_commanded_pressure) < 5) {
         this->tcc_actual_pressure = this->tcc_commanded_pressure; // Fast-track adaptation
     }
     
     GearboxGear cmp_gear = curr_gear;
-    this->slip_average->add_sample(slip_now);
+
+    this->tcc_slip_filtered = first_order_filter(SLIP_SAMPLES_AVG, slip_now, this->tcc_slip_filtered);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
     int slipping_rpm_targ = SLIP_V_WHEN_OPEN;
 
+    bool can_enable_tcc = sensors->atf_temp > -10 && sensors->input_rpm > rpm_map_y_headers[0];
+
     if (
-        (cmp_gear == GearboxGear::First && TCC_CURRENT_SETTINGS.enable_d1) ||
+        can_enable_tcc &&
+        ((cmp_gear == GearboxGear::First && TCC_CURRENT_SETTINGS.enable_d1) ||
         (cmp_gear == GearboxGear::Second && TCC_CURRENT_SETTINGS.enable_d2) ||
         (cmp_gear == GearboxGear::Third && TCC_CURRENT_SETTINGS.enable_d3) ||
         (cmp_gear == GearboxGear::Fourth && TCC_CURRENT_SETTINGS.enable_d4) ||
-        (cmp_gear == GearboxGear::Fifth && TCC_CURRENT_SETTINGS.enable_d5)
+        (cmp_gear == GearboxGear::Fifth && TCC_CURRENT_SETTINGS.enable_d5))
     ) {
         // See if we should slip or close based on maps
         targ = InternalTccState::Open;
-        int pedal_as_percent = (sensors->pedal_smoothed->get_average()*100)/250;
+        int pedal_as_percent = (sensors->pedal_pos*100)/250;
         slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
         // Can we slip?
         if (SLIP_V_WHEN_OPEN > slipping_rpm_targ) {
@@ -180,7 +169,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 slipping_rpm_targ = MAX(this->slip_target, SLIP_V_WHEN_OPEN);
             } else {
                 // Otherwise prevent increase in TCC State
-                targ = MIN(this->target_tcc_state, this->current_tcc_state);
+                targ = MIN(this->target_tcc_state, targ);
                 slipping_rpm_targ = MAX(this->slip_target, slipping_rpm_targ);
             }
         }
@@ -210,11 +199,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     } else {
         this->absorbed_power_joule = 0;
     }
-    int rpm_delta = slip_average->get_average();
 
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure) < 50;
-    int pedal_delta = sensors->pedal_delta->get_average();
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.temp_threshold_adapt) {
         // Disable adaptation below this temp threshold since
         // ATF viscocity is not lo enough for accurate adaptation
@@ -271,10 +258,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->prefill_running = false;
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
             if (load_cell != -1) {
-                if (is_adaptable && abs(rpm_delta) > slip_target * 1.1) {
+                if (is_adaptable && abs(this->tcc_slip_filtered) > slip_target * 1.1) {
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +50);
                     this->last_adapt_check = GET_CLOCK_TIME();
-                } else if (is_adaptable && abs(rpm_delta) <= slip_target * 0.9) {
+                } else if (is_adaptable && abs(this->tcc_slip_filtered) <= slip_target * 0.9) {
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -25);
                     this->last_adapt_check = GET_CLOCK_TIME();
                 }
@@ -283,10 +270,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         } else if (this->target_tcc_state == InternalTccState::Closed) {
             // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
             if (is_adaptable && load_cell != -1) {
-                if  (SLIP_V_UNDERLOCKED < rpm_delta) {
+                if  (SLIP_V_UNDERLOCKED < this->tcc_slip_filtered) {
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +10);
                     this->last_adapt_check = GET_CLOCK_TIME();
-                } else if (SLIP_V_OVERLOCKED > rpm_delta) {
+                } else if (SLIP_V_OVERLOCKED > this->tcc_slip_filtered) {
                     // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, -5);
                     this->last_adapt_check = GET_CLOCK_TIME();
@@ -355,7 +342,7 @@ void TorqueConverter::set_stationary() {
 }
 
 int16_t TorqueConverter::get_slip_filtered() {
-    return this->slip_average->get_average();
+    return this->tcc_slip_filtered;
 }
 
 uint8_t TorqueConverter::get_current_state() {

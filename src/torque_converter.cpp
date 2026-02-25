@@ -106,7 +106,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->current_tcc_state = InternalTccState::Open;
         this->target_tcc_state = InternalTccState::Open;
         this->slip_target = SLIP_V_WHEN_OPEN;
-        this->last_state_stable_time = GET_CLOCK_TIME();
         this->prefill_done = false;
         this->prefill_running = false;
         return;
@@ -211,7 +210,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         is_adaptable = false;
     }
     int load_cell = -1; // Invalid cell (Do not write to adaptation)
-    if (!is_shifting && time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms && sensors->pedal_pos > 0){ 
+    if (!is_shifting && time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms){ 
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
         if (load_as_percent < -5) {
             load_cell = 0;
@@ -260,11 +259,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->prefill_done = false;
             this->prefill_running = false;
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
-            if (load_cell != -1) {
-                if (is_adaptable && abs(this->tcc_slip_filtered) > slip_target * 1.1) {
+            if (is_adaptable && load_cell != -1) {
+                if (abs(this->tcc_slip_filtered) > slip_target * 1.1) {
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +50);
                     this->last_adapt_check = GET_CLOCK_TIME();
-                } else if (is_adaptable && abs(this->tcc_slip_filtered) <= slip_target * 0.9) {
+                } else if (abs(this->tcc_slip_filtered) <= slip_target * 0.9 && motor_torque > VEHICLE_CONFIG.engine_drag_torque/10.0) {
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, -25);
                     this->last_adapt_check = GET_CLOCK_TIME();
                 }
@@ -276,7 +275,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 if  (SLIP_V_UNDERLOCKED < this->tcc_slip_filtered) {
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +10);
                     this->last_adapt_check = GET_CLOCK_TIME();
-                } else if (SLIP_V_OVERLOCKED > this->tcc_slip_filtered) {
+                } else if (SLIP_V_OVERLOCKED > this->tcc_slip_filtered && motor_torque > VEHICLE_CONFIG.engine_drag_torque/10.0) {
                     // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, -5);
                     this->last_adapt_check = GET_CLOCK_TIME();
@@ -292,7 +291,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     // Pressure achieved.
     if (abs(this->tcc_commanded_pressure-this->tcc_actual_pressure) < 10) {
         this->current_tcc_state = this->target_tcc_state;
-        this->last_state_stable_time = GET_CLOCK_TIME();
     }
     // OEM EGS - Below 60C, TCC pressure is reduced by a factor based on
     // ATF temperature

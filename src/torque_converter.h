@@ -107,7 +107,6 @@ class TorqueConverter {
         StoredMap* tcc_lock_map = nullptr;
 
         bool was_stationary = true;
-        uint32_t last_state_stable_time = 0;
         uint16_t slip_target = 100;
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;

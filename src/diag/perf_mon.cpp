@@ -6,7 +6,7 @@
 
 uint32_t _idle_ticks_c1 = 0;
 uint32_t _idle_ticks_c2 = 0;
-const uint32_t TICKS_PER_SEC = 352989; // IDF 5.0 barebones
+const uint32_t TICKS_PER_SEC = 241490; // IDF 5.0 barebones
 uint32_t last_update_time = 0;
 CpuStats dest;
 

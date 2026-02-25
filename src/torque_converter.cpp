@@ -202,6 +202,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
 
     uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
     bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure) < 50;
+    if (!TCC_CURRENT_SETTINGS.adapt_enable) {
+        is_adaptable = false;
+    }
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.temp_threshold_adapt) {
         // Disable adaptation below this temp threshold since
         // ATF viscocity is not lo enough for accurate adaptation

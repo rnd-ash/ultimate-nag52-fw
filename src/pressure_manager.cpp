@@ -77,14 +77,15 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill time map **/
     const int16_t fill_t_x_headers[4] = {-20, 5, 25, 60};
-    const int16_t fill_t_y_headers[5] = {1,2,3,4,5}; 
-    if (MECH_PTR->gb_ty == 0) { // Large
-        key_name = NVS_KEY_MAP_NAME_FILL_TIME_LARGE;
-        default_data = LARGE_NAG_FILL_TIME_MAP;
-    } else { // Small
-        key_name = NVS_KEY_MAP_NAME_FILL_TIME_SMALL;
-        default_data = SMALL_NAG_FILL_TIME_MAP;
-    }
+    const int16_t fill_t_y_headers[5] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2
+    }; 
+    key_name = NVS_KEY_MAP_NAME_FILL_TIME;
+    default_data = LARGE_NAG_FILL_TIME_MAP;
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
         delete[] this->fill_time_map;
@@ -92,7 +93,14 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill pressure map **/
     const int16_t fill_p_x_headers[1] = {1};
-    const int16_t fill_p_y_headers[6] = {1,2,3,4,5,6};
+    const int16_t fill_p_y_headers[6] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2,
+        (int16_t)Clutch::B3
+    }; 
     key_name = NVS_KEY_MAP_NAME_FILL_PRESSURE;
     default_data = NAG_FILL_PRESSURE_MAP;
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
@@ -102,7 +110,13 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill pressure map **/
     const int16_t fill_lp_x_headers[1] = {1};
-    const int16_t fill_lp_y_headers[5] = {1,2,3,4,5};
+    const int16_t fill_lp_y_headers[5] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2
+    }; 
     key_name = NVS_KEY_MAP_NAME_FILL_LOW_PRESSURE;
     default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
@@ -570,7 +584,7 @@ uint16_t PressureManager::get_b3_prefill_pressure(void) const {
 }
 
 PrefillData PressureManager::make_fill_data(Clutch applying) {
-    if (nullptr == this->fill_time_map) {
+    if (nullptr == this->fill_time_map || nullptr == fill_pressure_map || nullptr == fill_low_pressure_map) {
         return PrefillData {
             .fill_cycles = 25,
             .fill_pressure_on_clutch = 1500,

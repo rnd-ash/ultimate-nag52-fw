@@ -8,8 +8,8 @@
 * CAN Defintiion for ECU 'EGS_SLAVE'
 */
 
-#ifndef ECU_EGS_SLAVE_H
-#define ECU_EGS_SLAVE_H
+#ifndef __ECU_EGS_SLAVE_H_
+#define __ECU_EGS_SLAVE_H_
 
 #include <stdint.h>
     
@@ -23,12 +23,18 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		/** PADDING **/
+		uint16_t __RESERVED: 16;
 		/** Recorded TCC PWM **/
 		uint8_t TCC_PWM: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
+		uint8_t __PADDING1__: 5;
+		/** Y5 solenoid on **/
+		bool Y5_ON: 1;
+		/** Y4 solenoid on **/
+		bool Y4_ON: 1;
+		/** Y3 solenoid on **/
+		bool Y3_ON: 1;
 		/** Recorded SPC Current **/
 		uint16_t SPC_CURR: 16;
 		/** Recorded MPC Current **/
@@ -44,8 +50,6 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING1__: 8;
 		/** Recorded ATF Temperature (0xFF if Parking is engaged) **/
 		uint8_t TFT: 8;
 		/** Recorded battery voltage **/
@@ -167,4 +171,4 @@ class ECU_EGS_SLAVE {
 		uint64_t FRAME_DATA[3];
 		uint32_t LAST_FRAME_TIMES[3];
 };
-#endif // ECU_EGS_SLAVE_H
+#endif // __ECU_EGS_SLAVE_H_

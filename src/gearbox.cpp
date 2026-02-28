@@ -798,7 +798,21 @@ void Gearbox::controller_loop()
             sol_mpc->set_current_target(__builtin_bswap16(slave_rq.MPC_REQ));
             sol_spc->set_current_target(__builtin_bswap16(slave_rq.SPC_REQ));
             sol_tcc->set_duty(slave_rq.TCC_REQ*16); // x16 to go from 8 bit (0-255) to 12bit (0-4096)
-
+            if (slave_rq.Y3_EN) {
+                sol_y3->on();
+            } else {
+                sol_y3->off();
+            }
+            if (slave_rq.Y4_EN) {
+                sol_y4->on();
+            } else {
+                sol_y4->off();
+            }
+            if (slave_rq.Y5_EN) {
+                sol_y5->on();
+            } else {
+                sol_y5->off();
+            }
             SENSOR_REPORT_EGS_SLAVE sensor_rpt;
 
             this->process_speed_sensors();
@@ -810,8 +824,8 @@ void Gearbox::controller_loop()
 
             sensor_rpt.N2_RAW = __builtin_bswap16(this->speed_sensors.n2);
             sensor_rpt.N3_RAW = __builtin_bswap16(this->speed_sensors.n3);
-            sensor_rpt.TFT = tft + 40;
-            sensor_rpt.VBATT = (vbatt/1000) & 0xFF;
+            sensor_rpt.TFT = pll ? 0xFF : tft + 50;
+            sensor_rpt.VBATT = (vbatt/100) & 0xFF;
 
             SOLENOID_REPORT_EGS_SLAVE sol_rpt;
             sol_rpt.MPC_CURR = __builtin_bswap16(sol_mpc->get_current());

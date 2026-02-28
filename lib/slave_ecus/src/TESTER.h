@@ -8,8 +8,8 @@
 * CAN Defintiion for ECU 'TESTER'
 */
 
-#ifndef ECU_TESTER_H
-#define ECU_TESTER_H
+#ifndef __ECU_TESTER_H_
+#define __ECU_TESTER_H_
 
 #include <stdint.h>
     
@@ -21,12 +21,18 @@ typedef union {
 	uint64_t raw;
 	uint8_t bytes[8];
 	struct {
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		/** PADDING **/
+		uint16_t __RESERVED: 16;
 		/** TCC PWM request **/
 		uint8_t TCC_REQ: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
+		uint8_t __PADDING1__: 5;
+		/** Enable Y5 solenoid **/
+		bool Y5_EN: 1;
+		/** Enable Y4 solenoid **/
+		bool Y4_EN: 1;
+		/** Enable Y3 solenoid **/
+		bool Y3_EN: 1;
 		/** SPC Current request **/
 		uint16_t SPC_REQ: 16;
 		/** MPC Current request **/
@@ -85,4 +91,4 @@ class ECU_TESTER {
 		uint64_t FRAME_DATA[1];
 		uint32_t LAST_FRAME_TIMES[1];
 };
-#endif // ECU_TESTER_H
+#endif // __ECU_TESTER_H_

@@ -210,7 +210,7 @@ uint8_t CrossoverShift::phase_fill() {
 
 uint8_t CrossoverShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch, CoefficientTy::Sliding);
+    this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
     this->trq_adder = 0;
 
     if (0 == subphase_shift) {

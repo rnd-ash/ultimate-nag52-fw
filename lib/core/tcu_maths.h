@@ -144,5 +144,6 @@ int linear_ramp_with_timer(int start, int end, int current_timer_val);
 short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val);
 
 int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val);
+float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val);
 
 #endif // TCU_MATHS_H

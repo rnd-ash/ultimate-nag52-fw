@@ -64,7 +64,7 @@ public:
     TorqueConverter* tcc = nullptr;
     ShiftAlgoFeedback algo_feedback = {0,0,0,0,0,0,0,0,0,0,0,0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
-    SpeedSensors speed_sensors;    
+    SpeedSensors speed_sensors;
 private:
     bool is_stationary();
     ShiftReportSegment collect_report_segment(uint64_t start_time);
@@ -132,6 +132,12 @@ private:
     bool freeze_torque = false;
 
     bool is_start_safe = false;
+    KickdownSwitch kickdown;
+    BrakePedal brake_pedal;
+
+    int32_t cached_input_rpm = 0;
+    int32_t cached_engine_rpm = 0;
+    int32_t cached_output_rpm = 0;
 };
 
 extern Gearbox* gearbox;

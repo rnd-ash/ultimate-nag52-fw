@@ -856,8 +856,10 @@ void Gearbox::controller_loop()
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
         {
-            sensor_data.input_rpm = first_order_filter(3, speed_sensors.turbine, sensor_data.input_rpm);
-            sensor_data.output_rpm = first_order_filter(3, speed_sensors.output, sensor_data.output_rpm);
+            this->cached_input_rpm = first_order_filter(3, speed_sensors.turbine*100, this->cached_input_rpm);
+            this->sensor_data.input_rpm = this->cached_input_rpm/100;
+            this->cached_output_rpm = first_order_filter(3, speed_sensors.output*100, this->cached_output_rpm);
+            this->sensor_data.output_rpm = this->cached_output_rpm/100;
             bool stationary = this->is_stationary();
             if (!stationary)
             {
@@ -925,7 +927,7 @@ void Gearbox::controller_loop()
         } else {
             p_tmp = 250/4; // 25% as a fallback
         }
-        this->sensor_data.pedal_pos_smoothed = first_order_filter(AVG_SAMPLES_500MS, p_tmp, this->sensor_data.pedal_pos_smoothed);
+        this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 
         if (GET_CLOCK_TIME() - start > 100) {
             // Update every 100ms, not every EGS cycle, values multiplied by 10
@@ -947,7 +949,8 @@ void Gearbox::controller_loop()
         {
             tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
-        this->sensor_data.engine_rpm = first_order_filter(3, tmp_rpm, sensor_data.engine_rpm);
+        this->cached_engine_rpm = first_order_filter(3, tmp_rpm*100, this->cached_engine_rpm);
+        this->sensor_data.engine_rpm = this->cached_engine_rpm/100;
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {

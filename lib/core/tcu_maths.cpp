@@ -103,6 +103,13 @@ int linear_ramp_with_timer(int start, int end, int current_timer_val) {
     return end;
 }
 
+float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val) {
+    if (sample_count == 0xFF) {
+        sample_count = 0xFE;
+    }
+    return ((float)new_val + ((float)sample_count*last_val)) / ((float)sample_count + 1.0);
+}
+
 int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val) {
     if (sample_count == 0xFF) {
         sample_count = 0xFE;

@@ -14,6 +14,7 @@ namespace TCUIO {
     struct SmoothedSensor {
         uint8_t e_counter;
         uint8_t sample_count;
+        // Multiplied by 100
         int32_t last_value;
     };
 

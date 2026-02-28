@@ -63,7 +63,7 @@ uint8_t CrossoverShift::step_internal(
             float multi_engine_trq;
             float multi_rpm;
             multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.3, 0, trq_max, InterpType::Linear);
-            multi_engine_trq *= interpolate_float(sid->chars.target_shift_time, 1.0, 1.5, 500, 100, InterpType::Linear);
+            multi_engine_trq *= interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 1000, 100, InterpType::Linear);
             multi_rpm = interpolate_float(sd->input_rpm, 1.0, 2.0, min_rpm_input, max_rpm_input, InterpType::Linear);
 
             float out = (float)sd->indicated_torque * (multi_engine_trq*multi_rpm);
@@ -210,7 +210,7 @@ uint8_t CrossoverShift::phase_fill() {
 
 uint8_t CrossoverShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
+    this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch, CoefficientTy::Sliding);
     this->trq_adder = 0;
 
     if (0 == subphase_shift) {
@@ -244,7 +244,7 @@ uint8_t CrossoverShift::phase_overlap() {
     // Mod pressure depends on the current situation
     if (abs_input_trq < this->adaptation_trq_limit*1.5 && adapting) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
-    } else if (abs_input_trq < this->adaptation_trq_limit*1.5 || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
+    } else if (abs_input_trq < this->adaptation_trq_limit*1.5 && (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
         this->adapting = false;
     } else {
@@ -281,7 +281,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
     //        multi = CRS_CURRENT_SETTINGS.adder_trq_multi_manual_dn;
     //    }
     //}
-    float multi = interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 750, 100, InterpType::Linear);
+    float multi = interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 500, 100, InterpType::Linear);
     return MAX(0, map_val*multi);
 }
 

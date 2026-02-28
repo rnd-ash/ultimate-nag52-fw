@@ -351,7 +351,8 @@ uint8_t ReleasingShift::phase_overlap() {
         this->timer_shift = OVERLAP_TIMES[idx];
         this->timer_mod = 3;
 
-        this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(low_filling_p, CoefficientTy::Release);
+        // Use direct PM call since we don't need to factor in Spring or centrifugal force
+        this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_filling_p, CoefficientTy::Release);
         this->overlap_torque = (sd->tcc_trq_multiplier * this->torque_req_val) + this->trq_at_apply_clutch;
         if (this->overlap_torque > this->freeing_trq) {
             this->overlap_torque = this->freeing_trq;
@@ -365,7 +366,7 @@ uint8_t ReleasingShift::phase_overlap() {
         if (0 == this->timer_mod) {
             this->overlap_torque = linear_ramp_with_timer(this->overlap_torque, abs_input_trq, this->timer_shift);
         } else {
-            this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(low_filling_p, CoefficientTy::Release);
+            this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_filling_p, CoefficientTy::Release);
             this->overlap_torque = (sd->tcc_trq_multiplier * this->torque_req_val) + this->trq_at_apply_clutch;
             if (this->overlap_torque > this->freeing_trq) {
                 this->overlap_torque = this->freeing_trq;

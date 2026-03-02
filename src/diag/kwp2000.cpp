@@ -356,7 +356,7 @@ void Kwp2000_server::server_loop() {
         ) {
             vTaskDelay(2);
         } else {
-            vTaskDelay(50);
+            vTaskDelay(20);
         }
     }
 }

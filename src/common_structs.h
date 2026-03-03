@@ -152,7 +152,8 @@ struct CircuitInfo{
     /// 1000x real value
     int pressure_multi_mpc_int;
     int mpc_pressure_spring_reduction;
-    float centrifugal_factor_off_clutch;
+    /// 100x real value
+    int centrifugal_factor_off_clutch_int;
 };
 
 #define RAT_1_IDX 0

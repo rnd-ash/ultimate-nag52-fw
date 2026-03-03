@@ -244,9 +244,6 @@ uint8_t CrossoverShift::phase_overlap() {
     // Mod pressure depends on the current situation
     if (abs_input_trq < this->adaptation_trq_limit*1.5 && adapting) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
-    } else if (abs_input_trq < this->adaptation_trq_limit*1.5 && (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->mod_sol_pressure = this->calc_overlap2_mod();
-        this->adapting = false;
     } else {
         this->adapting = false;
         uint16_t p_mod_1 = this->calc_overlap_mod();
@@ -429,30 +426,28 @@ uint8_t CrossoverShift::phase_overlap2() {
 }
 
 uint16_t CrossoverShift::calc_overlap_mod() {
-    int16_t p_mod = 0;
+    int p_mod = 0;
     if (abs_input_trq > this->trq_at_apply_clutch) {
         this->trq_at_release_clutch = abs_input_trq - this->trq_at_apply_clutch;
         p_mod = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, this->trq_at_release_clutch, CoefficientTy::Release);
     }
-    if (p_mod + sid->release_spring_off_clutch < this->centrifugal_force_off_clutch) {
-        p_mod = 0;
-        this->trq_at_release_clutch = 0;
-    } else {
-        uint16_t t = MAX(0, p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
-        p_mod = (uint16_t)((float)t*sid->inf.centrifugal_factor_off_clutch);
-    }
+    p_mod = MAX(0, p_mod + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
+    p_mod *= sid->inf.centrifugal_factor_off_clutch_int;
+    p_mod /= 100;
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
 uint16_t CrossoverShift::calc_overlap_mod_min(int p_shift) {
-    int p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch;
+    int p_mod = MAX(0, sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch_int;
+    p_mod /= 100; // centrifugal factor
     return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 
 uint16_t CrossoverShift::calc_overlap2_mod() {
     int p_shift = (int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int;
     p_shift /= 1000;
-    int centrifugal = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch;
+    int centrifugal = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch_int;
+    centrifugal /= 100; // centrifugal factor
     centrifugal /= 1000;
     
     int base = 250 * sid->inf.pressure_multi_mpc_int;
@@ -490,7 +485,8 @@ uint16_t CrossoverShift::max_p_mod_pressure() {
 
     int p_mod = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int;
     p_mod /= 1000;
-    p_mod *= sid->inf.centrifugal_factor_off_clutch;
+    p_mod *= sid->inf.centrifugal_factor_off_clutch_int;
+    p_mod /= 100; // centrifugal factor
 
     return MAX(
         0,

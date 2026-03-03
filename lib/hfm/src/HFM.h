@@ -53,27 +53,27 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
-		/** throttle valve actual value implausible **/
-		bool DKI_UP_B: 1;
-		/** throttle valve target value implausible **/
-		bool DKV_UP_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 4;
+		uint32_t __PADDING1__: 17;
 		/** vehicle speed signal implausible **/
 		bool VSIG_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 2;
-		/** idling (indle speed contact closed) **/
-		bool LL_B: 1;
-		/** full throttle **/
-		bool VG_B: 1;
+		uint8_t __PADDING2__: 4;
+		/** throttle valve target value implausible **/
+		bool DKV_UP_B: 1;
+		/** throttle valve actual value implausible **/
+		bool DKI_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING4__: 2;
-		/** brake light switch on **/
-		bool BLS_B: 1;
+		bool __PADDING3__: 1;
 		/** emergency mode **/
 		bool NOTL_B: 1;
+		/** brake light switch on **/
+		bool BLS_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING4__: 2;
+		/** full throttle **/
+		bool VG_B: 1;
+		/** idling (indle speed contact closed) **/
+		bool LL_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		bool __PADDING5__: 1;
 		/** vehicle speed **/
@@ -83,11 +83,11 @@ typedef union {
 		/** throttle valve actual value **/
 		uint8_t DKI: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING6__: 1;
+		uint8_t __PADDING6__: 3;
 		/** shifter module code **/
 		HFM_210h_WHC WHC: 4;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING7__: 3;
+		bool __PADDING7__: 1;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_210 **/
 	uint32_t get_canid(){ return HFM_210_CAN_ID; }
@@ -103,22 +103,22 @@ typedef union {
 		uint8_t __PADDING1__: 8;
 		/** load of the engine **/
 		uint8_t LAST: 8;
-		/** starter running **/
-		bool KL50_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 6;
 		/** air mass signal implausible **/
 		bool HFM_UP_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 6;
+		/** starter running **/
+		bool KL50_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint8_t __PADDING3__: 8;
 		/** engine speed **/
 		uint16_t NMOT: 16;
 		/** HFM coding **/
 		HFM_308h_HFM_COD HFM_COD: 8;
-		/** engine speed implausible **/
-		bool NMOT_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint8_t __PADDING4__: 7;
+		/** engine speed implausible **/
+		bool NMOT_UP_B: 1;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_308 **/
 	uint32_t get_canid(){ return HFM_308_CAN_ID; }
@@ -135,13 +135,13 @@ typedef union {
 		/** intake air temperature **/
 		uint8_t T_LUFT: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING2__: 22;
-		/** intake air temperature implausible **/
-		bool TFA_UP_B: 1;
+		uint16_t __PADDING2__: 16;
 		/** engine temperature implausible **/
 		bool TFM_UP_B: 1;
+		/** intake air temperature implausible **/
+		bool TFA_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 8;
+		uint16_t __PADDING3__: 14;
 		/** engine temperature **/
 		uint8_t T_MOT: 8;
 	} __attribute__((packed));
@@ -177,13 +177,15 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint64_t __PADDING1__: 57;
+		uint64_t __PADDING1__: 56;
+		/** error throttle valve actuator **/
+		bool DKS_F_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 5;
 		/** air conditioning **/
 		bool KLIMA_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 5;
-		/** error throttle valve actuator **/
-		bool DKS_F_B: 1;
+		bool __PADDING3__: 1;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_628 **/
 	uint32_t get_canid(){ return HFM_628_CAN_ID; }

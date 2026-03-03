@@ -524,7 +524,7 @@ void PressureManager::notify_shift_end() {
 }
 
 // TODO pull this from calibration tables
-const float C_C_FACTOR[8] = {1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0};
+const int C_C_FACTOR[8] = {15, 40, 100, 100, 100, 100, 100, 80};
 
 CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars) {
     CircuitInfo sd; 
@@ -568,7 +568,7 @@ CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Gea
     sd.pressure_multi_mpc_int = HYDR_PTR->overlap_circuit_factor_mpc[lookup_valve_info];
     sd.pressure_multi_spc_int = HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info];
     sd.mpc_pressure_spring_reduction = HYDR_PTR->overlap_circuit_spring_pressure[lookup_valve_info];
-    sd.centrifugal_factor_off_clutch = C_C_FACTOR[lookup_valve_info];
+    sd.centrifugal_factor_off_clutch_int = C_C_FACTOR[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;

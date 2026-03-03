@@ -142,6 +142,7 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 
 int linear_ramp_with_timer(int start, int end, int current_timer_val);
 short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val);
+int16_t clampint16(int32_t value);
 
 int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val);
 float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val);

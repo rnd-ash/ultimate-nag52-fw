@@ -122,7 +122,7 @@ short linear_interp_with_percentage(uint16_t percentage, short new_value, short 
     return x1+x2;
 }
 
-inline int16_t clampint16(int32_t value)
+int16_t clampint16(int32_t value)
 {
     int16_t result;
 

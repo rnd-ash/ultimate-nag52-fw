@@ -218,7 +218,14 @@ void EgsBaseCan::on_rx_done(const uint32_t now_ts)
         case (uint8_t)ShifterStyle::EWM:
         {
             ShifterEwm *shifterewm = reinterpret_cast<ShifterEwm *>(shifter);
-            shifterewm->set_program_button_pressed(get_profile_btn_press(now_ts), get_profile_switch_pos(now_ts));
+            bool btn_pressed = false;
+            if (ETS_CURRENT_SETTINGS.ewm_custom_profile_btn) {
+                // Override CAN information with external button
+                btn_pressed = pcb_gpio_matrix->is_program_switch_pressed();
+            } else {
+                btn_pressed = get_profile_btn_press(now_ts);
+            }
+            shifterewm->set_program_button_pressed(btn_pressed, get_profile_switch_pos(now_ts));
             break;
         }
         case (uint8_t)ShifterStyle::TRRS:

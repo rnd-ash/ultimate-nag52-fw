@@ -199,8 +199,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->absorbed_power_joule = 0;
     }
 
-    uint32_t time_since_last_adapt = GET_CLOCK_TIME() - this->last_adapt_check;
-    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 50;
+    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 10;
     if (!TCC_CURRENT_SETTINGS.adapt_enable) {
         is_adaptable = false;
     }
@@ -209,8 +208,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // ATF viscocity is not lo enough for accurate adaptation
         is_adaptable = false;
     }
-    int load_cell = -1; // Invalid cell (Do not write to adaptation)
-    if (!is_shifting && time_since_last_adapt > TCC_CURRENT_SETTINGS.adapt_test_interval_ms){ 
+    uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)
+    if (!is_shifting){
         // -25, 0, 10, 20, 30, 40, 50, 75, 100, 125, 150
         if (load_as_percent < -5) {
             load_cell = 0;
@@ -259,7 +258,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->prefill_done = false;
             this->prefill_running = false;
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
-            if (is_adaptable && load_cell != -1) {
+            if (is_adaptable && load_cell != 0xFF) {
                 if (abs(this->tcc_slip_filtered/100) > slip_target * 1.1) {
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, +50);
                     this->last_adapt_check = GET_CLOCK_TIME();
@@ -271,7 +270,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_commanded_pressure = this->tcc_slip_map->get_value(load_as_percent, (uint8_t)curr_gear);
         } else if (this->target_tcc_state == InternalTccState::Closed) {
             // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
-            if (is_adaptable && load_cell != -1) {
+            if (is_adaptable && load_cell != 0xFF) {
                 if  (SLIP_V_UNDERLOCKED < this->tcc_slip_filtered/100) {
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, +10);
                     this->last_adapt_check = GET_CLOCK_TIME();

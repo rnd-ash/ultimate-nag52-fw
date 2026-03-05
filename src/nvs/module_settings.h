@@ -264,6 +264,10 @@ typedef struct {
     // CAN Shifter button profile selector - Save profile for 
     // next start (Including manual profile options)
     bool ewm_save_profile_manual;
+    // Check the WIKI. This option allows you to wire up a push button to the TCU Pin 3 (PRG) if you
+    // are running the EWM shifter without a profile button (W163/Sprinter vehicles). The button
+    // should be wired between VBatt and Pin 3 of the TCU, and should conduct when pressed.
+    bool ewm_custom_profile_btn;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
@@ -281,6 +285,7 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .ewm_enable_r = false,
     .ewm_save_profile = true,
     .ewm_save_profile_manual = false,
+    .ewm_custom_profile_btn = false,
 };
 
 // Release shift settings

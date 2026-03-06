@@ -14,8 +14,8 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
     this->cycles_ramp_filling = 3;
     this->cycles_low_filling = 5;
 
-    this->cycles_mod_ramp_to_sync = 4;
-    this->cycles_mod_hold_sync = 4;
+    this->cycles_mod_ramp_to_sync = 5;
+    this->cycles_mod_hold_sync = 5;
 
     if (race == data->profile) {
         this->cycles_ramp_filling = 2;
@@ -59,6 +59,9 @@ uint8_t ReleasingShift::step_internal(
     bool is_upshift
 ) {
     uint8_t ret = STEP_RES_CONTINUE;
+    // Freeing torque, multiplied by scalar based on pedal position
+    this->freeing_trq = MIN(abs_input_trq, (float)pm->find_freeing_torque(sid->change, abs_input_trq, sd->output_rpm)*this->calculate_freeing_trq_multiplier());
+
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
         this->spc_ramp_val = 8;
@@ -94,20 +97,15 @@ uint8_t ReleasingShift::step_internal(
         if (this->phase_id == PHASE_FILL_AND_RELEASE && this->subphase_mod < 5 && abs_input_trq > max_trq_off) {
             emergency_limit = true;
             intervension_out = (abs_input_trq - max_trq_off) / sd->tcc_trq_multiplier;
-        } else if ((this->phase_id == PHASE_FILL_AND_RELEASE && this->subphase_mod >= 5) || (this->phase_id > PHASE_FILL_AND_RELEASE && this->phase_id < PHASE_END_CONTROL)) {
+        } else if (this->trq_req_down_ramp) { // Toggled to on when torque request started
             // Rest of fill and release, or overlap / max P phase
+            float protection = 0;
             if (abs_input_trq > max_trq_on) {
-                intervension_out = MAX(
-                    this->freeing_trq / sd->tcc_trq_multiplier,
-                    (abs_input_trq - max_trq_on) / sd->tcc_trq_multiplier
-                );
-            } else {
-                int m = 0;
-                if (abs_input_trq > this->trq_at_apply_clutch) {
-                    m = abs_input_trq - this->trq_at_apply_clutch;
-                }
-                intervension_out = MAX(this->freeing_trq, m) / sd->tcc_trq_multiplier;
+                protection = (abs_input_trq - max_trq_on);
             }
+            const float factors[8] = { 1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0 };
+            float freeing = this->freeing_trq * factors[sid->inf.map_idx];
+            intervension_out = MAX(freeing, protection) / sd->tcc_trq_multiplier;
         }
 
         if (emergency_limit) {
@@ -229,8 +227,6 @@ void ReleasingShift::phase_fill_release_spc() {
 
 uint8_t ReleasingShift::phase_fill_release_mpc() {
     uint8_t ret = STEP_RES_CONTINUE;
-    // Freeing torque, multiplied by scalar based on pedal position
-    this->freeing_trq = MIN(abs_input_trq, (float)pm->find_freeing_torque(sid->change, abs_input_trq, sd->output_rpm)*this->calculate_freeing_trq_multiplier());
     if (0 == this->subphase_mod) {
         // Var setting
         this->timer_mod = this->calc_cycles_mod_phase1();
@@ -484,7 +480,6 @@ float ReleasingShift::calculate_freeing_trq_multiplier() {
         float adder_style = interpolate_float(sid->chars.target_shift_time, 0.5, 1.5, 1000, 100, InterpType::Linear);
         output = MIN(2.5, 1.0 + adder_pedal + adder_style);
     }
-
     return output;
 }
 

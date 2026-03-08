@@ -35,6 +35,7 @@ inline float LookupMap::interpolate_xy(const float x_value, const float y_value,
 LookupMap::LookupMap(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_yHeader, const uint16_t _yHeaderSize, int16_t *_data, const uint16_t _dataSize)
 {
     this->table = new LookupTable(_xHeader, _xHeaderSize, _data, _dataSize);
+    this->x_header = const_cast<LookupHeader*>(this->table->get_header());
     this->y_header = new LookupHeader(_yHeader, _yHeaderSize);
     this->x_header_size = _xHeaderSize;
     this->y_header_size = _yHeaderSize;    

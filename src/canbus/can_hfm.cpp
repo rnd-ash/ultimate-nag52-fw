@@ -210,7 +210,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
     if (0.F < max_mass_air_flow) {
         float m_ind = MIN(1.F, mle/max_mass_air_flow) * ((float)(result.m_max));
         result.m_ind = (int16_t)m_ind;
-        ESP_LOGI("HFM-CAN", "n_mot: %u rpm, mle: %.2f kg/h, max_mass_air_flow: %.2f kg/h, indicated torque: %u Nm, maximum torque: %u Nm", n_mot, mle, max_mass_air_flow, result.m_ind, result.m_max);
+        // ESP_LOGI("HFM-CAN", "n_mot: %u rpm, mle: %.2f kg/h, max_mass_air_flow: %.2f kg/h, indicated torque: %u Nm, maximum torque: %u Nm", n_mot, mle, max_mass_air_flow, result.m_ind, result.m_max);
     }
     
     HFM_210 hfm210;
@@ -422,4 +422,7 @@ void HfmCan::set_torque_request(TorqueRequestControlType control_type, TorqueReq
 void HfmCan::on_rx_frame(uint32_t id, uint8_t dlc, uint64_t data, const uint32_t timestamp)
 {
     this->hfm_ecu.import_frames(data, id, timestamp);
+}
+
+void HfmCan::set_drive_profile(GearboxProfile p) {
 }

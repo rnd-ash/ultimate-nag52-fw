@@ -60,7 +60,7 @@ class HfmCan: public EgsBaseCan {
         void set_target_gear(GearboxGear target) override;
         // Sets torque request toggle
         void set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) override;
-        
+        void set_drive_profile(GearboxProfile p) override;
     protected:
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) override;
 

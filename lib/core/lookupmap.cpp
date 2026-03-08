@@ -104,7 +104,6 @@ uint16_t LookupMap::data_size() {
 
 float LookupMap::get_x_header_interpolated(const float value, const int16_t y) const
 {
-    const LookupHeader* xHeader = this->table->get_header();
     const int16_t* data = this->table->get_current_data();
     // isolate the row
     int16_t row[x_header_size] = {0};

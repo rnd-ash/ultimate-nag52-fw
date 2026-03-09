@@ -81,7 +81,7 @@ void read_solenoids_i2s(void*) {
                 adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
                 uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
                 if (channel_idx != 0xFF) {
-                    if (p->type1.data > 100) { // > ~0.1V
+                    if (p->type1.data != 0) {
                         s.peak_total[channel_idx] += p->type1.data;
                         s.count_peak[channel_idx] += 1;
                     }

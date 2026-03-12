@@ -100,7 +100,6 @@ class TorqueConverter {
         InternalTccState target_tcc_state = InternalTccState::Open;
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
-        uint32_t last_adapt_check = 0;
         int16_t engine_load_percent = 0;
         
         bool init_tables_ok = false;

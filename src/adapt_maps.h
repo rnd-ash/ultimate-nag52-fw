@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#define TCC_SLIP_ADAPT_MAP_SIZE 5*11
+#define TCC_SLIP_ADAPT_MAP_SIZE 5*13
 
 extern const int16_t TCC_SLIP_ADAPT_MAP[TCC_SLIP_ADAPT_MAP_SIZE];
 extern const int16_t TCC_LOCK_ADAPT_MAP[TCC_SLIP_ADAPT_MAP_SIZE];

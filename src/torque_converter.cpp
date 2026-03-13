@@ -316,7 +316,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                     int16_t lock_v = get_cell_value(this->tcc_lock_map->get_current_data(), curr_gear, load_cell);
                     if (lock_v < slip_v-500) {
                         int delta = lock_v-slip_v;
-                        set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, delta);
+                        set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, delta);
                     }
                 }
             }

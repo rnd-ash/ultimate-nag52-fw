@@ -19,15 +19,6 @@ typedef struct {
     bool enable_d4;
     // Enable torque converter in D5
     bool enable_d5;
-    // When adapting, this is the time between checks to see how
-    // much additional or less pressure should be applied to the converter.
-    // Making this interval too quick can result in over adapting!
-    //
-    // UNIT: milliseconds
-    uint16_t adapt_test_interval_ms;
-    // Temperature threshold for adapting. Below this value,
-    // adaptation does not occur due to lag time of the ATF pressure
-    int16_t temp_threshold_adapt;
     // Open the converter to slipping (If locked) if the engine requests it
     // This is used on the M113K platform when the supercharger clutch
     // is about to engage, so that the shock of the supercharger coming on does
@@ -41,6 +32,8 @@ typedef struct {
     // When cold, the ATF is thicker, thus a higher pressure can be commanded
     // with the same TCC solenoid PWM. This scaling is meant to mitigate this
     // effect.
+    //
+    // Adaptation can only work when ATF is hotter than the `raw_max` value
     //
     // To disable this scaling, set output_min and output_max to 1.0
     LinearInterpSetting tcc_temp_multiplier;
@@ -57,6 +50,14 @@ typedef struct {
     //
     // UNIT: Nm
     uint16_t tcc_max_trq_override;
+    // Forces the TCC to unlock on upshifts under load
+    bool unlock_load_upshifts;
+    // Forces the TCC to unlock on downshifts under load
+    bool unlock_load_downshifts;
+    // Forces the TCC to unlock on upshifts when coasting
+    bool unlock_coasting_upshifts;
+    // Forces the TCC to unlock on downshifts when coasting
+    bool unlock_coasting_downshifts;
 } __attribute__ ((packed)) TCC_MODULE_SETTINGS;
 
 const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
@@ -66,19 +67,21 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .enable_d3 = true,
     .enable_d4 = true,
     .enable_d5 = true,
-    .adapt_test_interval_ms = 100,
-    .temp_threshold_adapt = 70,
     .react_on_engine_slip_request = true,
     .react_on_engine_open_request = true,
     .tcc_temp_multiplier = LinearInterpSetting {
-        .new_min = 0.6,
+        .new_min = 0.5,
         .new_max = 1.0,
         .raw_min = -10,
-        .raw_max = 70
+        .raw_max = 60
     },
     .prefill_pressure = 10000,
     .prefill_cycles = 10,
-    .tcc_max_trq_override = 0
+    .tcc_max_trq_override = 0,
+    .unlock_load_upshifts = true,
+    .unlock_load_downshifts = true,
+    .unlock_coasting_upshifts = false,
+    .unlock_coasting_downshifts = false
 };
 
 // Solenoid subsystem settings

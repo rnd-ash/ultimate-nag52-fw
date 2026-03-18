@@ -43,6 +43,8 @@ ECU HFM
 		SIGNAL LAST, OFFSET: 48, LEN: 8, DESC: load of the engine, DATA TYPE NUMBER(_MULTIPLIER_: 0.5, _OFFSET_: 0)
 	FRAME HFM_608h (0x00000608)
 		SIGNAL T_MOT, OFFSET: 0, LEN: 8, DESC: engine temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)
+		SIGNAL P_HOH, OFFSET: 8, LEN: 8, DESC: altitude pressure, DATA TYPE NUMBER(_MULTIPLIER_: 5, _OFFSET_: 0)
+		SIGNAL HOH_UP_B, OFFSET: 21, LEN: 1, DESC: altitude pressure signal implausible, DATA TYPE BOOL
 		SIGNAL TFA_UP_B, OFFSET: 22, LEN: 1, DESC: intake air temperature implausible, DATA TYPE BOOL
 		SIGNAL TFM_UP_B, OFFSET: 23, LEN: 1, DESC: engine temperature implausible, DATA TYPE BOOL
 		SIGNAL T_LUFT, OFFSET: 40, LEN: 8, DESC: intake air temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1, _OFFSET_: 0)

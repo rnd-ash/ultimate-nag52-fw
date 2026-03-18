@@ -140,8 +140,12 @@ typedef union {
 		bool TFM_UP_B: 1;
 		/** intake air temperature implausible **/
 		bool TFA_UP_B: 1;
+		/** altitude pressure signal implausible **/
+		bool HOH_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING3__: 14;
+		uint8_t __PADDING3__: 5;
+		/** altitude pressure **/
+		uint8_t P_HOH: 8;
 		/** engine temperature **/
 		uint8_t T_MOT: 8;
 	} __attribute__((packed));

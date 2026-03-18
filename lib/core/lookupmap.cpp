@@ -2,26 +2,26 @@
 #include "tcu_maths_impl.h"
 #include "tcu_alloc.h"
 
-inline float LookupMap::interpolate_xy(const float x_value, const float y_value, uint16_t* x_idx_min, uint16_t* x_idx_max, uint16_t* y_idx_min, uint16_t* y_idx_max)
+inline float LookupMap::interpolate_xy(const float x_value, const float y_value, uint16_t* idx_min, uint16_t* idx_max, uint16_t* idy_min, uint16_t* idy_max)
 {
-        // part 1a - identification of the indices for x-value
-    search_value<int16_t>(x_value, x_header->get_data(), x_header->get_size(), x_idx_min, x_idx_max);
+    // part 1a - identification of the indices for x-value
+    search_value<int16_t>(x_value, x_header->get_data(), x_header->get_size(), idx_min, idx_max);
     
     // part 1b - identification of the indices for y-value
-    search_value<int16_t>(y_value, y_header->get_data(), y_header->get_size(), y_idx_min, y_idx_max);
+    search_value<int16_t>(y_value, y_header->get_data(), y_header->get_size(), idy_min, idy_max);
     
     // part 2: do the interpolation
-    const int16_t x1 = x_header->get_value(*x_idx_min);
-    const int16_t x2 = x_header->get_value(*x_idx_max);
-    const int16_t y1 = y_header->get_value(*y_idx_min);
-    const int16_t y2 = y_header->get_value(*y_idx_max);
+    const int16_t x1 = x_header->get_value(*idx_min);
+    const int16_t x2 = x_header->get_value(*idx_max);
+    const int16_t y1 = y_header->get_value(*idy_min);
+    const int16_t y2 = y_header->get_value(*idy_max);
     const int16_t* data = table->get_current_data();
 
     // some precalculations for making the code more readable, although somewhat inefficient
-    const float f_11 = (float)data[((*y_idx_min) * x_header->get_size()) + (*x_idx_min)];
-    const float f_12 = (float)data[((*y_idx_min) * x_header->get_size()) + (*x_idx_max)];
-    const float f_21 = (float)data[((*y_idx_max) * x_header->get_size()) + (*x_idx_min)];
-    const float f_22 = (float)data[((*y_idx_max) * x_header->get_size()) + (*x_idx_max)];
+    const float f_11 = (float)data[((*idy_min) * x_header->get_size()) + (*idx_min)];
+    const float f_12 = (float)data[((*idy_min) * x_header->get_size()) + (*idx_max)];
+    const float f_21 = (float)data[((*idy_max) * x_header->get_size()) + (*idx_min)];
+    const float f_22 = (float)data[((*idy_max) * x_header->get_size()) + (*idx_max)];
 
     // interpolation on x-axis for smaller y-index
     const float f_11f_12_interpolated = interpolate(f_11, f_12, x1, x2, x_value);
@@ -49,16 +49,16 @@ bool LookupMap::add_value(const int16_t sample_point_value, const float x_value,
     // local variables
     int16_t* data = table->get_current_data();
 
-    uint16_t    x_idx_min;
-    uint16_t    x_idx_max;
-    uint16_t    y_idx_min;
-    uint16_t    y_idx_max;
+    uint16_t    idx_min;
+    uint16_t    idx_max;
+    uint16_t    idy_min;
+    uint16_t    idy_max;
 
     // interpolation to get the current map value at the given x/y position
-    const float interp = interpolate_xy(x_value, y_value, &x_idx_min, &x_idx_max, &y_idx_min, &y_idx_max);
+    const float interp = interpolate_xy(x_value, y_value, &idx_min, &idx_max, &idy_min, &idy_max);
     // weights calculation
-    const float w_x = (x_value - (float)x_header->get_value(x_idx_min)) / ((float)x_header->get_value(x_idx_max) - (float)x_header->get_value(x_idx_min));
-    const float w_y = (y_value - (float)y_header->get_value(y_idx_min)) / ((float)y_header->get_value(y_idx_max) - (float)y_header->get_value(y_idx_min));
+    const float w_x = (x_value - (float)x_header->get_value(idx_min)) / ((float)x_header->get_value(idx_max) - (float)x_header->get_value(idx_min));
+    const float w_y = (y_value - (float)y_header->get_value(idy_min)) / ((float)y_header->get_value(idy_max) - (float)y_header->get_value(idy_min));
     
     // deviatation
     const float delta = (float)sample_point_value - interp;
@@ -68,10 +68,10 @@ bool LookupMap::add_value(const int16_t sample_point_value, const float x_value,
     const float corr = delta * adapt_gain;
 
     // map adaptation
-    data[y_idx_min * x_header_size + x_idx_min] = clampint16((int32_t)data[y_idx_min * x_header_size + x_idx_min] + (int32_t)(corr * (1.0F - w_x) * (1.0F - w_y)));
-    data[y_idx_min * x_header_size + x_idx_max] = clampint16((int32_t)data[y_idx_min * x_header_size + x_idx_max] + (int32_t)(corr * w_x * (1.0F - w_y)));
-    data[y_idx_max * x_header_size + x_idx_min] = clampint16((int32_t)data[y_idx_max * x_header_size + x_idx_min] + (int32_t)(corr * (1.0F - w_x) * w_y));
-    data[y_idx_max * x_header_size + x_idx_max] = clampint16((int32_t)data[y_idx_max * x_header_size + x_idx_max] + (int32_t)(corr * w_x * w_y));
+    data[idy_min * x_header_size + idx_min] = clampint16((int32_t)data[idy_min * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * (1.0F - w_y)));
+    data[idy_min * x_header_size + idx_max] = clampint16((int32_t)data[idy_min * x_header_size + idx_max] + (int32_t)(corr * w_x * (1.0F - w_y)));
+    data[idy_max * x_header_size + idx_min] = clampint16((int32_t)data[idy_max * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * w_y));
+    data[idy_max * x_header_size + idx_max] = clampint16((int32_t)data[idy_max * x_header_size + idx_max] + (int32_t)(corr * w_x * w_y));
     return significant_change;
 }
 

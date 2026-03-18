@@ -4,23 +4,16 @@
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
 #include <tcu_maths_impl.h>
+#include "maps.h"
+#include "engines/hfm_engine.hpp"
 
 HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_ms, 125000u)
-{   
+{
     ESP_LOGI(name, "SETUP CALLED");
+    hfm_engine = new HfmEngine();
+
     this->start_enable = true;
     can_init_status = ESP_OK;
-
-    // set the value of the max_throttle-value
-    // avoid division by zero, if value is not set
-    if (0 < VEHICLE_CONFIG.throttlevalve_maxopeningangle)
-    {
-        max_throttle_value = VEHICLE_CONFIG.throttlevalve_maxopeningangle;
-    }
-    for(uint16_t i = 0; i <= UINT8_MAX; i++)
-    {
-        phi_throttle[i] = (1.F - cosine[i]) / (1.F - cosine[max_throttle_value]);
-    }
 }
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
@@ -148,12 +141,15 @@ bool HfmCan::get_engine_is_limp(const uint32_t expire_time_ms)
 
 bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
 {
-    // TODO: check if there is a difference to full throttle and kick down
     bool result = false;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        result = hfm210.VG_B;
+        // validity check for DKV
+        if(!hfm210.DKV_UP_B){
+            result = (hfm210.DKV == VEHICLE_CONFIG.throttlevalve_maxopeningangle);
+        }
+        result |= hfm210.VG_B;
     }
     return result;
 }
@@ -165,18 +161,19 @@ uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        dkv = MIN(((float)(hfm210.DKV)), max_throttle_value); // limitation to maximum opening angle of throttle valve
-        dkv *= (float)PEDAL_VALUE_LIMIT;
-        dkv /= (float)max_throttle_value;
+        if(!hfm210.DKV_UP_B){
+            dkv = (float)(hfm210.DKV);
+            dkv *= (float)PEDAL_VALUE_LIMIT;
+            // scale value to max throttle opening angle, so that it can be used for interpolation in the engine class
+            dkv /= (float)VEHICLE_CONFIG.throttlevalve_maxopeningangle;
+        }
     }
     result = (uint8_t)dkv;
     return result;
 }
 
-CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
-
-    const bool CALC_C_ENGINE = false;
-
+CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
+{
     // higher expiration time for frames above 0x600, since they are not changing that fast
     const uint32_t expire_time_hfm_can = 250u; // [ms]
 
@@ -185,58 +182,65 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
 
     // obtain values from the CAN-bus to calculate the indicated and the driver torque
     uint16_t n_mot = get_engine_rpm(expire_time_ms); // todo check for uint16max
-
-    float n_mot_SI = ((float)n_mot) / 60.F; // conversion from [1/min] to [1/s]
     float mle = 0.F;
+    uint8_t dkv = UINT8_MAX;
+    uint8_t dki = INT8_MAX;
 
-    HFM_610 hfm610;
-    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
-    // if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_ms, &hfm610))
+    HFM_210 hfm210;
+    if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
     {
-        mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;              // conversion from raw value to [kg/h]
-        // mle /= 3600.F;                                              // conversion from [kg/h] to [kg/s]
+        if(!hfm210.DKI_UP_B){
+            dki = hfm210.DKI;
+        }
+        if(!hfm210.DKV_UP_B){
+            dkv = hfm210.DKV;
+        }
+
+        HFM_610 hfm610;
+        if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
+        {
+            // conversion from raw value to [kg/h]
+            mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;
+            // add measured mass air flow to map for current engine speed and throttle position, so that it can be used for interpolation later on
+            hfm_engine->add_to_mass_air_flow_map(n_mot, dki, mle);
+        }
     }
 
     // minimum torque
     result.m_min = 0; // TODO: find a way to get this value
 
     // maximum torque
-    result.m_max = interpolate_linear_array(n_mot, MAX_LEN, N, M_MAX);
+    result.m_max = hfm_engine->get_max_torque(n_mot); // interpolate from torque map based on engine speed
 
     // indicated torque
+    // ratio of current mass air flow to maximum mass air flow at current engine speed, multiplied by maximum torque at current engine speed
+    result.m_ind = (int16_t)((mle / hfm_engine->get_max_mass_air_flow(n_mot)) * ((float)(result.m_max))); 
+    
     // interpolate maximum mass air flow for current engine speed
-    float max_mass_air_flow = interpolate_linear_array(n_mot, MAX_LEN, N, MLE_MAX);
+    float max_mass_air_flow = hfm_engine->get_max_mass_air_flow(n_mot);
+
     result.m_ind = 0;
-    if (0.F < max_mass_air_flow) {
-        float m_ind = MIN(1.F, mle/max_mass_air_flow) * ((float)(result.m_max));
+    if (0.F < max_mass_air_flow)
+    {
+        float m_ind = MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max));
         result.m_ind = (int16_t)m_ind;
         // ESP_LOGI("HFM-CAN", "n_mot: %u rpm, mle: %.2f kg/h, max_mass_air_flow: %.2f kg/h, indicated torque: %u Nm, maximum torque: %u Nm", n_mot, mle, max_mass_air_flow, result.m_ind, result.m_max);
-    }
     
-    HFM_210 hfm210;
-    if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
-    {        
-        // // indicated torque
-        uint8_t dki = 0;
-        dki = MIN(hfm210.DKI, max_throttle_value); // limitation to maximum opening angle of throttle valve
-        if(dki == max_throttle_value) {
-            // at full throttle, indicated torque is equal to maximum torque
-            ESP_LOGI("HFM-CAN", "%.2f;%u;%u", ((float)dki)*0.35F, n_mot, (uint16_t)mle);
-        }
-        // result.m_ind = (int16_t)(phi_throttle[dki] * (float)(result.m_max));
-        
         // driver torque - comes from the accelerator pedal or cruise control
-        uint8_t dkv = MIN(hfm210.DKV, max_throttle_value); // limitation to maximum opening angle of throttle valve
-        // result.m_converted_driver = (int16_t)(phi_throttle[dkv] * (float)(result.m_max));
-        result.m_converted_driver = (int16_t)(((float)(result.m_max)) * ((float)dkv) / ((float)max_throttle_value));
-        // ESP_LOGI("HFM-CAN", "DKV: %u, max_throttle_value: %u, m_max: %u, driver torque (before): %u Nm", dkv, max_throttle_value, result.m_max, result.m_converted_driver);
+        if (dkv < UINT8_MAX)
+        {
+            result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
+            ESP_LOGI("HFM-CAN", "DKV: %u, max_throttle_value: %u, m_max: %u, driver torque (before): %u Nm", dkv, VEHICLE_CONFIG.throttlevalve_maxopeningangle, result.m_max, result.m_converted_driver);
+        }
     }
 
-    //static torque
-    if((0 < n_mot) && (UINT16_MAX != n_mot)) {
-        result.m_converted_static = (int16_t)(c_engine * (mle / 3600.F) / n_mot_SI); // constant * mass air flow / engine speed
+    // static torque
+    if ((0 < n_mot) && (UINT16_MAX != n_mot))
+    {
+        // result.m_converted_static = (int16_t)(c_engine * (mle / 3600.F) / n_mot_SI); // constant * mass air flow / engine speed
     }
-    
+   
+
     // ESP_LOGI("HFM-CAN", "Indicated: %u Nm, Static: %u Nm, driver torque: %u Nm (before)", result.m_ind, result.m_converted_static, result.m_converted_driver);
     if (INT16_MAX != result.m_converted_static && INT16_MAX != result.m_converted_driver)
     {
@@ -245,10 +249,12 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
         int16_t driver_converted = static_converted;
         int16_t indicated = 0;
         // Calculate converted torque from ESP
-        if (INT16_MAX != result.m_max && INT16_MAX != result.m_min) {
+        if (INT16_MAX != result.m_max && INT16_MAX != result.m_min)
+        {
             tmp = MAX(MIN(result.m_converted_driver, result.m_max), result.m_min);
         }
-        if (tmp <= 0) {
+        if (tmp <= 0)
+        {
             tmp = MIN(tmp, static_converted);
         }
         driver_converted = tmp;
@@ -256,24 +262,33 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
         // Check if freezing torque should be done
         bool active_shift = actual_gear != target_gear;
         bool trq_req_en = MMAX_EGS;
-        if (active_shift && trq_req_en) {
+        if (active_shift && trq_req_en)
+        {
             this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
-        } else if (!active_shift) {
+        }
+        else if (!active_shift)
+        {
             this->freeze_torque = false; // No gear shift, unfreeze it
         }
         // Change torque values based on freezing or not
-        if (this->freeze_torque) {
+        if (this->freeze_torque)
+        {
             driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
-        } else {
+        }
+        else
+        {
             this->req_static_torque_delta = driver_converted - static_converted;
         }
-        if (driver_converted > 0) {
+        if (driver_converted > 0)
+        {
             indicated = driver_converted;
         }
 
         HFM_628 hfm628;
-        if (hfm_ecu.get_HFM_628(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm628)) {
-            if (hfm628.KLIMA_B) {
+        if (hfm_ecu.get_HFM_628(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm628))
+        {
+            if (hfm628.KLIMA_B)
+            {
                 // Typical drag torque for an air conditioning compressor in a combustion engine car
                 // is in the range of 10-30 Nm depending on compressor type and operating conditions.
                 const int16_t M_KOMP = 20;
@@ -281,35 +296,11 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
                 driver_converted -= M_KOMP;
                 static_converted -= M_KOMP;
             }
-        } 
-        
+        }
+
         // result.m_ind = indicated;
         result.m_converted_driver = driver_converted;
         result.m_converted_static = static_converted;
-    }
-
-    // ESP_LOGI("HFM-CAN", "Indicated: %u Nm, Static: %u Nm, driver torque: %u Nm (after)", result.m_ind, result.m_converted_static, result.m_converted_driver);
-    // calculate c_engine values
-    if (CALC_C_ENGINE)
-    {
-        float c_engine_tmp = 0.F;
-        uint8_t load = 0;
-        HFM_308 hfm308;
-        if (this->hfm_ecu.get_HFM_308(GET_CLOCK_TIME(), 1000, &hfm308))
-        {
-            load = hfm308.LAST;
-            if (200u == load)
-            {
-                if (mle > 0.F && n_mot_SI > 0.F)
-                {
-                    c_engine_tmp = ((float)(result.m_max)) * n_mot_SI / mle;
-                    uint8_t dki = 0;
-                    // log messages
-                    // ESP_LOGI("HFM-CAN", "MLE: %.2f kg/s, n_mot: %d 1/min, m_max: %i, c_eng: %.2f, load: %d, DKI: %d, phi_throttle: %.2f, m_ind: %i Nm, m_ind (alt): %i, cosine[dki]: %.2f, cosine[max]: %.2f", mle, n_mot, result.m_max, c_engine_tmp, load, dki_uint, phi_throttle_ind, result.m_ind, ((int16_t)(phi_throttle_ind * ((float)result.m_max))), cosine[dki_uint], cosine[VEHICLE_CONFIG.throttlevalve_maxopeningangle]);
-                    ESP_LOGI("HFM-CAN", "MLE: %.2f kg/s, n_mot: %d 1/min, m_max: %i, c_eng: %.2f, load: %d, phi_throttle: %.2f, m_ind: %i Nm, m_ind (alt): %i, cosine[dki]: %.2f, cosine[max]: %.2f", mle, n_mot, result.m_max, c_engine_tmp, load, phi_throttle[dki], result.m_ind, ((int16_t)(phi_throttle[dki] * ((float)result.m_max))), cosine[dki], cosine[max_throttle_value]);
-                }
-            }
-        }
     }
 
     return result;
@@ -317,25 +308,25 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms) {
 
 float HfmCan::get_ML(const uint32_t expire_time_ms)
 {
-    /* mass volumetric efficiency */
-    float lambda_l = 0.0f;
-    float m_Air = 0.0f; // TODO: use MLE
-    float m_theoretical = 0.0f; // TODO: 
-    /* engine displacement [m³]*/
-    //float engine_displacement = ((float)V_H) * 0.001f;
-    /* air density [kg/m³] */
-    float rho_theoretical = 1.188f;
-    /* temperature [K] */
-    float T_theoretical = get_engine_iat_temp(expire_time_ms);
-    /* pressure [N/m²]*/
-    float p_theoretical = this->current_air_pressure; // TODO: use P_HOH
-    rho_theoretical = T_theoretical / p_theoretical;
-
-    m_theoretical = rho_theoretical * V_H / ((float)n_cylinders);
-    if (0.0f != m_theoretical) {
-        lambda_l = m_Air / m_theoretical;
+    const uint32_t expire_time_hfm_can = 600u; // [ms]
+    float result = 0.F;
+    float mle = 0.F;
+    int16_t air_pressure = 0;
+    HFM_608 hfm608;
+    if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm608))
+    {
+        if(!hfm608.HOH_UP_B)
+        {
+            air_pressure = ((int16_t)(hfm608.P_HOH) * ALTITUDE_PRESSURE_FACTOR); 
+        }
     }
-    return lambda_l;
+    HFM_610 hfm610;
+    if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
+    {
+        mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;
+    }
+    hfm_engine->get_ML(mle, this->get_engine_iat_temp(expire_time_ms), air_pressure);
+    return result;
 }
 
 int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
@@ -379,7 +370,7 @@ uint16_t HfmCan::get_engine_rpm(const uint32_t expire_time_ms)
     {
         result = hfm308.NMOT;
     }
-     return result;
+    return result;
 }
 
 bool HfmCan::get_is_starting(const uint32_t expire_time_ms)
@@ -424,5 +415,6 @@ void HfmCan::on_rx_frame(uint32_t id, uint8_t dlc, uint64_t data, const uint32_t
     this->hfm_ecu.import_frames(data, id, timestamp);
 }
 
-void HfmCan::set_drive_profile(GearboxProfile p) {
+void HfmCan::set_drive_profile(GearboxProfile p)
+{
 }

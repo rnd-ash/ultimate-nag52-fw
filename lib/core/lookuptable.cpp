@@ -26,6 +26,33 @@ float LookupTable::get_value(float xValue)
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
 }
 
+bool LookupTable::add_value(const int16_t sample_point_value, const uint16_t x_value, float threshold)
+{
+    // calibration parameter
+    const float adapt_gain = 0.20F;
+    
+    uint16_t    idx_min;
+    uint16_t    idx_max;
+ 
+    // interpolation to get the current map value at the given x position
+    const float interp = interpolate_x(x_value, &idx_min, &idx_max);
+    
+    // weight calculation
+    const float w_x = (x_value - (float)x_header->get_value(idx_min)) / ((float)x_header->get_value(idx_max) - (float)x_header->get_value(idx_min));
+    
+    // deviatation
+    const float delta = (float)sample_point_value - interp;
+    // rating    
+    const bool significant_change = (((float)abs(delta) / interp) > threshold);    
+    // correction calculation
+    const float corr = delta * adapt_gain;
+
+    // map adaptation
+    data[idx_min] = clampint16((int32_t)data[idx_min] + (int32_t)(corr * (1.0F - w_x)));
+    data[idx_max] = clampint16((int32_t)data[idx_max] + (int32_t)(corr * w_x));
+    return significant_change;
+}
+
 float LookupTable::get_header_interpolated(const float value) const
 {
     uint16_t    idvalue_min;
@@ -56,6 +83,19 @@ const LookupHeader* LookupTable::get_header(void) {
 
 uint16_t LookupTable::data_size(void) const {
     return this->dataSize;
+}
+
+inline float LookupTable::interpolate_x(const float x_value, uint16_t *idx_min, uint16_t *idx_max)
+{
+    // part 1 - identification of the indices for x-value
+    search_value<int16_t>(x_value, x_header->get_data(), x_header->get_size(), idx_min, idx_max);
+    
+    // part 2: do the interpolation on x-axis
+    const int16_t x1 = x_header->get_value(*idx_min);
+    const int16_t x2 = x_header->get_value(*idx_max);
+    
+    // interpolation 
+    return interpolate((float)data[(*idx_min)],(float)data[(*idx_max)], x1, x2, x_value);
 }
 
 // Alloc table implementation

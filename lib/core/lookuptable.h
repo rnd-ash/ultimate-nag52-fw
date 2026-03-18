@@ -9,6 +9,7 @@ class LookupTable {
     public:
         LookupTable(const int16_t* _x_header, const uint16_t _x_header_size, int16_t *_data, const uint16_t _dataSize);
         float get_value(float xValue);
+        bool add_value(const int16_t sample_point_value, const uint16_t x_value, float threshold);
         /// @brief This functions generates a corresponding header-value based on the parameter. This function does only work on tables with increasing x-values.
         /// @param value the value to be looked up
         /// @return the interpolated header-value
@@ -22,6 +23,8 @@ class LookupTable {
         uint16_t dataSize;
         int16_t* data;
         LookupHeader* x_header;
+    private:
+        inline float interpolate_x(const float x_value, uint16_t* idx_min, uint16_t* idx_max);
 };
 
 class LookupAllocTable: public LookupTable {

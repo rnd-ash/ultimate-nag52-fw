@@ -32,12 +32,15 @@
 #include "shifter/shifter_trrs.h"
 
 #include "inputcomponents/kickdownswitch.hpp"
+#include "engines/hfm_engine.hpp"
 
 Kwp2000_server *diag_server;
 
 uint8_t profile_id = 0;
 
 Speaker *spkr2 = nullptr;
+
+uint32_t driving_start_time = 0;
 
 SPEAKER_POST_CODE setup_tcm()
 {
@@ -78,7 +81,8 @@ SPEAKER_POST_CODE setup_tcm()
                         // Read device mode!
                         CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
                         // Load EGS Calibration
-                        if (ESP_OK == EGSCal::init_egs_calibration()) {
+                        if (ESP_OK == EGSCal::init_egs_calibration())
+                        {
                             // Read our configuration (This is allowed to fail as the default opts are always set by default)
                             ModuleConfiguration::load_all_settings();
                             // init driving profiles
@@ -92,15 +96,18 @@ SPEAKER_POST_CODE setup_tcm()
                                 shifter = new ShifterEwm(&ETS_CURRENT_SETTINGS);
                                 break;
                             case (uint8_t)ShifterStyle::TRRS:
-                                if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC) {
-                                    shifter = new ShifterTrrs( pcb_gpio_matrix);
-                                } else {
+                                if (pcb_gpio_matrix->i2c_scl != GPIO_NUM_NC)
+                                {
+                                    shifter = new ShifterTrrs(pcb_gpio_matrix);
+                                }
+                                else
+                                {
                                     ESP_LOGE("PCB", "TRRS IS NOT COMPATIBLE WITH V1.1 PCB!");
                                     shifter = nullptr;
                                 }
                                 break;
                             default:
-                                ESP_LOGE("INIT", "INVALID SHIFTER ID 0x%02X",VEHICLE_CONFIG.shifter_style);
+                                ESP_LOGE("INIT", "INVALID SHIFTER ID 0x%02X", VEHICLE_CONFIG.shifter_style);
                                 // possibly
                                 break;
                             }
@@ -123,7 +130,7 @@ SPEAKER_POST_CODE setup_tcm()
                                 case 4:
                                     // TODO: remove after configuring this through the config app
                                     VEHICLE_CONFIG.throttlevalve_maxopeningangle = 233u; // 81.55°
-                                    egs_can_hal = new HfmCan("HFM", 20); // HFM CAN Abstraction layer
+                                    egs_can_hal = new HfmCan("HFM", 20);                 // HFM CAN Abstraction layer
                                     break;
                                 case 5:
                                     egs_can_hal = new CustomCan("CC", 20, 500000); // Custom CAN Abstraction layer
@@ -136,16 +143,16 @@ SPEAKER_POST_CODE setup_tcm()
                                 }
                                 if (egs_can_hal->begin_task())
                                 {
-                                        gearbox = new Gearbox(shifter);
-                                        if (ESP_OK == gearbox->start_controller())
-                                        {
-                                            gearbox->set_profile(shifter->get_profile());
-                                        }
-                                        else
-                                        {
-                                            CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
-                                            ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
-                                        }
+                                    gearbox = new Gearbox(shifter);
+                                    if (ESP_OK == gearbox->start_controller())
+                                    {
+                                        gearbox->set_profile(shifter->get_profile());
+                                    }
+                                    else
+                                    {
+                                        CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
+                                        ret = SPEAKER_POST_CODE::CONTROLLER_FAIL;
+                                    }
                                 }
                                 else
                                 {
@@ -156,7 +163,9 @@ SPEAKER_POST_CODE setup_tcm()
                             {
                                 ret = SPEAKER_POST_CODE::CONFIGURATION_MISMATCH;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             CURRENT_DEVICE_MODE = DEVICE_MODE_NO_CALIBRATION;
                             ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
                         }
@@ -209,7 +218,7 @@ void err_beep_loop(void *a)
             spkr->post(p);
             if (spkr2 != nullptr)
             {
-                //spkr2->post(p);
+                // spkr2->post(p);
             }
             vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
@@ -217,10 +226,12 @@ void err_beep_loop(void *a)
     }
 }
 
-inline void set_start_enable(void){
+inline void set_start_enable(void)
+{
     bool is_start_safe = gearbox->get_is_start_safe();
     egs_can_hal->set_safe_start(is_start_safe);
-    if (ioexpander != nullptr) {
+    if (ioexpander != nullptr)
+    {
         ioexpander->set_start(is_start_safe);
     }
 }
@@ -233,7 +244,7 @@ void input_manager(void *)
     while (1)
     {
         pcb_gpio_matrix->read_input_signals();
-        set_start_enable();            
+        set_start_enable();
         if (nullptr != shifter)
         {
             AbstractProfile *prof = shifter->get_profile();
@@ -259,28 +270,48 @@ void input_manager(void *)
                 }
                 paddle_pos_last = paddle;
             }
-            if ((shifter->get_shifter_type() == ShifterStyle::EWM) || (shifter->get_shifter_type() == ShifterStyle::SLR))
+
+            spos = shifter->get_shifter_position();
+            if (spos != shifter_pos_last)
             {
-                spos = shifter->get_shifter_position();
-                if (spos != shifter_pos_last)
+                // Same position, ignore
+                // Process last request of the user
+                switch (shifter_pos_last)
                 {
-                    // Same position, ignore
-                    // Process last request of the user
-                    switch (shifter_pos_last)
-                    {
-                    case ShifterPosition::PLUS:
-                        gearbox->inc_gear_request();
-                        break;
-                    case ShifterPosition::MINUS:
-                        gearbox->dec_gear_request();
-                        break;
-                    default:
-                        break;
-                    }
-                    shifter_pos_last = spos;
+                case ShifterPosition::PLUS:
+                    gearbox->inc_gear_request();
+                    break;
+                case ShifterPosition::MINUS:
+                    gearbox->dec_gear_request();
+                    break;
+                default:
+                    break;
                 }
+                // Special handling for HFM CAN to trigger saving adaption values after driving and shifting to P
+                if (nullptr != hfm_engine   )
+                {
+                    if (ShifterPosition::P == spos)
+                    {
+                        // Save profile when shifting to P
+                        uint32_t driving_stop_time = GET_CLOCK_TIME();
+                        if (driving_stop_time - driving_start_time >= 10 * 60 * 1000)
+                        {
+                            // Car was driven for 10min or more, save adaption values when shifting to P
+                            hfm_engine->save();
+                            // Reset the driving start time
+                            driving_start_time = 0;
+                        }
+                    }
+                    else{
+                        if (ShifterPosition::D == shifter_pos_last){
+                            // Car is shifting out of D, start driving timer
+                            driving_start_time = GET_CLOCK_TIME();
+                        }
+                    }
+                }
+                shifter_pos_last = spos;
             }
-            shifter->update();            
+            shifter->update();
         }
         pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);
@@ -289,7 +320,7 @@ void input_manager(void *)
 
 const char *post_code_to_str(SPEAKER_POST_CODE s)
 {
-    const char* ret = nullptr;
+    const char *ret = nullptr;
     switch (s)
     {
     case SPEAKER_POST_CODE::INIT_OK:
@@ -333,11 +364,11 @@ extern "C" void app_main(void)
     egs_can_hal = nullptr;
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
-    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
-    
+    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void *>(s), 2, nullptr);
+
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox, shifter);
-    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16*1024, diag_server, 5, nullptr, 0);
+    xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16 * 1024, diag_server, 5, nullptr, 0);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server_timer, "KWP2000TIMER", 1024, diag_server, 5, nullptr, 0);
     if (s != SPEAKER_POST_CODE::INIT_OK)
     {

@@ -183,9 +183,9 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
     // obtain values from the CAN-bus to calculate the indicated and the driver torque
     uint16_t n_mot = get_engine_rpm(expire_time_ms); // todo check for uint16max
     float mle = 0.F;
+    uint8_t dki = UINT8_MAX;
     uint8_t dkv = UINT8_MAX;
-    uint8_t dki = INT8_MAX;
-
+    
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
     {
@@ -214,25 +214,20 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
 
     // indicated torque
     // ratio of current mass air flow to maximum mass air flow at current engine speed, multiplied by maximum torque at current engine speed
-    result.m_ind = (int16_t)((mle / hfm_engine->get_max_mass_air_flow(n_mot)) * ((float)(result.m_max))); 
-    
-    // interpolate maximum mass air flow for current engine speed
+    result.m_ind = INT16_MAX; // default value in case of invalid data
+    result.m_converted_driver = INT16_MAX; // default value in case of invalid data
     float max_mass_air_flow = hfm_engine->get_max_mass_air_flow(n_mot);
-
-    result.m_ind = 0;
-    if (0.F < max_mass_air_flow)
+    if(0.F < max_mass_air_flow)
     {
-        float m_ind = MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max));
-        result.m_ind = (int16_t)m_ind;
-        // ESP_LOGI("HFM-CAN", "n_mot: %u rpm, mle: %.2f kg/h, max_mass_air_flow: %.2f kg/h, indicated torque: %u Nm, maximum torque: %u Nm", n_mot, mle, max_mass_air_flow, result.m_ind, result.m_max);
-    
+        result.m_ind = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max)));
+        
         // driver torque - comes from the accelerator pedal or cruise control
         if (dkv < UINT8_MAX)
         {
             result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
             ESP_LOGI("HFM-CAN", "DKV: %u, max_throttle_value: %u, m_max: %u, driver torque (before): %u Nm", dkv, VEHICLE_CONFIG.throttlevalve_maxopeningangle, result.m_max, result.m_converted_driver);
         }
-    }
+    }    
 
     // static torque
     if ((0 < n_mot) && (UINT16_MAX != n_mot))
@@ -240,7 +235,6 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
         // result.m_converted_static = (int16_t)(c_engine * (mle / 3600.F) / n_mot_SI); // constant * mass air flow / engine speed
     }
    
-
     // ESP_LOGI("HFM-CAN", "Indicated: %u Nm, Static: %u Nm, driver torque: %u Nm (before)", result.m_ind, result.m_converted_static, result.m_converted_driver);
     if (INT16_MAX != result.m_converted_static && INT16_MAX != result.m_converted_driver)
     {

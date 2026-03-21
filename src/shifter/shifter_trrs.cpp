@@ -71,7 +71,7 @@ ShifterPosition ShifterTrrs::get_shifter_position(void)
 
 void ShifterTrrs::set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms)
 {
-	board->set_rp_solenoid(((ShifterPosition::N == this->pos) && (2.5F < vVeh)) || BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms));
+	board->set_rp_solenoid(((ShifterPosition::N == this->pos) && (2.5F < vVeh)) || !BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms));
 }
 
 AbstractProfile *ShifterTrrs::get_profile(void)

@@ -4,12 +4,6 @@
 #include "tcu_maths_impl.h"
 
 // Lookup table base implementations
-LookupTable::LookupTable(const int16_t *_x_header, const uint16_t _x_header_size, int16_t *_data, const uint16_t _dataSize)
-{
-    this->x_header = new LookupHeader(const_cast<int16_t*>(_x_header), _x_header_size);
-    this->data = _data;
-    this->dataSize = _dataSize;
-}
 
 float LookupTable::get_value(float xValue)
 {
@@ -53,21 +47,6 @@ bool LookupTable::add_value(const int16_t sample_point_value, const uint16_t x_v
     return significant_change;
 }
 
-float LookupTable::get_header_interpolated(const float value) const
-{
-    uint16_t    idvalue_min;
-    uint16_t    idvalue_max;
-
-    // part 1 - identification of the indices for x-value
-    search_value<int16_t>(value, data, dataSize, &idvalue_min, &idvalue_max);
-
-    // part 2: do the interpolation
-    const float value1 = (float)x_header->get_value(idvalue_min);
-    const float value2 = (float)x_header->get_value(idvalue_max);
-    
-    return value1 + progress_between_targets(value, data[idvalue_min], data[idvalue_max]) * (value2 - value1);
-}
-
 void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
     *size = x_header_size;
     *headers = x_header->get_data();
@@ -99,20 +78,22 @@ inline float LookupTable::interpolate_x(const float x_value, uint16_t *idx_min, 
 }
 
 // Alloc table implementation
-LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, uint16_t _xHeaderSize) : LookupTable(_xHeader, _xHeaderSize, nullptr, 0u)
+LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, uint16_t _xHeaderSize)
+:LookupTable()
 {
-    // dataSize = 0u;
-    // data = nullptr;
-    // x_header_size = _xHeaderSize;
-    x_header = new LookupAllocHeader(_xHeader, _xHeaderSize);
+    dataSize = 0u;
+    data = nullptr;
     allocation_successful = false;
+    x_header_size = _xHeaderSize;
+    x_header = new LookupAllocHeader(_xHeader, _xHeaderSize);
 }
 
-LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_data, const uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize, static_cast<int16_t*>(TCU_HEAP_ALLOC(_dataSize * sizeof(int16_t))), _dataSize)
+LookupAllocTable::LookupAllocTable(const int16_t *_xHeader, const uint16_t _xHeaderSize, const int16_t *_data, const uint16_t _dataSize)
+:LookupTable()
 {
-    // dataSize = _dataSize;
-    // x_header_size = _xHeaderSize;
-    // data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
+    dataSize = _dataSize;
+    x_header_size = _xHeaderSize;
+    data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
     if (allocation_successful)
     {
@@ -160,8 +141,10 @@ bool LookupAllocTable::is_allocated(void) const
     return allocation_successful;
 }
 
-LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t* _data, uint16_t _dataSize) : LookupTable(_xHeader, _xHeaderSize, _data, _dataSize)
-{
+LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t* _data, uint16_t _dataSize)
+:LookupTable() {
     this->x_header = new LookupRefHeader(_xHeader, _xHeaderSize);
+    this->data = _data;
+    this->dataSize = _dataSize;
 }
 

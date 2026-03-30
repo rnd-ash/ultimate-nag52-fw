@@ -16,7 +16,7 @@ LookupHeader::~LookupHeader(void)
 int16_t LookupHeader::get_value(const uint16_t index) const
 {
     int16_t result = INT16_MAX;
-    if(index <= size){
+    if(index < size){
         result = header[index];
     }
     return result;

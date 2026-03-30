@@ -40,6 +40,7 @@ uint8_t profile_id = 0;
 
 Speaker *spkr2 = nullptr;
 
+bool driving_started = false;
 uint32_t driving_start_time = 0;
 
 SPEAKER_POST_CODE setup_tcm()
@@ -294,18 +295,25 @@ void input_manager(void *)
                     {
                         // Save profile when shifting to P
                         uint32_t driving_stop_time = GET_CLOCK_TIME();
-                        if (driving_stop_time - driving_start_time >= 10 * 60 * 1000)
+                        // if (driving_stop_time - driving_start_time >= 10 * 60 * 1000)
+                        if (driving_stop_time - driving_start_time >= 1 * 60 * 1000)
                         {
                             // Car was driven for 10min or more, save adaption values when shifting to P
                             hfm_engine->save();
                             // Reset the driving start time
                             driving_start_time = 0;
+                            driving_started = false;
+                        }
+                        else{
+                            uint16_t driving_minutes = (driving_stop_time - driving_start_time) / 60000u;
+                            ESP_LOGI("INPUT_MANAGER", "Car was driven for %u minutes, not saving adaption values yet", driving_minutes);
                         }
                     }
                     else{
-                        if (ShifterPosition::D == shifter_pos_last){
-                            // Car is shifting out of D, start driving timer
+                        if (ShifterPosition::D == spos && !driving_started){
+                            // Car is shifting to D, start driving timer
                             driving_start_time = GET_CLOCK_TIME();
+                            driving_started = true;
                         }
                     }
                 }

@@ -74,6 +74,19 @@ float HfmEngine::get_ML(float mle, int16_t iat, int16_t air_pressure)
     return lambda_l;
 }
 
+void HfmEngine::load(void)
+{
+    if(hfm_engine_mass_air_flow) {
+        hfm_engine_mass_air_flow->reset_from_flash();
+    }
+    if(hfm_engine_max_mass_air_flow) {
+        hfm_engine_max_mass_air_flow->reset_from_flash();
+    }
+    if(print_data){
+        print();
+    }
+}
+
 void HfmEngine::save(void)
 {
     if(hfm_engine_mass_air_flow) {

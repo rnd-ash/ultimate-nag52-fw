@@ -6,6 +6,7 @@
 #include <tcu_maths_impl.h>
 #include "maps.h"
 #include "engines/hfm_engine.hpp"
+#include <cmath>
 
 HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_ms, 125000u)
 {
@@ -185,118 +186,104 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
     // obtain values from the CAN-bus to calculate the indicated and the driver torque
     uint16_t n_mot = get_engine_rpm(expire_time_ms); // todo check for uint16max
     float mle = 0.F;
+    float max_mass_air_flow = 0.F;
+
+    int16_t m_loss_ac = 0;
+
     uint8_t dki = UINT8_MAX;
     uint8_t dkv = UINT8_MAX;
+
     if (UINT16_MAX != n_mot)
     {
-        HFM_210 hfm210;
-        if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
+        //minimum torque
+        int16_t m_loss = int16_t(a + b *(float)n_mot/1000.F + c * powf((float)n_mot/1000.F, 2)); // Torque loss in the drivetrain, calculated from a quadratic fit of measured torque loss on the dyno
+        int16_t m_loss_generator = 0;
+        if (0 < n_mot)
         {
-            if (!hfm210.DKI_UP_B)
-            {
-                dki = hfm210.DKI;
-            }
-            if (!hfm210.DKV_UP_B)
-            {
-                dkv = hfm210.DKV;
-            }
-
-            HFM_610 hfm610;
-            if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
-            {
-                // conversion from raw value to [kg/h]
-                mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;
-                // add measured mass air flow to map for current engine speed and throttle position, so that it can be used for interpolation later on
-                hfm_engine->add_to_mass_air_flow_map(n_mot, dki, mle);
-                ESP_LOGI("HFM-CAN", "DKI: %u, DKV: %u, MLE: %.0f kg/h", dki, dkv, mle);
-            }
-        }
-        
-        // maximum torque
-        // result.m_max = n_mot > 0 ? hfm_engine->get_max_torque(n_mot) : 0; // interpolate from torque map based on engine speed
-        result.m_max = hfm_engine->get_max_torque(n_mot); // interpolate from torque map based on engine speed
-
-        // indicated torque
-        // ratio of current mass air flow to maximum mass air flow at current engine speed, multiplied by maximum torque at current engine speed
-        float max_mass_air_flow = hfm_engine->get_max_mass_air_flow(n_mot);
-        ESP_LOGI("HFM-CAN", "Engine RPM: %u rpm, Mass Air Flow: %f kg/h, Max Mass Air Flow: %f kg/h, Max Torque: %u Nm", n_mot, mle, max_mass_air_flow, result.m_max);
-        if (0.F < max_mass_air_flow)
-        {
-            result.m_ind = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max)));
-
-            // driver torque - comes from the accelerator pedal or cruise control
-            if (dkv < UINT8_MAX)
-            {
-                result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
-                ESP_LOGI("HFM-CAN", "DKV: %u, max_throttle_value: %u, m_max: %u, driver torque (before): %u Nm", dkv, VEHICLE_CONFIG.throttlevalve_maxopeningangle, result.m_max, result.m_converted_driver);
-            }
-        }
-
-        // static torque
-        if ((0 < n_mot))
-        {
-            // result.m_converted_static = (int16_t)(c_engine * (mle / 3600.F) / n_mot_SI); // constant * mass air flow / engine speed
-        }
-        ESP_LOGI("HFM-CAN", "Indicated: %u Nm, Static: %u Nm, driver torque: %u Nm (before)", result.m_ind, result.m_converted_static, result.m_converted_driver);
-        if (INT16_MAX != result.m_converted_static && INT16_MAX != result.m_converted_driver)
-        {
-            int16_t static_converted = result.m_converted_static;
-            int16_t tmp = result.m_converted_driver;
-            int16_t driver_converted = static_converted;
-            int16_t indicated = 0;
-            // Calculate converted torque from ESP
-            if (INT16_MAX != result.m_max && INT16_MAX != result.m_min)
-            {
-                tmp = MAX(MIN(result.m_converted_driver, result.m_max), result.m_min);
-            }
-            if (tmp <= 0)
-            {
-                tmp = MIN(tmp, static_converted);
-            }
-            driver_converted = tmp;
-
-            // Check if freezing torque should be done
-            bool active_shift = actual_gear != target_gear;
-            bool trq_req_en = MMAX_EGS;
-            if (active_shift && trq_req_en)
-            {
-                this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
-            }
-            else if (!active_shift)
-            {
-                this->freeze_torque = false; // No gear shift, unfreeze it
-            }
-            // Change torque values based on freezing or not
-            if (this->freeze_torque)
-            {
-                driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
-            }
-            else
-            {
-                this->req_static_torque_delta = driver_converted - static_converted;
-            }
-            if (driver_converted > 0)
-            {
-                indicated = driver_converted;
-            }
-
             HFM_628 hfm628;
             if (hfm_ecu.get_HFM_628(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm628))
             {
                 if (hfm628.KLIMA_B)
                 {
-                    // Typical drag torque for an air conditioning compressor in a combustion engine car
-                    // is in the range of 10-30 Nm depending on compressor type and operating conditions.
-                    const int16_t M_KOMP = 20;
-
-                    driver_converted -= M_KOMP;
-                    static_converted -= M_KOMP;
+                    m_loss_ac = (int16_t)(K_AC / ((float)n_mot));
                 }
             }
+            m_loss_generator = (int16_t)(K_GENERATOR / ((float)n_mot)); // Torque loss due to generator, modeled as inversely proportional to engine speed
+        }
+        result.m_min = -(m_loss + m_loss_ac + m_loss_generator); // Torque loss is represented as negative torque
+    
+        // maximum torque
+        result.m_max = hfm_engine->get_max_torque(n_mot); // interpolate from torque map based on engine speed
+        HFM_610 hfm610;
+        if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
+        {
+            // conversion from raw value to [kg/h]
+            mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;
+            max_mass_air_flow = hfm_engine->get_max_mass_air_flow(n_mot);
 
-            // result.m_ind = indicated;
-            result.m_converted_driver = driver_converted;
-            result.m_converted_static = static_converted;
+            // indicated torque
+            // ratio of current mass air flow to maximum mass air flow at current engine speed, multiplied by maximum torque at current engine speed
+            result.m_ind = 0;
+            if (0.F < max_mass_air_flow)
+            {
+                result.m_ind = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max)));
+            }
+
+            HFM_210 hfm210;
+            if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
+            {
+                if (!hfm210.DKI_UP_B)
+                {
+                    dki = hfm210.DKI;
+                    // add measured mass air flow to map for current engine speed and throttle position, so that it can be used for interpolation later on
+                    hfm_engine->add_to_mass_air_flow_map(n_mot, dki, mle);
+                }
+                if (!hfm210.DKV_UP_B)
+                {
+                    dkv = hfm210.DKV;
+
+                    // driver torque - comes from the accelerator pedal or cruise control
+                    result.m_converted_driver = 0;
+                    if (0.F < max_mass_air_flow)
+                    {
+                        result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
+                    }
+                }
+            }
+        }
+
+        if (
+            INT16_MAX != result.m_min &&
+            INT16_MAX != result.m_max &&
+            INT16_MAX != result.m_ind &&
+            INT16_MAX != result.m_converted_driver)
+        {
+            result.m_ind = MIN(result.m_ind, result.m_max); // Limit indicated torque to max torque
+            result.m_ind = MAX(result.m_min, result.m_ind); // Floor indicated torque to min torque
+
+            result.m_converted_driver = MIN(result.m_converted_driver, result.m_max); // Limit driver demanded torque to max torque
+            result.m_converted_driver = MAX(result.m_min, result.m_converted_driver); // Floor ESP torque to min torque
+
+            
+            int16_t driver_converted = result.m_converted_driver; 
+            int16_t static_converted = result.m_ind - m_loss; // Static torque is the indicated torque minus the drivetrain losses;
+
+            bool freeze = MMAX_EGS;
+            // Change torque values based on freezing or not
+            if (freeze)
+            {
+                result.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
+            }
+            else
+            {
+                this->req_static_torque_delta = driver_converted - static_converted;
+            }
+
+            // calculating torque loss due to air conditioning, if the air conditioning is on
+            
+            result.m_converted_driver = driver_converted - m_loss_ac;
+            result.m_converted_static = static_converted - m_loss_ac;
+            ESP_LOGI("HFM-CAN", "N: %u rpm, DKI: %u, DKV: %u, MLE: %.0f kg/h, MAF_max: %.0f kg/h, max_throttle_value: %.2f, M_MAX: %u Nm, M_DRIVER: %u Nm, M_IND: %u Nm, M_STAT: %u Nm, M_LOSS: %u Nm", n_mot, dki, dkv, mle, max_mass_air_flow, ((float)VEHICLE_CONFIG.throttlevalve_maxopeningangle) * .35F, result.m_max, result.m_converted_driver, result.m_ind, result.m_converted_static, m_loss);
         }
     }
     return result;

@@ -15,6 +15,7 @@ class HfmEngine {
         float get_max_mass_air_flow(uint16_t n_mot);
         bool add_to_mass_air_flow_map(uint16_t n_mot, uint8_t throttle, float mass_air_flow);
         float get_ML(float mle, int16_t iat, int16_t air_pressure);
+        void load(void);
         void save(void);
         void print(void);
     private:

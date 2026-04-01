@@ -8,7 +8,7 @@ using namespace std;
 class LookupTable {
     public:
         float get_value(float xValue);
-        bool add_value(const int16_t sample_point_value, const uint16_t x_value, float threshold);        
+        bool add_value(const int16_t sample_point_value, const int16_t x_value, float threshold);        
         void get_x_headers(uint16_t *size, int16_t **headers);
         int16_t* get_current_data(void);
         const LookupHeader* get_header(void);

@@ -1,6 +1,7 @@
 #include "lookupmap.h"
 #include "tcu_maths_impl.h"
 #include "tcu_alloc.h"
+#include <esp_log.h>
 
 float LookupMap::get_value(const int16_t x_value, const int16_t y_value)
 {
@@ -43,7 +44,7 @@ bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_valu
     const float adapt_gain = 0.20F;
     
     // local variables
-    int16_t* data = table->get_current_data();
+    int16_t* data = this->get_current_data();
 
     uint16_t    idx_min;
     uint16_t    idx_max;
@@ -60,24 +61,24 @@ bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_valu
     
     bool significant_change = false;
 
-    if((INT16_MAX != x1) && (INT16_MAX != x2) && (INT16_MAX != y1) && (INT16_MAX != y2)){
-        // weights calculation
-        const float w_x = (float)(x_value - x1) / (float)(x2 - x1);
-        const float w_y = (float)(y_value - y1) / (float)(y2 - y1);
+    // weights calculation
+    const float w_x = (x1 != x2) ? (float)(x_value - x1) / (float)(x2 - x1) : 0.F;
+    const float w_y = (y1 != y2) ? (float)(y_value - y1) / (float)(y2 - y1) : 0.F;
 
-        // deviatation
-        const float delta = (float)sample_point_value - interp;
-        // rating    
-        significant_change = (((float)abs(delta) / interp) > threshold);    
-        // correction calculation
-        const float corr = delta * adapt_gain;
+    // deviatation
+    const float delta = (float)sample_point_value - interp;
+    // rating
+    significant_change = (((float)abs(delta) / interp) > threshold);
+    // correction calculation
+    const float corr = delta * adapt_gain;
 
-        // map adaptation
-        data[idy_min * x_header_size + idx_min] = clampint16((int32_t)data[idy_min * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * (1.0F - w_y)));
-        data[idy_min * x_header_size + idx_max] = clampint16((int32_t)data[idy_min * x_header_size + idx_max] + (int32_t)(corr * w_x * (1.0F - w_y)));
-        data[idy_max * x_header_size + idx_min] = clampint16((int32_t)data[idy_max * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * w_y));
-        data[idy_max * x_header_size + idx_max] = clampint16((int32_t)data[idy_max * x_header_size + idx_max] + (int32_t)(corr * w_x * w_y));
-    }
+    ESP_LOGI("LookupMap", "Adding value: sample_point_value: %d, x_value: %d, y_value: %d, interp: %.2f, delta: %.2f, corr: %.2f, w_x: %.2f, w_y: %.2f", sample_point_value, x_value, y_value, interp, delta, corr, w_x, w_y);
+
+    // map adaptation
+    data[idy_min * x_header_size + idx_min] = clampint16((int32_t)data[idy_min * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * (1.0F - w_y)));
+    data[idy_min * x_header_size + idx_max] = clampint16((int32_t)data[idy_min * x_header_size + idx_max] + (int32_t)(corr * w_x * (1.0F - w_y)));
+    data[idy_max * x_header_size + idx_min] = clampint16((int32_t)data[idy_max * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * w_y));
+    data[idy_max * x_header_size + idx_max] = clampint16((int32_t)data[idy_max * x_header_size + idx_max] + (int32_t)(corr * w_x * w_y));
     return significant_change;
 }
 
@@ -98,7 +99,7 @@ uint16_t LookupMap::data_size() {
     return this->table->data_size();
 }
 
-inline float LookupMap::interpolate_xy(const float x_value, const float y_value, uint16_t* idx_min, uint16_t* idx_max, uint16_t* idy_min, uint16_t* idy_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2)
+inline float LookupMap::interpolate_xy(const int16_t x_value, const int16_t y_value, uint16_t* idx_min, uint16_t* idx_max, uint16_t* idy_min, uint16_t* idy_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2)
 {
     // part 1a - identification of the indices for x-value
     search_value<int16_t>(x_value, x_header->get_data(), x_header->get_size(), idx_min, idx_max);
@@ -114,18 +115,18 @@ inline float LookupMap::interpolate_xy(const float x_value, const float y_value,
     const int16_t* data = table->get_current_data();
 
     // some precalculations for making the code more readable, although somewhat inefficient
-    const float f_11 = (float)data[((*idy_min) * x_header->get_size()) + (*idx_min)];
-    const float f_12 = (float)data[((*idy_min) * x_header->get_size()) + (*idx_max)];
-    const float f_21 = (float)data[((*idy_max) * x_header->get_size()) + (*idx_min)];
-    const float f_22 = (float)data[((*idy_max) * x_header->get_size()) + (*idx_max)];
+    const float f_11 = (float)data[((*idy_min) * x_header_size) + (*idx_min)];
+    const float f_12 = (float)data[((*idy_min) * x_header_size) + (*idx_max)];
+    const float f_21 = (float)data[((*idy_max) * x_header_size) + (*idx_min)];
+    const float f_22 = (float)data[((*idy_max) * x_header_size) + (*idx_max)];
 
     // interpolation on x-axis for smaller y-index
-    const float f_11f_12_interpolated = interpolate(f_11, f_12, *x1, *x2, x_value);
+    const float f_11f_12_interpolated = interpolate(f_11, f_12, *x1, *x2, (float)x_value);
     // interpolation on x-axis for greater y-index
-    const float f_21f_22_interpolated = interpolate(f_21, f_22, *x1, *x2, x_value);
+    const float f_21f_22_interpolated = interpolate(f_21, f_22, *x1, *x2, (float)x_value);
     // bilinear interpolation, not always efficient, but with more or less constant runtime
     // also see https://en.wikipedia.org/wiki/Bilinear_interpolation, https://helloacm.com/cc-function-to-compute-the-bilinear-interpolation/ for mathematical background
-    return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, *y1, *y2, y_value);
+    return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, *y1, *y2, (float)y_value);
 }
 
 LookupAllocMap::LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize) {

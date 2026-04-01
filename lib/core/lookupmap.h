@@ -18,7 +18,7 @@ class LookupMap {
         LookupHeader* y_header;
         uint16_t y_header_size;
     private:
-        inline float interpolate_xy(const float x, const float y, uint16_t* x_idx_min, uint16_t* x_idx_max, uint16_t* y_idx_min, uint16_t* y_idx_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2);
+        inline float interpolate_xy(const int16_t x, const int16_t y, uint16_t* x_idx_min, uint16_t* x_idx_max, uint16_t* y_idx_min, uint16_t* y_idx_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2);
 };
 
 class LookupAllocMap : public LookupMap {

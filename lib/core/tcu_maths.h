@@ -13,6 +13,10 @@
     #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#ifndef LIMIT
+    #define LIMIT(x, min, max) (MIN((max), MAX((min), (x))))
+#endif
+
 typedef struct {
     float in;
     float out;

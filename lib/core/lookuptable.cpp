@@ -20,7 +20,7 @@ float LookupTable::get_value(float xValue)
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
 }
 
-bool LookupTable::add_value(const int16_t sample_point_value, const uint16_t x_value, float threshold)
+bool LookupTable::add_value(const int16_t sample_point_value, const int16_t x_value, float threshold)
 {
     // calibration parameter
     const float adapt_gain = 0.20F;
@@ -29,10 +29,13 @@ bool LookupTable::add_value(const int16_t sample_point_value, const uint16_t x_v
     uint16_t    idx_max;
  
     // interpolation to get the current map value at the given x position
-    const float interp = interpolate_x(x_value, &idx_min, &idx_max);
+    const float interp = interpolate_x((float)x_value, &idx_min, &idx_max);
     
+    const int16_t x1 = x_header->get_value(idx_min);
+    const int16_t x2 = x_header->get_value(idx_max);
+
     // weight calculation
-    const float w_x = (x_value - (float)x_header->get_value(idx_min)) / ((float)x_header->get_value(idx_max) - (float)x_header->get_value(idx_min));
+    const float w_x = (x1 != x2) ? (float)(x_value - x1) / (float)(x2 - x1) : 0.F;
     
     // deviatation
     const float delta = (float)sample_point_value - interp;

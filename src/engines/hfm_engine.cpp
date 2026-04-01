@@ -10,7 +10,7 @@ HfmEngine::HfmEngine()
     hfm_engine_max_torque = new StoredTable(NVS_KEY_MAP_NAME_HFM_ENGINE_TORQUE, HFM_ENGINE_TABLE_SIZE, ENGINE_RPM_HEADERS, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_MAX_TORQUE_MAP);
     
     const char* key_name_maf = NVS_KEY_MAP_NAME_HFM_ENGINE_MASS_AIR_FLOW;
-    hfm_engine_mass_air_flow = new StoredMap(key_name_maf, HFM_ENGINE_MAP_SIZE, ENGINE_RPM_HEADERS, engine_throttle_headers, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_MASS_AIR_FLOW);
+    hfm_engine_mass_air_flow = new StoredMap(key_name_maf, HFM_ENGINE_MAP_SIZE, ENGINE_RPM_HEADERS, ENGINE_THROTTLE_HEADERS, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_MASS_AIR_FLOW);
     
     const char* key_name_max_maf = NVS_KEY_MAP_NAME_HFM_ENGINE_MAX_MASS_AIR_FLOW;
     hfm_engine_max_mass_air_flow = new StoredTable(key_name_max_maf, HFM_ENGINE_TABLE_SIZE, ENGINE_RPM_HEADERS, HFM_ENGINE_TABLE_SIZE, HFM_ENGINE_MAX_MASS_AIR_FLOW);    
@@ -109,7 +109,7 @@ void HfmEngine::print(void)
         int16_t* data = hfm_engine_mass_air_flow->get_current_data();
         for (uint16_t i = 0; i < HFM_ENGINE_TABLE_SIZE; i++)
         {
-            ESP_LOGI(log_tag, "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, // %.2f°", data[i*33], data[i*33+1], data[i*33+2], data[i*33+3], data[i*33+4], data[i*33+5], data[i*33+6], data[i*33+7], data[i*33+8], data[i*33+9], data[i*33+10], data[i*33+11], data[i*33+12], data[i*33+13], data[i*33+14], data[i*33+15], data[i*33+16], data[i*33+17], data[i*33+18], data[i*33+19], data[i*33+20], data[i*33+21], data[i*33+22], data[i*33+23], data[i*33+24], data[i*33+25], data[i*33+26], data[i*33+27], data[i*33+28], data[i*33+29], data[i*33+30], data[i*33+31], data[i*33+32], (float)engine_throttle_headers[i] * 0.35F);
+            ESP_LOGI(log_tag, "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, // %.2f°", data[i*33u], data[i*33u+1u], data[i*33u+2u], data[i*33u+3u], data[i*33u+4u], data[i*33u+5u], data[i*33u+6u], data[i*33u+7u], data[i*33u+8u], data[i*33u+9u], data[i*33u+10u], data[i*33u+11u], data[i*33u+12u], data[i*33u+13u], data[i*33u+14u], data[i*33u+15u], data[i*33u+16u], data[i*33u+17u], data[i*33u+18u], data[i*33u+19u], data[i*33u+20u], data[i*33u+21u], data[i*33u+22u], data[i*33u+23u], data[i*33u+24u], data[i*33u+25u], data[i*33u+26u], data[i*33u+27u], data[i*33u+28u], data[i*33u+29u], data[i*33u+30u], data[i*33u+31u], data[i*33u+32u], (float)i * 0.35F);
         }
     }
     if(hfm_engine_max_mass_air_flow) {

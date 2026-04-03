@@ -111,6 +111,7 @@ uint8_t CrossoverShift::phase_fill() {
         // Set vars
         this->timer_shift = sid->prefill_info.fill_cycles;
         this->subphase_shift += 1;
+        this->timer_emergency = -1;
     }
     if (1 == this->subphase_shift) {
         // High filling
@@ -214,6 +215,7 @@ uint8_t CrossoverShift::phase_overlap() {
     this->trq_adder = 0;
 
     if (0 == subphase_shift) {
+        this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap
         this->p_apply_overlap_begin = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
         uint8_t interp_min = CRS_CURRENT_SETTINGS.overlap_cycles_low_trq;
         uint8_t interp_max = CRS_CURRENT_SETTINGS.overlap_cycles_high_trq;
@@ -312,6 +314,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
 
     if (0 == subphase_shift) {
+        this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap2
         uint8_t interp_min = CRS_CURRENT_SETTINGS.sync_cycles_low_trq;
         uint8_t interp_max = CRS_CURRENT_SETTINGS.sync_cycles_high_trq;
         if (sid->change == GearChange::_1_2) {

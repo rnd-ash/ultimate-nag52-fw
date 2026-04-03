@@ -24,7 +24,7 @@ enum class ShiftStyle {
     Release_Dn,
 };
 
-struct ShiftInterfaceData{
+struct ShiftInterfaceData {
     AbstractProfile* profile;
     int MOD_MAX;
     int SPC_MAX;
@@ -79,73 +79,74 @@ public:
     void reset_all_subphase_data();
     virtual uint8_t max_shift_stage_id() = 0;
 
-    protected:
-        bool upshifting = false;
-        ShiftInterfaceData* sid;
-        uint8_t subphase_mod = 0;
-        uint16_t timer_mod = 0;
-        uint8_t subphase_shift = 0;
-        uint16_t timer_shift = 0;
+protected:
+    bool upshifting = false;
+    ShiftInterfaceData* sid;
+    uint8_t subphase_mod = 0;
+    uint16_t timer_mod = 0;
+    uint8_t subphase_shift = 0;
+    uint16_t timer_shift = 0;
+    int16_t timer_emergency = -1;
 
-        // EGS COMPATIBILITY
-        int centrifugal_force_on_clutch;
-        int centrifugal_force_off_clutch;
+    // EGS COMPATIBILITY
+    int centrifugal_force_on_clutch;
+    int centrifugal_force_off_clutch;
 
-        // EGS compatibility vars (Makes it easier to translate original EGS assembly)
-        int p_apply_clutch = 0;
-        // used for diagnostics
-        int trq_at_apply_clutch = 0;
-        int trq_at_release_clutch = 0;
-        int mpc_trq_reducer = 0;
-        int trq_adder = 0;
-        uint16_t abs_input_trq;
-        
-        int mod_sol_pressure;
-        int shift_sol_pressure;
-        uint8_t phase_id;
+    // EGS compatibility vars (Makes it easier to translate original EGS assembly)
+    int p_apply_clutch = 0;
+    // used for diagnostics
+    int trq_at_apply_clutch = 0;
+    int trq_at_release_clutch = 0;
+    int mpc_trq_reducer = 0;
+    int trq_adder = 0;
+    uint16_t abs_input_trq;
 
-        PressureManager* pm;
-        SensorData* sd;
+    int mod_sol_pressure;
+    int shift_sol_pressure;
+    uint8_t phase_id;
 
-        short momentum_ctrl = 0;
-        short momentum_ctrl_filtered = 0;
-        short target_turbine_speed = 0;
-        short momentum_start_output_rpm = 0;
-        short correction_trq = 0;
+    PressureManager* pm;
+    SensorData* sd;
 
-        // Because EGS is weird, bleed and end of ctrl phases have same for either shift
-        uint8_t phase_bleed(PressureManager* pm);
-        uint8_t phase_maxp(SensorData* sd);
-        uint8_t phase_end_ctrl();
+    short momentum_ctrl = 0;
+    short momentum_ctrl_filtered = 0;
+    short target_turbine_speed = 0;
+    short momentum_start_output_rpm = 0;
+    short correction_trq = 0;
 
-        
-        // EGS compatibility functions
-        uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
-        uint16_t fun_0d83d4();
-        uint16_t calc_mod_min_abs_trq(int p_shift);
-        uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
-        uint16_t calc_mod_with_filling_trq(int p_shift);
-        uint16_t calc_mpc_sol_shift_ps(int p_shift, int p_mod);
-        void reset_for_next_phase();
-        uint16_t correct_shift_shift_pressure(int16_t pressure);
+    // Because EGS is weird, bleed and end of ctrl phases have same for either shift
+    uint8_t phase_bleed(PressureManager* pm);
+    uint8_t phase_maxp(SensorData* sd);
+    uint8_t phase_end_ctrl();
 
-        uint16_t set_p_apply_clutch_with_spring(int p);
 
-        short calc_correction_trq(ShiftStyle style, short momentum);
-        int32_t momentum_pid[3];
-        virtual uint16_t max_p_mod_pressure() = 0;
-        virtual bool is_release_shift() = 0;
-        uint16_t threshold_rpm = 0;
-        float spc_p_offset = 0;
-        uint16_t torque_req_val = 0;
+    // EGS compatibility functions
+    uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
+    uint16_t fun_0d83d4();
+    uint16_t calc_mod_min_abs_trq(int p_shift);
+    uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
+    uint16_t calc_mod_with_filling_trq(int p_shift);
+    uint16_t calc_mpc_sol_shift_ps(int p_shift, int p_mod);
+    void reset_for_next_phase();
+    uint16_t correct_shift_shift_pressure(int16_t pressure);
 
-        uint16_t calc_high_filling_p();
-        uint16_t calc_low_filling_p();
+    uint16_t set_p_apply_clutch_with_spring(int p);
 
-        bool trq_req_up_ramp = false;
-        uint16_t torque_req_out = 0;
-        bool trq_req_down_ramp = false;
-        uint8_t trq_req_timer = 0;
+    short calc_correction_trq(ShiftStyle style, short momentum);
+    int32_t momentum_pid[3];
+    virtual uint16_t max_p_mod_pressure() = 0;
+    virtual bool is_release_shift() = 0;
+    uint16_t threshold_rpm = 0;
+    float spc_p_offset = 0;
+    uint16_t torque_req_val = 0;
+
+    uint16_t calc_high_filling_p();
+    uint16_t calc_low_filling_p();
+
+    bool trq_req_up_ramp = false;
+    uint16_t torque_req_out = 0;
+    bool trq_req_down_ramp = false;
+    uint8_t trq_req_timer = 0;
 };
 
 // Helper functions

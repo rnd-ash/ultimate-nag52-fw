@@ -246,7 +246,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     uint8_t ret = STEP_RES_CONTINUE;
     if (0 == this->subphase_mod) {
         // Var setting
-        if (sid->shift_flags & SHIFT_FLAG_COAST != 0) {
+        if ((sid->shift_flags & SHIFT_FLAG_COAST) != 0) {
             this->timer_emergency = 10000 / 20; // 10 second timeout when coasting
         }
         else {

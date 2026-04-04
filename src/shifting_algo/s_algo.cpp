@@ -8,10 +8,6 @@ void ShiftingAlgorithm::reset_all_subphase_data() {
     this->timer_mod = 0;
     this->timer_shift = 0;
     this->timer_emergency = -1; // Disable emergency timer unless required
-    this->momentum_pid[0] = 0;
-    this->momentum_pid[1] = 0;
-    this->momentum_pid[2] = 0;
-    this->trq_adder = 0;
 }
 
 ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {

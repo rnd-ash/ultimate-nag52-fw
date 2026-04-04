@@ -17,7 +17,7 @@ struct SensorDataRaw {
 namespace Sensors {
     /**
      * @brief Initializes the sensor subsystem of the gearbox
-     * 
+     *
      * @return true If initialization OK
      * @return false if initialization failed
      */

@@ -5,11 +5,14 @@
 #include "sensors.h"
 
 
-ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
-: PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
+ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char* name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t phase_duration_ms)
+    : PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
     this->saved_current_target = 0;
     this->current_target = 0;
     this->channel = channel;
+    this->pid[0] = 0;
+    this->pid[1] = 0;
+    this->pid[2] = 0;
 }
 
 void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
@@ -17,11 +20,7 @@ void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float tempera
 }
 
 void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
-    if (target_ma > 1500) {
-        target_ma = 1500;
-    }
     this->current_target = target_ma;
-    //this->c = 0;
 }
 
 uint16_t ConstantCurrentSolenoid::get_current_target() {
@@ -29,38 +28,47 @@ uint16_t ConstantCurrentSolenoid::get_current_target() {
 }
 
 float ConstantCurrentSolenoid::get_trim() {
-    return 1.0+this->internal_trim_factor;
+    return 1.0 + ((float)this->trim_pwm / 4096.0);
 }
 
 void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
-    if(battery > 9000) {
-        // When the previous cycle was ran
-        float max_current = ((float)battery / (float)SOL_CURRENT_SETTINGS.cc_reference_resistance);
-        uint16_t current_targ_when_reading = this->saved_current_target;
+    // Pull in new values
+    uint16_t prev_current_req = this->saved_current_target;
+    if (battery > 9000 && this->current_target != 0) {
+        // Assume 14.4V for stability
+        int32_t max_current_ma = SOL_CURRENT_SETTINGS.cc_vref_solenoid / SOL_CURRENT_SETTINGS.cc_reference_resistance;
+        uint16_t observed_current = this->get_current();
         this->saved_current_target = this->current_target;
-        int16_t error = MIN(current_targ_when_reading - this->get_current(), 200);
-        uint16_t jump = abs(this->saved_current_target - current_targ_when_reading);
-        if (current_targ_when_reading >= 200 && this->current_target >= 200 && abs(error) > 10 && jump <= 500) {
-            // Compensate
-            
-            // 1. Error as a proportion of max current
-            float error_f = (float)error / max_current;
-            // 2. Set trim
-            this->internal_trim_factor += error_f/2;
+        int32_t error = 1000 * ((int32_t)prev_current_req - (int32_t)observed_current) / (float)max_current_ma;
+        if (prev_current_req >= 200 && observed_current >= 200) {
+            // PID Compensate
+            int32_t p = SOL_CURRENT_SETTINGS.cc_pid_p;
+            int32_t i = SOL_CURRENT_SETTINGS.cc_pid_i;
+            int32_t d = SOL_CURRENT_SETTINGS.cc_pid_d;
+
+            int32_t p_v = (p * error) / 1000;
+            pid[1] += error;
+            pid[1] = MAX(INT16_MIN, MIN(INT16_MAX, pid[1]));
+
+            int32_t i_v = (i * pid[1]) / 1000;
+            int32_t d_v = (d * (error - pid[0])) / 1000;
+            pid[0] = error;
+            trim_pwm = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
         }
-        if (this->internal_trim_factor > 0.5) {
-            this->internal_trim_factor = 0.5;
-        } else if (this->internal_trim_factor < -0.5) {
-            this->internal_trim_factor = -0.5;
-        }
-        uint16_t targ_pwm = 0;
-        if (this->saved_current_target != 0 && this->current_target != 0) {
-            targ_pwm = MAX(0, (4096.0 * (this->current_target/max_current)));
-            // RMS trim factor
-            targ_pwm += targ_pwm * (this->internal_trim_factor * (max_current/this->current_target));
-        }
-        this->pwm = MIN(targ_pwm, 4096);
-        ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, targ_pwm);
-        ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+        float mult = ((float)this->current_target / (float)max_current_ma);
+        int16_t targ_pwm = MAX(0, (4096.0 * mult));
+        targ_pwm += ((float)this->trim_pwm * (mult));
+        this->pwm = MAX(0, MIN(targ_pwm, 4096));
     }
+    else {
+        this->saved_current_target = 0;
+        this->pwm = 0;
+        // Don't reset PID information since this slows down reaction when solenoid comes back online
+        //this->trim_pwm = 0;
+        //this->pid[0] = 0;
+        //this->pid[1] = 0;
+        //this->pid[2] = 0;
+    }
+    ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, this->pwm);
+    ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
 }

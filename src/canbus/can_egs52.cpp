@@ -21,6 +21,10 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs418.SCHALT = false; // Auto is 0, manual is 1
     this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
+    this->gs418.ESV_BRE = true; // When switching on
+    this->gs418.FMRAD = 0x7FF;
+    // Fix for W220
+    this->gs418.WHST = GS_418h_WHST_EGS52::P;
     gs218.CALID_CVN_AKT = true;
     gs218.G_G = false;
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on

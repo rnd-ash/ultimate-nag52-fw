@@ -108,6 +108,12 @@ typedef struct {
     float cc_reference_resistance;
     // MPC and SPC solenoids resistance reference temperature
     float cc_reference_temp;
+    // MPC and SPC current control PID settings - P component
+    int16_t cc_pid_p;
+    // MPC and SPC current control PID settings - I component
+    int16_t cc_pid_i;
+    // MPC and SPC current control PID settings - D component
+    int16_t cc_pid_d;
     
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
@@ -118,7 +124,9 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_temp_coefficient_wires = 0.393,
     .cc_reference_resistance = 5.3,
     .cc_reference_temp = 25,
-    //.cc_max_adjust_per_step = 2,
+    .cc_pid_p = 100,
+    .cc_pid_i = 50,
+    .cc_pid_d = 0
 };
 
 // Shift program basic settings

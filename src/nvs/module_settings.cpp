@@ -106,7 +106,7 @@ esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
 
 esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
     uint8_t mod_id = module_id & 0b1111111;
-    bool use_default = (mod_id & BIT(7)) != 0;
+    bool use_default = (module_id & BIT(7)) != 0;
     if (mod_id == TCC_MODULE_SETTINGS_SCN_ID) {
         READ_SETTINGS_TO_BUFFER(TCC, buffer_len, buffer, use_default);
     } else if (mod_id == SOL_MODULE_SETTINGS_SCN_ID) {

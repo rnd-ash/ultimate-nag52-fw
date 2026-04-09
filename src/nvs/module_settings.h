@@ -39,6 +39,7 @@ typedef struct {
     LinearInterpSetting tcc_temp_multiplier;
     // Prefill pressure for the torque converter. When going from Open->Slipping, 
     // a burst of pressure is first sent in order to fill the converter faster
+    // UNIT: mBar
     uint16_t prefill_pressure;
     // Number of 20ms cycles to hold the converter at prefill_pressure for when
     // prefilling
@@ -103,10 +104,13 @@ typedef struct {
     uint16_t cc_vref_solenoid;
     // The temperature coefficient of the solenoid wiring and coils.
     // DO NOT TOUCH THIS. It is intended for debugging ONLY!
+    // UNIT: Ohm/deg C
     float cc_temp_coefficient_wires;
     // MPC and SPC solenoids reference resistance at cc_reference_temp
+    // UNIT: Ohm
     float cc_reference_resistance;
     // MPC and SPC solenoids resistance reference temperature
+    // UNIT: C
     float cc_reference_temp;
     // MPC and SPC current control PID settings - P component
     int16_t cc_pid_p;
@@ -114,6 +118,11 @@ typedef struct {
     int16_t cc_pid_i;
     // MPC and SPC current control PID settings - D component
     int16_t cc_pid_d;
+    // MPC and SPC solenoid current offset to correct for ADC/Board characteristics
+    //
+    // 1.3 boards - (Up to -100mA is recommended)
+    // UNIT: mA
+    int16_t cc_offset_ma;
     
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
@@ -126,7 +135,8 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .cc_reference_temp = 25,
     .cc_pid_p = 800,
     .cc_pid_i = 500,
-    .cc_pid_d = 5
+    .cc_pid_d = 0,
+    .cc_offset_ma = 0,
 };
 
 // Shift program basic settings
@@ -306,6 +316,7 @@ typedef struct {
     uint16_t output_rpm_disable_trq_req;
     // Below this RPM, a clutch will be considered 'stationary'
     // which triggers the clutch syncronization phases
+    // UNIT: RPM
     uint16_t clutch_stationary_rpm;
     // Clutch inertia control PID algorithm 'P' value (upshifts)
     int16_t pid_p_val_upshift;
@@ -320,7 +331,8 @@ typedef struct {
     // 'raw' values are pedal position (0-250 = 0-100%), 'new' values
     // are the output, in Nm/20ms reduction
     LinearInterpSetting torque_loss_speed_pedal_pos;
-    // SPC ramp speed in mBar/20ms
+    // SPC ramp speed
+    // UNIT: mBar/20ms
     uint8_t spc_ramp_speed;
     // SPC ramp multiplier in 'Manual' mode
     float spc_ramp_multi_m;
@@ -383,6 +395,7 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
 typedef struct {
     // Number of 20ms cycles before garage shift times out
     // and the TCU tries again
+    // UNIT: cycles
     uint16_t timeout_cycles;
     // Prefilling time for B2 clutch (For N to D shift)
     // 'raw' values are the ATF Temperature (In Celcius), 'new' values
@@ -435,14 +448,19 @@ const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
 typedef struct {
     // Below this RPM, a clutch will be considered 'stationary'
     // which triggers the clutch syncronization phases
+    // UNIT: RPM
     uint16_t clutch_stationary_rpm;
     // Number of 20ms cycles for the overlap phase when at low torque (<= 2x Drag torque)
+    // UNIT: cycles
     uint8_t overlap_cycles_low_trq;
     // Number of 20ms cycles for the overlap phase when at high torque (>= 10x Drag torque)
+    // UNIT: cycles
     uint8_t overlap_cycles_high_trq;
     // Adder to overlap_cycles_low_trq for 1-2 at low torque
+    // UNIT: cycles
     uint8_t overlap_cycles_low_trq_adder_1_2;
     // Adder to overlap_cycles_high_trq for 1-2 at low torque
+    // UNIT: cycles
     uint8_t overlap_cycles_high_trq_adder_1_2;
     // Adder to overlap_cycles based on RPM. Increasing the output minimum can help
     // with harsh shifting at lower RPMs
@@ -462,12 +480,16 @@ typedef struct {
     // Torque adder factor for downshifting in race profile
     float adder_trq_multi_race_dn;
     // Number of 20ms cycles for the torque sync phase when at low torque (<= 2x Drag torque)
+    // UNIT: cycles
     uint8_t sync_cycles_low_trq;
     // Number of 20ms cycles for the torque sync phase when at high torque (>= 10x Drag torque)
+    // UNIT: cycles
     uint8_t sync_cycles_high_trq;
     // Adder to sync_cycles_low_trq for 1-2 at low torque
+    // UNIT: cycles
     uint8_t sync_cycles_low_trq_adder_1_2;
     // Adder to sync_cycles_high_trq for 1-2 at low torque
+    // UNIT: cycles
     uint8_t sync_cycles_high_trq_adder_1_2;
     // Adder to sync_cycles based on RPM. Increasing the output minimum can help
     // with harsh shifting at lower RPMs

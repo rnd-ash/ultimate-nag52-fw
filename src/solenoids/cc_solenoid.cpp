@@ -31,6 +31,11 @@ float ConstantCurrentSolenoid::get_trim() {
     return 1.0 + ((float)this->trim_pwm / 4096.0);
 }
 
+uint16_t ConstantCurrentSolenoid::get_current(void) const {
+    uint16_t raw = PwmSolenoid::get_current();
+    return MAX(0, raw + SOL_CURRENT_SETTINGS.cc_offset_ma);
+}
+
 void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
     // Pull in new values
     uint16_t prev_current_req = this->saved_current_target;

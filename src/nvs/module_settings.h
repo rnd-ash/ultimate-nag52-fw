@@ -340,10 +340,10 @@ typedef struct {
 const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     .output_rpm_disable_trq_req = 1500,
     .clutch_stationary_rpm = 130,
-    .pid_p_val_upshift = -250,
-    .pid_i_val_upshift = -10,
-    .pid_p_val_downshift = 300,
-    .pid_i_val_downshift = 10,
+    .pid_p_val_upshift = -150,
+    .pid_i_val_upshift = -5,
+    .pid_p_val_downshift = 200,
+    .pid_i_val_downshift = 5,
     .torque_loss_speed_pedal_pos = {
         .new_min = 0.1,
         .new_max = 0.5,
@@ -556,12 +556,12 @@ const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
         .raw_min = 1500,
         .raw_max = 6000
     },
-    .pid_p_val_upshift = 250,
-    .pid_i_val_upshift = 20,
-    .pid_d_val_upshift = 40,
-    .pid_p_val_downshift = -250,
-    .pid_i_val_downshift = -10,
-    .pid_d_val_downshift = -20
+    .pid_p_val_upshift = 150,
+    .pid_i_val_upshift = 15,
+    .pid_d_val_upshift = 30,
+    .pid_p_val_downshift = -150,
+    .pid_i_val_downshift = -5,
+    .pid_d_val_downshift = -15
 };
 
 // module settings

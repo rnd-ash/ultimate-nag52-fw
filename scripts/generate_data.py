@@ -238,7 +238,11 @@ for line in f_in[2:]:
         if "UNIT: " in line:
             unit = line.split("UNIT: ")[1].strip()
         else:
-            desc += line.strip().removeprefix("//").removesuffix("\n")
+            l = line.replace("//","").lstrip()
+            if not l:
+                desc += "\n"
+            else:
+                desc += l
         continue
 
     if line.startswith("#define"):

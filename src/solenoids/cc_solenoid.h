@@ -11,6 +11,7 @@ public:
     void set_current_target(uint16_t target_ma);
     void update_when_reading(uint16_t battery);
     uint16_t get_current_target();
+    uint16_t get_current(void) const;
     float get_trim();
 private:
     int16_t trim_pwm = 0;

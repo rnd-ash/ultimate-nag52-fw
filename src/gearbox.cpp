@@ -124,7 +124,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
 
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
-    this->shift_adapter = new ShiftAdaptationSystem(&this->gearboxConfig);
+    this->shift_adapter = new ShiftAdaptationSystem();
     pressure_manager = this->pressure_mgr;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
@@ -355,7 +355,6 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
 
-        uint32_t prefill_adapt_flags = this->shift_adapter->check_prefill_adapt_conditions_start(&this->sensor_data, req_lookup);
         pressure_manager->register_shift_pressure_data(&p_now);
 
         ShiftClutchData now_cs = ClutchSpeedModel::get_shifting_clutch_speeds(this->speed_sensors, req_lookup, this->gearboxConfig.bounds);
@@ -390,7 +389,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .ptr_r_clutch_speeds = &now_cs,
             .ptr_w_pressures = &p_now,
             .ptr_w_trq_req = &trd,
-            .tcc = this->tcc
+            .tcc = this->tcc,
+            .adaptation_mgr = this->shift_adapter,
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);

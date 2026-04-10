@@ -43,6 +43,7 @@ struct ShiftInterfaceData {
     ShiftPressures* ptr_w_pressures;
     TorqueRequstData* ptr_w_trq_req;
     TorqueConverter* tcc;
+    ShiftAdaptationSystem* adaptation_mgr;
 };
 
 class ShiftingAlgorithm {

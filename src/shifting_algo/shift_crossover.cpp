@@ -210,6 +210,10 @@ uint8_t CrossoverShift::phase_fill() {
                 if (sid->adaptation_mgr) {
                     sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, -1);
                 }
+            } else if (this->timer_shift == 0 && sid->ptr_r_clutch_speeds->off_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+                if (sid->adaptation_mgr) {
+                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, +1);
+                }
             }
             ret = PHASE_OVERLAP;
         }
@@ -265,10 +269,10 @@ uint8_t CrossoverShift::phase_overlap() {
         this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     }
 
-    uint16_t c_trq_apply = pm->p_clutch_with_coef(
+    uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
         sid->applying,
-        abs_input_trq + this->trq_adder - 0, // Trq adapt adder - Trq req adapt adder
+        (int)abs_input_trq + this->trq_adder - 0, // Trq adapt adder - Trq req adapt adder
         CoefficientTy::Sliding
     );
 
@@ -293,12 +297,6 @@ uint8_t CrossoverShift::phase_overlap() {
     ) {
         // Next phase on clutch movement or timeout
         sid->tcc->shift_start(this->upshifting, false);
-        if (this->timer_shift == 0 && adapting && sid->ptr_r_clutch_speeds->off_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
-            // Increase fill time
-            if (sid->adaptation_mgr) {
-                sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, +1);
-            }
-        }
         ret = PHASE_OVERLAP2;
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
@@ -450,7 +448,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             sid->tcc->shift_end();
             // Analyze torque adder
             int offset = this->correction_trq/10;
-            if (nullptr != sid->adaptation_mgr && abs(offset) > 1 && abs_input_trq < VEHICLE_CONFIG.engine_drag_torque/5.0) {
+            if (nullptr != sid->adaptation_mgr && abs(this->correction_trq) > abs(this->trq_adder) && abs_input_trq < VEHICLE_CONFIG.engine_drag_torque/5.0) {
                 sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, offset);
             }
             ret = PHASE_MAX_PRESSURE;

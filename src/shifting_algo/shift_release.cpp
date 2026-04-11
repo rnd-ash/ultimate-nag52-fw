@@ -434,7 +434,7 @@ uint16_t ReleasingShift::calc_mod_overlap() {
     if (sid->change == GearChange::_3_2 || sid->change == GearChange::_2_1) {
         if (((sid->shift_flags & SHIFT_FLAG_COAST) != 0) && sd->pedal_pos < 10) {
             int trq_req = (this->torque_req_val * sd->tcc_trq_multiplier);
-            int trq = MAX(0 + this->correction_trq - this->loss_torque - trq_req, this->minimum_mod_reduction_trq);
+            int trq = MAX(this->trq_adder + this->correction_trq - this->loss_torque - trq_req, this->minimum_mod_reduction_trq);
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod = MAX(p_mod, 0);
             p_mod *= 0.8;
@@ -442,7 +442,7 @@ uint16_t ReleasingShift::calc_mod_overlap() {
             return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
         }
         else {
-            int trq = MAX(0, abs_input_trq + 0 + this->correction_trq - this->loss_torque);
+            int trq = MAX(0, abs_input_trq + this->trq_adder + this->correction_trq - this->loss_torque);
             trq = MAX(trq, this->minimum_mod_reduction_trq);
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod *= 0.8;
@@ -451,7 +451,7 @@ uint16_t ReleasingShift::calc_mod_overlap() {
         }
     }
     else {
-        int trq = MAX(0, abs_input_trq + 0 + this->correction_trq - loss_torque - overlap_torque);
+        int trq = MAX(0, abs_input_trq + this->trq_adder + this->correction_trq - loss_torque - overlap_torque);
         int p = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
         p = MAX(0, p);
         return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p);

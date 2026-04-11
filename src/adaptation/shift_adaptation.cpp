@@ -100,13 +100,13 @@ esp_err_t ShiftAdaptationSystem::reset() {
         this->prefill_time_map->reset_from_flash();
     }
     if (nullptr != this->spc_offset_map) {
-        this->prefill_time_map->reset_from_flash();
+        this->spc_offset_map->reset_from_flash();
     }
     if (nullptr != this->freeing_torque_offset) {
-        this->prefill_time_map->reset_from_flash();
+        this->freeing_torque_offset->reset_from_flash();
     }
     if (nullptr != this->applying_torque_offset) {
-        this->prefill_time_map->reset_from_flash();
+        this->applying_torque_offset->reset_from_flash();
     }
     return ESP_OK;
 }

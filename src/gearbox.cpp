@@ -391,6 +391,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .ptr_w_trq_req = &trd,
             .tcc = this->tcc,
             .adaptation_mgr = this->shift_adapter,
+            .manual_shift = manually_requested
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);

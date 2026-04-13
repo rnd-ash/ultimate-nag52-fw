@@ -38,6 +38,8 @@ private:
     bool trq_req_up_ramp = false;
     bool adapting = false;
     uint16_t torque_req_val = 0;
+    int8_t fill_cycles_adapt_val = 0;
+    int16_t torque_adapt_val = 0;
 };
 
 #endif

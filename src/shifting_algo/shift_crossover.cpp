@@ -23,6 +23,10 @@ uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
     float torque = this->get_trq_adder_map_val() + this->get_trq_boost_adder() + this->torque_req_val;
+    if (nullptr != sid->adaptation_mgr) {
+        torque += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+    }
+    torque = MAX(0, torque);
     float bVar1 = 6;
     float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     float threshold = (torque*5*(ramp_cycles+(bVar1*2))) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
@@ -130,7 +134,8 @@ uint8_t CrossoverShift::phase_fill() {
             this->adaptation_trq_limit = VEHICLE_CONFIG.engine_drag_torque/5.0;
             if (
                 abs_input_trq < this->adaptation_trq_limit && sd->input_rpm > 1100 &&
-                sid->change != GearChange::_4_3 && sid->change != GearChange::_3_2 
+                sid->change != GearChange::_4_3 && sid->change != GearChange::_3_2 &&
+                !sid->manual_shift
             ) {
                 // Adaptation filling
                 this->subphase_shift = 4;
@@ -190,8 +195,8 @@ uint8_t CrossoverShift::phase_fill() {
         this->mod_sol_pressure = this->calc_overlap2_mod();
         if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             // Remove 1 cycle for prefill (Clutch moved too fast)
-            if (sid->adaptation_mgr && sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
-                sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, -(18-this->timer_shift)/4);
+            if (sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+                this->fill_cycles_adapt_val = -(18-this->timer_shift)/4;
                 ret = PHASE_OVERLAP;
             } else {
                 this->timer_shift = 16; // field 2a
@@ -207,13 +212,9 @@ uint8_t CrossoverShift::phase_fill() {
             // Calculate how many additional cycles it took to move the clutch, and add that to prefill info
             if (this->timer_shift != 0) {
                 // Moved a little too early, reduce filling a tiny bit
-                if (sid->adaptation_mgr) {
-                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, -1);
-                }
+                this->fill_cycles_adapt_val = -1;
             } else if (this->timer_shift == 0 && sid->ptr_r_clutch_speeds->off_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
-                if (sid->adaptation_mgr) {
-                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, +1);
-                }
+                this->fill_cycles_adapt_val = 1;
             }
             ret = PHASE_OVERLAP;
         }
@@ -247,6 +248,11 @@ uint8_t CrossoverShift::phase_overlap() {
     this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
 
     if (0 == subphase_shift) {
+        // Check previous phase adaptation
+        if (nullptr != sid->adaptation_mgr && 0 != this->fill_cycles_adapt_val && adapting) {
+            sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, this->fill_cycles_adapt_val);
+        }
+
         this->trq_adder = 0;
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap
         this->p_apply_overlap_begin = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
@@ -269,10 +275,10 @@ uint8_t CrossoverShift::phase_overlap() {
         this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     }
 
-    uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
+    int16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
         sid->applying,
-        (int)abs_input_trq + this->trq_adder - 0, // Trq adapt adder - Trq req adapt adder
+        (int)abs_input_trq + this->trq_adder - 0, // Trq req adapt adder
         CoefficientTy::Sliding
     );
 

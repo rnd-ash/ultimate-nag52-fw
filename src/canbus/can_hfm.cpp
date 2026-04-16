@@ -253,7 +253,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
                     {
                         result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
                     }
-                    result.m_converted_driver = LIMIT(result.m_converted_driver, result.m_min, result.m_max); // Limit driver demanded torque to min and max torque
+                    result.m_converted_driver = LIMIT(result.m_converted_driver, 0, result.m_max); // Limit driver demanded torque to min and max torque
                     
                     bool freeze = MMAX_EGS;
                     // Change torque values based on freezing or not
@@ -267,7 +267,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
                     }
 
                     // calculating torque loss due to air conditioning, if the air conditioning is on
-                    result.m_converted_driver -= m_loss_ac;
+                    // result.m_converted_driver -= m_loss_ac;
                     result.m_converted_static -= m_loss_ac;
                 }
             }

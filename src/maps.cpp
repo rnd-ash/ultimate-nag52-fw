@@ -343,21 +343,9 @@ const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
           0,   0,   0,   0,   0,   0,   0,   0,   0,   5,  10, // Input 6000 RPM 
 };
 
-
-const int16_t PREFILL_ADAPT_PREFILL_PRESSURE_MAP[] = {
+const int16_t GEAR_ADAPT_MAP[] = {
 //  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
       0,   0,   0,   0,   0,   0,   0,   0
-};
-
-const int16_t PREFILL_ADAPT_PREFILL_TIMING_MAP[] = {
-//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
-    0,   0,   0,   0,   0,   0,   0,   0
-};
-
-// Values here are x100 (so 20 would be 0.2)
-const int16_t PREFILL_ADAPT_PREFILL_MAXTORQUE_MAP[] = {
-//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
-     20,  30,  40,  50,  50,  40,  30,  20
 };
 
 // maximum torque at given rpm in [Nm]

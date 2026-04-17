@@ -358,7 +358,7 @@ class EgsBaseCan {
 
         virtual void tx_frames(){};
         virtual void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {};
-        virtual void on_rx_done(const uint32_t now_ts) {};
+        virtual void on_rx_done(const uint32_t now_ts);
 
         bool send_messages = true;
 

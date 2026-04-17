@@ -775,17 +775,18 @@ void Gearbox::controller_loop()
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
-    egs_can_hal->set_safe_start(true);
     while (GET_CLOCK_TIME() < expire_check)
     {
+        // default behavior: deactivate start
+        is_start_safe = false;
         // Step 1. Aquire ALL Sensors
         TCUIO::update_io_layer();
 
-        this->shifter_pos = egs_can_hal->get_shifter_position(250);
+        this->shifter_pos = shifter->get_shifter_position();
         last_position = this->shifter_pos;
         if (this->shifter_pos == ShifterPosition::P || this->shifter_pos == ShifterPosition::N)
         {
-            egs_can_hal->set_safe_start(true);
+            is_start_safe = true;    
             break; // Default startup, OK
         }
         else if (this->shifter_pos == ShifterPosition::D)
@@ -991,8 +992,8 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
                 this->pressure_mgr->set_target_shift_pressure(4000);
             }
-            egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position(1000);
+            is_start_safe = lock_state;   
+            this->shifter_pos = shifter->get_shifter_position();
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||
@@ -1075,7 +1076,7 @@ void Gearbox::controller_loop()
             if (speeds_valid && is_fwd_gear(this->actual_gear))
             {
                 // Check our range restict (Only for TRRS)
-                switch (egs_can_hal->get_shifter_position(250)) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
+                switch (shifter->get_shifter_position()) { // Don't use shifter_pos, as that only registers D. Query raw selector pos
                 case ShifterPosition::FOUR:
                     this->restrict_target = GearboxGear::Fourth;
                     break;

@@ -405,13 +405,6 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
-void Egs51Can::set_safe_start(bool can_start) {
-    this->gs218.CAN_START = can_start;
-    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
-        ioexpander->set_start(can_start);
-    }
-}
-
 void Egs51Can::set_tcc_trq_multiplier(float multi) {
     float clamped = MAX(100, MIN(254, multi*100));
     gs218.TCC_MULTI = (uint8_t)clamped;

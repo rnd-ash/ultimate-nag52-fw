@@ -446,6 +446,9 @@ void ShiftingAlgorithm::analyze_adaptations() {
     // Analyze for wave pattern (Initially high then switches to negative)
     // Or the other way around, since this tends to mean filling needs
     // to be tweaked instead
+    if (sd->input_rpm < 1200) {
+        return;
+    }
     if (nullptr != sid->adaptation_mgr && 0 != this->fill_cycles_adapt_val) {
         // Fill adapting takes preference
         ESP_LOGI("SHIFT", "Ignoring PID adapt, filling has to be adjusted");

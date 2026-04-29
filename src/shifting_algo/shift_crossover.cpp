@@ -19,6 +19,7 @@ uint8_t CrossoverShift::max_shift_stage_id() {
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
+float ramp_lims[8] = {0.5, 0.9, 0.85, 0.0, 0.0, 0.0, 0.0, 0.0};
 // P1 - IDX
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
@@ -106,7 +107,6 @@ uint8_t CrossoverShift::step_internal(
     return ret;
 }
 
-
 uint8_t CrossoverShift::phase_fill() {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t high_filling_p = this->calc_high_filling_p();
@@ -116,10 +116,10 @@ uint8_t CrossoverShift::phase_fill() {
         this->timer_shift = sid->prefill_info.fill_cycles;
         if (this->sid->adaptation_mgr) {
             int8_t offset = sid->adaptation_mgr->get_prefill_cycles_offset(sid->applying);
-            if (((int16_t)(this->timer_shift) + offset) > 1) {
+            if (((int16_t)(this->timer_shift) + offset) > 0) {
                 this->timer_shift += offset;
             } else {
-                this->timer_shift = 1;
+                this->timer_shift = 0;
             }
         }
         this->subphase_shift += 1;
@@ -130,10 +130,9 @@ uint8_t CrossoverShift::phase_fill() {
         this->p_apply_clutch = set_p_apply_clutch_with_spring(high_filling_p);
         if (0 == this->timer_shift) {
             this->timer_shift = 3; // FILL_CAL->fill_ramp_time
-            // Roughly 2x drag torque
-            this->adaptation_trq_limit = VEHICLE_CONFIG.engine_drag_torque/5.0;
+            this->adaptation_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque*ramp_lims[sid->inf.map_idx])/10.0;
             if (
-                abs_input_trq < this->adaptation_trq_limit
+                abs_input_trq < this->adaptation_trq_limit && upshifting && !sid->manual_shift
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;

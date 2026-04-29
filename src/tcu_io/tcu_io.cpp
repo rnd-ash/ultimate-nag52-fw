@@ -112,9 +112,9 @@ esp_err_t TCUIO::setup_io_layer() {
         // We have a CAN Layer, continue
         Sensors::init_sensors();
     }
-    init_smoothed_sensor(&smoothed_sensor_n2_rpm, 5, 0);
-    init_smoothed_sensor(&smoothed_sensor_n3_rpm, 5, 0);
-    init_smoothed_sensor(&smoothed_sensor_out_rpm, 5, 0);
+    init_smoothed_sensor(&smoothed_sensor_n2_rpm, 3, 0);
+    init_smoothed_sensor(&smoothed_sensor_n3_rpm, 3, 0);
+    init_smoothed_sensor(&smoothed_sensor_out_rpm, 3, 0);
 
     init_smoothed_sensor(&smoothed_sensor_atf_temp, 12, 25); //250ms/20ms
     init_smoothed_sensor(&smoothed_sensor_vbatt, 12, 12000); // 250ms/20ms

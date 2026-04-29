@@ -193,24 +193,44 @@ typedef struct {
     //
     // UNIT: RPM
     uint16_t max_input_rpm;
-    // Adapt allowed for the K1 clutch
+    // Prefill time/pressure adapt allowed for the K1 clutch
     bool prefill_adapt_k1;
-    // Adapt allowed for the K2 clutch
+    // Prefill time/pressure adapt allowed for the K2 clutch
     bool prefill_adapt_k2;
-    // Adapt allowed for the K3 clutch
+    // Prefill time/pressure adapt allowed for the K3 clutch
     bool prefill_adapt_k3;
-    // Adapt allowed for the B1 brake
+    // Prefill time/pressure adapt allowed for the B1 brake
     bool prefill_adapt_b1;
-    // Adapt allowed for the B1 brake
+    // Prefill time/pressure adapt allowed for the B2 brake
     bool prefill_adapt_b2;
-    // The max pressure delta (+/-) allowed for any adaptation cell
+    // The max pressure delta (+/-) allowed for prefill adaptation
     //
     // UNIT: mBar
     uint16_t prefill_max_pressure_delta;
-    // The max time delta (+/-) allowed for any adaptation cell
+    // The max time delta (+/-) allowed for prefill adaptation
     //
     // UNIT: milliseconds
     uint16_t prefill_max_time_delta;
+    // Torque adaptation allowed for 1-2
+    bool adapt_trq_1_2;
+    // Torque adaptation allowed for 2-3
+    bool adapt_trq_2_3;
+    // Torque adaptation allowed for 3-4
+    bool adapt_trq_3_4;
+    // Torque adaptation allowed for 4-5
+    bool adapt_trq_4_5;
+    // Torque adaptation allowed for 2-1
+    bool adapt_trq_2_1;
+    // Torque adaptation allowed for 3-2
+    bool adapt_trq_3_2;
+    // Torque adaptation allowed for 4-3
+    bool adapt_trq_4_3;
+    // Torque adaptation allowed for 5-4
+    bool adapt_trq_5_4;
+    // Enable adaptation when manual shifting.
+    // It is disabled by default as this can
+    // cause shift latency
+    bool adaptation_when_manual_shifting;
     
 } __attribute__ ((packed)) ADP_MODULE_SETTINGS;
 
@@ -226,6 +246,15 @@ const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
     .prefill_adapt_b2 = true,
     .prefill_max_pressure_delta = 200,
     .prefill_max_time_delta = 200,
+    .adapt_trq_1_2 = true,
+    .adapt_trq_2_3 = true,
+    .adapt_trq_3_4 = true,
+    .adapt_trq_4_5 = true,
+    .adapt_trq_2_1 = true,
+    .adapt_trq_3_2 = true,
+    .adapt_trq_4_3 = true,
+    .adapt_trq_5_4 = true,
+    .adaptation_when_manual_shifting = false,
 };
 
 enum EwmSelectorType: uint8_t {

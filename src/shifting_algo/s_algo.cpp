@@ -28,6 +28,43 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
     };
 }
 
+ShiftingAlgorithm::ShiftingAlgorithm(ShiftInterfaceData* data)  {
+    this->sid = data;
+    if (Clutch::K1 == sid->applying) {
+        this->do_prefill_adapting = ADP_CURRENT_SETTINGS.prefill_adapt_k1;
+    } else if (Clutch::K2 == sid->applying) {
+        this->do_prefill_adapting = ADP_CURRENT_SETTINGS.prefill_adapt_k2;
+    } else if (Clutch::K3 == sid->applying) {
+        this->do_prefill_adapting = ADP_CURRENT_SETTINGS.prefill_adapt_k3;
+    } else if (Clutch::B1 == sid->applying) {
+        this->do_prefill_adapting = ADP_CURRENT_SETTINGS.prefill_adapt_b1;
+    } else if (Clutch::B2 == sid->applying) {
+        this->do_prefill_adapting = ADP_CURRENT_SETTINGS.prefill_adapt_b2;
+    } else {
+        this->do_prefill_adapting = false;
+    }
+
+    if (GearChange::_1_2 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_1_2;
+    } else if (GearChange::_2_3 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_2_3;
+    } else if (GearChange::_3_4 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_3_4;
+    } else if (GearChange::_4_5 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_4_5;
+    } else if (GearChange::_5_4 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_5_4;
+    } else if (GearChange::_4_3 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_4_3;
+    } else if (GearChange::_3_2 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_3_2;
+    } else if (GearChange::_2_1 == sid->change) {
+        this->do_torque_adapting = ADP_CURRENT_SETTINGS.adapt_trq_2_1;
+    } else {
+        this->do_prefill_adapting = false;
+    }
+}
+
 uint8_t ShiftingAlgorithm::step(
     uint8_t phase_id,
     uint16_t abs_input_torque,
@@ -64,6 +101,10 @@ uint8_t ShiftingAlgorithm::step(
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
+    this->update_adapt_conditions();
+    if(this->start_clutch_delay_count && sid->ptr_r_clutch_speeds->off_clutch_speed < 50) {
+        this->counter_late_clutch_release += 1;
+    }
     // -1 means not in use, 0 means timeout! 
     if (this->timer_emergency == 0) {
         // Only if we are continuing the same phase (Stuck)
@@ -89,6 +130,29 @@ uint8_t ShiftingAlgorithm::step(
     }
 
     return step_res;
+}
+
+void ShiftingAlgorithm::update_adapt_conditions() {
+    if (this->adaptation_conditions_ok) {
+        // Check ATF Temp
+        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+            ESP_LOGI("ADAPT", "Disabled, ATF out of range");
+            adaptation_conditions_ok = false;
+        }
+        if (sd->input_rpm < ADP_CURRENT_SETTINGS.min_input_rpm || sd->input_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
+            ESP_LOGI("ADAPT", "Disabled, Input RPM out of range");
+            adaptation_conditions_ok = false;
+        }
+        if (sid->manual_shift && !ADP_CURRENT_SETTINGS.adaptation_when_manual_shifting) {
+            ESP_LOGI("ADAPT", "Disabled, Manual shift");
+            adaptation_conditions_ok = false;
+        }
+        if (!this->adaptation_conditions_ok) {
+            // Torque adapt is turned on/off in each shift
+            // based on different conditions
+            this->do_prefill_adapting = false;
+        }
+    }
 }
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
@@ -319,6 +383,7 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
 
 
 short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
+    this->correction_trq_timestamp += 1;
     short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     if (this->upshifting) {
         this->target_turbine_speed -= ((momentum * 20) / intertia);
@@ -365,5 +430,67 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     momentum_pid[0] = error;
 
     int32_t ret = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
+
+    if (ret > this->correction_trq_max) {
+        this->correction_trq_max = ret;
+        this->correction_trq_max_timestamp = this->correction_trq_timestamp;
+    } else if (ret < this->correction_trq_min) {
+        this->correction_trq_min = ret;
+        this->correction_trq_min_timestamp = this->correction_trq_timestamp;
+    }
+    this->correction_trq_sum += ret;
     return (short)ret;
+}
+
+void ShiftingAlgorithm::analyze_adaptations() {
+    // Analyze for wave pattern (Initially high then switches to negative)
+    // Or the other way around, since this tends to mean filling needs
+    // to be tweaked instead
+    if (nullptr != sid->adaptation_mgr && 0 != this->fill_cycles_adapt_val) {
+        // Fill adapting takes preference
+        ESP_LOGI("SHIFT", "Ignoring PID adapt, filling has to be adjusted");
+        sid->adaptation_mgr->offset_prefill_cycles(sid->applying, this->fill_cycles_adapt_val);
+    } else if (do_torque_adapting && nullptr != sid->adaptation_mgr) {
+        int avg_trq = this->correction_trq_sum / this->correction_trq_timestamp;
+        ESP_LOGI("SHIFT", "PID_TRQ: MIN: %d@%d, MAX: %d@%d, END: %d@%d, AVG: %d. Clutch counter: %d",
+            this->correction_trq_min,
+            this->correction_trq_min_timestamp,
+
+            this->correction_trq_max,
+            this->correction_trq_max_timestamp,
+
+            this->correction_trq,
+            this->correction_trq_timestamp,
+
+            avg_trq,
+
+            this->counter_late_clutch_release
+        );
+
+        if (this->correction_trq < this->correction_trq_max && counter_late_clutch_release > 10) {
+            // Clutch was late to move (More than 200ms), but once clutch moved,
+            // the PID torque was far too high, so it tried to reduce it
+            // - This is indicative of low filling time
+            sid->adaptation_mgr->offset_prefill_cycles(sid->applying, counter_late_clutch_release/4);
+        } else if (counter_late_clutch_release < 10) {
+            // Clutch release was OK, so check PID outputs
+            if (this->correction_trq == this->correction_trq_max) {
+                // Continuous rise until the end
+                sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, this->correction_trq/10);
+            } else if (this->correction_trq == this->correction_trq_min) {
+                // Continuous fall
+                // - NOTE - Check if the clutch moved really fast
+                if (counter_late_clutch_release == 0) {
+                    // Release time was really quick
+                    sid->adaptation_mgr->offset_prefill_cycles(sid->applying, -1);
+                } else {
+                    // Release time OK, just too fast to engage
+                    sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, this->correction_trq/10);
+                }
+            }
+        }
+
+    } else {
+        ESP_LOGI("ADAPT", "Trq adapt disabled");
+    }
 }

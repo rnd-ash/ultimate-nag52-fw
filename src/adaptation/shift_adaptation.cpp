@@ -13,9 +13,8 @@
 ShiftAdaptationSystem::ShiftAdaptationSystem()
 {
     const int16_t adpt_map_x[8] = {0,1,2,3,4,5,6,7};
-    const int16_t adpt_map_xc[6] = {0,1,2,3,4,5};
     const int16_t adpt_map_y[1] = {1};
-    this->prefill_time_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_PREFILL_TIME, 6*1, adpt_map_xc, adpt_map_y, 6, 1, CLUTCH_ADAPT_MAP);
+    this->prefill_time_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_PREFILL_TIME, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
     this->applying_torque_offset = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_APPLYING_TRQ, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
     this->freeing_torque_offset = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_FREEING_TRQ, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
     this->spc_offset_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_SPC_OFFSET, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
@@ -37,10 +36,10 @@ esp_err_t ShiftAdaptationSystem::save(void) {
     return ESP_OK;
 }
 
-int8_t ShiftAdaptationSystem::get_prefill_cycles_offset(Clutch applying) {
+int8_t ShiftAdaptationSystem::get_prefill_cycles_offset(uint8_t shift_idx) {
     int16_t ret = 0;
     if (nullptr != this->prefill_time_map) {
-        ret = this->prefill_time_map->get_current_data()[(uint8_t)applying];
+        ret = this->prefill_time_map->get_current_data()[shift_idx];
     }
     return ret;
 }
@@ -61,18 +60,18 @@ int16_t ShiftAdaptationSystem::get_applying_torque_offset(uint8_t shift_idx) {
     return ret;
 }
 
-void ShiftAdaptationSystem::offset_prefill_cycles(Clutch applying, int8_t offset) {
+void ShiftAdaptationSystem::offset_prefill_cycles(uint8_t shift_idx, int8_t offset) {
     if (nullptr != this->prefill_time_map) {
         int16_t* ptr = this->prefill_time_map->get_current_data();
-        ptr[(uint8_t)applying] += offset;
-        if (ptr[(uint8_t)applying] > ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
-            ptr[(uint8_t)applying] = ADP_CURRENT_SETTINGS.prefill_max_time_delta;
+        ptr[shift_idx] += offset;
+        if (ptr[shift_idx] > ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
+            ptr[shift_idx] = ADP_CURRENT_SETTINGS.prefill_max_time_delta;
             ESP_LOGW("ADAPT", "Prefill cycles min limit reached");
-        } else if (ptr[(uint8_t)applying] < -ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
-            ptr[(uint8_t)applying] = -ADP_CURRENT_SETTINGS.prefill_max_time_delta;
+        } else if (ptr[shift_idx] < -ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
+            ptr[shift_idx] = -ADP_CURRENT_SETTINGS.prefill_max_time_delta;
             ESP_LOGW("ADAPT", "Prefill cycles min limit reached");
         } else {
-            ESP_LOGI("ADAPT", "Prefill cycles offset by %d to %d", offset, ptr[(uint8_t)applying]);
+            ESP_LOGI("ADAPT", "Prefill cycles offset by %d to %d", offset, ptr[shift_idx]);
         }
     }
 }

@@ -12,7 +12,7 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
     this->trq_req_timer = 3; // 100ms for torque request down ramp
     this->cycles_high_filling = data->prefill_info.fill_cycles;
     if (data->adaptation_mgr) {
-        int8_t offset = data->adaptation_mgr->get_prefill_cycles_offset(sid->applying);
+        int8_t offset = data->adaptation_mgr->get_prefill_cycles_offset(sid->inf.map_idx);
         if (((int16_t)(this->cycles_high_filling) + offset) > 1) {
             this->cycles_high_filling += offset;
         } else {

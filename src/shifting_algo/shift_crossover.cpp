@@ -20,7 +20,7 @@ uint8_t CrossoverShift::max_shift_stage_id() {
 }
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
-float ramp_lims[8] = {1.25, 1.0, 0.85, 0.0, 0.0, 0.0, 0.0, 0.0};
+float ramp_lims[8] = {0.2, 0.5, 0.85, 0.0, 0.0, 0.0, 0.0, 0.0};
 // P1 - IDX
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
@@ -123,11 +123,11 @@ uint8_t CrossoverShift::phase_fill() {
         // Set vars
         this->timer_shift = sid->prefill_info.fill_cycles;
         if (this->sid->adaptation_mgr) {
-            int8_t offset = sid->adaptation_mgr->get_prefill_cycles_offset(sid->applying);
-            if (((int16_t)(this->timer_shift) + offset) > 1) {
+            int8_t offset = sid->adaptation_mgr->get_prefill_cycles_offset(sid->inf.map_idx);
+            if (((int16_t)(this->timer_shift) + offset) > 0) {
                 this->timer_shift += offset;
             } else {
-                this->timer_shift = 1;
+                this->timer_shift = 0;
             }
         }
         this->cycles_high_filling = this->timer_shift;
@@ -140,7 +140,7 @@ uint8_t CrossoverShift::phase_fill() {
         if (0 == this->timer_shift) {
             this->adaptation_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque*ramp_lims[sid->inf.map_idx])/10.0;
             if (
-                abs_input_trq < this->adaptation_trq_limit && upshifting && !sid->manual_shift
+                abs_input_trq < this->adaptation_trq_limit && upshifting
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;
@@ -152,7 +152,6 @@ uint8_t CrossoverShift::phase_fill() {
                 this->fill_via_ramp = false;
                 this->cycles_ramp_to_low_filling = 3;
                 this->cycles_low_filling = 5;
-
                 this->timer_shift = cycles_ramp_to_low_filling;
             }
         }
@@ -160,7 +159,6 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     } 
-    // Static filling (Torque too high for adaptation)
     else if (2 == this->subphase_shift) {
         // Ramp to low filling P
         uint16_t targ = this->set_p_apply_clutch_with_spring(low_filling_p);
@@ -182,9 +180,6 @@ uint8_t CrossoverShift::phase_fill() {
             ret = PHASE_OVERLAP;
         }
     }
-    // Adaptation fill ramping
-    
-    // TODO - Abort on torque violations
     else if (4 == this->subphase_shift) {
         // Drop to 0 mBar for adapting to start (Pre ramping)
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(0);
@@ -213,17 +208,15 @@ uint8_t CrossoverShift::phase_fill() {
     if (this->subphase_shift < 4) {
         // Early exit check when not adapting
         if (
-            abs_input_trq < this->adaptation_trq_limit*2 &&
-            !sid->manual_shift &&
-            abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > CRS_CURRENT_SETTINGS.clutch_stationary_rpm &&
+            sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm &&
             (
                 (
                     this->upshifting &&
-                    sd->converted_driver_torque > this->adaptation_trq_limit
+                    sd->converted_driver_torque > VEHICLE_CONFIG.engine_drag_torque/10.0
                 ) ||
                 (
                     !this->upshifting &&
-                    sd->converted_driver_torque < -this->adaptation_trq_limit
+                    sd->converted_driver_torque < -VEHICLE_CONFIG.engine_drag_torque/10.0
                 )
             )
         )  {
@@ -464,7 +457,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             // Analyze adaptations
             if (nullptr != sid->adaptation_mgr) {
                 if (this->do_fill_time_adaptation && 0 != result_fill_time_adaptation) {
-                    sid->adaptation_mgr->offset_prefill_cycles(sid->applying, result_fill_time_adaptation);
+                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, result_fill_time_adaptation);
                 } else if (result_fill_time_adaptation == 0) {
                     // No fill adaptation observation - Do torque adaptation
                     if (abs(this->correction_trq) > abs(this->trq_adder)) {

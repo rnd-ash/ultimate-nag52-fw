@@ -143,28 +143,25 @@ protected:
     uint16_t calc_high_filling_p();
     uint16_t calc_low_filling_p();
 
+    void adaptation_step();
+
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
     bool trq_req_down_ramp = false;
     uint8_t trq_req_timer = 0;
 
-    int16_t correction_trq_max = INT16_MIN;
-    int16_t correction_trq_min = INT16_MAX;
-    uint16_t correction_trq_max_timestamp = 0;
-    uint16_t correction_trq_min_timestamp = 0;
-    uint16_t correction_trq_timestamp = 0;
-    int32_t correction_trq_sum = 0;
-
-    void analyze_adaptations();
-    void update_adapt_conditions();
-
     bool adaptation_conditions_ok = true;
-    bool do_prefill_adapting = true;
-    bool do_torque_adapting = true;
+    
+    bool do_fill_time_adaptation = false;
+    bool do_fill_pressure_adaptation = false;
+    bool do_torque_adaptation = false;
+    bool end_of_fill_time_adapt = false;
 
-    uint16_t counter_late_clutch_release = 0;
-    bool start_clutch_delay_count = false;
-    int8_t fill_cycles_adapt_val = 0;
+    short rpm_adapt_off_clutch = 0;
+
+    uint8_t fill_time_adaptation_stage = 0;
+    uint8_t fill_pressure_adaptation_stage = 0;
+    uint8_t torque_adaptation_stage = 0;
 };
 
 // Helper functions

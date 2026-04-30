@@ -13,7 +13,7 @@
 ShiftAdaptationSystem::ShiftAdaptationSystem()
 {
     const int16_t adpt_map_x[8] = {0,1,2,3,4,5,6,7};
-    const int16_t adpt_map_xc[8] = {0,1,2,3,4,5};
+    const int16_t adpt_map_xc[6] = {0,1,2,3,4,5};
     const int16_t adpt_map_y[1] = {1};
     this->prefill_time_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_PREFILL_TIME, 6*1, adpt_map_xc, adpt_map_y, 6, 1, CLUTCH_ADAPT_MAP);
     this->applying_torque_offset = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_APPLYING_TRQ, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);

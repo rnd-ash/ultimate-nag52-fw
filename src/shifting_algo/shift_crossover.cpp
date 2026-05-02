@@ -121,16 +121,16 @@ uint8_t CrossoverShift::phase_fill() {
     uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
         // Set vars
-        this->timer_shift = sid->prefill_info.fill_cycles;
+        this->cycles_high_filling = sid->prefill_info.fill_cycles;
         if (this->sid->adaptation_mgr) {
             int8_t offset = sid->adaptation_mgr->get_prefill_cycles_offset(sid->inf.map_idx);
-            if (((int16_t)(this->timer_shift) + offset) > 0) {
-                this->timer_shift += offset;
+            if (((int16_t)(this->cycles_high_filling) + offset) > 0) {
+                this->cycles_high_filling += offset;
             } else {
-                this->timer_shift = 0;
+                this->cycles_high_filling = 0;
             }
         }
-        this->cycles_high_filling = this->timer_shift;
+        this->timer_shift = this->cycles_high_filling;
         this->subphase_shift += 1;
         this->timer_emergency = -1;
     }
@@ -138,9 +138,9 @@ uint8_t CrossoverShift::phase_fill() {
         // High filling
         this->p_apply_clutch = set_p_apply_clutch_with_spring(high_filling_p);
         if (0 == this->timer_shift) {
-            this->adaptation_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque*ramp_lims[sid->inf.map_idx])/10.0;
+            this->ramp_filling_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque*ramp_lims[sid->inf.map_idx])/10.0;
             if (
-                abs_input_trq < this->adaptation_trq_limit && upshifting
+                abs_input_trq < this->ramp_filling_trq_limit && upshifting
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;
@@ -206,7 +206,7 @@ uint8_t CrossoverShift::phase_fill() {
     }
 
     if (this->subphase_shift < 4) {
-        // Early exit check when not adapting
+        // normal filling exit check
         if (
             sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm &&
             (
@@ -223,21 +223,8 @@ uint8_t CrossoverShift::phase_fill() {
             ret = PHASE_OVERLAP;
         }
     } else {
-        // Early exit check when adapting
-        // We require higher clutch speed, and torque violation,
-        // Low clutch speeds (Stationary) shifting keeps this adaptation shift for smooth
-        // standstill shifting
-        if (sid->ptr_r_clutch_speeds->on_clutch_speed >= CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
-            if (abs_input_trq > this->adaptation_trq_limit*1.5) {
-                ret = PHASE_OVERLAP;
-            }
-        }
-    }
-
-    if (this->subphase_shift >= 4) {
-        // Torque limit exceeded
-        if (abs_input_trq > this->adaptation_trq_limit*1.5) {
-            fill_via_ramp = false;
+        // Ramp filling exit check
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm || abs_input_trq > this->ramp_filling_trq_limit*1.5) {
             ret = PHASE_OVERLAP;
         }
     }
@@ -288,9 +275,9 @@ uint8_t CrossoverShift::phase_overlap() {
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
 
     // Mod pressure depends on the current situation
-    if (abs_input_trq < this->adaptation_trq_limit*1.5 && fill_via_ramp) {
+    if (abs_input_trq < this->ramp_filling_trq_limit*1.5 && fill_via_ramp) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
-    } else if (abs_input_trq < this->adaptation_trq_limit && (do_fill_time_adaptation || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
+    } else if (abs_input_trq < this->ramp_filling_trq_limit && (do_fill_time_adaptation || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
         this->fill_via_ramp = false;
         this->mod_sol_pressure = this->calc_overlap2_mod();
     } else {

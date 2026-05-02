@@ -17,7 +17,7 @@ public:
 protected:
     bool is_release_shift() override {return false; }
 private:
-    uint16_t adaptation_trq_limit = 0;
+    uint16_t ramp_filling_trq_limit = 0;
     uint8_t phase_fill();
     uint8_t phase_overlap();
     uint8_t phase_overlap2();
@@ -48,9 +48,9 @@ private:
     
     uint16_t fill_time_adapt_timer = 0;
 
-    uint8_t cycles_high_filling = 0;
-    uint8_t cycles_ramp_to_low_filling = 0;
-    uint8_t cycles_low_filling = 0;
+    uint16_t cycles_high_filling = 0;
+    uint16_t cycles_ramp_to_low_filling = 0;
+    uint16_t cycles_low_filling = 0;
 
     int8_t result_fill_time_adaptation = 0;
 

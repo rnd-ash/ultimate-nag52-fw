@@ -380,7 +380,7 @@ uint8_t ReleasingShift::phase_overlap() {
     if (0 == this->subphase_shift) {
         // Analyze correction from previous phase
         int offset = this->correction_trq/10;
-        if (nullptr != sid->adaptation_mgr && abs(offset) > 1) {
+        if (nullptr != sid->adaptation_mgr && abs(offset) > 1 && this->do_torque_adaptation) {
             sid->adaptation_mgr->offset_freeing_trq(sid->inf.map_idx, offset);
         }
         // Variable set

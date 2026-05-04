@@ -447,7 +447,7 @@ uint8_t CrossoverShift::phase_overlap2() {
                     sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, result_fill_time_adaptation);
                 } else if (result_fill_time_adaptation == 0) {
                     // No fill adaptation observation - Do torque adaptation
-                    if (abs(this->correction_trq) > abs(this->trq_adder)) {
+                    if (abs(this->correction_trq) > abs(this->trq_adder) && this->do_torque_adaptation) {
                         int correction = this->correction_trq / 10;
                         sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, correction);
                     }

@@ -261,10 +261,10 @@ uint8_t CrossoverShift::phase_overlap() {
         this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     }
 
-    int16_t c_trq_apply = pm->p_clutch_with_coef_signed(
+    uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
         sid->applying,
-        (int)abs_input_trq + this->trq_adder - 0, // Trq req adapt adder
+        MAX(0, (int)abs_input_trq + this->trq_adder - 0), // Trq req adapt adder
         CoefficientTy::Sliding
     );
 
@@ -462,7 +462,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->trq_adder += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     }
 
-    int torque = (int)abs_input_trq + this->correction_trq + this->trq_adder;
+    int torque = MAX(0, (int)abs_input_trq + this->correction_trq + this->trq_adder);
     // Actually, this is only if engine disobeys torque requests
     //if (1 == subphase_shift || 2 == subphase_shift) {
     //    torque += this->torque_req_out;

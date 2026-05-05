@@ -416,23 +416,23 @@ void ShiftingAlgorithm::adaptation_step() {
 
     if (0 == this->torque_adaptation_stage) {
         if (GearChange::_1_2 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_1_2;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_1_2;
         } else if (GearChange::_2_3 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_3;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_3;
         } else if (GearChange::_3_4 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_4;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_4;
         } else if (GearChange::_4_5 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_5;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_5;
         } else if (GearChange::_2_1 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_1;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_1;
         } else if (GearChange::_3_2 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_2;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_2;
         } else if (GearChange::_4_3 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_3;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_3;
         } else if (GearChange::_5_4 == sid->change) {
-            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_5_4;
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_5_4;
         } else {
-            this->do_fill_time_adaptation = false;
+            this->do_torque_adaptation = false;
         }
 
         if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {

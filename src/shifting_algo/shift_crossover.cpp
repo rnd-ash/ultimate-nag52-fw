@@ -322,7 +322,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
 uint16_t CrossoverShift::get_trq_boost_adder() {
     uint16_t ret = 0;
     uint16_t map_val = this->get_trq_adder_map_val();
-    int min = VEHICLE_CONFIG.engine_drag_torque/10.0; // drag torque
+    int min = VEHICLE_CONFIG.engine_drag_torque/40.0; // 1/4 drag torque
     float boost_trq_adder = pm->sliding_coefficient() * (float)abs_input_trq / pm->release_coefficient();
     boost_trq_adder = MAX(0, boost_trq_adder - abs_input_trq);
     if (boost_trq_adder < min) {
@@ -431,7 +431,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->momentum_ctrl = linear_ramp_with_timer(this->momentum_ctrl, targ_momentum, this->timer_shift);
         this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
-        if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             this->timer_shift = 3;
             this->subphase_shift += 1;
         }

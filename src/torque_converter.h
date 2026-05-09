@@ -10,7 +10,6 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 #include "nvs/module_settings.h"
-#include "firstorder_average.h"
 
 enum class InternalTccState {
     Open = 0,
@@ -85,7 +84,8 @@ class TorqueConverter {
         }
 
     private:
-        FirstOrderAverage* tcc_actual_pressure_calc = nullptr;
+        // Multiplied by 100!
+        int tcc_slip_filtered = 0;
         int rated_max_torque;
         bool is_shifting = false;
         bool was_shifting = true;
@@ -93,14 +93,13 @@ class TorqueConverter {
         bool release_shifting = false;
         bool tcc_solenoid_enabled = true;
         int tcc_commanded_pressure = 0;
+        // Multiplied by 100
         int tcc_actual_pressure = 0;
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
-        uint32_t last_adapt_check = 0;
-        FirstOrderAverage* slip_average = nullptr;
         int16_t engine_load_percent = 0;
         
         bool init_tables_ok = false;
@@ -109,7 +108,6 @@ class TorqueConverter {
         StoredMap* tcc_lock_map = nullptr;
 
         bool was_stationary = true;
-        uint32_t last_state_stable_time = 0;
         uint16_t slip_target = 100;
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;

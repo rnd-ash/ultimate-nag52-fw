@@ -21,6 +21,10 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs418.SCHALT = false; // Auto is 0, manual is 1
     this->gs218.SCHALT = false;
     this->gs218.GIC = GS_218h_GIC_EGS52::G_SNV;
+    this->gs418.ESV_BRE = true; // When switching on
+    this->gs418.FMRAD = 0x7FF;
+    // Fix for W220
+    this->gs418.WHST = GS_418h_WHST_EGS52::P;
     gs218.CALID_CVN_AKT = true;
     gs218.G_G = false;
     this->gs218.ALF = true; // Fix for KG systems where cranking would stop when TCU turns on
@@ -204,15 +208,9 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         driver_converted = tmp;
 
         // Check if freezing torque should be done
-        bool active_shift = (uint8_t)this->gs418.GIC != (uint8_t)this->gs418.GZC;
-        bool trq_req_en = this->gs218.MMIN_EGS != 0 || this->gs218.MMAX_EGS != 0;
-        if (active_shift && trq_req_en) {
-            this->freeze_torque = true; // Gear shift and we have started a torque request, freeze it
-        } else if (!active_shift) {
-            this->freeze_torque = false; // No gear shift, unfreeze it
-        }
+        bool freeze = this->gs218.MMIN_EGS != 0 || this->gs218.MMAX_EGS != 0;
         // Change torque values based on freezing or not
-        if (this->freeze_torque) {
+        if (freeze) {
             driver_converted = MAX(driver_converted - this->req_static_torque_delta, static_converted);
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;

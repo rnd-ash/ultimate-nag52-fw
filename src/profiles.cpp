@@ -4,6 +4,7 @@
 #include "gearbox.h"
 #include "maps.h"
 #include "nvs/all_keys.h"
+#include <tcu_maths_impl.h>
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
 AbstractProfile::AbstractProfile(bool is_diesel, 
@@ -330,26 +331,27 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
 }
 
 bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* sensors) {
-    this->update(sensors);
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
-        if (sensors->brake_pressed) { can_upshift = false; } // Disable when breaking
-        //if (this->accel_delta_factor > 100 && sensors->pedal_pos > 64) {
-        //    can_upshift = false;
-        //}
-        // Load check
-        if (can_upshift) {
-            if (sensors->pedal_delta->get_average() > 20.0) {
-                can_upshift = false;
-            }
+        // RPM where we will upshift based on the current load
+        uint16_t upshift_map_val = this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        // Add some extra RPM for catalyst warm up (+1000RPM at -10C, negated at 40C and higher)
+        upshift_map_val += interpolate_float(sensors->atf_temp, 1000, 0, -10, 40, InterpType::Linear);
+        int time_since_last_shift = GET_CLOCK_TIME() - sensors->last_shift_time; // ms
+        // Increase the threshold higher RPMs closer to shift
+        // (Inverted since raw values are time SINCE shift)
+        upshift_map_val += interpolate_float(time_since_last_shift, 0, 1000, 5000, 0, InterpType::Linear);
+        int mmax = sensors->max_torque;
+        if (0 != mmax) {
+            // Score of 0-1
+            float engine_load_percent = (float)sensors->converted_driver_torque / (float)sensors->max_torque;
+            upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
         }
-        if (can_upshift) {
-            // Stop 'sporatic' upshifting when the user lets go of the pedal quickly (This will trigger a brief wait period)
-            if (sensors->pedal_delta->get_average() < -10.0) {
-                can_upshift = false;
-            }
+        bool can_upshift = sensors->input_rpm > upshift_map_val;
+        if (sensors->pedal_pos == 0) {
+            can_upshift = false;
         }
+        if (sensors->brake_pressed) { can_upshift = false; }
         return can_upshift;
     } else {
         return false;

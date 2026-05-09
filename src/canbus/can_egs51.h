@@ -88,6 +88,7 @@ class Egs51Can: public EgsBaseCan {
         void set_display_msg(GearboxMessage msg) override;
         void set_wheel_torque_multi_factor(float ratio) override;
         void set_garage_shift_state(bool enable, bool to_d) override;
+        void set_tcc_trq_multiplier(float multi) override;
     protected:
         void tx_frames() override;
         void on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, uint32_t timestamp) override;
@@ -99,7 +100,6 @@ class Egs51Can: public EgsBaseCan {
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
-        bool freeze_torque = false;
         int16_t req_static_torque_delta = 0;
 };
 

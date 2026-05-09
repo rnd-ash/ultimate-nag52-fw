@@ -14,13 +14,13 @@
 #include "esp_timer.h"
 #include "tcu_io/tcu_io.hpp"
 
-OnOffSolenoid *sol_y3 = nullptr;
-OnOffSolenoid *sol_y4 = nullptr;
-OnOffSolenoid *sol_y5 = nullptr;
+OnOffSolenoid* sol_y3 = nullptr;
+OnOffSolenoid* sol_y4 = nullptr;
+OnOffSolenoid* sol_y5 = nullptr;
 
-ConstantCurrentSolenoid *sol_mpc = nullptr;
-ConstantCurrentSolenoid *sol_spc = nullptr;
-InrushControlSolenoid *sol_tcc = nullptr;
+ConstantCurrentSolenoid* sol_mpc = nullptr;
+ConstantCurrentSolenoid* sol_spc = nullptr;
+InrushControlSolenoid* sol_tcc = nullptr;
 
 #define NUM_SOLENOIDS 6
 struct SolenoidOutputSummary {
@@ -42,14 +42,14 @@ uint64_t isr_done = 0;
 uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 void read_solenoids_i2s(void*) {
-    PwmSolenoid* const sol_order[6]  = { sol_mpc, sol_spc, sol_y3, sol_y4, sol_y5, sol_tcc };
+    PwmSolenoid* const sol_order[6] = { sol_mpc, sol_spc, sol_y3, sol_y4, sol_y5, sol_tcc };
     adc_continuous_handle_t c_handle = nullptr;
     const adc_continuous_handle_cfg_t c_cfg = {
-        .max_store_buf_size = I2S_DMA_BUF_LEN*2,
+        .max_store_buf_size = I2S_DMA_BUF_LEN * 2,
         .conv_frame_size = I2S_DMA_BUF_LEN,
     };
     adc_continuous_new_handle(&c_cfg, &c_handle);
-    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = { 0 };
     for (int i = 0; i < NUM_SOLENOIDS; i++) {
         adc_pattern[i].atten = ADC_ATTEN_DB_12;
         adc_pattern[i].channel = sol_order[i]->get_adc_channel() & 0x7;
@@ -58,9 +58,9 @@ void read_solenoids_i2s(void*) {
         CHANNEL_ID_MAP[(uint8_t)sol_order[i]->get_adc_channel()] = i;
     }
     adc_continuous_config_t dig_cfg = {
-        .pattern_num = 6, 
+        .pattern_num = 6,
         .adc_pattern = adc_pattern,
-        .sample_freq_hz = 732000*2, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
+        .sample_freq_hz = 732000 * 2, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
@@ -68,20 +68,21 @@ void read_solenoids_i2s(void*) {
     adc_continuous_start(c_handle);
     esp_err_t ret;
     uint32_t read_len;
-    while(true) {
+    while (true) {
         // Process solenoid info
         SolenoidOutputSummary s = {
             .peak_total = {0,0,0,0,0,0},
             .count_peak = {0,0,0,0,0,0},
         };
+        // Runs every 4ms or so
         ret = adc_continuous_read(c_handle, adc_read_buf, I2S_DMA_BUF_LEN, &read_len, portMAX_DELAY);
         if (ESP_OK == ret) {
             for (int i = 0; i < read_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 // adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
-                adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
+                adc_digi_output_data_t* p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
                 uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
                 if (channel_idx != 0xFF) {
-                    if (p->type1.data > 100) { // > ~0.1V
+                    if (p->type1.data != 0) {
                         s.peak_total[channel_idx] += p->type1.data;
                         s.count_peak[channel_idx] += 1;
                     }
@@ -90,8 +91,9 @@ void read_solenoids_i2s(void*) {
 
             for (int i = 0; i < 6; i++) {
                 if (s.count_peak[i] > 0) {
-                    sol_order[i]->__set_adc_reading((float)s.peak_total[i]/(float)s.count_peak[i]);
-                } else {
+                    sol_order[i]->__set_adc_reading((float)s.peak_total[i] / (float)s.count_peak[i]);
+                }
+                else {
                     sol_order[i]->__set_adc_reading(0);
                 }
             }
@@ -124,18 +126,19 @@ void update_solenoids(void*) {
     float temp_compensation = 1.0;
     uint16_t vbatt = TCUIO::battery_mv();
     int16_t atf = TCUIO::atf_temperature();
-    while(true) {
+    while (true) {
         vbatt = TCUIO::battery_mv();
         atf = TCUIO::atf_temperature();
         if (UINT16_MAX != vbatt) {
             voltage = vbatt;
             vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
-        } else {
+        }
+        else {
             vref_compensation = 1.0;
         }
         if (INT16_MAX != atf) {
-            atf_temp = atf*10.0;
-            temp_compensation = (((atf_temp-(SOL_CURRENT_SETTINGS.cc_reference_temp*10.0))/10.0)*SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires)/10.0;
+            atf_temp = atf * 10.0;
+            temp_compensation = (((atf_temp - (SOL_CURRENT_SETTINGS.cc_reference_temp * 10.0)) / 10.0) * SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires) / 10.0;
         }
         if (write_pwm) {
             // MOVED TO CURRENT READING TASK SO READINGS ARE SYNCED
@@ -171,43 +174,43 @@ bool Solenoids::init_routine_completed(void) {
 
 void Solenoids::boot_solenoid_test(void*) {
     bool tcc_new_mode = VEHICLE_CONFIG.io_0_usage == 3 && BOARD_CONFIG.board_ver == 3;
-    while(!first_read_complete){vTaskDelay(1);}
-    if(sol_spc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    while (!first_read_complete) { vTaskDelay(1); }
+    if (sol_spc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "SPC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_mpc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if (sol_mpc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "MPC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(!tcc_new_mode && sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if (!tcc_new_mode && sol_tcc->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "TCC drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y3->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if (sol_y3->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y3 drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y4->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if (sol_y4->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y4 drawing too much current when off!");
         routine = true;
         startup_ok = false;
         return;
     }
 
-    if(sol_y5->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
+    if (sol_y5->get_current() > SOL_CURRENT_SETTINGS.current_threshold_error) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "SOLENOID", "Y5 drawing too much current when off!");
         routine = true;
         startup_ok = false;
@@ -225,12 +228,12 @@ esp_err_t Solenoids::init_all_solenoids()
     sol_y3 = new OnOffSolenoid("Y3", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y3_pwm, ledc_channel_t::LEDC_CHANNEL_0, ADC_CHANNEL_0, 250, 1524, 1);
     sol_y4 = new OnOffSolenoid("Y4", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y4_pwm, ledc_channel_t::LEDC_CHANNEL_1, ADC_CHANNEL_3, 250, 1524, 1);
     sol_y5 = new OnOffSolenoid("Y5", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->y5_pwm, ledc_channel_t::LEDC_CHANNEL_2, ADC_CHANNEL_7, 250, 1524, 1);
-    sol_mpc = new ConstantCurrentSolenoid("MPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 1); 
+    sol_mpc = new ConstantCurrentSolenoid("MPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->mpc_pwm, ledc_channel_t::LEDC_CHANNEL_3, ADC_CHANNEL_6, 1);
     sol_spc = new ConstantCurrentSolenoid("SPC", ledc_timer_t::LEDC_TIMER_0, pcb_gpio_matrix->spc_pwm, ledc_channel_t::LEDC_CHANNEL_4, ADC_CHANNEL_4, 1);
-    
+
     // ~700mA for TCC solenoid when holding
     gpio_num_t gpio_zener = GPIO_NUM_NC;
-    if(VEHICLE_CONFIG.io_0_usage == 3 && BOARD_CONFIG.board_ver == 3) {
+    if (VEHICLE_CONFIG.io_0_usage == 3 && BOARD_CONFIG.board_ver == 3) {
         gpio_zener = pcb_gpio_matrix->io_pin;
     }
     sol_tcc = new InrushControlSolenoid("TCC", ledc_timer_t::LEDC_TIMER_1, pcb_gpio_matrix->tcc_pwm, gpio_zener, ledc_channel_t::LEDC_CHANNEL_5, ADC_CHANNEL_5, 100, 700, 10);

@@ -77,14 +77,15 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill time map **/
     const int16_t fill_t_x_headers[4] = {-20, 5, 25, 60};
-    const int16_t fill_t_y_headers[5] = {1,2,3,4,5}; 
-    if (MECH_PTR->gb_ty == 0) { // Large
-        key_name = NVS_KEY_MAP_NAME_FILL_TIME_LARGE;
-        default_data = LARGE_NAG_FILL_TIME_MAP;
-    } else { // Small
-        key_name = NVS_KEY_MAP_NAME_FILL_TIME_SMALL;
-        default_data = SMALL_NAG_FILL_TIME_MAP;
-    }
+    const int16_t fill_t_y_headers[5] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2
+    }; 
+    key_name = NVS_KEY_MAP_NAME_FILL_TIME;
+    default_data = LARGE_NAG_FILL_TIME_MAP;
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
         delete[] this->fill_time_map;
@@ -92,7 +93,14 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill pressure map **/
     const int16_t fill_p_x_headers[1] = {1};
-    const int16_t fill_p_y_headers[6] = {1,2,3,4,5,6};
+    const int16_t fill_p_y_headers[6] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2,
+        (int16_t)Clutch::B3
+    }; 
     key_name = NVS_KEY_MAP_NAME_FILL_PRESSURE;
     default_data = NAG_FILL_PRESSURE_MAP;
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
@@ -102,7 +110,13 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
 
     /** Pressure fill pressure map **/
     const int16_t fill_lp_x_headers[1] = {1};
-    const int16_t fill_lp_y_headers[5] = {1,2,3,4,5};
+    const int16_t fill_lp_y_headers[5] = {
+        (int16_t)Clutch::K1,
+        (int16_t)Clutch::K2,
+        (int16_t)Clutch::K3,
+        (int16_t)Clutch::B1,
+        (int16_t)Clutch::B2
+    }; 
     key_name = NVS_KEY_MAP_NAME_FILL_LOW_PRESSURE;
     default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
@@ -324,8 +338,8 @@ float PressureManager::sliding_coefficient() const {
         sensor_data->atf_temp, 
         PRM_CURRENT_SETTINGS.applying_coefficient_cold,
         PRM_CURRENT_SETTINGS.applying_coefficient_hot,
-        0,
-        80,
+        29,
+        65,
         InterpType::Linear
     );
 }
@@ -501,7 +515,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     }
     if (output < this->target_modulating_pressure) {
         // Filter when decreasing pressure, instant rise in pressure
-        output = first_order_filter_in_place(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
+        output = first_order_filter(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
     }
 
     return output;
@@ -514,7 +528,7 @@ void PressureManager::notify_shift_end() {
 }
 
 // TODO pull this from calibration tables
-const float C_C_FACTOR[8] = {1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0};
+const int C_C_FACTOR[8] = {15, 40, 100, 100, 100, 100, 100, 80};
 
 CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars) {
     CircuitInfo sd; 
@@ -558,7 +572,7 @@ CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, Gea
     sd.pressure_multi_mpc_int = HYDR_PTR->overlap_circuit_factor_mpc[lookup_valve_info];
     sd.pressure_multi_spc_int = HYDR_PTR->overlap_circuit_factor_spc[lookup_valve_info];
     sd.mpc_pressure_spring_reduction = HYDR_PTR->overlap_circuit_spring_pressure[lookup_valve_info];
-    sd.centrifugal_factor_off_clutch = C_C_FACTOR[lookup_valve_info];
+    sd.centrifugal_factor_off_clutch_int = C_C_FACTOR[lookup_valve_info];
     // Shift start notify for pm internal algo
     this->c_gear = sd.curr_g;
     this->t_gear = sd.targ_g;
@@ -574,7 +588,7 @@ uint16_t PressureManager::get_b3_prefill_pressure(void) const {
 }
 
 PrefillData PressureManager::make_fill_data(Clutch applying) {
-    if (nullptr == this->fill_time_map) {
+    if (nullptr == this->fill_time_map || nullptr == fill_pressure_map || nullptr == fill_low_pressure_map) {
         return PrefillData {
             .fill_cycles = 25,
             .fill_pressure_on_clutch = 1500,

@@ -103,7 +103,21 @@ int linear_ramp_with_timer(int start, int end, int current_timer_val) {
     return end;
 }
 
-short first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val) {
+float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val) {
+    if (sample_count == 0xFF) {
+        sample_count = 0xFE;
+    }
+    return ((float)new_val + ((float)sample_count*last_val)) / ((float)sample_count + 1.0);
+}
+
+int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val) {
+    if (sample_count == 0xFF) {
+        sample_count = 0xFE;
+    }
+    return (new_val + (sample_count*last_val)) / (sample_count + 1);
+}
+
+short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val) {
     int x1 = ((int)percentage * (int)new_value) / 100;
     int x2 = ((int)(100 - percentage) * (int)last_filtered_val) / 100;
     return x1+x2;

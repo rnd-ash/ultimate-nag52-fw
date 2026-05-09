@@ -28,4 +28,7 @@ void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd) {
             sid->shift_flags |= SHIFT_FLAG_COAST_32_21;
         }
     }
+    if (sd->input_rpm < 400) {
+        sid->shift_flags |= SHIFT_FLAG_STATIONARY;
+    }
 }

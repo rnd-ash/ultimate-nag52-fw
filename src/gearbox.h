@@ -12,7 +12,6 @@
 #include "freertos/task.h"
 #include "common_structs.h"
 #include "torque_converter.h"
-#include "behaviour/driving_profiler.h"
 #include "pressure_manager.h"
 #include "models/input_torque.hpp"
 #include "adaptation/shift_adaptation.h"
@@ -20,6 +19,7 @@
 #include "shifter/shifter.h"
 #include "inputcomponents/brakepedal.hpp"
 #include "inputcomponents/kickdownswitch.hpp"
+#include "driver_dynamics/dynamics.h"
 //#include "runtime_sensors/runtime_sensors.h"
 
 struct PostShiftTorqueRamp {
@@ -61,7 +61,7 @@ public:
         }
     }
     TorqueConverter* tcc = nullptr;
-    ShiftAlgoFeedback algo_feedback = {0};
+    ShiftAlgoFeedback algo_feedback = {0,0,0,0,0,0,0,0,0,0,0,0,0};
     ShiftAdaptationSystem* shift_adapter = nullptr;
     SpeedSensors speed_sensors;
 private:
@@ -92,6 +92,7 @@ private:
     }
     uint16_t temp_raw = 0;
     uint8_t pedal_last = 0;
+    uint16_t input_last = 0;
     TaskHandle_t shift_task = nullptr;
     bool ask_upshift = false;
     bool ask_downshift = false;
@@ -119,7 +120,12 @@ private:
     bool aborting = false;
     GearboxGear restrict_target = GearboxGear::Fifth;
     GearboxGear last_motion_gear = GearboxGear::Second;
-    FirstOrderAverage* pedal_average = nullptr;
+    
+    float pedal_average_ff = 0;
+    
+    DeltaTracker* input_rpm_delta = nullptr;
+    DeltaTracker* pedal_delta = nullptr;
+    uint32_t last_delta_time = 0;
 
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
@@ -127,6 +133,9 @@ private:
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
 
+    int32_t cached_input_rpm = 0;
+    int32_t cached_engine_rpm = 0;
+    int32_t cached_output_rpm = 0;
 };
 
 extern Gearbox* gearbox;

@@ -141,7 +141,9 @@ float progress_between_targets(const float current, const float start, const flo
 float interpolate(const float f_1, const float f_2, const int16_t x_1, const int16_t x_2, const float x);
 
 int linear_ramp_with_timer(int start, int end, int current_timer_val);
+short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val);
 
-short first_order_filter_in_place(uint16_t percentage, short new_value, short last_filtered_val);
+int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val);
+float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val);
 
 #endif // TCU_MATHS_H

@@ -39,6 +39,7 @@ public:
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
+    bool get_is_start_safe(void) {return this->is_start_safe; }
     SensorData sensor_data;
     OutputData output_data;
     uint16_t get_gear_ratio(void) {
@@ -130,6 +131,7 @@ private:
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 
+    bool is_start_safe = false;
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
 

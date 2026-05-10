@@ -10,7 +10,7 @@ void ProgramSelectorSwitchEWM::set_profile_switch_pos(ProfileSwitchPos pos) {
 	this->pos = pos;
 }
 
-AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorSwitchEWM::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
 	GearboxProfile profile = selectableProfileToProfile(ETS_CURRENT_SETTINGS.switch_profile_idx_top);
@@ -23,19 +23,19 @@ AbstractProfile *ProgramSelectorSwitchEWM::get_profile(const uint32_t expire_tim
 }
 
 DiagProfileInputState ProgramSelectorSwitchEWM::get_input_raw() const {
-	DiagProfileInputState pos = DiagProfileInputState::SNV;
+	DiagProfileInputState position = DiagProfileInputState::SNV;
 	switch (this->pos) {
 		case ProfileSwitchPos::Top:
-			pos = DiagProfileInputState::SwitchTop;
+			position = DiagProfileInputState::SwitchTop;
 			break;
 		case ProfileSwitchPos::Bottom:
-			pos = DiagProfileInputState::SwitchBottom;
+			position = DiagProfileInputState::SwitchBottom;
 			break;
 		case ProfileSwitchPos::SNV:
 		default:
 			break;
 	}
-	return pos;
+	return position;
 }
 
 ProgramSelectorType ProgramSelectorSwitchEWM::get_type() const {

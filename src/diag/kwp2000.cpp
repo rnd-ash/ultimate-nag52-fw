@@ -123,7 +123,7 @@ ECU_Date fw_date_to_bcd(char* date) {
     };
 }
 
-Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
+Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox, Shifter* shifter) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
@@ -131,6 +131,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
+    this->shifter_ptr = shifter;
     this->can_endpoint = new CanEndpoint(can_layer);
     if (this->can_endpoint->init_state() == ESP_OK) {
         // Start ISO-TP endpoint
@@ -398,7 +399,7 @@ void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
                 if (nullptr != gearbox) {
-                    if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
+                    if (this->can_layer != nullptr && !is_shifter_passive(this->shifter_ptr)) {
                         // P or R, we CANNOT reset the ECU!
                         make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                         return;
@@ -580,7 +581,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         DATA_SOLENOIDS r = get_solenoid_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SOLENOID_STATUS, (uint8_t*)&r, sizeof(DATA_SOLENOIDS));
     } else if (args[0] == RLI_CAN_DATA_DUMP) {
-        DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
+        DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal, shifter);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CAN_DATA_DUMP, (uint8_t*)&r, sizeof(DATA_CANBUS_RX));
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
@@ -971,7 +972,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     // Make a new flash handler!
-    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr, this->shifter_ptr);
     this->flash_handler->on_request_download(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
@@ -985,7 +986,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
     if (this->flash_handler != nullptr) {
         delete this->flash_handler;
     }
-    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr, this->shifter_ptr);
     this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }

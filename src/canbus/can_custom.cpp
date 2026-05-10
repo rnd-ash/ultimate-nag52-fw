@@ -7,7 +7,7 @@
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
 
-CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
+CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) 
 {
     ESP_LOGI("CustomCAN", "SETUP CALLED");
 }

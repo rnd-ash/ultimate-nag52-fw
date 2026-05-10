@@ -28,6 +28,10 @@ ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
     };
 }
 
+ShiftingAlgorithm::ShiftingAlgorithm(ShiftInterfaceData* data)  {
+    this->sid = data;
+}
+
 uint8_t ShiftingAlgorithm::step(
     uint8_t phase_id,
     uint16_t abs_input_torque,
@@ -64,6 +68,8 @@ uint8_t ShiftingAlgorithm::step(
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
+    this->adaptation_step();
+    
     // -1 means not in use, 0 means timeout! 
     if (this->timer_emergency == 0) {
         // Only if we are continuing the same phase (Stuck)
@@ -366,4 +372,79 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
 
     int32_t ret = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
     return (short)ret;
+}
+
+void ShiftingAlgorithm::adaptation_step() {
+    if (0 == this->fill_time_adaptation_stage) {
+        if (Clutch::K1 == sid->applying) {
+            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.prefill_adapt_k1;
+        } else if (Clutch::K2 == sid->applying) {
+            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.prefill_adapt_k2;
+        } else if (Clutch::K3 == sid->applying) {
+            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.prefill_adapt_k3;
+        } else if (Clutch::B1 == sid->applying) {
+            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.prefill_adapt_b1;
+        } else if (Clutch::B2 == sid->applying) {
+            this->do_fill_time_adaptation = ADP_CURRENT_SETTINGS.prefill_adapt_b2;
+        } else {
+            this->do_fill_time_adaptation = false;
+        }
+
+        if (sid->manual_shift && !ADP_CURRENT_SETTINGS.adaptation_when_manual_shifting) {
+            this->do_fill_time_adaptation = false;
+        }
+
+        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+            this->do_fill_time_adaptation = false;
+        }
+
+        this->fill_time_adaptation_stage += 1;
+    } else { /* TODO */}
+
+    // Fill pressure adaptation (Done for all algorithms)
+    //if (0 == fill_pressure_adaptation_stage) {
+    //    if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+    //        this->do_fill_pressure_adaptation = false;
+    //    }
+    //    this->fill_pressure_adaptation_stage += 1;
+    //} else if (1 == fill_pressure_adaptation_stage) {
+    //    int capable_torque = 0;
+    //    if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
+    //        capable_torque = calc_max_trq_on_clutch(p_apply_clutch, CoefficientTy::Sliding);
+    //    }
+    //}
+
+    if (0 == this->torque_adaptation_stage) {
+        if (GearChange::_1_2 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_1_2;
+        } else if (GearChange::_2_3 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_3;
+        } else if (GearChange::_3_4 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_4;
+        } else if (GearChange::_4_5 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_5;
+        } else if (GearChange::_2_1 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_2_1;
+        } else if (GearChange::_3_2 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_3_2;
+        } else if (GearChange::_4_3 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_4_3;
+        } else if (GearChange::_5_4 == sid->change) {
+            this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_5_4;
+        } else {
+            this->do_torque_adaptation = false;
+        }
+
+        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+            this->do_torque_adaptation = false;
+        }
+
+        this->torque_adaptation_stage += 1;
+        ESP_LOGI("ADAPT", "Start adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
+    } else if (torque_adaptation_stage == 1) { 
+        if (sd->input_rpm < 1000) {
+            this->do_torque_adaptation = false;
+        }
+    }
+
 }

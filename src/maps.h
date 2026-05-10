@@ -134,6 +134,7 @@ extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
 // 1 load points, 8 shifts
 #define GEAR_ADAPT_MAP_SIZE 8
 
+extern const int16_t CLUTCH_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 
 

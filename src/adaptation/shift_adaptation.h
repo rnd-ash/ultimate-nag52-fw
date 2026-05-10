@@ -9,6 +9,8 @@
 class ShiftAdaptationSystem  {
 public:
     ShiftAdaptationSystem();
+    void init_shift();
+    void update();
     int8_t get_prefill_cycles_offset(uint8_t shift_idx);
     int16_t get_adapt_spc_offset(uint8_t shift_idx);
     int16_t get_freeing_torque_offset(uint8_t shift_idx);

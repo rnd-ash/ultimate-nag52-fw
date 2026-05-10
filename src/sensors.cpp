@@ -56,10 +56,10 @@ uint16_t calc_rpm(PcntMemData* cb) {
     if (0 != pulses) {
         int t = (now - cb->last_time_us) / pulses;
         val = (int)(60 * 1000 * 1000) / (t * (int)cb->pulses_rev);
-        if (val < 60) {
-            val = 0;
-        }
-        else if (val > MAX_RPM_PCNT) {
+        //if (val < 60) {
+        //    val = 0;
+        //}
+        if (val > MAX_RPM_PCNT) {
             val = MAX_RPM_PCNT;
         }
     }
@@ -139,7 +139,7 @@ esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t g
     ESP_RETURN_ON_ERROR(pcnt_new_channel(mem->handle, &rpm_chan_config, &mem->chan_handle), "SENSORS", "Failed to setup %s RPM PCNT Channel", name);
     ESP_RETURN_ON_ERROR(
         pcnt_channel_set_edge_action(mem->chan_handle,
-            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_HOLD,
+            pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE,
             pcnt_channel_edge_action_t::PCNT_CHANNEL_EDGE_ACTION_INCREASE
         ),
         "SENSORS",
@@ -151,7 +151,7 @@ esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t g
     ESP_RETURN_ON_ERROR(pcnt_unit_clear_count(mem->handle), "SENSORS", "Failed to clear PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_start(mem->handle), "SENSORS", "Failed to start PCNT unit %s", name);
     mem->last_time_us = esp_timer_get_time();
-    mem->pulses_rev = pulses_per_rpm;
+    mem->pulses_rev = pulses_per_rpm*2; // Since we count both pos and neg edge
     mem->init = true;
     return ESP_OK;
 }

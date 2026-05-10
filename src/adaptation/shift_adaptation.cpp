@@ -60,38 +60,35 @@ int16_t ShiftAdaptationSystem::get_applying_torque_offset(uint8_t shift_idx) {
     return ret;
 }
 
-void print_map(char* name, int16_t* ptr, uint8_t idx, int16_t offset) {
-    if (0 != offset) {
-        ESP_LOGI("ADAPT", "%s map adjusted. [%d] -> %d = [%d %d %d %d %d %d %d %d]",
-            name,
-            idx, 
-            offset,
-            ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]
-        );
-    }
-}
-
 void ShiftAdaptationSystem::offset_prefill_cycles(uint8_t shift_idx, int8_t offset) {
     if (nullptr != this->prefill_time_map) {
         int16_t* ptr = this->prefill_time_map->get_current_data();
-        this->prefill_time_map->get_current_data()[shift_idx] += offset;
-        print_map("Prefill cycle", ptr, shift_idx, offset);
+        ptr[shift_idx] += offset;
+        if (ptr[shift_idx] > ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
+            ptr[shift_idx] = ADP_CURRENT_SETTINGS.prefill_max_time_delta;
+            ESP_LOGW("ADAPT", "Prefill cycles min limit reached");
+        } else if (ptr[shift_idx] < -ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
+            ptr[shift_idx] = -ADP_CURRENT_SETTINGS.prefill_max_time_delta;
+            ESP_LOGW("ADAPT", "Prefill cycles min limit reached");
+        } else {
+            ESP_LOGI("ADAPT", "Prefill cycles offset by %d to %d", offset, ptr[shift_idx]);
+        }
     }
 }
 
 void ShiftAdaptationSystem::offset_freeing_trq(uint8_t shift_idx, int16_t offset) {
     if (nullptr != this->freeing_torque_offset) {
         int16_t* ptr = this->freeing_torque_offset->get_current_data();
-        this->freeing_torque_offset->get_current_data()[shift_idx] += offset;
-        print_map("Freeing torque", ptr, shift_idx, offset);
+        ptr[shift_idx] += offset;
+        ESP_LOGI("ADAPT", "Free. Trq offset by %d to %d", offset, ptr[shift_idx]);
     }
 }
 
 void ShiftAdaptationSystem::offset_applying_trq(uint8_t shift_idx, int16_t offset) {
     if (nullptr != this->applying_torque_offset) {
         int16_t* ptr = this->applying_torque_offset->get_current_data();
-        this->applying_torque_offset->get_current_data()[shift_idx] += offset;
-        print_map("Applying torque", ptr, shift_idx, offset);
+        ptr[shift_idx] += offset;
+        ESP_LOGI("ADAPT", "Appl. Trq offset by %d to %d", offset, ptr[shift_idx]);
     }
 }
 

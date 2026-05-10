@@ -4,6 +4,26 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
+# 09/05/26
+
+## Added
+* New PID Control system for Solenoid current control
+* Emergency timer for clutch shifts - Force the shifting algorithm along if a stage takes too long
+* Reworked TCC adaptation system (Should take about 20x less time to adapt fully from fresh firmware)
+* Overhauled sensor interface for RPM sensors
+* EWM Shifter external profile button support for cars that don't contain a profile button (See the wiki for more details)
+
+### Shift Adaptations!
+* Currently, only the fill time adaptation is enabled by default and used. Torque adaptations are still unstable, so are disabled by default in TCU Settings. Enable at your own risk.
+* Added ability to reset clutch shifting adaptations (Via config app)
+
+## Fixed
+* Fixed gearbox loop iterating too quickly, resulting in some broken sensor values
+* Fixed prefill map lookups resulting in the wrong clutch data being accessed
+* Fixed implementation of EGS51CAN - Should result in the engine obeying torque requests
+* Fixed init of some EGS52CAN variables
+
+
 # 11/02/26 (Hotfix)
 
 ## Fixed

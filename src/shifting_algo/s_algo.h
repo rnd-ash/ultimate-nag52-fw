@@ -49,9 +49,7 @@ struct ShiftInterfaceData {
 
 class ShiftingAlgorithm {
 public:
-    ShiftingAlgorithm(ShiftInterfaceData* data) {
-        this->sid = data;
-    }
+    ShiftingAlgorithm(ShiftInterfaceData* data);
     virtual ~ShiftingAlgorithm() = default;
     ShiftAlgoFeedback get_diag_feedback(uint8_t phase_id);
 
@@ -145,10 +143,25 @@ protected:
     uint16_t calc_high_filling_p();
     uint16_t calc_low_filling_p();
 
+    void adaptation_step();
+
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
     bool trq_req_down_ramp = false;
     uint8_t trq_req_timer = 0;
+
+    bool adaptation_conditions_ok = true;
+    
+    bool do_fill_time_adaptation = false;
+    bool do_fill_pressure_adaptation = false;
+    bool do_torque_adaptation = false;
+    bool end_of_fill_time_adapt = false;
+
+    short rpm_adapt_off_clutch = 0;
+
+    uint8_t fill_time_adaptation_stage = 0;
+    uint8_t fill_pressure_adaptation_stage = 0;
+    uint8_t torque_adaptation_stage = 0;
 };
 
 // Helper functions

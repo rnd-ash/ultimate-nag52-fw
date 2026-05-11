@@ -8,6 +8,10 @@
 #include "pressure_manager.h"
 #include "gearbox.h"
 #include "tcu_alloc.h"
+#include "clock.hpp"
+
+static const uint32_t MAP_LOOKUP_CACHE_MAX_AGE_MS = 60000;
+static const uint8_t MAP_LOOKUP_CACHE_ENTRY_SIZE = 1 + sizeof(LookupCache);
 
 StoredMap* get_map(uint8_t map_id) {
     switch(map_id) {
@@ -162,4 +166,44 @@ kwp_result_t MapEditor::undo_changes(uint8_t map_id) {
     } else {
         return NRC_GENERAL_REJECT;
     }
+}
+
+kwp_result_t MapEditor::read_map_lookup_cache(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
+    CHECK_MAP(map_id)
+
+    LookupCache cache[MAX_LOOKUP_CACHE] = {};
+    ptr->copy_lookup_cache(cache);
+
+    uint8_t valid_count = 0;
+    const uint32_t now = GET_CLOCK_TIME();
+    for (uint8_t i = 0; i < MAX_LOOKUP_CACHE; i++) {
+        if (cache[i].timestamp_ms != 0 && (now - cache[i].timestamp_ms) <= MAP_LOOKUP_CACHE_MAX_AGE_MS) {
+            valid_count++;
+        }
+    }
+
+    const uint16_t size = 4 + (valid_count * MAP_LOOKUP_CACHE_ENTRY_SIZE);
+    uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC(size));
+    if (b == nullptr) {
+        return NRC_UN52_NO_MEM;
+    }
+
+    b[0] = valid_count;
+    b[1] = MAP_LOOKUP_CACHE_ENTRY_SIZE;
+    b[2] = 0;
+    b[3] = 0;
+
+    uint8_t* dest = &b[4];
+    for (uint8_t i = 0; i < MAX_LOOKUP_CACHE; i++) {
+        if (cache[i].timestamp_ms != 0 && (now - cache[i].timestamp_ms) <= MAP_LOOKUP_CACHE_MAX_AGE_MS) {
+            *dest = i;
+            dest++;
+            memcpy(dest, &cache[i], sizeof(LookupCache));
+            dest += sizeof(LookupCache);
+        }
+    }
+
+    *buffer = b;
+    *dest_size_bytes = size;
+    return NRC_OK;
 }

@@ -27,6 +27,7 @@
 #define RLI_SYS_USAGE       0x23 // Brain usage
 #define RLI_TCC_PROGRAM     0x24 // TCC info
 #define RLI_PRESSURES       0x25
+#define RLI_TCU_TIME        0x26
 #define RLI_SHIFT_LIVE      0x27
 #define RLI_FW_HEADER       0x28
 

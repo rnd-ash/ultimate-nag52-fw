@@ -22,6 +22,7 @@ class LookupMap {
         int16_t* get_current_data(void) const;
         void get_x_headers(uint16_t *size, int16_t **headers);
         uint16_t data_size();
+        void copy_lookup_cache(LookupCache* dest) const;
     protected:
         LookupTable* table;
         LookupHeader* yHeader;

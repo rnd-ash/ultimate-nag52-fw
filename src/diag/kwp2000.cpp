@@ -552,6 +552,8 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
         } else if (cmd == MAP_CMD_READ_META) { 
             ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
+        } else if (cmd == MAP_CMD_GET_LOOKUP_VALS && map_len_bytes == 0) {
+            ret = MapEditor::read_map_lookup_cache(map_id, &read_bytes_size, &buffer);
         } else {
             ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
         }
@@ -591,6 +593,9 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_PRESSURES) {
         DATA_PRESSURES r = get_pressure_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_PRESSURES, (uint8_t*)&r, sizeof(DATA_PRESSURES));
+    } else if (args[0] == RLI_TCU_TIME) {
+        uint32_t now = GET_CLOCK_TIME();
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_TCU_TIME, (uint8_t*)&now, sizeof(now));
     } else if (args[0] == RLI_CLUTCH_SPEEDS) {
         ClutchSpeeds r = gearbox->diag_get_clutch_speeds();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_SPEEDS, (uint8_t*)&r, sizeof(ClutchSpeeds));

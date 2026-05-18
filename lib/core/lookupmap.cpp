@@ -2,6 +2,7 @@
 #include "tcu_maths_impl.h"
 #include "tcu_alloc.h"
 #include "clock.h"
+#include <string.h>
 
 float LookupMap::get_value(const float xValue, const float yValue) {
     return this->get_value(xValue, yValue, 0);
@@ -64,6 +65,13 @@ void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
 
 uint16_t LookupMap::data_size() {
     return this->table->data_size();
+}
+
+void LookupMap::copy_lookup_cache(LookupCache* dest) const {
+    if (dest == nullptr) {
+        return;
+    }
+    memcpy(dest, this->lookup_cache, sizeof(this->lookup_cache));
 }
 
 float LookupMap::get_x_header_interpolated(const float value, const int16_t y) const

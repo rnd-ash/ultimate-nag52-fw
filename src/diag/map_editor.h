@@ -57,6 +57,7 @@ namespace MapEditor {
     kwp_result_t burn_to_eeprom(uint8_t map_id);
     kwp_result_t reset_to_program_default(uint8_t map_id);
     kwp_result_t undo_changes(uint8_t map_id);
+    kwp_result_t read_map_lookup_cache(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);
 }
 
 #endif

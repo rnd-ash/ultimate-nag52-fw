@@ -44,6 +44,7 @@
 #define MAP_CMD_UNDO 0x06
 #define MAP_CMD_READ_META 0x07
 #define MAP_CMD_READ_EEPROM 0x08
+#define MAP_CMD_GET_LOOKUP_VALS 0x10
 
 #define MAP_READ_TYPE_MEM 0x01
 #define MAP_READ_TYPE_PRG 0x02
@@ -56,6 +57,7 @@ namespace MapEditor {
     kwp_result_t burn_to_eeprom(uint8_t map_id);
     kwp_result_t reset_to_program_default(uint8_t map_id);
     kwp_result_t undo_changes(uint8_t map_id);
+    kwp_result_t read_map_lookup_cache(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);
 }
 
 #endif

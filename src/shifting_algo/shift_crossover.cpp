@@ -661,3 +661,15 @@ void CrossoverShift::offset_adapt_timer_by_clutch_delay() {
         this->fill_time_adapt_timer = 0;
     }
 }
+
+int16_t CrossoverShift::calculate_dynamic_inertia() {
+    
+    // There is filtering logic in EGS logic, but it is always hard coded to 0 (No filtering)
+    if (sid->change == GearChange::_1_2) {
+        return 0;
+    } else {
+        int inertia = ((int)sd->engine_rpm - (int)this->old_engine_rpm)*(VEHICLE_CONFIG.engine_drag_torque/10);
+        inertia /= 20;
+        return inertia;
+    }
+}

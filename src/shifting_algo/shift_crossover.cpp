@@ -25,10 +25,6 @@ float ramp_lims[8] = {0.2, 0.5, 0.85, 0.0, 0.0, 0.0, 0.0, 0.0};
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
     float torque = this->get_trq_adder_map_val() + this->get_trq_boost_adder() + this->torque_req_val;
-    if (nullptr != sid->adaptation_mgr) {
-        torque += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-    }
-    torque = MAX(0, torque);
     float bVar1 = 6;
     float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     float threshold = (torque*5*(ramp_cycles+(bVar1*2))) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
@@ -257,9 +253,10 @@ uint8_t CrossoverShift::phase_overlap() {
         this->subphase_shift += 1;
     }
 
-    if (nullptr != sid->adaptation_mgr) {
-        this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-    }
+    //if (nullptr != sid->adaptation_mgr) {
+    //    this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+    //}
+    this->trq_adder -= this->calculate_dynamic_inertia();
 
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
@@ -458,9 +455,9 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     }
 
-    if (sid->adaptation_mgr) {
-        this->trq_adder += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-    }
+    //if (sid->adaptation_mgr) {
+    //    this->trq_adder += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+    //}
 
     int torque = MAX(0, (int)abs_input_trq + this->correction_trq + this->trq_adder);
     // Actually, this is only if engine disobeys torque requests

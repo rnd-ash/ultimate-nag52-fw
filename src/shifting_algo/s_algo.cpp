@@ -93,6 +93,7 @@ uint8_t ShiftingAlgorithm::step(
     else {
         sid->ptr_w_pressures->on_clutch = 0;
     }
+    this->old_engine_rpm = sd->engine_rpm;
 
     return step_res;
 }

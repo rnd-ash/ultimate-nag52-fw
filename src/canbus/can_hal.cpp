@@ -47,7 +47,6 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud)
         break;
     case 125000:
         timing_config = TWAI_TIMING_CONFIG_125KBITS();
-        gen_config.mode = TWAI_MODE_LISTEN_ONLY; // For 125k, use listen only mode to avoid issues on bus
         break;
     case 100000:
         timing_config = TWAI_TIMING_CONFIG_100KBITS();

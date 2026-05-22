@@ -29,6 +29,7 @@ private:
     
     uint16_t p_apply_overlap_begin = 0;
 
+    int16_t calculate_dynamic_inertia();
     uint16_t calc_overlap_mod();
     uint16_t calc_overlap_mod_min(int p_shift);
     uint16_t calc_overlap2_mod();
@@ -53,6 +54,7 @@ private:
     uint16_t cycles_low_filling = 0;
 
     int8_t result_fill_time_adaptation = 0;
+    uint16_t emergency_trq_val = 0;
 
     uint16_t get_and_set_adapt_rpm_off_clutch();
     void offset_adapt_timer_by_clutch_delay();

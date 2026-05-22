@@ -162,6 +162,7 @@ protected:
     uint8_t fill_time_adaptation_stage = 0;
     uint8_t fill_pressure_adaptation_stage = 0;
     uint8_t torque_adaptation_stage = 0;
+    uint16_t old_engine_rpm = 0;
 };
 
 // Helper functions

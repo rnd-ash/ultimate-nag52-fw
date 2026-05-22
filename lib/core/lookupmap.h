@@ -3,20 +3,42 @@
 
 #include "lookuptable.h"
 
+
+struct LookupCache {
+    // IEEE754 float
+    float x_val;
+    float y_val;
+    uint32_t timestamp_ms;
+} __attribute__((packed));
+
+const int MAX_LOOKUP_CACHE = 5; // I don't think any map has more than this many use cases
+
 class LookupMap {
     public:
         float get_value(const int16_t x_value, const int16_t y_value);
+        // float get_value(const float xValue, const float yValue);
+        float get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx);
         bool add_value(const int16_t sample_point_value, const int16_t x_value, const int16_t y_value, const float threshold);
         void get_y_headers(uint16_t *size, int16_t **headers);
+        float get_x_header_interpolated(const float value, const int16_t y) const;
         int16_t* get_current_data(void) const;
         void get_x_headers(uint16_t *size, int16_t **headers);
         uint16_t data_size();
+        void copy_lookup_cache(LookupCache* dest) const;
     protected:
         LookupTable* table;
         LookupHeader* x_header;
         uint16_t x_header_size;
         LookupHeader* y_header;
         uint16_t y_header_size;
+                LookupCache lookup_cache[MAX_LOOKUP_CACHE] = {
+            {0,0,0},
+            {0,0,0},
+            {0,0,0},
+            {0,0,0},
+            {0,0,0}
+        };
+
     private:
         inline float interpolate_xy(const int16_t x, const int16_t y, uint16_t* x_idx_min, uint16_t* x_idx_max, uint16_t* y_idx_min, uint16_t* y_idx_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2);
 };

@@ -1,15 +1,27 @@
 #include "lookupmap.h"
 #include "tcu_maths_impl.h"
 #include "tcu_alloc.h"
+#include "clock.h"
+#include <string.h>
 #include <esp_log.h>
 
-float LookupMap::get_value(const int16_t x_value, const int16_t y_value)
+float LookupMap::get_value(const int16_t x_value, const int16_t y_value){
+    return this->get_value(x_value, y_value, 0);
+}
+
+float LookupMap::get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx)
 {
     uint16_t    idx_min;
     uint16_t    idx_max;
     uint16_t    idy_min;
     uint16_t    idy_max;
     const int16_t* data = this->table->get_current_data();
+
+    if (lookup_cache_idx < MAX_LOOKUP_CACHE) {
+        this->lookup_cache[lookup_cache_idx].x_val = x_value;
+        this->lookup_cache[lookup_cache_idx].y_val = y_value;
+        this->lookup_cache[lookup_cache_idx].timestamp_ms = GET_CLOCK_TIME();
+    }
 
     // part 1a - identification of the indices for x-value
     search_value<int16_t>(x_value, x_header->get_data(), x_header->get_size(), &idx_min, &idx_max);
@@ -97,6 +109,13 @@ void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
 
 uint16_t LookupMap::data_size() {
     return this->table->data_size();
+}
+
+void LookupMap::copy_lookup_cache(LookupCache* dest) const {
+    if (dest == nullptr) {
+        return;
+    }
+    memcpy(dest, this->lookup_cache, sizeof(this->lookup_cache));
 }
 
 inline float LookupMap::interpolate_xy(const int16_t x_value, const int16_t y_value, uint16_t* idx_min, uint16_t* idx_max, uint16_t* idy_min, uint16_t* idy_max, int16_t* x1, int16_t* x2, int16_t* y1, int16_t* y2)

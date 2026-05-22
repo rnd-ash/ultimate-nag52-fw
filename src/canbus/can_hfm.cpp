@@ -184,7 +184,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
     CanTorqueData current_torque_data = TORQUE_NDEF; // default value in case of invalid data
 
     // obtain values from the CAN-bus to calculate the indicated and the driver torque
-    uint16_t n_mot = get_engine_rpm(expire_time_ms); // todo check for uint16max
+    uint16_t n_mot = get_engine_rpm(expire_time_hfm_can); // todo check for uint16max
 
     if (UINT16_MAX != n_mot)
     {
@@ -231,8 +231,6 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
             {
                 current_torque_data.m_converted_static = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(current_torque_data.m_max)));
             }
-            current_torque_data.m_ind = current_torque_data.m_converted_static + current_torque_data.m_min; // Indicated torque is the static torque plus the minimum torque (which is negative, since it's a loss)
-            current_torque_data.m_ind = LIMIT(current_torque_data.m_ind, current_torque_data.m_min, current_torque_data.m_max); // Limit indicated torque to min and max torque
             
             HFM_210 hfm210;
             if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
@@ -269,6 +267,10 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
                     // calculating torque loss due to air conditioning, if the air conditioning is on
                     // result.m_converted_driver -= m_loss_ac;
                     current_torque_data.m_converted_static -= m_loss_ac;
+
+                    // current_torque_data.m_ind = current_torque_data.m_converted_static + current_torque_data.m_min; // Indicated torque is the static torque plus the minimum torque (which is negative, since it's a loss)
+                    current_torque_data.m_ind = current_torque_data.m_converted_static;
+                    // current_torque_data.m_ind = LIMIT(current_torque_data.m_ind, current_torque_data.m_min, current_torque_data.m_max); // Limit indicated torque to min and max torque
 
                     // calculation of torque data was successful, update result and cache
                     last_valid_torque_data = current_torque_data;

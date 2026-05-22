@@ -107,3 +107,5 @@ esp_err_t ShiftAdaptationSystem::reset() {
     }
     return ESP_OK;
 }
+
+ShiftAdaptationSystem* adaptation_manager = nullptr;

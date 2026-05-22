@@ -126,6 +126,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_adapter = new ShiftAdaptationSystem();
     pressure_manager = this->pressure_mgr;
+    adaptation_manager = this->shift_adapter;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
     {

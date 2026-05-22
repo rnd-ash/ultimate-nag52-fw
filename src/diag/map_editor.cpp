@@ -13,6 +13,31 @@
 static const uint32_t MAP_LOOKUP_CACHE_MAX_AGE_MS = 60000;
 static const uint8_t MAP_LOOKUP_CACHE_ENTRY_SIZE = 1 + sizeof(LookupCache);
 
+StoredMap* get_adaptation_map(uint8_t map_id) {
+    if (adaptation_manager) {
+        StoredMap* ret = nullptr;
+        switch (map_id) {
+            case SHIFT_ADAPT_FILL_T_MAP_ID:
+                ret = adaptation_manager->prefill_time_map;
+                break;
+            case SHIFT_ADAPT_FILL_P_MAP_ID:
+                ret = adaptation_manager->prefill_time_map;
+                break;
+            case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
+                ret = adaptation_manager->applying_torque_offset;
+                break;
+            case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
+                ret = adaptation_manager->freeing_torque_offset;
+                break;
+            default:
+                break;
+        }
+        return ret;
+    } else {
+        return nullptr;
+    }
+}
+
 StoredMap* get_map(uint8_t map_id) {
     switch(map_id) {
         case A_UPSHIFT_MAP_ID:
@@ -61,6 +86,11 @@ StoredMap* get_map(uint8_t map_id) {
             return gearbox->tcc->get_lock_map();
         case TCC_RPM_SLIP_MAP:
             return gearbox->tcc->get_rpm_slip_map();
+        case SHIFT_ADAPT_FILL_T_MAP_ID:
+        case SHIFT_ADAPT_FILL_P_MAP_ID:
+        case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
+        case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
+            return get_adaptation_map(map_id);
         default:
             return nullptr;
     }

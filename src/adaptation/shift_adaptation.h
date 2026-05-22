@@ -22,14 +22,17 @@ public:
     void offset_freeing_trq(uint8_t shift_idx, int16_t offset);
     void offset_applying_trq(uint8_t shift_idx, int16_t offset);
     esp_err_t reset();
-private:
-    bool init_ok = false;
+
     StoredMap* prefill_time_map;
 
     StoredMap* applying_torque_offset;
     StoredMap* freeing_torque_offset;
 
     StoredMap* spc_offset_map;
+private:
+    bool init_ok = false;
 };
+
+extern ShiftAdaptationSystem* adaptation_manager;
 
 #endif // ADAPT_MAP_H

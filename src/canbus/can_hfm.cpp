@@ -181,7 +181,7 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
     const uint32_t expire_time_hfm_can = 250u; // [ms]
 
     // calculate torque values
-    CanTorqueData result = TORQUE_NDEF; // default value in case of invalid data
+    CanTorqueData current_torque_data = TORQUE_NDEF; // default value in case of invalid data
 
     // obtain values from the CAN-bus to calculate the indicated and the driver torque
     uint16_t n_mot = get_engine_rpm(expire_time_ms); // todo check for uint16max
@@ -211,10 +211,10 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
             }
             m_loss_generator = (int16_t)(K_GENERATOR / ((float)n_mot)); // Torque loss due to generator, modeled as inversely proportional to engine speed
         }
-        result.m_min = -(m_loss + m_loss_ac + m_loss_generator); // Torque loss is represented as negative torque
+        current_torque_data.m_min = -(m_loss + m_loss_ac + m_loss_generator); // Torque loss is represented as negative torque
     
         // maximum torque
-        result.m_max = hfm_engine->get_max_torque(n_mot); // interpolate from torque map based on engine speed
+        current_torque_data.m_max = hfm_engine->get_max_torque(n_mot); // interpolate from torque map based on engine speed
 
         HFM_610 hfm610;
         if (this->hfm_ecu.get_HFM_610(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm610))
@@ -225,14 +225,14 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
 
             // indicated torque
             // ratio of current mass air flow to maximum mass air flow at current engine speed, multiplied by maximum torque at current engine speed
-            result.m_ind = 0;
-            result.m_converted_static = 0;
+            current_torque_data.m_ind = 0;
+            current_torque_data.m_converted_static = 0;
             if (0.F < max_mass_air_flow)
             {
-                result.m_converted_static = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(result.m_max)));
+                current_torque_data.m_converted_static = (int16_t)(MIN(1.F, mle / max_mass_air_flow) * ((float)(current_torque_data.m_max)));
             }
-            result.m_ind = result.m_converted_static + result.m_min; // Indicated torque is the static torque plus the minimum torque (which is negative, since it's a loss)
-            result.m_ind = LIMIT(result.m_ind, result.m_min, result.m_max); // Limit indicated torque to min and max torque
+            current_torque_data.m_ind = current_torque_data.m_converted_static + current_torque_data.m_min; // Indicated torque is the static torque plus the minimum torque (which is negative, since it's a loss)
+            current_torque_data.m_ind = LIMIT(current_torque_data.m_ind, current_torque_data.m_min, current_torque_data.m_max); // Limit indicated torque to min and max torque
             
             HFM_210 hfm210;
             if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_hfm_can, &hfm210))
@@ -248,33 +248,36 @@ CanTorqueData HfmCan::get_torque_data(const uint32_t expire_time_ms)
                     dkv = hfm210.DKV;
 
                     // driver torque - comes from the accelerator pedal or cruise control
-                    result.m_converted_driver = 0;
+                    current_torque_data.m_converted_driver = 0;
                     if (0.F < max_mass_air_flow)
                     {
-                        result.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(result.m_max)));
+                        current_torque_data.m_converted_driver = (int16_t)((hfm_engine->get_mass_air_flow(n_mot, dkv) / max_mass_air_flow) * ((float)(current_torque_data.m_max)));
                     }
-                    result.m_converted_driver = LIMIT(result.m_converted_driver, 0, result.m_max); // Limit driver demanded torque to min and max torque
+                    current_torque_data.m_converted_driver = LIMIT(current_torque_data.m_converted_driver, 0, current_torque_data.m_max); // Limit driver demanded torque to min and max torque
                     
                     bool freeze = MMAX_EGS;
                     // Change torque values based on freezing or not
                     if (freeze)
                     {
-                        result.m_converted_driver = MAX(result.m_converted_driver - this->req_static_torque_delta, result.m_converted_static);
+                        current_torque_data.m_converted_driver = MAX(current_torque_data.m_converted_driver - this->req_static_torque_delta, current_torque_data.m_converted_static);
                     }
                     else
                     {
-                        this->req_static_torque_delta = result.m_converted_driver - result.m_converted_static;
+                        this->req_static_torque_delta = current_torque_data.m_converted_driver - current_torque_data.m_converted_static;
                     }
 
                     // calculating torque loss due to air conditioning, if the air conditioning is on
                     // result.m_converted_driver -= m_loss_ac;
-                    result.m_converted_static -= m_loss_ac;
+                    current_torque_data.m_converted_static -= m_loss_ac;
+
+                    // calculation of torque data was successful, update result and cache
+                    last_valid_torque_data = current_torque_data;
                 }
             }
         }
         // ESP_LOGI("HFM-CAN", "N: %u rpm, DKI: %u, DKV: %u, MLE: %.0f kg/h, MAF_max: %.0f kg/h, max_throttle_value: %.2f, M_MAX: %u Nm, M_DRIVER: %u Nm, M_IND: %u Nm, M_STAT: %u Nm, M_LOSS: %u Nm", n_mot, dki, dkv, mle, max_mass_air_flow, ((float)VEHICLE_CONFIG.throttlevalve_maxopeningangle) * .35F, result.m_max, result.m_converted_driver, result.m_ind, result.m_converted_static, m_loss);
     }
-    return result;
+    return last_valid_torque_data;
 }
 
 float HfmCan::get_ML(const uint32_t expire_time_ms)

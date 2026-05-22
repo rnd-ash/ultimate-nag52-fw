@@ -110,6 +110,7 @@ class HfmCan: public EgsBaseCan {
         bool MMAX_EGS = false;
 
         uint16_t generateWheelData(const uint32_t expire_time_ms) const;
+        CanTorqueData last_valid_torque_data = TORQUE_NDEF;
 };
 
 #endif // HFM_CAN_H

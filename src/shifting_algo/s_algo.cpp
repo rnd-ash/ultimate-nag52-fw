@@ -441,6 +441,12 @@ void ShiftingAlgorithm::adaptation_step() {
         }
 
         this->torque_adaptation_stage += 1;
+        if (race == sid->profile) {
+            this->do_fill_pressure_adaptation = false;
+            this->do_fill_time_adaptation = false;
+            this->do_torque_adaptation = false;
+        }
+
         ESP_LOGI("ADAPT", "Start adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
     } else if (torque_adaptation_stage == 1) { 
         if (sd->input_rpm < 1000) {

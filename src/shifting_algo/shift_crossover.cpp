@@ -252,12 +252,16 @@ uint8_t CrossoverShift::phase_overlap() {
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
         this->timer_shift += rpm_adder;
         this->subphase_shift += 1;
+        if (sid->profile == race) {
+            this->trq_req_timer = MAX(3, this->timer_shift);
+            this->trq_req_down_ramp = true;
+        }
     }
 
     //if (nullptr != sid->adaptation_mgr) {
     //    this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     //}
-    this->trq_adder -= this->calculate_dynamic_inertia();
+    //this->trq_adder += this->calculate_dynamic_inertia();
 
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
@@ -668,7 +672,16 @@ int16_t CrossoverShift::calculate_dynamic_inertia() {
     if (sid->change == GearChange::_1_2) {
         return 0;
     } else {
-        int inertia = ((int)sd->engine_rpm - (int)this->old_engine_rpm)*(VEHICLE_CONFIG.engine_drag_torque/10);
+        int delta = 0;
+        if (this->upshifting) {
+            // Engine RPM accelerating = more torque required
+            delta = (int)sd->engine_rpm - (int)this->old_engine_rpm;
+        } else {
+            // Engine RPM decelerating = more torque required
+            delta = (int)this->old_engine_rpm - (int)sd->engine_rpm;
+        }
+
+        int inertia = (delta)*(VEHICLE_CONFIG.engine_drag_torque/10);
         inertia /= 20;
         return inertia;
     }

@@ -400,7 +400,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            if (sensor_data.converted_torque >= -(inertia / 2)) {
+            if (sensor_data.converted_torque > 0) {
                 algo = new CrossoverShift(&sid);
             }
             else {
@@ -409,7 +409,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         }
         else {
             if (
-                (sensor_data.converted_torque < inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
+                (sensor_data.converted_torque <= inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
                 ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
                 ) {
                 algo = new CrossoverShift(&sid);

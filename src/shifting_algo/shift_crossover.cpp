@@ -280,7 +280,6 @@ uint8_t CrossoverShift::phase_overlap() {
         this->mod_sol_pressure = this->calc_overlap2_mod();
     } else {
         this->fill_via_ramp = false;
-        this->do_fill_time_adaptation = false;
         uint16_t p_mod_1 = this->calc_overlap_mod();
         uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);

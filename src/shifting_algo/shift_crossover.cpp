@@ -419,8 +419,6 @@ uint8_t CrossoverShift::phase_overlap2() {
             this->timer_shift = 3;
             this->trq_req_timer = 3;
             this->subphase_shift += 1;
-            this->trq_req_up_ramp = true;
-
         }
     } else if (3 == subphase_shift) {
         this->trq_adder = this->get_trq_boost_adder();
@@ -462,6 +460,11 @@ uint8_t CrossoverShift::phase_overlap2() {
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
+    }
+
+    if (!this->trq_req_up_ramp && sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm && subphase_shift >= 2) {
+        this->trq_req_timer = 3;
+        this->trq_req_up_ramp = true;
     }
 
     //if (sid->adaptation_mgr) {

@@ -417,7 +417,10 @@ uint8_t CrossoverShift::phase_overlap2() {
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
             // Next phase
             this->timer_shift = 3;
+            this->trq_req_timer = 3;
             this->subphase_shift += 1;
+            this->trq_req_up_ramp = true;
+
         }
     } else if (3 == subphase_shift) {
         this->trq_adder = this->get_trq_boost_adder();

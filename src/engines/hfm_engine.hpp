@@ -18,6 +18,15 @@ class HfmEngine {
         void load(void);
         void save(void);
         void print(void);
+        StoredTable* get_max_torque_table(void){
+            return this->hfm_engine_max_torque;
+        }
+        StoredMap* get_maf_map(void) {
+            return this->hfm_engine_mass_air_flow;
+        }
+        StoredTable* get_max_maf_table(void){
+            return this->hfm_engine_max_mass_air_flow;
+        }
     private:
         const char *name = "HFM_ENGINE";
         

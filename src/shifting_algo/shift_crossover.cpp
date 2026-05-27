@@ -252,12 +252,16 @@ uint8_t CrossoverShift::phase_overlap() {
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
         this->timer_shift += rpm_adder;
         this->subphase_shift += 1;
+        if (sid->profile == race) {
+            this->trq_req_timer = MAX(3, this->timer_shift);
+            this->trq_req_down_ramp = true;
+        }
     }
 
     //if (nullptr != sid->adaptation_mgr) {
     //    this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
     //}
-    this->trq_adder -= this->calculate_dynamic_inertia();
+    //this->trq_adder += this->calculate_dynamic_inertia();
 
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
@@ -280,7 +284,6 @@ uint8_t CrossoverShift::phase_overlap() {
         this->mod_sol_pressure = this->calc_overlap2_mod();
     } else {
         this->fill_via_ramp = false;
-        this->do_fill_time_adaptation = false;
         uint16_t p_mod_1 = this->calc_overlap_mod();
         uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
@@ -414,6 +417,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
             // Next phase
             this->timer_shift = 3;
+            this->trq_req_timer = 3;
             this->subphase_shift += 1;
         }
     } else if (3 == subphase_shift) {
@@ -456,6 +460,11 @@ uint8_t CrossoverShift::phase_overlap2() {
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
+    }
+
+    if (!this->trq_req_up_ramp && sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm && subphase_shift >= 2) {
+        this->trq_req_timer = 3;
+        this->trq_req_up_ramp = true;
     }
 
     //if (sid->adaptation_mgr) {
@@ -669,7 +678,16 @@ int16_t CrossoverShift::calculate_dynamic_inertia() {
     if (sid->change == GearChange::_1_2) {
         return 0;
     } else {
-        int inertia = ((int)sd->engine_rpm - (int)this->old_engine_rpm)*(VEHICLE_CONFIG.engine_drag_torque/10);
+        int delta = 0;
+        if (this->upshifting) {
+            // Engine RPM accelerating = more torque required
+            delta = (int)sd->engine_rpm - (int)this->old_engine_rpm;
+        } else {
+            // Engine RPM decelerating = more torque required
+            delta = (int)this->old_engine_rpm - (int)sd->engine_rpm;
+        }
+
+        int inertia = (delta)*(VEHICLE_CONFIG.engine_drag_torque/10);
         inertia /= 20;
         return inertia;
     }

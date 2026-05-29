@@ -144,6 +144,7 @@ protected:
     uint16_t calc_low_filling_p();
 
     void adaptation_step();
+    uint8_t adapt_p_map_idx();
 
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
@@ -157,12 +158,20 @@ protected:
     bool do_torque_adaptation = false;
     bool end_of_fill_time_adapt = false;
 
+    uint8_t timer_p_adapt = 0;
+    uint16_t adapting_trq_limit = 0;
+    uint16_t adapting_turbine_spd = 0;
+    int adapting_p_adapt_trq = 0;
+    int adapting_p_adapt_pressure = 0;
+
     short rpm_adapt_off_clutch = 0;
 
     uint8_t fill_time_adaptation_stage = 0;
     uint8_t fill_pressure_adaptation_stage = 0;
     uint8_t torque_adaptation_stage = 0;
     uint16_t old_engine_rpm = 0;
+
+    int16_t first_order_pump_trq_filter = 0;
 };
 
 // Helper functions

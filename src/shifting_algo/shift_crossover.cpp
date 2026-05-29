@@ -9,7 +9,13 @@ const uint8_t PHASE_OVERLAP2         = 3;
 const uint8_t PHASE_MAX_PRESSURE     = 4;
 const uint8_t PHASE_END_CONTROL      = 5;
 
+uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
+float RAMP_LIMITS[8] = {0.3, 0.57, 0.5, 0, 0, 0, 0, 0};
+float ADAPT_LIMITS[8] = {0.9, 1.14, 1.6, 2.5, 0, 0, 0.68, 0.68};
+
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
+    this->adapting_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*ADAPT_LIMITS[sid->inf.map_idx];
+    this->ramp_filling_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*RAMP_LIMITS[sid->inf.map_idx];
 }
 
 CrossoverShift::~CrossoverShift() {
@@ -19,7 +25,6 @@ uint8_t CrossoverShift::max_shift_stage_id() {
     return PHASE_END_CONTROL;
 }
 
-uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 // P1 - IDX
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
@@ -134,24 +139,14 @@ uint8_t CrossoverShift::phase_fill() {
         // High filling
         this->p_apply_clutch = set_p_apply_clutch_with_spring(high_filling_p);
         if (0 == this->timer_shift) {
-            if (this->upshifting && sid->change != GearChange::_4_5) {
-                // 1-2 , 2-3, 3-4 for circuit adaptations
-                float div_ratio = 1000/MECH_PTR->ratio_table[(uint8_t)sid->curr_g];
-                this->ramp_filling_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*div_ratio;
-            } else {
-                this->ramp_filling_trq_limit = 0;
-            }
             if (
                 abs_input_trq < this->ramp_filling_trq_limit && upshifting
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;
                 // Switch adapting to pressure
-                if (this->do_fill_time_adaptation) {
-                    this->do_fill_time_adaptation = false;
-                    this->do_fill_pressure_adaptation = true;
-                    ESP_LOGI("ADAPT", "Switching to adapt filling Pressure not time");
-                }
+                this->do_fill_time_adaptation = false;
+                this->do_fill_pressure_adaptation = false;
                 this->fill_via_ramp = true;
             } else {
                 // Non ramp filling
@@ -289,18 +284,15 @@ uint8_t CrossoverShift::phase_overlap() {
     // Mod pressure depends on the current situation
     if (abs_input_trq < this->ramp_filling_trq_limit*1.5 && fill_via_ramp) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
-    } else if (abs_input_trq < this->ramp_filling_trq_limit && (this->do_fill_time_adaptation || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
+    } else if (abs_input_trq < this->adapting_trq_limit && (this->do_fill_time_adaptation || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
         this->fill_via_ramp = false;
         this->mod_sol_pressure = this->calc_overlap2_mod();
     } else {
         this->fill_via_ramp = false;
+        this->do_fill_time_adaptation = false;
         uint16_t p_mod_1 = this->calc_overlap_mod();
         uint16_t p_mod_2 = this->calc_overlap_mod_min(MAX(targ, this->p_apply_overlap_begin));
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
-        if (this->do_fill_pressure_adaptation) {
-            ESP_LOGI("ADAPT", "Cancelled pressure adaptation");
-            this->do_fill_time_adaptation = false;
-        }
     }
     if (
         0 == this->timer_shift ||
@@ -460,10 +452,7 @@ uint8_t CrossoverShift::phase_overlap2() {
             // Analyze adaptations
             ESP_LOGI("ADAPT", "End adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
             if (nullptr != sid->adaptation_mgr) {
-                if (this->do_fill_time_adaptation && 0 != result_fill_time_adaptation) {
-                    ESP_LOGI("ADAPT", "Fill time adaptation completed with %d offset", result_fill_time_adaptation);
-                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, result_fill_time_adaptation);
-                } else if (result_fill_time_adaptation == 0) {
+                if (result_fill_time_adaptation == 0) {
                     // No fill adaptation observation - Do torque adaptation
                     if (abs(this->correction_trq) > abs(this->trq_adder) && this->do_torque_adaptation) {
                         int correction = this->correction_trq / 10;
@@ -597,7 +586,7 @@ void CrossoverShift::fill_adapt() {
     if (this->do_fill_time_adaptation && !this->end_of_fill_time_adapt) {
         // Waiting for clutch movement (Checked and verified)
         int16_t rpm_clamped = this->get_and_set_adapt_rpm_off_clutch();
-        bool rpm_in_limits = (sd->input_rpm <= sd->engine_rpm && upshifting) || (sd->engine_rpm <= sd->input_rpm && !upshifting);
+        bool rpm_in_limits = (sd->input_rpm <= sd->engine_rpm+100 && upshifting) || (sd->engine_rpm <= sd->input_rpm+100 && !upshifting);
         if (rpm_clamped > 100 && rpm_in_limits) {
             this->end_of_fill_time_adapt = true;
             this->offset_adapt_timer_by_clutch_delay();
@@ -612,15 +601,9 @@ void CrossoverShift::fill_adapt() {
                 }
             }
             ESP_LOGI("ADAPT", "FillAdapt end in Filling phase. Res %d", this->result_fill_time_adaptation);
-        }
-    } else if (this->do_fill_pressure_adaptation && !this->end_of_fill_time_adapt) {
-        int16_t rpm_clamped = this->get_and_set_adapt_rpm_off_clutch();
-        if (rpm_clamped > 100) {
-            this->end_of_fill_time_adapt = true;
-            int p_move = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
-            int p_theor = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
-            ESP_LOGI("F_P_ADAPT", "%d mbar - Theoretical P: %d mbar", p_move, p_theor);
-            this->end_of_fill_time_adapt = true;
+            if (sid->adaptation_mgr) {
+                sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, this->result_fill_time_adaptation);
+            }
         }
     }
 }
@@ -638,20 +621,14 @@ void CrossoverShift::overlap_adapt() {
                 // Now compare to when the transition happened
                 this->result_fill_time_adaptation = this->calc_t_adapt_offset_adv(this->fill_time_adapt_timer);
                 ESP_LOGI("ADAPT", "FillAdapt end in overlap phase. Res %d", this->result_fill_time_adaptation);
+                if (sid->adaptation_mgr) {
+                    sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, this->result_fill_time_adaptation);
+                }
             }
         } else {
             // Cancel adaptation
             this->do_fill_time_adaptation = false;
             ESP_LOGI("ADAPT", "FillAdapt CANCELLED in overlap phase");
-        }
-    } else if (this->do_fill_pressure_adaptation && !this->end_of_fill_time_adapt) {
-        int16_t rpm_clamped = this->get_and_set_adapt_rpm_off_clutch();
-        if (rpm_clamped > 100) {
-            this->end_of_fill_time_adapt = true;
-            int p_move = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
-            int p_theor = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
-            ESP_LOGI("F_P_ADAPT", "%d mbar - Theoretical P: %d mbar", p_move, p_theor);
-            this->end_of_fill_time_adapt = true;
         }
     }
 }
@@ -669,15 +646,9 @@ void CrossoverShift::overlap2_adapt() {
             this->offset_adapt_timer_by_clutch_delay();
             this->result_fill_time_adaptation = this->calc_t_adapt_offset_adv(this->fill_time_adapt_timer);
             ESP_LOGI("ADAPT", "FillAdapt end in overlap2 phase. Res %d", this->result_fill_time_adaptation);
-        }
-    } else if (this->do_fill_pressure_adaptation && !this->end_of_fill_time_adapt) {
-        int16_t rpm_clamped = this->get_and_set_adapt_rpm_off_clutch();
-        if (rpm_clamped > 100) {
-            this->end_of_fill_time_adapt = true;
-            int p_move = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
-            int p_theor = pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Sliding);
-            ESP_LOGI("F_P_ADAPT", "%d mbar - Theoretical P: %d mbar", p_move, p_theor);
-            this->end_of_fill_time_adapt = true;
+            if (sid->adaptation_mgr) {
+                sid->adaptation_mgr->offset_prefill_cycles(sid->inf.map_idx, this->result_fill_time_adaptation);
+            }
         }
     }
 }

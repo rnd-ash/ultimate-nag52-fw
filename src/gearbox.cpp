@@ -400,22 +400,22 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            if (sensor_data.converted_torque > 0) {
-                algo = new CrossoverShift(&sid);
+            if (sensor_data.converted_torque < 0) {
+                algo = new ReleasingShift(&sid);
             }
             else {
-                algo = new ReleasingShift(&sid);
+                algo = new CrossoverShift(&sid);
             }
         }
         else {
             if (
-                (sensor_data.converted_torque <= inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
+                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) &&
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0)
                 ) {
-                algo = new CrossoverShift(&sid);
+                algo = new ReleasingShift(&sid);
             }
             else {
-                algo = new ReleasingShift(&sid);
+                algo = new CrossoverShift(&sid);
             }
         }
 
@@ -1236,12 +1236,11 @@ void Gearbox::controller_loop()
             sensor_data.input_torque = input_trq;
             sensor_data.converted_driver_torque = trqs.m_converted_driver;
         }
-        // Override input torque if garage shifting!
+        sensor_data.pump_torque = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
+
         if (this->shifting && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
-            // Shifting to either R or D
-            int16_t pump = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
-            if (INT16_MAX != pump) {
-                sensor_data.input_torque = pump;
+            if (INT16_MAX != sensor_data.pump_torque) {
+                sensor_data.input_torque = sensor_data.pump_torque;
             }
         }
 

@@ -17,7 +17,7 @@ public:
     int16_t get_applying_torque_offset(uint8_t shift_idx);
     esp_err_t save(void);
     void offset_prefill_cycles(uint8_t shift_idx, int8_t offset);
-    void offset_spc_pressure(uint8_t shift_idx, int8_t offset);
+    void offset_spc_pressure(uint8_t shift_idx, int16_t offset);
 
     void offset_freeing_trq(uint8_t shift_idx, int16_t offset);
     void offset_applying_trq(uint8_t shift_idx, int16_t offset);

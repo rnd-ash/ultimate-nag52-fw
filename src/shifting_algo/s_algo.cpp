@@ -499,7 +499,7 @@ void ShiftingAlgorithm::adaptation_step() {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
         }
         if (timer_p_adapt == 0) {
-            timer_p_adapt = 0xFF; // Start countdown
+            timer_p_adapt = 0xFE; // Start countdown
             fill_pressure_adaptation_stage = 3;
             this->adapting_p_adapt_trq = 0;
             adapting_turbine_spd = sd->input_rpm;
@@ -525,30 +525,40 @@ void ShiftingAlgorithm::adaptation_step() {
                 fill_pressure_adaptation_stage = 4;
             }
         }
-    } else if (4 == fill_pressure_adaptation_stage && this->timer_p_adapt != 0) {
-        // 4 runs no matter what, so we don't care about if we are allowed or not
-        int time = (int)MAX(1, (uint8_t)0xFF - this->timer_p_adapt);
-        int avg_trq = (this->adapting_p_adapt_trq / 10) / time;
-        int d_inertia = (MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm) / (time*20);
-        int correction_p = 0;
-        if (this->upshifting) {
-            correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
-        } else {
-            correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, d_inertia + avg_trq, CoefficientTy::Sliding);
-        }
-        correction_p = MAX(-200, MIN(correction_p, 60));
-        if (0 != correction_p) {
-            if (sid->adaptation_mgr) {
-                int old_v = sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
-
-                float scalar = interpolate_float(time, 0.1, 0.6, 2, 10, InterpType::Linear);
-                int new_v = (int)((float)old_v + (float)correction_p * scalar);
-                ESP_LOGI("ADAPT", "Pressure adapt ended. Res: %d mBar (EEPROM = %d mBar). (Timer = %d, AVG_T = %d Nm)", correction_p, new_v, time, avg_trq);
-                sid->adaptation_mgr->offset_spc_pressure(this->adapt_p_map_idx(), new_v-old_v);
+    } else if (4 == fill_pressure_adaptation_stage) {
+        if (this->timer_p_adapt != 0) {
+            // 4 runs no matter what, so we don't care about if we are allowed or not
+            int time = 0xFF - this->timer_p_adapt;
+            int avg_trq = this->adapting_p_adapt_trq / time;
+            int d_inertia = (MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm) / (time*20);
+            int correction_p = 0;
+            if (this->upshifting) {
+                correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
+            } else {
+                correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, d_inertia + avg_trq, CoefficientTy::Sliding);
             }
-            fill_pressure_adaptation_stage = 5;
+            correction_p = MAX(-200, MIN(correction_p, 60));
+            if (0 != correction_p) {
+                if (sid->adaptation_mgr) {
+                    int old_v = sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
+
+                    float scalar = interpolate_float(time, 0.1, 0.6, 2, 10, InterpType::Linear);
+                    int new_v = (int)((float)old_v + (float)correction_p * scalar);
+                    int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
+                    if (new_v > sid->inf.pressure_multi_spc_int) {
+                        new_v = lim;
+                    } else if (new_v < -lim) {
+                        new_v = -lim;
+                    }
+                    ESP_LOGI("ADAPT", "Pressure adapt ended. Res: %d mBar (EEPROM = %d mBar). (Timer = %d, AVG_T = %d Nm)", correction_p, new_v, time, avg_trq);
+                    sid->adaptation_mgr->offset_spc_pressure(this->adapt_p_map_idx(), new_v-old_v);
+                }
+                fill_pressure_adaptation_stage = 5;
+            } else {
+                ESP_LOGI("ADAPT", "Pressure adapt ended - No change needed");
+                fill_pressure_adaptation_stage = 5;
+            }
         } else {
-            ESP_LOGI("ADAPT", "Pressure adapt ended - No change needed");
             fill_pressure_adaptation_stage = 5;
         }
 

@@ -438,14 +438,15 @@ void ShiftingAlgorithm::adaptation_step() {
     // Fill pressure adaptation (Done for all algorithms)
     
     // Boundary conditions (Every cycle)
-    int tcc_trq = (sd->tcc_trq_multiplier*10) * (float)sd->pump_torque;
+    int tcc_trq = ((sd->tcc_trq_multiplier*10) * sd->pump_torque); // 10x real value
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter);
+        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*10);
     } else {
-        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter);
+        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter*10);
     }
+    this->first_order_pump_trq_filter /= 10; // Reduce to 1x real value
     if (this->do_fill_pressure_adaptation) {
-        if (sd->indicated_torque > this->adapting_trq_limit && this->phase_id < 3) {
+        if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
             this->do_fill_pressure_adaptation = false;
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", sd->indicated_torque, this->adapting_trq_limit);
         }
@@ -499,7 +500,7 @@ void ShiftingAlgorithm::adaptation_step() {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
         }
         if (timer_p_adapt == 0) {
-            timer_p_adapt = 0xFE; // Start countdown
+            timer_p_adapt = 0xFF; // Start countdown
             fill_pressure_adaptation_stage = 3;
             this->adapting_p_adapt_trq = 0;
             adapting_turbine_spd = sd->input_rpm;
@@ -513,13 +514,11 @@ void ShiftingAlgorithm::adaptation_step() {
             ESP_LOGI("ADAPT", "Pressure adapt cancelled. Timer expired");
             this->do_fill_pressure_adaptation = false;
         } else {
-            int turbine_torque = this->first_order_pump_trq_filter/10; // Since moving AVG is 10x
             // Add up turbine torque (AVG calculated later)
-            if (sid->ptr_r_clutch_speeds->on_clutch_speed > 100 && this->phase_id < 4) { // Since only active for crossover, do not do this during overlap2
-                int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
-                int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
-                this->adapting_p_adapt_trq += (theoretical_t - turbine_torque);
-            } else {
+            int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
+            int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
+            this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
+            if (this->phase_id > 4 || sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
                 // On clutch is applied or we moved to boost pressure phase in crossover shift.
                 // (Jump to analysis)
                 fill_pressure_adaptation_stage = 4;
@@ -530,7 +529,7 @@ void ShiftingAlgorithm::adaptation_step() {
             // 4 runs no matter what, so we don't care about if we are allowed or not
             int time = 0xFF - this->timer_p_adapt;
             int avg_trq = this->adapting_p_adapt_trq / time;
-            int d_inertia = (MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm) / (time*20);
+            int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm)) / (time*20);
             int correction_p = 0;
             if (this->upshifting) {
                 correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
@@ -542,7 +541,7 @@ void ShiftingAlgorithm::adaptation_step() {
                 if (sid->adaptation_mgr) {
                     int old_v = sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
 
-                    float scalar = interpolate_float(time, 0.1, 0.6, 2, 10, InterpType::Linear);
+                    float scalar = interpolate_float(time, 0.25, 0.5, 4, 8, InterpType::Linear);
                     int new_v = (int)((float)old_v + (float)correction_p * scalar);
                     int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
                     if (new_v > sid->inf.pressure_multi_spc_int) {

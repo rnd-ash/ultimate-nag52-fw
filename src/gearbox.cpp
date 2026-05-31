@@ -1240,7 +1240,7 @@ void Gearbox::controller_loop()
 
         if (this->shifting && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
             if (INT16_MAX != sensor_data.pump_torque) {
-                sensor_data.input_torque = sensor_data.pump_torque;
+                sensor_data.input_torque = sensor_data.pump_torque * sensor_data.tcc_trq_multiplier;
             }
         }
 

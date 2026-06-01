@@ -126,6 +126,7 @@ public:
     uint16_t find_freeing_torque(GearChange change, uint16_t motor_torque, uint16_t output_rpm);
     uint16_t find_decent_adder_torque(GearChange change, uint16_t abs_motor_torque, uint16_t output_rpm);
     uint16_t calc_max_torque_for_clutch(GearboxGear gear, Clutch clutch, uint16_t pressure, CoefficientTy coef_val);
+    int calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch clutch, int pressure, CoefficientTy coef_val);
     void update_pressures(GearboxGear current_gear, GearChange change_state);
 
     PrefillData make_fill_data(Clutch applying);

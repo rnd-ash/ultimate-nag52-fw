@@ -44,6 +44,14 @@ int8_t ShiftAdaptationSystem::get_prefill_cycles_offset(uint8_t shift_idx) {
     return ret;
 }
 
+int16_t ShiftAdaptationSystem::get_adapt_spc_offset(uint8_t shift_idx) {
+    int16_t ret = 0;
+    if (nullptr != this->spc_offset_map) {
+        ret = this->spc_offset_map->get_current_data()[shift_idx];
+    }
+    return ret;
+}
+
 int16_t ShiftAdaptationSystem::get_freeing_torque_offset(uint8_t shift_idx) {
     int16_t ret = 0;
     if (nullptr != this->freeing_torque_offset) {
@@ -73,6 +81,14 @@ void ShiftAdaptationSystem::offset_prefill_cycles(uint8_t shift_idx, int8_t offs
         } else {
             ESP_LOGI("ADAPT", "Prefill cycles offset by %d to %d", offset, ptr[shift_idx]);
         }
+    }
+}
+
+void ShiftAdaptationSystem::offset_spc_pressure(uint8_t shift_idx, int16_t offset) {
+    if (nullptr != this->spc_offset_map) {
+        int16_t* ptr = this->spc_offset_map->get_current_data();
+        ptr[shift_idx] += offset;
+        ESP_LOGI("ADAPT", "SPC pressure offset by %d to %d", offset, ptr[shift_idx]);
     }
 }
 

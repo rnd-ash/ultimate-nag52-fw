@@ -67,6 +67,8 @@ struct SensorData{
     int16_t max_torque;
     /// Engine torque limit minimum in Nm
     int16_t min_torque;
+    /// TCC Pump torque
+    int16_t pump_torque;
     /// Last time the gearbox changed gear (in milliseconds)
     uint32_t last_shift_time;
     /// Current gearbox ratio

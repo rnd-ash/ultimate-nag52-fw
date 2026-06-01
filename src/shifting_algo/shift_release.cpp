@@ -122,6 +122,9 @@ uint8_t ReleasingShift::step_internal(
             const float factors[8] = { 1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 1.0, 1.0 };
             float freeing = this->freeing_trq * factors[sid->inf.map_idx];
             intervension_out = MAX(freeing, protection) / sd->tcc_trq_multiplier;
+            if (sd->indicated_torque * 0.8 < intervension_out) {
+                intervension_out = sd->indicated_torque * 0.8;
+            }
         }
 
         if (emergency_limit) {
@@ -411,7 +414,7 @@ uint8_t ReleasingShift::phase_overlap() {
             this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, low_filling_p, CoefficientTy::Release);
             this->overlap_torque = (sd->tcc_trq_multiplier * this->torque_req_val) + this->trq_at_apply_clutch;
             if (this->overlap_torque > this->freeing_trq) {
-                this->overlap_torque = this->freeing_trq;
+                this->overlap_torque = this->freeing_trq;   
             }
         }
     }

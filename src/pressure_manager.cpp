@@ -445,6 +445,27 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
     return calc;
 }
 
+int PressureManager::calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch clutch, int pressure, CoefficientTy coef_val) {
+    uint8_t gear_idx = gear_to_idx_lookup(gear);
+    float coef;
+    switch (coef_val) {
+        case CoefficientTy::Static:
+            coef = this->stationary_coefficient();
+            break;
+        case CoefficientTy::Sliding:
+            coef = this->sliding_coefficient();
+            break;
+        case CoefficientTy::Release:
+            coef = this->release_coefficient();
+            break;
+        default:
+            coef = 1.F;
+    }
+    float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    float calc =  ((float)pressure * coef) / (float)friction_val;
+    return calc;
+}
+
 uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
     uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * HYDR_PTR->shift_spc_gain[shift_idx];
     max_p /= 1000; // shift_spc_gain is *1000;

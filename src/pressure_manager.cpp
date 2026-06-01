@@ -286,7 +286,7 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
     return calc;
 }
 
-int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty) {
+int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t torque_nm, CoefficientTy coef_ty) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float coef;
     switch (coef_ty) {
@@ -303,7 +303,7 @@ int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clut
             coef = 1.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = ((float)abs_torque_nm * friction_val) / coef;
+    float calc = ((float)torque_nm * friction_val) / coef;
     return calc;
 }
 

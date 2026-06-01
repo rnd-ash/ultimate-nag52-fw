@@ -525,16 +525,16 @@ void ShiftingAlgorithm::adaptation_step() {
             }
         }
     } else if (4 == fill_pressure_adaptation_stage) {
-        if (this->timer_p_adapt != 0) {
+        if (this->timer_p_adapt != 0 && this->adapting_turbine_spd != 0) {
             // 4 runs no matter what, so we don't care about if we are allowed or not
             int time = 0xFF - this->timer_p_adapt;
             int avg_trq = this->adapting_p_adapt_trq / time;
             int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm)) / (time*20);
             int correction_p = 0;
             if (this->upshifting) {
-                correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
+                correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
             } else {
-                correction_p = pm->calc_max_torque_for_clutch_signed(sid->targ_g, sid->applying, d_inertia + avg_trq, CoefficientTy::Sliding);
+                correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, d_inertia + avg_trq, CoefficientTy::Sliding);
             }
             correction_p = MAX(-200, MIN(correction_p, 60));
             if (0 != correction_p) {
@@ -549,7 +549,7 @@ void ShiftingAlgorithm::adaptation_step() {
                     } else if (new_v < -lim) {
                         new_v = -lim;
                     }
-                    ESP_LOGI("ADAPT", "Pressure adapt ended. Res: %d mBar (EEPROM = %d mBar). (Timer = %d, AVG_T = %d Nm)", correction_p, new_v, time, avg_trq);
+                    ESP_LOGI("ADAPT", "P_ADAPT end. Res: %d mBar (Timer = %d, AVG_T = %d Nm, Inertia %d Nm)", correction_p, time, avg_trq, d_inertia);
                     sid->adaptation_mgr->offset_spc_pressure(this->adapt_p_map_idx(), new_v-old_v);
                 }
                 fill_pressure_adaptation_stage = 5;

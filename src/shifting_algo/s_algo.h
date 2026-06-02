@@ -114,6 +114,8 @@ protected:
     short momentum_start_output_rpm = 0;
     short correction_trq = 0;
 
+    uint16_t emergency_trq_val = 0;
+
     // Because EGS is weird, bleed and end of ctrl phases have same for either shift
     uint8_t phase_bleed(PressureManager* pm);
     uint8_t phase_maxp(SensorData* sd);

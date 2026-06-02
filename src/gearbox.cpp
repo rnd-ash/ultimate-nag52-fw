@@ -409,7 +409,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         }
         else {
             if (
-                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) &&
+                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) == 0) ||
                 ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0)
                 ) {
                 algo = new ReleasingShift(&sid);

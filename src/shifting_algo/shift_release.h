@@ -39,7 +39,6 @@ private:
 
     uint16_t calc_sync_mod_pressure();
     short calc_shifting_momentum();
-    short calc_sync_torque_new_clutch();
     uint16_t calc_mod_overlap();
     int16_t calc_release_clutch_p_signed(int trq, CoefficientTy coef);
     uint16_t calc_threshold_rpm_2();

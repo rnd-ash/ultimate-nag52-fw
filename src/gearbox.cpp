@@ -372,6 +372,25 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .amount = 0
         };
 
+        bool en_trq_req = true;
+        if (GearChange::_1_2 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_1_2;
+        } else if (GearChange::_2_3 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_2_3;
+        } else if (GearChange::_3_4 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_3_4;
+        } else if (GearChange::_4_5 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_4_5;
+        } else if (GearChange::_2_1 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_2_1;
+        } else if (GearChange::_3_2 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_3_2;
+        } else if (GearChange::_4_3 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_4_3;
+        } else if (GearChange::_5_4 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_5_4;
+        }
+
         ShiftInterfaceData sid = {
             .profile = profile,
             .MOD_MAX = MOD_MAX,
@@ -392,7 +411,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .ptr_w_trq_req = &trd,
             .tcc = this->tcc,
             .adaptation_mgr = this->shift_adapter,
-            .manual_shift = manually_requested
+            .manual_shift = manually_requested,
+            .trq_req_en = en_trq_req
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);

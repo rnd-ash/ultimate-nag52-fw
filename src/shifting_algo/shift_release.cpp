@@ -150,8 +150,14 @@ uint8_t ReleasingShift::step_internal(
         this->torque_req_out = this->torque_req_val;
     }
 
+    if (sid->trq_req_en) {
+        this->emergency_trq_val = this->torque_req_out;
+    } else {
+        this->emergency_trq_val = 0;
+    }
+
     // Output to CAN
-    if (0 != torque_req_out) {
+    if (0 != torque_req_out && sid->trq_req_en) {
         torque_req_out = MIN(torque_req_out, sd->indicated_torque);
         sid->ptr_w_trq_req->amount = sd->indicated_torque - torque_req_out;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
@@ -435,8 +441,8 @@ uint8_t ReleasingShift::phase_overlap() {
 
 uint16_t ReleasingShift::calc_mod_overlap() {
     if (sid->change == GearChange::_3_2 || sid->change == GearChange::_2_1) {
+        int trq_req = (this->emergency_trq_val * sd->tcc_trq_multiplier);
         if (((sid->shift_flags & SHIFT_FLAG_COAST) != 0) && sd->pedal_pos < 10) {
-            int trq_req = (this->torque_req_val * sd->tcc_trq_multiplier);
             int trq = MAX(this->trq_adder + this->correction_trq - this->loss_torque - trq_req, this->minimum_mod_reduction_trq);
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod = MAX(p_mod, 0);
@@ -445,8 +451,7 @@ uint16_t ReleasingShift::calc_mod_overlap() {
             return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
         }
         else {
-            int trq = MAX(0, abs_input_trq + this->trq_adder + this->correction_trq - this->loss_torque);
-            trq = MAX(trq, this->minimum_mod_reduction_trq);
+            int trq = MAX(0, abs_input_trq + this->trq_adder + this->correction_trq - this->loss_torque - trq_req);
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod *= 0.8;
             int p_shift = MAX(0, this->p_overlap_begin - centrifugal_force_on_clutch);
@@ -493,32 +498,41 @@ uint16_t ReleasingShift::max_p_mod_pressure() {
 }
 
 const uint8_t momentum_factors[8] = { 100, 100, 100, 100, 80, 80, 100, 100 }; // RELEASE_CAL->field20_0x16
-short ReleasingShift::calc_sync_torque_new_clutch() {
-    // Freeing torque factored with momentum
-    float torque_new_clutch = (float)((100 - momentum_factors[sid->inf.map_idx]) * this->freeing_trq);
-    torque_new_clutch /= 100.0;
-    // Add in actual torque handling of the new clutch based on pressure
-    torque_new_clutch += ((pm->release_coefficient() * (float)this->trq_at_apply_clutch) / pm->sliding_coefficient());
-    // Add in torque request torque (torque_req_val is 0 if trq req failed)
-    torque_new_clutch += (this->torque_req_val * sd->tcc_trq_multiplier);
-    // Clamp our value to freeing torque (Prevents overloss)
-    return MIN(this->freeing_trq, torque_new_clutch);
-}
 
 uint16_t ReleasingShift::calc_sync_mod_pressure() {
     // Freeing torque factored with momentum
-    float torque_new_clutch = this->calc_sync_torque_new_clutch();
-    // Calc torque at off clutch
-    this->trq_at_release_clutch = MAX(0, abs_input_trq + this->correction_trq + this->torque_adder - torque_new_clutch);
+    float raw = MAX(0, abs_input_trq + this->correction_trq + this->torque_adder);
+    float torque_new_clutch = raw;
+    float freeing = (this->freeing_trq * momentum_factors[sid->inf.map_idx]) / 100.0;
+
+    float tmp = ((pm->release_coefficient() * (float)this->trq_at_apply_clutch) / pm->sliding_coefficient());
+    tmp += (this->emergency_trq_val * sd->tcc_trq_multiplier);
+    tmp += this->freeing_trq;
+    tmp -= freeing;
+
+    tmp = MIN(this->freeing_trq, tmp);
+    if (raw < tmp) {
+        this->trq_at_release_clutch = 0;
+    } else {
+        this->trq_at_release_clutch = raw - tmp;
+    }
     float p_mod = MAX(0, this->calc_release_clutch_p_signed(this->trq_at_release_clutch, CoefficientTy::Sliding) + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
 
     return this->calc_mpc_sol_shift_ps(this->p_apply_clutch, p_mod);
 }
 
 short ReleasingShift::calc_shifting_momentum() {
-    short sync_torque = this->calc_sync_torque_new_clutch();
-    float trq_req_reduction = (float)this->torque_req_out * sd->tcc_trq_multiplier;
-    float ret = (this->trq_at_apply_clutch - trq_req_reduction + sync_torque);
+    short ret = 0;
+    float calc = ((pm->release_coefficient() * (float)this->trq_at_apply_clutch) / pm->sliding_coefficient());
+    calc += (this->emergency_trq_val * sd->tcc_trq_multiplier);
+    calc += this->freeing_trq;
+    calc -= (this->freeing_trq * momentum_factors[sid->inf.map_idx]) / 100.0;
+
+    float min = MIN(this->freeing_trq, calc);
+
+    float reduction = this->torque_req_out * sd->tcc_trq_multiplier;
+
+    return MAX(0, (min + this->trq_at_apply_clutch) - reduction);
     return ret;
 }
 

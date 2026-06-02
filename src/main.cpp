@@ -236,7 +236,7 @@ inline void set_start_enable(void)
     }
 }
 
-void input_manager(void *)
+void input_manager(void)
 {
     PaddlePosition paddle_pos_last = PaddlePosition::None;
     ShifterPosition shifter_pos_last = ShifterPosition::SignalNotAvailable;
@@ -364,8 +364,8 @@ extern "C" void app_main(void)
     egs_can_hal = nullptr;
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
-    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void *>(s), 2, nullptr);
-
+    xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
+    
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox, shifter);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16 * 1024, diag_server, 5, nullptr, 0);
@@ -380,7 +380,7 @@ extern "C" void app_main(void)
     }
     else
     { // INIT OK!
-        xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
+        input_manager();
     }
 }
 

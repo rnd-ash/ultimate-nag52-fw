@@ -46,6 +46,7 @@ private:
     bool fill_via_ramp = false;
     uint16_t torque_req_val = 0;
     int16_t torque_adapt_val = 0;
+    int16_t trq_req_compensate_val = 0;
     
     uint16_t fill_time_adapt_timer = 0;
 
@@ -54,7 +55,6 @@ private:
     uint16_t cycles_low_filling = 0;
 
     int8_t result_fill_time_adaptation = 0;
-    uint16_t emergency_trq_val = 0;
 
     uint16_t get_and_set_adapt_rpm_off_clutch();
     void offset_adapt_timer_by_clutch_delay();

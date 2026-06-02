@@ -216,7 +216,7 @@ void err_beep_loop(void *a)
     }
 }
 
-void input_manager(void *)
+void input_manager()
 {
     PaddlePosition last_pos = PaddlePosition::None;
     ShifterPosition slast_pos = ShifterPosition::SignalNotAvailable;
@@ -225,42 +225,44 @@ void input_manager(void *)
         if (nullptr != ioexpander) {
             ioexpander->read_from_ioexpander();
         }
-        AbstractProfile* prof = shifter->get_profile(500);
-        if (nullptr != prof) {
+        if (nullptr != shifter && nullptr != gearbox && nullptr != egs_can_hal) {
+            AbstractProfile* prof = shifter->get_profile(500);
             gearbox->set_profile(prof);
-        }
-        PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
-        if (last_pos != paddle)
-        { // Same position, ignore
-            if (last_pos != PaddlePosition::None)
-            {
+            PaddlePosition paddle = egs_can_hal->get_paddle_position(100);
+            if (last_pos != paddle)
+            { // Same position, ignore
+                if (last_pos != PaddlePosition::None)
+                {
+                    // Process last request of the user
+                    if (last_pos == PaddlePosition::Plus)
+                    {
+                        gearbox->inc_gear_request();
+                    }
+                    else if (last_pos == PaddlePosition::Minus)
+                    {
+                        gearbox->dec_gear_request();
+                    }
+                }
+                last_pos = paddle;
+            }
+            ShifterPosition spos = shifter->get_shifter_position(1000);
+            if (spos != slast_pos)
+            { // Same position, ignore
                 // Process last request of the user
-                if (last_pos == PaddlePosition::Plus)
+                if (slast_pos == ShifterPosition::PLUS)
                 {
                     gearbox->inc_gear_request();
                 }
-                else if (last_pos == PaddlePosition::Minus)
+                else if (slast_pos == ShifterPosition::MINUS)
                 {
                     gearbox->dec_gear_request();
                 }
+                slast_pos = spos;
             }
-            last_pos = paddle;
         }
-        ShifterPosition spos = shifter->get_shifter_position(1000);
-        if (spos != slast_pos)
-        { // Same position, ignore
-            // Process last request of the user
-            if (slast_pos == ShifterPosition::PLUS)
-            {
-                gearbox->inc_gear_request();
-            }
-            else if (slast_pos == ShifterPosition::MINUS)
-            {
-                gearbox->dec_gear_request();
-            }
-            slast_pos = spos;
+        if (nullptr != pcb_gpio_matrix) {
+            pcb_gpio_matrix->write_output_signals();
         }
-        pcb_gpio_matrix->write_output_signals();
         vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }
@@ -327,7 +329,7 @@ extern "C" void app_main(void)
     }
     else
     { // INIT OK!
-        xTaskCreate(input_manager, "INPUT_MANAGER", 8192, nullptr, 5, nullptr);
+        input_manager();
     }
 }
 

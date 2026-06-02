@@ -45,6 +45,7 @@ struct ShiftInterfaceData {
     TorqueConverter* tcc;
     ShiftAdaptationSystem* adaptation_mgr;
     bool manual_shift;
+    bool trq_req_en;
 };
 
 class ShiftingAlgorithm {

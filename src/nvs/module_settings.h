@@ -147,11 +147,36 @@ typedef struct {
     // DEBUG - Show '^' or 'v' in the gear display when the shift
     // thread is active
     bool debug_show_up_down_arrows_in_r;
+    // Enable torque requests for 1-2
+    bool en_trq_req_1_2;
+    // Enable torque requests for 2-3
+    bool en_trq_req_2_3;
+    // Enable torque requests for 3-4
+    bool en_trq_req_3_4;
+    // Enable torque requests for 4-5
+    bool en_trq_req_4_5;
+    // Enable torque requests for 2-1
+    bool en_trq_req_2_1;
+    // Enable torque requests for 3-2
+    bool en_trq_req_3_2;
+    // Enable torque requests for 4-3
+    bool en_trq_req_4_3;
+    // Enable torque requests for 5-4
+    bool en_trq_req_5_4;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .f_shown_if_flare = false,
     .debug_show_up_down_arrows_in_r = false,
+    .en_trq_req_1_2 = true,
+    .en_trq_req_2_3 = true,
+    .en_trq_req_3_4 = true,
+    .en_trq_req_4_5 = true,
+
+    .en_trq_req_2_1 = true,
+    .en_trq_req_3_2 = true,
+    .en_trq_req_4_3 = true,
+    .en_trq_req_5_4 = true,
 };
 
 // Pressure manager settings

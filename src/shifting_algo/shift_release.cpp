@@ -149,10 +149,15 @@ uint8_t ReleasingShift::step_internal(
         }
         this->torque_req_out = this->torque_req_val;
     }
-    this->emergency_trq_val = this->torque_req_out;
+
+    if (sid->trq_req_en) {
+        this->emergency_trq_val = this->torque_req_out;
+    } else {
+        this->emergency_trq_val = 0;
+    }
 
     // Output to CAN
-    if (0 != torque_req_out) {
+    if (0 != torque_req_out && sid->trq_req_en) {
         torque_req_out = MIN(torque_req_out, sd->indicated_torque);
         sid->ptr_w_trq_req->amount = sd->indicated_torque - torque_req_out;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;

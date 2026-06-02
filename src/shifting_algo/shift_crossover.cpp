@@ -111,10 +111,14 @@ uint8_t CrossoverShift::step_internal(
         }
         this->torque_req_out = this->torque_req_val;
     }
-    this->emergency_trq_val = 0; //(this->torque_req_out * pm->release_coefficient()) / 100;
+    if (sid->trq_req_en) {
+        this->emergency_trq_val = 0;
+    } else {
+        this->emergency_trq_val = (this->torque_req_out * pm->release_coefficient()) / 100;
+    }
 
     // Output to CAN
-    if (0 != torque_req_out) {
+    if (0 != torque_req_out && sid->trq_req_en) {
         torque_req_out = MIN(torque_req_out, sd->indicated_torque);
         sid->ptr_w_trq_req->amount = MAX(0, sd->indicated_torque - torque_req_out - this->trq_req_compensate_val);
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;

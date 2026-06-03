@@ -417,10 +417,10 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);
 
-        float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
+        float threshold_torque = VEHICLE_CONFIG.engine_drag_torque/10.0;
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            if (sensor_data.converted_torque < 0) {
+            if (sensor_data.converted_torque <= -threshold_torque/2) {
                 algo = new ReleasingShift(&sid);
             }
             else {
@@ -428,13 +428,16 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
         else {
+            bool is_release = true;
             if (
-                (sensor_data.converted_torque > inertia || (sid.shift_flags & SHIFT_FLAG_COAST) == 0) ||
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0)
-                ) {
-                algo = new ReleasingShift(&sid);
+                (sensor_data.converted_torque < threshold_torque && (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
+            ) {
+                is_release = false;
             }
-            else {
+            if (is_release) {
+                algo = new ReleasingShift(&sid);
+            } else {
                 algo = new CrossoverShift(&sid);
             }
         }

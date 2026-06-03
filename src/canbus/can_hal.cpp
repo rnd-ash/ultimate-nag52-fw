@@ -65,11 +65,7 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
         if (this->can_init_status == ESP_OK)
         {
             this->can_init_status = twai_start();
-            if (this->can_init_status == ESP_OK)
-            {
-                ESP_LOGD(this->name, "Calling setup");
-            }
-            else
+            if (this->can_init_status != ESP_OK)
             {
                 ESP_LOGE(this->name, "Failed to start TWAI");
             }
@@ -115,7 +111,6 @@ bool EgsBaseCan::begin_task() {
     }
     // Prevent starting again
     if (this->task == nullptr) {
-        ESP_LOG_LEVEL(ESP_LOG_DEBUG, this->name, "Starting CAN task");
         if (xTaskCreate(this->start_task_loop, "EGS_CAN", 8192, this, 5, &this->task) != pdPASS) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, this->name, "CAN task creation failed!");
             return false;

@@ -135,7 +135,6 @@ esp_err_t EEPROM::init_eeprom() {
         bool new_fw = false;
         if (ESP_OK == EEPROM::check_if_new_fw(&new_fw)) {
             if (new_fw) {
-                ESP_LOGI("EEPROM", "New firmware after boot detected. Cleaning up NVS");
                 nvs_iterator_t it = NULL;
                 esp_err_t res = nvs_entry_find("nvs", NULL, NVS_TYPE_ANY, &it);
                 while (ESP_OK == res) {
@@ -280,7 +279,6 @@ esp_err_t EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
     ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_WEEK, &dest->manufacture_week, 8), "EFUSE_CFG", "Could not read manf. week");
     ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_MONTH, &dest->manufacture_month, 8), "EFUSE_CFG", "Could not read manf. month");
     ESP_RETURN_ON_ERROR(esp_efuse_read_field_blob(ESP_EFUSE_M_YEAR, &dest->manufacture_year, 8), "EFUSE_CFG", "Could not read manf. year");
-    ESP_LOG_LEVEL(ESP_LOG_INFO, "EFUSE_CFG", "CONFIG:Board Ver: V1.%d, Week %d (%02d/%02d/%02d)", dest->board_ver, dest->manufacture_week, dest->manufacture_day, dest->manufacture_month, dest->manufacture_year);
     return ESP_OK;
 }
 

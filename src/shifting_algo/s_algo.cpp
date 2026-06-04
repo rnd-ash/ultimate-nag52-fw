@@ -271,17 +271,26 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
         ret = 0;
     }
     else {
-        int adder = 0;
-        // Add a bit more pressure depending on vehicle speed
-        if (this->upshifting && !this->is_release_shift()) {
-            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 50, 0, 6000, InterpType::Linear);
-            int torque_adder = interpolate_float(abs_input_trq, 0, 50, 0, 500, InterpType::Linear);
-            adder = rpm_adder + torque_adder;
-            if (race == sid->profile) {
-                adder *= 2;
+        ret = sid->prefill_info.low_fill_pressure_on_clutch;
+        if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
+            // Crossover upshift - Add pressure based on torque and RPM
+            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
+            int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
+            ret += rpm_adder + torque_adder;
+        }
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
+            if (sid->targ_g == GearboxGear::Third) {
+                // 4-3
+                ret = MAX(0, ret - 250);
+            } else {
+                // 5-4
+                ret = MAX(0, ret - 200);
             }
         }
-        ret = sid->prefill_info.low_fill_pressure_on_clutch + adder;
+        if (this->is_release_shift() && this->upshifting && sid->profile != race) {
+            // Relax coasting upshifts
+            ret = MAX(0, ret - 200);
+        }
     }
     return ret;
 }
@@ -299,14 +308,10 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
             adder_1 = 500;
         }
         ret = sid->prefill_info.fill_pressure_on_clutch + adder_1;
-        if (upshifting && is_release_shift()) {
-            if (ret > 200) {
-                ret -= 200;
-            }
-            else {
-                ret = 0;
-            }
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 && sid->targ_g == GearboxGear::Third && sd->atf_temp > 70) {
+            ret = 800;
         }
+
         ret = MIN(sid->SPC_MAX, ret);
     }
     return ret;

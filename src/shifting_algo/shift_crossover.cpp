@@ -170,6 +170,9 @@ uint8_t CrossoverShift::phase_fill() {
                 this->subphase_shift = 2;
                 this->fill_via_ramp = false;
                 this->cycles_ramp_to_low_filling = 3;
+                if (race == sid->profile) {
+                    this->cycles_ramp_to_low_filling = 1;
+                }
                 this->cycles_low_filling = 5;
                 this->timer_shift = cycles_ramp_to_low_filling;
             }

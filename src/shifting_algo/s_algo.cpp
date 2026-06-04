@@ -103,7 +103,7 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_release_clutch = MAX(30, abs_input_trq);
+    this->trq_at_release_clutch = MAX((float)(VEHICLE_CONFIG.engine_drag_torque/100.0) * 0.75, abs_input_trq);
     int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
     if (0 == this->subphase_mod) {
         // Initial variables set
@@ -196,20 +196,15 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t pressure, Coefficien
     return ret;
 }
 
-const uint8_t freewheeling_factors[8] = { 20, 100, 100, 100, 100, 100, 80, 120 }; // RELEASE_CAL->freewheeling_factor
+const uint8_t freewheeling_factors[8] = { 15, 40, 100, 100, 100, 100, 100, 80 }; // RELEASE_CAL->freewheeling_factor
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shift) {
     int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
-    if (p > this->centrifugal_force_off_clutch) {
-        p = (p - this->centrifugal_force_off_clutch) * (freewheeling_factors[sid->inf.map_idx]);
-        p /= 100; // Since freewheeling_factors is 0-100 not 0-1.0
-    }
-    else {
-        p = 0;
-    }
+    p = MAX(0, p - this->centrifugal_force_off_clutch);
+    p *= freewheeling_factors[sid->inf.map_idx];
+    p /= 100;
     return this->calc_mpc_sol_shift_ps(p_shift, p);
 }
 
-// FUN_d82d6
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(int p_shift) {
     uint16_t p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
     if (p > this->centrifugal_force_off_clutch) {
@@ -248,16 +243,6 @@ uint16_t ShiftingAlgorithm::calc_mod_min_abs_trq(int p_shift) {
 void ShiftingAlgorithm::reset_for_next_phase() {
     this->subphase_mod = 0;
     this->subphase_shift = 0;
-}
-
-uint16_t ShiftingAlgorithm::fun_0d83d4() {
-    int p_shift = 0;
-    if (this->centrifugal_force_on_clutch < sid->release_spring_on_clutch) {
-        p_shift = 1000 * this->p_apply_clutch / 1000;
-        p_shift += (1000 - 1000) * (this->sid->release_spring_on_clutch - this->centrifugal_force_on_clutch) / 1000;
-    }
-    int p_mod = MAX(0, pm->p_clutch_with_coef(sid->targ_g, sid->applying, trq_at_release_clutch, CoefficientTy::Release) + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
-    return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
 }
 
 uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(int p) {

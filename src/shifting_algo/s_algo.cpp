@@ -524,7 +524,7 @@ void ShiftingAlgorithm::adaptation_step() {
             if (this->upshifting) {
                 correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
             } else {
-                correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, d_inertia + avg_trq, CoefficientTy::Sliding);
+                correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, avg_trq + d_inertia, CoefficientTy::Sliding);
             }
             correction_p = MAX(-200, MIN(correction_p, 60));
             if (0 != correction_p) {

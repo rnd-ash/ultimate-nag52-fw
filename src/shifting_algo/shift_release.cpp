@@ -218,13 +218,14 @@ void ReleasingShift::phase_fill_release_spc() {
             // On clutch has not been fully applied
             sid->ptr_r_clutch_speeds->on_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
             // off clutch is not let go
-            sid->ptr_r_clutch_speeds->off_clutch_speed < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
+            abs(sid->ptr_r_clutch_speeds->off_clutch_speed) < REL_CURRENT_SETTINGS.clutch_stationary_rpm ||
             // Coasting (32/21)
             (sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0
-            ) {
+        ) { 
             this->subphase_shift += 1;
             this->spc_step_adder = 0;
         }
+        
     }
     else if (5 == this->subphase_shift) {
         // Ramping until RPM threshold
@@ -251,10 +252,6 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch += this->spc_wait_adder;
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
     }
-    // Faster flare recovery
-    if (this->subphase_shift >= 3 && sid->ptr_r_clutch_speeds->off_clutch_speed < -(REL_CURRENT_SETTINGS.clutch_stationary_rpm / 2)) {
-        this->spc_p_offset += 20;
-    }
     // Write pressure
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
 }
@@ -264,10 +261,10 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     if (0 == this->subphase_mod) {
         // Var setting
         if ((sid->shift_flags & SHIFT_FLAG_COAST) != 0) {
-            this->timer_emergency = 10000 / 20; // 10 second timeout when coasting
+            this->timer_emergency = 5000 / 20; // 5 second timeout when coasting
         }
         else {
-            this->timer_emergency = 5000 / 20; // 5 seconds when not coasting
+            this->timer_emergency = 2500 / 20; // 2.5 seconds when not coasting
         }
         //if (nullptr != sid->adaptation_mgr) {
         //    this->trq_adder = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);

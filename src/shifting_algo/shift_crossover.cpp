@@ -170,6 +170,9 @@ uint8_t CrossoverShift::phase_fill() {
                 this->subphase_shift = 2;
                 this->fill_via_ramp = false;
                 this->cycles_ramp_to_low_filling = 3;
+                if (race == sid->profile) {
+                    this->cycles_ramp_to_low_filling = 1;
+                }
                 this->cycles_low_filling = 5;
                 this->timer_shift = cycles_ramp_to_low_filling;
             }
@@ -280,15 +283,10 @@ uint8_t CrossoverShift::phase_overlap() {
         }
     }
 
-    //if (nullptr != sid->adaptation_mgr) {
-    //    this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-    //}
-    int dyn_inertia = this->calculate_dynamic_inertia();
-
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
         sid->applying,
-        MAX(0, (int)abs_input_trq + this->trq_adder - this->trq_req_compensate_val - dyn_inertia),
+        MAX(0, (int)abs_input_trq + this->trq_adder - this->trq_req_compensate_val),
         CoefficientTy::Sliding
     );
 
@@ -408,7 +406,6 @@ uint8_t CrossoverShift::phase_overlap2() {
             }
             this->momentum_ctrl = MAX(0, v + this->trq_req_compensate_val - reduction); // TODO Trq req and adder adapters
         }
-    
     }
 
     if (1 == subphase_shift) {

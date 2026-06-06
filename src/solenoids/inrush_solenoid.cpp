@@ -121,7 +121,7 @@ bool pwm_on = false;
 bool zener_on = false;
 uint32_t total  = 0;
 bool pwm_en = false;
-uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
+uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt_new() {
     // Control the zener phase
     int ret = TOTAL_PERIOD_TIME_US;
     if (this->inrush_time != 0 || this->hold_time != 0) {
@@ -171,7 +171,7 @@ uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
 }
 
 // 100,000 is 10ms of time
-uint32_t InrushControlSolenoid::on_timer_interrupt() {
+uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt() {
     uint32_t ret = 0;
     uint16_t write_pwm = 0;
     // Special handling for Min/Max PWM

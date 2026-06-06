@@ -103,7 +103,7 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_release_clutch = MAX(30, abs_input_trq);
+    this->trq_at_release_clutch = MAX((float)(VEHICLE_CONFIG.engine_drag_torque/100.0) * 0.75, abs_input_trq);
     int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
     if (0 == this->subphase_mod) {
         // Initial variables set
@@ -196,20 +196,15 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t pressure, Coefficien
     return ret;
 }
 
-const uint8_t freewheeling_factors[8] = { 20, 100, 100, 100, 100, 100, 80, 120 }; // RELEASE_CAL->freewheeling_factor
+const uint8_t freewheeling_factors[8] = { 15, 40, 100, 100, 100, 100, 100, 80 }; // RELEASE_CAL->freewheeling_factor
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shift) {
     int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
-    if (p > this->centrifugal_force_off_clutch) {
-        p = (p - this->centrifugal_force_off_clutch) * (freewheeling_factors[sid->inf.map_idx]);
-        p /= 100; // Since freewheeling_factors is 0-100 not 0-1.0
-    }
-    else {
-        p = 0;
-    }
+    p = MAX(0, p - this->centrifugal_force_off_clutch);
+    p *= freewheeling_factors[sid->inf.map_idx];
+    p /= 100;
     return this->calc_mpc_sol_shift_ps(p_shift, p);
 }
 
-// FUN_d82d6
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(int p_shift) {
     uint16_t p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
     if (p > this->centrifugal_force_off_clutch) {
@@ -250,16 +245,6 @@ void ShiftingAlgorithm::reset_for_next_phase() {
     this->subphase_shift = 0;
 }
 
-uint16_t ShiftingAlgorithm::fun_0d83d4() {
-    int p_shift = 0;
-    if (this->centrifugal_force_on_clutch < sid->release_spring_on_clutch) {
-        p_shift = 1000 * this->p_apply_clutch / 1000;
-        p_shift += (1000 - 1000) * (this->sid->release_spring_on_clutch - this->centrifugal_force_on_clutch) / 1000;
-    }
-    int p_mod = MAX(0, pm->p_clutch_with_coef(sid->targ_g, sid->applying, trq_at_release_clutch, CoefficientTy::Release) + sid->release_spring_off_clutch - this->centrifugal_force_off_clutch);
-    return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
-}
-
 uint16_t ShiftingAlgorithm::set_p_apply_clutch_with_spring(int p) {
     short res = MAX(0, p + sid->release_spring_on_clutch - this->centrifugal_force_on_clutch);
     return MIN(res, sid->SPC_MAX);
@@ -271,17 +256,26 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
         ret = 0;
     }
     else {
-        int adder = 0;
-        // Add a bit more pressure depending on vehicle speed
-        if (this->upshifting && !this->is_release_shift()) {
-            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 50, 0, 6000, InterpType::Linear);
-            int torque_adder = interpolate_float(abs_input_trq, 0, 50, 0, 500, InterpType::Linear);
-            adder = rpm_adder + torque_adder;
-            if (race == sid->profile) {
-                adder *= 2;
+        ret = sid->prefill_info.low_fill_pressure_on_clutch;
+        if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
+            // Crossover upshift - Add pressure based on torque and RPM
+            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
+            int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
+            ret += rpm_adder + torque_adder;
+        }
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
+            if (sid->targ_g == GearboxGear::Third) {
+                // 4-3
+                ret = MAX(0, ret - 250);
+            } else {
+                // 5-4
+                ret = MAX(0, ret - 200);
             }
         }
-        ret = sid->prefill_info.low_fill_pressure_on_clutch + adder;
+        if (this->is_release_shift() && this->upshifting && sid->profile != race) {
+            // Relax coasting upshifts
+            ret = MAX(0, ret - 200);
+        }
     }
     return ret;
 }
@@ -299,14 +293,10 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
             adder_1 = 500;
         }
         ret = sid->prefill_info.fill_pressure_on_clutch + adder_1;
-        if (upshifting && is_release_shift()) {
-            if (ret > 200) {
-                ret -= 200;
-            }
-            else {
-                ret = 0;
-            }
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 && sid->targ_g == GearboxGear::Third && sd->atf_temp > 70) {
+            ret = 800;
         }
+
         ret = MIN(sid->SPC_MAX, ret);
     }
     return ret;

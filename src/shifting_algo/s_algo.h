@@ -125,7 +125,6 @@ protected:
 
     // EGS compatibility functions
     uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
-    uint16_t fun_0d83d4();
     uint16_t calc_mod_min_abs_trq(int p_shift);
     uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
     uint16_t calc_mod_with_filling_trq(int p_shift);

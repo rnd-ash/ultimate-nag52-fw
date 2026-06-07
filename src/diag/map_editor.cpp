@@ -21,7 +21,7 @@ StoredMap* get_adaptation_map(uint8_t map_id) {
                 ret = adaptation_manager->prefill_time_map;
                 break;
             case SHIFT_ADAPT_FILL_P_MAP_ID:
-                ret = adaptation_manager->prefill_time_map;
+                ret = adaptation_manager->spc_offset_map;
                 break;
             case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
                 ret = adaptation_manager->applying_torque_offset;

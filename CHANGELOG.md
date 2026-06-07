@@ -16,6 +16,7 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
 * Fixed fill time adaptation wrongfully not running under some situations
 * Fixed boot stability on ESP-WROVER-E variants (Where TCU will sometimes reboot when starting up)
 * Fixed release downshift getting stuck sometimes when torque is reduced mid shift
+* Fixed wrong errors being printed if EEPROM fails to init
 
 # 09/05/26
 

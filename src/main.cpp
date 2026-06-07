@@ -162,18 +162,19 @@ SPEAKER_POST_CODE setup_tcm()
                     }
                     else
                     {
-                        ret = SPEAKER_POST_CODE::EEPROM_FAIL;
+                        CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
+                        ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
                     }
                 }
                 else
                 {
                     CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
-                    ret = SPEAKER_POST_CODE::SOLENOID_FAIL;
+                    ret = SPEAKER_POST_CODE::SENSOR_FAIL;
                 }
             }
             else
             {
-                ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                ret = SPEAKER_POST_CODE::EEPROM_FAIL;
             }
         }
     }

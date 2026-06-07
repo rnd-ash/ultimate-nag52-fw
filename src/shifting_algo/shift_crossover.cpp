@@ -284,6 +284,10 @@ uint8_t CrossoverShift::phase_overlap() {
         }
     }
 
+    if (sid->adaptation_mgr) {
+        this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+    }
+
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,
         sid->applying,
@@ -453,15 +457,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         ) {
             // Analyze adaptations
             ESP_LOGI("ADAPT", "End adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
-            if (nullptr != sid->adaptation_mgr) {
-                if (result_fill_time_adaptation == 0) {
-                    // No fill adaptation observation - Do torque adaptation
-                    if (abs(this->correction_trq) > abs(this->trq_adder) && this->do_torque_adaptation) {
-                        int correction = this->correction_trq / 10;
-                        //sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, correction);
-                    }
-                }
-            }
             sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
@@ -472,9 +467,9 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->trq_req_up_ramp = true;
     }
 
-    //if (sid->adaptation_mgr) {
-    //    this->trq_adder += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-    //}
+    if (sid->adaptation_mgr) {
+        this->trq_adder += sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+    }
 
     int stage_12_adder = 0;
     if (1 == subphase_shift || 2 == subphase_shift) {

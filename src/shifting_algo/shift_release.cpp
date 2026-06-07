@@ -266,9 +266,9 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         else {
             this->timer_emergency = 2500 / 20; // 2.5 seconds when not coasting
         }
-        //if (nullptr != sid->adaptation_mgr) {
-        //    this->trq_adder = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);
-        //}
+        if (nullptr != sid->adaptation_mgr) {
+            this->trq_adder = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);
+        }
         this->timer_mod = this->calc_cycles_mod_phase1();
         this->subphase_mod += 1;
     }
@@ -384,11 +384,6 @@ uint8_t ReleasingShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
-        // Analyze correction from previous phase
-        //int offset = this->correction_trq/10;
-        //if (nullptr != sid->adaptation_mgr && abs(offset) > 1 && this->do_torque_adaptation) {
-        //    sid->adaptation_mgr->offset_freeing_trq(sid->inf.map_idx, offset);
-        //}
         // Variable set
         this->p_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
         int idx = sid->inf.map_idx;

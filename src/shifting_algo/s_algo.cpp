@@ -196,11 +196,10 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t pressure, Coefficien
     return ret;
 }
 
-const uint8_t freewheeling_factors[8] = { 15, 40, 100, 100, 100, 100, 100, 80 }; // RELEASE_CAL->freewheeling_factor
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shift) {
     int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
     p = MAX(0, p - this->centrifugal_force_off_clutch);
-    p *= freewheeling_factors[sid->inf.map_idx];
+    p *= sid->inf.centrifugal_factor_off_clutch_int;
     p /= 100;
     return this->calc_mpc_sol_shift_ps(p_shift, p);
 }
@@ -234,7 +233,7 @@ uint16_t ShiftingAlgorithm::calc_mod_min_abs_trq(int p_shift) {
 
     int p_mod = 0;
     if (this->centrifugal_force_off_clutch < sid->release_spring_off_clutch) {
-        p_mod = (sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * freewheeling_factors[sid->inf.map_idx];
+        p_mod = (sid->release_spring_off_clutch - this->centrifugal_force_off_clutch) * sid->inf.centrifugal_factor_off_clutch_int;
         p_mod /= 100;
     }
     return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
@@ -391,6 +390,11 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     momentum_pid[0] = error;
 
     int32_t ret = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
+    if (this->do_torque_adaptation) {
+        this->pid_sum += ret;
+        this->abs_sum += this->abs_input_trq;
+        this->pid_count += 1;
+    }
     return (short)ret;
 }
 
@@ -586,10 +590,63 @@ void ShiftingAlgorithm::adaptation_step() {
         }
 
         ESP_LOGI("ADAPT", "Start adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
-    } else if (torque_adaptation_stage == 1) { 
+    }
+    if (this->do_torque_adaptation) { 
+        // Cancel checks
         if (sd->input_rpm < 1000) {
             this->do_torque_adaptation = false;
         }
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 || (sid->shift_flags & SHIFT_FLAG_COAST) != 0) {
+            this->do_torque_adaptation = false;
+        }
+        if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
+            this->do_torque_adaptation = false;
+        }
+    }
+    if (this->torque_adaptation_stage == 1 && this->do_torque_adaptation) {
+        // PID runs in this phase
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
+            this->torque_adaptation_stage = 2;
+        }
+    } else if (this->torque_adaptation_stage == 2 && this->do_torque_adaptation) {
+        // Analyze phase
+        if (this->pid_count != 0 && nullptr != sid->adaptation_mgr) {
+            float avg_pid_torque = this->pid_sum / this->pid_count;
+            float avg_abs_torque = this->abs_input_trq / this->pid_count;
+            float scalar = interpolate_float(
+                avg_abs_torque,
+                0.10, // 10% at low torque
+                0.05, // 5% at higher torque
+                // Drag torque = min
+                VEHICLE_CONFIG.engine_drag_torque / 10.0,
+                // 10x Drag torque = max
+                VEHICLE_CONFIG.engine_drag_torque * 10.0,
+                InterpType::Linear
+            );
+
+            int old_v = 0;
+            if (is_release_shift()) {
+                old_v = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);
+            } else {
+                old_v = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+            }
+
+
+            float clamped_pid = MAX(-VEHICLE_CONFIG.engine_drag_torque / 10.0, MIN(avg_pid_torque, VEHICLE_CONFIG.engine_drag_torque / 10.0));
+            clamped_pid *= scalar;
+
+            int new_v = (int)((float)old_v + clamped_pid);
+            ESP_LOGI("ADAPT", "T_ADAPT end. Avg PID: %.1f Nm, Avg input: %.1f Nm", avg_pid_torque, avg_abs_torque);
+            if (is_release_shift()) {
+                sid->adaptation_mgr->offset_freeing_trq(sid->inf.map_idx, new_v-old_v);
+            } else {
+                sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, new_v-old_v);
+            }
+            
+        }
+
+
+        this->do_torque_adaptation = false;
     }
 
 }

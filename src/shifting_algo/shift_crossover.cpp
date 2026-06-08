@@ -264,7 +264,7 @@ uint8_t CrossoverShift::phase_overlap() {
     if (0 == subphase_shift) {
         this->trq_adder = 0;
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap
-        this->p_apply_overlap_begin = MAX(0, this->p_apply_clutch - sid->release_spring_on_clutch + centrifugal_force_on_clutch);
+        this->p_apply_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
         uint8_t interp_min = CRS_CURRENT_SETTINGS.overlap_cycles_low_trq;
         uint8_t interp_max = CRS_CURRENT_SETTINGS.overlap_cycles_high_trq;
         if (sid->change == GearChange::_1_2) {
@@ -296,8 +296,8 @@ uint8_t CrossoverShift::phase_overlap() {
     );
 
     uint16_t targ = MAX(
-        this->set_p_apply_clutch_with_spring(c_trq_apply), 
-        this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
+        this->set_p_apply_clutch_with_spring(c_trq_apply),
+        this->p_apply_overlap_begin - this->centrifugal_force_on_clutch
     );
     this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
 
@@ -478,7 +478,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     int torque = MAX(0, (int)abs_input_trq + stage_12_adder + this->correction_trq + this->trq_adder - this->trq_req_compensate_val);
     uint16_t targ = MAX(
         this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
-        this->set_p_apply_clutch_with_spring(this->p_apply_overlap_begin)
+        this->p_apply_overlap_begin - centrifugal_force_on_clutch
     );
     if (1 == subphase_shift || 3 == subphase_shift) {
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);

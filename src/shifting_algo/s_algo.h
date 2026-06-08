@@ -45,6 +45,7 @@ struct ShiftInterfaceData {
     TorqueConverter* tcc;
     ShiftAdaptationSystem* adaptation_mgr;
     bool manual_shift;
+    bool trq_req_en;
 };
 
 class ShiftingAlgorithm {
@@ -114,6 +115,8 @@ protected:
     short momentum_start_output_rpm = 0;
     short correction_trq = 0;
 
+    uint16_t emergency_trq_val = 0;
+
     // Because EGS is weird, bleed and end of ctrl phases have same for either shift
     uint8_t phase_bleed(PressureManager* pm);
     uint8_t phase_maxp(SensorData* sd);
@@ -122,7 +125,6 @@ protected:
 
     // EGS compatibility functions
     uint16_t calc_max_trq_on_clutch(uint16_t pressure, CoefficientTy coef);
-    uint16_t fun_0d83d4();
     uint16_t calc_mod_min_abs_trq(int p_shift);
     uint16_t calc_mod_with_filling_trq_and_freewheeling(int p_shift);
     uint16_t calc_mod_with_filling_trq(int p_shift);
@@ -144,6 +146,7 @@ protected:
     uint16_t calc_low_filling_p();
 
     void adaptation_step();
+    uint8_t adapt_p_map_idx();
 
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
@@ -157,11 +160,24 @@ protected:
     bool do_torque_adaptation = false;
     bool end_of_fill_time_adapt = false;
 
+    uint8_t timer_p_adapt = 0;
+    uint16_t adapting_trq_limit = 0;
+    uint16_t adapting_turbine_spd = 0;
+    int adapting_p_adapt_trq = 0;
+    int adapting_p_adapt_pressure = 0;
+
     short rpm_adapt_off_clutch = 0;
 
     uint8_t fill_time_adaptation_stage = 0;
     uint8_t fill_pressure_adaptation_stage = 0;
     uint8_t torque_adaptation_stage = 0;
+    uint16_t old_engine_rpm = 0;
+
+    int16_t first_order_pump_trq_filter = 0;
+
+    int32_t pid_sum = 0;
+    int32_t abs_sum = 0;
+    uint16_t pid_count = 0;
 };
 
 // Helper functions

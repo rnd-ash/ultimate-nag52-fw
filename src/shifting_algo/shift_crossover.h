@@ -29,6 +29,7 @@ private:
     
     uint16_t p_apply_overlap_begin = 0;
 
+    int16_t calculate_dynamic_inertia();
     uint16_t calc_overlap_mod();
     uint16_t calc_overlap_mod_min(int p_shift);
     uint16_t calc_overlap2_mod();
@@ -45,6 +46,7 @@ private:
     bool fill_via_ramp = false;
     uint16_t torque_req_val = 0;
     int16_t torque_adapt_val = 0;
+    int16_t trq_req_compensate_val = 0;
     
     uint16_t fill_time_adapt_timer = 0;
 

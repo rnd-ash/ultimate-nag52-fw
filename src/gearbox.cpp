@@ -126,6 +126,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
     this->shift_adapter = new ShiftAdaptationSystem();
     pressure_manager = this->pressure_mgr;
+    adaptation_manager = this->shift_adapter;
     // Wait for solenoid routine to complete
     if (!Solenoids::init_routine_completed())
     {
@@ -371,6 +372,25 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .amount = 0
         };
 
+        bool en_trq_req = true;
+        if (GearChange::_1_2 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_1_2;
+        } else if (GearChange::_2_3 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_2_3;
+        } else if (GearChange::_3_4 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_3_4;
+        } else if (GearChange::_4_5 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_4_5;
+        } else if (GearChange::_2_1 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_2_1;
+        } else if (GearChange::_3_2 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_3_2;
+        } else if (GearChange::_4_3 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_4_3;
+        } else if (GearChange::_5_4 == req_lookup) {
+            en_trq_req = SBS_CURRENT_SETTINGS.en_trq_req_5_4;
+        }
+
         ShiftInterfaceData sid = {
             .profile = profile,
             .MOD_MAX = MOD_MAX,
@@ -391,30 +411,34 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .ptr_w_trq_req = &trd,
             .tcc = this->tcc,
             .adaptation_mgr = this->shift_adapter,
-            .manual_shift = manually_requested
+            .manual_shift = manually_requested,
+            .trq_req_en = en_trq_req
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);
 
-        float inertia = ShiftHelpers::get_shift_intertia(sid.inf.map_idx);
+        float threshold_torque = VEHICLE_CONFIG.engine_drag_torque/10.0;
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            if (sensor_data.converted_torque >= -(inertia / 2)) {
-                algo = new CrossoverShift(&sid);
+            if (sensor_data.converted_torque <= -threshold_torque/2) {
+                algo = new ReleasingShift(&sid);
             }
             else {
-                algo = new ReleasingShift(&sid);
+                algo = new CrossoverShift(&sid);
             }
         }
         else {
+            bool is_release = true;
             if (
-                (sensor_data.converted_torque < inertia || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
+                (sensor_data.converted_torque < threshold_torque && (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
                 ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
-                ) {
-                algo = new CrossoverShift(&sid);
+            ) {
+                is_release = false;
             }
-            else {
+            if (is_release) {
                 algo = new ReleasingShift(&sid);
+            } else {
+                algo = new CrossoverShift(&sid);
             }
         }
 
@@ -1235,12 +1259,11 @@ void Gearbox::controller_loop()
             sensor_data.input_torque = input_trq;
             sensor_data.converted_driver_torque = trqs.m_converted_driver;
         }
-        // Override input torque if garage shifting!
+        sensor_data.pump_torque = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
+
         if (this->shifting && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
-            // Shifting to either R or D
-            int16_t pump = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
-            if (INT16_MAX != pump) {
-                sensor_data.input_torque = pump;
+            if (INT16_MAX != sensor_data.pump_torque) {
+                sensor_data.input_torque = sensor_data.pump_torque * sensor_data.tcc_trq_multiplier;
             }
         }
 

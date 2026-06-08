@@ -29,8 +29,16 @@
 #define M_UPTIME_MAP_ID 0x18
 #define M_DNTIME_MAP_ID 0x19
 
+#define HFM_TRQ_MAP_ID 0x20
+#define HFM_MAF_MAP_ID 0x21
+#define HFM_MAX_MAP_ID 0x22
+
 #define TCC_ADAPT_SLIP_MAP_ID 0xA0
 #define TCC_ADAPT_LOCK_MAP_ID 0xA1
+#define SHIFT_ADAPT_FILL_T_MAP_ID 0xA2
+#define SHIFT_ADAPT_FILL_P_MAP_ID 0xA3
+#define SHIFT_ADAPT_TRQ_APPL_MAP_ID 0xA4
+#define SHIFT_ADAPT_TRQ_FREE_MAP_ID 0xA5
 
 #define TCC_RPM_SLIP_MAP 0xB0
 
@@ -44,6 +52,7 @@
 #define MAP_CMD_UNDO 0x06
 #define MAP_CMD_READ_META 0x07
 #define MAP_CMD_READ_EEPROM 0x08
+#define MAP_CMD_GET_LOOKUP_VALS 0x10
 
 #define MAP_READ_TYPE_MEM 0x01
 #define MAP_READ_TYPE_PRG 0x02
@@ -56,6 +65,7 @@ namespace MapEditor {
     kwp_result_t burn_to_eeprom(uint8_t map_id);
     kwp_result_t reset_to_program_default(uint8_t map_id);
     kwp_result_t undo_changes(uint8_t map_id);
+    kwp_result_t read_map_lookup_cache(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);
 }
 
 #endif

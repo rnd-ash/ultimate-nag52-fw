@@ -1,8 +1,6 @@
-#ifndef __CLOCK_H_
-#define __CLOCK_H_
+#ifndef __CLOCK_HPP_
+#define __CLOCK_HPP_
 
-#include <stdint.h>
-
-uint32_t GET_CLOCK_TIME();
+#include <clock.h>
 
 #endif

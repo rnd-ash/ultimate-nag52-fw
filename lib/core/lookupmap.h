@@ -3,18 +3,37 @@
 
 #include "lookuptable.h"
 
+
+struct LookupCache {
+    // IEEE754 float
+    float x_val;
+    float y_val;
+    uint32_t timestamp_ms;
+} __attribute__((packed));
+
+const int MAX_LOOKUP_CACHE = 5; // I don't think any map has more than this many use cases
+
 class LookupMap {
     public:
         float get_value(const float xValue, const float yValue);
+        float get_value(const float xValue, const float yValue, const uint8_t lookup_cache_idx);
         void get_y_headers(uint16_t *size, int16_t **headers);
         float get_x_header_interpolated(const float value, const int16_t y) const;
         int16_t* get_current_data(void) const;
         void get_x_headers(uint16_t *size, int16_t **headers);
         uint16_t data_size();
+        void copy_lookup_cache(LookupCache* dest) const;
     protected:
         LookupTable* table;
         LookupHeader* yHeader;
         uint16_t yHeaderSize;
+        LookupCache lookup_cache[MAX_LOOKUP_CACHE] = {
+            {0,0,0},
+            {0,0,0},
+            {0,0,0},
+            {0,0,0},
+            {0,0,0}
+        };
 };
 
 class LookupAllocMap : public LookupMap {

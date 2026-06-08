@@ -620,7 +620,7 @@ void ShiftingAlgorithm::adaptation_step() {
                 // Drag torque = min
                 VEHICLE_CONFIG.engine_drag_torque / 10.0,
                 // 10x Drag torque = max
-                VEHICLE_CONFIG.engine_drag_torque * 10.0,
+                VEHICLE_CONFIG.engine_drag_torque,
                 InterpType::Linear
             );
 

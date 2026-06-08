@@ -4,10 +4,11 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
 
-# 07/06/26
+# 08/06/26
 
 ## Added
 * New adaptation for circuit pressure offset (Fill pressure adaptation)
+    * Torque adaptation code is functionally added, but unstable (Torque adaptations are disabled by default under TCU Settings)
 * Realtime correction torque applied to torque requests (Smoother shifting when PID wants to increase torque)
 * Ability to disable torque requests per shift (Shift basic TCU settings)
 * Shift speed improvements for (R)ace mode

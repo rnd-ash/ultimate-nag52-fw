@@ -271,7 +271,7 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
                 ret = MAX(0, ret - 200);
             }
         }
-        if (this->is_release_shift() && this->upshifting && sid->profile != race) {
+        if (this->is_release_shift() && this->upshifting) {
             // Relax coasting upshifts
             ret = MAX(0, ret - 200);
         }

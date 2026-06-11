@@ -67,7 +67,7 @@ uint8_t ShiftingAlgorithm::step(
         this->timer_emergency -= 1;
     }
     // Continuously check shift flags
-    ShiftHelpers::calc_shift_flags(this->sid, this->sd);
+    ShiftHelpers::calc_shift_flags(this->sid, this->sd, this->phase_id == 0);
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);

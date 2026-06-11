@@ -184,7 +184,7 @@ protected:
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
-    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase);
 }
 
 #endif

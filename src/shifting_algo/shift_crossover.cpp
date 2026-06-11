@@ -278,10 +278,8 @@ uint8_t CrossoverShift::phase_overlap() {
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
         this->timer_shift += rpm_adder;
         this->subphase_shift += 1;
-        if (sid->profile == race) {
-            this->trq_req_timer = MAX(3, this->timer_shift);
-            this->trq_req_down_ramp = true;
-        }
+        this->trq_req_timer = MAX(3, this->timer_shift);
+        this->trq_req_down_ramp = true;
     }
 
     if (sid->adaptation_mgr) {
@@ -355,15 +353,6 @@ uint8_t CrossoverShift::phase_overlap2() {
     this->trq_at_apply_clutch = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, p_apply_clutch, CoefficientTy::Sliding);
 
     this->threshold_rpm = get_rpm_threshold(sid->inf.map_idx, 4);
-
-    // Overlap check can be skipped since it always compares timer to 0
-    // Overlap 2 phase always starts when off clutch disengages
-    // So, we can have just 1 check here for when to start the torque request
-    if (!this->trq_req_down_ramp && abs(sid->ptr_r_clutch_speeds->off_clutch_speed) > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
-        // Start slowing down the engine (Clutch disengaged)
-        this->trq_req_timer = 3;
-        this->trq_req_down_ramp = true;
-    }
 
     if (0 == subphase_shift) {
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap2

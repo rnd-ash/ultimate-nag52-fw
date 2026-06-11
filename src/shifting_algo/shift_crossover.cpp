@@ -190,15 +190,26 @@ uint8_t CrossoverShift::phase_fill() {
             this->timer_shift = this->cycles_low_filling;
             this->subphase_shift += 1;
         }
-        uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
-        uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
-        this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+
+        if ((abs_input_trq < this->adapting_trq_limit && this->do_fill_time_adaptation) || ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
+            this->mod_sol_pressure = calc_overlap2_mod();
+        } else {
+            this->do_fill_time_adaptation = false;
+            uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
+            uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
+            this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+        }
     } else if (3 == this->subphase_shift) {
         // Low filling P
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
-        uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
-        uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
-        this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+        if ((abs_input_trq < this->adapting_trq_limit && this->do_fill_time_adaptation) || ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
+            this->mod_sol_pressure = calc_overlap2_mod();
+        } else {
+            this->do_fill_time_adaptation = false;
+            uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
+            uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
+            this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+        }
         if (0 == this->timer_shift) {
             ret = PHASE_OVERLAP;
         }

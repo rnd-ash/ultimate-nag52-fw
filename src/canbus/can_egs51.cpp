@@ -181,7 +181,12 @@ bool Egs51Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
 }
 
 bool Egs51Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
-    return false;
+    BS_200_EGS51 bs200;
+    if (this->esp51.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
+        return bs200.BLS == BS_200h_BLS_EGS51::BREMSE_BET;
+    } else {
+        return false;
+    }
 }
 
 bool Egs51Can::get_profile_btn_press(const uint32_t expire_time_ms) {

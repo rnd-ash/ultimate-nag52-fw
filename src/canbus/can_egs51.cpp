@@ -112,7 +112,6 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_min -= m_drg;
         ret.m_max -= m_drg;
         ret.m_ind -= m_drg;
-        m_esp -= m_drg;
 
 
         ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque

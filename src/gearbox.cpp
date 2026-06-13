@@ -900,10 +900,8 @@ void Gearbox::controller_loop()
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
         {
-            this->cached_input_rpm = first_order_filter(3, speed_sensors.turbine * 100, this->cached_input_rpm);
-            this->sensor_data.input_rpm = this->cached_input_rpm / 100;
-            this->cached_output_rpm = first_order_filter(3, speed_sensors.output * 100, this->cached_output_rpm);
-            this->sensor_data.output_rpm = this->cached_output_rpm / 100;
+            this->sensor_data.input_rpm = speed_sensors.turbine;
+            this->sensor_data.output_rpm = speed_sensors.output;
             bool stationary = this->is_stationary();
             if (!stationary)
             {
@@ -995,8 +993,7 @@ void Gearbox::controller_loop()
         {
             tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
-        this->cached_engine_rpm = first_order_filter(3, tmp_rpm * 100, this->cached_engine_rpm);
-        this->sensor_data.engine_rpm = this->cached_engine_rpm / 100;
+        this->sensor_data.engine_rpm = tmp_rpm;
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {

@@ -132,10 +132,6 @@ private:
 
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
-
-    int32_t cached_input_rpm = 0;
-    int32_t cached_engine_rpm = 0;
-    int32_t cached_output_rpm = 0;
 };
 
 extern Gearbox* gearbox;

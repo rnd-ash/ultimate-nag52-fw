@@ -53,7 +53,7 @@ uint8_t ShiftingAlgorithm::step(
     this->pm = pm;
     this->sd = sd;
     if (0 == this->first_order_pump_trq_filter) {
-        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier*10 * sd->pump_torque);
+        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier* 10 * sd->pump_torque);
     }
 
     // Decrease our timers
@@ -434,11 +434,14 @@ void ShiftingAlgorithm::adaptation_step() {
     // Boundary conditions (Every cycle)
     int tcc_trq = ((sd->tcc_trq_multiplier*10) * sd->pump_torque); // 10x real value
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*10);
+        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter);
     } else {
-        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter*10);
+        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter);
     }
-    this->first_order_pump_trq_filter /= 10; // Reduce to 1x real value
+    if (this->timer_p_adapt > 0) {
+        this->timer_p_adapt -= 1;
+    }
+
     if (this->do_fill_pressure_adaptation) {
         if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
             this->do_fill_pressure_adaptation = false;
@@ -458,9 +461,6 @@ void ShiftingAlgorithm::adaptation_step() {
         if (!this->do_fill_pressure_adaptation) {
             this->fill_pressure_adaptation_stage = 4; // Jump to analysis if cancelled early
         }
-    }
-    if (this->timer_p_adapt > 0) {
-        this->timer_p_adapt -= 1;
     }
     // Stages
     if (0 == fill_pressure_adaptation_stage) {
@@ -494,7 +494,7 @@ void ShiftingAlgorithm::adaptation_step() {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
         }
         if (timer_p_adapt == 0) {
-            timer_p_adapt = 0xFF; // Start countdown
+            timer_p_adapt = 0xFF; // Start cycle counting
             fill_pressure_adaptation_stage = 3;
             this->adapting_p_adapt_trq = 0;
             adapting_turbine_spd = sd->input_rpm;
@@ -511,7 +511,7 @@ void ShiftingAlgorithm::adaptation_step() {
             // Add up turbine torque (AVG calculated later)
             int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
             int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
-            this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
+            this->adapting_p_adapt_trq += (theoretical_t - (this->first_order_pump_trq_filter/10));
             if (this->phase_id > 4 || sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
                 // On clutch is applied or we moved to boost pressure phase in crossover shift.
                 // (Jump to analysis)
@@ -519,9 +519,8 @@ void ShiftingAlgorithm::adaptation_step() {
             }
         }
     } else if (4 == fill_pressure_adaptation_stage) {
-        if (this->timer_p_adapt != 0 && this->adapting_turbine_spd != 0) {
-            // 4 runs no matter what, so we don't care about if we are allowed or not
-            int time = 0xFF - this->timer_p_adapt;
+        int time = 0xFF - this->timer_p_adapt;
+        if (time > 1 && this->adapting_turbine_spd != 0) {
             int avg_trq = this->adapting_p_adapt_trq / time;
             int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm)) / (time*20);
             int correction_p = 0;

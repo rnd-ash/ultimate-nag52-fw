@@ -430,10 +430,10 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         else {
             bool is_release = false;
             if (
-                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) != 0) &&
+                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
                 ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0)
             ) {
-                is_release = false;
+                is_release = true;
             }
             if (is_release) {
                 algo = new ReleasingShift(&sid);

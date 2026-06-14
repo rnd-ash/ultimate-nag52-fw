@@ -243,14 +243,15 @@ uint8_t CrossoverShift::phase_fill() {
         // normal filling exit check
         if (
             sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm &&
+            !this->torque_jumped &&
             (
                 (
                     this->upshifting &&
-                    sd->converted_driver_torque > VEHICLE_CONFIG.engine_drag_torque/10.0
+                    sd->input_torque > VEHICLE_CONFIG.engine_drag_torque/10.0
                 ) ||
                 (
                     !this->upshifting &&
-                    sd->converted_driver_torque < -VEHICLE_CONFIG.engine_drag_torque/10.0
+                    sd->input_torque < -VEHICLE_CONFIG.engine_drag_torque/10.0
                 )
             )
         )  {
@@ -258,7 +259,7 @@ uint8_t CrossoverShift::phase_fill() {
         }
     } else {
         // Ramp filling exit check
-        if (sid->ptr_r_clutch_speeds->on_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm || abs_input_trq > this->ramp_filling_trq_limit*1.5) {
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm || sd->input_torque > this->ramp_filling_trq_limit*1.5) {
             ret = PHASE_OVERLAP;
         }
     }

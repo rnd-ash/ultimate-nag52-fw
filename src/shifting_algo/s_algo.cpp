@@ -42,6 +42,8 @@ uint8_t ShiftingAlgorithm::step(
     PressureManager* pm,
     SensorData* sd
 ) {
+
+
     this->upshifting = is_upshift;
     // update EGS compatibility vars
     this->phase_id = phase_id;
@@ -52,8 +54,16 @@ uint8_t ShiftingAlgorithm::step(
     this->abs_input_trq = abs_input_torque;
     this->pm = pm;
     this->sd = sd;
-    if (0 == this->first_order_pump_trq_filter) {
+
+    if (this->first_run) {
         this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier* 10 * sd->pump_torque);
+        this->old_engine_rpm = sd->engine_rpm;
+        this->old_input_trq = sd->input_torque;
+        this->first_run = false;
+    }
+
+    if (abs(sd->input_torque - this->old_input_trq) > VEHICLE_CONFIG.engine_drag_torque/20.0) { // 1/2 drag torque
+        this->torque_jumped = true;
     }
 
     // Decrease our timers
@@ -97,6 +107,7 @@ uint8_t ShiftingAlgorithm::step(
         sid->ptr_w_pressures->on_clutch = 0;
     }
     this->old_engine_rpm = sd->engine_rpm;
+    this->old_input_trq = sd->input_torque;
 
     return step_res;
 }
@@ -130,7 +141,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
+    this->p_apply_clutch = targ_spc;//linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
     this->shift_sol_pressure = this->correct_shift_shift_pressure(p_apply_clutch);
 
 calc_mod:
@@ -427,6 +438,10 @@ void ShiftingAlgorithm::adaptation_step() {
         }
 
         this->fill_time_adaptation_stage += 1;
+    } else if (this->do_fill_time_adaptation) {
+        if (this->torque_jumped) {
+            this->do_fill_time_adaptation = false;
+        }
     }
 
     // Fill pressure adaptation (Done for all algorithms)
@@ -445,7 +460,7 @@ void ShiftingAlgorithm::adaptation_step() {
     if (this->do_fill_pressure_adaptation) {
         if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
             this->do_fill_pressure_adaptation = false;
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", sd->indicated_torque, this->adapting_trq_limit);
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
         }
         bool rpm_in_range = (sd->input_rpm <= (sd->engine_rpm+100) && upshifting) || (sd->engine_rpm <= (sd->input_rpm+100) && !upshifting);
         if (
@@ -456,6 +471,9 @@ void ShiftingAlgorithm::adaptation_step() {
         }
         if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine RPM too high)");
+            this->do_fill_pressure_adaptation = false;
+        }
+        if (this->torque_jumped) {
             this->do_fill_pressure_adaptation = false;
         }
         if (!this->do_fill_pressure_adaptation) {

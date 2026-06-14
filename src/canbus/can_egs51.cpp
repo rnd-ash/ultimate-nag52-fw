@@ -93,7 +93,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
         if (UINT8_MAX != ms310.MAX_TORQUE) {
             ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
-            // TODO -> ms310.MAX_TRQ_FACTOR
+            ret.m_max = (float)ret.m_max * (float)(ms310.MAX_TRQ_FACTOR*0.0078);
         }
         if (UINT8_MAX != ms310.DRG_TORQUE) {
             m_drg = ((int16_t)ms310.DRG_TORQUE)*3;
@@ -112,20 +112,17 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_min -= m_drg;
         ret.m_max -= m_drg;
         ret.m_ind -= m_drg;
+        m_esp -= m_drg;
 
 
         ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque
         ret.m_ind = MAX(ret.m_min, ret.m_ind); // Floor indicated torque to min torque
 
         m_esp = MIN(m_esp, ret.m_max); // Limit ESP torque to max torque
-        m_esp = MAX(ret.m_min, m_esp); // Floor ESP torque to min torque
+        m_esp = MAX(0, m_esp); // Floor ESP torque to 0
 
-        int16_t driver_converted = ret.m_ind;
+        int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;
-
-        if (m_esp > ret.m_ind) {
-            driver_converted = m_esp;
-        }
 
         bool freeze = this->gs218.TORQUE_REQ_EN;
         // Change torque values based on freezing or not
@@ -133,9 +130,8 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
             ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;
+            ret.m_converted_driver = driver_converted;
         }
-
-        ret.m_converted_driver = driver_converted;
         ret.m_converted_static = static_converted;
     }
     return ret;

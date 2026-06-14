@@ -569,8 +569,8 @@ int16_t CrossoverShift::calc_momentum_overlap_2() {
     ret = MAX(0, ret - reduction);
 
     if (
-        (this->upshifting && sd->converted_torque < 0) ||
-        (!this->upshifting && sd->converted_torque > 0)
+        (this->upshifting && sd->input_torque < 0) ||
+        (!this->upshifting && sd->input_torque > 0)
     ) {
         ret += (abs_input_trq*2);
     }

@@ -179,6 +179,11 @@ protected:
     int32_t pid_sum = 0;
     int32_t abs_sum = 0;
     uint16_t pid_count = 0;
+
+    int16_t old_input_trq = 0;
+
+    bool first_run = true;
+    bool torque_jumped = false;
 };
 
 // Helper functions

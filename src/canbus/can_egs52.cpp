@@ -882,6 +882,7 @@ void Egs52Can::tx_frames() {
 
 void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {
     if(this->ecu_ms.import_frames(data, id, timestamp)) {
+
         //if (this->fake_rpm != 0 && id == MS_308_CAN_ID) {
         //    uint64_t d = (data & 0xff0000ffffffffff) | ((uint64_t)this->fake_rpm & 0xffff) << 40;
         //    twai_message_t tx;

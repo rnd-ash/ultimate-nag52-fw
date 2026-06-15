@@ -137,7 +137,8 @@ void EgsBaseCan::task_loop() {
         } else if (likely(this->can_status.state == twai_state_t::TWAI_STATE_RUNNING)) {
             uint8_t f_count  = can_status.msgs_to_rx;
             for(uint8_t x = 0; x < f_count; x++) { // Read all frames
-                if (twai_receive(&rx, pdMS_TO_TICKS(0)) == ESP_OK && rx.data_length_code != 0 && rx.flags == 0) {
+                esp_err_t res = twai_receive(&rx, pdMS_TO_TICKS(0));
+                if (res == ESP_OK && rx.data_length_code != 0 && rx.rtr == 0) {
                     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
                         // Logging mode
                         char buf[35];

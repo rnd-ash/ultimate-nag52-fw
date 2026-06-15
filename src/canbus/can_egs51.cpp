@@ -81,7 +81,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
     MS_210_EGS51 ms210;
     int16_t m_esp = INT16_MAX;
-    uint16_t m_drg = INT16_MAX;
+    int16_t m_drg = INT16_MAX;
 
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310) &&
         this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
@@ -112,7 +112,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_min -= m_drg;
         ret.m_max -= m_drg;
         ret.m_ind -= m_drg;
-        
+
         m_esp = MAX(0, MIN(m_esp - (int16_t)m_drg, ret.m_max));
         ret.m_ind = MIN(ret.m_min, MAX(ret.m_ind, ret.m_max)); 
 

@@ -46,6 +46,7 @@ struct ShiftInterfaceData {
     ShiftAdaptationSystem* adaptation_mgr;
     bool manual_shift;
     bool trq_req_en;
+    float diff_ratio;
 };
 
 class ShiftingAlgorithm {

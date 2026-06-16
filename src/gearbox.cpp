@@ -48,6 +48,12 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
     this->profile_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->speed_sensors = SpeedSensors {
+        .n2 = 0,
+        .n3 = 0,
+        .turbine = 0,
+        .output = 0,
+    };
     this->sensor_data = SensorData{
         .input_rpm = 0,
         .engine_rpm = 0,
@@ -61,10 +67,15 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .indicated_torque = 0,
         .max_torque = 0,
         .min_torque = 0,
+        .pump_torque = 0,
         .last_shift_time = 0,
         .gear_ratio = 0.0F,
+        .targ_gear_ratio = 0.0F,
+        .tcc_trq_multiplier = 1.0,
         .kickdown_pressed = false,
         .brake_pressed = false,
+        .wheel_speed_mps = 0,
+        .acceleration_ms2 = 0
     };
     this->output_data = OutputData{
         .torque_req_amount = 0,
@@ -412,7 +423,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .tcc = this->tcc,
             .adaptation_mgr = this->shift_adapter,
             .manual_shift = manually_requested,
-            .trq_req_en = en_trq_req
+            .trq_req_en = en_trq_req,
+            .diff_ratio = this->diff_ratio_f
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true);
@@ -430,7 +442,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         else {
             bool is_release = false;
             if (
-                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
+                (sensor_data.converted_driver_torque > threshold_torque && (sid.shift_flags & SHIFT_FLAG_COAST) != 1) &&
                 ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0)
             ) {
                 is_release = true;

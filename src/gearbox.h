@@ -77,6 +77,7 @@ private:
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool process_speed_sensors();
+    void process_acceleration();
     [[noreturn]]
     void controller_loop(void);
 
@@ -132,6 +133,14 @@ private:
 
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
+
+    // 10x value
+    uint32_t wheel_spd_filt = 0;
+    uint32_t wheel_spd_filt_prev = 0;
+
+    // 100x real value
+    int32_t acceleration_ms2 = 0;
+
 };
 
 extern Gearbox* gearbox;

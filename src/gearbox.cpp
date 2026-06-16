@@ -903,6 +903,9 @@ void Gearbox::controller_loop()
             this->sensor_data.input_rpm = speed_sensors.turbine;
             this->sensor_data.output_rpm = speed_sensors.output;
             bool stationary = this->is_stationary();
+            this->process_acceleration();   
+            this->sensor_data.acceleration_ms2 = this->acceleration_ms2/10;
+            this->sensor_data.wheel_speed_mps = this->wheel_spd_filt/10;
             if (!stationary)
             {
                 // Store our ratio
@@ -1452,6 +1455,29 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     }
     this->est_gear_idx = 0;
     return false;
+}
+
+void Gearbox::process_acceleration() {
+    if (UINT16_MAX != sensor_data.output_rpm) {
+        int wheel_spd_now = (((float)sensor_data.output_rpm*100) / this->diff_ratio_f);
+        this->wheel_spd_filt = first_order_filter(10, wheel_spd_now, this->wheel_spd_filt);
+        // Rpm -> Rps = RPM/60
+        // Rps -> Rp/cycle = Rps/50
+        int wheel_delta = ((int)this->wheel_spd_filt-(int)this->wheel_spd_filt_prev);
+        int wheel_accel_m = (wheel_delta * (int)VEHICLE_CONFIG.wheel_circumference)/300; // mm/sec delta
+        // Rotate values
+        this->wheel_spd_filt_prev = this->wheel_spd_filt;
+        if (sensor_data.output_rpm < 20) {
+            wheel_accel_m = 0;
+            acceleration_ms2 = 0;
+        } else {
+            acceleration_ms2 = first_order_filter(10, wheel_accel_m*100, this->acceleration_ms2);
+        }
+    } else {
+        wheel_spd_filt = 0;
+        wheel_spd_filt_prev = 0;
+        acceleration_ms2 = 0;
+    }
 }
 
 Gearbox* gearbox = nullptr;

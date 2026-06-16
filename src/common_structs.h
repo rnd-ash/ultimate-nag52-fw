@@ -81,6 +81,9 @@ struct SensorData{
     float tcc_trq_multiplier;
     bool kickdown_pressed;
     bool brake_pressed;
+
+    uint16_t wheel_speed_mps;
+    int16_t acceleration_ms2;
 };
 
 struct OutputData {

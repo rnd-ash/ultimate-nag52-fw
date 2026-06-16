@@ -217,8 +217,6 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
 
     } else {
-        // This is my best guess at interpreting the assembly (Decompiler view messes a lot up with this function due to indirections)
-
         // -- Set solenoid currents --
         if (this->shift_sol_en) {
             this->corrected_spc_pressure = this->calc_current_linear_sol(this->target_shift_pressure, current_gear, change_state);
@@ -257,9 +255,8 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
         if (clutch_factor != 0) {
             float drop = (MECH_PTR->atf_density_drop_per_c * (sensor_data->atf_temp + 50))/100.0;
             float density_now = MECH_PTR->atf_density_minus_50c - drop;
-
-            ret = (density_now * (speed * speed)) / clutch_factor;
-            ret /= 10000.0; // To convert to mbar
+            ret = (((speed*speed)/1000.0)*density_now) / clutch_factor;
+            ret /= 10.0; // To convert to mbar
         }
     }
     return ret;

@@ -336,6 +336,8 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             // Start torque request to prevent clutch burn up on merge
             this->timer_mod = this->cycles_mod_ramp_to_sync;
             this->subphase_mod += 1;
+            this->trq_req_down_ramp = true;
+            this->trq_req_timer = this->cycles_mod_ramp_to_sync;
         }
 
     }
@@ -372,7 +374,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             ret = PHASE_OVERLAP;
         }
     }
-    if (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
+    if (!this->trq_req_down_ramp && sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
         this->trq_req_down_ramp = true;
         this->trq_req_timer = this->cycles_mod_ramp_to_sync;
     }

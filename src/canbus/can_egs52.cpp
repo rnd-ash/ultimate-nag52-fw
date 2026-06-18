@@ -201,7 +201,7 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
             tmp = MAX(MIN(ret.m_converted_driver, ret.m_max), ret.m_min);
         }
-        if (tmp <= 0) {
+        if (tmp <= 0 || static_converted < 0) {
             tmp = MIN(tmp, static_converted);
         }
         driver_converted = tmp;
@@ -214,6 +214,8 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;
         }
+        // Set before we do reductions
+        ret.m_ind = MAX(0, driver_converted);
         KLA_410_EGS52 kl410;
         if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
             if (UINT8_MAX != kl410.M_KOMP) {
@@ -221,7 +223,6 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
                 static_converted -= (kl410.M_KOMP / 4);
             }
         }
-        ret.m_ind = MAX(0, driver_converted);
         ret.m_converted_driver = driver_converted;
         ret.m_converted_static = static_converted;
     }

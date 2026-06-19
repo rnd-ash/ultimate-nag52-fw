@@ -127,7 +127,7 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
                 // Safety - GearboxGear for 1-5 = DisplayGear -3
-                return (GearboxDisplayGear)(((uint8_t)target) + 3); 
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
             } else {
                 return GearboxDisplayGear::D;
             }
@@ -194,7 +194,7 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
                 // Safety - GearboxGear for 1-5 = DisplayGear -3
-                return (GearboxDisplayGear)(((uint8_t)target) + 3); 
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
             } else {
                 return GearboxDisplayGear::D;
             }
@@ -325,8 +325,8 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
         case GearboxGear::Fourth:
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
-                // Safety - GearboxGear for 1-5 = DisplayGear -3
-                return (GearboxDisplayGear)(((uint8_t)target) + 3); 
+                // Safety - GearboxGear for 1-5 = DisplayGear -4
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
             } else {
                 return GearboxDisplayGear::D;
             }

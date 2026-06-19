@@ -76,6 +76,7 @@ uint8_t ShiftingAlgorithm::step(
     if (this->timer_emergency > 0) {
         this->timer_emergency -= 1;
     }
+    this->filling_torque = MAX(abs_input_torque, VEHICLE_CONFIG.engine_drag_torque/10.0);
     // Continuously check shift flags
     ShiftHelpers::calc_shift_flags(this->sid, this->sd, this->phase_id == 0);
 
@@ -114,7 +115,6 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_release_clutch = MAX((float)(VEHICLE_CONFIG.engine_drag_torque/100.0) * 0.75, abs_input_trq);
     int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
     if (0 == this->subphase_mod) {
         // Initial variables set
@@ -141,7 +141,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = targ_spc;//linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
+    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
     this->shift_sol_pressure = this->correct_shift_shift_pressure(p_apply_clutch);
 
 calc_mod:
@@ -208,7 +208,7 @@ uint16_t ShiftingAlgorithm::calc_max_trq_on_clutch(uint16_t pressure, Coefficien
 }
 
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shift) {
-    int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
+    int p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, this->filling_torque, CoefficientTy::Release) + sid->release_spring_off_clutch;
     p = MAX(0, p - this->centrifugal_force_off_clutch);
     p *= sid->inf.centrifugal_factor_off_clutch_int;
     p /= 100;
@@ -216,7 +216,7 @@ uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq_and_freewheeling(int p_shi
 }
 
 uint16_t ShiftingAlgorithm::calc_mod_with_filling_trq(int p_shift) {
-    uint16_t p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, abs(trq_at_release_clutch), CoefficientTy::Release) + sid->release_spring_off_clutch;
+    uint16_t p = pm->p_clutch_with_coef(sid->curr_g, sid->releasing, this->filling_torque, CoefficientTy::Release) + sid->release_spring_off_clutch;
     if (p > this->centrifugal_force_off_clutch) {
         p -= this->centrifugal_force_off_clutch;
     }
@@ -267,12 +267,12 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
     }
     else {
         ret = sid->prefill_info.low_fill_pressure_on_clutch;
-        if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
-            // Crossover upshift - Add pressure based on torque and RPM
-            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
-            int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
-            ret += rpm_adder + torque_adder;
-        }
+        //if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
+        //    // Crossover upshift - Add pressure based on torque and RPM
+        //    int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
+        //    int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
+        //    ret += rpm_adder + torque_adder;
+        //}
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
             if (sid->targ_g == GearboxGear::Third) {
                 // 4-3

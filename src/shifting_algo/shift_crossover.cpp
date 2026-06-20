@@ -712,11 +712,11 @@ int8_t CrossoverShift::calc_t_adapt_offset_adv(int8_t cycle_change) {
     float cycles_high = (float)cycles_high_filling;
 
     float delta = sqrt_low_p * 
-        (float)((cycle_change - cycles_high) - (this->cycles_ramp_to_low_filling - this->cycles_low_filling/2.0));
+        (float)((cycle_change - cycles_high) - this->cycles_ramp_to_low_filling - (this->cycles_low_filling/2.0));
     delta /= sqrt_high_p;
 
     int8_t res = 0;
-    if (delta > 1.0) {
+    if (delta >= 1.0) {
         res = 1;
     } else if (delta <= -1.0) {
         res = -1;

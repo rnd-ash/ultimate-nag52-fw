@@ -919,7 +919,7 @@ void Gearbox::controller_loop()
             bool stationary = this->is_stationary();
             this->process_acceleration();   
             this->sensor_data.acceleration_ms2 = this->acceleration_ms2/10;
-            this->sensor_data.wheel_speed_mps = this->wheel_spd_filt/10;
+            this->sensor_data.wheel_speed_mps = this->wheel_spd;
             if (!stationary)
             {
                 // Store our ratio
@@ -1474,13 +1474,13 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
 void Gearbox::process_acceleration() {
     if (UINT16_MAX != sensor_data.output_rpm) {
         int wheel_spd_now = (((float)sensor_data.output_rpm*100) / this->diff_ratio_f);
-        this->wheel_spd_filt = first_order_filter(10, wheel_spd_now, this->wheel_spd_filt);
         // Rpm -> Rps = RPM/60
         // Rps -> Rp/cycle = Rps/50
-        int wheel_delta = ((int)this->wheel_spd_filt-(int)this->wheel_spd_filt_prev);
+        int wheel_delta = ((int)this->wheel_spd-(int)this->wheel_spd_prev);
         int wheel_accel_m = (wheel_delta * (int)VEHICLE_CONFIG.wheel_circumference)/300; // mm/sec delta
         // Rotate values
-        this->wheel_spd_filt_prev = this->wheel_spd_filt;
+        this->wheel_spd_prev = this->wheel_spd;
+        this->wheel_spd = wheel_spd_now;
         if (sensor_data.output_rpm < 20) {
             wheel_accel_m = 0;
             acceleration_ms2 = 0;
@@ -1488,8 +1488,8 @@ void Gearbox::process_acceleration() {
             acceleration_ms2 = first_order_filter(10, wheel_accel_m*100, this->acceleration_ms2);
         }
     } else {
-        wheel_spd_filt = 0;
-        wheel_spd_filt_prev = 0;
+        wheel_spd = 0;
+        wheel_spd_prev = 0;
         acceleration_ms2 = 0;
     }
 }

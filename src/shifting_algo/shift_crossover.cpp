@@ -385,13 +385,8 @@ void CrossoverShift::calculate_accel_trq_corr() {
         int accel_corr_trq = 0;
         accel_corr_trq = ((ShiftHelpers::get_shift_intertia(sid->inf.map_idx) * MECH_PTR->ratio_table[sid->inf.curr_g] / 1000) * 6.0 * sid->diff_ratio/10.0) * sd->acceleration_ms2;
         accel_corr_trq /= (int)VEHICLE_CONFIG.wheel_circumference;
-        if (!this->upshifting) {
-            accel_corr_trq /= 10;
-            this->torque_accel_corr = MAX(accel_corr_trq, this->torque_accel_corr);
-        } else {
-            accel_corr_trq /= 20;
-            this->torque_accel_corr = MIN(accel_corr_trq, this->torque_accel_corr);
-        }
+        accel_corr_trq /= 10;
+        this->torque_accel_corr = MIN(accel_corr_trq, this->torque_accel_corr);
     }
 }
 

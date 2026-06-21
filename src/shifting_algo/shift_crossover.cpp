@@ -185,6 +185,9 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
         uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
+        if (this->do_fill_pressure_adaptation || (this->fill_via_ramp && this->upshifting)) {
+            sid->tcc->shift_start(this->upshifting, false, true);
+        }
     } 
     else if (2 == this->subphase_shift) {
         // Ramp to low filling P
@@ -339,7 +342,7 @@ uint8_t CrossoverShift::phase_overlap() {
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
-        sid->tcc->shift_start(this->upshifting, false);
+        sid->tcc->shift_start(this->upshifting, false, false);
         ret = PHASE_OVERLAP2;
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
@@ -505,6 +508,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             this->timer_shift = 3;
             this->subphase_shift += 1;
+            sid->tcc->shift_end();
         }
     } else if (4 == subphase_shift) {
         // Waiting (2)
@@ -514,7 +518,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         ) {
             // Analyze adaptations
             ESP_LOGI("ADAPT", "End adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
-            sid->tcc->shift_end();
             ret = PHASE_MAX_PRESSURE;
         }
     }

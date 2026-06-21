@@ -1,6 +1,7 @@
 #include "torque_converter.h"
 #include "solenoids/solenoids.h"
 #include "tcu_maths.h"
+#include "tcu_maths_impl.h"
 #include "nvs/eeprom_impl.h"
 #include "nvs/all_keys.h"
 #include "adapt_maps.h"
@@ -18,6 +19,9 @@ const int16_t SLIP_V_WHEN_LOCKED = 10; // 10RPM for locking (Means we can monito
 const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
 const int16_t SLIP_V_UNDERLOCKED = SLIP_V_WHEN_LOCKED*2;
 const uint8_t SLIP_SAMPLES_AVG = 25; // 500ms
+
+const uint16_t SLIP_X_COAST[5] = {1000, 1500, 3500, 4000, 6000};
+const uint16_t SLIP_Z_COAST[5] = {  70,   40,   40,   10,   10};
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     if (0 == TCC_CURRENT_SETTINGS.tcc_max_trq_override) {
@@ -149,7 +153,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // See if we should slip or close based on maps
         targ = InternalTccState::Open;
         int pedal_as_percent = (sensors->pedal_pos*100)/250;
-        slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
+        if (sensors->input_torque > 0) {
+            slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
+        } else {
+            slipping_rpm_targ = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
+        }
         // Can we slip?
         if (SLIP_V_WHEN_OPEN > slipping_rpm_targ) {
             targ = InternalTccState::Slipping;
@@ -181,6 +189,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                         open_tcc = TCC_CURRENT_SETTINGS.unlock_coasting_downshifts;
                     }
                 }
+                open_tcc |= this->shift_forces_unlock;
             }
             if (open_tcc) {
                 targ = InternalTccState::Open;
@@ -410,12 +419,14 @@ uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_commanded_pressure;
 }
 
-void TorqueConverter::shift_start(bool upshift, bool release_shifting) {
+void TorqueConverter::shift_start(bool upshift, bool release_shifting, bool force_unlock) {
     this->is_shifting = true;
     this->was_shifting = true;
     this->release_shifting = release_shifting;
     this->upshifting = upshift;
+    this->shift_forces_unlock |= force_unlock;
 }
 void TorqueConverter::shift_end() {
     this->is_shifting = false;
+    this->shift_forces_unlock = false;
 }

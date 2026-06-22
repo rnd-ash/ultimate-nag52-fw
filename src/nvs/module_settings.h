@@ -343,6 +343,9 @@ typedef struct {
     // are running the EWM shifter without a profile button (W163/Sprinter vehicles). The button
     // should be wired between VBatt and Pin 3 of the TCU, and should conduct when pressed.
     bool ewm_custom_profile_btn;
+    // When in automatic profiles (C/S/A), always show the gear number (5/4/3/2/1) on the cluster,
+    // rather than showing just 'D'
+    bool auto_show_gears_always;
 } __attribute__ ((packed)) ETS_MODULE_SETTINGS;
 
 const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
@@ -361,6 +364,7 @@ const ETS_MODULE_SETTINGS ETS_DEFAULT_SETTINGS = {
     .ewm_save_profile = true,
     .ewm_save_profile_manual = false,
     .ewm_custom_profile_btn = false,
+    .auto_show_gears_always = false,
 };
 
 // Release shift settings

@@ -113,7 +113,7 @@ int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_v
     if (sample_count == 0xFF) {
         sample_count = 0xFE;
     }
-    return (new_val + (sample_count*last_val)) / (sample_count + 1);
+    return (new_val + (sample_count*last_val)) / (int32_t)(sample_count + 1);
 }
 
 short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val) {

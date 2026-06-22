@@ -46,6 +46,7 @@ struct ShiftInterfaceData {
     ShiftAdaptationSystem* adaptation_mgr;
     bool manual_shift;
     bool trq_req_en;
+    float diff_ratio;
 };
 
 class ShiftingAlgorithm {
@@ -115,6 +116,8 @@ protected:
     short momentum_start_output_rpm = 0;
     short correction_trq = 0;
 
+    uint16_t filling_torque = 0;
+
     uint16_t emergency_trq_val = 0;
 
     // Because EGS is weird, bleed and end of ctrl phases have same for either shift
@@ -173,14 +176,24 @@ protected:
     uint8_t torque_adaptation_stage = 0;
     uint16_t old_engine_rpm = 0;
 
+    // Multiplied by 10x
     int16_t first_order_pump_trq_filter = 0;
+
+    int32_t pid_sum = 0;
+    int32_t abs_sum = 0;
+    uint16_t pid_count = 0;
+
+    int16_t old_input_trq = 0;
+
+    bool first_run = true;
+    bool torque_jumped = false;
 };
 
 // Helper functions
 namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
-    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase);
 }
 
 #endif

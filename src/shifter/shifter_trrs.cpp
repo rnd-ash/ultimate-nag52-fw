@@ -62,17 +62,19 @@ ShifterPosition ShifterTrrs::get_shifter_position(void)
 		}
 	}
 	// update reverse/parking lock solenoid
-	this->pos = result;
-	set_rp_solenoid(vVeh, expire_time_CAN);
+	this->pos = result;	
+	// TODO: add logic for using either brake signal or CAN-signal for 
+	const uint32_t expire_time_ms = 250u;
+	set_rp_solenoid(vVeh, result, BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms));
 
 	// return resulting shifter position
 	return result;
 }
 
-void ShifterTrrs::set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms)
+void ShifterTrrs::set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed)
 {
-	// board->set_rp_solenoid(((ShifterPosition::N == this->pos) && (2.5F > vVeh)) || BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms));
-	board->set_rp_solenoid(!(((ShifterPosition::N == this->pos) || (ShifterPosition::P == this->pos)) && BrakePedal::is_brake_pedal_pressed(egs_can_hal, expire_time_ms)));
+	bool should_rp_solenoid_be_activated = (ShifterPosition::N == pos) && ((2.5F < vVeh) || !(is_brake_pressed));
+	board->set_rp_solenoid(should_rp_solenoid_be_activated);
 }
 
 AbstractProfile *ShifterTrrs::get_profile(void)

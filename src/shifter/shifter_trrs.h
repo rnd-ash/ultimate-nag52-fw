@@ -40,7 +40,8 @@ private:
     float vVeh = 0.0F;
 
     void set_vehicle_speed(uint16_t front_left, uint16_t front_right);
-    void set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms);
+    void set_rp_solenoid(const float vVeh, const ShifterPosition pos, const bool is_brake_pressed);
+    // void set_rp_solenoid(const float vVeh, const uint32_t expire_time_ms);
 
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     BoardGpioMatrix* board;

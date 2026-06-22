@@ -4,6 +4,7 @@
 #include "gearbox.h"
 #include "maps.h"
 #include "nvs/all_keys.h"
+#include "nvs/module_settings.h"
 #include <tcu_maths_impl.h>
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
@@ -120,15 +121,17 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Neutral:
             return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return GearboxDisplayGear::Five;
+            if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
+                // Safety - GearboxGear for 1-5 = DisplayGear -3
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+            } else {
+                return GearboxDisplayGear::D;
+            }
+            break;
         case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
@@ -185,15 +188,17 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Neutral:
             return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return GearboxDisplayGear::Five;
+            if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
+                // Safety - GearboxGear for 1-5 = DisplayGear -3
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+            } else {
+                return GearboxDisplayGear::D;
+            }
+            break;
         case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;
@@ -315,15 +320,17 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
         case GearboxGear::Neutral:
             return GearboxDisplayGear::N;
         case GearboxGear::First:
-            return GearboxDisplayGear::One;
         case GearboxGear::Second:
-            return GearboxDisplayGear::Two;
         case GearboxGear::Third:
-            return GearboxDisplayGear::Three;
         case GearboxGear::Fourth:
-            return GearboxDisplayGear::Four;
         case GearboxGear::Fifth:
-            return GearboxDisplayGear::Five;
+            if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
+                // Safety - GearboxGear for 1-5 = DisplayGear -4
+                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+            } else {
+                return GearboxDisplayGear::D;
+            }
+            break;
         case GearboxGear::SignalNotAvailable:
         default:
             return GearboxDisplayGear::SNA;

@@ -48,6 +48,12 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
     this->profile_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->speed_sensors = SpeedSensors {
+        .n2 = 0,
+        .n3 = 0,
+        .turbine = 0,
+        .output = 0,
+    };
     this->sensor_data = SensorData{
         .input_rpm = 0,
         .engine_rpm = 0,
@@ -61,10 +67,15 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .indicated_torque = 0,
         .max_torque = 0,
         .min_torque = 0,
+        .pump_torque = 0,
         .last_shift_time = 0,
         .gear_ratio = 0.0F,
+        .targ_gear_ratio = 0.0F,
+        .tcc_trq_multiplier = 1.0,
         .kickdown_pressed = false,
         .brake_pressed = false,
+        .wheel_speed_mps = 0,
+        .acceleration_ms2 = 0
     };
     this->output_data = OutputData{
         .torque_req_amount = 0,
@@ -412,15 +423,16 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .tcc = this->tcc,
             .adaptation_mgr = this->shift_adapter,
             .manual_shift = manually_requested,
-            .trq_req_en = en_trq_req
+            .trq_req_en = en_trq_req,
+            .diff_ratio = this->diff_ratio_f
         };
         // To set the flag values initially
-        ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);
+        ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true);
 
         float threshold_torque = VEHICLE_CONFIG.engine_drag_torque/10.0;
         ShiftingAlgorithm* algo;
         if (is_upshift) {
-            if (sensor_data.converted_torque <= -threshold_torque/2) {
+            if (sensor_data.converted_driver_torque <= -threshold_torque/2) {
                 algo = new ReleasingShift(&sid);
             }
             else {
@@ -428,12 +440,14 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
         else {
-            bool is_release = true;
+            bool is_release = false;
             if (
-                (sensor_data.converted_torque < threshold_torque && (sid.shift_flags & SHIFT_FLAG_COAST) != 0) ||
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0)
+                // Load downshift, OR coasting 32/21 (NOT Coasting 54/43)
+                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
+                // (Note - 54/43 is overriden if we did a force-shift)
+                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0 && !manual_shift)
             ) {
-                is_release = false;
+                is_release = true;
             }
             if (is_release) {
                 algo = new ReleasingShift(&sid);
@@ -901,11 +915,12 @@ void Gearbox::controller_loop()
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
         {
-            this->cached_input_rpm = first_order_filter(3, speed_sensors.turbine * 100, this->cached_input_rpm);
-            this->sensor_data.input_rpm = this->cached_input_rpm / 100;
-            this->cached_output_rpm = first_order_filter(3, speed_sensors.output * 100, this->cached_output_rpm);
-            this->sensor_data.output_rpm = this->cached_output_rpm / 100;
+            this->sensor_data.input_rpm = speed_sensors.turbine;
+            this->sensor_data.output_rpm = speed_sensors.output;
             bool stationary = this->is_stationary();
+            this->process_acceleration();   
+            this->sensor_data.acceleration_ms2 = this->acceleration_ms2/10;
+            this->sensor_data.wheel_speed_mps = this->wheel_spd;
             if (!stationary)
             {
                 // Store our ratio
@@ -996,8 +1011,7 @@ void Gearbox::controller_loop()
         {
             tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
         }
-        this->cached_engine_rpm = first_order_filter(3, tmp_rpm * 100, this->cached_engine_rpm);
-        this->sensor_data.engine_rpm = this->cached_engine_rpm / 100;
+        this->sensor_data.engine_rpm = tmp_rpm;
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {
@@ -1456,6 +1470,29 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     }
     this->est_gear_idx = 0;
     return false;
+}
+
+void Gearbox::process_acceleration() {
+    if (UINT16_MAX != sensor_data.output_rpm) {
+        int wheel_spd_now = (((float)sensor_data.output_rpm*100) / this->diff_ratio_f);
+        // Rpm -> Rps = RPM/60
+        // Rps -> Rp/cycle = Rps/50
+        int wheel_delta = ((int)this->wheel_spd-(int)this->wheel_spd_prev);
+        int wheel_accel_m = (wheel_delta * (int)VEHICLE_CONFIG.wheel_circumference)/300; // mm/sec delta
+        // Rotate values
+        this->wheel_spd_prev = this->wheel_spd;
+        this->wheel_spd = wheel_spd_now;
+        if (sensor_data.output_rpm < 20) {
+            wheel_accel_m = 0;
+            acceleration_ms2 = 0;
+        } else {
+            acceleration_ms2 = first_order_filter(10, wheel_accel_m*100, this->acceleration_ms2);
+        }
+    } else {
+        wheel_spd = 0;
+        wheel_spd_prev = 0;
+        acceleration_ms2 = 0;
+    }
 }
 
 Gearbox* gearbox = nullptr;

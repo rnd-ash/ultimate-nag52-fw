@@ -84,7 +84,7 @@ bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_valu
     // correction calculation
     const float corr = delta * adapt_gain;
 
-    ESP_LOGI("LookupMap", "Adding value: sample_point_value: %d, x_value: %d, y_value: %d, interp: %.2f, delta: %.2f, corr: %.2f, w_x: %.2f, w_y: %.2f", sample_point_value, x_value, y_value, interp, delta, corr, w_x, w_y);
+    //ESP_LOGI("LookupMap", "Adding value: sample_point_value: %d, x_value: %d, y_value: %d, interp: %.2f, delta: %.2f, corr: %.2f, w_x: %.2f, w_y: %.2f", sample_point_value, x_value, y_value, interp, delta, corr, w_x, w_y);
 
     // map adaptation
     data[idy_min * x_header_size + idx_min] = clampint16((int32_t)data[idy_min * x_header_size + idx_min] + (int32_t)(corr * (1.0F - w_x) * (1.0F - w_y)));

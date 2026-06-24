@@ -1004,7 +1004,7 @@ void Gearbox::controller_loop()
         }
 
         sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
-        sensor_data.kickdown_pressed = kickdown.is_kickdown_newly_pressed(egs_can_hal, 250);
+        sensor_data.kickdown_pressed = kickdown.is_kickdown_pressed(egs_can_hal, 250);
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
@@ -1161,6 +1161,15 @@ void Gearbox::controller_loop()
                             this->ask_downshift = true; // Downshift is secondary
                             this->manual_shift = false;
                         }
+                    }
+                    if (
+                        (standard == this->current_profile ||
+                        comfort == this->current_profile ||
+                        agility == this->current_profile ||
+                        winter == this->current_profile) &&
+                        sensor_data.engine_rpm > this->redline_rpm - 100 // @ccv asked
+                    ) {
+                        this->ask_upshift = true;
                     }
                     if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
                     {

@@ -384,6 +384,7 @@ void HfmCan::set_target_gear(GearboxGear target)
 void HfmCan::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm)
 {
     MMAX_EGS = TorqueRequestBounds::LessThan != limit_type;
+    ioexpander->set_gearbox_protection(limit_type == TorqueRequestBounds::LessThan);
 }
 
 void HfmCan::on_rx_frame(uint32_t id, uint8_t dlc, uint64_t data, const uint32_t timestamp)

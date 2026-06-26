@@ -1161,6 +1161,15 @@ void Gearbox::controller_loop()
                             this->manual_shift = false;
                         }
                     }
+                    if (
+                        (standard == this->current_profile ||
+                        comfort == this->current_profile ||
+                        agility == this->current_profile ||
+                        winter == this->current_profile) &&
+                        sensor_data.engine_rpm > this->redline_rpm - 100 // @ccv asked
+                    ) {
+                        this->ask_upshift = true;
+                    }
                     if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
                     {
                         // Check RPMs

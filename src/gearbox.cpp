@@ -1166,7 +1166,7 @@ void Gearbox::controller_loop()
                         comfort == this->current_profile ||
                         agility == this->current_profile ||
                         winter == this->current_profile) &&
-                        sensor_data.engine_rpm > this->redline_rpm - 100 // @ccv asked
+                        sensor_data.engine_rpm >= this->redline_rpm - SBS_CURRENT_SETTINGS.redline_offset_auto_upshift
                     ) {
                         this->ask_upshift = true;
                     }

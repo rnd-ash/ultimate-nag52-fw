@@ -163,6 +163,11 @@ typedef struct {
     bool en_trq_req_4_3;
     // Enable torque requests for 5-4
     bool en_trq_req_5_4;
+    // When in an automatic profile, this limit determines the offset from
+    // Redline RPM before an upshift is forced, in order to stop the engine
+    // actually hitting redline. If your engine stays at the limiter and after
+    // a while the car finally upshifts, increase this threshold
+    uint16_t redline_offset_auto_upshift;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
@@ -177,6 +182,8 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .en_trq_req_3_2 = true,
     .en_trq_req_4_3 = true,
     .en_trq_req_5_4 = true,
+    .redline_offset_auto_upshift = 100
+
 };
 
 // Pressure manager settings

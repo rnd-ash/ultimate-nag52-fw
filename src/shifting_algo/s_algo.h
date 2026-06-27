@@ -12,10 +12,10 @@ struct TorqueRequstData {
     float amount;
 };
 
-const uint8_t STEP_RES_CONTINUE = 0;
-const uint8_t STEP_RES_NEXT = 0xFD;
-const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
-const uint8_t STEP_RES_END_SHIFT = 0xFF;
+const DRAM_ATTR uint8_t STEP_RES_CONTINUE = 0;
+const DRAM_ATTR uint8_t STEP_RES_NEXT = 0xFD;
+const DRAM_ATTR uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
+const DRAM_ATTR uint8_t STEP_RES_END_SHIFT = 0xFF;
 
 enum class ShiftStyle {
     Crossover_Up,

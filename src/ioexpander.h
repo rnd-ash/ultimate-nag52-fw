@@ -33,6 +33,7 @@ public:
 	void set_rp_solenoid(const bool rp_solenoid_enabled);
 	void set_start(const bool start_enabled);
 	void set_gearbox_protection(const bool gearbox_protection_enabled);
+	void diag_disable();
 
 	// inputs
     pca_num_t i2c_expander_trrs_a						= PCA_NUM_NC;
@@ -74,6 +75,7 @@ private:
 	inline static void set_value(const bool value, const pca_num_t bit, uint8_t* i2c_tx_bytes);
 
 	i2c_master_dev_handle_t dev_handle;
+	i2c_master_bus_handle_t bus_handle;
 };
 
 extern IOExpander* ioexpander;

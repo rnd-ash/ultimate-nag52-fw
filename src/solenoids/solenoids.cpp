@@ -38,7 +38,6 @@ each channel:
 #define I2S_DMA_BUF_LEN 6 * 200 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 2
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
 bool first_read_complete = false;
-uint64_t isr_done = 0;
 uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 void read_solenoids_i2s(void*) {

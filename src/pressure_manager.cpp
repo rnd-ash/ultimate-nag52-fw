@@ -546,7 +546,7 @@ void PressureManager::notify_shift_end() {
 }
 
 // TODO pull this from calibration tables
-const int C_C_FACTOR[8] = {15, 40, 100, 100, 100, 100, 100, 80};
+const DRAM_ATTR int C_C_FACTOR[8] = {15, 40, 100, 100, 100, 100, 100, 80};
 
 CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars) {
     CircuitInfo sd; 

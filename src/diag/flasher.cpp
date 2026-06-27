@@ -5,6 +5,8 @@
 #include "esp_ota_ops.h"
 #include "esp_flash.h"
 #include "esp_image_format.h"
+#include "ioexpander.h"
+
 Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
@@ -42,6 +44,7 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     // data format
     // Uncompressed memory size
     // For now we only support 0x00 format (Uncompressed and unencrypted)
+    //printf("Check1\n");
     if (arg_len != 7) { // Request was the wrong size
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -51,16 +54,25 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
     // Valid memory regions
     uint32_t flash_size;
+    //printf("Check2\n");
     if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+    //printf("Check3\n");
     if (dest_mem_address+dest_mem_size > flash_size) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+
     // Must be 4096 byte sector aligned
     int erase_len = (dest_mem_size + 4096 - 1) & -4096;
+    // Disable TCC Slenoid since the ISR causes flash cache errors
+    sol_tcc->diag_disable();
+    if (nullptr != ioexpander) {
+        ioexpander->diag_disable();
+    }
+    vTaskDelay(20);
     if (esp_flash_erase_region(esp_flash_default_chip, dest_mem_address, erase_len) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
@@ -71,6 +83,7 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
         // Erase coredump for an OTA. This stops old coredumps from hanging around
         esp_core_dump_image_erase();
     }
+    //printf("Check6\n");
 
     this->start_addr = dest_mem_address;
     this->to_write = dest_mem_size;

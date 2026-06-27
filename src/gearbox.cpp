@@ -14,7 +14,7 @@
 
 #define SBS SBS_CURRENT_SETTINGS
 
-const uint8_t AVG_SAMPLES_500MS = 500 / 20;
+const DRAM_ATTR uint8_t AVG_SAMPLES_500MS = 500 / 20;
 
 // ONLY FOR FORWARD GEARS!
 int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gear, const GearboxConfiguration* gb_config)

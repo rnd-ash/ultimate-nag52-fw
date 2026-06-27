@@ -2,12 +2,12 @@
 #include <egs_calibration/calibration_structs.h>
 #include <math.h>
 
-const uint8_t PHASE_BLEED            = 0;
-const uint8_t PHASE_FILL             = 1;
-const uint8_t PHASE_OVERLAP          = 2;
-const uint8_t PHASE_OVERLAP2         = 3;
-const uint8_t PHASE_MAX_PRESSURE     = 4;
-const uint8_t PHASE_END_CONTROL      = 5;
+const DRAM_ATTR uint8_t PHASE_BLEED            = 0;
+const DRAM_ATTR uint8_t PHASE_FILL             = 1;
+const DRAM_ATTR uint8_t PHASE_OVERLAP          = 2;
+const DRAM_ATTR uint8_t PHASE_OVERLAP2         = 3;
+const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE     = 4;
+const DRAM_ATTR uint8_t PHASE_END_CONTROL      = 5;
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 float RAMP_LIMITS[8] = {0.325, 0.625, 0.55, 0, 0, 0, 0, 0};

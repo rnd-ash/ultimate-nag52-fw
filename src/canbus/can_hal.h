@@ -23,7 +23,7 @@
 #include "../shifter/programselector/programselector.h"
 #include "../profiles.h"
 
-const CanTorqueData TORQUE_NDEF = {
+const DRAM_ATTR CanTorqueData TORQUE_NDEF = {
     .m_min = INT16_MAX,
     .m_max = INT16_MAX,
     .m_ind = INT16_MAX,

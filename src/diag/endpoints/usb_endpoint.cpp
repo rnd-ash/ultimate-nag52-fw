@@ -11,7 +11,7 @@ UsbEndpoint::UsbEndpoint() : AbstractEndpoint()
     max_bytes_left = 0;
     to_read = 0;
     length = 0;
-    this->status = uart_driver_install(UART_PORT, 512, 512, 0, nullptr, 0);
+    this->status = uart_driver_install(UART_PORT, 512, 512, 0, nullptr, ESP_INTR_FLAG_IRAM);
     if (this->status == ESP_OK)
     {
         this->read_buffer = static_cast<char *>(malloc(UART_MSG_SIZE));

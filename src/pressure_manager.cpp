@@ -548,7 +548,7 @@ void PressureManager::notify_shift_end() {
 // TODO pull this from calibration tables
 const DRAM_ATTR int C_C_FACTOR[8] = {15, 40, 100, 100, 100, 100, 100, 80};
 
-CircuitInfo PressureManager::get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars) {
+CircuitInfo PressureManager::get_basic_shift_data(GearChange shift_request) {
     CircuitInfo sd; 
     uint8_t lookup_valve_info = fwd_gearchange_egs_map_lookup_idx(shift_request);
     switch (shift_request) {

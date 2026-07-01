@@ -1,7 +1,7 @@
 #include "endpoint.h"
 
-const static char HEX_DEF[17] = "0123456789ABCDEF";
-const static size_t UART_MSG_SIZE = 6 + (2 * DIAG_CAN_MAX_SIZE);
+const DRAM_ATTR static char HEX_DEF[17] = "0123456789ABCDEF";
+const DRAM_ATTR static size_t UART_MSG_SIZE = 6 + (2 * DIAG_CAN_MAX_SIZE);
 const uart_port_t UART_PORT = uart_port_t::UART_NUM_0;
 
 UsbEndpoint::UsbEndpoint() : AbstractEndpoint()

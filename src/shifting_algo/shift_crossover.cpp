@@ -285,15 +285,7 @@ uint8_t CrossoverShift::phase_overlap() {
         this->trq_adder = 0;
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap
         this->p_apply_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
-        uint8_t interp_min = CRS_CURRENT_SETTINGS.overlap_cycles_low_trq;
-        uint8_t interp_max = CRS_CURRENT_SETTINGS.overlap_cycles_high_trq;
-        if (sid->change == GearChange::_1_2) {
-            interp_min += CRS_CURRENT_SETTINGS.overlap_cycles_low_trq_adder_1_2;
-            interp_max += CRS_CURRENT_SETTINGS.overlap_cycles_high_trq_adder_1_2;
-        }
-        int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
-        int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
-        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+        this->timer_shift = ShiftHelpers::cycles_crossover_overlap(sid->change, abs_input_trq);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
         this->timer_shift += rpm_adder;
@@ -426,15 +418,7 @@ uint8_t CrossoverShift::phase_overlap2() {
 
     if (0 == subphase_shift) {
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap2
-        uint8_t interp_min = CRS_CURRENT_SETTINGS.sync_cycles_low_trq;
-        uint8_t interp_max = CRS_CURRENT_SETTINGS.sync_cycles_high_trq;
-        if (sid->change == GearChange::_1_2) {
-            interp_min += CRS_CURRENT_SETTINGS.sync_cycles_low_trq_adder_1_2;
-            interp_max += CRS_CURRENT_SETTINGS.sync_cycles_high_trq_adder_1_2;
-        }
-        int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
-        int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
-        this->timer_shift = interpolate_float(abs_input_trq,interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+        this->timer_shift = ShiftHelpers::cycles_crossover_overlap2(sid->change, abs_input_trq);
 
         uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.sync_cycles_adder_rpm, InterpType::Linear);
         this->timer_shift += rpm_adder;

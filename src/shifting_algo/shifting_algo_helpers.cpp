@@ -1,6 +1,7 @@
 #include "s_algo.h"
 #include "egs_calibration/calibration_structs.h"
 #include "nvs/eeprom_config.h"
+#include "common_structs_ops.h"
 
 float ShiftHelpers::calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
     float min_factor = 1.0 / ((float)(MECH_PTR->intertia_factor[shift_idx])/1000.0);
@@ -44,4 +45,40 @@ void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, boo
     if (sd->input_rpm < 400) {
         sid->shift_flags |= SHIFT_FLAG_STATIONARY;
     }
+}
+
+uint8_t ShiftHelpers::cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque) {
+    uint8_t interp_min = CRS_CURRENT_SETTINGS.overlap_cycles_low_trq;
+    uint8_t interp_max = CRS_CURRENT_SETTINGS.overlap_cycles_high_trq;
+    if (change == GearChange::_1_2) {
+        interp_min += CRS_CURRENT_SETTINGS.overlap_cycles_low_trq_adder_1_2;
+        interp_max += CRS_CURRENT_SETTINGS.overlap_cycles_high_trq_adder_1_2;
+    }
+    int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
+    int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
+    return interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+}
+
+uint8_t ShiftHelpers::cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque) {
+    uint8_t interp_min = CRS_CURRENT_SETTINGS.sync_cycles_low_trq;
+    uint8_t interp_max = CRS_CURRENT_SETTINGS.sync_cycles_high_trq;
+    if (change == GearChange::_1_2) {
+        interp_min += CRS_CURRENT_SETTINGS.sync_cycles_low_trq_adder_1_2;
+        interp_max += CRS_CURRENT_SETTINGS.sync_cycles_high_trq_adder_1_2;
+    }
+    int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
+    int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
+    return interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+}
+
+uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque) {
+    Clutch applying = get_clutch_to_apply(change);
+    PrefillData info = pm->make_fill_data(applying);
+
+    return 3 + // Bleed phase time
+        info.fill_cycles + // High fill time
+        3 + // Cycles to low filling P
+        5 + // Cycles held at low filling P
+    (uint16_t)ShiftHelpers::cycles_crossover_overlap(change, abs_input_torque) +
+    (uint16_t)ShiftHelpers::cycles_crossover_overlap2(change, abs_input_torque);
 }

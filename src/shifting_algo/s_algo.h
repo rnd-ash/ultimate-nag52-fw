@@ -142,7 +142,6 @@ protected:
     virtual uint16_t max_p_mod_pressure() = 0;
     virtual bool is_release_shift() = 0;
     uint16_t threshold_rpm = 0;
-    float spc_p_offset = 0;
     uint16_t torque_req_val = 0;
 
     uint16_t calc_high_filling_p();

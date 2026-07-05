@@ -121,10 +121,10 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         this->subphase_mod += 1;
         // Release downshift only (EGS53)
         if (this->is_release_shift() && !upshifting) {
-            this->timer_mod = interpolate_float(sd->atf_temp, 20, 3, -45, -10, InterpType::Linear);
+            this->timer_mod = interpolate_float(sd->atf_temp, 20, 5, -45, -10, InterpType::Linear);
         }
         else {
-            this->timer_mod = 3;
+            this->timer_mod = 5;
         }
     }
     if (1 == this->subphase_mod) {
@@ -342,7 +342,6 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
         pressure += sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
     }
 
-    pressure += this->spc_p_offset;
     if (pressure < 0) {
         pressure = 0;
     }

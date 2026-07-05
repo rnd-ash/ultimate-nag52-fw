@@ -79,7 +79,7 @@ uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChang
     Clutch applying = get_clutch_to_apply(change);
     PrefillData info = pm->make_fill_data(applying);
 
-    return 3 + // Bleed phase time
+    return 5 + // Bleed phase time
         info.fill_cycles + // High fill time
         3 + // Cycles to low filling P
         5 + // Cycles held at low filling P

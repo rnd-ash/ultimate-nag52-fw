@@ -1016,7 +1016,6 @@ void Gearbox::controller_loop()
         {
             if (!this->engine_running) {
                 this->engine_running = true;
-                this->engine_spd_prev = tmp_rpm;
             }
             if (!shifting)
             {
@@ -1024,7 +1023,7 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
             }
         }
-        this->process_motor_acceleration();
+        this->process_motor_spd_filtered();
         uint8_t pll = TCUIO::parking_lock();
         if (UINT8_MAX != pll)
         {
@@ -1171,7 +1170,9 @@ void Gearbox::controller_loop()
                         agility == this->current_profile ||
                         winter == this->current_profile) &&
                         this->actual_gear != GearboxGear::Fifth && // Already checked if in FWD gear
-                        !this->ask_upshift) {
+                        !this->ask_upshift &&
+                        this->engine_spd_flt > this->engine_spd_flt_prev
+                    ) {
                         GearChange change = GearChange::_1_2;
                         if (this->actual_gear == GearboxGear::Second) {
                             change = GearChange::_2_3;
@@ -1180,9 +1181,13 @@ void Gearbox::controller_loop()
                         } else if (this->actual_gear == GearboxGear::Fourth) {
                             change = GearChange::_4_5;
                         }
-                        int cycles_to_shift = ShiftHelpers::total_time_crossover_shift(this->pressure_mgr, change, abs(sensor_data.input_torque));
-                        int est_rpm_when_shifting = sensor_data.engine_rpm + (this->engine_accel_per_cycle * cycles_to_shift)/10;
-                        if (est_rpm_when_shifting >= this->redline_rpm - SBS_CURRENT_SETTINGS.redline_offset_auto_upshift) {
+                        int cycles_to_shift = ShiftHelpers::total_time_crossover_shift(this->pressure_mgr, change, abs(sensor_data.input_torque), sensor_data.input_rpm);
+                        int delta_est = this->engine_spd_flt - this->engine_spd_flt_prev; // Per 20ms cycle (10x value)
+                        int est_rpm_when_shifting = sensor_data.engine_rpm + (delta_est * cycles_to_shift)/10;
+                        if (
+                            est_rpm_when_shifting > this->redline_rpm - SBS_CURRENT_SETTINGS.redline_offset_auto_upshift && 
+                            sensor_data.pedal_pos > 50
+                        ) {
                             this->ask_upshift = true;
                         }
                     }
@@ -1519,13 +1524,10 @@ void Gearbox::process_acceleration() {
     }
 }
 
-void Gearbox::process_motor_acceleration() {
+void Gearbox::process_motor_spd_filtered() {
     if (UINT16_MAX != sensor_data.engine_rpm) {
-        int delta = (int32_t)sensor_data.engine_rpm - (int32_t)this->engine_spd_prev;
-        this->engine_spd_prev = sensor_data.engine_rpm;
-        this->engine_accel_per_cycle = first_order_filter(10, delta*10, this->engine_accel_per_cycle);
-    } else {
-        this->engine_accel_per_cycle = 0;
+        this->engine_spd_flt_prev = this->engine_spd_flt;
+        this->engine_spd_flt = first_order_filter(8, sensor_data.engine_rpm*10, engine_spd_flt);
     }
 }
 

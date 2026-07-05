@@ -78,7 +78,7 @@ private:
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool process_speed_sensors();
     void process_acceleration();
-    void process_motor_acceleration();
+    void process_motor_spd_filtered();
     [[noreturn]]
     void controller_loop(void);
 
@@ -141,9 +141,9 @@ private:
     uint32_t wheel_spd_prev = 0;
 
     // 10x value
-    uint32_t engine_spd_prev = 0;
+    uint32_t engine_spd_flt = 0;
     // 10x value
-    int32_t engine_accel_per_cycle = 0;
+    uint32_t engine_spd_flt_prev = 0;
 
     // 100x real value
     int32_t acceleration_ms2 = 0;

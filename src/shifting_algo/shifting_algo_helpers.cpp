@@ -47,7 +47,7 @@ void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, boo
     }
 }
 
-uint8_t ShiftHelpers::cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque) {
+uint8_t ShiftHelpers::cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm) {
     uint8_t interp_min = CRS_CURRENT_SETTINGS.overlap_cycles_low_trq;
     uint8_t interp_max = CRS_CURRENT_SETTINGS.overlap_cycles_high_trq;
     if (change == GearChange::_1_2) {
@@ -56,10 +56,12 @@ uint8_t ShiftHelpers::cycles_crossover_overlap(GearChange change, uint16_t abs_i
     }
     int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
     int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
-    return interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+    uint8_t ret = interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+    ret += interpolate_float(input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
+    return ret;
 }
 
-uint8_t ShiftHelpers::cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque) {
+uint8_t ShiftHelpers::cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm) {
     uint8_t interp_min = CRS_CURRENT_SETTINGS.sync_cycles_low_trq;
     uint8_t interp_max = CRS_CURRENT_SETTINGS.sync_cycles_high_trq;
     if (change == GearChange::_1_2) {
@@ -68,10 +70,12 @@ uint8_t ShiftHelpers::cycles_crossover_overlap2(GearChange change, uint16_t abs_
     }
     int min_trq = VEHICLE_CONFIG.engine_drag_torque/5.0; // 2x drag torque real
     int max_trq = VEHICLE_CONFIG.engine_drag_torque; // 10x drag torque real
-    return interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+    uint8_t ret = interpolate_float(abs_input_torque, interp_min,interp_max, min_trq, max_trq, InterpType::Linear);
+    ret += interpolate_float(input_rpm, &CRS_CURRENT_SETTINGS.sync_cycles_adder_rpm, InterpType::Linear);
+    return ret;
 }
 
-uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque) {
+uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm) {
     Clutch applying = get_clutch_to_apply(change);
     PrefillData info = pm->make_fill_data(applying);
 
@@ -79,6 +83,6 @@ uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChang
         info.fill_cycles + // High fill time
         3 + // Cycles to low filling P
         5 + // Cycles held at low filling P
-    (uint16_t)ShiftHelpers::cycles_crossover_overlap(change, abs_input_torque) +
-    (uint16_t)ShiftHelpers::cycles_crossover_overlap2(change, abs_input_torque);
+    (uint16_t)ShiftHelpers::cycles_crossover_overlap(change, abs_input_torque, input_rpm) +
+    (uint16_t)ShiftHelpers::cycles_crossover_overlap2(change, abs_input_torque, input_rpm);
 }

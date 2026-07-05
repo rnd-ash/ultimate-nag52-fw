@@ -45,6 +45,8 @@ class TorqueConverter {
         void diag_toggle_tcc_sol(bool en);
 
         void set_stationary();
+
+        void calc_pid_score();
         
         void shift_start(bool upshift, bool release_shifting, bool force_unlock);
         void shift_end();

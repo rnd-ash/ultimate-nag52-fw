@@ -285,13 +285,8 @@ uint8_t CrossoverShift::phase_overlap() {
         this->trq_adder = 0;
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap
         this->p_apply_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
-        this->timer_shift = ShiftHelpers::cycles_crossover_overlap(sid->change, abs_input_trq);
-
-        uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.overlap_cycles_adder_rpm, InterpType::Linear);
-        this->timer_shift += rpm_adder;
+        this->timer_shift = ShiftHelpers::cycles_crossover_overlap(sid->change, abs_input_trq, sd->input_rpm);
         this->subphase_shift += 1;
-        this->trq_req_timer = MAX(3, this->timer_shift);
-        this->trq_req_down_ramp = true;
     }
     if (!this->upshifting) {
         this->calculate_accel_trq_corr();
@@ -418,10 +413,7 @@ uint8_t CrossoverShift::phase_overlap2() {
 
     if (0 == subphase_shift) {
         this->timer_emergency = 5000/20; // 5 seconds for timeout for overlap2
-        this->timer_shift = ShiftHelpers::cycles_crossover_overlap2(sid->change, abs_input_trq);
-
-        uint8_t rpm_adder = interpolate_float(sd->input_rpm, &CRS_CURRENT_SETTINGS.sync_cycles_adder_rpm, InterpType::Linear);
-        this->timer_shift += rpm_adder;
+        this->timer_shift = ShiftHelpers::cycles_crossover_overlap2(sid->change, abs_input_trq, sd->input_rpm);
         this->timer_shift = (float)this->timer_shift * interpolate_float(sid->chars.target_shift_time, &CRS_CURRENT_SETTINGS.sync_multi_shift_speed, InterpType::Linear);
 
         this->timer_mod = 3;
@@ -470,7 +462,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->momentum_ctrl = this->calc_momentum_overlap_2();
         this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
-        if (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm) {
+        if (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
             // Next phase
             this->timer_shift = 3;
             this->trq_req_timer = 6;
@@ -512,15 +504,14 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
 
     int torque = MAX(0, (int)abs_input_trq + this->trq_adder + this->correction_trq);
-    uint16_t targ = MAX(
-        this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding)), 
-        this->p_apply_overlap_begin - centrifugal_force_on_clutch
-    );
+    uint16_t targ = this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, torque, CoefficientTy::Sliding));
+
     if (1 == subphase_shift || 3 == subphase_shift) {
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
     } else {
         this->p_apply_clutch = targ;
     }
+    this->p_apply_clutch = MAX(this->p_apply_overlap_begin - centrifugal_force_on_clutch, this->p_apply_clutch);
 
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
     // Calculations for MOD pressure
@@ -550,21 +541,21 @@ uint16_t CrossoverShift::calc_overlap_mod_min(int p_shift) {
 uint16_t CrossoverShift::calc_overlap2_mod() {
     int p_shift = (int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int;
     p_shift /= 1000;
-    int centrifugal = this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch_int;
-    centrifugal /= 100; // centrifugal factor
+    int centrifugal = sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch_int;
     centrifugal /= 1000;
-    
+    centrifugal += (((this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int) / 1000) * sid->inf.centrifugal_factor_off_clutch_int) / 100;
     int base = 250 * sid->inf.pressure_multi_mpc_int;
     base /= 1000;
 
     centrifugal += base;
 
+    int p_mod = 0;
     if (centrifugal < p_shift) {
-        centrifugal = p_shift - centrifugal;
+        p_mod = p_shift - centrifugal;
     } else {
-        centrifugal = 0;
+        p_mod = 0;
     }
-    int p_mod = centrifugal + sid->inf.mpc_pressure_spring_reduction;
+    p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;
 }   

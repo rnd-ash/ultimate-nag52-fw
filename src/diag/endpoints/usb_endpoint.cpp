@@ -1,7 +1,7 @@
 #include "endpoint.h"
 
-const static char HEX_DEF[17] = "0123456789ABCDEF";
-const static size_t UART_MSG_SIZE = 6 + (2 * DIAG_CAN_MAX_SIZE);
+const DRAM_ATTR static char HEX_DEF[17] = "0123456789ABCDEF";
+const DRAM_ATTR static size_t UART_MSG_SIZE = 6 + (2 * DIAG_CAN_MAX_SIZE);
 const uart_port_t UART_PORT = uart_port_t::UART_NUM_0;
 
 UsbEndpoint::UsbEndpoint() : AbstractEndpoint()
@@ -11,7 +11,7 @@ UsbEndpoint::UsbEndpoint() : AbstractEndpoint()
     max_bytes_left = 0;
     to_read = 0;
     length = 0;
-    this->status = uart_driver_install(UART_PORT, 512, 512, 0, nullptr, 0);
+    this->status = uart_driver_install(UART_PORT, 512, 512, 0, nullptr, ESP_INTR_FLAG_IRAM);
     if (this->status == ESP_OK)
     {
         this->read_buffer = static_cast<char *>(malloc(UART_MSG_SIZE));

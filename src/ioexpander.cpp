@@ -25,6 +25,7 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 		init_status = i2c_new_master_bus(&conf, &bus_handle);
 		if (ESP_OK == init_status)
 		{
+			this->bus_handle = bus_handle;
 			i2c_device_config_t dev_cfg = {
 				.dev_addr_length = I2C_ADDR_BIT_LEN_7,
 				.device_address = IO_ADDR,
@@ -79,6 +80,12 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 esp_err_t IOExpander::init_state(void) const
 {
 	return init_status;
+}
+
+void IOExpander::diag_disable() {
+	i2c_master_bus_rm_device(this->dev_handle);
+	i2c_del_master_bus(this->bus_handle);
+	this->init_status = ESP_ERR_INVALID_STATE;
 }
 
 void IOExpander::read_from_ioexpander(void)

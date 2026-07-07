@@ -88,6 +88,9 @@ int16_t get_cell_value(int16_t* dest, GearboxGear gear, uint8_t load_idx) {
     return dest[(LOAD_SIZE*gear_int) + load_idx];
 }
 
+void TorqueConverter::calc_pid_score() {
+
+}
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     int slip_now = abs((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
@@ -275,7 +278,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (false == prefill_running) {
             // Var setup (Start of prefill)
             prefill_running = true;
-            prefill_cycles = TCC_CURRENT_SETTINGS.prefill_cycles*3;
+            prefill_cycles = TCC_CURRENT_SETTINGS.prefill_cycles;
         }
 
         if (prefill_cycles > 0) {

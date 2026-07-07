@@ -4,13 +4,12 @@
 #include "soc/gpio_struct.h"
 
 // AT 12.0V
-const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
-const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
-const uint16_t INRUSH_TIME_US = 15000; 
-const uint16_t INRUSH_PWM = 4096;
-const uint16_t HOLD_PWM = 1300;
-
-const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10MHz, Hydralic PWM is 100Hz, so 10_000_000/100
+const DRAM_ATTR uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
+const DRAM_ATTR uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
+const DRAM_ATTR uint16_t INRUSH_TIME_US = 15000; 
+const DRAM_ATTR uint16_t INRUSH_PWM = 4096;
+const DRAM_ATTR uint16_t HOLD_PWM = 1300;
+const DRAM_ATTR uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10MHz, Hydralic PWM is 100Hz, so 10_000_000/100
 
 
 static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
@@ -71,7 +70,9 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = (10u * 1000u * 1000u), // 10MHz
         .flags = {
-            .intr_shared = 0
+            .intr_shared = 0,
+            .allow_pd = 0,
+            .backup_before_sleep = 0
         }
     };
 
@@ -81,7 +82,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
             .alarm_count = 0u,
             .reload_count = 0u,
             .flags = {
-                .auto_reload_on_alarm = 0u
+                .auto_reload_on_alarm = 0u,
             }
         };
         this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
@@ -114,6 +115,14 @@ void InrushControlSolenoid::pre_current_test() {
 
 void InrushControlSolenoid::post_current_test() {
     gptimer_start(this->timer);
+}
+
+void InrushControlSolenoid::diag_disable() {
+    gptimer_stop(this->timer);
+    if (GPIO_NUM_NC != this->zener_pin) {
+        gpio_set_level(this->zener_pin, 0);
+    }
+    gpio_set_level(this->pwm_pin, 0);
 }
 
 bool on = false;

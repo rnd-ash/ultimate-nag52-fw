@@ -5,6 +5,8 @@
 #include "esp_ota_ops.h"
 #include "esp_flash.h"
 #include "esp_image_format.h"
+#include "ioexpander.h"
+
 Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox, Shifter* shifter) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
@@ -56,12 +58,20 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+
     if (dest_mem_address+dest_mem_size > flash_size) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+
     // Must be 4096 byte sector aligned
     int erase_len = (dest_mem_size + 4096 - 1) & -4096;
+    // Disable TCC Slenoid since the ISR causes flash cache errors
+    sol_tcc->diag_disable();
+    if (nullptr != ioexpander) {
+        ioexpander->diag_disable();
+    }
+    vTaskDelay(20);
     if (esp_flash_erase_region(esp_flash_default_chip, dest_mem_address, erase_len) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;

@@ -79,6 +79,7 @@ private:
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool process_speed_sensors();
     void process_acceleration();
+    void process_motor_spd_filtered();
     [[noreturn]]
     void controller_loop(void);
 
@@ -108,6 +109,7 @@ private:
     bool show_upshift = false;
     bool show_downshift = false;
     bool flaring = false;
+    bool engine_running = false;
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
@@ -139,6 +141,11 @@ private:
     // 10x value
     uint32_t wheel_spd = 0;
     uint32_t wheel_spd_prev = 0;
+
+    // 10x value
+    uint32_t engine_spd_flt = 0;
+    // 10x value
+    uint32_t engine_spd_flt_prev = 0;
 
     // 100x real value
     int32_t acceleration_ms2 = 0;

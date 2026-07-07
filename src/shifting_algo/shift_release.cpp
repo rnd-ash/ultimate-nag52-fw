@@ -2,12 +2,12 @@
 #include <egs_calibration/calibration_structs.h>
 #include "nvs/module_settings.h"
 
-const uint8_t PHASE_BLEED = 0;
-const uint8_t PHASE_FILL_AND_RELEASE = 1;
-const uint8_t PHASE_OVERLAP = 2;
-const uint8_t PHASE_MAX_PRESSURE = 3;
-const uint8_t PHASE_END_CONTROL = 4;
-
+const DRAM_ATTR uint8_t PHASE_BLEED = 0;
+const DRAM_ATTR uint8_t PHASE_FILL_AND_RELEASE = 1;
+const DRAM_ATTR uint8_t PHASE_OVERLAP = 2;
+const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE = 3;
+const DRAM_ATTR uint8_t PHASE_END_CONTROL = 4;
+ 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 3; // 100ms for torque request down ramp
     this->cycles_high_filling = data->prefill_info.fill_cycles;

@@ -192,7 +192,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                         open_tcc = TCC_CURRENT_SETTINGS.unlock_coasting_downshifts;
                     }
                 }
-                open_tcc |= this->shift_forces_unlock;
             }
             if (open_tcc) {
                 targ = InternalTccState::Open;
@@ -422,14 +421,12 @@ uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_commanded_pressure;
 }
 
-void TorqueConverter::shift_start(bool upshift, bool release_shifting, bool force_unlock) {
+void TorqueConverter::shift_start(bool upshift, bool release_shifting) {
     this->is_shifting = true;
     this->was_shifting = true;
     this->release_shifting = release_shifting;
     this->upshifting = upshift;
-    this->shift_forces_unlock |= force_unlock;
 }
 void TorqueConverter::shift_end() {
     this->is_shifting = false;
-    this->shift_forces_unlock = false;
 }

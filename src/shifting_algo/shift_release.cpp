@@ -206,7 +206,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         if (0 == this->timer_shift) {
-            sid->tcc->shift_start(this->upshifting, true, false); // Unlock the TCC here
+            sid->tcc->shift_start(this->upshifting, true); // Unlock the TCC here
             this->subphase_shift += 1; // Next subphase has no time!
         }
     }

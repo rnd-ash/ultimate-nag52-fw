@@ -176,7 +176,7 @@ protected:
     uint16_t old_engine_rpm = 0;
 
     // Multiplied by 10x
-    int16_t first_order_pump_trq_filter = 0;
+    int32_t first_order_pump_trq_filter = 0;
 
     int32_t pid_sum = 0;
     int32_t abs_sum = 0;

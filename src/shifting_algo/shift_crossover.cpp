@@ -186,7 +186,7 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
         if (this->do_fill_pressure_adaptation || (this->fill_via_ramp && this->upshifting)) {
-            sid->tcc->shift_start(this->upshifting, false, true);
+            sid->tcc->shift_start(this->upshifting, false);
         }
     } 
     else if (2 == this->subphase_shift) {
@@ -329,7 +329,7 @@ uint8_t CrossoverShift::phase_overlap() {
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         // Next phase on clutch movement or timeout
-        sid->tcc->shift_start(this->upshifting, false, false);
+        sid->tcc->shift_start(this->upshifting, false);
         ret = PHASE_OVERLAP2;
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);

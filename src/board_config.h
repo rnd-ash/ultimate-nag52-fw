@@ -75,6 +75,7 @@ public:
 	virtual void set_rp_solenoid(const bool rp_solenoid_enabled){};
 	virtual void set_start(const bool start_enabled){};
 	virtual void set_gearbox_protection(const bool gearbox_protection_enabled){};
+    virtual void init_gpio_expander() {};
 };
 
 /**
@@ -109,6 +110,7 @@ public:
 class BoardV12GpioMatrix: public BoardGpioMatrixWithIOExpander {
 public:
     BoardV12GpioMatrix(void);
+    void init_gpio_expander() override;
 };
 
 /**
@@ -118,6 +120,7 @@ public:
 class BoardV13GpioMatrix: public BoardGpioMatrixWithIOExpander {
 public:
     BoardV13GpioMatrix(void);
+    void init_gpio_expander() override;
 };
 
 

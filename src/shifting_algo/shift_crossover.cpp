@@ -28,7 +28,7 @@ uint8_t CrossoverShift::max_shift_stage_id() {
 // P1 - IDX
 // P2 - Cycles
 uint16_t CrossoverShift::get_rpm_threshold(uint8_t shift_idx, uint8_t ramp_cycles) {
-    float torque = this->get_trq_adder_map_val() + this->get_trq_boost_adder() + this->torque_req_val;
+    float torque = this->get_trq_adder_map_val(false) + this->get_trq_boost_adder(false) + this->torque_req_val;
     float bVar1 = 4;
     float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
     float threshold = (torque*5*(ramp_cycles+(bVar1*2))) * (float)MECH_PTR->turbine_drag[sid->inf.map_idx] / inertia;
@@ -72,30 +72,27 @@ uint8_t CrossoverShift::step_internal(
         // Enable Trq req if 1/2 Drag torque or higher
         if (sd->indicated_torque > VEHICLE_CONFIG.engine_drag_torque/20.0) {
             float trq_max = VEHICLE_CONFIG.engine_drag_torque*2; // 20x drag torque
-            float min_rpm_input = 1000; // Approx
-            float max_rpm_input = VEHICLE_CONFIG.engine_type == 0 ? 4500 : 6000;
 
             float multi_engine_trq;
-            float multi_rpm;
-            multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.3, 0, trq_max, InterpType::Linear);
-            multi_engine_trq *= interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 1000, 100, InterpType::Linear);
-            multi_rpm = interpolate_float(sd->input_rpm, 1.0, 1.25, min_rpm_input, max_rpm_input, InterpType::Linear);
+            multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.2, 0, trq_max, InterpType::Linear);
 
-            float out = (float)sd->indicated_torque * (multi_engine_trq*multi_rpm);
+            float out = (float)sd->indicated_torque * (multi_engine_trq);
             intervension_out = MIN(out, (float)sd->indicated_torque*0.9);
 
             // Compensate
             if (intervension_out != 0) {
-                if (this->correction_trq + 0 <= 0) {
-                    int min = (40 * (this->correction_trq + 0)) / 100;
+                int adapt_val = 0;
+                if (sid->adaptation_mgr) {
+                    adapt_val = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+                }
+                if (this->correction_trq + adapt_val <= 0) {
+                    int negative_factor = interpolate_float(sid->chars.target_shift_time, 40, 20, 500, 100, InterpType::Linear);
+                    int min = (negative_factor * (this->correction_trq + adapt_val)) / 100;
                     this->trq_req_compensate_val = MAX(min, -intervension_out);
                 } else {
+                    int positive_factor = interpolate_float(sid->chars.target_shift_time, 40, 80, 500, 100, InterpType::Linear);
                     this->trq_req_compensate_val = MAX(0, ((55 * sd->indicated_torque) / 100) - intervension_out);
-                    int offset = 0;
-                    if (sid->adaptation_mgr) {
-                        offset = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
-                    }
-                    this->trq_req_compensate_val = MIN(this->trq_req_compensate_val, (50 * (this->correction_trq + offset))/100);
+                    this->trq_req_compensate_val = MIN(this->trq_req_compensate_val, (positive_factor * (this->correction_trq + adapt_val))/100);
                 }
             }
         }
@@ -336,23 +333,23 @@ uint8_t CrossoverShift::phase_overlap() {
     return ret;
 }
 
-uint16_t CrossoverShift::get_trq_adder_map_val() {
+uint16_t CrossoverShift::get_trq_adder_map_val(bool for_pid_calc) {
     float map_val = pm->find_decent_adder_torque(sid->change, this->abs_input_trq, sd->output_rpm);
-    if (upshifting) {
+    if (upshifting && for_pid_calc) {
         if (sid->profile == manual) {
             map_val *= 1.25;
         } else if (sid->profile == race) {
-            map_val *= 2.0;
+            map_val *= 1.5;
         }
     } else {
         // So dynamic downshifts feel nicer
         if (sid->manual_shift) {
             map_val *= 1.25;
         }
-        if (sid->profile == manual) {
-            map_val *= 1.1;
-        } else if (sid->profile == race) {
+        if (sid->profile == manual && for_pid_calc) {
             map_val *= 1.25;
+        } else if (sid->profile == race && for_pid_calc) {
+            map_val *= 1.5;
         }
     }
     // Correct based on acceleration (Ordering is important here)
@@ -380,10 +377,10 @@ void CrossoverShift::calculate_accel_trq_corr() {
     }
 }
 
-uint16_t CrossoverShift::get_trq_boost_adder() {
+uint16_t CrossoverShift::get_trq_boost_adder(bool for_pid_calc) {
     uint16_t ret = 0;
-    uint16_t map_val = this->get_trq_adder_map_val();
-    int min = VEHICLE_CONFIG.engine_drag_torque/11.0; // ~0.9 drag torque
+    uint16_t map_val = this->get_trq_adder_map_val(for_pid_calc);
+    int min = VEHICLE_CONFIG.engine_drag_torque/10.0; // ~1.0 drag torque
     float boost_trq_adder = ((pm->sliding_coefficient()/pm->release_coefficient())-1.0) * (float)abs_input_trq;
     if (boost_trq_adder < min) {
         boost_trq_adder = min;
@@ -438,8 +435,8 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
 
     if (1 == subphase_shift) {
-        this->trq_adder = this->get_trq_adder_map_val() + adaptation_adder + this->emergency_trq_val - this->trq_req_compensate_val;
-        int tmp = this->calc_momentum_overlap_2();
+        this->trq_adder = this->get_trq_adder_map_val(false) + adaptation_adder + this->emergency_trq_val - this->trq_req_compensate_val;
+        int tmp = this->calc_momentum_overlap_2(true);
         this->momentum_ctrl = linear_ramp_with_timer(this->momentum_ctrl, tmp, this->timer_shift);
         this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
@@ -458,8 +455,8 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     } else if (2 == subphase_shift) {
         // Waiting (1)
-        this->trq_adder = this->get_trq_adder_map_val() + adaptation_adder + this->emergency_trq_val - this->trq_req_compensate_val;
-        this->momentum_ctrl = this->calc_momentum_overlap_2();
+        this->trq_adder = this->get_trq_adder_map_val(false) + adaptation_adder + this->emergency_trq_val - this->trq_req_compensate_val;
+        this->momentum_ctrl = this->calc_momentum_overlap_2(true);
         this->momentum_ctrl_filtered = linear_interp_with_percentage(80, this->momentum_ctrl, this->momentum_ctrl_filtered);
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
         if (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
@@ -469,8 +466,8 @@ uint8_t CrossoverShift::phase_overlap2() {
             this->subphase_shift += 1;
         }
     } else if (3 == subphase_shift) {
-        this->trq_adder = this->get_trq_boost_adder() + adaptation_adder - this->trq_req_compensate_val;
-        int targ_momentum = this->get_trq_boost_adder();
+        this->trq_adder = this->get_trq_boost_adder(false) + adaptation_adder - this->trq_req_compensate_val;
+        int targ_momentum = this->get_trq_boost_adder(true);
         if (
             (upshifting && sd->input_torque <= 0) ||
             (!upshifting && sd->input_torque >= 0)
@@ -488,7 +485,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         }
     } else if (4 == subphase_shift) {
         // Waiting (2)
-        this->trq_adder = this->get_trq_boost_adder() + adaptation_adder - this->trq_req_compensate_val;
+        this->trq_adder = this->get_trq_boost_adder(false) + adaptation_adder - this->trq_req_compensate_val;
         if (
             this->timer_shift == 0
         ) {
@@ -589,8 +586,8 @@ uint16_t CrossoverShift::max_p_mod_pressure() {
     );
 }
 
-int16_t CrossoverShift::calc_momentum_overlap_2() {
-    int ret = this->get_trq_adder_map_val() + this->torque_req_val + this->emergency_trq_val;
+int16_t CrossoverShift::calc_momentum_overlap_2(bool for_pid_calc) {
+    int ret = this->get_trq_adder_map_val(for_pid_calc) + this->torque_req_val + this->emergency_trq_val;
     int reduction = ((float)this->emergency_trq_val*100) / pm->release_coefficient();
     ret = MAX(0, ret-reduction);
     if (

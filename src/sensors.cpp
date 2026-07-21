@@ -56,9 +56,9 @@ uint16_t calc_rpm(PcntMemData* cb) {
     if (0 != pulses) {
         int t = (now - cb->last_time_us) / pulses;
         val = (int)(60 * 1000 * 1000) / (t * (int)cb->pulses_rev);
-        //if (val < 60) {
-        //    val = 0;
-        //}
+        if (val < 60) {
+            val = 0;
+        }
         if (val > MAX_RPM_PCNT) {
             val = MAX_RPM_PCNT;
         }

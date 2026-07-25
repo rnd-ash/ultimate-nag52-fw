@@ -7,6 +7,7 @@
 #include "maps.h"
 #include "common_structs_ops.h"
 #include "egs_calibration/calibration_structs.h"
+#include "tcc_adaptation.h"
 
 #define LOAD_SIZE TCC_SLIP_ADAPT_MAP_SIZE/5
 
@@ -60,19 +61,12 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     uint8_t gear_int = (uint8_t)gear;
     if (gear_int == 0 || gear_int > 5) {return;} // Gear should be 1-5
     gear_int -= 1; // Convert to range 0-4 for gear
-    int16_t old = dest[(LOAD_SIZE*gear_int) + load_idx];
-    old += offset;
-    if (old < 100) {
-        old = 100;
-    } else if (old > 15000) {
-        old = 15000;
-    }
-    dest[(LOAD_SIZE*gear_int) + load_idx] = old;
-    for (int i = load_idx; i < LOAD_SIZE; i++) {
-        if (dest[(LOAD_SIZE*gear_int) + i] < old) {
-            dest[(LOAD_SIZE*gear_int) + i] = old;
-        }
-    }
+    update_tcc_adaptation_row(
+        &dest[LOAD_SIZE * gear_int],
+        LOAD_SIZE,
+        load_idx,
+        offset
+    );
 }
 
 int16_t get_cell_value(int16_t* dest, GearboxGear gear, uint8_t load_idx) {

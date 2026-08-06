@@ -1054,8 +1054,6 @@ void Gearbox::controller_loop()
                     {
                         if (this->shifter_pos == ShifterPosition::P)
                         {
-                            // Save logic (Ran once on shifting to P)
-                            portDISABLE_INTERRUPTS();
                             this->target_gear = GearboxGear::Park;
                             last_position = this->shifter_pos;
                             if (this->shift_adapter != nullptr)
@@ -1083,7 +1081,6 @@ void Gearbox::controller_loop()
                                     }
                                 }
                             }
-                            portENABLE_INTERRUPTS();
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {

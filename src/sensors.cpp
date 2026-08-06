@@ -115,9 +115,10 @@ void Sensors::update(SensorDataRaw* dest) {
 }
 
 esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t gpio, PcntMemData* mem) {
-    const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
+    const pcnt_unit_config_t RPM_UNIT_CFG = {
         .low_limit = -1,
         .high_limit = 10000,
+        .intr_priority = 0,
         .flags {
             .accum_count = 0
         }

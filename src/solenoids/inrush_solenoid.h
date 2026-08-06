@@ -12,7 +12,6 @@ public:
     void set_duty(uint16_t duty);
     void pre_current_test() override;
     void post_current_test() override;
-    void diag_disable();
 private:
     ledc_timer_t ledc_timer;
     float vref = 1.0;

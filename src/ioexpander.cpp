@@ -82,12 +82,6 @@ esp_err_t IOExpander::init_state(void) const
 	return init_status;
 }
 
-void IOExpander::diag_disable() {
-	i2c_master_bus_rm_device(this->dev_handle);
-	i2c_del_master_bus(this->bus_handle);
-	this->init_status = ESP_ERR_INVALID_STATE;
-}
-
 void IOExpander::read_from_ioexpander(void)
 {
 	if (init_status == ESP_OK)

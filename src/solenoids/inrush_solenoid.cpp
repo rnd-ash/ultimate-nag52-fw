@@ -117,14 +117,6 @@ void InrushControlSolenoid::post_current_test() {
     gptimer_start(this->timer);
 }
 
-void InrushControlSolenoid::diag_disable() {
-    gptimer_stop(this->timer);
-    if (GPIO_NUM_NC != this->zener_pin) {
-        gpio_set_level(this->zener_pin, 0);
-    }
-    gpio_set_level(this->pwm_pin, 0);
-}
-
 bool on = false;
 bool pwm_on = false;
 bool zener_on = false;

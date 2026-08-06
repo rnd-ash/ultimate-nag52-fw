@@ -68,15 +68,14 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     // Must be 4096 byte sector aligned
     int erase_len = (dest_mem_size + 4096 - 1) & -4096;
     // Disable TCC Slenoid since the ISR causes flash cache errors
-    sol_tcc->diag_disable();
-    if (nullptr != ioexpander) {
-        ioexpander->diag_disable();
-    }
+    portDISABLE_INTERRUPTS();
     vTaskDelay(20);
     if (esp_flash_erase_region(esp_flash_default_chip, dest_mem_address, erase_len) != ESP_OK) {
+        portENABLE_INTERRUPTS();
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
+    portENABLE_INTERRUPTS();
 
     const esp_partition_t* part_info_for_ota = esp_ota_get_next_update_partition(nullptr);
     if (part_info_for_ota != nullptr && part_info_for_ota->address == dest_mem_address) {
@@ -166,10 +165,13 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
         if (args[0] == this->block_counter+1 || (args[0] == 0x00 && this->block_counter == 0xFF)) {
             // Next block
             this->block_counter++;
+            portDISABLE_INTERRUPTS();
             if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
+                portENABLE_INTERRUPTS();
                 global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
                 return;
             } else {
+                portENABLE_INTERRUPTS();
                 this->written_data += arg_len-1;
                 global_make_diag_pos_msg(dest, SID_TRANSFER_DATA, nullptr, 0);
                 return;

@@ -1056,11 +1056,14 @@ void Gearbox::controller_loop()
                         {
                             this->target_gear = GearboxGear::Park;
                             last_position = this->shifter_pos;
+                            sol_tcc->isr_disable();
+                            vTaskDelay(5);
                             if (this->shift_adapter != nullptr)
                             {
                                 this->shift_adapter->save();
                             }
                             this->tcc->save();
+                            sol_tcc->isr_enable();
                             // Save profile
                             if (ShifterStyle::EWM == shifter->get_shifter_type()) {
                                 if (ETS_CURRENT_SETTINGS.ewm_save_profile) {

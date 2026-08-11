@@ -1208,7 +1208,7 @@ void Gearbox::controller_loop()
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, &this->gearboxConfig) < this->redline_rpm - 500)
+                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, &this->gearboxConfig) <= this->redline_rpm - 100)
                         {
                             this->target_gear = prev;
                         }

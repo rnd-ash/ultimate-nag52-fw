@@ -123,10 +123,16 @@ void InrushControlSolenoid::isr_disable() {
         gpio_set_level(this->zener_pin, 0);
     }
     gpio_set_level(this->pwm_pin, 0);
+    this->isr_disabled = true;
 }
 
 void InrushControlSolenoid::isr_enable() {
     gptimer_start(this->timer);
+    this->isr_disabled = false;
+}
+
+bool InrushControlSolenoid::is_disabled() {
+    return this->isr_disabled;
 }
 
 bool on = false;

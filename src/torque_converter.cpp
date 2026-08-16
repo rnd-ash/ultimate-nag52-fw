@@ -107,7 +107,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     // Conditions for no TCC
     if (
         !this->tcc_solenoid_enabled || // Diagnostic request
-        !init_tables_ok // Some data was not initialized or invalid
+        !init_tables_ok || // Some data was not initialized or invalid
+        sol_tcc->is_disabled() // ISR of the TCC solenoid is disabled
     ) {
         this->tcc_commanded_pressure = 0;
         pm->set_target_tcc_pressure(this->tcc_commanded_pressure);

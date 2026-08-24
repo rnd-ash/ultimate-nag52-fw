@@ -197,6 +197,7 @@ namespace ShiftHelpers {
     uint8_t cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
     uint8_t cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
     uint16_t total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint16_t correct_shift_shift_pressure(PressureManager* pm, int16_t pressure, uint8_t map_idx);
 }
 
 #endif

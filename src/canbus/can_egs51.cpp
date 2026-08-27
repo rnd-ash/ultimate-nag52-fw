@@ -497,16 +497,22 @@ void Egs51Can::set_tcc_trq_multiplier(float multi) {
 }
 
 void Egs51Can::tx_frames() {
-    tx.data_length_code = 6;
     GS_218_EGS51 gs_218tx;
+    GS_418_EGS51 gs_418tx;
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
+    gs_418tx = {gs418.raw};
     // Now set CVN Counter (Increases every frame)
     gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;
     tx.identifier = GS_218_EGS51_CAN_ID;
     to_bytes(gs_218tx.raw, tx.data);
+    tx.data_length_code = 6;
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_418_EGS51_CAN_ID;
+    to_bytes(gs_418tx.raw, tx.data);
+    tx.data_length_code = 8;
     twai_transmit(&tx, 5);
 }
 

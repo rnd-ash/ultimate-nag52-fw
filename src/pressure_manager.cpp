@@ -279,6 +279,12 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
             coef = 100.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    if (gear == GearboxGear::Reverse_Second && clutch == Clutch::B3) {
+        // Special logic
+        friction_val *= MECH_PTR->friction_map[(2*6)+4];
+        friction_val /= MECH_PTR->friction_map[(1*6)+4];
+    }
+
     float calc = ((float)abs_torque_nm * friction_val) / coef;
     return calc;
 }
@@ -442,7 +448,12 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
             coef = 100.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc =  ((float)pressure * coef) / (float)friction_val;
+    if (gear == GearboxGear::Reverse_Second && clutch == Clutch::B3) {
+        // Special logic
+        friction_val *= MECH_PTR->friction_map[(2*6)+4];
+        friction_val /= MECH_PTR->friction_map[(1*6)+4];
+    }
+    float calc = ((float)pressure * coef) / (float)friction_val;
     return calc;
 }
 

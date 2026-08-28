@@ -8,6 +8,7 @@
 #include "maps.h"
 #include "common_structs_ops.h"
 #include "egs_calibration/calibration_structs.h"
+#include "tcc_adaptation.h"
 
 #define LOAD_SIZE TCC_SLIP_ADAPT_MAP_SIZE/5
 
@@ -64,19 +65,12 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     uint8_t gear_int = (uint8_t)gear;
     if (gear_int == 0 || gear_int > 5) {return;} // Gear should be 1-5
     gear_int -= 1; // Convert to range 0-4 for gear
-    int16_t old = dest[(LOAD_SIZE*gear_int) + load_idx];
-    old += offset;
-    if (old < 100) {
-        old = 100;
-    } else if (old > 15000) {
-        old = 15000;
-    }
-    dest[(LOAD_SIZE*gear_int) + load_idx] = old;
-    for (int i = load_idx; i < LOAD_SIZE; i++) {
-        if (dest[(LOAD_SIZE*gear_int) + i] < old) {
-            dest[(LOAD_SIZE*gear_int) + i] = old;
-        }
-    }
+    update_tcc_adaptation_row(
+        &dest[LOAD_SIZE * gear_int],
+        LOAD_SIZE,
+        load_idx,
+        offset
+    );
 }
 
 int16_t get_cell_value(int16_t* dest, GearboxGear gear, uint8_t load_idx) {
@@ -113,7 +107,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     // Conditions for no TCC
     if (
         !this->tcc_solenoid_enabled || // Diagnostic request
-        !init_tables_ok // Some data was not initialized or invalid
+        !init_tables_ok || // Some data was not initialized or invalid
+        sol_tcc->is_disabled() // ISR of the TCC solenoid is disabled
     ) {
         this->tcc_commanded_pressure = 0;
         pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
@@ -192,7 +187,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                         open_tcc = TCC_CURRENT_SETTINGS.unlock_coasting_downshifts;
                     }
                 }
-                open_tcc |= this->shift_forces_unlock;
             }
             if (open_tcc) {
                 targ = InternalTccState::Open;
@@ -422,14 +416,12 @@ uint16_t TorqueConverter::get_target_pressure() {
     return this->tcc_commanded_pressure;
 }
 
-void TorqueConverter::shift_start(bool upshift, bool release_shifting, bool force_unlock) {
+void TorqueConverter::shift_start(bool upshift, bool release_shifting) {
     this->is_shifting = true;
     this->was_shifting = true;
     this->release_shifting = release_shifting;
     this->upshifting = upshift;
-    this->shift_forces_unlock |= force_unlock;
 }
 void TorqueConverter::shift_end() {
     this->is_shifting = false;
-    this->shift_forces_unlock = false;
 }

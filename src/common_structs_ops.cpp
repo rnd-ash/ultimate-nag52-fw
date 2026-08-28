@@ -90,7 +90,6 @@ uint8_t gear_to_idx_lookup(GearboxGear g) {
         case GearboxGear::Neutral:
         case GearboxGear::SignalNotAvailable:
         default:
-            gear_idx = 0;
             break;
     }
     return gear_idx;

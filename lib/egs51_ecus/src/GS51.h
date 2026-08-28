@@ -14,6 +14,7 @@
 #include <stdint.h>
     
 #define GS_218_EGS51_CAN_ID 0x0218
+#define GS_418_EGS51_CAN_ID 0x0418
 
 /** Target gear */
 enum class GS_218h_GZC_EGS51 : uint16_t {
@@ -41,6 +42,63 @@ enum class GS_218h_GIC_EGS51 : uint16_t {
 	G_R2 = 7, // Destination "R2"
 	G_P = 8, // Destination "P"
 	G_SNV = 15, // signal not available
+};
+
+/** Gear mechanics variant */
+enum class GS_418h_MECH_EGS51 : uint16_t {
+	GROSS = 0, // Nag, big gear
+	KLEIN = 1, // NAG, small gearbox
+	GROSS2 = 2, // NAG2, big gear
+	KLEIN2 = 3, // NAG2, small gearbox
+};
+
+/** target gear */
+enum class GS_418h_GZC_EGS51 : uint16_t {
+	G_N = 0, // Destination "N"
+	G_D1 = 1, // Destination "1"
+	G_D2 = 2, // Destination "2"
+	G_D3 = 3, // Destination "3"
+	G_D4 = 4, // Destination "4"
+	G_D5 = 5, // Destination "5"
+	G_D6 = 6, // Destination "6"
+	G_D7 = 7, // Destination "7"
+	G_D_CVT = 8, // Destination "infinitely forward
+	G_R_CVT = 9, // Goal "infinitely reverse"
+	G_R3 = 10, // Destination "R3"
+	G_R = 11, // Destination "R"
+	G_R2 = 12, // Destination "R2"
+	G_P = 13, // Destination "P"
+	G_ABBRUCH = 14, // circuit break
+	G_SNV = 15, // signal not available
+};
+
+/** actual gear */
+enum class GS_418h_GIC_EGS51 : uint16_t {
+	G_N = 0, // Actual rang "N"
+	G_D1 = 1, // actual gear "1"
+	G_D2 = 2, // actual gear "2"
+	G_D3 = 3, // Actual Rang "3"
+	G_D4 = 4, // Actual rang "4"
+	G_D5 = 5, // Actual rang "5"
+	G_D6 = 6, // actual gear "6"
+	G_D7 = 7, // Actual rang "7"
+	G_D_CVT = 8, // Actual ranging "infinitely forward
+	G_R_CVT = 9, // Actual "infinitely reverse"
+	G_R3 = 10, // Actual ranging "R3"
+	G_R = 11, // Actual rang "R"
+	G_R2 = 12, // Actual rang "R2"
+	G_P = 13, // Actual rang "P"
+	G_KRAFTFREI = 14, // power-free
+	G_SNV = 15, // signal not available
+};
+
+/** gear selector lever position (NAG, KSG, CVT) */
+enum class GS_418h_WHST_EGS51 : uint16_t {
+	P = 0, // Gear selector lever in position "P"
+	R = 1, // gear selector lever in position "R"
+	N = 2, // Gear selector lever in position "N"
+	D = 4, // gear selector lever in position "D"
+	SNV = 7, // signal not available
 };
 
 
@@ -102,6 +160,51 @@ typedef union {
 
 
 
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+	struct {
+		/** Factor wheel torque (7ffh at KSG) **/
+		uint16_t FMRAD: 11;
+		/** gear selector lever position (NAG, KSG, CVT) **/
+		GS_418h_WHST_EGS51 WHST: 3;
+		/** Factor wheel torque Toggle 40ms + -10 **/
+		bool FMRADTGL: 1;
+		/** Factor wheel torque parity (straight parity) **/
+		bool FMRADPAR: 1;
+		/** Loss moment (FFH at KSG) **/
+		uint8_t M_VERL: 8;
+		/** actual gear **/
+		GS_418h_GIC_EGS51 GIC: 4;
+		/** target gear **/
+		GS_418h_GZC_EGS51 GZC: 4;
+		/** Kickdown **/
+		bool KD: 1;
+		/** Create brake when switching on **/
+		bool ESV_BRE: 1;
+		/** Gear mechanics variant **/
+		GS_418h_MECH_EGS51 MECH: 2;
+		/** Stepless transmission [1], stage gear [0] **/
+		bool CVT: 1;
+		/** circuit **/
+		bool SCHALT: 1;
+		/** Front drive [1], rear drive [0] **/
+		bool FRONT: 1;
+		/** four-wheel drive **/
+		bool ALLRAD: 1;
+		/** Gear oil temperature **/
+		uint8_t T_GET: 8;
+		/** drive **/
+		char FPC: 8;
+		/** drive **/
+		char FSC: 8;
+	} __attribute__((packed));
+	/** Gets CAN ID of GS_418_EGS51 **/
+	uint32_t get_canid(){ return GS_418_EGS51_CAN_ID; }
+} GS_418_EGS51;
+
+
+
 class ECU_GS51 {
 	public:
         /**
@@ -117,6 +220,9 @@ class ECU_GS51 {
             switch(can_id) {
                 case GS_218_EGS51_CAN_ID:
                     idx = 0;
+                    break;
+                case GS_418_EGS51_CAN_ID:
+                    idx = 1;
                     break;
                 default:
                     add = false;
@@ -145,8 +251,24 @@ class ECU_GS51 {
             return ret;
         }
             
+        /** Sets data in pointer to GS_418
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_GS_418(const uint32_t now, const uint32_t max_expire_time, GS_418_EGS51* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[1] <= now && now - LAST_FRAME_TIMES[1] < max_expire_time) {
+                dest->raw = FRAME_DATA[1];
+                ret = true;
+            }
+            return ret;
+        }
+            
 	private:
-		uint64_t FRAME_DATA[1];
-		uint32_t LAST_FRAME_TIMES[1];
+		uint64_t FRAME_DATA[2];
+		uint32_t LAST_FRAME_TIMES[2];
 };
 #endif // __ECU_GS51_H_

@@ -12,7 +12,9 @@ public:
     void set_duty(uint16_t duty);
     void pre_current_test() override;
     void post_current_test() override;
-    void diag_disable();
+    void isr_disable();
+    void isr_enable();
+    bool is_disabled();
 private:
     ledc_timer_t ledc_timer;
     float vref = 1.0;
@@ -37,6 +39,7 @@ private:
     bool off = false;
     gpio_num_t zener_pin = GPIO_NUM_NC;
     gpio_num_t pwm_pin = GPIO_NUM_NC;
+    bool isr_disabled = false;
 };
 
 #endif

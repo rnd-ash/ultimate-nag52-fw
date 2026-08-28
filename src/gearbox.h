@@ -150,6 +150,8 @@ private:
     // 100x real value
     int32_t acceleration_ms2 = 0;
 
+    bool tcu_restarted = true;
+
 };
 
 extern Gearbox* gearbox;

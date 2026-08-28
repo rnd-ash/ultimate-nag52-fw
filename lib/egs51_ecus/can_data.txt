@@ -199,6 +199,125 @@ ECU GS51
 		SIGNAL TCC_MULTI, OFFSET: 32, LEN: 8, DESC: TCC Torque multiplier, DATA TYPE BOOL
 		# 6th byte
 		SIGNAL FEHLER, OFFSET: 44, LEN: 4, DESC: error number or counter for calid / CVN transmission, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+	FRAME GS_418h (0x00000418)
+		# TODO - Check if these signals actually are correct apart from profile indication etc
+#SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE ENUM
+#			ENUM BLANK, RAW: 32, DESC: blank ("")
+#			ENUM EINS, RAW: 49, DESC: Driving Level "1"
+#			ENUM ZWEI, RAW: 50, DESC: Driving Level "2"
+#			ENUM DREI, RAW: 51, DESC: Driving Level "3"
+#			ENUM VIER, RAW: 52, DESC: Driving Level "4"
+#			ENUM FUENF, RAW: 53, DESC: Driving Level "5"
+#			ENUM SECHS, RAW: 54, DESC: Driving Level "6"
+#			ENUM SIEBEN, RAW: 55, DESC: Driving stage "7"
+#			ENUM A, RAW: 65, DESC: Driving stage "A"
+#			ENUM D, RAW: 68, DESC: speed "D"
+#			ENUM F, RAW: 70, DESC: Error Mark "F"
+#			ENUM N, RAW: 78, DESC: Driving "N"
+#			ENUM P, RAW: 80, DESC: Driving Level "P"
+#			ENUM R, RAW: 82, DESC: Driving "R"
+#			ENUM SNV, RAW: 255, DESC: passive value
+		SIGNAL FSC, OFFSET: 0, LEN: 8, DESC: drive, DATA TYPE CHAR
+		SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: drive, DATA TYPE CHAR
+		#SIGNAL FPC, OFFSET: 8, LEN: 8, DESC: Driving program, DATA TYPE ENUM
+		#	ENUM C_MGFB_WT, RAW: 2, DESC: "C", message "Activate gearbox, parking brake!" warning
+		#	ENUM C_MGSNN, RAW: 3, DESC: "C", message "Gearbox, shift lever according to N!"
+		#	ENUM C_MGBB, RAW: 4, DESC: "C", message "Activate gear, brake!"
+		#	ENUM C_MGGEA, RAW: 6, DESC: "C", message "Request gearbox, gear again!"
+		#	ENUM C_MGZSN, RAW: 7, DESC: "C", Message "Transmission, Insert to Start N!"
+		#	ENUM A_MGFB_WT, RAW: 10, DESC: "A", message "Activate gearbox, parking brake!" warning
+		#	ENUM A_MGSNN, RAW: 11, DESC: "A", message "Gear, shift lever to N!"
+		#	ENUM A_MGBB, RAW: 12, DESC: "A", message "Activate gearbox, brake!"
+		#	ENUM A_MGGEA, RAW: 14, DESC: "A", message "Request transmission, gear again!"
+		#	ENUM A_MGZSN, RAW: 15, DESC: "A", Message "Transmission, Insert to Start N!"
+		#	ENUM S_MGFB_WT, RAW: 18, DESC: "S", message "Activate gearbox, parking brake!" warning
+		#	ENUM S_MGSNN, RAW: 19, DESC: "S", message "Gear, shift lever after N!"
+		#	ENUM S_MGBB, RAW: 20, DESC: "S", message "Activate gearbox, brake!"
+		#	ENUM S_MGGEA, RAW: 22, DESC: "S", message "Request transmission, gear again!"
+		#	ENUM S_MGZSN, RAW: 23, DESC: "S", message "Transmission, insert it to start n!"
+		#	ENUM HOCH, RAW: 24, DESC: switching recommendation "Upshift"
+		#	ENUM RUNTER, RAW: 25, DESC: Shift recommendation "Down"
+		#	ENUM BLANK, RAW: 32, DESC: "" (blank)
+		#	ENUM BLANK_MGN, RAW: 64, DESC: "" (blank), message "Enter transmission, n!"
+		#	ENUM A, RAW: 65, DESC: "A"
+		#	ENUM C, RAW: 67, DESC: "C"
+		#	ENUM F, RAW: 70, DESC: Error Mark "F"
+		#	ENUM M, RAW: 77, DESC: "M"
+		#	ENUM S, RAW: 83, DESC: "S"
+		#	ENUM W, RAW: 87, DESC: "W"
+		#	ENUM _, RAW: 95, DESC: "_" (Underscore)
+		#	ENUM BLANK_MGW, RAW: 96, DESC: "" (blank), message "Check out gear, workshop!"
+		#	ENUM A_MGN, RAW: 97, DESC: "A", message "Insert transmission, n!"
+		#	ENUM C_MGN, RAW: 99, DESC: "C", message "Insert transmission, n!"
+		#	ENUM M_MGN, RAW: 109, DESC: "M", message "Transmission, n insert!"
+		#	ENUM S_MGN, RAW: 115, DESC: "S", message "Insert transmission, n!"
+		#	ENUM W_MGN, RAW: 119, DESC: "W", message "Transmission, n insert!"
+		#	ENUM __MGN, RAW: 127, DESC: "_" (undercore), message "Transmission, n insert!"
+		#	ENUM A_MGW, RAW: 129, DESC: "A", message "Check out gear, workshop!"
+		#	ENUM C_MGW, RAW: 131, DESC: "C", message "Check out gear, workshop!"
+		#	ENUM F_MGW, RAW: 134, DESC: Error Mark "F", Message "Check Gear, Workshop!"
+		#	ENUM M_MGW, RAW: 141, DESC: "M", message "Check out transmission, workshop!"
+		#	ENUM S_MGW, RAW: 147, DESC: "S", message "Check out gear, workshop!"
+		#	ENUM W_MGW, RAW: 151, DESC: "W", message "Get gear, workshop visit!"
+		#	ENUM __MGW, RAW: 159, DESC: "_" (Underscore), message "Check out gear, workshop!"
+		#	ENUM SNV, RAW: 255, DESC: passive value
+		SIGNAL T_GET, OFFSET: 16, LEN: 8, DESC: Gear oil temperature, DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL ALLRAD, OFFSET: 24, LEN: 1, DESC: four-wheel drive, DATA TYPE BOOL
+		SIGNAL FRONT, OFFSET: 25, LEN: 1, DESC: Front drive [1], rear drive [0], DATA TYPE BOOL
+		SIGNAL SCHALT, OFFSET: 26, LEN: 1, DESC: circuit, DATA TYPE BOOL
+		SIGNAL CVT, OFFSET: 27, LEN: 1, DESC: Stepless transmission [1], stage gear [0], DATA TYPE BOOL
+		SIGNAL MECH, OFFSET: 28, LEN: 2, DESC: Gear mechanics variant, DATA TYPE ENUM
+			ENUM GROSS, RAW: 0, DESC: Nag, big gear
+			ENUM KLEIN, RAW: 1, DESC: NAG, small gearbox
+			ENUM GROSS2, RAW: 2, DESC: NAG2, big gear
+			ENUM KLEIN2, RAW: 3, DESC: NAG2, small gearbox
+		SIGNAL ESV_BRE, OFFSET: 30, LEN: 1, DESC: Create brake when switching on, DATA TYPE BOOL
+		SIGNAL KD, OFFSET: 31, LEN: 1, DESC: Kickdown, DATA TYPE BOOL
+		SIGNAL GZC, OFFSET: 32, LEN: 4, DESC: target gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Destination "N"
+			ENUM G_D1, RAW: 1, DESC: Destination "1"
+			ENUM G_D2, RAW: 2, DESC: Destination "2"
+			ENUM G_D3, RAW: 3, DESC: Destination "3"
+			ENUM G_D4, RAW: 4, DESC: Destination "4"
+			ENUM G_D5, RAW: 5, DESC: Destination "5"
+			ENUM G_D6, RAW: 6, DESC: Destination "6"
+			ENUM G_D7, RAW: 7, DESC: Destination "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Destination "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Goal "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Destination "R3"
+			ENUM G_R, RAW: 11, DESC: Destination "R"
+			ENUM G_R2, RAW: 12, DESC: Destination "R2"
+			ENUM G_P, RAW: 13, DESC: Destination "P"
+			ENUM G_ABBRUCH, RAW: 14, DESC: circuit break
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		SIGNAL GIC, OFFSET: 36, LEN: 4, DESC: actual gear, DATA TYPE ENUM
+			ENUM G_N, RAW: 0, DESC: Actual rang "N"
+			ENUM G_D1, RAW: 1, DESC: actual gear "1"
+			ENUM G_D2, RAW: 2, DESC: actual gear "2"
+			ENUM G_D3, RAW: 3, DESC: Actual Rang "3"
+			ENUM G_D4, RAW: 4, DESC: Actual rang "4"
+			ENUM G_D5, RAW: 5, DESC: Actual rang "5"
+			ENUM G_D6, RAW: 6, DESC: actual gear "6"
+			ENUM G_D7, RAW: 7, DESC: Actual rang "7"
+			ENUM G_D_CVT, RAW: 8, DESC: Actual ranging "infinitely forward
+			ENUM G_R_CVT, RAW: 9, DESC: Actual "infinitely reverse"
+			ENUM G_R3, RAW: 10, DESC: Actual ranging "R3"
+			ENUM G_R, RAW: 11, DESC: Actual rang "R"
+			ENUM G_R2, RAW: 12, DESC: Actual rang "R2"
+			ENUM G_P, RAW: 13, DESC: Actual rang "P"
+			ENUM G_KRAFTFREI, RAW: 14, DESC: power-free
+			ENUM G_SNV, RAW: 15, DESC: signal not available
+		SIGNAL M_VERL, OFFSET: 40, LEN: 8, DESC: Loss moment (FFH at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+		SIGNAL FMRADPAR, OFFSET: 48, LEN: 1, DESC: Factor wheel torque parity (straight parity), DATA TYPE BOOL
+		SIGNAL FMRADTGL, OFFSET: 49, LEN: 1, DESC: Factor wheel torque Toggle 40ms + -10, DATA TYPE BOOL
+		SIGNAL WHST, OFFSET: 50, LEN: 3, DESC: gear selector lever position (NAG, KSG, CVT), DATA TYPE ENUM
+			ENUM P, RAW: 0, DESC: Gear selector lever in position "P"
+			ENUM R, RAW: 1, DESC: gear selector lever in position "R"
+			ENUM N, RAW: 2, DESC: Gear selector lever in position "N"
+			ENUM D, RAW: 4, DESC: gear selector lever in position "D"
+			ENUM SNV, RAW: 7, DESC: signal not available
+		SIGNAL FMRAD, OFFSET: 53, LEN: 11, DESC: Factor wheel torque (7ffh at KSG), DATA TYPE NUMBER(_MULTIPLIER_: 1.0, _OFFSET_: 0.0)
+
 ECU EWM51
 	FRAME EWM_230h (0x00000230)
 		SIGNAL W_S, OFFSET: 0, LEN: 1, DESC: Driving program, DATA TYPE BOOL

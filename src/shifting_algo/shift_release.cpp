@@ -206,7 +206,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         if (0 == this->timer_shift) {
-            sid->tcc->shift_start(this->upshifting, true, false); // Unlock the TCC here
+            sid->tcc->shift_start(this->upshifting, true); // Unlock the TCC here
             this->subphase_shift += 1; // Next subphase has no time!
         }
     }
@@ -300,11 +300,10 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     }
     else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        //float x1 = interpolate_float(sd->pedal_pos, &REL_CURRENT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear) * this->loss_torque_tmp;
-        float reduction = this->calculate_freeing_trq_multiplier() * ((1.0 * 2.0) + (5.0*(float)this->loss_torque_tmp)/100.0);
-
-        
-        //float x2 = (this->calculate_freeing_trq_multiplier()) + x1;
+        float x1 = interpolate_float(sid->chars.target_shift_time, 5.0, 10.0, 500, 100, InterpType::Linear);
+        // Fixed value addition
+        float x2 = interpolate_float(sid->chars.target_shift_time, 2.0, 3.0, 500, 100, InterpType::Linear);
+        float reduction = this->calculate_freeing_trq_multiplier() * (x2 + (x1*(float)this->loss_torque_tmp)/100.0);
         this->loss_torque_tmp += reduction/10.0;
         this->loss_torque = this->loss_torque_tmp / 2.0;
 

@@ -1026,6 +1026,7 @@ void Gearbox::controller_loop()
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
     egs_can_hal->set_safe_start(true);
+    sol_tcc->isr_enable(); // Safe to enable ISR now that all init is done
     while (GET_CLOCK_TIME() < expire_check)
     {
         // Step 1. Aquire ALL Sensors

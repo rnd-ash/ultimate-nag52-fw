@@ -95,12 +95,6 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
                 this->ready = gptimer_register_event_callbacks(this->timer, &cbs, reinterpret_cast<void*>(this));
                 if (ESP_OK == ready) {
                     this->ready = gptimer_enable(this->timer);
-                    if (ESP_OK == ready) {
-                        this->ready = gptimer_start(this->timer);
-                        ESP_LOGI("ICSolenoid", "ICSolenoid %s init OK!", this->name);
-                    } else {
-                        ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_start failed: %s", this->name, esp_err_to_name(this->ready));
-                    }
                 } else {
                     ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_enable failed: %s", this->name, esp_err_to_name(this->ready));
                 }
@@ -110,11 +104,11 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
 }
 
 void InrushControlSolenoid::pre_current_test() {
-    gptimer_stop(this->timer);
+    this->isr_disable();
 }
 
 void InrushControlSolenoid::post_current_test() {
-    gptimer_start(this->timer);
+    this->isr_enable();
 }
 
 void InrushControlSolenoid::isr_disable() {
@@ -127,8 +121,12 @@ void InrushControlSolenoid::isr_disable() {
 }
 
 void InrushControlSolenoid::isr_enable() {
-    gptimer_start(this->timer);
-    this->isr_disabled = false;
+    esp_err_t res = gptimer_start(this->timer);
+    if (ESP_OK == res) {
+        this->isr_disabled = false;
+    } else {
+        ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_start failed: %s", this->name, esp_err_to_name(res));
+    }
 }
 
 bool InrushControlSolenoid::is_disabled() {

@@ -161,7 +161,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
 }
 
 bool Gearbox::is_stationary() {
-    return this->sensor_data.input_rpm < 100 && this->sensor_data.output_rpm < 100;
+    return this->sensor_data.output_rpm < 10;
 }
 
 void Gearbox::set_profile(AbstractProfile* prof)
@@ -1136,7 +1136,11 @@ void Gearbox::controller_loop()
             if (!stationary)
             {
                 // Store our ratio
-                this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+                if (this->actual_gear == GearboxGear::Neutral || this->actual_gear == GearboxGear::Park || this->actual_gear == GearboxGear::SignalNotAvailable) {
+                    this->sensor_data.gear_ratio = 0.0;
+                } else {
+                    this->sensor_data.gear_ratio = (float)this->sensor_data.input_rpm / (float)this->sensor_data.output_rpm;
+                }
                 this->sensor_data.targ_gear_ratio = ratio_absolute(this->actual_gear, &this->gearboxConfig);
 
             }
@@ -1145,7 +1149,7 @@ void Gearbox::controller_loop()
                 this->sensor_data.gear_ratio = 0.0;
                 this->sensor_data.targ_gear_ratio = 0.0;
             }
-            if (!shifting && !stationary && sensor_data.output_rpm > 250)
+            if (!shifting && !stationary && sensor_data.output_rpm > 100)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {

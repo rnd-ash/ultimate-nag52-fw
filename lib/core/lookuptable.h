@@ -8,19 +8,18 @@ using namespace std;
 class LookupTable {
     public:
         float get_value(float xValue);
-        /// @brief This functions generates a corresponding header-value based on the parameter. This function does only work on tables with increasing x-values.
-        /// @param xValue the value to be looked up
-        /// @return the interpolated header-value
-        float get_header_interpolated(const float value) const;
+        bool add_value(const int16_t sample_point_value, const int16_t x_value, float threshold);        
         void get_x_headers(uint16_t *size, int16_t **headers);
         int16_t* get_current_data(void);
         const LookupHeader* get_header(void);
         uint16_t data_size(void) const;
     protected:
-        uint16_t xHeaderSize;
+        uint16_t x_header_size;
         uint16_t dataSize;
         int16_t* data;
-        LookupHeader* xHeader;
+        LookupHeader* x_header;
+    private:
+        inline float interpolate_x(const float x_value, uint16_t* idx_min, uint16_t* idx_max);
 };
 
 class LookupAllocTable: public LookupTable {

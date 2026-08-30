@@ -5,7 +5,7 @@
 
 class StoredData {
 	public:
-    	esp_err_t init_status(void);
+    	esp_err_t init_status(void) const;
 
         virtual esp_err_t read_from_eeprom(const char *key_name, uint16_t expected_size) = 0;
 		/**
@@ -23,12 +23,12 @@ class StoredData {
          */
         esp_err_t reload_from_eeprom(void);
 
-        uint16_t get_data_element_count(void);
+        uint16_t get_data_element_count(void) const;
 
-        const int16_t* get_default_data(void);
+        const int16_t* get_default_data(void) const;
         int16_t* get_current_eeprom_data(void);
 
-        const char* get_data_name(void);
+        const char* get_data_name(void) const;
 
 	protected:
         esp_err_t init_state;

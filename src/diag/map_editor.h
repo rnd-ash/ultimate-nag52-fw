@@ -29,7 +29,8 @@
 #define M_UPTIME_MAP_ID 0x18
 #define M_DNTIME_MAP_ID 0x19
 
-#define HFM_TRQ_MAP_ID 0x20
+// HFM-engine maps
+#define HFM_MAX_TRQ_MAP_ID 0x20
 #define HFM_MAF_MAP_ID 0x21
 #define HFM_MAX_MAP_ID 0x22
 

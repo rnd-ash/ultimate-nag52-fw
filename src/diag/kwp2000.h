@@ -8,6 +8,7 @@
 #include "kwp2000_defines.h"
 #include "gearbox.h"
 #include "canbus/can_hal.h"
+#include "shifter/shifter.h"
 #include "perf_mon.h"
 #include "flasher.h"
 
@@ -27,7 +28,7 @@
 
 class Kwp2000_server {
     public:
-        Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox);
+        Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox, Shifter* shifter);
         ~Kwp2000_server();
 
         static void start_kwp_server(void *_this) {
@@ -47,6 +48,7 @@ class Kwp2000_server {
         void end_response_timer();
         Gearbox* gearbox_ptr;
         EgsBaseCan* can_layer;
+        Shifter* shifter_ptr;
     private:
         [[noreturn]]
         void server_loop();

@@ -115,7 +115,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_ind -= m_drg;
 
         m_esp = MAX(0, MIN(m_esp - (int16_t)m_drg, ret.m_max));
-        ret.m_ind = MIN(ret.m_min, MAX(ret.m_ind, ret.m_max)); 
+        ret.m_ind = MAX(ret.m_min, MIN(ret.m_ind, ret.m_max)); 
 
         int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;

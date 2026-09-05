@@ -2,7 +2,11 @@
 #ifndef __KWP_UTILS_H__
 #define __KWP_UTILS_H__
 
+#ifdef KWP_UTILS_HOST_STUB
+#include "kwp_utils_host_types.h"
+#else
 #include "endpoints/endpoint.h"
+#endif
 #include "stdint.h"
 
 // Couple of helpful functions

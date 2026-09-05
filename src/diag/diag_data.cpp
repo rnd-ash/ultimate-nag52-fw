@@ -4,6 +4,7 @@
 #include "perf_mon.h"
 #include <tcu_maths.h>
 #include "kwp2000.h"
+#include "diag_data_logic.h"
 #include "esp_core_dump.h"
 #include "../nvs/module_settings.h"
 #include "clock.hpp"
@@ -95,6 +96,10 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     DATA_TCC_PROGRAM ret = {};
+    if (!diag_has_tcc_program_sources(gb_ptr, gb_ptr != nullptr ? gb_ptr->tcc : nullptr)) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     ret.current_pressure = gb_ptr->tcc->get_current_pressure();
     ret.target_pressure = gb_ptr->tcc->get_target_pressure();
     ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();
@@ -113,7 +118,12 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
 
 DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     DATA_CANBUS_RX ret = {};
-    if (can_layer == nullptr || gearbox == nullptr) {
+    if (!diag_has_rx_can_sources(
+        can_layer,
+        can_layer != nullptr ? can_layer->shifter : nullptr,
+        gearbox,
+        egs_can_hal
+    )) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
@@ -169,7 +179,14 @@ DATA_SYS_USAGE get_sys_usage(void) {
 
 SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     SHIFT_LIVE_INFO ret = {};
-    if (can_layer == nullptr || g == nullptr) {
+    if (!diag_has_shift_live_sources(
+        can_layer,
+        g,
+        g != nullptr ? g->pressure_mgr : nullptr,
+        sol_y3,
+        sol_y4,
+        sol_y5
+    )) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
@@ -239,26 +256,23 @@ PARTITION_INFO get_coredump_info(void) {
 }
 
 PARTITION_INFO get_current_sw_info(void) {
-    const esp_partition_t* i = esp_ota_get_running_partition();
     return PARTITION_INFO {
-        .address = i->address,
-        .size = i->size
+        .address = esp_ota_get_running_partition()->address,
+        .size = esp_ota_get_running_partition()->size
     };
 }
 
 PARTITION_INFO get_next_sw_info(void) {
-    const esp_partition_t* i = esp_ota_get_next_update_partition(NULL);
     return PARTITION_INFO {
-        .address = i->address,
-        .size = i->size
+        .address = esp_ota_get_next_update_partition(NULL)->address,
+        .size = esp_ota_get_next_update_partition(NULL)->size
     };
 }
 
 PARTITION_INFO get_embeded_file_info(void) {
-    uint32_t len = (uint32_t)embed_container_end - (uint32_t)embed_container_start;
     return PARTITION_INFO {
         .address = (uint32_t)embed_container_start,
-        .size = len
+        .size = (uint32_t)embed_container_end - (uint32_t)embed_container_start
     };
 }
 
@@ -271,11 +285,19 @@ uint16_t get_egs_calibration_size(void) {
 }
 
 kwp_result_t get_module_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
+    kwp_result_t arg_check = diag_validate_module_settings_read_args(buffer_len, buffer);
+    if (arg_check != NRC_OK) {
+        return arg_check;
+    }
     return ModuleConfiguration::read_settings(module_id, buffer_len, buffer);
 }
 
 kwp_result_t set_module_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer) {
-    if (buffer_len == 1 && buffer[0] == 0x00) {
+    DiagModuleSettingsWriteAction action = diag_get_module_settings_write_action(buffer_len, buffer);
+    if (action == DiagModuleSettingsWriteAction::Invalid) {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
+    if (action == DiagModuleSettingsWriteAction::Reset) {
         return ModuleConfiguration::reset_settings(module_id);
     } else {
         return ModuleConfiguration::write_settings(module_id, buffer_len, buffer);

@@ -6,6 +6,7 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "can_egs51_logic.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
@@ -18,10 +19,18 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
 
 uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
 {
-	return UINT16_MAX;
+    BS_200_EGS51 bs200;
+    if (this->esp51.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
+        return egs51_decode_wheel_speed_or_sna(bs200.DVR);
+    }
+    return UINT16_MAX;
 }
 
 uint16_t Egs51Can::get_front_left_wheel(const uint32_t expire_time_ms) {
+    BS_200_EGS51 bs200;
+    if (this->esp51.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
+        return egs51_decode_wheel_speed_or_sna(bs200.DVL);
+    }
     return UINT16_MAX;
 }
 
@@ -54,20 +63,24 @@ EngineType Egs51Can::get_engine_type(const uint32_t expire_time_ms) {
 }
 
 bool Egs51Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
+    MS_308_EGS51 ms308;
+    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
+        return egs51_infer_engine_limp(ms308.TEMP_KL, ms308.UEHITZ, ms308.DIAG_KL);
+    }
     return false;
 }
 
 bool Egs51Can::get_kickdown(const uint32_t expire_time_ms) {
     bool ret  = false;
     // Only for the CAN shifter
-    EWM_230_EGS52 dest;
+    EWM_230_EGS51 dest;
 	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest)){
         ret  = dest.KD;
     }
     return ret;
 }
 
-uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) { // TODO
+uint8_t Egs51Can::get_pedal_value(const uint32_t expire_time_ms) {
     MS_210_EGS51 ms210;
     if (this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
         return ms210.PW;
@@ -91,7 +104,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
         if (UINT8_MAX != ms310.MAX_TORQUE) {
             ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
-            // TODO -> ms310.MAX_TRQ_FACTOR
+            ret.m_max = egs51_apply_max_torque_factor(ret.m_max, ms310.MAX_TRQ_FACTOR);
         }
         if (UINT8_MAX != ms210.M_ESP) {
             m_esp = ((int16_t)ms210.M_ESP)*3;
@@ -117,14 +130,15 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
 
         bool freeze = this->gs218.TORQUE_REQ_EN;
-        // Change torque values based on freezing or not
-        if (freeze) {
-            ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
-        } else {
-            this->req_static_torque_delta = driver_converted - static_converted;
-        }
-
-        ret.m_converted_driver = driver_converted;
+        Egs51FreezeResult freeze_result = egs51_apply_freeze_logic(
+            freeze,
+            driver_converted,
+            static_converted,
+            this->req_static_torque_delta
+        );
+        // Preserve freeze-adjusted driver torque instead of overwriting it later.
+        ret.m_converted_driver = freeze_result.driver_converted;
+        this->req_static_torque_delta = freeze_result.req_static_torque_delta;
         ret.m_converted_static = static_converted;
     }
     return ret;
@@ -176,16 +190,36 @@ uint16_t Egs51Can::get_engine_rpm(const uint32_t expire_time_ms) {
     }
 }
 
-bool Egs51Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
+bool Egs51Can::get_is_starting(const uint32_t expire_time_ms) {
+    MS_308_EGS51 ms308;
+    if (this->ms51.get_MS_308(GET_CLOCK_TIME(), expire_time_ms, &ms308)) {
+        return ms308.ANL_LFT;
+    }
     return false;
 }
 
 bool Egs51Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
+    BS_200_EGS51 bs200;
+    if (this->esp51.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
+        return bs200.BLS == BS_200h_BLS_EGS51::BREMSE_BET;
+    }
     return false;
 }
 
 bool Egs51Can::get_profile_btn_press(const uint32_t expire_time_ms) {
+    EWM_230_EGS51 ewm_data;
+    if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm_data)) {
+        return ewm_data.FPT;
+    }
     return false;
+}
+
+ProfileSwitchPos Egs51Can::get_profile_switch_pos(const uint32_t expire_time_ms) {
+    EWM_230_EGS51 ewm_data;
+    if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &ewm_data)) {
+        return ewm_data.W_S ? ProfileSwitchPos::Top : ProfileSwitchPos::Bottom;
+    }
+    return ProfileSwitchPos::SNV;
 }
 
 uint16_t Egs51Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
@@ -303,39 +337,39 @@ void Egs51Can::set_target_gear(GearboxGear target) {
 
 ShifterPosition Egs51Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
 	ShifterPosition ret = ShifterPosition::SignalNotAvailable;
-	EWM_230_EGS52 dest;
+    EWM_230_EGS51 dest;
 	if (this->ewm.get_EWM_230(GET_CLOCK_TIME(), expire_time_ms, &dest))
 	{
 		switch (dest.WHC)
 		{
-		case EWM_230h_WHC_EGS52::D:
+        case EWM_230h_WHC_EGS51::D:
 			ret = ShifterPosition::D;
 			break;
-		case EWM_230h_WHC_EGS52::N:
+        case EWM_230h_WHC_EGS51::N:
 			ret = ShifterPosition::N;
 			break;
-		case EWM_230h_WHC_EGS52::R:
+        case EWM_230h_WHC_EGS51::R:
 			ret = ShifterPosition::R;
 			break;
-		case EWM_230h_WHC_EGS52::P:
+        case EWM_230h_WHC_EGS51::P:
 			ret = ShifterPosition::P;
 			break;
-		case EWM_230h_WHC_EGS52::PLUS:
+        case EWM_230h_WHC_EGS51::PLUS:
 			ret = ShifterPosition::PLUS;
 			break;
-		case EWM_230h_WHC_EGS52::MINUS:
+        case EWM_230h_WHC_EGS51::MINUS:
 			ret = ShifterPosition::MINUS;
 			break;
-		case EWM_230h_WHC_EGS52::N_ZW_D:
+        case EWM_230h_WHC_EGS51::N_ZW_D:
 			ret = ShifterPosition::N_D;
 			break;
-		case EWM_230h_WHC_EGS52::R_ZW_N:
+        case EWM_230h_WHC_EGS51::R_ZW_N:
 			ret = ShifterPosition::R_N;
 			break;
-		case EWM_230h_WHC_EGS52::P_ZW_R:
+        case EWM_230h_WHC_EGS51::P_ZW_R:
 			ret = ShifterPosition::P_R;
 			break;
-		case EWM_230h_WHC_EGS52::SNV:
+        case EWM_230h_WHC_EGS51::SNV:
 			break;
 		default:
 			break;
@@ -351,6 +385,7 @@ void Egs51Can::set_input_shaft_speed(uint16_t rpm) {
 }
 
 void Egs51Can::set_is_all_wheel_drive(bool is_4wd) {
+    this->gs218.FWD = !is_4wd;
 }
 
 void Egs51Can::set_wheel_torque(uint16_t t) {
@@ -370,6 +405,7 @@ void Egs51Can::set_gearbox_ok(bool is_ok) {
 }
 
 void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
+    (void)limit_type;
     if (control_type == TorqueRequestControlType::None) {
         this->gs218.TORQUE_REQ_EN = false;
         this->gs218.SE = false;
@@ -378,11 +414,12 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
         this->gs218.SE = true;
-        this->gs218.TORQUE_REQ = amount_nm/3;
+        this->gs218.TORQUE_REQ = egs51_torque_request_to_raw(amount_nm);
     }
 }
 
 void Egs51Can::set_garage_shift_state(bool enable, bool to_d) {
+    (void)to_d;
     this->gs218.GARAGE_SHIFT = enable;
 }
 
@@ -413,8 +450,7 @@ void Egs51Can::set_safe_start(bool can_start) {
 }
 
 void Egs51Can::set_tcc_trq_multiplier(float multi) {
-    float clamped = MAX(100, MIN(254, multi*100));
-    gs218.TCC_MULTI = (uint8_t)clamped;
+    gs218.TCC_MULTI = egs51_tcc_multiplier_to_raw(multi);
 }
 
 void Egs51Can::tx_frames() {
@@ -423,6 +459,7 @@ void Egs51Can::tx_frames() {
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
+    gs_218tx.KICKDOWN = get_kickdown(300);
     // Now set CVN Counter (Increases every frame)
     gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;

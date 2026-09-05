@@ -64,8 +64,8 @@ private:
     bool clear_to_send = false;
     int data_size;
     int line_idx;
-    int max_bytes_left;
-    int to_read;
+    size_t max_bytes_left;
+    size_t to_read;
     size_t length;
     esp_err_t status;
 };

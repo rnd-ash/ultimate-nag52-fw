@@ -9,6 +9,7 @@
 #include "esp_timer.h"
 #include "esp_private/adc_private.h"
 #include "tcu_maths_impl.h"
+#include "sensors_logic.h"
 
 #define N_SENSOR_PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
 #define MAX_RPM_PCNT 10000
@@ -105,11 +106,13 @@ void Sensors::update(SensorDataRaw* dest) {
         else {
             dest->parking_lock = 0;
             adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
-
-            int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
-
-            float out_x10 = interpolate_linear_array((int16_t)resistance, NUM_TEMP_POINTS, TFT_RESISTANCE_TAB[0], TFT_RESISTANCE_TAB[1]);
-            dest->atf_temp_c = (int16_t)(out_x10 / 10.0);
+            int resistance = 0;
+            if (sensors_try_calc_atf_resistance(adc_voltage, pcb_gpio_matrix->sensor_data.atf_r2_resistance, &resistance)) {
+                float out_x10 = interpolate_linear_array((int16_t)resistance, NUM_TEMP_POINTS, TFT_RESISTANCE_TAB[0], TFT_RESISTANCE_TAB[1]);
+                dest->atf_temp_c = (int16_t)(out_x10 / 10.0);
+            } else {
+                dest->atf_temp_c = INT_MAX;
+            }
         }
     }
 }

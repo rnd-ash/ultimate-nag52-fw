@@ -1,9 +1,13 @@
 #include "kwp2000_defines.h"
 #include "kwp_utils.h"
 #include "clock.hpp"
+#include <string.h>
 
 // Couple of helpful functions
 void global_make_diag_neg_msg(DiagMessage *dest, uint8_t sid, uint8_t nrc) {
+    if (dest == nullptr) {
+        return;
+    }
     dest->id = KWP_ECU_TX_ID;
     dest->data_size = 3;
     dest->data[0] = 0x7F;
@@ -12,6 +16,13 @@ void global_make_diag_neg_msg(DiagMessage *dest, uint8_t sid, uint8_t nrc) {
 }
 
 void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, const uint8_t* resp, uint16_t len) {
+    if (dest == nullptr) {
+        return;
+    }
+    if (len != 0u && resp == nullptr) {
+        global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
+        return;
+    }
     if (len + 2 > DIAG_CAN_MAX_SIZE) {
         global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
     } else {
@@ -23,6 +34,13 @@ void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, const uint8_t* res
 }
 
 void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
+    if (dest == nullptr) {
+        return;
+    }
+    if (len != 0u && resp == nullptr) {
+        global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
+        return;
+    }
     if (len + 3 > DIAG_CAN_MAX_SIZE) {
         global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
         return;
@@ -39,7 +57,7 @@ bool is_engine_off(EgsBaseCan* can) {
         return true;
     } else {
         // Engine MUST be off (Ignition state)
-        int rpm = egs_can_hal->get_engine_rpm(250);
+        int rpm = can->get_engine_rpm(250);
         return (rpm == 0 || rpm == UINT16_MAX); // 0 = 0RPM, MAX = SNV (Engine ECU is offline)
     }
 }

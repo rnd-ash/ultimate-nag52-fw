@@ -4,6 +4,7 @@
 #include <time.h>
 #include "diag_data.h"
 #include "egs_emulation.h"
+#include "kwp2000_logic.h"
 #include "kwp_utils.h"
 #include "map_editor.h"
 #include "esp_mac.h"
@@ -114,12 +115,11 @@ ECU_Date fw_date_to_bcd(char* date) {
     time.tm_mon = month-1;
     mktime(&time);
     strftime(timebuf, 4, "%02W", &time);
-    uint8_t week =((timebuf[0] - '0') * 10) + (timebuf[1]-'0'); // Hacky way
     return ECU_Date {
         .day = day,
         .month = month,
         .year = year,
-        .week = week
+        .week = (uint8_t)(((timebuf[0] - '0') * 10) + (timebuf[1]-'0')) // Hacky way
     };
 }
 
@@ -127,6 +127,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
+    this->state_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->usb_diag_endpoint = new UsbEndpoint();
     this->reboot_pending = false;
     this->can_layer = can_layer;
@@ -209,27 +210,44 @@ int Kwp2000_server::allocate_routine_args(uint8_t* src, uint8_t arg_len) {
 }
 
 void Kwp2000_server::start_response_timer(uint8_t sid) {
+    portENTER_CRITICAL(&this->state_mutex);
     this->response_pending_sid = sid;
     this->cmd_recv_time = GET_CLOCK_TIME();
     this->response_pending = true;
+    portEXIT_CRITICAL(&this->state_mutex);
 }
 
 void Kwp2000_server::end_response_timer() {
+    portENTER_CRITICAL(&this->state_mutex);
     this->response_pending = false;
+    portEXIT_CRITICAL(&this->state_mutex);
 }
 
 void Kwp2000_server::response_timer_loop() {
     uint8_t buf[3] = {0x7F, 0x00, NRC_RESPONSE_PENDING};
     while(1) {
-        if (this->response_pending && (GET_CLOCK_TIME() - this->cmd_recv_time) > KWP_RESPONSEPENDING_INTERVAL) {
-            buf[1] = this->response_pending_sid;
+        bool pending = false;
+        uint8_t pending_sid = 0;
+        uint32_t pending_since = 0;
+        bool route_usb = false;
+        portENTER_CRITICAL(&this->state_mutex);
+        pending = this->response_pending;
+        pending_sid = this->response_pending_sid;
+        pending_since = this->cmd_recv_time;
+        route_usb = this->diag_on_usb;
+        portEXIT_CRITICAL(&this->state_mutex);
+
+        if (pending && (GET_CLOCK_TIME() - pending_since) > KWP_RESPONSEPENDING_INTERVAL) {
+            buf[1] = pending_sid;
             // Send 0x78 (Response pending)
-            if (this->diag_on_usb) {
+            if (route_usb) {
                 this->usb_diag_endpoint->send_data(KWP_ECU_TX_ID, buf, 3);
             } else {
                 this->can_endpoint->send_data(KWP_ECU_TX_ID, buf, 3);
             }
+            portENTER_CRITICAL(&this->state_mutex);
             this->cmd_recv_time = GET_CLOCK_TIME();
+            portEXIT_CRITICAL(&this->state_mutex);
         }
         vTaskDelay(250/portTICK_PERIOD_MS);
     }
@@ -242,10 +260,14 @@ void Kwp2000_server::server_loop() {
         uint32_t timestamp = GET_CLOCK_TIME();
         bool read_msg = false;
         if (this->usb_diag_endpoint->init_state() == ESP_OK && this->usb_diag_endpoint->read_data(&this->rx_msg)) {
+            portENTER_CRITICAL(&this->state_mutex);
             this->diag_on_usb = true;
+            portEXIT_CRITICAL(&this->state_mutex);
             read_msg = true;
         } else if (this->can_endpoint->init_state() == ESP_OK && this->can_endpoint->read_data(&this->rx_msg)) {
+            portENTER_CRITICAL(&this->state_mutex);
             this->diag_on_usb = false;
+            portEXIT_CRITICAL(&this->state_mutex);
             read_msg = true;
         }
         if (read_msg) {
@@ -396,7 +418,7 @@ void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
             make_diag_neg_msg(SID_ECU_RESET, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         } else {
             // 1 arg, process the reset type
-            if (args[0] == 0x01 || args[1] == 0x82) {
+            if (kwp_is_valid_ecu_reset_subfn(args, arg_len)) {
                 if (nullptr != gearbox) {
                     if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
                         // P or R, we CANNOT reset the ECU!
@@ -503,7 +525,7 @@ void Kwp2000_server::process_read_ecu_ident(const uint8_t* args, uint16_t arg_le
 }
 
 void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_len) {
-    if (arg_len != 1 && (args[0] != RLI_MAP_EDITOR && args[0] != RLI_SETTINGS_EDIT)) {
+    if (!kwp_has_valid_read_data_local_ident_header(args, arg_len)) {
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
@@ -518,8 +540,15 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         uint8_t mac[6] = {0};
         esp_efuse_mac_get_default(mac);
         char resp[13];
-        sprintf(resp, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, reinterpret_cast<const uint8_t*>(resp), 12);
+        int len = snprintf(resp, sizeof(resp), "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        if (len < 0) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
+            return;
+        }
+        if (len > 12) {
+            len = 12;
+        }
+        make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, 0xE1, reinterpret_cast<const uint8_t*>(resp), (uint16_t)len);
     } else if (args[0] == RLI_MAP_EDITOR) {
         // 0 - RLI
         // 1 - Map ID
@@ -558,6 +587,11 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             ret = NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
         }
         if (ret == 0) { // OK
+            if (read_bytes_size > DIAG_CAN_MAX_SIZE - 2) {
+                TCU_FREE(buffer); // DELETE MapEditor allocation
+                make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_GENERAL_REJECT);
+                return;
+            }
             uint8_t* buf = static_cast<uint8_t*>(TCU_HEAP_ALLOC(2+read_bytes_size));
             if (buf == nullptr) {
                 TCU_FREE(buffer); // DELETE MapEditor allocation
@@ -568,7 +602,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             buf[1] = read_bytes_size >> 8;
             memcpy(&buf[2], buffer, read_bytes_size);
             make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
-            delete[] buf;
+            TCU_FREE(buf);
             TCU_FREE(buffer); // DELETE MapEditor allocation
             return;
         } else {
@@ -673,11 +707,13 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     
 }
 
-void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_read_data_ident(const uint8_t* args, uint16_t arg_len) {
+    (void)args;
+    (void)arg_len;
 
 }
 
-void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_read_mem_address(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -686,7 +722,7 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    uint32_t start = (args[0] << 16) | (args[1] << 8) | args[2]; // Raw address to read from
+    uint32_t start = kwp_read_u24_be(args); // Raw address to read from
     uint8_t len = args[3];
     uint32_t end = start + len;
     if (start >= 0x800000 && end <= 0x87D000) {
@@ -727,7 +763,7 @@ void Kwp2000_server::process_read_mem_address(uint8_t* args, uint16_t arg_len) {
     }
 }
 
-void Kwp2000_server::process_read_mem_address_ext(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_read_mem_address_ext(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -737,21 +773,26 @@ void Kwp2000_server::process_read_mem_address_ext(uint8_t* args, uint16_t arg_le
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    uint32_t start = (args[0] << 24) | (args[1] << 16) | (args[2] << 8) | args[3]; // Raw address to read from
+    uint32_t start = kwp_read_u32_be(args); // Raw address to read from
     //ESP_LOGI("RME","%08X\n", (unsigned int)start);
     //vTaskDelay(40);
     uint8_t len = args[4];
-    uint32_t end = start + len;
     uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(len);
+    if (buffer == nullptr) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS_EXT, NRC_GENERAL_REJECT);
+        return;
+    }
     memcpy(buffer, (const uint8_t*)start, len);
     make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS_EXT, buffer, len);
     TCU_FREE(buffer);
 }
 
-void Kwp2000_server::process_security_access(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_security_access(const uint8_t* args, uint16_t arg_len) {
+    (void)args;
+    (void)arg_len;
 
 }
-void Kwp2000_server::process_disable_msg_tx(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_disable_msg_tx(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_DISABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -777,7 +818,7 @@ void Kwp2000_server::process_disable_msg_tx(uint8_t* args, uint16_t arg_len) {
     }
 }
 
-void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_enable_msg_tx(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52) {
         make_diag_neg_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
@@ -802,18 +843,26 @@ void Kwp2000_server::process_enable_msg_tx(uint8_t* args, uint16_t arg_len) {
         make_diag_pos_msg(SID_ENABLE_NORMAL_MSG_TRANSMISSION, nullptr, 0);
     }
 }
-void Kwp2000_server::process_dynamically_define_local_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_dynamically_define_local_ident(const uint8_t* args, uint16_t arg_len) {
+    (void)args;
+    (void)arg_len;
 
 }
-void Kwp2000_server::process_write_data_by_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_write_data_by_ident(const uint8_t* args, uint16_t arg_len) {
+    (void)args;
+    (void)arg_len;
 
 }
 
 // INPUT OUTPUT CONTROL BY 'LOCAL' IDENTIFIER HANDLER (SID_IOCTL / SidInputOutputControlByLocalIdentifier)
-void Kwp2000_server::process_ioctl_by_local_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_ioctl_by_local_ident(const uint8_t* args, uint16_t arg_len) {
     // Session mode check - This service is only supported in Extended, Reprgramming or OEM dependent modes
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52 && this->session_mode != SESSION_REPROGRAMMING) {
         make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
+        return;
+    }
+    if (!kwp_has_arg0(args, arg_len)) {
+        make_diag_neg_msg(SID_IOCTL_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
     if (args[0] == 0x10) { // Mode manipulation
@@ -853,7 +902,11 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (this->routine_running) {
+    bool running_now = false;
+    portENTER_CRITICAL(&this->state_mutex);
+    running_now = this->routine_running;
+    portEXIT_CRITICAL(&this->state_mutex);
+    if (running_now) {
         // Already running!
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
         return;
@@ -891,14 +944,21 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
             if (
                     gearbox_ptr->sensor_data.engine_rpm == 0 && //Engine off
                     gearbox_ptr->sensor_data.input_rpm == 0 && // Not moving
-
                     voltage != UINT16_MAX &&
                     voltage > 10000 && // Enough battery voltage
                     pll == 0 // Parking lock off (In D/R)
                 ) {
+                portENTER_CRITICAL(&this->state_mutex);
                 this->routine_running = true;
+                portEXIT_CRITICAL(&this->state_mutex);
                 this->routine_id = ROUTINE_SOLENOID_TEST;
-                xTaskCreate(Kwp2000_server::launch_solenoid_test, "RT_SOL_TEST", 2048, this, 5, &this->routine_task);
+                if (xTaskCreate(Kwp2000_server::launch_solenoid_test, "RT_SOL_TEST", 2048, this, 5, &this->routine_task) != pdPASS) {
+                    portENTER_CRITICAL(&this->state_mutex);
+                    this->routine_running = false;
+                    portEXIT_CRITICAL(&this->state_mutex);
+                    make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_GENERAL_REJECT);
+                    return;
+                }
                 uint8_t resp[1] = {ROUTINE_SOLENOID_TEST};
                 make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, resp, 1);
             } else {
@@ -941,7 +1001,9 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
         make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
 }
-void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
+void Kwp2000_server::process_stop_routine_by_local_ident(const uint8_t* args, uint16_t arg_len) {
+    (void)args;
+    (void)arg_len;
     
 }
 void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len) {
@@ -949,7 +1011,11 @@ void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_
         make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_DIAG_SESSION);
         return;
     }
-    if (this->routine_running) {
+    bool running_now = false;
+    portENTER_CRITICAL(&this->state_mutex);
+    running_now = this->routine_running;
+    portEXIT_CRITICAL(&this->state_mutex);
+    if (running_now) {
         // Already running!
         make_diag_neg_msg(SID_REQUEST_ROUTINE_RESULTS_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
         return;
@@ -1034,6 +1100,10 @@ void Kwp2000_server::process_write_data_by_local_ident(uint8_t* args, uint16_t a
         this->session_mode == SESSION_STANDBY ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
+        if (!kwp_has_arg0(args, arg_len)) {
+            make_diag_neg_msg(SID_WRITE_DATA_BY_LOCAL_IDENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
         if (args[0] == RLI_MAP_EDITOR) {
             // 0 - RLI
             // 1 - Map ID
@@ -1130,7 +1200,7 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    uint32_t start = (args[0] << 16) | (args[1] << 8) | args[2]; // Raw address to read from
+    uint32_t start = kwp_read_u24_be(args); // Raw address to read from
     uint8_t len = args[3];
     if (arg_len-4 != len) { // Length mismatch between message write data, and actual data to write
         make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -1139,11 +1209,19 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
     uint8_t* src = &args[4];
     uint32_t end = start + len;
     if (start >= 0x800000 && end <= 0x87D000) {
-        #define SECTOR_SIZE 4096
+        #define SECTOR_SIZE (4096)
         int phys_address = 0x349000 + (start-0x800000);
         int sec_start_addr = (phys_address/SECTOR_SIZE)*SECTOR_SIZE;
         int offset_into_start_sector = phys_address - sec_start_addr;
+        if ((offset_into_start_sector + len) > SECTOR_SIZE) {
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
         uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(SECTOR_SIZE);
+        if (buffer == nullptr) {
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
+            return;
+        }
         esp_flash_read(NULL, buffer, sec_start_addr, SECTOR_SIZE);
         memcpy(&buffer[offset_into_start_sector], src, len);
         esp_flash_erase_region(NULL, sec_start_addr, SECTOR_SIZE);
@@ -1153,7 +1231,7 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
             // Read failed
             make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
         }
-        delete[] buffer;
+        TCU_FREE(buffer);
     } else {
         uint32_t start_ptr = 0;
         // Address is somewhere in memory
@@ -1177,14 +1255,11 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
 }
 
 void Kwp2000_server::process_tester_present(const uint8_t* args, uint16_t arg_len) {
-    if (arg_len != 1) { // Must only have 1 arg
-        make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
-        return;
-    }
-    if (args[0] == KWP_CMD_RESPONSE_REQUIRED) {
+    KwpTesterPresentSubfn subfn = kwp_parse_tester_present_subfn(args, arg_len);
+    if (subfn == KwpTesterPresentSubfn::ResponseRequired) {
         make_diag_pos_msg(SID_TESTER_PRESENT, nullptr, 0);
         this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
-    } else if (args[1] == KWP_CMD_NO_RESPONSE_REQUIRED) {
+    } else if (subfn == KwpTesterPresentSubfn::NoResponseRequired) {
         this->next_tp_time = GET_CLOCK_TIME() + KWP_TP_TIMEOUT_MS;
     } else {
         make_diag_neg_msg(SID_TESTER_PRESENT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
@@ -1266,6 +1341,8 @@ typedef struct {
 static_assert(sizeof(SolRtRes) == 1+2+6*6);
 
 void Kwp2000_server::run_solenoid_test() {
+    bool inhibited_control = false;
+    bool suspended_solenoids = false;
     vTaskDelay(50);
     this->routine_results_len = 1 + sizeof(SolRtRes); // ATF temp (2 byte), (current off, current on, vbatt) (x6);
     memset(this->routine_result, 0, this->routine_results_len);
@@ -1274,18 +1351,19 @@ void Kwp2000_server::run_solenoid_test() {
 
     SolRtRes res{};
     res.lid = this->routine_id;
+    PwmSolenoid* order[6] = {sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
     int16_t temp = TCUIO::atf_temperature();
     uint8_t pll = TCUIO::parking_lock();
     if (pll != 0 || INT16_MAX == temp) {
-        return; // Cannot function unless PLL is off
+        goto cleanup;
     }
     res.atf_temp = temp;
     if (nullptr != this->gearbox_ptr) {
         this->gearbox_ptr->diag_inhibit_control();
+        inhibited_control = true;
     }
     Solenoids::notify_diag_test_start();
-
-    PwmSolenoid* order[6] = {sol_mpc, sol_spc, sol_tcc, sol_y3, sol_y4, sol_y5};
+    suspended_solenoids = true;
     for (uint8_t i = 0; i < 6; i++) {
         uint16_t current = order[i]->get_current();
         // place in result
@@ -1299,11 +1377,16 @@ void Kwp2000_server::run_solenoid_test() {
         // place in result
         res.on_readings[i] = t;
     }
-    this->routine_running = false;
-    Solenoids::notify_diag_test_end();
-    if (nullptr != this->gearbox_ptr) {
+cleanup:
+    if (suspended_solenoids) {
+        Solenoids::notify_diag_test_end();
+    }
+    if (inhibited_control && nullptr != this->gearbox_ptr) {
         this->gearbox_ptr->diag_regain_control();
     }
+    portENTER_CRITICAL(&this->state_mutex);
+    this->routine_running = false;
+    portEXIT_CRITICAL(&this->state_mutex);
     memcpy(this->routine_result, &res, sizeof(SolRtRes));
     vTaskDelete(nullptr);
 }

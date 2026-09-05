@@ -144,13 +144,15 @@ void update_tft_sensor() {
     add_to_onepoll_sensor(&onepoll_parking_lock, raw_sensors.parking_lock);
 
     bool reset_average = was_reading_from_engine != atf_from_engine_temp; // State change
-    int temperature = 25;
+    int16_t temperature = INT16_MAX;
     if (atf_from_engine_temp) {
         // Request value from CAN
-        temperature = onepoll_motor_temperature.current_value;
+        temperature = TCUIO::motor_temperature();
     } else {
         // Use TFT value
-        temperature = raw_sensors.atf_temp_c;
+        if (raw_sensors.atf_temp_c != INT_MAX) {
+            temperature = raw_sensors.atf_temp_c;
+        }
     }
     // Temperature might be INT16_MAX (Something wrong with the signal)
     add_to_smoothed_sensor(&smoothed_sensor_atf_temp, temperature, reset_average);
@@ -277,8 +279,8 @@ uint16_t TCUIO::calc_turbine_rpm(const uint16_t n2, const uint16_t n3) {
 }
 
 uint8_t TCUIO::parking_lock() { return get_onepoll_sensor_val(&onepoll_parking_lock, 0); }
-int16_t TCUIO::atf_temperature() { return smoothed_sensor_atf_temp.last_value/100;}
-uint16_t TCUIO::battery_mv() { return smoothed_sensor_vbatt.last_value/100;}
+int16_t TCUIO::atf_temperature() { return get_smoothed_sensor_val_signed(&smoothed_sensor_atf_temp, 2); }
+uint16_t TCUIO::battery_mv() { return get_smoothed_sensor_val_unsigned(&smoothed_sensor_vbatt, 2); }
 uint16_t TCUIO::n2_rpm() { 
     return get_smoothed_sensor_val_unsigned(&smoothed_sensor_n2_rpm, 0); 
 }

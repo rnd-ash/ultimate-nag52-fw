@@ -12,7 +12,7 @@
 #include "shifting_algo/shift_release.h"
 #include "tcu_io/tcu_io.hpp"
 
-#define SBS SBS_CURRENT_SETTINGS
+#define SBS (SBS_CURRENT_SETTINGS)
 
 const uint8_t AVG_SAMPLES_500MS = 500 / 20;
 
@@ -48,6 +48,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->current_profile = nullptr;
     egs_can_hal->set_drive_profile(GearboxProfile::Underscore); // Uninitialized
     this->profile_mutex = portMUX_INITIALIZER_UNLOCKED;
+    this->state_mutex = portMUX_INITIALIZER_UNLOCKED;
     this->sensor_data = SensorData{
         .input_rpm = 0,
         .engine_rpm = 0,
@@ -71,53 +72,59 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .ctrl_type = TorqueRequestControlType::None,
         .bounds = TorqueRequestBounds::LessThan,
     };
+    this->speed_sensors = SpeedSensors{
+        .n2 = 0,
+        .n3 = 0,
+        .turbine = 0,
+        .output = 0,
+    };
 
-    float r1 = ((float)(MECH_PTR->ratio_table[1])) / 1000.0;
-    float r2 = ((float)(MECH_PTR->ratio_table[2])) / 1000.0;
-    float r3 = ((float)(MECH_PTR->ratio_table[3])) / 1000.0;
-    float r4 = ((float)(MECH_PTR->ratio_table[4])) / 1000.0;
-    float r5 = ((float)(MECH_PTR->ratio_table[5])) / 1000.0;
-    float rr1 = ((float)(MECH_PTR->ratio_table[6]) * -1) / 1000.0;
-    float rr2 = ((float)(MECH_PTR->ratio_table[7]) * -1) / 1000.0;
+    float r1 = ((float)(MECH_PTR->ratio_table[1])) / 1000.0f;
+    float r2 = ((float)(MECH_PTR->ratio_table[2])) / 1000.0f;
+    float r3 = ((float)(MECH_PTR->ratio_table[3])) / 1000.0f;
+    float r4 = ((float)(MECH_PTR->ratio_table[4])) / 1000.0f;
+    float r5 = ((float)(MECH_PTR->ratio_table[5])) / 1000.0f;
+    float rr1 = ((float)(MECH_PTR->ratio_table[6]) * -1) / 1000.0f;
+    float rr2 = ((float)(MECH_PTR->ratio_table[7]) * -1) / 1000.0f;
 
     this->gearboxConfig.max_torque = 330;
     if (MECH_PTR->gb_ty == 0) {
         this->gearboxConfig.max_torque = 580;
     }
     this->gearboxConfig.bounds[0] = GearRatioInfo{ // 1st 
-        .ratio_max_drift = r1 * (float)1.1,
+        .ratio_max_drift = r1 * 1.1f,
         .ratio = r1,
-        .ratio_min_drift = r1 * (float)0.9,
+        .ratio_min_drift = r1 * 0.9f,
     };
     this->gearboxConfig.bounds[1] = GearRatioInfo{ // 2nd 
-        .ratio_max_drift = r2 * (float)1.1,
+        .ratio_max_drift = r2 * 1.1f,
         .ratio = r2,
-        .ratio_min_drift = r2 * (float)0.9,
+        .ratio_min_drift = r2 * 0.9f,
     };
     this->gearboxConfig.bounds[2] = GearRatioInfo{ // 3rd 
-        .ratio_max_drift = r3 * (float)1.1,
+        .ratio_max_drift = r3 * 1.1f,
         .ratio = r3,
-        .ratio_min_drift = r3 * (float)0.9,
+        .ratio_min_drift = r3 * 0.9f,
     };
     this->gearboxConfig.bounds[3] = GearRatioInfo{ // 4th 
-        .ratio_max_drift = r4 * (float)1.1,
+        .ratio_max_drift = r4 * 1.1f,
         .ratio = r4,
-        .ratio_min_drift = r4 * (float)0.9,
+        .ratio_min_drift = r4 * 0.9f,
     };
     this->gearboxConfig.bounds[4] = GearRatioInfo{ // 5th 
-        .ratio_max_drift = r5 * (float)1.1,
+        .ratio_max_drift = r5 * 1.1f,
         .ratio = r5,
-        .ratio_min_drift = r5 * (float)0.9,
+        .ratio_min_drift = r5 * 0.9f,
     };
     this->gearboxConfig.bounds[5] = GearRatioInfo{ // R1 
-        .ratio_max_drift = rr1 * (float)1.1,
+        .ratio_max_drift = rr1 * 1.1f,
         .ratio = rr1,
-        .ratio_min_drift = rr1 * (float)0.9,
+        .ratio_min_drift = rr1 * 0.9f,
     };
     this->gearboxConfig.bounds[6] = GearRatioInfo{ // R2 
-        .ratio_max_drift = rr2 * (float)1.1,
+        .ratio_max_drift = rr2 * 1.1f,
         .ratio = rr2,
-        .ratio_min_drift = rr2 * (float)0.9,
+        .ratio_min_drift = rr2 * 0.9f,
     };
     // IMPORTANT - Set the Ratio2/Ratio1 multiplier for the sensor RPM reading algorithm!
     TCUIO::set_2_1_ratio(r1 / r2);
@@ -127,8 +134,9 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->shift_adapter = new ShiftAdaptationSystem();
     pressure_manager = this->pressure_mgr;
     adaptation_manager = this->shift_adapter;
-    // Wait for solenoid routine to complete
-    if (!Solenoids::init_routine_completed())
+    // Startup test runs in a background task: wait briefly so we do not race it.
+    uint32_t wait_start = GET_CLOCK_TIME();
+    while (!Solenoids::init_routine_completed() && (GET_CLOCK_TIME() - wait_start) < 1000)
     {
         vTaskDelay(1);
     }
@@ -144,12 +152,12 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     {
         this->redline_rpm = 4000; // just in case
     }
-    this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
+    this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0f;
     this->input_rpm_delta = new DeltaTracker(25);
     this->pedal_delta = new DeltaTracker(25);
 }
 
-bool Gearbox::is_stationary() {
+bool Gearbox::is_stationary() const {
     return this->sensor_data.input_rpm < 100 && this->sensor_data.output_rpm < 100;
 }
 
@@ -164,9 +172,29 @@ void Gearbox::set_profile(AbstractProfile* prof)
     }
 }
 
-esp_err_t Gearbox::start_controller()
+bool Gearbox::isShifting(void) {
+    bool shifting_now = false;
+    portENTER_CRITICAL(&this->state_mutex);
+    shifting_now = this->shifting;
+    portEXIT_CRITICAL(&this->state_mutex);
+    return shifting_now;
+}
+
+void Gearbox::diag_inhibit_control(void) {
+    portENTER_CRITICAL(&this->state_mutex);
+    this->diag_stop_control = true;
+    portEXIT_CRITICAL(&this->state_mutex);
+}
+
+void Gearbox::diag_regain_control(void) {
+    portENTER_CRITICAL(&this->state_mutex);
+    this->diag_stop_control = false;
+    portEXIT_CRITICAL(&this->state_mutex);
+}
+
+esp_err_t Gearbox::start_controller() const
 {
-    xTaskCreatePinnedToCore(Gearbox::start_controller_internal, "GEARBOX", 32768, static_cast<void*>(this), 10, nullptr, 1);
+    xTaskCreatePinnedToCore(Gearbox::start_controller_internal, "GEARBOX", 32768, static_cast<void*>(const_cast<Gearbox*>(this)), 10, nullptr, 1);
     return ESP_OK;
 }
 
@@ -256,16 +284,20 @@ const char* gear_to_text(GearboxGear g)
 
 void Gearbox::inc_gear_request()
 {
+    portENTER_CRITICAL(&this->state_mutex);
     this->ask_upshift = true;
     this->ask_downshift = false;
     this->manual_shift = true;
+    portEXIT_CRITICAL(&this->state_mutex);
 }
 
 void Gearbox::dec_gear_request()
 {
+    portENTER_CRITICAL(&this->state_mutex);
     this->ask_upshift = false;
     this->ask_downshift = true;
     this->manual_shift = true;
+    portEXIT_CRITICAL(&this->state_mutex);
 }
 
 void Gearbox::set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount) {
@@ -295,8 +327,8 @@ GearboxGear prev_gear(GearboxGear g)
     return prev;
 }
 
-#define SHIFT_DELAY_MS 20     // 20ms steps
-#define NUM_SCD_ENTRIES 100 / SHIFT_DELAY_MS // 100ms moving average window
+#define SHIFT_DELAY_MS (20) // 20ms steps
+#define NUM_SCD_ENTRIES ((100) / (SHIFT_DELAY_MS)) // 100ms moving average window
 
 ClutchSpeeds Gearbox::diag_get_clutch_speeds()
 {
@@ -348,10 +380,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
         this->last_shift_circuit = sd.shift_circuit;
-        bool process_shift = true;
-
-        ShiftPressures p_now = {};
-        memset(&p_now, 0, sizeof(ShiftPressures));
+        ShiftPressures p_now = {0, 0, 0, 0};
 
         uint32_t total_elapsed = 0;
         uint32_t phase_elapsed = 0;
@@ -417,7 +446,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data);
 
-        float threshold_torque = VEHICLE_CONFIG.engine_drag_torque/10.0;
+        float threshold_torque = VEHICLE_CONFIG.engine_drag_torque / 10.0f;
         ShiftingAlgorithm* algo;
         if (is_upshift) {
             if (sensor_data.converted_torque <= -threshold_torque/2) {
@@ -443,12 +472,11 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         }
 
         uint8_t algo_phase_id = 0;
-        while (process_shift) {
+        while (true) {
             uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
             // Shifter moved mid shift!
             if (!is_shifter_in_valid_drive_pos(this->shifter_pos)) {
-                process_shift = false;
                 result = false;
                 break;
             }
@@ -562,9 +590,13 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
 
 void Gearbox::shift_thread()
 {
+    GearboxGear curr_target;
+    GearboxGear curr_actual;
+    portENTER_CRITICAL(&this->state_mutex);
     this->shifting = true;
-    GearboxGear curr_target = this->target_gear;
-    GearboxGear curr_actual = this->actual_gear;
+    curr_target = this->target_gear;
+    curr_actual = this->actual_gear;
+    portEXIT_CRITICAL(&this->state_mutex);
     if (curr_actual == curr_target)
     {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "SHIFTER", "Gears are the same????");
@@ -595,7 +627,7 @@ void Gearbox::shift_thread()
                 prefill = pressure_manager->make_fill_data(Clutch::B2).fill_pressure_on_clutch;
                 spring = pressure_manager->get_spring_pressure(Clutch::B2);
             }
-            pressure_mgr->set_target_shift_pressure(((spring + (prefill)) / 1.993) + HYDR_PTR->shift_reg_spring_pressure); // TODO - 1.993 = spc multi [0]
+            pressure_mgr->set_target_shift_pressure(((spring + (prefill)) / 1.993f) + HYDR_PTR->shift_reg_spring_pressure); // TODO - 1.993 = spc multi [0]
             pressure_mgr->set_target_modulating_pressure(3000);
             this->pressure_mgr->update_pressures(this->actual_gear, GearChange::_IDLE);
             // N/P -> R/D
@@ -735,9 +767,15 @@ void Gearbox::shift_thread()
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
+                bool was_manual_request = false;
+                portENTER_CRITICAL(&this->state_mutex);
+                was_manual_request = this->shift_req_was_manual;
+                portEXIT_CRITICAL(&this->state_mutex);
+                portENTER_CRITICAL(&this->state_mutex);
                 this->is_upshift = true;
                 this->fwd_gear_shift = true;
-                elapse_shift(pgc, prof, this->shift_req_was_manual);
+                portEXIT_CRITICAL(&this->state_mutex);
+                elapse_shift(pgc, prof, was_manual_request);
                 this->start_second = true;
                 goto cleanup;
             }
@@ -773,9 +811,15 @@ void Gearbox::shift_thread()
                 portENTER_CRITICAL(&this->profile_mutex);
                 AbstractProfile* prof = this->current_profile;
                 portEXIT_CRITICAL(&this->profile_mutex);
+                bool was_manual_request = false;
+                portENTER_CRITICAL(&this->state_mutex);
+                was_manual_request = this->shift_req_was_manual;
+                portEXIT_CRITICAL(&this->state_mutex);
+                portENTER_CRITICAL(&this->state_mutex);
                 this->is_upshift = false;
                 this->fwd_gear_shift = true;
-                elapse_shift(pgc, prof, this->shift_req_was_manual);
+                portEXIT_CRITICAL(&this->state_mutex);
+                elapse_shift(pgc, prof, was_manual_request);
                 goto cleanup;
             }
         }
@@ -788,9 +832,11 @@ void Gearbox::shift_thread()
 cleanup:
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SHIFTER", "Shift complete");
     this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
+    portENTER_CRITICAL(&this->state_mutex);
     this->shifting = false;
     this->fwd_gear_shift = false;
     this->is_upshift = false;
+    portEXIT_CRITICAL(&this->state_mutex);
     vTaskDelete(nullptr);
 }
 
@@ -888,7 +934,11 @@ void Gearbox::controller_loop()
             vTaskDelay(20);
             continue;
         }
-        if (this->diag_stop_control)
+        bool diag_stop_now = false;
+        portENTER_CRITICAL(&this->state_mutex);
+        diag_stop_now = this->diag_stop_control;
+        portEXIT_CRITICAL(&this->state_mutex);
+        if (diag_stop_now)
         {
             vTaskDelay(50);
             continue;
@@ -914,10 +964,10 @@ void Gearbox::controller_loop()
             }
             else {
                 // Stationary so no ratios
-                this->sensor_data.gear_ratio = 0.0;
-                this->sensor_data.targ_gear_ratio = 0.0;
+                this->sensor_data.gear_ratio = 0.0f;
+                this->sensor_data.targ_gear_ratio = 0.0f;
             }
-            if (!shifting && !stationary && sensor_data.output_rpm > 250)
+            if (!this->isShifting() && !stationary && sensor_data.output_rpm > 250)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {
@@ -1000,7 +1050,7 @@ void Gearbox::controller_loop()
         // Update solenoids, only if engine RPM is OK
         if (tmp_rpm > 400)
         {
-            if (!shifting)
+            if (!this->isShifting())
             {
                 this->mpc_working = pressure_mgr->find_working_mpc_pressure(this->actual_gear, true);
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
@@ -1046,19 +1096,23 @@ void Gearbox::controller_loop()
                             // Save profile
                             if (ShifterStyle::EWM == shifter->get_shifter_type()) {
                                 if (ETS_CURRENT_SETTINGS.ewm_save_profile) {
-                                    // We know that the profile is valid based on
-                                    // use selection (EWM button code) - So we don't need to check this
-                                    uint8_t tag = this->current_profile->get_profile_id();
-                                    // By default, we can save, but just check if manual profile without
-                                    // the user wanting to save manual profiles
-                                    bool can_save = true;
-                                    if (tag == PROFILE_IDX_M || tag == PROFILE_IDX_R || tag == PROFILE_IDX_W) {
-                                        can_save = ETS_CURRENT_SETTINGS.ewm_save_profile_manual;
-                                    }
-                                    if (can_save) {
-                                        esp_err_t res = EEPROM::ewm_btn_save_profile(tag);
-                                        if (ESP_OK != res) {
-                                            ESP_LOGW("EWM SAVE", "Profile could not be saved to NVS");
+                                    AbstractProfile* profile_for_save = nullptr;
+                                    portENTER_CRITICAL(&this->profile_mutex);
+                                    profile_for_save = this->current_profile;
+                                    portEXIT_CRITICAL(&this->profile_mutex);
+                                    if (nullptr != profile_for_save) {
+                                        uint8_t tag = profile_for_save->get_profile_id();
+                                        // By default, we can save, but just check if manual profile without
+                                        // the user wanting to save manual profiles
+                                        bool can_save = true;
+                                        if (tag == PROFILE_IDX_M || tag == PROFILE_IDX_R || tag == PROFILE_IDX_W) {
+                                            can_save = ETS_CURRENT_SETTINGS.ewm_save_profile_manual;
+                                        }
+                                        if (can_save) {
+                                            esp_err_t res = EEPROM::ewm_btn_save_profile(tag);
+                                            if (ESP_OK != res) {
+                                                ESP_LOGW("EWM SAVE", "Profile could not be saved to NVS");
+                                            }
                                         }
                                     }
                                 }
@@ -1123,13 +1177,24 @@ void Gearbox::controller_loop()
                     this->restrict_target = next_gear(this->restrict_target);
                 }
 
+                bool req_up = false;
+                bool req_down = false;
+                bool req_manual = false;
+                portENTER_CRITICAL(&this->state_mutex);
+                req_up = this->ask_upshift;
+                req_down = this->ask_downshift;
+                req_manual = this->manual_shift;
+                this->ask_downshift = false;
+                this->ask_upshift = false;
+                this->manual_shift = false;
+                portEXIT_CRITICAL(&this->state_mutex);
+
                 // In gear, not shifting, and no ratio mismatch
-                if (!shifting && this->actual_gear == this->target_gear && gear_disagree_count == 0)
+                if (!this->isShifting() && this->actual_gear == this->target_gear && gear_disagree_count == 0)
                 {
-                    // Enter critical ISR section
+                    // Protect profile pointer handoff from input-manager updates.
                     portENTER_CRITICAL(&this->profile_mutex);
                     AbstractProfile* p = this->current_profile;
-                    // Exit critical
                     portEXIT_CRITICAL(&this->profile_mutex);
                     // Check if profile is loaded
                     if (p != nullptr)
@@ -1139,15 +1204,15 @@ void Gearbox::controller_loop()
                         // data, if the car should up/downshift
                         if (this->restrict_target > this->actual_gear && p->should_upshift(this->actual_gear, &this->sensor_data))
                         {
-                            this->ask_upshift = true; // Upshift takes priority
-                            this->manual_shift = false;
+                            req_up = true; // Upshift takes priority
+                            req_manual = false;
                         }
                         else if (this->restrict_target < this->actual_gear || p->should_downshift(this->actual_gear, &this->sensor_data)) {
-                            this->ask_downshift = true; // Downshift is secondary
-                            this->manual_shift = false;
+                            req_down = true; // Downshift is secondary
+                            req_manual = false;
                         }
                     }
-                    if (this->ask_upshift && this->actual_gear < GearboxGear::Fifth)
+                    if (req_up && this->actual_gear < GearboxGear::Fifth)
                     {
                         // Check RPMs
                         GearboxGear next = next_gear(this->actual_gear);
@@ -1157,7 +1222,7 @@ void Gearbox::controller_loop()
                             this->target_gear = next;
                         }
                     }
-                    else if ((this->ask_downshift || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
+                    else if ((req_down || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
@@ -1167,17 +1232,19 @@ void Gearbox::controller_loop()
                         }
                     }
                 }
-                // Request processed. Cancel the requests. Put this outside here so that if there is a ratio mismatch, paddles are ignored
-                this->ask_downshift = false;
-                this->ask_upshift = false;
-                this->shift_req_was_manual = this->manual_shift;
-                this->manual_shift = false;
+                portENTER_CRITICAL(&this->state_mutex);
+                this->shift_req_was_manual = req_manual;
+                portEXIT_CRITICAL(&this->state_mutex);
 
                 if (is_fwd_gear(this->target_gear))
                 {
                     if (this->tcc != nullptr)
                     {
-                        this->tcc->update(this->actual_gear, this->target_gear, this->pressure_mgr, this->current_profile, &this->sensor_data);
+                        AbstractProfile* tcc_profile = nullptr;
+                        portENTER_CRITICAL(&this->profile_mutex);
+                        tcc_profile = this->current_profile;
+                        portEXIT_CRITICAL(&this->profile_mutex);
+                        this->tcc->update(this->actual_gear, this->target_gear, this->pressure_mgr, tcc_profile, &this->sensor_data);
                         egs_can_hal->set_clutch_status(this->tcc->get_clutch_state());
                     }
                 }
@@ -1189,12 +1256,24 @@ void Gearbox::controller_loop()
                 // sol_tcc->write_pwm_12_bit(0);
             }
             // Not shifting, but target has changed! Spawn a shift thread!
+            bool start_shift_thread = false;
+            portENTER_CRITICAL(&this->state_mutex);
             if (this->target_gear != this->actual_gear && !this->shifting)
             {
-                xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1);
+                this->shifting = true;
+                start_shift_thread = true;
+            }
+            portEXIT_CRITICAL(&this->state_mutex);
+            if (start_shift_thread) {
+                if (xTaskCreatePinnedToCore(Gearbox::start_shift_thread, "Shift handler", 8192, this, 10, &this->shift_task, 1) != pdPASS) {
+                    portENTER_CRITICAL(&this->state_mutex);
+                    this->shifting = false;
+                    portEXIT_CRITICAL(&this->state_mutex);
+                    ESP_LOGE("SHIFTER", "Failed to create shift thread");
+                }
             }
         }
-        else if (!shifting)
+        else if (!this->isShifting())
         {
             sol_mpc->set_current_target(0);
             sol_spc->set_current_target(0);
@@ -1211,20 +1290,25 @@ void Gearbox::controller_loop()
         }
         else
         {
-            if (!temp_cal)
+            bool calibrated = false;
+            float spc_res_now = 0.0f;
+            float mpc_res_now = 0.0f;
+            int16_t temp_cal_now = 25;
+            Solenoids::get_calibration_adjusted_resistance(&spc_res_now, &mpc_res_now, &calibrated, &temp_cal_now);
+            if (!calibrated)
             {
-                temp_cal = true;
-                temp_at_test = tmp_atf;
-                if (temp_at_test != 25)
+                temp_cal_now = tmp_atf;
+                if (temp_cal_now != 25)
                 {
-                    resistance_mpc = resistance_mpc + (resistance_mpc * (((25.0 - (float)temp_at_test) * 0.393) / 100.0));
-                    resistance_spc = resistance_spc + (resistance_spc * (((25.0 - (float)temp_at_test) * 0.393) / 100.0));
+                    mpc_res_now = mpc_res_now + (mpc_res_now * (((25.0f - (float)temp_cal_now) * 0.393f) / 100.0f));
+                    spc_res_now = spc_res_now + (spc_res_now * (((25.0f - (float)temp_cal_now) * 0.393f) / 100.0f));
                 }
-                ESP_LOGI("GB", "Calibrated solenoids at %d C. Adjusted for 25C: SPC %.2f MPC %.2f", tmp_atf, resistance_spc, resistance_mpc);
+                Solenoids::set_calibration_adjusted_resistance(spc_res_now, mpc_res_now, temp_cal_now);
+                ESP_LOGI("GB", "Calibrated solenoids at %d C. Adjusted for 25C: SPC %.2f MPC %.2f", tmp_atf, spc_res_now, mpc_res_now);
             }
             // SPC and MPC can cause voltage swing on the ATF line, so disable
             // monitoring when shifting gears!
-            if (!shifting)
+            if (!this->isShifting())
             {
                 this->sensor_data.atf_temp = tmp_atf;
             }
@@ -1261,7 +1345,7 @@ void Gearbox::controller_loop()
         }
         sensor_data.pump_torque = InputTorqueModel::get_pump_torque(sensor_data.engine_rpm, sensor_data.input_rpm);
 
-        if (this->shifting && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
+        if (this->isShifting() && is_controllable_gear(this->target_gear) && !is_controllable_gear(this->actual_gear)) {
             if (INT16_MAX != sensor_data.pump_torque) {
                 sensor_data.input_torque = sensor_data.pump_torque * sensor_data.tcc_trq_multiplier;
             }
@@ -1363,8 +1447,14 @@ void Gearbox::controller_loop()
             }
             else
             {
-                if (this->current_profile == race && this->fwd_gear_shift && SBS.debug_show_up_down_arrows_in_r) {
-                    egs_can_hal->set_display_msg(this->is_upshift ? GearboxMessage::Upshift : GearboxMessage::Downshift);
+                bool shift_arrow_enable = false;
+                bool shift_arrow_up = false;
+                portENTER_CRITICAL(&this->state_mutex);
+                shift_arrow_enable = this->fwd_gear_shift;
+                shift_arrow_up = this->is_upshift;
+                portEXIT_CRITICAL(&this->state_mutex);
+                if (this->current_profile == race && shift_arrow_enable && SBS.debug_show_up_down_arrows_in_r) {
+                    egs_can_hal->set_display_msg(shift_arrow_up ? GearboxMessage::Upshift : GearboxMessage::Downshift);
                 }
                 else if ((this->current_profile == manual || this->current_profile == race) &&
                     sensor_data.engine_rpm > this->redline_rpm - 1000

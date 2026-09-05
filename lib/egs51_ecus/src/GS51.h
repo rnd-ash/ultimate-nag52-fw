@@ -56,7 +56,7 @@ typedef union {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint8_t __PADDING2__: 4;
 		/** TCC Torque multiplier **/
-		bool TCC_MULTI: 8;
+		uint8_t TCC_MULTI: 8;
 		/** Front wheel drive **/
 		bool FWD: 1;
 		/** Kickdown pressed **/

@@ -38,7 +38,8 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
     this->upshift_table = new StoredMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->upshift_table->init_status() != ESP_OK) {
-        delete[] this->upshift_table;
+        delete this->upshift_table;
+        this->upshift_table = nullptr;
     }
 
     /** Downshift map **/
@@ -51,7 +52,8 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
     this->downshift_table = new StoredMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, downshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->downshift_table->init_status() != ESP_OK) {
-        delete[] this->downshift_table;
+        delete this->downshift_table;
+        this->downshift_table = nullptr;
     }
 
     // Up/downshift time tables
@@ -60,11 +62,13 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     int16_t shift_rpm_points[5] = {(int16_t)1000,  (int16_t)(1000+(step_size)), (int16_t)(1000+(step_size*2)), (int16_t)(1000+(step_size*3)), redline};
     this->upshift_time_map = new StoredMap(upshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_upshift_time_data);
     if (this->upshift_time_map->init_status() != ESP_OK) {
-        delete[] this->upshift_time_map;
+        delete this->upshift_time_map;
+        this->upshift_time_map = nullptr;
     }
     this->downshift_time_map = new StoredMap(downshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_downshift_time_data);
     if (this->downshift_time_map->init_status() != ESP_OK) {
-        delete[] this->downshift_time_map;
+        delete this->downshift_time_map;
+        this->downshift_time_map = nullptr;
     }
 }
 

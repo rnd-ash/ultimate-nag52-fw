@@ -5,6 +5,7 @@
 
 class StoredData {
 	public:
+        virtual ~StoredData() = default;
     	esp_err_t init_status(void);
 
         virtual esp_err_t read_from_eeprom(const char *key_name, uint16_t expected_size) = 0;

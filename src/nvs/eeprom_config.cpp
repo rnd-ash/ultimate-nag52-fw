@@ -232,11 +232,11 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(result));
             } else {
                 ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New SCN  creation OK!");
-                memcpy(dest, &s, sizeof(s));
+                memcpy(dest, &c, sizeof(c));
                 result = ESP_OK;
             }
         }
-        return true;
+        return result;
     }
     return result;
 }

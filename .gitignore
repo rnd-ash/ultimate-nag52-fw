@@ -49,3 +49,7 @@ __pycache__/*
 
 MODULE_SETTINGS.md
 MODULE_SETTINGS.yml
+tmp/
+
+# Local AI workflow notes
+AI_PR_INSTRUCTIONS.md

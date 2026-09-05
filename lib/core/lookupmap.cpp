@@ -50,7 +50,7 @@ float LookupMap::get_value(const float xValue, const float yValue, const uint8_t
     return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, y1, y2, yValue);
 }
 
-void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
+void LookupMap::get_y_headers(uint16_t *size, int16_t **headers) const {
     *size = yHeaderSize;
     *headers = yHeader->get_data();
 }
@@ -59,11 +59,11 @@ int16_t* LookupMap::get_current_data(void) const {
     return this->table->get_current_data();
 }
 
-void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
+void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) const {
     return table->get_x_headers(size, headers);
 }
 
-uint16_t LookupMap::data_size() {
+uint16_t LookupMap::data_size() const {
     return this->table->data_size();
 }
 
@@ -123,10 +123,15 @@ LookupRefMap::LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16
     this->yHeaderSize = _yHeaderSize;
 }
 
-LookupByteMap::LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uint8_t* _yHeader, const uint16_t _yHeaderSize, uint8_t* _data, const uint16_t _dataSize) {
+LookupByteMap::LookupByteMap(const uint8_t* _xHeader, const uint16_t _xHeaderSize, const uint8_t* _yHeader, const uint16_t _yHeaderSize, const uint8_t* _data, const uint16_t _dataSize)
+    : x_alloc(nullptr), y_alloc(nullptr), z_alloc(nullptr), z_size(_dataSize) {
     this->x_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_xHeaderSize * sizeof(int16_t)));
     this->y_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_yHeaderSize * sizeof(int16_t)));
     this->z_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_dataSize * sizeof(int16_t)));
+
+    if (nullptr == this->x_alloc || nullptr == this->y_alloc || nullptr == this->z_alloc) {
+        return;
+    }
 
     for (auto i = 0; i < _xHeaderSize; i++) {
         this->x_alloc[i] = _xHeader[i];
@@ -137,11 +142,9 @@ LookupByteMap::LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uin
     for (auto i = 0; i < _dataSize; i++) {
         this->z_alloc[i] = _data[i];
     }
-    if (nullptr != this->x_alloc && nullptr != this->y_alloc && nullptr != this->z_alloc) {
-        this->table = new LookupRefTable(x_alloc, _xHeaderSize, z_alloc, _dataSize);
-        this->yHeader = new LookupRefHeader(y_alloc, _yHeaderSize);
-        this->yHeaderSize = _yHeaderSize;
-    }
+    this->table = new LookupRefTable(x_alloc, _xHeaderSize, z_alloc, _dataSize);
+    this->yHeader = new LookupRefHeader(y_alloc, _yHeaderSize);
+    this->yHeaderSize = _yHeaderSize;
 }
 
 bool LookupByteMap::is_allocated(void) const {

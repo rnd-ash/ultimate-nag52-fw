@@ -7,6 +7,7 @@
 #include "nvs/device_mode.h"
 #include "nvs/all_keys.h"
 #include "egs_calibration/calibration_structs.h"
+#include "pressure_manager_logic.h"
 
 PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->sensor_data = sensor_ptr;
@@ -72,7 +73,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
-        delete[] this->tcc_pwm_map;
+        delete this->tcc_pwm_map;
+        this->tcc_pwm_map = nullptr;
     }
 
     /** Pressure fill time map **/
@@ -88,7 +90,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = LARGE_NAG_FILL_TIME_MAP;
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
-        delete[] this->fill_time_map;
+        delete this->fill_time_map;
+        this->fill_time_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -105,7 +108,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_PRESSURE_MAP;
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
     if (this->fill_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_pressure_map;
+        delete this->fill_pressure_map;
+        this->fill_pressure_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -121,7 +125,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
     if (this->fill_low_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_low_pressure_map;
+        delete this->fill_low_pressure_map;
+        this->fill_low_pressure_map = nullptr;
     }
 
     // Init MPC and SPC req pressures
@@ -222,18 +227,18 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
         // -- Set solenoid currents --
         if (this->shift_sol_en) {
             this->corrected_spc_pressure = this->calc_current_linear_sol(this->target_shift_pressure, current_gear, change_state);
-            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp+50.0, 0));
+            sol_spc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_spc_pressure, sensor_data->atf_temp + 50.0f, 0));
         } else {
             this->corrected_spc_pressure = get_max_solenoid_pressure();
             sol_spc->set_current_target(0);
         }
         this->corrected_mpc_pressure = this->calc_current_linear_sol(this->target_modulating_pressure, current_gear, change_state);
-        sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp+50.0, 1));
+        sol_mpc->set_current_target(this->pressure_pwm_map->get_value(this->corrected_mpc_pressure, sensor_data->atf_temp + 50.0f, 1));
         sol_tcc->set_duty(this->get_tcc_solenoid_pwm_duty(this->target_tcc_pressure));
     }
 }
 
-float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
+float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const {
     float speed = 0;
     uint8_t sel_idx = 0xFF;
     float ret = 0;
@@ -255,11 +260,11 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
     if (sel_idx != 0xFF) {
         int clutch_factor = MECH_PTR->atf_density_centrifugal_force_factor[sel_idx];
         if (clutch_factor != 0) {
-            float drop = (MECH_PTR->atf_density_drop_per_c * (sensor_data->atf_temp + 50))/100.0;
+            float drop = (MECH_PTR->atf_density_drop_per_c * (sensor_data->atf_temp + 50.0f)) / 100.0f;
             float density_now = MECH_PTR->atf_density_minus_50c - drop;
 
             ret = (density_now * (speed * speed)) / clutch_factor;
-            ret /= 10000.0; // To convert to mbar
+            ret /= 10000.0f; // To convert to mbar
         }
     }
     return ret;
@@ -286,7 +291,7 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
     return calc;
 }
 
-int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t torque_nm, CoefficientTy coef_ty) {
+int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty) {
     uint8_t gear_idx = gear_to_idx_lookup(gear);
     float coef;
     switch (coef_ty) {
@@ -303,7 +308,7 @@ int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clut
             coef = 1.F;
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
-    float calc = ((float)torque_nm * friction_val) / coef;
+    float calc = ((float)abs_torque_nm * friction_val) / coef;
     return calc;
 }
 
@@ -344,11 +349,11 @@ float PressureManager::sliding_coefficient() const {
     );
 }
 
-float PressureManager::release_coefficient() const {
+float PressureManager::release_coefficient() {
     return (float)PRM_CURRENT_SETTINGS.releasing_coefficient;
 }
 
-float PressureManager::stationary_coefficient() const {
+float PressureManager::stationary_coefficient() {
     return (float)PRM_CURRENT_SETTINGS.stationary_coefficient;
 }
 
@@ -385,7 +390,7 @@ uint16_t PressureManager::find_decent_adder_torque(GearChange change, uint16_t a
     if (nullptr == map) {
         return 0;
     } else {
-        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)abs_motor_torque/5.0); 
+        uint16_t ret = map->get_value((float)output_rpm / 30.0f, (float)abs_motor_torque / 5.0f);
         return ret*5;
     }
 }
@@ -423,7 +428,7 @@ uint16_t PressureManager::find_freeing_torque(GearChange change, uint16_t motor_
     if (nullptr == map) {
         return 0;
     } else {
-        uint16_t ret = map->get_value((float)output_rpm/30.0, (float)motor_torque/5.0); 
+        uint16_t ret = map->get_value((float)output_rpm / 30.0f, (float)motor_torque / 5.0f);
         return ret*5;
     }
 }
@@ -471,9 +476,11 @@ int PressureManager::calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch 
 }
 
 uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
-    uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * HYDR_PTR->shift_spc_gain[shift_idx];
-    max_p /= 1000; // shift_spc_gain is *1000;
-    return max_p;
+    return pressure_manager_calc_max_shift_pressure(
+        this->get_max_solenoid_pressure(),
+        HYDR_PTR->shift_reg_spring_pressure,
+        HYDR_PTR->shift_spc_gain[shift_idx]
+    );
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flush_logic) {
@@ -492,9 +499,9 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
         float ret = p_clutch_with_coef(curr_g, (Clutch)clutch_idx, abs(sensor_data->input_torque), CoefficientTy::Static);
         ret += (MECH_PTR->release_spring_pressure[clutch_idx] + HYDR_PTR->extra_p_not_shifting);
         if (curr_g == GearboxGear::First || curr_g == GearboxGear::Reverse_First) {
-            ret *= (HYDR_PTR->p_multi_1 / 1000.0);
+            ret *= (HYDR_PTR->p_multi_1 / 1000.0f);
         } else {
-            ret *= (HYDR_PTR->p_multi_other / 1000.0);
+            ret *= (HYDR_PTR->p_multi_other / 1000.0f);
         }
         if (ret < HYDR_PTR->lp_reg_spring_pressure) {
             ret = 0;
@@ -617,7 +624,7 @@ PrefillData PressureManager::make_fill_data(Clutch applying) {
         };
     } else {
         PrefillData ret =  PrefillData {
-            .fill_cycles = (uint16_t)(fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)applying)/20.0),
+            .fill_cycles = (uint16_t)(fill_time_map->get_value(this->sensor_data->atf_temp, (uint8_t)applying) / 20.0f),
             .fill_pressure_on_clutch = (uint16_t)fill_pressure_map->get_value(1, (uint8_t)applying),
             .low_fill_pressure_on_clutch = (uint16_t)fill_low_pressure_map->get_value(1, (uint8_t)applying),
         };

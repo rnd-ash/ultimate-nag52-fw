@@ -30,17 +30,17 @@ void PerfMon::init_perfmon(void) {
 void PerfMon::update_sample(void) {
 
     float ms_elapsed = GET_CLOCK_TIME() - last_update_time;
-    float max_ticks = (float)TICKS_PER_SEC * (ms_elapsed / 1000.0);
+    float max_ticks = (float)TICKS_PER_SEC * (ms_elapsed / 1000.0f);
     if (_idle_ticks_c1 <= max_ticks)
     {
         float free = (float)_idle_ticks_c1/max_ticks;
-        dest.load_core_1 = 1000.0 - (1000.0*free);
+        dest.load_core_1 = 1000.0f - (1000.0f * free);
     }
     _idle_ticks_c1 = 0;
     if (_idle_ticks_c2 <= max_ticks)
     {
         float free = (float)_idle_ticks_c2/max_ticks;
-        dest.load_core_2 = 1000.0 - (1000.0*free);
+        dest.load_core_2 = 1000.0f - (1000.0f * free);
     }
     _idle_ticks_c2 = 0;
     last_update_time = GET_CLOCK_TIME();

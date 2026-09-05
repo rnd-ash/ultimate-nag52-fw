@@ -5,12 +5,34 @@
 
 // Core maths and calculation stuff this the TCM uses
 
+#ifdef __cplusplus
+namespace tcu_math_detail {
+    template <typename A, typename B>
+    constexpr auto max_once(A a, B b) {
+        return (a < b) ? b : a;
+    }
+
+    template <typename A, typename B>
+    constexpr auto min_once(A a, B b) {
+        return (b < a) ? b : a;
+    }
+}
+#endif
+
 #ifndef MAX
-    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+    #ifdef __cplusplus
+        #define MAX(a, b) (tcu_math_detail::max_once((a), (b)))
+    #else
+        #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+    #endif
 #endif
 
 #ifndef MIN
-    #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+    #ifdef __cplusplus
+        #define MIN(a, b) (tcu_math_detail::min_once((a), (b)))
+    #else
+        #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+    #endif
 #endif
 
 typedef struct {
@@ -18,78 +40,78 @@ typedef struct {
     float out;
 } interp_mapping_t;
 
-#define RAMP_FUNC_INTERP_POINTS 21
+#define RAMP_FUNC_INTERP_POINTS (21)
 
 const static interp_mapping_t EASE_IN_EASE_OUT_INTERP_LOOKUP[RAMP_FUNC_INTERP_POINTS] = {
-    {0,   0.00},
-    {5,   0.61},
-    {10,  2.45},
-    {15,  5.45},
-    {20,  9.55},
-    {25, 14.65},
-    {30, 20.61},
-    {35, 27.30},
-    {40, 34.55},
-    {45, 42.17},
-    {50, 50.00},
-    {55, 57.82},
-    {60, 65.45},
-    {65, 72.70},
-    {70, 79.39},
-    {75, 85.82},
-    {80, 90.45},
-    {85, 94.55},
-    {90, 97.55},
-    {95, 99.38},
-    {100, 100.00},
+    {0.0f,   0.00f},
+    {5.0f,   0.61f},
+    {10.0f,  2.45f},
+    {15.0f,  5.45f},
+    {20.0f,  9.55f},
+    {25.0f, 14.65f},
+    {30.0f, 20.61f},
+    {35.0f, 27.30f},
+    {40.0f, 34.55f},
+    {45.0f, 42.17f},
+    {50.0f, 50.00f},
+    {55.0f, 57.82f},
+    {60.0f, 65.45f},
+    {65.0f, 72.70f},
+    {70.0f, 79.39f},
+    {75.0f, 85.82f},
+    {80.0f, 90.45f},
+    {85.0f, 94.55f},
+    {90.0f, 97.55f},
+    {95.0f, 99.38f},
+    {100.0f, 100.00f},
 };
 
 const static interp_mapping_t EASE_IN_INTERP_LOOKUP[RAMP_FUNC_INTERP_POINTS] = {
-    {0,   0.00},
-    {5,   0.30},
-    {10,  1.23},
-    {15,  2.76},
-    {20,  4.89},
-    {25,  7.61},
-    {30, 10.89},
-    {35, 14.74},
-    {40, 19.10},
-    {45, 23.96},
-    {50, 29.29},
-    {55, 35.06},
-    {60, 41.22},
-    {65, 47.75},
-    {70, 54.60},
-    {75, 61.73},
-    {80, 69.10},
-    {85, 76.66},
-    {90, 84.36},
-    {95, 92.15},
-    {100, 100.00},
+    {0.0f,   0.00f},
+    {5.0f,   0.30f},
+    {10.0f,  1.23f},
+    {15.0f,  2.76f},
+    {20.0f,  4.89f},
+    {25.0f,  7.61f},
+    {30.0f, 10.89f},
+    {35.0f, 14.74f},
+    {40.0f, 19.10f},
+    {45.0f, 23.96f},
+    {50.0f, 29.29f},
+    {55.0f, 35.06f},
+    {60.0f, 41.22f},
+    {65.0f, 47.75f},
+    {70.0f, 54.60f},
+    {75.0f, 61.73f},
+    {80.0f, 69.10f},
+    {85.0f, 76.66f},
+    {90.0f, 84.36f},
+    {95.0f, 92.15f},
+    {100.0f, 100.00f},
 };
 
 const static interp_mapping_t EASE_OUT_INTERP_LOOKUP[RAMP_FUNC_INTERP_POINTS] = {
-    {0,   0.00},
-    {5,   7.85},
-    {10, 15.64},
-    {15, 23.35},
-    {20, 30.90},
-    {25, 38.27},
-    {30, 45.40},
-    {35, 52.25},
-    {40, 58.78},
-    {45, 64.95},
-    {50, 70.71},
-    {55, 76.04},
-    {60, 80.90},
-    {65, 85.26},
-    {70, 89.10},
-    {75, 92.39},
-    {80, 95.12},
-    {85, 97.24},
-    {90, 98.77},
-    {95, 99.69},
-    {100, 100.00},
+    {0.0f,   0.00f},
+    {5.0f,   7.85f},
+    {10.0f, 15.64f},
+    {15.0f, 23.35f},
+    {20.0f, 30.90f},
+    {25.0f, 38.27f},
+    {30.0f, 45.40f},
+    {35.0f, 52.25f},
+    {40.0f, 58.78f},
+    {45.0f, 64.95f},
+    {50.0f, 70.71f},
+    {55.0f, 76.04f},
+    {60.0f, 80.90f},
+    {65.0f, 85.26f},
+    {70.0f, 89.10f},
+    {75.0f, 92.39f},
+    {80.0f, 95.12f},
+    {85.0f, 97.24f},
+    {90.0f, 98.77f},
+    {95.0f, 99.69f},
+    {100.0f, 100.00f},
 };
 
 enum class InterpType: uint8_t {

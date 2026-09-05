@@ -6,6 +6,7 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "can_custom_logic.h"
 
 CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
@@ -58,6 +59,10 @@ bool CustomCan::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
 }
 
 bool CustomCan::get_kickdown(const uint32_t expire_time_ms) { // TODO
+    ENGINE_100_CUSTOMCAN engine_data{};
+    if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
+        return customcan_decode_kickdown(engine_data);
+    }
     return false;
 }
 
@@ -97,13 +102,10 @@ PaddlePosition CustomCan::get_paddle_position(const uint32_t expire_time_ms) {
 
 int16_t CustomCan::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     ENGINE_100_CUSTOMCAN engine_data{};
-    int16_t ret = INT16_MAX;
     if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
-        if (engine_data.T_COOLANT != UINT8_MAX) {
-            ret = (int16_t)engine_data.PEDAL - 40;
-        }
+        return customcan_decode_engine_coolant(engine_data);
     }
-    return ret;
+    return INT16_MAX;
 }
 
 int16_t CustomCan::get_engine_oil_temp(const uint32_t expire_time_ms) {
@@ -230,6 +232,7 @@ void CustomCan::set_gearbox_temperature(int16_t temp) {
 }
 
 void CustomCan::set_input_shaft_speed(uint16_t rpm) {
+    this->tx_400.INPUT_RPM = rpm;
 }
 
 void CustomCan::set_is_all_wheel_drive(bool is_4wd) {
@@ -246,36 +249,12 @@ void CustomCan::set_gearbox_ok(bool is_ok) {
 }
 
 void CustomCan::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
-    if (control_type == TorqueRequestControlType::None) {
-        tx_410.TRQ_REQ_CTRL0 = false;
-        tx_410.TRQ_REQ_CTRL1 = false;
-    } else if (control_type == TorqueRequestControlType::FastAsPossible) {
-        tx_410.TRQ_REQ_CTRL0 = false;
-        tx_410.TRQ_REQ_CTRL1 = true;
-    } else if (control_type == TorqueRequestControlType::BackToDemandTorque) {
-        tx_410.TRQ_REQ_CTRL0 = true;
-        tx_410.TRQ_REQ_CTRL1 = true;
-    } else { // Normal speed
-        tx_410.TRQ_REQ_CTRL0 = true;
-        tx_410.TRQ_REQ_CTRL1 = false;
-    }
-    if (control_type != TorqueRequestControlType::None) {
-        tx_410.TRQ_REQ_TRQ = (amount_nm + 500) * 4;
-        if (limit_type == TorqueRequestBounds::LessThan) {
-            tx_410.TRQ_REQ_MIN = true;
-            tx_410.TRQ_REQ_MAX = false;
-        } else if (limit_type == TorqueRequestBounds::MoreThan) {
-            tx_410.TRQ_REQ_MIN = false;
-            tx_410.TRQ_REQ_MAX = true;
-        } else {
-            tx_410.TRQ_REQ_MIN = true;
-            tx_410.TRQ_REQ_MAX = true;
-        }
-    } else {
-        tx_410.TRQ_REQ_MIN = false;
-        tx_410.TRQ_REQ_MAX = false;
-        tx_410.TRQ_REQ_TRQ = 0;
-    }
+    CustomCanTorqueRequestFields fields = customcan_build_torque_request(control_type, limit_type, amount_nm);
+    tx_410.TRQ_REQ_CTRL0 = fields.ctrl0;
+    tx_410.TRQ_REQ_CTRL1 = fields.ctrl1;
+    tx_410.TRQ_REQ_MIN = fields.min;
+    tx_410.TRQ_REQ_MAX = fields.max;
+    tx_410.TRQ_REQ_TRQ = fields.raw_torque;
 }
 
 void CustomCan::set_garage_shift_state(bool enable, bool to_d) {

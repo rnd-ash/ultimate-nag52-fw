@@ -107,8 +107,8 @@ SPEAKER_POST_CODE setup_tcm()
                             if (nullptr != shifter)
                             {
                                 // init the CAN module
-                                egs_can_hal->~EgsBaseCan();
-                                free(egs_can_hal); // Delete fallback CAN
+                                delete egs_can_hal; // Delete fallback CAN
+                                egs_can_hal = nullptr;
                                 switch (VEHICLE_CONFIG.egs_can_type)
                                 {
                                 case 1:

@@ -13,11 +13,11 @@
 
 #include <stdint.h>
     
-#define BS_200_EGS52_CAN_ID 0x0200
-#define BS_208_EGS52_CAN_ID 0x0208
-#define BS_270_EGS52_CAN_ID 0x0270
-#define BS_300_EGS52_CAN_ID 0x0300
-#define BS_328_EGS52_CAN_ID 0x0328
+#define BS_200_EGS52_CAN_ID (0x0200)
+#define BS_208_EGS52_CAN_ID (0x0208)
+#define BS_270_EGS52_CAN_ID (0x0270)
+#define BS_300_EGS52_CAN_ID (0x0300)
+#define BS_328_EGS52_CAN_ID (0x0328)
 
 /** brake light switch */
 enum class BS_200h_BLS_EGS52 : uint16_t {

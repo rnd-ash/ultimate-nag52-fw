@@ -178,7 +178,8 @@ uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
             uint8_t dki = hfm210.DKI;
             if (VEHICLE_CONFIG.throttlevalve_maxopeningangle > dki)
             {
-                result = (uint8_t)(100.F * (((float)dki) / ((float)VEHICLE_CONFIG.throttlevalve_maxopeningangle)));
+                float pedal_percent = 100.0f * ((float)dki / (float)VEHICLE_CONFIG.throttlevalve_maxopeningangle);
+                result = TCU_ROUND_TO_U8_SAT(pedal_percent);
             }
         }
     }
@@ -268,7 +269,8 @@ int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
     {
         if (!hfm608.TFM_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_MOT)) * temperature_factor) + temperature_offset);
+            float coolant_temp = ((float)hfm608.T_MOT * temperature_factor) + temperature_offset;
+            result = TCU_ROUND_TO_I16_SAT(coolant_temp);
         }
     }
     return result;
@@ -288,7 +290,8 @@ int16_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
     {
         if (!hfm608.TFA_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_LUFT)) * temperature_factor) + temperature_offset);
+            float iat_temp = ((float)hfm608.T_LUFT * temperature_factor) + temperature_offset;
+            result = TCU_ROUND_TO_I16_SAT(iat_temp);
         }
     }
     return result;

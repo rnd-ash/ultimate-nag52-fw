@@ -71,9 +71,9 @@ public:
      */
     void set_target_tcc_pressure(uint16_t targ);
 
-    uint16_t get_max_solenoid_pressure();
+    static uint16_t get_max_solenoid_pressure();
 
-    uint16_t get_spring_pressure(Clutch c);
+    static uint16_t get_spring_pressure(Clutch c);
 
     uint16_t get_calc_line_pressure(void) const;
     uint16_t get_calc_inlet_pressure(void) const;
@@ -95,11 +95,11 @@ public:
      /**
      * Friction coefficient for releasing clutches (Releasing away)
      */
-    float release_coefficient() const;
+    static float release_coefficient();
      /**
      * Friction coefficient for static clutches (Held in place)
      */
-    float stationary_coefficient() const;
+    static float stationary_coefficient();
 
     /**
      * Force SPC solenoid to turn off
@@ -107,6 +107,8 @@ public:
     void set_spc_p_max(void);
 
     PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
+    PressureManager(const PressureManager&) = delete;
+    PressureManager& operator=(const PressureManager&) = delete;
 
     /**
      * @brief Get the shift data object for the requested gear change
@@ -134,9 +136,9 @@ public:
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
     StoredMap* get_low_fill_pressure_map(void);
-    uint16_t get_shift_regulator_pressure(void);
+    static uint16_t get_shift_regulator_pressure(void);
 
-    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
+    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const;
 
     void register_shift_pressure_data(ShiftPressures* p) {
         this->ptr_shift_pressures = p;
@@ -181,7 +183,7 @@ private:
     uint16_t calculated_inlet_pressure = 0;
 
     // Shift circuit currently open
-    ShiftCircuit currently_open_circuit;
+    ShiftCircuit currently_open_circuit = ShiftCircuit::None;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* fill_time_map;

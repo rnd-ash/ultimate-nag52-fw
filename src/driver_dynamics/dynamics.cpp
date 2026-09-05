@@ -22,6 +22,6 @@ void DeltaTracker::reset() {
     this->tracked_delta = 0;
 }
 
-int32_t DeltaTracker::get_delta() {
+int32_t DeltaTracker::get_delta() const {
     return this->tracked_delta/100;
 }

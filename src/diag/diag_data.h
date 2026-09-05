@@ -20,30 +20,30 @@
 // The following IDs are already taken by the OEM EGS52/53 module
 // 0F,30-60,7A,A0,B0,B1,C0-C4,D1
 
-#define RLI_MAP_EDITOR      0x19 // See map_editor.cpp
-#define RLI_GEARBOX_SENSORS 0x20 // Sensor data status
-#define RLI_SOLENOID_STATUS 0x21 // Solenoid data status
-#define RLI_CAN_DATA_DUMP   0x22 // Gearbox brain logic status
-#define RLI_SYS_USAGE       0x23 // Brain usage
-#define RLI_TCC_PROGRAM     0x24 // TCC info
-#define RLI_PRESSURES       0x25
-#define RLI_TCU_TIME        0x26
-#define RLI_SHIFT_LIVE      0x27
-#define RLI_FW_HEADER       0x28
+#define RLI_MAP_EDITOR      (0x19) // See map_editor.cpp
+#define RLI_GEARBOX_SENSORS (0x20) // Sensor data status
+#define RLI_SOLENOID_STATUS (0x21) // Solenoid data status
+#define RLI_CAN_DATA_DUMP   (0x22) // Gearbox brain logic status
+#define RLI_SYS_USAGE       (0x23) // Brain usage
+#define RLI_TCC_PROGRAM     (0x24) // TCC info
+#define RLI_PRESSURES       (0x25)
+#define RLI_TCU_TIME        (0x26)
+#define RLI_SHIFT_LIVE      (0x27)
+#define RLI_FW_HEADER       (0x28)
 
-#define RLI_COREDUMP_PART_INFO  0x29 // Coredump size and address
-#define RLI_CURR_SW_PART_INFO   0x2A // Current FW size and address
-#define RLI_NEXT_SW_PART_INFO   0x2B // Current FW size and address
-#define RLI_EMBED_FILE_INFO     0x2C // location and len of EMBED.ZIP
+#define RLI_COREDUMP_PART_INFO  (0x29) // Coredump size and address
+#define RLI_CURR_SW_PART_INFO   (0x2A) // Current FW size and address
+#define RLI_NEXT_SW_PART_INFO   (0x2B) // Current FW size and address
+#define RLI_EMBED_FILE_INFO     (0x2C) // location and len of EMBED.ZIP
 
-#define RLI_CLUTCH_SPEEDS   0x30
-#define RLI_SHIFTING_ALGO   0x31
-#define RLI_DRIVING_DYNAMIC 0x32
+#define RLI_CLUTCH_SPEEDS   (0x30)
+#define RLI_SHIFTING_ALGO   (0x31)
+#define RLI_DRIVING_DYNAMIC (0x32)
 
-#define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length
-#define RLI_SETTINGS_EDIT   0xFC // TCM Configuration (Program settings app)
-#define RLI_EFUSE_CONFIG    0xFD // TCM Configuration (PCB Config in EFUSE)
-#define RLI_TCM_CONFIG      0xFE // TCM configuration (AKA SCN)
+#define RLI_EGS_CAL_LEN     (0xFB) // EGS Calibration structure length
+#define RLI_SETTINGS_EDIT   (0xFC) // TCM Configuration (Program settings app)
+#define RLI_EFUSE_CONFIG    (0xFD) // TCM Configuration (PCB Config in EFUSE)
+#define RLI_TCM_CONFIG      (0xFE) // TCM configuration (AKA SCN)
 // Gearbox sensor struct
 typedef struct {
     uint16_t n2_rpm; // Raw N2 RPM

@@ -13,7 +13,7 @@
 
 #include <stdint.h>
     
-#define WHEELS_300_CUSTOMCAN_CAN_ID 0x0300
+#define WHEELS_300_CUSTOMCAN_CAN_ID (0x0300)
 
 
 
@@ -40,6 +40,7 @@ typedef union {
 
 class ECU_WHEELS {
 	public:
+    ECU_WHEELS() = default;
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
          *

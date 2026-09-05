@@ -11,7 +11,7 @@
 static const uint16_t RLI_31 = 0x31;
 // #define RLI_35 0x35 // 16
 
-#define ROUTINE_EGS_ID_TCC_SOL_TOGGLE 0x33
+#define ROUTINE_EGS_ID_TCC_SOL_TOGGLE (0x33)
 
 
 enum class RecognisedGear : uint8_t {

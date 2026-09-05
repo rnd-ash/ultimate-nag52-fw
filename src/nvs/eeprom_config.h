@@ -99,7 +99,7 @@ namespace EEPROM {
     esp_err_t write_subsystem_settings(const char* key_name, const T* write);
 }
 
-#define NUM_GEARS 5
+#define NUM_GEARS (5)
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;
 extern TCM_EFUSE_CONFIG BOARD_CONFIG;
 extern nvs_handle_t MAP_NVS_HANDLE;

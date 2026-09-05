@@ -37,7 +37,7 @@ class EgsBaseCan {
 
         bool bus_ok() const;
 
-        ~EgsBaseCan();        
+        virtual ~EgsBaseCan();        
         bool begin_task();
         esp_err_t init_state() const;
 
@@ -321,16 +321,25 @@ class EgsBaseCan {
         
         // For diagnostic passive mode
         void enable_normal_msg_transmission() {
+            portENTER_CRITICAL(&this->state_mutex);
             this->send_messages = true;
+            portEXIT_CRITICAL(&this->state_mutex);
         }
 
         // For diagnostic passive mode
         void disable_normal_msg_transmission() {
+            portENTER_CRITICAL(&this->state_mutex);
             this->send_messages = false;
+            portEXIT_CRITICAL(&this->state_mutex);
         }
 
         // For diagnostics
         void register_diag_queue(QueueHandle_t* rx_queue, uint16_t rx_id) {
+            if (rx_queue == nullptr) {
+                this->diag_rx_queue = nullptr;
+                this->diag_rx_id = 0;
+                return;
+            }
             this->diag_rx_queue = rx_queue;
             this->diag_rx_id = rx_id;
         }
@@ -346,9 +355,11 @@ class EgsBaseCan {
             SENSOR_REPORT_EGS_SLAVE sensor_rpt,
             UN52_REPORT_EGS_SLAVE un52_rpt
         ) {
+            portENTER_CRITICAL(&this->state_mutex);
             this->solenoid_slave_resp = sol_rpt;
             this->sensors_slave_resp = sensor_rpt;
             this->un52_slave_resp = un52_rpt;
+            portEXIT_CRITICAL(&this->state_mutex);
         }
 
         Shifter* shifter;
@@ -373,12 +384,13 @@ class EgsBaseCan {
         virtual void on_rx_done(const uint32_t now_ts);
 
         bool send_messages = true;
+        portMUX_TYPE state_mutex;
 
         QueueHandle_t* diag_rx_queue;
         twai_status_info_t can_status;
         esp_err_t can_init_status;
         twai_message_t tx;
-        inline void to_bytes(uint64_t src, uint8_t* dst) {
+        static inline void to_bytes(uint64_t src, uint8_t* dst) {
             for(uint8_t i = 0; i < 8; i++) {
                 dst[7-i] = src & 0xFF;
                 src >>= 8;

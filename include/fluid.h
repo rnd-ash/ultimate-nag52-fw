@@ -14,27 +14,27 @@
 //#define MERCEDES_234_14
 
 #ifdef MERCEDES_236_10
-    #define ATF_KV_40C 34.5
-    #define ATF_KV_100C 7.4
-    #define ATF_VI 189
+    #define ATF_KV_40C (34.5)
+    #define ATF_KV_100C (7.4)
+    #define ATF_VI (189)
 #endif
 
 #ifdef MERCEDES_236_12
-    #define ATF_KV_40C 29
-    #define ATF_KV_100C 6.3
-    #define ATF_VI 179
+    #define ATF_KV_40C (29)
+    #define ATF_KV_100C (6.3)
+    #define ATF_VI (179)
 #endif
 
 #ifdef MERCEDES_236_14
-    #define ATF_KV_40C 29
-    #define ATF_KV_100C 6.5
-    #define ATF_VI 188
+    #define ATF_KV_40C (29)
+    #define ATF_KV_100C (6.5)
+    #define ATF_VI (188)
 #endif
 
 #ifdef MERCEDES_236_15
-    #define ATF_KV_40C 29.6
-    #define ATF_KV_100C 6.0
-    #define ATF_VI 154
+    #define ATF_KV_40C (29.6)
+    #define ATF_KV_100C (6.0)
+    #define ATF_VI (154)
 #endif
 
 #if !defined(ATF_KV_40C) || !defined(ATF_KV_100C)

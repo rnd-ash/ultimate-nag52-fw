@@ -14,17 +14,28 @@
 uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
 esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
-    size_t byte_count = map_element_count*sizeof(int16_t);
-    esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);
+    if (map_name == nullptr || dest == nullptr || map_element_count == 0u) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (map_element_count > (SIZE_MAX / sizeof(int16_t))) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const size_t expected_byte_count = map_element_count * sizeof(int16_t);
+    size_t nvs_byte_count = expected_byte_count;
+    esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &nvs_byte_count);
     if (e == ESP_ERR_NVS_NOT_FOUND && default_map != nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
         // Set default map data
         e = write_nvs_map_data(map_name, default_map, map_element_count);
-        memcpy(dest, default_map, byte_count); // As e would be ESP_OK, the memcpy below won't get executed!
+        memcpy(dest, default_map, expected_byte_count);
+    } else if (e == ESP_OK && nvs_byte_count != expected_byte_count) {
+        // Size mismatch should never be treated as valid for a fixed-size map.
+        e = ESP_ERR_INVALID_SIZE;
     }
     if(e != ESP_OK) {
         if (default_map != nullptr) {
-            memcpy(dest, default_map, byte_count);
+            memcpy(dest, default_map, expected_byte_count);
             e = ESP_OK;
         } else {
             e = ESP_ERR_INVALID_ARG;
@@ -36,6 +47,9 @@ esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const i
 }
 
 esp_err_t EEPROM::check_if_new_fw(bool* dest) {
+    if (dest == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     esp_err_t res = ESP_OK;
     const esp_app_desc_t* now = esp_app_get_description();
     uint8_t sha[32];
@@ -194,6 +208,9 @@ esp_err_t EEPROM::init_eeprom() {
 }
 
 esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
+    if (dest == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     size_t s = sizeof(TCM_CORE_CONFIG);
@@ -232,16 +249,19 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(result));
             } else {
                 ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New SCN  creation OK!");
-                memcpy(dest, &s, sizeof(s));
+                memcpy(dest, &c, sizeof(c));
                 result = ESP_OK;
             }
         }
-        return true;
+        return result;
     }
     return result;
 }
 
 esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
+    if (write == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     nvs_handle_t handle;
     esp_err_t e;
     size_t s = sizeof(TCM_CORE_CONFIG);
@@ -259,6 +279,9 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
 }
 
 esp_err_t EEPROM::ewm_btn_get_saved_profile(uint8_t* dest) {
+    if (dest == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     return nvs_get_u8(handle, NVS_KEY_LAST_PROFILE, dest);

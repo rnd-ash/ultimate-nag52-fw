@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define KOMBI_408_EGS52_CAN_ID 0x0408
-#define KOMBI_412_EGS52_CAN_ID 0x0412
+#define KOMBI_408_EGS52_CAN_ID (0x0408)
+#define KOMBI_412_EGS52_CAN_ID (0x0412)
 
 /** Winter tire maximum speed with 4 bits */
 enum class KOMBI_408h_WRC_EGS52 : uint16_t {

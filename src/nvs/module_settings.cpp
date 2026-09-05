@@ -31,17 +31,17 @@ CRS_MODULE_SETTINGS CRS_CURRENT_SETTINGS = CRS_DEFAULT_SETTINGS;
 
 // Checks and writes the buffer as the setting
 #define CHECK_AND_WRITE_SETTINGS(pfx, buffer_len, buffer) \
-    if (sizeof(pfx##_MODULE_SETTINGS) != buffer_len) { \
+    if (sizeof(pfx##_MODULE_SETTINGS) != (buffer_len)) { \
         return ESP_ERR_INVALID_SIZE; \
     } else { \
-        pfx##_MODULE_SETTINGS settings = *(reinterpret_cast<pfx##_MODULE_SETTINGS*>(buffer)); \
+        pfx##_MODULE_SETTINGS settings = *(reinterpret_cast<pfx##_MODULE_SETTINGS*>((buffer))); \
         pfx##_CURRENT_SETTINGS = settings; \
         return EEPROM::write_subsystem_settings(NVS_KEY_##pfx##_SETTINGS, &pfx##_CURRENT_SETTINGS); \
     } \
 
 #define READ_SETTINGS_TO_BUFFER(pfx, buffer_len_dest, buffer_dest, use_default) \
     const pfx##_MODULE_SETTINGS* ptr = &pfx##_CURRENT_SETTINGS; \
-    if (use_default) { \
+    if ((use_default)) { \
         ptr = &pfx##_DEFAULT_SETTINGS; \
     } \
     uint8_t* dest = static_cast<uint8_t*>(TCU_HEAP_ALLOC(sizeof(pfx##_MODULE_SETTINGS)+1)); \
@@ -51,8 +51,8 @@ CRS_MODULE_SETTINGS CRS_CURRENT_SETTINGS = CRS_DEFAULT_SETTINGS;
     } else { \
         dest[0] = pfx##_MODULE_SETTINGS_SCN_ID; \
         memcpy(&dest[1], ptr, sizeof(pfx##_MODULE_SETTINGS)); \
-        *buffer_len = sizeof(pfx##_MODULE_SETTINGS)+1; \
-        *buffer = dest; \
+        *(buffer_len_dest) = sizeof(pfx##_MODULE_SETTINGS)+1; \
+        *(buffer_dest) = dest; \
         return ESP_OK; \
     } \
 
@@ -105,6 +105,9 @@ esp_err_t ModuleConfiguration::reset_settings(uint8_t idx) {
 }
 
 esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer_len, uint8_t** buffer) {
+    if (buffer_len == nullptr || buffer == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     uint8_t mod_id = module_id & 0b1111111;
     bool use_default = (module_id & BIT(7)) != 0;
     if (mod_id == TCC_MODULE_SETTINGS_SCN_ID) {
@@ -131,6 +134,9 @@ esp_err_t ModuleConfiguration::read_settings(uint8_t module_id, uint16_t* buffer
 }
 
 esp_err_t ModuleConfiguration::write_settings(uint8_t module_id, uint16_t buffer_len, uint8_t* buffer) {
+    if (buffer == nullptr) {
+        return ESP_ERR_INVALID_ARG;
+    }
     if (module_id == TCC_MODULE_SETTINGS_SCN_ID) {
         CHECK_AND_WRITE_SETTINGS(TCC, buffer_len, buffer)
     } else if (module_id == SOL_MODULE_SETTINGS_SCN_ID) {

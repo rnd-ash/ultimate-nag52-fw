@@ -12,7 +12,7 @@
 */
 
 #include <stdint.h>
-#define SHIFT_MAP_SIZE 44
+#define SHIFT_MAP_SIZE (44)
 
 /** All values for the following maps are in input shaft RPM **/
 
@@ -80,30 +80,30 @@ extern const int16_t M_PETROL_DOWNSHIFT_MAP[SHIFT_MAP_SIZE];
 
 // -- FILL TIME --
 
-#define FILL_TIME_MAP_SIZE 5*4 // 4 temp positions, 5 clutch groups
+#define FILL_TIME_MAP_SIZE ((5) * (4)) // 4 temp positions, 5 clutch groups
 
 extern const int16_t SMALL_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 extern const int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE];
 
 // -- PWM maps --
 
-#define TCC_PWM_MAP_SIZE 7*5 // 5 temp positions, 7 pressure readings
+#define TCC_PWM_MAP_SIZE ((7) * (5)) // 5 temp positions, 7 pressure readings
 
 extern const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE];
 
 
 // -- Hold phase pressures --
-#define FILL_PRESSURE_MAP_SIZE 6 // 6 clutches (Including B3 for reverse), 4 load points
+#define FILL_PRESSURE_MAP_SIZE (6) // 6 clutches (Including B3 for reverse), 4 load points
 
 extern const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
 
-#define LOW_FILL_PRESSURE_MAP_SIZE 5 // Only for forward clutches (K1, K2, K3, B1, B2)
+#define LOW_FILL_PRESSURE_MAP_SIZE (5) // Only for forward clutches (K1, K2, K3, B1, B2)
 
 extern const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE];
 
 // -- Target Shift time maps -- 
 
-#define SHIFT_TIME_MAP_SIZE 30
+#define SHIFT_TIME_MAP_SIZE (30)
 
 extern const int16_t M_UPSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 extern const int16_t M_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
@@ -125,14 +125,14 @@ extern const int16_t R_DOWNSHIFT_TIME_MAP[SHIFT_TIME_MAP_SIZE];
 
 /** TCC Slip maps */
 // 1000 - 6000RPM (Non linear scale), 0-100% Pedal, step of 10%
-#define TCC_RPM_TARGET_MAP_SIZE 11*8
+#define TCC_RPM_TARGET_MAP_SIZE ((11) * (8))
 extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
 
 /**
  * Adaptation subsystem maps
 */
 // 1 load points, 8 shifts
-#define GEAR_ADAPT_MAP_SIZE 8
+#define GEAR_ADAPT_MAP_SIZE (8)
 
 extern const int16_t CLUTCH_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
@@ -143,7 +143,7 @@ extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --
-#define TORQUE_MAP_SIZE 33u
+#define TORQUE_MAP_SIZE (33u)
 extern const int16_t ENGINE_TORQUE_MAP[TORQUE_MAP_SIZE];
 extern const int16_t ENGINE_TORQUE_HEADERS_MAP[TORQUE_MAP_SIZE];
 

@@ -13,10 +13,10 @@ class ShifterIsm : public Shifter
 public:
 	ShifterIsm(TCM_CORE_CONFIG* vehicle_config, ETS_MODULE_SETTINGS* shifter_settings);
 	// For special handling
-	void update(Egs53Can* can);
+	static void update(Egs53Can* can);
 	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
-	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
+	static void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
 	DiagProfileInputState diag_get_profile_input() override;
 	ShifterStyle get_shifter_type() override;
 private:

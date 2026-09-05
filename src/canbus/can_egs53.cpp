@@ -2,6 +2,7 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "can_egs_scaling_logic.h"
 #include "egs_calibration/calibration_structs.h"
 #include "shifter/shifter_ism.h"
 #include "shifter/shifter_ewm.h"
@@ -13,7 +14,7 @@ Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     for (int i = 0; i < 0x100; i++) {
             uint8_t _crc = i;
             for (uint8_t bit = 0; bit < 8; bit++) {
-                _crc = (_crc & 0x80) ? ((_crc << 1) ^ 0x1D) : (_crc << 1);
+                _crc = ((_crc & 0x80u) != 0u) ? (uint8_t)((_crc << 1) ^ 0x1Du) : (uint8_t)(_crc << 1);
             }
             crcTable[i] = _crc;
     }
@@ -46,7 +47,7 @@ uint16_t Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
 {
 	WHL_STAT2_EGS53 whl_stat;
     uint16_t ret = UINT16_MAX;
-    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
+    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms * 1000u, &whl_stat)) {
         if (whl_stat.WhlDir_FR_Stat != WHL_STAT2_WhlDir_FR_Stat_EGS53::SNA) {
             ret = whl_stat.WhlRPM_FR;
         }
@@ -57,7 +58,7 @@ uint16_t Egs53Can::get_front_right_wheel(const uint32_t expire_time_ms)
 uint16_t Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     WHL_STAT2_EGS53 whl_stat;
     uint16_t ret = UINT16_MAX;
-    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
+    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms * 1000u, &whl_stat)) {
         if (whl_stat.WhlDir_FL_Stat != WHL_STAT2_WhlDir_FL_Stat_EGS53::SNA) {
             ret = whl_stat.WhlRPM_FL;
         }
@@ -68,7 +69,7 @@ uint16_t Egs53Can::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
 uint16_t Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
     uint16_t ret = UINT16_MAX;
-    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
+    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms * 1000u, &whl_stat)) {
         if (whl_stat.WhlDir_RR_Stat != WHL_STAT2_WhlDir_RR_Stat_EGS53::SNA) {
             ret = whl_stat.WhlRPM_RR;
         }
@@ -79,7 +80,7 @@ uint16_t Egs53Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
 uint16_t Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
     WHL_STAT2_EGS53 whl_stat;
     uint16_t ret = UINT16_MAX;
-    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms*1000, &whl_stat)) {
+    if (this->ecm_ecu.get_WHL_STAT2(GET_CLOCK_TIME(), expire_time_ms * 1000u, &whl_stat)) {
         if (whl_stat.WhlDir_RL_Stat != WHL_STAT2_WhlDir_RL_Stat_EGS53::SNA) {
             ret = whl_stat.WhlRPM_RL;
         }
@@ -89,7 +90,7 @@ uint16_t Egs53Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
 
 ShifterPosition Egs53Can::internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) {
     SBW_RS_ISM_EGS53 tslm;
-    if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms*1000, &tslm)) {
+    if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms * 1000u, &tslm)) {
         switch (tslm.TSL_Posn_ISM) {
             case SBW_RS_ISM_TSL_Posn_ISM_EGS53::D:
                 return ShifterPosition::D;
@@ -127,7 +128,7 @@ bool Egs53Can::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
 
 bool Egs53Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
     ENG_RS3_PT_EGS53 eng_rs3;
-    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &eng_rs3)) {
+    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms * 1000u, &eng_rs3)) {
         return eng_rs3.KickDnSw_Psd;
     }
     return false;
@@ -135,7 +136,7 @@ bool Egs53Can::get_kickdown(const uint32_t expire_time_ms) { // TODO
 
 uint8_t Egs53Can::get_pedal_value(const uint32_t expire_time_ms) {
     ENG_RS3_PT_EGS53 eng_rs3;
-    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &eng_rs3)) {
+    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms * 1000u, &eng_rs3)) {
         return eng_rs3.AccelPdlPosn_Raw; // Use RAW position, not 'modified' value from ECM!
     }
     return 0;
@@ -168,11 +169,11 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
         // Conversion
         int static_converted = sta;
         int tmp = esp;
-        int driver_converted = static_converted;
+        int driver_converted = 0;
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
-        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+        if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
             tmp = MIN(esp, ret.m_max);
         }
         if (tmp <= 0) {
@@ -208,7 +209,7 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
 PaddlePosition Egs53Can::get_paddle_position(const uint32_t expire_time_ms) {
     SBW_RQ_SCCM_EGS53 sbw_rq;
     PaddlePosition ret = PaddlePosition::SNV;
-    if (this->ecm_ecu.get_SBW_RQ_SCCM(GET_CLOCK_TIME(), expire_time_ms*1000, &sbw_rq)) {
+    if (this->ecm_ecu.get_SBW_RQ_SCCM(GET_CLOCK_TIME(), expire_time_ms * 1000u, &sbw_rq)) {
         switch(sbw_rq.StW_Sw_Stat3) {
             case SBW_RQ_SCCM_StW_Sw_Stat3_EGS53::MINUS: // Minus
                 ret = PaddlePosition::Minus;
@@ -232,7 +233,7 @@ PaddlePosition Egs53Can::get_paddle_position(const uint32_t expire_time_ms) {
 int16_t Egs53Can::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
-    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms*1000, &ecm_a1)) {
+    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms * 1000u, &ecm_a1)) {
         if (ecm_a1.EngCoolTemp != UINT8_MAX) {
             res = ecm_a1.EngCoolTemp - 40;
         }
@@ -243,7 +244,7 @@ int16_t Egs53Can::get_engine_coolant_temp(const uint32_t expire_time_ms) {
 int16_t Egs53Can::get_engine_oil_temp(const uint32_t expire_time_ms) { // TODO
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
-    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms*1000, &ecm_a1)) {
+    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms * 1000u, &ecm_a1)) {
         if (ecm_a1.EngOilTemp != UINT8_MAX) {
             res = ecm_a1.EngOilTemp - 40;
         }
@@ -254,7 +255,7 @@ int16_t Egs53Can::get_engine_oil_temp(const uint32_t expire_time_ms) { // TODO
 int16_t Egs53Can::get_engine_iat_temp(const uint32_t expire_time_ms) {
     ECM_A1_EGS53 ecm_a1;
     uint16_t res = INT16_MAX;
-    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms*1000, &ecm_a1)) {
+    if (this->ecm_ecu.get_ECM_A1(GET_CLOCK_TIME(), expire_time_ms * 1000u, &ecm_a1)) {
         if (ecm_a1.IntkAirTemp != UINT8_MAX) {
             res = ecm_a1.IntkAirTemp - 40;
         }
@@ -264,7 +265,7 @@ int16_t Egs53Can::get_engine_iat_temp(const uint32_t expire_time_ms) {
 
 uint16_t Egs53Can::get_engine_rpm(const uint32_t expire_time_ms) {
     ENG_RS3_PT_EGS53 eng_rs3;
-    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &eng_rs3)) {
+    if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms * 1000u, &eng_rs3)) {
         return eng_rs3.EngRPM;
     }
     return UINT16_MAX; // UNDEFINED
@@ -277,7 +278,7 @@ bool Egs53Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
 bool Egs53Can::get_profile_btn_press(const uint32_t expire_time_ms) {
     bool result = false;
     SBW_RS_ISM_EGS53 tslm;
-    if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms*10000, &tslm)) {
+    if (this->tslm_ecu.get_SBW_RS_ISM(GET_CLOCK_TIME(), expire_time_ms * 10000u, &tslm)) {
         result = tslm.TxDrvProgSw_Psd_V3;
     }
     return result;
@@ -585,11 +586,7 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
-    if (ratio == -1) {
-        eng_rq2_tcm.EngWhlTrqRatio_TCM = 0; // Implausible
-    } else {
-        eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
-    }
+    eng_rq2_tcm.EngWhlTrqRatio_TCM = egs53_encode_wheel_torque_multi_factor(ratio);
 }
 
 /**
@@ -598,6 +595,9 @@ void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
  * in the 8th byte in the frame
  */
 void calc_crc_in_place(uint8_t* buffer) {
+    if (buffer == nullptr) {
+        return;
+    }
     // assume len = 7
     unsigned long crc;
     int i;
@@ -621,6 +621,9 @@ void calc_crc_in_place(uint8_t* buffer) {
 }
 
 inline void to_bytes(uint64_t src, uint8_t* dst) {
+    if (dst == nullptr) {
+        return;
+    }
     for(uint8_t i = 0; i < 8; i++) {
         dst[7-i] = src & 0xFF;
         src >>= 8;

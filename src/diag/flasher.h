@@ -7,24 +7,24 @@
 #include "kwp_utils.h"
 #include "esp_ota_ops.h"
 
-#define CHUNK_SIZE_USB 4093 // 1024 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
-#define CHUNK_SIZE_CAN 254
+#define CHUNK_SIZE_USB (4093) // 1024 byte chunks from KWP get sent to OTA (1 extra byte for block counter)
+#define CHUNK_SIZE_CAN (254)
 
 static_assert(CHUNK_SIZE_USB+2 <= DIAG_CAN_MAX_SIZE);
 static_assert(CHUNK_SIZE_CAN+2 <= DIAG_CAN_MAX_SIZE);
 
-#define FLASH_CHECK_STATUS_OK 0x00
-#define FLASH_CHECK_STATUS_INVALID 0x01
+#define FLASH_CHECK_STATUS_OK (0x00)
+#define FLASH_CHECK_STATUS_INVALID (0x01)
 
-#define MEM_REGION_OTA      0x000000
-#define MEM_REGION_COREDUMP 0x310000
+#define MEM_REGION_OTA      (0x000000)
+#define MEM_REGION_COREDUMP (0x310000)
 
-#define UPDATE_TYPE_OTA 0x00 // Read and write
+#define UPDATE_TYPE_OTA (0x00) // Read and write
 
-#define DATA_DIR_UPLOAD 0x02
-#define DATA_DIR_DOWNLOAD 0x01
+#define DATA_DIR_UPLOAD (0x02)
+#define DATA_DIR_DOWNLOAD (0x01)
 
-#define FMT_OTA 0xF0
+#define FMT_OTA (0xF0)
 
 class Flasher {
     public:

@@ -4,7 +4,7 @@
 #include "../../egs51_ecus/src/GS51.h"
 #include "../../egs51_ecus/src/MS51.h"
 #include "../../egs51_ecus/src/ESP51.h"
-#include "../../egs52_ecus/src/EWM.h"
+#include "../../egs51_ecus/src/EWM51.h"
 #include "shifter/shifter.h"
 
 class Egs51Can: public EgsBaseCan {
@@ -48,6 +48,7 @@ class Egs51Can: public EgsBaseCan {
         // Returns true if engine is cranking
         bool get_is_starting(const uint32_t expire_time_ms) override;
         bool get_profile_btn_press(const uint32_t expire_time_ms) override;
+        ProfileSwitchPos get_profile_switch_pos(const uint32_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
@@ -97,7 +98,7 @@ class Egs51Can: public EgsBaseCan {
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
-        ECU_EWM ewm = ECU_EWM();        
+        ECU_EWM51 ewm = ECU_EWM51();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
         int16_t req_static_torque_delta = 0;

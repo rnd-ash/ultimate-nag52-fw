@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define UN52_400_CUSTOMCAN_CAN_ID 0x0400
-#define UN52_410_CUSTOMCAN_CAN_ID 0x0410
+#define UN52_400_CUSTOMCAN_CAN_ID (0x0400)
+#define UN52_410_CUSTOMCAN_CAN_ID (0x0410)
 
 /** Target gear */
 enum class UN52_400h_T_GEAR_CUSTOMCAN : uint16_t {
@@ -124,6 +124,7 @@ typedef union {
 
 class ECU_UN52 {
 	public:
+	ECU_UN52() = default;
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
          *

@@ -13,9 +13,9 @@
 
 #include <stdint.h>
     
-#define GS_218_EGS52_CAN_ID 0x0218
-#define GS_338_EGS52_CAN_ID 0x0338
-#define GS_418_EGS52_CAN_ID 0x0418
+#define GS_218_EGS52_CAN_ID (0x0218)
+#define GS_338_EGS52_CAN_ID (0x0338)
+#define GS_418_EGS52_CAN_ID (0x0418)
 
 /** Goal Gang */
 enum class GS_218h_GZC_EGS52 : uint16_t {

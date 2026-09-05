@@ -16,7 +16,7 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     this->name = name;
     this->adc_channel = read_channel;
     this->pwm_phase_period_ms = phase_duration_ms;
-    esp_err_t ret = ESP_OK;
+    this->ready = ESP_OK;
 
     const ledc_channel_config_t channel_cfg = {
         .gpio_num = pwm_pin,
@@ -41,21 +41,30 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     };
 
     // Set the timer configuration
-    ESP_GOTO_ON_ERROR(ledc_timer_config(&SOLENOID_TIMER_CFG), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
+    this->ready = ledc_timer_config(&SOLENOID_TIMER_CFG);
+    if (this->ready != ESP_OK) {
+        ESP_LOGE("SOLENOID", "Solenoid %s timer init failed: %s", name, esp_err_to_name(this->ready));
+        return;
+    }
     // Set PWM channel configuration
-    ESP_GOTO_ON_ERROR(ledc_channel_config(&channel_cfg), set_err, "SOLENOID", "Failed to set LEDC channel for solenoid %s", name);
+    this->ready = ledc_channel_config(&channel_cfg);
+    if (this->ready != ESP_OK) {
+        ESP_LOGE("SOLENOID", "Failed to set LEDC channel for solenoid %s: %s", name, esp_err_to_name(this->ready));
+        return;
+    }
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", "Solenoid %s init OK!", name);
-set_err:
-    this->ready = ret;
 }
 
 uint16_t PwmSolenoid::get_current() const {
     uint32_t raw = this->current_adc_reading;
-    uint16_t ret = 0;
+    int mv = 0;
     if (0 != raw) {
-        adc_cali_raw_to_voltage(adc1_cal, raw, reinterpret_cast<int*>(&ret));
+        adc_cali_raw_to_voltage(adc1_cal, raw, &mv);
     }
-    return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
+    if (mv < 0) {
+        mv = 0;
+    }
+    return (uint16_t)mv * pcb_gpio_matrix->sensor_data.current_sense_multi;
 }
 
 uint16_t PwmSolenoid::get_pwm_raw() const
@@ -64,7 +73,7 @@ uint16_t PwmSolenoid::get_pwm_raw() const
 }
 
 SolenoidTestReading PwmSolenoid::get_full_on_current_reading() {
-#define NUM_SAMPLES 50
+#define NUM_SAMPLES (50)
     uint32_t v_total = 0;
     uint32_t c_total = 0;
     ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, 4096);

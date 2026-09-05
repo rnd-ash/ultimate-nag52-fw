@@ -13,7 +13,7 @@
 
 #include <stdint.h>
     
-#define EWM_230_CUSTOMCAN_CAN_ID 0x0230
+#define EWM_230_CUSTOMCAN_CAN_ID (0x0230)
 
 /** gear selector lever position (NAG only) */
 enum class EWM_230h_WHC_CUSTOMCAN : uint16_t {

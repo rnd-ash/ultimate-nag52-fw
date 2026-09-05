@@ -1,5 +1,9 @@
 #include "tcu_maths.h"
 
+float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max) {
+    return interpolate_float(raw, new_min, new_max, raw_min, raw_max, InterpType::Linear);
+}
+
 float interpolate_float(float raw, float new_min, float new_max, float raw_min, float raw_max, InterpType interp_type) {
     // Short cuts for cases where we are > or < than bounds
     float ret;

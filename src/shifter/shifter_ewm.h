@@ -11,6 +11,8 @@ class ShifterEwm : public Shifter
 {
 public:
 	ShifterEwm(TCM_CORE_CONFIG* vehicle_config, ETS_MODULE_SETTINGS* shifter_settings);
+	ShifterEwm(const ShifterEwm&) = delete;
+	ShifterEwm& operator=(const ShifterEwm&) = delete;
 	ShifterPosition get_shifter_position(const uint32_t expire_time_ms) override;
 	AbstractProfile* get_profile(const uint32_t expire_time_ms) override;
 	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);

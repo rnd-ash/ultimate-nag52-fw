@@ -72,7 +72,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
-        delete[] this->tcc_pwm_map;
+        delete this->tcc_pwm_map;
+        this->tcc_pwm_map = nullptr;
     }
 
     /** Pressure fill time map **/
@@ -88,7 +89,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = LARGE_NAG_FILL_TIME_MAP;
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
-        delete[] this->fill_time_map;
+        delete this->fill_time_map;
+        this->fill_time_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -105,7 +107,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_PRESSURE_MAP;
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
     if (this->fill_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_pressure_map;
+        delete this->fill_pressure_map;
+        this->fill_pressure_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -121,7 +124,8 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
     if (this->fill_low_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_low_pressure_map;
+        delete this->fill_low_pressure_map;
+        this->fill_low_pressure_map = nullptr;
     }
 
     // Init MPC and SPC req pressures

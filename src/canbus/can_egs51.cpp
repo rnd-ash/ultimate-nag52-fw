@@ -6,6 +6,7 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "egs_calibration/calibration_structs.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
@@ -15,6 +16,32 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
     this->gs418.raw = ~0;
+
+    this->gs418.FMRAD = 1.0;
+    this->gs418.KD = false;
+    this->gs418.SCHALT = false; // Auto is 0, manual is 1
+    this->gs418.ESV_BRE = true; // When switching on
+    this->gs418.FMRAD = 0x7FF;
+    // Fix for W220
+    this->gs418.WHST = GS_418h_WHST_EGS51::P;
+
+    // Set profile to N/A for now
+    this->set_drive_profile(GearboxProfile::Underscore);
+    // Set no message
+    this->set_display_msg(GearboxMessage::None);
+    if (VEHICLE_CONFIG.is_four_matic != 0) {
+        this->gs418.ALLRAD = true;
+    } else {
+        this->gs418.ALLRAD = false;
+    }
+    this->gs418.FRONT = false; // Primary rear wheel drive
+    this->gs418.CVT = false; // Not CVT gearbox]
+    if (MECH_PTR->gb_ty == 0) {
+        this->gs418.MECH = GS_418h_MECH_EGS51::GROSS;
+    } else {
+        this->gs418.MECH = GS_418h_MECH_EGS51::KLEIN;
+    }
+
 }
 
 uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -369,6 +396,26 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
         this->gs218.PN = true;
     } else {
         this->gs218.PN = false;
+    }
+
+    switch (pos) {
+        case ShifterPosition::P:
+            gs418.WHST = GS_418h_WHST_EGS51::P;
+            break;
+        case ShifterPosition::R:
+            gs418.WHST = GS_418h_WHST_EGS51::R;
+            break;
+        case ShifterPosition::N:
+            gs418.WHST = GS_418h_WHST_EGS51::N;
+            break;
+        case ShifterPosition::D:
+            gs418.WHST = GS_418h_WHST_EGS51::D;
+            break;
+        case ShifterPosition::SignalNotAvailable:
+            gs418.WHST = GS_418h_WHST_EGS51::SNV;
+            break;
+        default: 
+            break;
     }
 }
 

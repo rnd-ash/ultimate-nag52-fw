@@ -1149,7 +1149,7 @@ void Gearbox::controller_loop()
                 this->sensor_data.gear_ratio = 0.0;
                 this->sensor_data.targ_gear_ratio = 0.0;
             }
-            if (!shifting && !stationary && sensor_data.output_rpm > 100)
+            if (!shifting && sensor_data.output_rpm > 100)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {

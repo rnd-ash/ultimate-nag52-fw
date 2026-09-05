@@ -65,6 +65,8 @@ public:
         const int16_t* def_upshift_time_data,
         const int16_t* def_downshift_time_data
     );
+    AbstractProfile(const AbstractProfile&) = delete;
+    AbstractProfile& operator=(const AbstractProfile&) = delete;
     // static AbstractProfile *profile_from_auto_ty(AutoProfile prof);
     virtual void update(SensorData* sensors) {};
     virtual GearboxProfile get_profile(void) const = 0;

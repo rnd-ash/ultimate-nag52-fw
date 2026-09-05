@@ -90,8 +90,8 @@ protected:
     int16_t timer_emergency = -1;
 
     // EGS COMPATIBILITY
-    int centrifugal_force_on_clutch;
-    int centrifugal_force_off_clutch;
+    int centrifugal_force_on_clutch = 0;
+    int centrifugal_force_off_clutch = 0;
 
     // EGS compatibility vars (Makes it easier to translate original EGS assembly)
     int p_apply_clutch = 0;
@@ -100,14 +100,14 @@ protected:
     int trq_at_release_clutch = 0;
     int mpc_trq_reducer = 0;
     int trq_adder = 0;
-    uint16_t abs_input_trq;
+    uint16_t abs_input_trq = 0;
 
-    int mod_sol_pressure;
-    int shift_sol_pressure;
-    uint8_t phase_id;
+    int mod_sol_pressure = 0;
+    int shift_sol_pressure = 0;
+    uint8_t phase_id = 0;
 
-    PressureManager* pm;
-    SensorData* sd;
+    PressureManager* pm = nullptr;
+    SensorData* sd = nullptr;
 
     short momentum_ctrl = 0;
     short momentum_ctrl_filtered = 0;
@@ -146,7 +146,7 @@ protected:
     uint16_t calc_low_filling_p();
 
     void adaptation_step();
-    uint8_t adapt_p_map_idx();
+    uint8_t adapt_p_map_idx() const;
 
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;

@@ -8,7 +8,7 @@
 #include "common_structs_ops.h"
 #include "egs_calibration/calibration_structs.h"
 
-#define LOAD_SIZE TCC_SLIP_ADAPT_MAP_SIZE/5
+#define LOAD_SIZE ((TCC_SLIP_ADAPT_MAP_SIZE) / (5))
 
 const int16_t rpm_map_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
 const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
@@ -30,17 +30,20 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     const int16_t adapt_map_y_headers[5] = {1,2,3,4,5}; // Gear
     this->tcc_slip_map = new StoredMap(NVS_KEY_TCC_ADAPT_SLIP_MAP, TCC_SLIP_ADAPT_MAP_SIZE, adapt_map_x_headers, adapt_map_y_headers, LOAD_SIZE, 5, TCC_SLIP_ADAPT_MAP);
     if (this->tcc_slip_map->init_status() != ESP_OK) {
-        delete[] this->tcc_slip_map;
+        delete this->tcc_slip_map;
+        this->tcc_slip_map = nullptr;
     }
 
     this->tcc_lock_map = new StoredMap(NVS_KEY_TCC_ADAPT_LOCK_MAP, TCC_SLIP_ADAPT_MAP_SIZE, adapt_map_x_headers, adapt_map_y_headers, LOAD_SIZE, 5, TCC_LOCK_ADAPT_MAP);
     if (this->tcc_lock_map->init_status() != ESP_OK) {
-        delete[] this->tcc_lock_map;
+        delete this->tcc_lock_map;
+        this->tcc_lock_map = nullptr;
     }
 
     this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
     if (this->slip_rpm_target_map->init_status() != ESP_OK) {
-        delete[] this->slip_rpm_target_map;
+        delete this->slip_rpm_target_map;
+        this->slip_rpm_target_map = nullptr;
     }
 
     this->init_tables_ok = (this->tcc_slip_map != nullptr) && (this->tcc_lock_map != nullptr) && (this->slip_rpm_target_map != nullptr);
@@ -75,7 +78,7 @@ void set_adapt_cell(int16_t* dest, GearboxGear gear, uint8_t load_idx, int16_t o
     }
 }
 
-int16_t get_cell_value(int16_t* dest, GearboxGear gear, uint8_t load_idx) {
+int16_t get_cell_value(const int16_t* dest, GearboxGear gear, uint8_t load_idx) {
     uint8_t gear_int = (uint8_t)gear;
     if (gear_int == 0 || gear_int > 5) {
         return 0;
@@ -88,7 +91,10 @@ int16_t get_cell_value(int16_t* dest, GearboxGear gear, uint8_t load_idx) {
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     int slip_now = abs((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
     int motor_torque = sensors->converted_torque;
-    int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
+    int load_as_percent = 0;
+    if (this->rated_max_torque != 0u) {
+        load_as_percent = abs(((int)motor_torque*100) / (int)this->rated_max_torque);
+    }
     this->engine_load_percent = load_as_percent;
 
     // Adapt sample size based on ATF temp
@@ -159,7 +165,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 slipping_rpm_targ = MAX(SLIP_V_WHEN_LOCKED, slipping_rpm_targ);
             }
         }
-        slipping_rpm_targ = slipping_rpm_targ;
         if (is_shifting) {
             // Check previous target
             bool open_tcc = false;
@@ -210,8 +215,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     this->target_tcc_state = targ;
     this->slip_target = MIN(slipping_rpm_targ, SLIP_V_WHEN_OPEN);
 
-    this->engine_output_joule = sensors->engine_rpm * (abs(motor_torque)) / 9.5488;
-    if (likely(sensors->engine_rpm >= sensors->input_rpm)) {
+    this->engine_output_joule = sensors->engine_rpm * (abs(motor_torque)) / 9.5488f;
+    if (likely(sensors->engine_rpm >= sensors->input_rpm) && sensors->engine_rpm != 0u) {
         float rpm_as_percent = (float)sensors->input_rpm / (float)sensors->engine_rpm;
         this->absorbed_power_joule = this->engine_output_joule - (this->engine_output_joule * rpm_as_percent);
     } else {
@@ -283,7 +288,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             this->tcc_commanded_pressure = 0;
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
             if (is_adaptable && this->target_tcc_state == this->current_tcc_state) {
-                int slip_min = MAX(slip_target * 0.8, SLIP_V_UNDERLOCKED);
+                int slip_min = MAX(slip_target * 0.8f, SLIP_V_UNDERLOCKED);
                 if (load_cell != 0xFF && slip_adaptation > slip_target) {
                     int adder = interpolate_float(slip_adaptation, 1, 100, slip_target, slip_target*2, InterpType::Linear);
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, adder);
@@ -345,7 +350,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
 }
 
-InternalTccState TorqueConverter::__get_internal_state(void) {
+InternalTccState TorqueConverter::__get_internal_state(void) const {
     return this->current_tcc_state;
 }
 
@@ -386,15 +391,15 @@ void TorqueConverter::set_stationary() {
     this->was_stationary = true;
 }
 
-int16_t TorqueConverter::get_slip_filtered() {
+int16_t TorqueConverter::get_slip_filtered() const {
     return this->tcc_slip_filtered/100;
 }
 
-uint8_t TorqueConverter::get_current_state() {
+uint8_t TorqueConverter::get_current_state() const {
     return (uint8_t)this->current_tcc_state;
 }
 
-uint8_t TorqueConverter::get_target_state() {
+uint8_t TorqueConverter::get_target_state() const {
     return (uint8_t)this->target_tcc_state;
 }
 
@@ -402,11 +407,11 @@ uint8_t TorqueConverter::get_can_req_bits() {
     return  0;
 }
 
-uint16_t TorqueConverter::get_current_pressure() {
+uint16_t TorqueConverter::get_current_pressure() const {
     return this->tcc_actual_pressure/100;
 }
 
-uint16_t TorqueConverter::get_target_pressure() {
+uint16_t TorqueConverter::get_target_pressure() const {
     return this->tcc_commanded_pressure;
 }
 

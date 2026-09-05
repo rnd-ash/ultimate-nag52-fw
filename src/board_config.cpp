@@ -26,13 +26,13 @@ BoardV11GpioMatrix::BoardV11GpioMatrix() {
     this->tcc_sense  = gpio_num_t::GPIO_NUM_33; // Torque converter solenoid(Current feedback)
     this->tcc_pwm    = gpio_num_t::GPIO_NUM_13; // Torque converter solenoid (PWM output)
     
-    #define ADC_CHANNEL_VBATT_V12 adc2_channel_t::ADC2_CHANNEL_8
-    #define ADC_CHANNEL_ATF_V12 adc2_channel_t::ADC2_CHANNEL_7
+    #define ADC_CHANNEL_VBATT_V12 (adc2_channel_t::ADC2_CHANNEL_8)
+    #define ADC_CHANNEL_ATF_V12 (adc2_channel_t::ADC2_CHANNEL_7)
     this->sensor_data = SensorFuncData {
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_9,
         .atf_r2_resistance = 10000,
-        .current_sense_multi = 2.0,
+        .current_sense_multi = 2.0f,
     };
 }
 
@@ -67,7 +67,7 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
         .adc_batt     = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf      = adc_channel_t::ADC_CHANNEL_7,
         .atf_r2_resistance = 2000,
-        .current_sense_multi = 1.0,
+        .current_sense_multi = 1.0f,
     };
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 
@@ -116,7 +116,7 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
         .adc_batt = adc_channel_t::ADC_CHANNEL_8,
         .adc_atf = adc_channel_t::ADC_CHANNEL_7,
         .atf_r2_resistance = 2000,
-        .current_sense_multi = 1.0,
+        .current_sense_multi = 1.0f,
     };
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 

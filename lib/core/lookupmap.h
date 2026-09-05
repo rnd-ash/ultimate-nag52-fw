@@ -17,11 +17,11 @@ class LookupMap {
     public:
         float get_value(const float xValue, const float yValue);
         float get_value(const float xValue, const float yValue, const uint8_t lookup_cache_idx);
-        void get_y_headers(uint16_t *size, int16_t **headers);
+        void get_y_headers(uint16_t *size, int16_t **headers) const;
         float get_x_header_interpolated(const float value, const int16_t y) const;
         int16_t* get_current_data(void) const;
-        void get_x_headers(uint16_t *size, int16_t **headers);
-        uint16_t data_size();
+        void get_x_headers(uint16_t *size, int16_t **headers) const;
+        uint16_t data_size() const;
         void copy_lookup_cache(LookupCache* dest) const;
     protected:
         LookupTable* table;
@@ -51,7 +51,7 @@ class LookupRefMap : public LookupMap {
 
 class LookupByteMap : public LookupMap {
     public:
-        LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uint8_t* _yHeader, const uint16_t _yHeaderSize, uint8_t* _data, const uint16_t _dataSize);
+        LookupByteMap(const uint8_t* _xHeader, const uint16_t _xHeaderSize, const uint8_t* _yHeader, const uint16_t _yHeaderSize, const uint8_t* _data, const uint16_t _dataSize);
         bool is_allocated(void) const;
         bool add_data(const uint8_t* map, const uint16_t size);
         ~LookupByteMap();

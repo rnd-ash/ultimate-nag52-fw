@@ -35,7 +35,7 @@ float LookupTable::get_header_interpolated(const float value) const
     return value1 + progress_between_targets(value, data[idvalue_min], data[idvalue_max]) * (value2 - value1);
 }
 
-void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
+void LookupTable::get_x_headers(uint16_t *size, int16_t **headers) const {
     *size = xHeaderSize;
     *headers = xHeader->get_data();
 }
@@ -44,7 +44,7 @@ int16_t* LookupTable::get_current_data(void) {
     return data;
 }
 
-const LookupHeader* LookupTable::get_header(void) {
+const LookupHeader* LookupTable::get_header(void) const {
     return this->xHeader;
 }
 
@@ -119,6 +119,7 @@ bool LookupAllocTable::is_allocated(void) const
 LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t* _data, uint16_t _dataSize)
 :LookupTable() {
     this->xHeader = new LookupRefHeader(_xHeader, _xHeaderSize);
+    this->xHeaderSize = _xHeaderSize;
     this->data = _data;
     this->dataSize = _dataSize;
 }

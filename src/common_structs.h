@@ -158,13 +158,13 @@ struct CircuitInfo{
     int centrifugal_factor_off_clutch_int;
 };
 
-#define RAT_1_IDX 0
-#define RAT_2_IDX 1
-#define RAT_3_IDX 2
-#define RAT_4_IDX 3
-#define RAT_5_IDX 4
-#define RAT_R1_IDX 5
-#define RAT_R2_IDX 6
+#define RAT_1_IDX (0)
+#define RAT_2_IDX (1)
+#define RAT_3_IDX (2)
+#define RAT_4_IDX (3)
+#define RAT_5_IDX (4)
+#define RAT_R1_IDX (5)
+#define RAT_R2_IDX (6)
 
 struct GearRatioInfo {
     float ratio_max_drift;
@@ -203,7 +203,7 @@ struct   __attribute__ ((packed)) ShiftReportSegment {
     uint16_t timestamp;
 };
 
-#define MAX_OVERLAP_REPORTS 20
+#define MAX_OVERLAP_REPORTS (20)
 struct  __attribute__ ((packed)) ShiftReport {
     // Metadata
     int16_t atf_temp_c;

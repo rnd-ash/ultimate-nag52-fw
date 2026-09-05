@@ -22,7 +22,7 @@ ConstantCurrentSolenoid* sol_mpc = nullptr;
 ConstantCurrentSolenoid* sol_spc = nullptr;
 InrushControlSolenoid* sol_tcc = nullptr;
 
-#define NUM_SOLENOIDS 6
+#define NUM_SOLENOIDS (6)
 struct SolenoidOutputSummary {
     uint64_t peak_total[NUM_SOLENOIDS];
     uint16_t count_peak[NUM_SOLENOIDS];
@@ -35,9 +35,9 @@ each channel:
     record 2 spikes, and get average
     ~2400000sps = 400000sps per solenoid
 */
-#define I2S_DMA_BUF_LEN 6 * 200 * SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 2
+#define I2S_DMA_BUF_LEN ((6) * (200) * (SOC_ADC_DIGI_DATA_BYTES_PER_CONV) * (2))
 uint8_t adc_read_buf[I2S_DMA_BUF_LEN];
-bool first_read_complete = false;
+volatile bool first_read_complete = false;
 uint64_t isr_done = 0;
 uint8_t CHANNEL_ID_MAP[ADC_CHANNEL_9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
@@ -99,11 +99,15 @@ void read_solenoids_i2s(void*) {
             }
             sol_mpc->update_when_reading(voltage);
             sol_spc->update_when_reading(voltage);
+            if (!first_read_complete) {
+                first_read_complete = true;
+            }
         }
     }
 }
 
-bool write_pwm = true;
+volatile bool write_pwm = true;
+static portMUX_TYPE cal_data_lock = portMUX_INITIALIZER_UNLOCKED;
 
 void Solenoids::notify_diag_test_start() {
     sol_mpc->set_current_target(0);
@@ -121,24 +125,21 @@ void Solenoids::notify_diag_test_end(void) {
 }
 
 void update_solenoids(void*) {
-    int16_t atf_temp = 250;
-    float vref_compensation = 1.0;
-    float temp_compensation = 1.0;
-    uint16_t vbatt = TCUIO::battery_mv();
-    int16_t atf = TCUIO::atf_temperature();
     while (true) {
-        vbatt = TCUIO::battery_mv();
-        atf = TCUIO::atf_temperature();
+        float vref_compensation = 1.0F;
+        float temp_compensation = 1.0F;
+        uint16_t vbatt = TCUIO::battery_mv();
+        int16_t atf = TCUIO::atf_temperature();
         if (UINT16_MAX != vbatt) {
             voltage = vbatt;
             vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
         }
         else {
-            vref_compensation = 1.0;
+            vref_compensation = 1.0F;
         }
         if (INT16_MAX != atf) {
-            atf_temp = atf * 10.0;
-            temp_compensation = (((atf_temp - (SOL_CURRENT_SETTINGS.cc_reference_temp * 10.0)) / 10.0) * SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires) / 10.0;
+            float atf_temp = (float)atf * 10.0F;
+            temp_compensation = (((atf_temp - (SOL_CURRENT_SETTINGS.cc_reference_temp * 10.0F)) / 10.0F) * SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires) / 10.0F;
         }
         if (write_pwm) {
             // MOVED TO CURRENT READING TASK SO READINGS ARE SYNCED
@@ -151,13 +152,13 @@ void update_solenoids(void*) {
     }
 }
 
-float resistance_mpc = 5.0;
-float resistance_spc = 5.0;
+float resistance_mpc = 5.0f;
+float resistance_spc = 5.0f;
 bool temp_cal = false;
 int16_t temp_at_test = 25;
 
-bool routine = false;
-bool startup_ok = false;
+volatile bool routine = false;
+volatile bool startup_ok = false;
 
 
 uint16_t Solenoids::get_solenoid_voltage(void) {
@@ -165,7 +166,33 @@ uint16_t Solenoids::get_solenoid_voltage(void) {
 }
 
 bool Solenoids::init_routine_completed(void) {
-    return routine;
+    return routine != false;
+}
+
+void Solenoids::set_calibration_adjusted_resistance(float new_spc, float new_mpc, int16_t temp_c) {
+    portENTER_CRITICAL(&cal_data_lock);
+    resistance_spc = new_spc;
+    resistance_mpc = new_mpc;
+    temp_at_test = temp_c;
+    temp_cal = true;
+    portEXIT_CRITICAL(&cal_data_lock);
+}
+
+void Solenoids::get_calibration_adjusted_resistance(float* out_spc, float* out_mpc, bool* out_calibrated, int16_t* out_temp_c) {
+    portENTER_CRITICAL(&cal_data_lock);
+    if (out_spc != nullptr) {
+        *out_spc = resistance_spc;
+    }
+    if (out_mpc != nullptr) {
+        *out_mpc = resistance_mpc;
+    }
+    if (out_calibrated != nullptr) {
+        *out_calibrated = temp_cal;
+    }
+    if (out_temp_c != nullptr) {
+        *out_temp_c = temp_at_test;
+    }
+    portEXIT_CRITICAL(&cal_data_lock);
 }
 
 // bool Solenoids::startup_test_ok() {
@@ -245,5 +272,6 @@ esp_err_t Solenoids::init_all_solenoids()
     ESP_RETURN_ON_ERROR(sol_y5->init_ok(), "SOLENOID", "Y5 init not OK");
     xTaskCreate(update_solenoids, "LEDC-Update", 8192, nullptr, 10, nullptr);
     xTaskCreatePinnedToCore(read_solenoids_i2s, "I2S-Reader", 2048, nullptr, 3, nullptr, 1);
+    xTaskCreate(Solenoids::boot_solenoid_test, "SOL-BOOT", 4096, nullptr, 4, nullptr);
     return ESP_OK;
 }

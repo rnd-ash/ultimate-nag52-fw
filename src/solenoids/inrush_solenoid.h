@@ -14,7 +14,8 @@ public:
     void post_current_test() override;
 private:
     ledc_timer_t ledc_timer;
-    float vref = 1.0;
+    float vref = 1.0f;
+    portMUX_TYPE phase_lock = portMUX_INITIALIZER_UNLOCKED;
     // 0 - Inrush
     // 1 - Hold
     // 2 - Off
@@ -31,6 +32,14 @@ private:
     uint32_t off_time_this_cycle = 0;
     uint32_t pwm_on_time = 0;
     uint32_t pwm_off_time = 0;
+
+    bool pwm_phase_on = false;
+    bool zener_phase_on = false;
+    uint32_t hold_phase_elapsed = 0;
+    bool pwm_phase_enable = false;
+
+    volatile uint16_t deferred_ledc_pwm = 0;
+    volatile bool deferred_ledc_pwm_pending = false;
 
     gptimer_handle_t timer;
     bool off = false;

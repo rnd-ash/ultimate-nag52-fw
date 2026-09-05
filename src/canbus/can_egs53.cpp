@@ -2,6 +2,7 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "can_egs_scaling_logic.h"
 #include "egs_calibration/calibration_structs.h"
 #include "shifter/shifter_ism.h"
 #include "shifter/shifter_ewm.h"
@@ -168,11 +169,11 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
         // Conversion
         int static_converted = sta;
         int tmp = esp;
-        int driver_converted = static_converted;
+        int driver_converted = 0;
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
-        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+        if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
             tmp = MIN(esp, ret.m_max);
         }
         if (tmp <= 0) {
@@ -585,11 +586,7 @@ void Egs53Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
-    if (ratio == -1) {
-        eng_rq2_tcm.EngWhlTrqRatio_TCM = 0; // Implausible
-    } else {
-        eng_rq2_tcm.EngWhlTrqRatio_TCM = ratio * 100;
-    }
+    eng_rq2_tcm.EngWhlTrqRatio_TCM = egs53_encode_wheel_torque_multi_factor(ratio);
 }
 
 /**
@@ -598,6 +595,9 @@ void Egs53Can::set_wheel_torque_multi_factor(float ratio) {
  * in the 8th byte in the frame
  */
 void calc_crc_in_place(uint8_t* buffer) {
+    if (buffer == nullptr) {
+        return;
+    }
     // assume len = 7
     unsigned long crc;
     int i;
@@ -621,6 +621,9 @@ void calc_crc_in_place(uint8_t* buffer) {
 }
 
 inline void to_bytes(uint64_t src, uint8_t* dst) {
+    if (dst == nullptr) {
+        return;
+    }
     for(uint8_t i = 0; i < 8; i++) {
         dst[7-i] = src & 0xFF;
         src >>= 8;

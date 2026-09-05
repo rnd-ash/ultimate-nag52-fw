@@ -7,8 +7,8 @@
 #include "on_off_solenoid.h"
 #include "cc_solenoid.h"
 
-#define I2S_LOOP_INTERVAL_CC_ONLY 10
-#define I2S_LOOP_INVERVAL_ALL 20
+#define I2S_LOOP_INTERVAL_CC_ONLY (10)
+#define I2S_LOOP_INVERVAL_ALL (20)
 
 namespace Solenoids {
     /**
@@ -26,6 +26,9 @@ namespace Solenoids {
 
     void notify_diag_test_start(void);
     void notify_diag_test_end(void);
+
+    void set_calibration_adjusted_resistance(float new_spc, float new_mpc, int16_t temp_c);
+    void get_calibration_adjusted_resistance(float* out_spc, float* out_mpc, bool* out_calibrated, int16_t* out_temp_c);
 
     // bool startup_test_ok();
 }

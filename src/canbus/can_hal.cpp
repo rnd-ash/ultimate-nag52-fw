@@ -18,6 +18,7 @@ EgsBaseCan::EgsBaseCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shif
     this->can_init_status = ESP_OK;
     this->tx_time_ms = tx_time_ms;
     this->shifter = shifter;
+    this->state_mutex = portMUX_INITIALIZER_UNLOCKED;
 
     // Firstly try to init CAN
     ESP_LOG_LEVEL(ESP_LOG_INFO, this->name, "Booting CAN Layer");
@@ -122,11 +123,19 @@ bool EgsBaseCan::begin_task() {
 [[noreturn]]
 void EgsBaseCan::task_loop() {
     twai_message_t rx;
-    uint8_t i;
     uint64_t tmp;
-    uint32_t now;
     while(true) {
-        now = GET_CLOCK_TIME();
+        uint32_t now = GET_CLOCK_TIME();
+        bool tx_enabled = true;
+        uint64_t solenoid_report = 0;
+        uint64_t sensors_report = 0;
+        uint64_t un52_report = 0;
+        portENTER_CRITICAL(&this->state_mutex);
+        tx_enabled = this->send_messages;
+        solenoid_report = this->solenoid_slave_resp.raw;
+        sensors_report = this->sensors_slave_resp.raw;
+        un52_report = this->un52_slave_resp.raw;
+        portEXIT_CRITICAL(&this->state_mutex);
         // Message Rx
         twai_get_status_info(&this->can_status);
         // Handle BUS OFF and BUS STOPPED
@@ -141,12 +150,27 @@ void EgsBaseCan::task_loop() {
                     if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER)) {
                         // Logging mode
                         char buf[35];
-                        int pos = 0;
-                        pos += sprintf(buf + pos, "CF->0x%04X", (uint16_t)rx.identifier);
-                        for (uint8_t i = 0; i < rx.data_length_code; i++) {
-                            pos += sprintf(buf + pos, "%02X", rx.data[i]);
+                        int pos = snprintf(buf, sizeof(buf), "CF->0x%04X", (uint16_t)rx.identifier);
+                        if (pos < 0) {
+                            pos = 0;
+                            buf[0] = '\0';
                         }
-                        printf("%.*s\n", pos, buf);
+                        for (uint8_t idx = 0; idx < rx.data_length_code; idx++) {
+                            if ((size_t)pos >= sizeof(buf)) {
+                                pos = (int)sizeof(buf) - 1;
+                                break;
+                            }
+                            int written = snprintf(buf + pos, sizeof(buf) - (size_t)pos, "%02X", rx.data[idx]);
+                            if (written < 0) {
+                                break;
+                            }
+                            if ((size_t)written >= (sizeof(buf) - (size_t)pos)) {
+                                pos = (int)sizeof(buf) - 1;
+                                break;
+                            }
+                            pos += written;
+                        }
+                        printf("%s\n", buf);
                     } else {
                         if (this->diag_rx_id != 0 && rx.identifier == this->diag_rx_id) {
                             // ISO-TP Diag endpoint
@@ -158,8 +182,8 @@ void EgsBaseCan::task_loop() {
                             }
                         } else { // Normal message
                             tmp = 0;
-                            for(i = 0; i < rx.data_length_code; i++) {
-                                tmp |= (uint64_t)rx.data[i] << (8*(7-i));
+                            for(uint8_t idx = 0; idx < rx.data_length_code; idx++) {
+                                tmp |= (uint64_t)rx.data[idx] << (8*(7-idx));
                             }
                             if (CHECK_MODE_BIT_ENABLED(DEVICE_MODE_SLAVE)) {
                                 // Slave mode handling
@@ -176,23 +200,19 @@ void EgsBaseCan::task_loop() {
                 // Only Tx slave frames
                 tx.data_length_code = 8;
 
-                uint64_t solenoid = solenoid_slave_resp.raw;
-                uint64_t sensors = sensors_slave_resp.raw;
-                uint64_t un52 = un52_slave_resp.raw;
-
                 tx.identifier = SOLENOID_REPORT_EGS_SLAVE_CAN_ID;
-                to_bytes(solenoid, tx.data);
+                to_bytes(solenoid_report, tx.data);
                 twai_transmit(&tx, 5);
 
                 tx.identifier = SENSOR_REPORT_EGS_SLAVE_CAN_ID;
-                to_bytes(sensors, tx.data);
+                to_bytes(sensors_report, tx.data);
                 twai_transmit(&tx, 5);
 
                 tx.identifier = UN52_REPORT_EGS_SLAVE_CAN_ID;
-                to_bytes(un52, tx.data);
+                to_bytes(un52_report, tx.data);
                 twai_transmit(&tx, 5);
             }
-            else if (this->send_messages && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER))
+            else if (tx_enabled && !CHECK_MODE_BIT_ENABLED(DEVICE_MODE_CANLOGGER))
             {
                 this->tx_frames();
             }

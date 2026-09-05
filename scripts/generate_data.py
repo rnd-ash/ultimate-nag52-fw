@@ -249,7 +249,11 @@ for line in f_in[2:]:
         # can only be a key
         if "SCN_ID" in line:
             setting_def = line.split("#define ")[1].split("_")[0]
-            id = int(line.split(" ")[2], 16)
+            value_token = line.split(None, 2)[2].split("//", 1)[0].strip()
+            while value_token.startswith("(") and value_token.endswith(")"):
+                value_token = value_token[1:-1].strip()
+            value_token = value_token.rstrip("uUlL")
+            id = int(value_token, 0)
             settings[find_setting_idx(setting_def)].set_scn_id(id)
         else:
             raise Exception("Invalid line '{}'".format(line))

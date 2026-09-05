@@ -1,4 +1,5 @@
 #include "inrush_solenoid.h"
+#include "inrush_solenoid_logic.h"
 #include "esp_check.h"
 #include "tcu_maths.h"
 #include "soc/gpio_struct.h"
@@ -28,7 +29,7 @@ static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gp
 }
 
 static bool IRAM_ATTR inrush_solenoid_timer_isr_new(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    InrushControlSolenoid* solenoid = (InrushControlSolenoid*)user_data;
+    InrushControlSolenoid* solenoid = reinterpret_cast<InrushControlSolenoid*>(user_data);
     uint32_t next_alarm_in = solenoid->on_timer_interrupt_new();
     gptimer_alarm_config_t alarm_config = {
         .alarm_count = edata->alarm_value + next_alarm_in,
@@ -48,10 +49,8 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
     this->zener_pin = zener_pin;
     this->pwm_pin = pwm_pin;
     // Old defaults
-    int freq = 10000;
     gptimer_alarm_cb_t callback = inrush_solenoid_timer_isr;
     if (GPIO_NUM_NC != this->zener_pin) { // Override! New mechanics
-        freq = 1000;
         callback = inrush_solenoid_timer_isr_new;
         ledc_stop(LEDC_HIGH_SPEED_MODE, channel, 0);
         gpio_set_direction(pwm_pin, gpio_mode_t::GPIO_MODE_OUTPUT);
@@ -60,7 +59,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
         this->hold_time = 0;
         this->off_time = TOTAL_PERIOD_TIME_US;
     } else {
-        ledc_set_freq(LEDC_HIGH_SPEED_MODE, ledc_timer, freq);
+        ledc_set_freq(LEDC_HIGH_SPEED_MODE, ledc_timer, 10000);
     }
     if (ESP_OK != this->ready) {
         return; // Error trying to init base class, so skip
@@ -116,57 +115,68 @@ void InrushControlSolenoid::post_current_test() {
     gptimer_start(this->timer);
 }
 
-bool on = false;
-bool pwm_on = false;
-bool zener_on = false;
-uint32_t total  = 0;
-bool pwm_en = false;
 uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt_new() {
     // Control the zener phase
-    int ret = TOTAL_PERIOD_TIME_US;
+    uint32_t ret = TOTAL_PERIOD_TIME_US;
+    bool pwm_out = false;
+    bool zener_out = false;
+    portENTER_CRITICAL_ISR(&this->phase_lock);
     if (this->inrush_time != 0 || this->hold_time != 0) {
         if (this->phase_id == 0) { // Off -> Inrush
-            pwm_on = true;
-            zener_on = false;
+            pwm_out = true;
+            zener_out = false;
             ret = this->inrush_time;
             if (this->hold_time != 0) {
                 this->phase_id = 1; // Inrush -> hold
-                pwm_en = false;
-                total = 0;
+                this->pwm_phase_enable = false;
+                this->hold_phase_elapsed = 0;
             } else {
                 this->phase_id = 2; // Inrush -> off (No hold)
             }
         } else if (this->phase_id == 1) { // Inrush -> Hold
-            zener_on = false;
-            pwm_on = pwm_en;
-            pwm_en = !pwm_en;
-            // Phase on/off for pwm
+            zener_out = false;
+            pwm_out = this->pwm_phase_enable;
+            const bool phase_is_pwm_off = !pwm_out;
+            this->pwm_phase_enable = !this->pwm_phase_enable;
 
-            ret = MIN(!pwm_en ? this->pwm_on_time : this->pwm_off_time, total - this->hold_time);
-            if (total+ret >= this->hold_time) {
+            InrushHoldStepPlan step = inrush_plan_hold_step(
+                this->pwm_on_time,
+                this->pwm_off_time,
+                phase_is_pwm_off,
+                this->hold_phase_elapsed,
+                this->hold_time
+            );
+            ret = step.step_us;
+            this->hold_phase_elapsed = step.next_total_us;
+            if (step.hold_completed) {
                 if (this->off_time == 0) {
                     // We go back to this phase (Constant hold)
-                    total = 0;
+                    this->hold_phase_elapsed = 0;
                 } else {
                     this->phase_id = 2; // Done, turn off!
                 }
             }
-            total += ret;
         } else { // Hold -> Off
-            zener_on = true;
-            pwm_on = false;
+            zener_out = true;
+            pwm_out = false;
             this->phase_id = 0;
             ret = this->off_time;
         }
     } else {
-        zener_on = false;
-        pwm_on = false;
+        zener_out = false;
+        pwm_out = false;
         this->phase_id = 0; // Off
     }
-    volatile uint32_t* reg_pwm = pwm_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
-    volatile uint32_t* reg_zen = zener_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
+    this->pwm_phase_on = pwm_out;
+    this->zener_phase_on = zener_out;
+    portEXIT_CRITICAL_ISR(&this->phase_lock);
+
+    volatile uint32_t* reg_pwm = this->pwm_phase_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
     *reg_pwm = (uint32_t)1 << (this->pwm_pin);
-    *reg_zen = (uint32_t)1 << (this->zener_pin);
+    if (GPIO_NUM_NC != this->zener_pin) {
+        volatile uint32_t* reg_zen = this->zener_phase_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
+        *reg_zen = (uint32_t)1 << (this->zener_pin);
+    }
     return ret;
 }
 
@@ -174,6 +184,7 @@ uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt_new() {
 uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt() {
     uint32_t ret = 0;
     uint16_t write_pwm = 0;
+    portENTER_CRITICAL_ISR(&this->phase_lock);
     // Special handling for Min/Max PWM
     if (this->pwm_raw < INRUSH_START_PWM) {
         write_pwm = 0;
@@ -200,37 +211,56 @@ uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt() {
             ret = this->off_time_this_cycle;
         }
     }
-    ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, write_pwm);
-    while (ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel) != write_pwm) {
-        ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
-    }
+    // Maintain this deferral on purpose:
+    // - ESP-IDF explicitly allows ledc_update_duty() in ISR, but not ledc_set_duty().
+    // - Our duty update needs ledc_set_duty() + ledc_update_duty() on the same channel.
+    // - These APIs are not thread-safe across tasks for one channel, so we centralize writes.
+    // - This project also has CONFIG_LEDC_CTRL_FUNC_IN_IRAM disabled, so task-context is safer.
+    this->deferred_ledc_pwm = write_pwm;
+    this->deferred_ledc_pwm_pending = true;
+    portEXIT_CRITICAL_ISR(&this->phase_lock);
     return ret;
 }
 
-const float TOTAL_PERIOD_PWM = TOTAL_PERIOD_TIME_US/10; // Per cycle
+const float TOTAL_PERIOD_PWM = (float)TOTAL_PERIOD_TIME_US / 10.0f; // Per cycle
 
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
+    uint16_t deferred_pwm = 0;
+    bool apply_deferred_pwm = false;
+    portENTER_CRITICAL(&this->phase_lock);
     if (this->hold_time != 0) {
-        float on_pwm_ratio = 0.35 * vref_compensation;
+        float on_pwm_ratio = 0.35f * vref_compensation;
         if (inrush_time == 0) {
-            on_pwm_ratio = 0.5;
+            on_pwm_ratio = 0.5f;
         }
         this->pwm_on_time = (int)(TOTAL_PERIOD_PWM * on_pwm_ratio);
         this->pwm_off_time = TOTAL_PERIOD_PWM - this->pwm_on_time;
     }
+    if (GPIO_NUM_NC == this->zener_pin && this->deferred_ledc_pwm_pending) {
+        deferred_pwm = this->deferred_ledc_pwm;
+        this->deferred_ledc_pwm_pending = false;
+        apply_deferred_pwm = true;
+    }
+    portEXIT_CRITICAL(&this->phase_lock);
+
+    if (apply_deferred_pwm) {
+        ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, deferred_pwm);
+        ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
+    }
 }
 
 void InrushControlSolenoid::set_duty(uint16_t duty) {
+    portENTER_CRITICAL(&this->phase_lock);
     this->pwm_raw = duty;
     this->pwm = duty;
     if (GPIO_NUM_NC != this->zener_pin) {
         // NEW! TCC Zener mode
-        int total_on_time = (float)TOTAL_PERIOD_TIME_US * ((float)duty / 4096.0);
+        int total_on_time = (float)TOTAL_PERIOD_TIME_US * ((float)duty / 4096.0f);
         if (total_on_time < TOTAL_PERIOD_TIME_US/20) { // < 5%
             this->inrush_time = 0;
             this->hold_time = 0;
             this->off_time = TOTAL_PERIOD_TIME_US;
-        } else if (total_on_time > TOTAL_PERIOD_TIME_US*0.95) { // > 95%
+        } else if (total_on_time > TOTAL_PERIOD_TIME_US * 0.95f) { // > 95%
             this->inrush_time = 0;
             this->hold_time = TOTAL_PERIOD_TIME_US;
             this->off_time = 0;
@@ -243,7 +273,7 @@ void InrushControlSolenoid::set_duty(uint16_t duty) {
             this->off_time = TOTAL_PERIOD_TIME_US - (this->inrush_time + this->hold_time); 
         }
     } else {
-        this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
+        this->period_on_time = ((float)duty / 4096.0f) * ((float)TOTAL_PERIOD_TIME_US / 2.0f);
         if (this->period_on_time > INRUSH_TIME_US) {
             this->hold_time = this->period_on_time - (INRUSH_TIME_US);
             this->inrush_time = INRUSH_TIME_US;
@@ -253,4 +283,8 @@ void InrushControlSolenoid::set_duty(uint16_t duty) {
         }
         this->off_time = TOTAL_PERIOD_TIME_US - this->period_on_time;
     }
+    // Restart phase bookkeeping whenever command changes to avoid stale-cycle carryover.
+    this->hold_phase_elapsed = 0;
+    this->pwm_phase_enable = false;
+    portEXIT_CRITICAL(&this->phase_lock);
 }

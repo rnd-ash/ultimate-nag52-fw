@@ -2,6 +2,7 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
+#include "can_egs_scaling_logic.h"
 #include "../shifter/shifter_ewm.h"
 #include "../shifter/shifter_trrs.h"
 #include "ioexpander.h"
@@ -13,7 +14,7 @@ Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter 
     this->gs338.raw = ~0;
     this->gs418.raw = ~0;
     this->gs218.MKRIECH = 0;
-    this->gs418.FMRAD = 1.0;
+    this->gs418.FMRAD = 1.0f;
     this->set_target_gear(GearboxGear::SignalNotAvailable);
     this->set_actual_gear(GearboxGear::SignalNotAvailable);
     this->set_shifter_position(ShifterPosition::P);
@@ -189,13 +190,13 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
     if (INT16_MAX != ret.m_max) {
         // Get factor to correct it by
         if (this->ecu_ms.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
-            if (UINT8_MAX != ms210.FMMOTMAX) {ret.m_max = (float)ret.m_max * ((float)ms210.FMMOTMAX * 0.0078);}
+            if (UINT8_MAX != ms210.FMMOTMAX) {ret.m_max = (float)ret.m_max * ((float)ms210.FMMOTMAX * 0.0078f);}
         }
     }
     if (INT16_MAX != ret.m_converted_static && INT16_MAX != ret.m_converted_driver) {
         int static_converted = ret.m_converted_static;
         int tmp = ret.m_converted_driver;
-        int driver_converted = static_converted;
+        int driver_converted = 0;
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
@@ -331,7 +332,7 @@ ProfileSwitchPos Egs52Can::get_profile_switch_pos(const uint32_t expire_time_ms)
 uint16_t Egs52Can::get_fuel_flow_rate(const uint32_t expire_time_ms) {
     MS_608_EGS52 ms608;
     if (this->ecu_ms.get_MS_608(GET_CLOCK_TIME(), expire_time_ms, &ms608)) {
-        return (uint16_t)((float)ms608.VB*0.868);
+        return (uint16_t)((float)ms608.VB * 0.868f);
     } else {
         return 0;
     }
@@ -409,7 +410,7 @@ int Egs52Can::cruise_control_torque_demand(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = INT_MAX;
     if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
-        r = (bs300.DM_ART/4) - 500.0;
+        r = (bs300.DM_ART/4) - 500.0f;
     }
     return r;
 }
@@ -418,7 +419,7 @@ int Egs52Can::esp_torque_demand(const uint32_t expire_time_ms) {
     BS_300_EGS52 bs300;
     int r = INT_MAX;
     if (this->esp_ecu.get_BS_300(GET_CLOCK_TIME(), expire_time_ms, &bs300)) {
-        r = (bs300.M_ESP/4) - 500.0;
+        r = (bs300.M_ESP/4) - 500.0f;
     }
     return r;
 }
@@ -679,10 +680,7 @@ void Egs52Can::set_error_check_status(SystemStatusCheck ssc) {
 
 
 void Egs52Can::set_turbine_torque_loss(uint16_t loss_nm) {
-    if (loss_nm > 0xFE/4) {
-        loss_nm = 0xFE; // 0xFF implies implausible
-    }
-    gs418.M_VERL = loss_nm*4;
+    gs418.M_VERL = egs52_encode_turbine_torque_loss(loss_nm);
 }
 
 void Egs52Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
@@ -793,12 +791,7 @@ void Egs52Can::set_display_msg(GearboxMessage msg) {
 }
 
 void Egs52Can::set_wheel_torque_multi_factor(float ratio) {
-    if (ratio == -1) {
-        gs418.FMRAD = 0x7FF; // Implausible
-    } else {
-        uint16_t fmrad_int = MIN((uint16_t)(ratio * 0.05), 2046);
-        gs418.FMRAD = fmrad_int;
-    }
+    gs418.FMRAD = egs52_encode_wheel_torque_multi_factor(ratio);
 }
 
 /**

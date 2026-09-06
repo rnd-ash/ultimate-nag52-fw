@@ -53,7 +53,7 @@ uint8_t ShiftingAlgorithm::step(
     this->pm = pm;
     this->sd = sd;
     if (0 == this->first_order_pump_trq_filter) {
-        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier*10 * sd->pump_torque);
+        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier*10 * (float)Torque::nm_i16(sd->pump_torque));
     }
 
     // Decrease our timers
@@ -103,14 +103,14 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    this->trq_at_release_clutch = MAX((float)(VEHICLE_CONFIG.engine_drag_torque/100.0) * 0.75, abs_input_trq);
+    this->trq_at_release_clutch = MAX(((float)VEHICLE_CONFIG.engine_drag_torque / 100.0f) * 0.75f, abs_input_trq);
     int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
         // Release downshift only (EGS53)
         if (this->is_release_shift() && !upshifting) {
-            this->timer_mod = interpolate_float(sd->atf_temp, 20, 3, -45, -10, InterpType::Linear);
+            this->timer_mod = interpolate_float((float)Temp::celsius_i16(sd->atf_temp), 20, 3, -45, -10, InterpType::Linear);
         }
         else {
             this->timer_mod = 3;
@@ -136,7 +136,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
 calc_mod:
     if (this->is_release_shift()) {
         if (GearChange::_2_3 == sid->change) {
-            targ_spc *= 1.993;
+            targ_spc *= 1.993f;
         }
         this->mod_sol_pressure = this->calc_mod_with_filling_trq(targ_spc);
     }
@@ -155,7 +155,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
         this->timer_emergency = -1; // Disable emergency timer for this and end phase
         // Var set
         this->timer_shift = 5; // 100ms for ramp
-        this->timer_mod = 5 + interpolate_float(sd->atf_temp, 40, 5, 0, 40, InterpType::Linear);
+        this->timer_mod = 5 + interpolate_float((float)Temp::celsius_i16(sd->atf_temp), 40, 5, 0, 40, InterpType::Linear);
         this->subphase_shift += 1;
     }
     else if (1 == this->subphase_shift) {
@@ -175,7 +175,7 @@ uint8_t ShiftingAlgorithm::phase_end_ctrl() {
     uint8_t ret = STEP_RES_CONTINUE;
     // TODO
     if (0 == this->subphase_shift) {
-        this->timer_shift = interpolate_float(sd->atf_temp, 75, 5, -20, 30, InterpType::Linear);
+        this->timer_shift = interpolate_float((float)Temp::celsius_i16(sd->atf_temp), 75, 5, -20, 30, InterpType::Linear);
         this->subphase_shift += 1;
     }
     this->p_apply_clutch = sid->SPC_MAX;
@@ -259,7 +259,7 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
         if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
             // Crossover upshift - Add pressure based on torque and RPM
             int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
-            int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
+            int torque_adder = interpolate_float((float)Torque::nm_i16(sd->input_torque), 0, 250, VEHICLE_CONFIG.engine_drag_torque / 5.0f, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
             ret += rpm_adder + torque_adder;
         }
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
@@ -287,12 +287,12 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
     }
     else {
         uint16_t adder_1 = 0;
-        if (sd->atf_temp < -10) {
+        if (sd->atf_temp < Temp::from_celsius(-10)) {
             // Very cold filling
             adder_1 = 500;
         }
         ret = sid->prefill_info.fill_pressure_on_clutch + adder_1;
-        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 && sid->targ_g == GearboxGear::Third && sd->atf_temp > 70) {
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 && sid->targ_g == GearboxGear::Third && sd->atf_temp > Temp::from_celsius(70)) {
             ret = 800;
         }
 
@@ -301,7 +301,7 @@ uint16_t ShiftingAlgorithm::calc_high_filling_p() {
     return ret;
 }
 
-uint8_t ShiftingAlgorithm::adapt_p_map_idx() {
+uint8_t ShiftingAlgorithm::adapt_p_map_idx() const {
     uint8_t cell_id = 0;
     if (sid->change == GearChange::_1_2 || sid->change == GearChange::_2_1) {
         // Adapting result from 1-2
@@ -339,12 +339,19 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
         pressure = max_p;
     }
     // P*1000 as shift_spc_gain is *1000
-    return (uint16_t)(((pressure * 1000) / HYDR_PTR->shift_spc_gain[sid->inf.map_idx]) + HYDR_PTR->shift_reg_spring_pressure);
+    uint16_t gain = HYDR_PTR->shift_spc_gain[sid->inf.map_idx];
+    if (gain == 0u) {
+        return HYDR_PTR->shift_reg_spring_pressure;
+    }
+    return (uint16_t)(((pressure * 1000) / gain) + HYDR_PTR->shift_reg_spring_pressure);
 }
 
 
 short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     short intertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
+    if (intertia == 0) {
+        return 0;
+    }
     if (this->upshifting) {
         this->target_turbine_speed -= ((momentum * 20) / intertia);
         this->target_turbine_speed = MAX(0, this->target_turbine_speed);
@@ -422,7 +429,7 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_fill_time_adaptation = false;
         }
 
-        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+        if (sd->atf_temp > Temp::from_celsius(ADP_CURRENT_SETTINGS.max_atf_temp) || sd->atf_temp < Temp::from_celsius(ADP_CURRENT_SETTINGS.min_atf_temp)) {
             this->do_fill_time_adaptation = false;
         }
 
@@ -432,7 +439,7 @@ void ShiftingAlgorithm::adaptation_step() {
     // Fill pressure adaptation (Done for all algorithms)
     
     // Boundary conditions (Every cycle)
-    int tcc_trq = ((sd->tcc_trq_multiplier*10) * sd->pump_torque); // 10x real value
+    int tcc_trq = ((sd->tcc_trq_multiplier*10) * (float)Torque::nm_i16(sd->pump_torque)); // 10x real value
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
         this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*10);
     } else {
@@ -442,7 +449,7 @@ void ShiftingAlgorithm::adaptation_step() {
     if (this->do_fill_pressure_adaptation) {
         if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
             this->do_fill_pressure_adaptation = false;
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", sd->indicated_torque, this->adapting_trq_limit);
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", (int)Torque::nm_i16(sd->indicated_torque), this->adapting_trq_limit);
         }
         bool rpm_in_range = (sd->input_rpm <= (sd->engine_rpm+100) && upshifting) || (sd->engine_rpm <= (sd->input_rpm+100) && !upshifting);
         if (
@@ -476,7 +483,7 @@ void ShiftingAlgorithm::adaptation_step() {
         // 3-4 -> 3-4
         // 4-5 -> 4-5 and 5-4
         // 4-3 -> 4-3
-        uint8_t allowed_crossover_shifts[8] = {1,1,1,1,0,0,1,0};
+        const uint8_t allowed_crossover_shifts[8] = {1,1,1,1,0,0,1,0};
         this->do_fill_pressure_adaptation = this->do_fill_time_adaptation;
         if (this->is_release_shift() || allowed_crossover_shifts[sid->inf.map_idx] == 0) {
             this->do_fill_pressure_adaptation = false;
@@ -519,9 +526,13 @@ void ShiftingAlgorithm::adaptation_step() {
             }
         }
     } else if (4 == fill_pressure_adaptation_stage) {
-        if (this->timer_p_adapt != 0 && this->adapting_turbine_spd != 0) {
+        // 'time' is the elapsed cycle count. timer_p_adapt counts DOWN from
+        // 0xFF, so time is 0 until the first cycle has elapsed - and it is used
+        // as a divisor twice below. An INTEGER divide by zero raises a CPU
+        // exception on Xtensa, it does not quietly produce an infinity.
+        const int time = 0xFF - (int)this->timer_p_adapt;
+        if (this->timer_p_adapt != 0 && this->adapting_turbine_spd != 0 && time > 0) {
             // 4 runs no matter what, so we don't care about if we are allowed or not
-            int time = 0xFF - this->timer_p_adapt;
             int avg_trq = this->adapting_p_adapt_trq / time;
             int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm)) / (time*20);
             int correction_p = 0;
@@ -535,8 +546,8 @@ void ShiftingAlgorithm::adaptation_step() {
                 if (sid->adaptation_mgr) {
                     int old_v = sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
 
-                    float scalar = interpolate_float(time, 0.25, 0.5, 4, 8, InterpType::Linear);
-                    int new_v = (int)((float)old_v + (float)correction_p * scalar);
+                    float scalar = interpolate_float(time, 0.25f, 0.5f, 4.0f, 8.0f, InterpType::Linear);
+                    int new_v = TCU_ROUND_TO_I32((float)old_v + ((float)correction_p * scalar));
                     int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
                     if (new_v > sid->inf.pressure_multi_spc_int) {
                         new_v = lim;
@@ -578,7 +589,7 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_torque_adaptation = false;
         }
 
-        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+        if (sd->atf_temp > Temp::from_celsius(ADP_CURRENT_SETTINGS.max_atf_temp) || sd->atf_temp < Temp::from_celsius(ADP_CURRENT_SETTINGS.min_atf_temp)) {
             this->do_torque_adaptation = false;
         }
 
@@ -615,10 +626,10 @@ void ShiftingAlgorithm::adaptation_step() {
             float avg_abs_torque = this->abs_input_trq / this->pid_count;
             float scalar = interpolate_float(
                 avg_abs_torque,
-                0.10, // 10% at low torque
-                0.05, // 5% at higher torque
+                0.10f, // 10% at low torque
+                0.05f, // 5% at higher torque
                 // Drag torque = min
-                VEHICLE_CONFIG.engine_drag_torque / 10.0,
+                VEHICLE_CONFIG.engine_drag_torque / 10.0f,
                 // 10x Drag torque = max
                 VEHICLE_CONFIG.engine_drag_torque,
                 InterpType::Linear
@@ -632,10 +643,10 @@ void ShiftingAlgorithm::adaptation_step() {
             }
 
 
-            float clamped_pid = MAX(-VEHICLE_CONFIG.engine_drag_torque / 10.0, MIN(avg_pid_torque, VEHICLE_CONFIG.engine_drag_torque / 10.0));
+            float clamped_pid = MAX(-VEHICLE_CONFIG.engine_drag_torque / 10.0f, MIN(avg_pid_torque, VEHICLE_CONFIG.engine_drag_torque / 10.0f));
             clamped_pid *= scalar;
 
-            int new_v = (int)((float)old_v + clamped_pid);
+            int new_v = TCU_ROUND_TO_I32((float)old_v + clamped_pid);
             ESP_LOGI("ADAPT", "T_ADAPT end. Avg PID: %.1f Nm, Avg input: %.1f Nm", avg_pid_torque, avg_abs_torque);
             if (is_release_shift()) {
                 sid->adaptation_mgr->offset_freeing_trq(sid->inf.map_idx, new_v-old_v);

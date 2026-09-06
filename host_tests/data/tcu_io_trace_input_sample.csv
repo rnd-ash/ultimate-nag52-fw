@@ -1,0 +1,5 @@
+# sample hardware capture trace
+rpm_n2,rpm_n3,rpm_out,battery_mv,atf_temp_c,parking_lock,wheel_rr_2x,wheel_rl_2x,wheel_fr_2x,wheel_fl_2x,engine_coolant_temp_c,engine_oil_temp_c,transfer_case_state
+800,700,100,12300,30,1,200,210,220,230,80,90,0
+1200,1100,350,12350,45,0,700,710,720,730,85,95,0
+1900,1700,500,12400,65,0,1000,1010,1020,1030,90,100,0

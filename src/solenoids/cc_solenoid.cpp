@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "nvs/module_settings.h"
 #include <string.h>
+#include <math.h>
 #include "sensors.h"
 
 
@@ -15,6 +16,7 @@ ConstantCurrentSolenoid::ConstantCurrentSolenoid(const char* name, ledc_timer_t 
     this->pid[2] = 0;
 }
 
+// cppcheck-suppress functionStatic
 void ConstantCurrentSolenoid::__write_pwm(float vref_compensation, float temperature_factor, bool stop_compensation) {
     // Moved to ConstantCurrentSolenoid::update_when_reading
 }
@@ -23,12 +25,12 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
     this->current_target = target_ma;
 }
 
-uint16_t ConstantCurrentSolenoid::get_current_target() {
+uint16_t ConstantCurrentSolenoid::get_current_target() const {
     return this->current_target;
 }
 
-float ConstantCurrentSolenoid::get_trim() {
-    return 1.0 + ((float)this->trim_pwm / 4096.0);
+float ConstantCurrentSolenoid::get_trim() const {
+    return 1.0f + ((float)this->trim_pwm / 4096.0f);
 }
 
 uint16_t ConstantCurrentSolenoid::get_current(void) const {
@@ -39,9 +41,15 @@ uint16_t ConstantCurrentSolenoid::get_current(void) const {
 void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
     // Pull in new values
     uint16_t prev_current_req = this->saved_current_target;
-    if (battery > 9000 && this->current_target != 0) {
+    // cc_reference_resistance is operator tunable, so guard the divide. A zero
+    // or non-finite value here would poison every term below.
+    float ref_resistance = SOL_CURRENT_SETTINGS.cc_reference_resistance;
+    int32_t max_current_ma = 0;
+    if (isfinite(ref_resistance) && ref_resistance > 0.1f) {
+        max_current_ma = (int32_t)(SOL_CURRENT_SETTINGS.cc_vref_solenoid / ref_resistance);
+    }
+    if (battery > 9000 && this->current_target != 0 && max_current_ma > 0) {
         // Assume 14.4V for stability
-        int32_t max_current_ma = SOL_CURRENT_SETTINGS.cc_vref_solenoid / SOL_CURRENT_SETTINGS.cc_reference_resistance;
         uint16_t observed_current = this->get_current();
         this->saved_current_target = this->current_target;
         int32_t error = 1000 * ((int32_t)prev_current_req - (int32_t)observed_current) / (float)max_current_ma;
@@ -61,9 +69,12 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
             trim_pwm = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
         }
         float mult = ((float)this->current_target / (float)max_current_ma);
-        int16_t targ_pwm = MAX(0, (4096.0 * mult));
-        targ_pwm += ((float)this->trim_pwm * (mult));
-        this->pwm = MAX(0, MIN(targ_pwm, 4096));
+        // Accumulate in a wide type. trim_pwm saturates at +/-INT16_MAX, so an
+        // int16_t here overflows and wraps negative, which the clamp below then
+        // turns into 0 - driving the solenoid fully OFF when it was asked for
+        // more, rather than fully ON.
+        int32_t targ_pwm = (int32_t)((4096.0f * mult) + ((float)this->trim_pwm * mult));
+        this->pwm = (uint16_t)MAX(0, MIN(targ_pwm, 4096));
     }
     else {
         this->saved_current_target = 0;

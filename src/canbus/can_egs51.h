@@ -4,7 +4,7 @@
 #include "../../egs51_ecus/src/GS51.h"
 #include "../../egs51_ecus/src/MS51.h"
 #include "../../egs51_ecus/src/ESP51.h"
-#include "../../egs52_ecus/src/EWM.h"
+#include "../../egs51_ecus/src/EWM51.h"
 #include "shifter/shifter.h"
 
 class Egs51Can: public EgsBaseCan {
@@ -16,13 +16,13 @@ class Egs51Can: public EgsBaseCan {
          */
 
         // Get the front right wheel data (Double RPM is returned)
-        uint16_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
+        wheel_rpm_2x_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
         // Get the front left wheel data (Double RPM is returned)
-        uint16_t get_front_left_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_front_left_wheel(const uint32_t expire_time_ms) override;
         // Get the rear right wheel data (Double RPM is returned)
-        uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data (Double RPM is returned)
-        uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // // Gets the shifter position
         ShifterPosition internal_can_shifter_get_shifter_position(const uint32_t expire_time_ms) override;    
         // Gets engine type
@@ -32,22 +32,23 @@ class Egs51Can: public EgsBaseCan {
         // Returns true if pedal is kickdown 
          bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
-         uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
+         pedal_pos_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets Torque information
         CanTorqueData get_torque_data(const uint32_t expire_time_ms) override;
         // Gets the flappy paddle position
          PaddlePosition get_paddle_position(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
-         int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
+         temp_c_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
         // Gets engine oil temperature
-         int16_t get_engine_oil_temp(const uint32_t expire_time_ms) override;
+         temp_c_t get_engine_oil_temp(const uint32_t expire_time_ms) override;
          // Gets engine charge air temperature
-        int16_t get_engine_iat_temp(const uint32_t expire_time_ms) override;
+        temp_c_t get_engine_iat_temp(const uint32_t expire_time_ms) override;
         // Gets engine RPM
          uint16_t get_engine_rpm(const uint32_t expire_time_ms) override;
         // Returns true if engine is cranking
         bool get_is_starting(const uint32_t expire_time_ms) override;
         bool get_profile_btn_press(const uint32_t expire_time_ms) override;
+        ProfileSwitchPos get_profile_switch_pos(const uint32_t expire_time_ms) override;
         uint16_t get_fuel_flow_rate(const uint32_t expire_time_ms) override;
         // 
         bool get_is_brake_pressed(const uint32_t expire_time_ms) override;
@@ -63,7 +64,7 @@ class Egs51Can: public EgsBaseCan {
         // // Sets the status bit indicating the car is safe to start
         void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
-        void set_gearbox_temperature(int16_t temp) override;
+        void set_gearbox_temperature(temp_c_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
         void set_input_shaft_speed(uint16_t rpm) override;
         // Sets 4WD activated toggle bit
@@ -97,7 +98,7 @@ class Egs51Can: public EgsBaseCan {
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
         ECU_MS51 ms51 = ECU_MS51();
-        ECU_EWM ewm = ECU_EWM();        
+        ECU_EWM51 ewm = ECU_EWM51();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
         int16_t req_static_torque_delta = 0;

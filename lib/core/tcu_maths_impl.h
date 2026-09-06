@@ -13,6 +13,12 @@ template <typename T> void search_value(const T value, const T *values, const ui
 {
 	// Set minimum index to the first element of the field.
     *idvalue_min = 0u;
+    // An empty field has no indices to return. Without this, size - 1u wraps to
+    // 65535 and the reads below run far off the end of the array.
+    if (0u == size || nullptr == values) {
+        *idvalue_max = 0u;
+        return;
+    }
     // Set maximum index to the last element of the field.
     *idvalue_max = size - 1u;
     // Check, if search value is smaller than smallest element of the field.

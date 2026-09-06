@@ -1,6 +1,15 @@
 #include "clutch_speed.hpp"
 #include "tcu_io/tcu_io.hpp"
 
+// Every clutch speed equation below divides by the DIFFERENCE between two gear
+// ratios, all of which come from the EGS calibration. Nothing guarantees those
+// ratios are distinct (the calibration check only rejects zeroed entries), and
+// a float divide by zero produces inf - which is then narrowed to int16_t,
+// which is undefined behaviour. Return 0 for an unusable denominator instead.
+static inline float ratio_delta_div(const float numerator, const float denominator) {
+    return ((denominator > 0.0001f) || (denominator < -0.0001f)) ? (numerator / denominator) : 0.0f;
+}
+
 // This equation is used multiple times when calculating the speed of a clutch that goes from stationary to moving with the input shaft speed
 //
 // r_low (The lower ratio of the target and actual gear)
@@ -13,7 +22,7 @@ int16_t get_speed_long_eq(const uint16_t output_speed, const uint16_t input, con
     } else {
         num = r_high * ((r_low * (float)output_speed) - (float)input);
     }
-    return num / (r_low - r_high);
+    return ratio_delta_div(num, r_low - r_high);
 }
 
 ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const SpeedSensors speeds, const GearChange req, const GearRatioInfo* ratios) {
@@ -28,15 +37,21 @@ ShiftClutchData ClutchSpeedModel::get_shifting_clutch_speeds(const SpeedSensors 
         ret.off_clutch_speed = (req == GearChange::_1_2 || req == GearChange::_5_4) ? vb1 : vk1;
         if (req == GearChange::_4_5 || req == GearChange::_5_4) {
             // B2 is open, calculate the speed
-            ret.rear_sun_speed = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.turbine)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
+            ret.rear_sun_speed = ratio_delta_div(
+                (ratios[RAT_3_IDX].ratio*(float)speeds.output) - (float)speeds.turbine,
+                ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
         } // Else it is 0
     } else if (req == GearChange::_2_3 || req == GearChange::_3_2) {
         int16_t vk2 = (int16_t)speeds.n3 - (ratios[RAT_3_IDX].ratio * (int16_t)speeds.output);
-        int16_t vk3 = (ratios[RAT_3_IDX].ratio*(ratios[RAT_2_IDX].ratio*(float)speeds.output - (float)speeds.n3)) / (ratios[RAT_2_IDX].ratio - ratios[RAT_3_IDX].ratio);
+        int16_t vk3 = ratio_delta_div(
+            ratios[RAT_3_IDX].ratio*((ratios[RAT_2_IDX].ratio*(float)speeds.output) - (float)speeds.n3),
+            ratios[RAT_2_IDX].ratio - ratios[RAT_3_IDX].ratio);
         ret.on_clutch_speed = req == GearChange::_2_3 ? vk2 : vk3;
         ret.off_clutch_speed = req == GearChange::_2_3 ? vk3 : vk2;
     } else if (req == GearChange::_3_4 || req == GearChange::_4_3) {
-        int16_t vb2 = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.n3)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
+        int16_t vb2 = ratio_delta_div(
+            (ratios[RAT_3_IDX].ratio*(float)speeds.output) - (float)speeds.n3,
+            ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
         int16_t vk3 = ((int16_t)speeds.n3 - vb2);
         ret.on_clutch_speed = req == GearChange::_3_4 ? vk3 : vb2;
         ret.off_clutch_speed = req == GearChange::_3_4 ? vb2 : vk3;
@@ -110,7 +125,9 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
             } else if (actual == GearboxGear::Third) {
                 cs.k1 = 0;
                 cs.k2 = 0;
-                cs.k3 = (ratios[RAT_3_IDX].ratio*(ratios[RAT_2_IDX].ratio*(float)speeds.output - (float)speeds.n3)) / (ratios[RAT_2_IDX].ratio - ratios[RAT_3_IDX].ratio);
+                cs.k3 = ratio_delta_div(
+                    ratios[RAT_3_IDX].ratio*((ratios[RAT_2_IDX].ratio*(float)speeds.output) - (float)speeds.n3),
+                    ratios[RAT_2_IDX].ratio - ratios[RAT_3_IDX].ratio);
                 cs.b1 = speeds.n3;
                 cs.b2 = 0;
                 cs.b3 = speeds.n3;
@@ -119,10 +136,14 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.k2 = 0;
                 cs.k3 = 0;
                 cs.b1 = speeds.n3;
-                cs.b2 = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.n3)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
+                cs.b2 = ratio_delta_div(
+                    (ratios[RAT_3_IDX].ratio*(float)speeds.output) - (float)speeds.n3,
+                    ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
                 cs.b3 = speeds.n3;
             } else if (actual == GearboxGear::Fifth) {
-                cs.b2 = (ratios[RAT_3_IDX].ratio*(float)speeds.output - (float)speeds.turbine)/(ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
+                cs.b2 = ratio_delta_div(
+                    (ratios[RAT_3_IDX].ratio*(float)speeds.output) - (float)speeds.turbine,
+                    ratios[RAT_3_IDX].ratio - ratios[RAT_4_IDX].ratio);
                 cs.k1 = (int16_t)speeds.n2 - (int16_t)speeds.n3;
                 cs.k2 = 0;
                 cs.k3 = 0;

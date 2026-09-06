@@ -9,6 +9,7 @@
 #include "gearbox.h"
 #include "tcu_alloc.h"
 #include "clock.hpp"
+#include "endpoints/endpoint.h"
 
 static const uint32_t MAP_LOOKUP_CACHE_MAX_AGE_MS = 60000;
 static const uint8_t MAP_LOOKUP_CACHE_ENTRY_SIZE = 1 + sizeof(LookupCache);
@@ -97,39 +98,53 @@ StoredMap* get_map(uint8_t map_id) {
 }
 
 #define CHECK_MAP(map_id) \
-    StoredMap* ptr = get_map(map_id); \
+    StoredMap* ptr = get_map((map_id)); \
     if (ptr == nullptr) { \
         return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT; \
     }
 
 kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
+    if (dest_size_bytes == nullptr || buffer == nullptr) {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
     // Map valid
     uint16_t size = ptr->get_map_element_count();
-    uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC((size*sizeof(int16_t))));
+    uint32_t size_bytes = static_cast<uint32_t>(size) * sizeof(int16_t);
+    if (size_bytes > DIAG_CAN_MAX_SIZE) {
+        return NRC_GENERAL_REJECT;
+    }
+    uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC(size_bytes));
     if (nullptr == b) {
         ESP_LOGE("MAP_EDITOR_R", "Could not allocate read array!");
         return NRC_UN52_NO_MEM;
     }
     if (read_type ==  MAP_READ_TYPE_PRG) {
-        memcpy(b, ptr->get_default_map_data(), size*sizeof(int16_t));
+        memcpy(b, ptr->get_default_map_data(), size_bytes);
     } else if (read_type == MAP_READ_TYPE_MEM) {
-        memcpy(b, ptr->get_current_data(), size*sizeof(int16_t));
+        memcpy(b, ptr->get_current_data(), size_bytes);
     } else if (read_type == MAP_READ_TYPE_STO) {
         int16_t* eeprom_data = ptr->get_current_eeprom_map_data();
-        memcpy(b, eeprom_data, size*sizeof(int16_t));
+        if (eeprom_data == nullptr) {
+            TCU_FREE(b);
+            return NRC_UN52_NO_MEM;
+        }
+        memcpy(b, eeprom_data, size_bytes);
         TCU_FREE(eeprom_data);
     } else {
-        TCU_FREE(buffer);
+        TCU_FREE(b);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;
-    *dest_size_bytes = size*sizeof(int16_t);
+    *dest_size_bytes = static_cast<uint16_t>(size_bytes);
     return NRC_OK;
 }
 
 kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
+    if (dest_size_bytes == nullptr || buffer == nullptr) {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
     // X meta, Y meta, KEY_NAME
     int16_t* x_ptr;
     int16_t* y_ptr;
@@ -141,9 +156,18 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     ptr->get_x_headers(&x_size, &x_ptr);
     ptr->get_y_headers(&y_size, &y_ptr);
     k_ptr = ptr->get_map_name();
-    k_size = strlen(k_ptr);
+    if (k_ptr == nullptr || x_ptr == nullptr || y_ptr == nullptr) {
+        return NRC_GENERAL_REJECT;
+    }
+    k_size = static_cast<uint16_t>(strlen(k_ptr));
     // 6 bytes for size data
-    uint16_t size = 6+k_size+((x_size+y_size)*sizeof(int16_t));
+    const uint32_t x_bytes = static_cast<uint32_t>(x_size) * sizeof(int16_t);
+    const uint32_t y_bytes = static_cast<uint32_t>(y_size) * sizeof(int16_t);
+    const uint32_t header_bytes = x_bytes + y_bytes;
+    uint32_t size = 6u + static_cast<uint32_t>(k_size) + header_bytes;
+    if (size > DIAG_CAN_MAX_SIZE || size > UINT16_MAX) {
+        return NRC_GENERAL_REJECT;
+    }
     uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC(size));
     if (nullptr == b) {
         return NRC_UN52_NO_MEM;
@@ -154,16 +178,19 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     b[2] = y_size & 0xFF;
     b[5] = k_size >> 8;
     b[4] = k_size & 0xFF;
-    memcpy(&b[6], x_ptr, x_size*sizeof(int16_t));
-    memcpy(&b[6+(x_size*sizeof(int16_t))], y_ptr, y_size*sizeof(int16_t));
-    memcpy(&b[6+((x_size+y_size)*sizeof(int16_t))], k_ptr, k_size);
+    memcpy(&b[6], x_ptr, x_bytes);
+    memcpy(&b[6 + x_bytes], y_ptr, y_bytes);
+    memcpy(&b[6 + header_bytes], k_ptr, k_size);
     *buffer = b;
-    *dest_size_bytes = size;
+    *dest_size_bytes = static_cast<uint16_t>(size);
     return NRC_OK;
 }
     
 kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
+    if (buffer == nullptr) {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
     if (ptr->replace_data_content(buffer, dest_size) == ESP_OK) {
         return NRC_OK;
     } else {
@@ -200,6 +227,9 @@ kwp_result_t MapEditor::undo_changes(uint8_t map_id) {
 
 kwp_result_t MapEditor::read_map_lookup_cache(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer) {
     CHECK_MAP(map_id)
+    if (dest_size_bytes == nullptr || buffer == nullptr) {
+        return NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT;
+    }
 
     LookupCache cache[MAX_LOOKUP_CACHE] = {};
     ptr->copy_lookup_cache(cache);
@@ -212,7 +242,10 @@ kwp_result_t MapEditor::read_map_lookup_cache(uint8_t map_id, uint16_t *dest_siz
         }
     }
 
-    const uint16_t size = 4 + (valid_count * MAP_LOOKUP_CACHE_ENTRY_SIZE);
+    const uint32_t size = 4u + (static_cast<uint32_t>(valid_count) * MAP_LOOKUP_CACHE_ENTRY_SIZE);
+    if (size > DIAG_CAN_MAX_SIZE || size > UINT16_MAX) {
+        return NRC_GENERAL_REJECT;
+    }
     uint8_t* b = static_cast<uint8_t*>(TCU_HEAP_ALLOC(size));
     if (b == nullptr) {
         return NRC_UN52_NO_MEM;
@@ -234,6 +267,6 @@ kwp_result_t MapEditor::read_map_lookup_cache(uint8_t map_id, uint16_t *dest_siz
     }
 
     *buffer = b;
-    *dest_size_bytes = size;
+    *dest_size_bytes = static_cast<uint16_t>(size);
     return NRC_OK;
 }

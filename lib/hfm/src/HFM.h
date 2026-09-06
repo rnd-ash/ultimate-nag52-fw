@@ -13,10 +13,10 @@
 
 #include <stdint.h>
     
-#define HFM_210_CAN_ID 0x0210
-#define HFM_308_CAN_ID 0x0308
-#define HFM_608_CAN_ID 0x0608
-#define HFM_610_CAN_ID 0x0610
+#define HFM_210_CAN_ID (0x0210)
+#define HFM_308_CAN_ID (0x0308)
+#define HFM_608_CAN_ID (0x0608)
+#define HFM_610_CAN_ID (0x0610)
 
 /** shifter module code */
 enum class HFM_210h_WHC : uint16_t {
@@ -169,6 +169,7 @@ typedef union {
 
 class ECU_HFM {
 	public:
+	ECU_HFM() = default;
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
          *

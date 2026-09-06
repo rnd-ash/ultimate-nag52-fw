@@ -29,7 +29,7 @@ class Speaker {
         void send_note(uint32_t freq, ToneLength tone);
         void post(SPEAKER_POST_CODE code);
     private:
-        void set_freq(uint32_t freq);
+        static void set_freq(uint32_t freq);
 };
 
 extern Speaker* spkr;

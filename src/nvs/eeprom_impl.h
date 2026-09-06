@@ -7,17 +7,24 @@
 namespace EEPROM {
     template <typename T>
     esp_err_t read_subsystem_settings(const char* key_name, T* dest, const T* default_settings) {
-        size_t size = sizeof(T);
+        if (key_name == nullptr || dest == nullptr) {
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        const size_t expected_size = sizeof(T);
+        size_t size = expected_size;
         esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, key_name, dest, &size);
-        if (e == ESP_ERR_NVS_NOT_FOUND && key_name != nullptr) {
+        if (e == ESP_ERR_NVS_NOT_FOUND && default_settings != nullptr) {
             ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "subsystem %s not found in NVS. Setting to settings from prog flash", key_name);
             // Set default map data
             e = write_subsystem_settings(key_name, default_settings);
-            memcpy(dest, default_settings, sizeof(T)); // As e would be ESP_OK, the memcpy below won't get executed!
+            memcpy(dest, default_settings, expected_size);
+        } else if (e == ESP_OK && size != expected_size) {
+            e = ESP_ERR_INVALID_SIZE;
         }
         if(e != ESP_OK) {
             if (default_settings != nullptr) {
-                memcpy(dest, default_settings, sizeof(T));
+                memcpy(dest, default_settings, expected_size);
                 e = ESP_OK;
             } else {
                 e = ESP_ERR_INVALID_ARG;

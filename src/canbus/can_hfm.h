@@ -20,13 +20,13 @@ class HfmCan: public EgsBaseCan {
          */
 
         // Get the front right wheel data
-        uint16_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
+        wheel_rpm_2x_t get_front_right_wheel(const uint32_t expire_time_ms)  override;
         // Get the front left wheel data
-        uint16_t get_front_left_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_front_left_wheel(const uint32_t expire_time_ms) override;
         // Get the rear right wheel data
-        uint16_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_rear_right_wheel(const uint32_t expire_time_ms) override;
         // Get the rear left wheel data
-        uint16_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
+        wheel_rpm_2x_t get_rear_left_wheel(const uint32_t expire_time_ms) override;
         // Gets engine type
         EngineType get_engine_type(const uint32_t expire_time_ms) override;
         // Returns true if engine is in limp mode
@@ -34,15 +34,15 @@ class HfmCan: public EgsBaseCan {
         // Returns true if pedal is kickdown 
          bool get_kickdown(const uint32_t expire_time_ms) override;
         // Returns the pedal percentage. Range 0-250
-         uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
+         pedal_pos_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets Torque information
         CanTorqueData get_torque_data(const uint32_t expire_time_ms) override;
         // Gets engine coolant temperature
-         int16_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
+         temp_c_t get_engine_coolant_temp(const uint32_t expire_time_ms) override;
         // Gets engine oil temperature
-         int16_t get_engine_oil_temp(const uint32_t expire_time_ms) override;
+         temp_c_t get_engine_oil_temp(const uint32_t expire_time_ms) override;
          // Gets engine charge air temperature
-        int16_t get_engine_iat_temp(const uint32_t expire_time_ms) override;
+        temp_c_t get_engine_iat_temp(const uint32_t expire_time_ms) override;
         // Gets engine RPM
          uint16_t get_engine_rpm(const uint32_t expire_time_ms) override;
         // Returns true if engine is cranking
@@ -68,7 +68,7 @@ class HfmCan: public EgsBaseCan {
 
         StoredTable *enginemaxtorque = new StoredTable(NVS_KEY_MAP_NAME_HFM_TORQUE_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_HEADERS_MAP, TORQUE_MAP_SIZE, ENGINE_TORQUE_MAP);
 
-        uint16_t generateWheelData(const uint32_t expire_time_ms) const;
+        wheel_rpm_2x_t generateWheelData(const uint32_t expire_time_ms) const;
 };
 
 #endif // HFM_CAN_H

@@ -41,10 +41,7 @@ private:
     uint16_t get_trq_boost_adder();
     int16_t calc_momentum_overlap_2();
 
-    uint8_t trq_req_timer = 0;
-    bool trq_req_up_ramp = false;
     bool fill_via_ramp = false;
-    uint16_t torque_req_val = 0;
     int16_t torque_adapt_val = 0;
     int16_t trq_req_compensate_val = 0;
     

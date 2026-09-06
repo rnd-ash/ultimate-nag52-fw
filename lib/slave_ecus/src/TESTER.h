@@ -13,7 +13,7 @@
 
 #include <stdint.h>
     
-#define SOLENOID_CONTROL_EGS_SLAVE_CAN_ID 0x0501
+#define SOLENOID_CONTROL_EGS_SLAVE_CAN_ID (0x0501)
 
 
 

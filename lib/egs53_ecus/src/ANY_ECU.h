@@ -13,12 +13,12 @@
 
 #include <stdint.h>
     
-#define SG_A1_EGS53_CAN_ID 0x02F7
-#define ISM_DISP_RQ_EGS53_CAN_ID 0x02F5
-#define SSP_RS_SSP_EGS53_CAN_ID 0x0381
-#define NM_FSCM2_EGS53_CAN_ID 0x0435
-#define NM_ISM_EGS53_CAN_ID 0x041D
-#define NM_SSP_EGS53_CAN_ID 0x041E
+#define SG_A1_EGS53_CAN_ID (0x02F7)
+#define ISM_DISP_RQ_EGS53_CAN_ID (0x02F5)
+#define SSP_RS_SSP_EGS53_CAN_ID (0x0381)
+#define NM_FSCM2_EGS53_CAN_ID (0x0435)
+#define NM_ISM_EGS53_CAN_ID (0x041D)
+#define NM_SSP_EGS53_CAN_ID (0x041E)
 
 /** Electric Machine # 1 Diagnostics State / Diagnostic Status E-Machine 1 */
 enum class SG_A1_EM1_Diag_Stat_EGS53 : uint16_t {

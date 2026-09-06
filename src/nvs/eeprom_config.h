@@ -12,6 +12,17 @@
 
 static const char NVS_PARTITION_USER_CFG[16] = "tcm_user_config";
 
+// Purpose selected for the IO_0 pin, set in the config app under
+// TCU Configuration -> GPIO pin usage. The IO_0 pin itself only exists on PCB
+// 1.3 and newer (see BoardGpioMatrix::io_pin), so any usage other than NONE
+// needs a board whose GPIO matrix actually maps that pin.
+#define IO_0_USAGE_NONE                 (0u)
+#define IO_0_USAGE_VEHICLE_SPEED_SENSOR (1u)
+#define IO_0_USAGE_OUTPUT               (2u) // TBA
+// "TCC Zener cutoff" in the config app - drives the TCC zener mod MOSFET.
+// The zener board is an official 1.3 addon, and is integrated on 1.3 Rev B.
+#define IO_0_USAGE_TCC_ZENER            (3u)
+
 struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     uint8_t deprecated_is_large_nag;
     uint16_t diff_ratio;
@@ -28,10 +39,11 @@ struct __attribute__ ((packed)) TCM_CORE_CONFIG{
     // 1 - TRRS
     // 2 - SLR
     uint8_t shifter_style;
+    // See the IO_0_USAGE_* constants above:
     // 0 - N/C
     // 1 - Vehicle speed sensor
     // 2 - Output (TBA)
-    // 3 - TCC Manual MOSFET (1.3 ONLY)
+    // 3 - TCC Manual MOSFET / TCC Zener cutoff (needs a board that maps io_pin)
     uint8_t io_0_usage;
     uint8_t input_sensor_pulses_per_rev;
     uint8_t output_pulse_width_per_kmh;
@@ -99,7 +111,7 @@ namespace EEPROM {
     esp_err_t write_subsystem_settings(const char* key_name, const T* write);
 }
 
-#define NUM_GEARS 5
+#define NUM_GEARS (5)
 extern TCM_CORE_CONFIG VEHICLE_CONFIG;
 extern TCM_EFUSE_CONFIG BOARD_CONFIG;
 extern nvs_handle_t MAP_NVS_HANDLE;

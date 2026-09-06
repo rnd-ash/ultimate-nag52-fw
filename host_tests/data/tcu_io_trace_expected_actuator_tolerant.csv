@@ -1,0 +1,5 @@
+# expected actuator outputs with small acceptable drift
+mpc_ma,spc_ma,tcc_pwm_12bit,y3_on,y4_on,y5_on
+0,0,1,0,0,0
+503,347,1028,1,0,0
+848,703,1019,1,1,1

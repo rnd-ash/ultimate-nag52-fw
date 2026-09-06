@@ -4,6 +4,14 @@
 #include "clock.h"
 #include <string.h>
 
+LookupMap::~LookupMap(void)
+{
+    delete this->table;
+    this->table = nullptr;
+    delete this->yHeader;
+    this->yHeader = nullptr;
+}
+
 float LookupMap::get_value(const float xValue, const float yValue) {
     return this->get_value(xValue, yValue, 0);
 }
@@ -50,7 +58,7 @@ float LookupMap::get_value(const float xValue, const float yValue, const uint8_t
     return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, y1, y2, yValue);
 }
 
-void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
+void LookupMap::get_y_headers(uint16_t *size, int16_t **headers) const {
     *size = yHeaderSize;
     *headers = yHeader->get_data();
 }
@@ -59,11 +67,11 @@ int16_t* LookupMap::get_current_data(void) const {
     return this->table->get_current_data();
 }
 
-void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
+void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) const {
     return table->get_x_headers(size, headers);
 }
 
-uint16_t LookupMap::data_size() {
+uint16_t LookupMap::data_size() const {
     return this->table->data_size();
 }
 
@@ -78,23 +86,29 @@ float LookupMap::get_x_header_interpolated(const float value, const int16_t y) c
 {
     const LookupHeader* xHeader = this->table->get_header();
     const int16_t* data = this->table->get_current_data();
-    // isolate the row
-    int16_t row[xHeader->get_size()] = {0};
-    for (uint16_t i = 0; i < xHeader->get_size(); i++)
-    {
-        row[i] = data[i*yHeaderSize];
+    if (nullptr == xHeader || nullptr == data || 0u == xHeader->get_size()) {
+        return 0.0f;
     }
-    
+    const uint16_t x_size = xHeader->get_size();
+
+    // Isolate the row for y. Data is laid out row major as
+    // data[(y_idx * x_size) + x_idx] - the same indexing get_value() uses - so
+    // a row is contiguous and can be pointed at directly.
+    uint16_t    y_idx_min;
+    uint16_t    y_idx_max;
+    search_value<int16_t>(y, yHeader->get_data(), yHeader->get_size(), &y_idx_min, &y_idx_max);
+    const int16_t* row = &data[y_idx_min * x_size];
+
     uint16_t    idvalue_min;
     uint16_t    idvalue_max;
 
     // part 1 - identification of the indices for x-value
-    search_value<int16_t>(value, row, xHeader->get_size(), &idvalue_min, &idvalue_max);
+    search_value<int16_t>((int16_t)value, row, x_size, &idvalue_min, &idvalue_max);
 
     // part 2: do the interpolation
     const float value1 = (float)xHeader->get_value(idvalue_min);
     const float value2 = (float)xHeader->get_value(idvalue_max);
-    
+
     return value1 + progress_between_targets(value, row[idvalue_min], row[idvalue_max]) * (value2 - value1);
 }
 
@@ -105,8 +119,7 @@ LookupAllocMap::LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderS
 }
 
 LookupAllocMap::~LookupAllocMap() {
-    delete this->yHeader;
-    delete this->table;
+    // table and yHeader are released by ~LookupMap
 }
 
 bool LookupAllocMap::add_data(const int16_t* map, const uint16_t size) {
@@ -123,10 +136,15 @@ LookupRefMap::LookupRefMap(int16_t* _xHeader, const uint16_t _xHeaderSize, int16
     this->yHeaderSize = _yHeaderSize;
 }
 
-LookupByteMap::LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uint8_t* _yHeader, const uint16_t _yHeaderSize, uint8_t* _data, const uint16_t _dataSize) {
+LookupByteMap::LookupByteMap(const uint8_t* _xHeader, const uint16_t _xHeaderSize, const uint8_t* _yHeader, const uint16_t _yHeaderSize, const uint8_t* _data, const uint16_t _dataSize)
+    : x_alloc(nullptr), y_alloc(nullptr), z_alloc(nullptr), z_size(_dataSize) {
     this->x_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_xHeaderSize * sizeof(int16_t)));
     this->y_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_yHeaderSize * sizeof(int16_t)));
     this->z_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_dataSize * sizeof(int16_t)));
+
+    if (nullptr == this->x_alloc || nullptr == this->y_alloc || nullptr == this->z_alloc) {
+        return;
+    }
 
     for (auto i = 0; i < _xHeaderSize; i++) {
         this->x_alloc[i] = _xHeader[i];
@@ -137,11 +155,9 @@ LookupByteMap::LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uin
     for (auto i = 0; i < _dataSize; i++) {
         this->z_alloc[i] = _data[i];
     }
-    if (nullptr != this->x_alloc && nullptr != this->y_alloc && nullptr != this->z_alloc) {
-        this->table = new LookupRefTable(x_alloc, _xHeaderSize, z_alloc, _dataSize);
-        this->yHeader = new LookupRefHeader(y_alloc, _yHeaderSize);
-        this->yHeaderSize = _yHeaderSize;
-    }
+    this->table = new LookupRefTable(x_alloc, _xHeaderSize, z_alloc, _dataSize);
+    this->yHeader = new LookupRefHeader(y_alloc, _yHeaderSize);
+    this->yHeaderSize = _yHeaderSize;
 }
 
 bool LookupByteMap::is_allocated(void) const {
@@ -149,7 +165,7 @@ bool LookupByteMap::is_allocated(void) const {
 }
 
 bool LookupByteMap::add_data(const uint8_t* map, const uint16_t size) {
-    if (size != this->z_size) {
+    if (nullptr == map || nullptr == this->z_alloc || size != this->z_size) {
         return false;
     } else {
         for (auto i = 0; i < size; i++) {
@@ -160,9 +176,12 @@ bool LookupByteMap::add_data(const uint8_t* map, const uint16_t size) {
 }
 
 LookupByteMap::~LookupByteMap() {
-    delete this->table;
-    delete this->yHeader;
+    // table and yHeader are released by ~LookupMap. They are Ref types that only
+    // point into the buffers below, so the order of release does not matter.
     TCU_FREE(this->x_alloc);
+    this->x_alloc = nullptr;
     TCU_FREE(this->y_alloc);
+    this->y_alloc = nullptr;
     TCU_FREE(this->z_alloc);
+    this->z_alloc = nullptr;
 }

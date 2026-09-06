@@ -15,10 +15,10 @@
 // then run `efuse_common_table` or `efuse_custom_table` command it will generate this file.
 // To show efuse_table run the command 'show_efuse_table'.
 
-#define MAX_BLK_LEN CONFIG_EFUSE_MAX_BLK_LEN
+#define MAX_BLK_LEN (CONFIG_EFUSE_MAX_BLK_LEN)
 
 // The last free bit in the block is counted over the entire file.
-#define LAST_FREE_BIT_BLK3 40
+#define LAST_FREE_BIT_BLK3 (40)
 
 _Static_assert(LAST_FREE_BIT_BLK3 <= MAX_BLK_LEN, "The eFuse table does not match the coding scheme. Edit the table and restart the efuse_common_table or efuse_custom_table command to regenerate the new files.");
 

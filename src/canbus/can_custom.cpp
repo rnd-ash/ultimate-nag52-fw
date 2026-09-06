@@ -6,45 +6,46 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "can_custom_logic.h"
 
 CustomCan::CustomCan(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
 {
     ESP_LOGI("CustomCAN", "SETUP CALLED");
 }
 
-uint16_t CustomCan::get_front_right_wheel(const uint32_t expire_time_ms)
+wheel_rpm_2x_t CustomCan::get_front_right_wheel(const uint32_t expire_time_ms)
 {
 	WHEELS_300_CUSTOMCAN wheel_data{};
-    uint16_t ret = UINT16_MAX;
+    wheel_rpm_2x_t ret = WheelSpeed::INVALID;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        ret = wheel_data.RPM_2X_FR;
+        ret = WheelSpeed::from_raw_2x(wheel_data.RPM_2X_FR);
     }
     return ret;
 }
 
-uint16_t CustomCan::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
+wheel_rpm_2x_t CustomCan::get_front_left_wheel(const uint32_t expire_time_ms) { // TODO
     WHEELS_300_CUSTOMCAN wheel_data{};
-    uint16_t ret = UINT16_MAX;
+    wheel_rpm_2x_t ret = WheelSpeed::INVALID;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        ret = wheel_data.RPM_2X_FL;
+        ret = WheelSpeed::from_raw_2x(wheel_data.RPM_2X_FL);
     }
     return ret;
 }
 
-uint16_t CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
+wheel_rpm_2x_t CustomCan::get_rear_right_wheel(const uint32_t expire_time_ms) {
     WHEELS_300_CUSTOMCAN wheel_data{};
-    uint16_t ret = UINT16_MAX;
+    wheel_rpm_2x_t ret = WheelSpeed::INVALID;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        ret = wheel_data.RPM_2X_RR;
+        ret = WheelSpeed::from_raw_2x(wheel_data.RPM_2X_RR);
     }
     return ret;
 }
 
-uint16_t CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
+wheel_rpm_2x_t CustomCan::get_rear_left_wheel(const uint32_t expire_time_ms) {
     WHEELS_300_CUSTOMCAN wheel_data{};
-    uint16_t ret = UINT16_MAX;
+    wheel_rpm_2x_t ret = WheelSpeed::INVALID;
     if (this->wheels.get_WHEELS_300(GET_CLOCK_TIME(), expire_time_ms, &wheel_data)) {
-        ret = wheel_data.RPM_2X_RL;
+        ret = WheelSpeed::from_raw_2x(wheel_data.RPM_2X_RL);
     }
     return ret;
 }
@@ -58,15 +59,19 @@ bool CustomCan::get_engine_is_limp(const uint32_t expire_time_ms) { // TODO
 }
 
 bool CustomCan::get_kickdown(const uint32_t expire_time_ms) { // TODO
+    ENGINE_100_CUSTOMCAN engine_data{};
+    if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
+        return customcan_decode_kickdown(engine_data);
+    }
     return false;
 }
 
-uint8_t CustomCan::get_pedal_value(const uint32_t expire_time_ms) {
+pedal_pos_t CustomCan::get_pedal_value(const uint32_t expire_time_ms) {
     ENGINE_100_CUSTOMCAN engine_data{};
     if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
-        return engine_data.PEDAL;
+        return Pedal::from_raw(engine_data.PEDAL);
     } else {
-        return 0xFF;
+        return Pedal::INVALID;
     }
 }
 
@@ -75,16 +80,16 @@ CanTorqueData CustomCan::get_torque_data(const uint32_t expire_time_ms) {
     CanTorqueData ret = TORQUE_NDEF;
     if (this->engine.get_ENGINE_102(GET_CLOCK_TIME(), expire_time_ms, &torque_data)) {
         if (UINT16_MAX != torque_data.STATIC_TORQUE) {
-            ret.m_converted_static = ((int)torque_data.STATIC_TORQUE / 4) - 500;
+            ret.m_converted_static = Torque::from_can_raw((int)torque_data.STATIC_TORQUE);
         }
         if (UINT16_MAX != torque_data.DRIVER_TORQUE) {
-            ret.m_converted_driver = ((int)torque_data.DRIVER_TORQUE / 4) - 500;
+            ret.m_converted_driver = Torque::from_can_raw((int)torque_data.DRIVER_TORQUE);
         }
         if (UINT16_MAX != torque_data.MIN_TORQUE) {
-            ret.m_min = ((int)torque_data.MIN_TORQUE / 4) - 500;
+            ret.m_min = Torque::from_can_raw((int)torque_data.MIN_TORQUE);
         }
         if (UINT16_MAX != torque_data.MAX_TORQUE) {
-            ret.m_max = ((int)torque_data.MAX_TORQUE / 4) - 500;
+            ret.m_max = Torque::from_can_raw((int)torque_data.MAX_TORQUE);
         }
         ret.m_ind = ret.m_converted_driver;
     }
@@ -95,30 +100,27 @@ PaddlePosition CustomCan::get_paddle_position(const uint32_t expire_time_ms) {
     return PaddlePosition::SNV;
 }
 
-int16_t CustomCan::get_engine_coolant_temp(const uint32_t expire_time_ms) {
+temp_c_t CustomCan::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     ENGINE_100_CUSTOMCAN engine_data{};
-    int16_t ret = INT16_MAX;
     if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
-        if (engine_data.T_COOLANT != UINT8_MAX) {
-            ret = (int16_t)engine_data.PEDAL - 40;
-        }
+        return Temp::from_celsius(customcan_decode_engine_coolant(engine_data));
     }
-    return ret;
+    return Temp::INVALID;
 }
 
-int16_t CustomCan::get_engine_oil_temp(const uint32_t expire_time_ms) {
+temp_c_t CustomCan::get_engine_oil_temp(const uint32_t expire_time_ms) {
     ENGINE_100_CUSTOMCAN engine_data{};
-    int16_t ret = INT16_MAX;
+    temp_c_t ret = Temp::INVALID;
     if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
         if (engine_data.T_OIL != UINT8_MAX) {
-            ret = (int16_t)engine_data.T_OIL - 40;
+            ret = Temp::from_can_u8_offset40(engine_data.T_OIL);
         }
     }
     return ret;
 }
 
-int16_t CustomCan::get_engine_iat_temp(const uint32_t expire_time_ms) {
-    return INT16_MAX;
+temp_c_t CustomCan::get_engine_iat_temp(const uint32_t expire_time_ms) {
+    return Temp::INVALID;
 }
 
 uint16_t CustomCan::get_engine_rpm(const uint32_t expire_time_ms) {
@@ -225,11 +227,12 @@ void CustomCan::set_target_gear(GearboxGear target) {
     }
 }
 
-void CustomCan::set_gearbox_temperature(int16_t temp) {
-    this->tx_400.T_OEL = (MAX(temp, -50) + 50) & 0xFF;
+void CustomCan::set_gearbox_temperature(temp_c_t temp) {
+    this->tx_400.T_OEL = Temp::to_can_u8_offset50(temp);
 }
 
 void CustomCan::set_input_shaft_speed(uint16_t rpm) {
+    this->tx_400.INPUT_RPM = rpm;
 }
 
 void CustomCan::set_is_all_wheel_drive(bool is_4wd) {
@@ -246,36 +249,12 @@ void CustomCan::set_gearbox_ok(bool is_ok) {
 }
 
 void CustomCan::set_torque_request(TorqueRequestControlType control_type, TorqueRequestBounds limit_type, float amount_nm) {
-    if (control_type == TorqueRequestControlType::None) {
-        tx_410.TRQ_REQ_CTRL0 = false;
-        tx_410.TRQ_REQ_CTRL1 = false;
-    } else if (control_type == TorqueRequestControlType::FastAsPossible) {
-        tx_410.TRQ_REQ_CTRL0 = false;
-        tx_410.TRQ_REQ_CTRL1 = true;
-    } else if (control_type == TorqueRequestControlType::BackToDemandTorque) {
-        tx_410.TRQ_REQ_CTRL0 = true;
-        tx_410.TRQ_REQ_CTRL1 = true;
-    } else { // Normal speed
-        tx_410.TRQ_REQ_CTRL0 = true;
-        tx_410.TRQ_REQ_CTRL1 = false;
-    }
-    if (control_type != TorqueRequestControlType::None) {
-        tx_410.TRQ_REQ_TRQ = (amount_nm + 500) * 4;
-        if (limit_type == TorqueRequestBounds::LessThan) {
-            tx_410.TRQ_REQ_MIN = true;
-            tx_410.TRQ_REQ_MAX = false;
-        } else if (limit_type == TorqueRequestBounds::MoreThan) {
-            tx_410.TRQ_REQ_MIN = false;
-            tx_410.TRQ_REQ_MAX = true;
-        } else {
-            tx_410.TRQ_REQ_MIN = true;
-            tx_410.TRQ_REQ_MAX = true;
-        }
-    } else {
-        tx_410.TRQ_REQ_MIN = false;
-        tx_410.TRQ_REQ_MAX = false;
-        tx_410.TRQ_REQ_TRQ = 0;
-    }
+    CustomCanTorqueRequestFields fields = customcan_build_torque_request(control_type, limit_type, amount_nm);
+    tx_410.TRQ_REQ_CTRL0 = fields.ctrl0;
+    tx_410.TRQ_REQ_CTRL1 = fields.ctrl1;
+    tx_410.TRQ_REQ_MIN = fields.min;
+    tx_410.TRQ_REQ_MAX = fields.max;
+    tx_410.TRQ_REQ_TRQ = fields.raw_torque;
 }
 
 void CustomCan::set_garage_shift_state(bool enable, bool to_d) {

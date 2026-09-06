@@ -4,59 +4,59 @@
 #include <stdint.h>
 #include "kwp2000_defines.h"
 
-#define A_UPSHIFT_MAP_ID 0x01
-#define C_UPSHIFT_MAP_ID 0x02
-#define S_UPSHIFT_MAP_ID 0x03
-#define A_DOWNSHIFT_MAP_ID 0x04
-#define C_DOWNSHIFT_MAP_ID 0x05
-#define S_DOWNSHIFT_MAP_ID 0x06
+#define A_UPSHIFT_MAP_ID (0x01)
+#define C_UPSHIFT_MAP_ID (0x02)
+#define S_UPSHIFT_MAP_ID (0x03)
+#define A_DOWNSHIFT_MAP_ID (0x04)
+#define C_DOWNSHIFT_MAP_ID (0x05)
+#define S_DOWNSHIFT_MAP_ID (0x06)
 
 //#define WORKING_PRESSURE_MAP_ID 0x07
 //#define PCS_CURRENT_MAP_ID 0x08
-#define TCC_PWM_MAP_ID 0x09
-#define FILL_TIME_MAP_ID 0x0A
-#define FILL_PRESSURE_MAP_ID 0x0B
-#define FILL_PRESSURE_LOW_MAP_ID 0x0C
+#define TCC_PWM_MAP_ID (0x09)
+#define FILL_TIME_MAP_ID (0x0A)
+#define FILL_PRESSURE_MAP_ID (0x0B)
+#define FILL_PRESSURE_LOW_MAP_ID (0x0C)
 
-#define A_UPTIME_MAP_ID 0x10
-#define A_DNTIME_MAP_ID 0x11
-#define S_UPTIME_MAP_ID 0x12
-#define S_DNTIME_MAP_ID 0x13
-#define C_UPTIME_MAP_ID 0x14
-#define C_DNTIME_MAP_ID 0x15
-#define W_UPTIME_MAP_ID 0x16
-#define W_DNTIME_MAP_ID 0x17
-#define M_UPTIME_MAP_ID 0x18
-#define M_DNTIME_MAP_ID 0x19
+#define A_UPTIME_MAP_ID (0x10)
+#define A_DNTIME_MAP_ID (0x11)
+#define S_UPTIME_MAP_ID (0x12)
+#define S_DNTIME_MAP_ID (0x13)
+#define C_UPTIME_MAP_ID (0x14)
+#define C_DNTIME_MAP_ID (0x15)
+#define W_UPTIME_MAP_ID (0x16)
+#define W_DNTIME_MAP_ID (0x17)
+#define M_UPTIME_MAP_ID (0x18)
+#define M_DNTIME_MAP_ID (0x19)
 
-#define HFM_TRQ_MAP_ID 0x20
-#define HFM_MAF_MAP_ID 0x21
-#define HFM_MAX_MAP_ID 0x22
+#define HFM_TRQ_MAP_ID (0x20)
+#define HFM_MAF_MAP_ID (0x21)
+#define HFM_MAX_MAP_ID (0x22)
 
-#define TCC_ADAPT_SLIP_MAP_ID 0xA0
-#define TCC_ADAPT_LOCK_MAP_ID 0xA1
-#define SHIFT_ADAPT_FILL_T_MAP_ID 0xA2
-#define SHIFT_ADAPT_FILL_P_MAP_ID 0xA3
-#define SHIFT_ADAPT_TRQ_APPL_MAP_ID 0xA4
-#define SHIFT_ADAPT_TRQ_FREE_MAP_ID 0xA5
+#define TCC_ADAPT_SLIP_MAP_ID (0xA0)
+#define TCC_ADAPT_LOCK_MAP_ID (0xA1)
+#define SHIFT_ADAPT_FILL_T_MAP_ID (0xA2)
+#define SHIFT_ADAPT_FILL_P_MAP_ID (0xA3)
+#define SHIFT_ADAPT_TRQ_APPL_MAP_ID (0xA4)
+#define SHIFT_ADAPT_TRQ_FREE_MAP_ID (0xA5)
 
-#define TCC_RPM_SLIP_MAP 0xB0
+#define TCC_RPM_SLIP_MAP (0xB0)
 
 
 // MAP COMMAND IDs
-#define MAP_CMD_READ 0x01
-#define MAP_CMD_READ_DEFAULT 0x02
-#define MAP_CMD_WRITE 0x03
-#define MAP_CMD_BURN 0x04
-#define MAP_CMD_RESET_TO_FLASH 0x05
-#define MAP_CMD_UNDO 0x06
-#define MAP_CMD_READ_META 0x07
-#define MAP_CMD_READ_EEPROM 0x08
-#define MAP_CMD_GET_LOOKUP_VALS 0x10
+#define MAP_CMD_READ (0x01)
+#define MAP_CMD_READ_DEFAULT (0x02)
+#define MAP_CMD_WRITE (0x03)
+#define MAP_CMD_BURN (0x04)
+#define MAP_CMD_RESET_TO_FLASH (0x05)
+#define MAP_CMD_UNDO (0x06)
+#define MAP_CMD_READ_META (0x07)
+#define MAP_CMD_READ_EEPROM (0x08)
+#define MAP_CMD_GET_LOOKUP_VALS (0x10)
 
-#define MAP_READ_TYPE_MEM 0x01
-#define MAP_READ_TYPE_PRG 0x02
-#define MAP_READ_TYPE_STO 0x03
+#define MAP_READ_TYPE_MEM (0x01)
+#define MAP_READ_TYPE_PRG (0x02)
+#define MAP_READ_TYPE_STO (0x03)
 
 namespace MapEditor {
     kwp_result_t read_map_metadata(uint8_t map_id, uint16_t *dest_size_bytes, uint8_t** buffer);

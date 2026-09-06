@@ -1,6 +1,15 @@
 #include "tcu_maths.h"
 
+float scale_number(float raw, float new_min, float new_max, float raw_min, float raw_max) {
+    return interpolate_float(raw, new_min, new_max, raw_min, raw_max, InterpType::Linear);
+}
+
 float interpolate_float(float raw, float new_min, float new_max, float raw_min, float raw_max, InterpType interp_type) {
+    // Guard NaN inputs early; returning new_min is a conservative fail-safe.
+    if (!(raw == raw) || !(new_min == new_min) || !(new_max == new_max) || !(raw_min == raw_min) || !(raw_max == raw_max)) {
+        return new_min;
+    }
+
     // Short cuts for cases where we are > or < than bounds
     float ret;
     // Swap in case of raw being inverted!!
@@ -14,7 +23,9 @@ float interpolate_float(float raw, float new_min, float new_max, float raw_min, 
         new_min = tmp;
     }
 
-    if (raw <= raw_min) {
+    if (raw_max == raw_min) {
+        ret = new_min;
+    } else if (raw <= raw_min) {
         ret = new_min;
     } else if (raw >= raw_max) {
         ret = new_max;
@@ -56,7 +67,7 @@ float interpolate_float(float raw, float new_min, float new_max, float raw_min, 
                 // percentage / 5 = low_bound_idx
                 uint8_t i = input_percentage_as_int/5;
                 float percentage_output = interpolate(ptr[i].out, ptr[i+1].out, ptr[i].in, ptr[i+1].in, input_percentage);
-                ret = (((new_max - new_min) * percentage_output) / 100.0) + new_min;
+                ret = (((new_max - new_min) * percentage_output) / 100.0f) + new_min;
             }
         }
     }
@@ -64,6 +75,9 @@ float interpolate_float(float raw, float new_min, float new_max, float raw_min, 
 }
 
 int interpolate_int(int raw, int new_min, int new_max, int raw_min, int raw_max) {
+    if (raw_max == raw_min) {
+        return new_min;
+    }
     int raw_limited = MAX(raw_min, MIN(raw, raw_max));
     return (((new_max - new_min) * (raw_limited - raw_min)) / (raw_max - raw_min)) + new_min;
 }
@@ -87,6 +101,9 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
 
 
 float progress_between_targets(const float current, const float start, const float end) {
+    if (end == start) {
+        return 0.0f;
+    }
     return ((100.0F * (current - start)) / (end - start));
 }
 
@@ -107,7 +124,7 @@ float first_order_filter_f(uint8_t sample_count, int32_t new_val, float last_val
     if (sample_count == 0xFF) {
         sample_count = 0xFE;
     }
-    return ((float)new_val + ((float)sample_count*last_val)) / ((float)sample_count + 1.0);
+    return ((float)new_val + ((float)sample_count*last_val)) / ((float)sample_count + 1.0f);
 }
 
 int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_val) {

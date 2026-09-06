@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define ENGINE_100_CUSTOMCAN_CAN_ID 0x0100
-#define ENGINE_102_CUSTOMCAN_CAN_ID 0x0120
+#define ENGINE_100_CUSTOMCAN_CAN_ID (0x0100)
+#define ENGINE_102_CUSTOMCAN_CAN_ID (0x0120)
 
 
 
@@ -62,6 +62,7 @@ typedef union {
 
 class ECU_ENGINE {
 	public:
+    ECU_ENGINE() = default;
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
          *

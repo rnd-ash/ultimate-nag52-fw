@@ -4,6 +4,7 @@
 #include "gearbox.h"
 #include "maps.h"
 #include "nvs/all_keys.h"
+#include "tcu_scaling.h"
 #include <tcu_maths_impl.h>
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
@@ -38,7 +39,8 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
     this->upshift_table = new StoredMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, upshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->upshift_table->init_status() != ESP_OK) {
-        delete[] this->upshift_table;
+        delete this->upshift_table;
+        this->upshift_table = nullptr;
     }
 
     /** Downshift map **/
@@ -51,20 +53,29 @@ AbstractProfile::AbstractProfile(bool is_diesel,
     }
     this->downshift_table = new StoredMap(key_name, SHIFT_MAP_SIZE, shift_table_x_header, downshift_y_headers, SHIFT_MAP_X_SIZE, SHIFT_MAP_Y_SIZE, default_map);
     if (this->downshift_table->init_status() != ESP_OK) {
-        delete[] this->downshift_table;
+        delete this->downshift_table;
+        this->downshift_table = nullptr;
     }
 
     // Up/downshift time tables
     int16_t redline = is_diesel ? VEHICLE_CONFIG.red_line_rpm_diesel : VEHICLE_CONFIG.red_line_rpm_petrol;
+    // Apply the same floor Gearbox does. Without it a misconfigured redline
+    // makes step_size zero or negative, which builds a flat or DESCENDING y
+    // header - search_value assumes ascending order and silently misinterpolates.
+    if (redline < 4000) {
+        redline = 4000;
+    }
     int16_t step_size = (redline-1000) / 4;
     int16_t shift_rpm_points[5] = {(int16_t)1000,  (int16_t)(1000+(step_size)), (int16_t)(1000+(step_size*2)), (int16_t)(1000+(step_size*3)), redline};
     this->upshift_time_map = new StoredMap(upshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_upshift_time_data);
     if (this->upshift_time_map->init_status() != ESP_OK) {
-        delete[] this->upshift_time_map;
+        delete this->upshift_time_map;
+        this->upshift_time_map = nullptr;
     }
     this->downshift_time_map = new StoredMap(downshift_time_map_name, SHIFT_TIME_MAP_SIZE, shift_time_table_x_header, const_cast<int16_t*>(shift_rpm_points), 6, 5, def_downshift_time_data);
     if (this->downshift_time_map->init_status() != ESP_OK) {
-        delete[] this->downshift_time_map;
+        delete this->downshift_time_map;
+        this->downshift_time_map = nullptr;
     }
 }
 
@@ -75,13 +86,13 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange reque
         case GearChange::_2_3:
         case GearChange::_3_4:
         case GearChange::_4_5:
-            result.target_shift_time = this->get_upshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            result.target_shift_time = this->get_upshift_time(sensors->input_rpm, Pedal::to_percent(sensors->pedal_pos));
             break;
         case GearChange::_5_4:
         case GearChange::_4_3:
         case GearChange::_3_2:
         case GearChange::_2_1:
-            result.target_shift_time = this->get_downshift_time(sensors->input_rpm, ((float)sensors->pedal_pos*100.0)/250.0);
+            result.target_shift_time = this->get_downshift_time(sensors->input_rpm, Pedal::to_percent(sensors->pedal_pos));
             break;
         default:
             result.target_shift_time = 500;
@@ -93,7 +104,7 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange reque
 
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "WINTER", 
+        "AGILITY",
         NVS_KEY_MAP_NAME_A_DIESEL_UPSHIFT, 
         NVS_KEY_MAP_NAME_A_DIESEL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_A_PETROL_UPSHIFT, 
@@ -140,7 +151,7 @@ bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
         return false;
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return (int)sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return (int)sensors->input_rpm > this->upshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
     } else {
         return false;
     }
@@ -151,7 +162,7 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return (int)sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return (int)sensors->input_rpm < this->downshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
     } else {
         return false;
     }
@@ -205,7 +216,7 @@ bool ComfortProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
         return false;
     }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        bool can_upshift = sensors->input_rpm > this->upshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
         if (sensors->brake_pressed) { can_upshift = false; }
         //if (can_upshift) {
         //    if (sensors->max_torque != 0) {
@@ -226,7 +237,7 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
         return false;
     }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return sensors->input_rpm < this->downshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
     } else {
         return false;
     }
@@ -334,21 +345,21 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     if (current_gear == GearboxGear::Fifth) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
         // RPM where we will upshift based on the current load
-        uint16_t upshift_map_val = this->upshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        uint16_t upshift_map_val = this->upshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
         // Add some extra RPM for catalyst warm up (+1000RPM at -10C, negated at 40C and higher)
-        upshift_map_val += interpolate_float(sensors->atf_temp, 1000, 0, -10, 40, InterpType::Linear);
+        upshift_map_val += interpolate_float((float)Temp::celsius_i16(sensors->atf_temp), 1000, 0, -10, 40, InterpType::Linear);
         int time_since_last_shift = GET_CLOCK_TIME() - sensors->last_shift_time; // ms
         // Increase the threshold higher RPMs closer to shift
         // (Inverted since raw values are time SINCE shift)
         upshift_map_val += interpolate_float(time_since_last_shift, 0, 1000, 5000, 0, InterpType::Linear);
-        int mmax = sensors->max_torque;
+        int mmax = Torque::nm_i16(sensors->max_torque);
         if (0 != mmax) {
             // Score of 0-1
-            float engine_load_percent = (float)sensors->converted_driver_torque / (float)sensors->max_torque;
-            upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
+            float engine_load_percent = (float)Torque::nm_i16(sensors->converted_driver_torque) / (float)mmax;
+            upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8f, 0.2f, InterpType::Linear);
         }
         bool can_upshift = sensors->input_rpm > upshift_map_val;
-        if (sensors->pedal_pos == 0) {
+        if (sensors->pedal_pos == Pedal::ZERO) {
             can_upshift = false;
         }
         if (sensors->brake_pressed) { can_upshift = false; }
@@ -358,14 +369,17 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     }
 }
 
-void StandardProfile::update(SensorData* sensors) {
+void StandardProfile::update(SensorData* sd) {
     // Every 250ms we check sensor inputs
     if (GET_CLOCK_TIME() - this->last_check > 250) {
         this->last_check = GET_CLOCK_TIME();
-        if (sensors->pedal_pos - last_sensors.pedal_pos > 64) { // More than a 25% jump in pedal in 250ms
-            accel_delta_factor += (sensors->pedal_pos - last_sensors.pedal_pos) * 10;
+        // Arithmetic on a pedal value requires an explicit unwrap - the delta of
+        // two positions is a plain number, not a position.
+        const int pedal_jump = (int)Pedal::raw_u8(sd->pedal_pos) - (int)Pedal::raw_u8(last_sensors.pedal_pos);
+        if (pedal_jump > (int)Pedal::raw_u8(Pedal::percent(25.6f))) { // Jump of ~25% of full pedal travel within 250ms (64 raw)
+            accel_delta_factor += pedal_jump * 10;
         }
-        last_sensors = *sensors;
+        last_sensors = *sd;
     }
     if (this->accel_delta_factor > 0) {
         this->accel_delta_factor-=5;
@@ -375,7 +389,7 @@ void StandardProfile::update(SensorData* sensors) {
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
     if (this->upshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        return sensors->input_rpm < this->downshift_table->get_value(Pedal::to_percent(sensors->pedal_pos), (float)current_gear);
     } else {
         return false;
     }
@@ -431,7 +445,7 @@ bool ManualProfile::should_upshift(GearboxGear current_gear, SensorData* sensors
 bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) {
         return false;
-    } else if (sensors->input_rpm < 300 && sensors->pedal_pos == 0) {
+    } else if (sensors->input_rpm < 300 && sensors->pedal_pos == Pedal::ZERO) {
         return true;
     } else {
         return false;

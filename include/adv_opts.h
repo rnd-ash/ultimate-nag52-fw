@@ -14,14 +14,14 @@
  * 
  * Default: Enabled
  */
-#define MANUAL_AUTO_DOWNSHIFT 1
+#define MANUAL_AUTO_DOWNSHIFT (1)
 
 /**
  * @brief Possible fix for those with Blue topped high-flow MPC and SPC solenoids (Standard solenoids are black/brown)
  * 
  * Default: Disabled
  */
-#define BLUE_SOLENOIDS 0
+#define BLUE_SOLENOIDS (0)
 
 
 #define SPC_RAMP_ALGO_LINEAR // Linear pressure ramp from start to end

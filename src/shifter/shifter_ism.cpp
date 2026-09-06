@@ -4,6 +4,9 @@
 
 ShifterIsm::ShifterIsm(TCM_CORE_CONFIG *vehicle_config, ETS_MODULE_SETTINGS *shifter_settings)
 {
+	this->vehicle_config = vehicle_config;
+	this->programselector = nullptr;
+	(void)shifter_settings;
 	ESP_LOGW("ISM", "ISM Shifter selected. This is experimental!");
 }
 

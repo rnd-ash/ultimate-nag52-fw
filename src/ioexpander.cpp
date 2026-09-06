@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "clock.hpp"
 #include "board_config.h"
+#include "ioexpander_logic.h"
 
 IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 {
@@ -123,15 +124,18 @@ bool IOExpander::is_data_valid(const uint32_t expire_time_ms) const
 
 inline bool IOExpander::get_bool_value(const pca_num_t bit, const uint8_t *i2c_rx_bytes)
 {
-	return (i2c_rx_bytes[0] >> bit) & 0b1;
+	if (i2c_rx_bytes == nullptr) {
+		return false;
+	}
+	return ioexpander_get_input_bit(i2c_rx_bytes[0], (int)bit);
 }
 
 inline void IOExpander::set_value(const bool value, const pca_num_t bit, uint8_t *i2c_tx_bytes)
 {
-	// reset bit and keep existing buffer
-	i2c_tx_bytes[1] &= ~(BIT(bit));
-	// set bit
-	i2c_tx_bytes[1] |= ((uint8_t)value) << bit;
+	if (i2c_tx_bytes == nullptr) {
+		return;
+	}
+	i2c_tx_bytes[1] = ioexpander_set_output_bit(i2c_tx_bytes[1], (int)bit, value);
 }
 
 uint8_t IOExpander::get_trrs(void)

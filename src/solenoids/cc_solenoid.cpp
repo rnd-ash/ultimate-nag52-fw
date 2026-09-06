@@ -23,12 +23,12 @@ void ConstantCurrentSolenoid::set_current_target(uint16_t target_ma) {
     this->current_target = target_ma;
 }
 
-uint16_t ConstantCurrentSolenoid::get_current_target() {
+uint16_t ConstantCurrentSolenoid::get_current_target() const {
     return this->current_target;
 }
 
-float ConstantCurrentSolenoid::get_trim() {
-    return 1.0 + ((float)this->trim_pwm / 4096.0);
+float ConstantCurrentSolenoid::get_trim() const {
+    return 1.0f + ((float)this->trim_pwm / 4096.0f);
 }
 
 uint16_t ConstantCurrentSolenoid::get_current(void) const {
@@ -61,7 +61,7 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
             trim_pwm = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
         }
         float mult = ((float)this->current_target / (float)max_current_ma);
-        int16_t targ_pwm = MAX(0, (4096.0 * mult));
+        int16_t targ_pwm = MAX(0, (4096.0f * mult));
         targ_pwm += ((float)this->trim_pwm * (mult));
         this->pwm = MAX(0, MIN(targ_pwm, 4096));
     }

@@ -101,9 +101,9 @@ protected:
     ledc_channel_t channel;
     bool voltage_compensate = true;
     adc_channel_t adc_channel;
-    uint16_t pwm = 0;
-    uint16_t pwm_raw = 0;
-    uint16_t current_adc_reading = 0;
+    volatile uint16_t pwm = 0;
+    volatile uint16_t pwm_raw = 0;
+    volatile uint16_t current_adc_reading = 0;
     uint16_t pwm_phase_period_ms;
 };
 

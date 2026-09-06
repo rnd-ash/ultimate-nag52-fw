@@ -13,16 +13,16 @@
 
 #include <stdint.h>
     
-#define ARCADE_A2_CAN_ID 0x0035
-#define MS_ANZ_CAN_ID 0x033D
-#define SBW_232_CAN_ID 0x0232
-#define ART_250_CAN_ID 0x0250
-#define ART_258_CAN_ID 0x0258
-#define PSM_3B4_CAN_ID 0x03B4
-#define PSM_3B8_CAN_ID 0x03B8
-#define VG_428_CAN_ID 0x0428
-#define LWR_530_CAN_ID 0x0530
-#define CONFIG_6FF_CAN_ID 0x06FF
+#define ARCADE_A2_CAN_ID (0x0035)
+#define MS_ANZ_CAN_ID (0x033D)
+#define SBW_232_CAN_ID (0x0232)
+#define ART_250_CAN_ID (0x0250)
+#define ART_258_CAN_ID (0x0258)
+#define PSM_3B4_CAN_ID (0x03B4)
+#define PSM_3B8_CAN_ID (0x03B8)
+#define VG_428_CAN_ID (0x0428)
+#define LWR_530_CAN_ID (0x0530)
+#define CONFIG_6FF_CAN_ID (0x06FF)
 
 /** Number of ASA alert */
 enum class MS_ANZ_ASS_WARN {

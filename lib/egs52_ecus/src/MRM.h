@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define LRW_236_EGS52_CAN_ID 0x0236
-#define MRM_238_EGS52_CAN_ID 0x0238
+#define LRW_236_EGS52_CAN_ID (0x0236)
+#define MRM_238_EGS52_CAN_ID (0x0238)
 
 /** Identification steering wheel angle sensor */
 enum class LRW_236h_LRWS_ID_EGS52 : uint16_t {

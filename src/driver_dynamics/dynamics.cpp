@@ -13,8 +13,13 @@ void DeltaTracker::update(int32_t val) {
         first_val = false;
     } else {
         int delta = val - this->last_value;
-        this->tracked_delta = first_order_filter(25, delta*100, this->tracked_delta);
+        // 'samples' is the constructor argument - it used to be stored and then
+        // ignored in favour of a hardcoded 25.
+        this->tracked_delta = first_order_filter(this->samples, delta*100, this->tracked_delta);
     }
+    // MUST happen on every call, including the first. Without it last_value
+    // stayed at 0 forever and 'delta' was really just the absolute value.
+    this->last_value = val;
 }
 
 void DeltaTracker::reset() {
@@ -22,6 +27,6 @@ void DeltaTracker::reset() {
     this->tracked_delta = 0;
 }
 
-int32_t DeltaTracker::get_delta() {
+int32_t DeltaTracker::get_delta() const {
     return this->tracked_delta/100;
 }

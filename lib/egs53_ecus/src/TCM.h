@@ -13,14 +13,14 @@
 
 #include <stdint.h>
     
-#define TCM_A1_EGS53_CAN_ID 0x02F1
-#define TCM_A2_EGS53_CAN_ID 0x02E2
-#define ENG_RQ1_TCM_EGS53_CAN_ID 0x00F1
-#define ENG_RQ2_TCM_EGS53_CAN_ID 0x00F3
-#define ENG_RQ3_TCM_EGS53_CAN_ID 0x00F4
-#define SBW_RS_TCM_EGS53_CAN_ID 0x01BD
-#define TCM_DISP_RQ_EGS53_CAN_ID 0x02F3
-#define NM_TCM_EGS53_CAN_ID 0x041C
+#define TCM_A1_EGS53_CAN_ID (0x02F1)
+#define TCM_A2_EGS53_CAN_ID (0x02E2)
+#define ENG_RQ1_TCM_EGS53_CAN_ID (0x00F1)
+#define ENG_RQ2_TCM_EGS53_CAN_ID (0x00F3)
+#define ENG_RQ3_TCM_EGS53_CAN_ID (0x00F4)
+#define SBW_RS_TCM_EGS53_CAN_ID (0x01BD)
+#define TCM_DISP_RQ_EGS53_CAN_ID (0x02F3)
+#define NM_TCM_EGS53_CAN_ID (0x041C)
 
 /** State (Torque Converter Lockup) Clutch / Status (Converter Bridging) Clutch */
 enum class TCM_A1_Clutch_Stat_EGS53 : uint16_t {

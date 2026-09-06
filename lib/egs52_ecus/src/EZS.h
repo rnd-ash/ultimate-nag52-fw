@@ -13,10 +13,10 @@
 
 #include <stdint.h>
     
-#define EZS_240_EGS52_CAN_ID 0x0240
-#define ZGW_248_EGS52_CAN_ID 0x0248
-#define ZGW_24C_EGS52_CAN_ID 0x024C
-#define KLA_410_EGS52_CAN_ID 0x0410
+#define EZS_240_EGS52_CAN_ID (0x0240)
+#define ZGW_248_EGS52_CAN_ID (0x0248)
+#define ZGW_24C_EGS52_CAN_ID (0x024C)
+#define KLA_410_EGS52_CAN_ID (0x0410)
 
 /** LHD / RHD */
 enum class EZS_240h_LL_RLC_EGS52 : uint16_t {

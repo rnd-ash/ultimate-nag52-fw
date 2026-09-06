@@ -15,11 +15,11 @@
  * 
 */
 
-#define CALIBRATION_MAX_LEN 64*1024 // 64Kb for calibration area
-#define CALIBRATION_START_ADDRESS 0x349000 // In Flash (Persistant partition - survives OTA)
-#define CALIBRATION_END_ADDRESS CALIBRATION_START_ADDRESS + CALIBRATION_MAX_LEN
+#define CALIBRATION_MAX_LEN ((64u) * (1024u)) // 64Kb for calibration area
+#define CALIBRATION_START_ADDRESS (0x349000) // In Flash (Persistant partition - survives OTA)
+#define CALIBRATION_END_ADDRESS ((CALIBRATION_START_ADDRESS) + (CALIBRATION_MAX_LEN))
 
-#define SHIFT_ARRAY_LEN 8 // Arrays with all 8 shifts (1-2 2-3 3-4 4-5 2-1 3-2 4-3 5-4)
+#define SHIFT_ARRAY_LEN (8) // Arrays with all 8 shifts (1-2 2-3 3-4 4-5 2-1 3-2 4-3 5-4)
 
 typedef struct {
     // Momentum (Up)

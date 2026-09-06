@@ -13,14 +13,14 @@
 
 #include <stdint.h>
     
-#define MS_210_EGS52_CAN_ID 0x0210
-#define MS_212_EGS52_CAN_ID 0x0212
-#define MS_268_EGS52_CAN_ID 0x0268
-#define MS_2F3_EGS52_CAN_ID 0x02F3
-#define MS_308_EGS52_CAN_ID 0x0308
-#define MS_312_EGS52_CAN_ID 0x0312
-#define AAD_580_EGS52_CAN_ID 0x0580
-#define MS_608_EGS52_CAN_ID 0x0608
+#define MS_210_EGS52_CAN_ID (0x0210)
+#define MS_212_EGS52_CAN_ID (0x0212)
+#define MS_268_EGS52_CAN_ID (0x0268)
+#define MS_2F3_EGS52_CAN_ID (0x02F3)
+#define MS_308_EGS52_CAN_ID (0x0308)
+#define MS_312_EGS52_CAN_ID (0x0312)
+#define AAD_580_EGS52_CAN_ID (0x0580)
+#define MS_608_EGS52_CAN_ID (0x0608)
 
 /** switching line shift MS */
 enum class MS_210h_SLV_MS_EGS52 : uint16_t {

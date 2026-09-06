@@ -317,8 +317,13 @@ class ECU:
         }}
             """.format(frame.name.strip().removesuffix("h"), idx, global_guard)
         tmp += "\n\tprivate:"
-        tmp += "\n\t\tuint64_t FRAME_DATA[{0}];".format(num_frames)
-        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}];".format(num_frames)
+        # Value initialised so that a DEFAULT initialised ECU object (ie. one
+        # declared as 'ECU_FOO bar;' rather than 'ECU_FOO bar = ECU_FOO();')
+        # still starts zeroed. Without this, a stale-frame check of the form
+        # 'LAST_FRAME_TIMES[i] <= now' can pass on garbage and hand the caller
+        # indeterminate CAN payload data as if it were a received frame.
+        tmp += "\n\t\tuint64_t FRAME_DATA[{0}] = {{}};".format(num_frames)
+        tmp += "\n\t\tuint32_t LAST_FRAME_TIMES[{0}] = {{}};".format(num_frames)
         tmp += "\n};"
 
         # Lastly append endif guard

@@ -18,6 +18,7 @@
 
 class ECU_BRAKES {
 	public:
+    ECU_BRAKES() = default;
         /**
          * @brief Imports the CAN frame given the CAN ID, CAN Contents, and current timestamp
          *
@@ -25,17 +26,13 @@ class ECU_BRAKES {
          *
          * NOTE: The endianness of the value cannot be guaranteed. It is up to the caller to correct the byte order!
          */
-        bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
-            uint8_t idx = 0;
-            bool add = true;
+        static bool import_frames(uint64_t value, uint32_t can_id, uint32_t timestamp_now) {
+            (void)value;
+            (void)timestamp_now;
+            bool add = false;
             switch(can_id) {
                 default:
-                    add = false;
                     break;
-            }
-            if (add) {
-                LAST_FRAME_TIMES[idx] = timestamp_now;
-                FRAME_DATA[idx] = value;
             }
             return add;
         }

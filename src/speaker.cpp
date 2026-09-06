@@ -44,8 +44,8 @@ void Speaker::set_freq(uint32_t freq) {
     }
 }
 
-#define PULSE_LONG  300
-#define PULSE_SHORT 150
+#define PULSE_LONG  (300)
+#define PULSE_SHORT (150)
 
 void Speaker::send_note(uint32_t freq, ToneLength tone) {
     int length = PULSE_SHORT;

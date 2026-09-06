@@ -5,13 +5,18 @@
 #include "nvs/eeprom_config.h"
 #include "tcu_maths.h"
 #include "ioexpander.h"
+#include "tcu_scaling.h"
 
 HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : EgsBaseCan(name, tx_time_ms, 125000u, shifter)
 {    
     ESP_LOGI("ClassicEGS", "SETUP CALLED");
     if (ShifterStyle::TRRS == (ShifterStyle)VEHICLE_CONFIG.shifter_style)
-    {        this->start_enable = true;
-        can_init_status = ESP_OK;
+    {
+        this->start_enable = true;
+        // NOTE: deliberately does NOT assign can_init_status here. The base
+        // EgsBaseCan constructor has already set it from twai_driver_install()
+        // and twai_start(); overwriting it with ESP_OK made begin_task() start
+        // the CAN task on top of a driver that had failed to install.
     }
     else
     {
@@ -21,9 +26,9 @@ HfmCan::HfmCan(const char *name, uint8_t tx_time_ms, ShifterTrrs *shifter) : Egs
     }
 }
 
-uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
+wheel_rpm_2x_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
 {
-    uint16_t result = UINT16_MAX;
+    wheel_rpm_2x_t result = WheelSpeed::INVALID;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
@@ -45,7 +50,7 @@ uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
                 // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 20) * (1000 / wheel_circumference))
                 // <=> wheel_rpm_double = (2 * 20 * 1000 * V_SIGNAL) / wheel_circumference
                 // <=> wheel_rpm_double = (40000 * V_SIGNAL) / wheel_circumference
-                result = (40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference;
+                result = WheelSpeed::from_raw_2x((uint16_t)((40000 * ((int)hfm210.V_SIGNAL)) / (int)VEHICLE_CONFIG.wheel_circumference));
             }
         }
     }
@@ -62,22 +67,22 @@ uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
     return result;
 }
 
-uint16_t HfmCan::get_front_right_wheel(const uint32_t expire_time_ms)
+wheel_rpm_2x_t HfmCan::get_front_right_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-uint16_t HfmCan::get_front_left_wheel(const uint32_t expire_time_ms)
+wheel_rpm_2x_t HfmCan::get_front_left_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-uint16_t HfmCan::get_rear_right_wheel(const uint32_t expire_time_ms)
+wheel_rpm_2x_t HfmCan::get_rear_right_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
 
-uint16_t HfmCan::get_rear_left_wheel(const uint32_t expire_time_ms)
+wheel_rpm_2x_t HfmCan::get_rear_left_wheel(const uint32_t expire_time_ms)
 {
     return generateWheelData(expire_time_ms);
 }
@@ -167,18 +172,40 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
     return result;
 }
 
-uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
+pedal_pos_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
 {
-    uint8_t result = UINT8_MAX;
+    pedal_pos_t result = Pedal::INVALID;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
         if (!hfm210.DKI_UP_B)
         {
-            uint8_t dki = hfm210.DKI;
-            if (VEHICLE_CONFIG.throttlevalve_maxopeningangle > dki)
+            const uint16_t max_angle = VEHICLE_CONFIG.throttlevalve_maxopeningangle;
+            if (0u != max_angle)
             {
-                result = (uint8_t)(100.F * (((float)dki) / ((float)VEHICLE_CONFIG.throttlevalve_maxopeningangle)));
+                // HFM has no accelerator pedal sensor on CAN (it predates drive
+                // by wire), so throttle plate angle stands in for pedal demand.
+                //
+                // Clamp rather than reject at/above the configured maximum. The
+                // old '>' test returned UINT8_MAX (no data) once dki reached
+                // max_angle, so WIDE OPEN THROTTLE read as an invalid signal and
+                // the gearbox substituted its 25% fallback.
+                uint16_t dki = hfm210.DKI;
+                if (dki > max_angle) {
+                    dki = max_angle;
+                }
+                // Full scale is Pedal::MAX (250), NOT 100 - see tcu_scaling.h.
+                // Returning 0-100 here made HFM pedal demand read at 40% of its
+                // true value in every consumer.
+                //
+                // The angle -> pedal mapping is deliberately LINEAR. HFM is
+                // cable throttle, so plate angle tracks pedal travel directly,
+                // which is what the shift maps (calibrated against Mercedes PW)
+                // expect. The (1 - cos) relationship in the commented out
+                // get_driver_engine_torque below converts angle to AIRFLOW for
+                // torque estimation - a different quantity, not applicable here.
+                float pedal = (float)Pedal::raw_u8(Pedal::MAX) * ((float)dki / (float)max_angle);
+                result = Pedal::from_raw(TCU_ROUND_TO_U8_SAT(pedal));
             }
         }
     }
@@ -260,35 +287,37 @@ int HfmCan::get_maximum_engine_torque(const uint32_t expire_time_ms)
     return result;
 }
 */
-int16_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
+temp_c_t HfmCan::get_engine_coolant_temp(const uint32_t expire_time_ms)
 {
-    int16_t result = INT16_MAX;
+    temp_c_t result = Temp::INVALID;
     HFM_608 hfm608;
     if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
     {
         if (!hfm608.TFM_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_MOT)) * temperature_factor) + temperature_offset);
+            float coolant_temp = ((float)hfm608.T_MOT * temperature_factor) + temperature_offset;
+            result = Temp::from_celsius(TCU_ROUND_TO_I16_SAT(coolant_temp));
         }
     }
     return result;
 }
 
-int16_t HfmCan::get_engine_oil_temp(const uint32_t expire_time_ms)
+temp_c_t HfmCan::get_engine_oil_temp(const uint32_t expire_time_ms)
 {
     // Not available on Hfm-ECUs
-    return INT16_MAX;
+    return Temp::INVALID;
 }
 
-int16_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
+temp_c_t HfmCan::get_engine_iat_temp(const uint32_t expire_time_ms)
 {
-    int16_t result = INT16_MAX;
+    temp_c_t result = Temp::INVALID;
     HFM_608 hfm608;
     if (this->hfm_ecu.get_HFM_608(GET_CLOCK_TIME(), expire_time_ms, &hfm608))
     {
         if (!hfm608.TFA_UP_B)
         {
-            result = (int16_t)((((float)(hfm608.T_LUFT)) * temperature_factor) + temperature_offset);
+            float iat_temp = ((float)hfm608.T_LUFT * temperature_factor) + temperature_offset;
+            result = Temp::from_celsius(TCU_ROUND_TO_I16_SAT(iat_temp));
         }
     }
     return result;

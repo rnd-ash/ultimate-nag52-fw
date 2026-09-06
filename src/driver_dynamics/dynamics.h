@@ -5,10 +5,10 @@
 
 class DeltaTracker {
 public:
-    DeltaTracker(uint8_t samples);
+    explicit DeltaTracker(uint8_t samples);
     void update(int32_t val);
     void reset();
-    int32_t get_delta();
+    int32_t get_delta() const;
 private:
     uint8_t samples = 0;
     int32_t last_value = 0;

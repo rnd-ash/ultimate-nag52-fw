@@ -1,5 +1,7 @@
 #include "flasher.h"
 #include "speaker.h"
+#include "flasher_logic.h"
+#include "kwp2000_logic.h"
 #include "esp_partition.h"
 #include "tcu_maths.h"
 #include "esp_ota_ops.h"
@@ -14,7 +16,11 @@ Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
 }
 
 Flasher::~Flasher() {
-    this->gearbox_ref->diag_regain_control(); // Re-enable engine starting
+    // gearbox_ref is null whenever the TCU failed POST - the diag server still
+    // runs in that state, so this cannot assume a gearbox exists.
+    if (nullptr != this->gearbox_ref) {
+        this->gearbox_ref->diag_regain_control(); // Re-enable engine starting
+    }
 }
 
 /**
@@ -46,21 +52,25 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
     }
-    uint32_t dest_mem_address = args[0] << 16 | args[1] << 8 | args[2];
+    uint32_t dest_mem_address = kwp_read_u24_be(args);
     uint8_t fmt = args[3];
-    uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
+    uint32_t dest_mem_size = kwp_read_u24_be(&args[4]);
     // Valid memory regions
     uint32_t flash_size;
     if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
-    if (dest_mem_address+dest_mem_size > flash_size) {
+    if (!flasher_range_fits_u32(dest_mem_address, dest_mem_size, flash_size)) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
     // Must be 4096 byte sector aligned
-    int erase_len = (dest_mem_size + 4096 - 1) & -4096;
+    uint32_t erase_len = 0u;
+    if (!flasher_try_align_up_u32(dest_mem_size, 4096u, &erase_len)) {
+        global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
+        return;
+    }
     if (esp_flash_erase_region(esp_flash_default_chip, dest_mem_address, erase_len) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
@@ -87,7 +97,7 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     }
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
-    resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
+    resp[0] = ((using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8) & 0xFF;
     resp[1] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) & 0xFF;
     this->written_data = 0;
     this->is_ota = (fmt & FMT_OTA) != 0;
@@ -111,14 +121,14 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
     if (arg_len != 7) { // Request was the wrong size
         return global_make_diag_neg_msg(dest, SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
-    uint32_t src_mem_address = args[0] << 16 | args[1] << 8 | args[2];
-    uint32_t src_mem_size = args[4] << 16 | args[5] << 8 | args[6]; 
+    uint32_t src_mem_address = kwp_read_u24_be(args);
+    uint32_t src_mem_size = kwp_read_u24_be(&args[4]);
     // Valid memory regions
     uint32_t flash_size;
     if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
         return global_make_diag_neg_msg(dest, SID_REQ_UPLOAD, NRC_GENERAL_REJECT);
     }
-    if (src_mem_address + src_mem_size > flash_size) { // Invalid memory
+    if (!flasher_range_fits_u32(src_mem_address, src_mem_size, flash_size)) { // Invalid memory
         return global_make_diag_neg_msg(dest, SID_REQ_UPLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
     }
     // Ok, conditions are correct, now we need to prepare
@@ -133,7 +143,7 @@ void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessa
     }
     this->block_counter = 0;
     uint8_t resp[2] =  { 0x00, 0x00 };
-    resp[0] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8 & 0xFF;
+    resp[0] = ((using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) >> 8) & 0xFF;
     resp[1] = (using_can ? CHUNK_SIZE_CAN : CHUNK_SIZE_USB) & 0xFF;
     this->data_dir = DATA_DIR_UPLOAD;
     this->read_base_addr = src_mem_address;
@@ -153,11 +163,16 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
         if (args[0] == this->block_counter+1 || (args[0] == 0x00 && this->block_counter == 0xFF)) {
             // Next block
             this->block_counter++;
-            if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
+            const uint32_t payload_len = static_cast<uint32_t>(arg_len - 1u);
+            if (this->written_data > this->to_write || payload_len > (this->to_write - this->written_data)) {
+                global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+                return;
+            }
+            if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, payload_len) != ESP_OK) {
                 global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
                 return;
             } else {
-                this->written_data += arg_len-1;
+                this->written_data += payload_len;
                 global_make_diag_pos_msg(dest, SID_TRANSFER_DATA, nullptr, 0);
                 return;
             }
@@ -171,6 +186,10 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
             return;
         }
     } else if (this->data_dir == DATA_DIR_UPLOAD) {
+        if (arg_len < 1) {
+            global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+            return;
+        }
         if (this->read_bytes >= this->read_bytes_total) {
             global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             return;
@@ -205,6 +224,11 @@ void Flasher::on_request_verification(uint8_t* args, uint16_t arg_len, DiagMessa
         // Only for OTA update
         esp_image_metadata_t data;
         const esp_partition_t* part = esp_ota_get_next_update_partition(NULL);
+        if (nullptr == part) {
+            res[1] = FLASH_CHECK_STATUS_INVALID;
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "FLASHER", "No OTA partition available to verify!");
+            return global_make_diag_pos_msg(dest, SID_START_ROUTINE_BY_LOCAL_IDENT, res, 2);
+        }
         const esp_partition_pos_t part_pos = {
             .offset = part->address,
             .size = part->size,

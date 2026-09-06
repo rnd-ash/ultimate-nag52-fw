@@ -101,9 +101,22 @@ protected:
     ledc_channel_t channel;
     bool voltage_compensate = true;
     adc_channel_t adc_channel;
-    uint16_t pwm = 0;
-    uint16_t pwm_raw = 0;
-    uint16_t current_adc_reading = 0;
+    // Shared across contexts with no common lock: the control task writes the
+    // duty, the I2S current task writes the ADC reading, the inrush timer ISR
+    // reads pwm_raw, and diag reads all three. Each is an independent, naturally
+    // aligned 16 bit scalar with no invariant tying it to any of the others, so
+    // a single load or store is all the synchronisation needed.
+    //
+    // These MUST stay `volatile` and must NOT become std::atomic. ESP-IDF builds
+    // the ESP32 target with -mdisable-hardware-atomics, so every std::atomic
+    // operation - even a relaxed 16 bit load - becomes a call into the newlib
+    // emulation in components/newlib/stdatomic.c. That code is not IRAM_ATTR, so
+    // calling it from InrushControlSolenoid::on_timer_interrupt() (which runs
+    // with the flash cache disabled) would panic. See the ISR cache-safety
+    // contract at the top of inrush_solenoid.cpp.
+    volatile uint16_t pwm = 0;
+    volatile uint16_t pwm_raw = 0;
+    volatile uint16_t current_adc_reading = 0;
     uint16_t pwm_phase_period_ms;
 };
 

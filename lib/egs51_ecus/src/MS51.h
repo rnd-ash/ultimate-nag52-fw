@@ -13,10 +13,10 @@
 
 #include <stdint.h>
     
-#define MS_308_EGS51_CAN_ID 0x0308
-#define MS_210_EGS51_CAN_ID 0x0210
-#define MS_310_EGS51_CAN_ID 0x0310
-#define MS_608_EGS51_CAN_ID 0x0608
+#define MS_308_EGS51_CAN_ID (0x0308)
+#define MS_210_EGS51_CAN_ID (0x0210)
+#define MS_310_EGS51_CAN_ID (0x0310)
+#define MS_608_EGS51_CAN_ID (0x0608)
 
 
 

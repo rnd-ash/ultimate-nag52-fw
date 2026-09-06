@@ -71,8 +71,8 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
     .react_on_engine_slip_request = true,
     .react_on_engine_open_request = true,
     .tcc_temp_multiplier = LinearInterpSetting {
-        .new_min = 0.5,
-        .new_max = 1.0,
+        .new_min = 0.5f,
+        .new_max = 1.0f,
         .raw_min = -10,
         .raw_max = 60
     },
@@ -130,8 +130,8 @@ const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
     .min_batt_power_on_test = 11000,
     .current_threshold_error = 500,
     .cc_vref_solenoid = 12000,
-    .cc_temp_coefficient_wires = 0.393,
-    .cc_reference_resistance = 5.3,
+    .cc_temp_coefficient_wires = 0.393f,
+    .cc_reference_resistance = 5.3f,
     .cc_reference_temp = 25,
     .cc_pid_p = 800,
     .cc_pid_i = 500,
@@ -411,14 +411,14 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
     .pid_p_val_downshift = 200,
     .pid_i_val_downshift = 5,
     .torque_loss_speed_pedal_pos = {
-        .new_min = 0.1,
-        .new_max = 0.5,
+        .new_min = 0.1f,
+        .new_max = 0.5f,
         .raw_min = 10,
         .raw_max = 250,
     },
     .spc_ramp_speed = 8,
-    .spc_ramp_multi_m = 1.5,
-    .spc_ramp_multi_r = 2.0,
+    .spc_ramp_multi_m = 1.5f,
+    .spc_ramp_multi_r = 2.0f,
     .adder_spc_rpm = {
         .new_min = 0,
         .new_max = 100,
@@ -584,18 +584,18 @@ const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
         .raw_max = 4000
     },
     .overlap_multi_shift_speed = LinearInterpSetting {
-        .new_min = 0.5,
-        .new_max = 1.0,
+        .new_min = 0.5f,
+        .new_max = 1.0f,
         .raw_min = 100,
         .raw_max = 750
     },
 
-    .adder_trq_multi_normal_up = 1.0,
-    .adder_trq_multi_manual_up = 1.5,
-    .adder_trq_multi_race_up = 2.0,
-    .adder_trq_multi_normal_dn = 1.0,
-    .adder_trq_multi_manual_dn = 1.5,
-    .adder_trq_multi_race_dn = 2.0,
+    .adder_trq_multi_normal_up = 1.0f,
+    .adder_trq_multi_manual_up = 1.5f,
+    .adder_trq_multi_race_up = 2.0f,
+    .adder_trq_multi_normal_dn = 1.0f,
+    .adder_trq_multi_manual_dn = 1.5f,
+    .adder_trq_multi_race_dn = 2.0f,
 
     .sync_cycles_low_trq = 10,
     .sync_cycles_high_trq = 7,
@@ -608,27 +608,27 @@ const CRS_MODULE_SETTINGS CRS_DEFAULT_SETTINGS = {
         .raw_max = 4000
     },
     .sync_multi_shift_speed = LinearInterpSetting {
-        .new_min = 0.5,
-        .new_max = 1.0,
+        .new_min = 0.5f,
+        .new_max = 1.0f,
         .raw_min = 100,
         .raw_max = 750
     },
     .sync_trq_adder_speed = LinearInterpSetting {
-        .new_min = 0.25,
-        .new_max = 1.0,
+        .new_min = 0.25f,
+        .new_max = 1.0f,
         .raw_min = 1000,
         .raw_max = 100
     },
 
     .trq_req_multi_pedal_pos = LinearInterpSetting {
         .new_min = 0,
-        .new_max = 0.5,
+        .new_max = 0.5f,
         .raw_min = 25,
         .raw_max = 250
     },
     .trq_req_multi_input_rpm = LinearInterpSetting {
-        .new_min = 1.0,
-        .new_max = 1.5,
+        .new_min = 1.0f,
+        .new_max = 1.5f,
         .raw_min = 1500,
         .raw_max = 6000
     },
@@ -652,15 +652,15 @@ extern GAR_MODULE_SETTINGS GAR_CURRENT_SETTINGS;
 extern CRS_MODULE_SETTINGS CRS_CURRENT_SETTINGS;
 
 // Setting IDx
-#define TCC_MODULE_SETTINGS_SCN_ID 0x01
-#define SOL_MODULE_SETTINGS_SCN_ID 0x02
-#define SBS_MODULE_SETTINGS_SCN_ID 0x03
-#define PRM_MODULE_SETTINGS_SCN_ID 0x05
-#define ADP_MODULE_SETTINGS_SCN_ID 0x06
-#define ETS_MODULE_SETTINGS_SCN_ID 0x07
-#define REL_MODULE_SETTINGS_SCN_ID 0x08
-#define GAR_MODULE_SETTINGS_SCN_ID 0x09
-#define CRS_MODULE_SETTINGS_SCN_ID 0x0A
+#define TCC_MODULE_SETTINGS_SCN_ID (0x01)
+#define SOL_MODULE_SETTINGS_SCN_ID (0x02)
+#define SBS_MODULE_SETTINGS_SCN_ID (0x03)
+#define PRM_MODULE_SETTINGS_SCN_ID (0x05)
+#define ADP_MODULE_SETTINGS_SCN_ID (0x06)
+#define ETS_MODULE_SETTINGS_SCN_ID (0x07)
+#define REL_MODULE_SETTINGS_SCN_ID (0x08)
+#define GAR_MODULE_SETTINGS_SCN_ID (0x09)
+#define CRS_MODULE_SETTINGS_SCN_ID (0x0A)
 
 namespace ModuleConfiguration {
     esp_err_t load_all_settings();

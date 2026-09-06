@@ -5,6 +5,7 @@
 
 #include "common_structs.h"
 #include "stored_map.h"
+#include "tcu_maths.h"
 
 const uint8_t NUM_PROFILES = 6u; // S, C, W, A, M, R
 const uint8_t PROFILE_IDX_S = 0u;
@@ -65,6 +66,8 @@ public:
         const int16_t* def_upshift_time_data,
         const int16_t* def_downshift_time_data
     );
+    AbstractProfile(const AbstractProfile&) = delete;
+    AbstractProfile& operator=(const AbstractProfile&) = delete;
     // static AbstractProfile *profile_from_auto_ty(AutoProfile prof);
     virtual void update(SensorData* sensors) {};
     virtual GearboxProfile get_profile(void) const = 0;
@@ -90,7 +93,7 @@ public:
     uint16_t get_upshift_time(uint16_t input_rpm, float pedal_percent) {
         uint16_t result = 750u;
         if (nullptr != this->upshift_time_map) {
-            result = (uint16_t)(this->upshift_time_map->get_value(pedal_percent, (float)input_rpm));
+            result = TCU_ROUND_TO_U16_SAT(this->upshift_time_map->get_value(pedal_percent, (float)input_rpm));
         }
         return result;
     }
@@ -98,7 +101,7 @@ public:
     uint16_t get_downshift_time(uint16_t input_rpm, float pedal_percent) {
         uint16_t result = 750u;
         if (nullptr != this->downshift_time_map) {
-            result = (uint16_t)(this->downshift_time_map->get_value(pedal_percent, (float)input_rpm));
+            result = TCU_ROUND_TO_U16_SAT(this->downshift_time_map->get_value(pedal_percent, (float)input_rpm));
         }
         return result;
     }
@@ -106,7 +109,7 @@ public:
     virtual GearboxGear get_start_gear(void) const {
         return GearboxGear::First;
     }
-    uint8_t get_profile_id(void) { return (uint8_t)get_profile(); }
+    uint8_t get_profile_id(void) const { return (uint8_t)get_profile(); }
 protected:
     StoredMap* upshift_table = nullptr;
     StoredMap* downshift_table = nullptr;

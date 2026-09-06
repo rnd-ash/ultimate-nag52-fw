@@ -5,7 +5,8 @@
 int16_t LookupHeader::get_value(const uint16_t index) const
 {
     int16_t result = INT16_MAX;
-    if(index <= size){
+    // Strictly less than: header[size] is one past the end of the array
+    if(index < size && nullptr != header){
         result = header[index];
     }
     return result;

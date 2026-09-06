@@ -71,9 +71,9 @@ public:
      */
     void set_target_tcc_pressure(uint16_t targ);
 
-    uint16_t get_max_solenoid_pressure();
+    static uint16_t get_max_solenoid_pressure();
 
-    uint16_t get_spring_pressure(Clutch c);
+    static uint16_t get_spring_pressure(Clutch c);
 
     uint16_t get_calc_line_pressure(void) const;
     uint16_t get_calc_inlet_pressure(void) const;
@@ -95,11 +95,11 @@ public:
      /**
      * Friction coefficient for releasing clutches (Releasing away)
      */
-    float release_coefficient() const;
+    static float release_coefficient();
      /**
      * Friction coefficient for static clutches (Held in place)
      */
-    float stationary_coefficient() const;
+    static float stationary_coefficient();
 
     /**
      * Force SPC solenoid to turn off
@@ -107,6 +107,8 @@ public:
     void set_spc_p_max(void);
 
     PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
+    PressureManager(const PressureManager&) = delete;
+    PressureManager& operator=(const PressureManager&) = delete;
 
     /**
      * @brief Get the shift data object for the requested gear change
@@ -134,9 +136,9 @@ public:
     StoredMap* get_fill_time_map(void);
     StoredMap* get_fill_pressure_map(void);
     StoredMap* get_low_fill_pressure_map(void);
-    uint16_t get_shift_regulator_pressure(void);
+    static uint16_t get_shift_regulator_pressure(void);
 
-    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun);
+    float calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) const;
 
     void register_shift_pressure_data(ShiftPressures* p) {
         this->ptr_shift_pressures = p;
@@ -149,6 +151,15 @@ public:
         }
         return ret;
     }
+
+    /**
+     * @brief Re-copies the PCS axes out of the EGS calibration.
+     *
+     * The pressure PWM map reads from owned copies rather than pointing into
+     * the calibration blob, so this must be called after a calibration hot
+     * reload for the new values to take effect.
+     */
+    void reload_calibration_maps(void);
 private:
 
      /**
@@ -181,7 +192,7 @@ private:
     uint16_t calculated_inlet_pressure = 0;
 
     // Shift circuit currently open
-    ShiftCircuit currently_open_circuit;
+    ShiftCircuit currently_open_circuit = ShiftCircuit::None;
     LookupMap* pressure_pwm_map;
     StoredMap* tcc_pwm_map;
     StoredMap* fill_time_map;
@@ -195,6 +206,15 @@ private:
     uint8_t mpc_flush_timer = 0;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;
+
+    // Owned, correctly aligned copies of the PCS axes.
+    // HydraulicCalibration is packed and lands on an odd offset inside
+    // CalibrationInfo, so a bare int16_t* into it would be dereferenced as if
+    // 2 byte aligned. LookupRefMap retains the pointers it is handed, so the
+    // copies have to outlive the constructor - hence members, not locals.
+    int16_t pcs_map_x[7];
+    int16_t pcs_map_y[4];
+    int16_t pcs_map_z[28];
 
     // 1-2, 2-3, 3-4, 4-5
     LookupByteMap* momentum_upshifts[4];

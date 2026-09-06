@@ -9,9 +9,10 @@
 #include "esp_timer.h"
 #include "esp_private/adc_private.h"
 #include "tcu_maths_impl.h"
+#include "sensors_logic.h"
 
-#define N_SENSOR_PULSES_PER_REV 60 // N2 and N3 are 60 pulses per revolution
-#define MAX_RPM_PCNT 10000
+#define N_SENSOR_PULSES_PER_REV (60) // N2 and N3 are 60 pulses per revolution
+#define MAX_RPM_PCNT (10000)
 
 struct PcntMemData {
     bool init;
@@ -53,14 +54,24 @@ uint16_t calc_rpm(PcntMemData* cb) {
     uint64_t now = esp_timer_get_time();
     pcnt_unit_get_count(cb->handle, &pulses);
     pcnt_unit_clear_count(cb->handle);
-    if (0 != pulses) {
-        int t = (now - cb->last_time_us) / pulses;
-        val = (int)(60 * 1000 * 1000) / (t * (int)cb->pulses_rev);
-        //if (val < 60) {
-        //    val = 0;
-        //}
-        if (val > MAX_RPM_PCNT) {
-            val = MAX_RPM_PCNT;
+    if (0 < pulses && 0 != cb->pulses_rev) {
+        uint64_t elapsed_us = now - cb->last_time_us;
+        int t = (int)(elapsed_us / (uint64_t)pulses); // Average us between pulses
+        int divisor = t * (int)cb->pulses_rev;
+        // t rounds down to 0 if pulses ever outnumber the elapsed microseconds
+        // (a noise burst through the 1us glitch filter). Dividing by that is a
+        // CPU exception on Xtensa, not an infinity.
+        if (0 != divisor) {
+            val = (int)(60 * 1000 * 1000) / divisor;
+            //if (val < 60) {
+            //    val = 0;
+            //}
+            if (val > MAX_RPM_PCNT) {
+                val = MAX_RPM_PCNT;
+            }
+            if (val < 0) {
+                val = 0;
+            }
         }
     }
     cb->last_time_us = now;
@@ -91,8 +102,15 @@ void Sensors::update(SensorDataRaw* dest) {
     if (ESP_OK == adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_batt, &adc_res)) {
         if (ESP_OK == adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage)) {
             // Vin = Vout(R1+R2)/R2
-            adc_voltage *= 5.54; // 5.54 = (100+22)/22
-            dest->battery_mv = adc_voltage;
+            int scaled_mv = (int)((float)adc_voltage * 5.54f); // 5.54 = (100+22)/22
+            // Clamp: UINT16_MAX is the 'no reading' sentinel, so it must not be
+            // produced by a real (if implausible) measurement.
+            if (scaled_mv < 0) {
+                scaled_mv = 0;
+            } else if (scaled_mv >= UINT16_MAX) {
+                scaled_mv = UINT16_MAX - 1;
+            }
+            dest->battery_mv = (uint16_t)scaled_mv;
         }
     }
 
@@ -104,24 +122,30 @@ void Sensors::update(SensorDataRaw* dest) {
         }
         else {
             dest->parking_lock = 0;
-            adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
-
-            int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
-
-            float out_x10 = interpolate_linear_array((int16_t)resistance, NUM_TEMP_POINTS, TFT_RESISTANCE_TAB[0], TFT_RESISTANCE_TAB[1]);
-            dest->atf_temp_c = (int16_t)(out_x10 / 10.0);
+            int atf_voltage = 0;
+            // Use a separate variable: reusing adc_voltage would silently fall
+            // back to the battery reading if this conversion fails.
+            if (ESP_OK != adc_cali_raw_to_voltage(adc2_cal, adc_res, &atf_voltage)) {
+                dest->atf_temp_c = INT_MAX;
+                return;
+            }
+            int resistance = 0;
+            if (sensors_try_calc_atf_resistance(atf_voltage, pcb_gpio_matrix->sensor_data.atf_r2_resistance, &resistance)) {
+                float out_x10 = interpolate_linear_array((int16_t)resistance, NUM_TEMP_POINTS, TFT_RESISTANCE_TAB[0], TFT_RESISTANCE_TAB[1]);
+                dest->atf_temp_c = TCU_ROUND_TO_I16_SAT(out_x10 / 10.0f);
+            } else {
+                dest->atf_temp_c = INT_MAX;
+            }
         }
     }
 }
 
 esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t gpio, PcntMemData* mem) {
-    const pcnt_unit_config_t RPM_UNIT_CFG __attribute__((used)) = {
-        .low_limit = -1,
-        .high_limit = 10000,
-        .flags {
-            .accum_count = 0
-        }
-    };
+    pcnt_unit_config_t RPM_UNIT_CFG = {};
+    RPM_UNIT_CFG.low_limit = -1;
+    RPM_UNIT_CFG.high_limit = 10000;
+    RPM_UNIT_CFG.intr_priority = 0;
+    RPM_UNIT_CFG.flags.accum_count = 0;
     ESP_RETURN_ON_ERROR(gpio_set_direction(gpio, GPIO_MODE_INPUT), "SENSORS", "Failed to set %s Pin to Input", name);
     ESP_RETURN_ON_ERROR(gpio_set_pull_mode(gpio, GPIO_PULLUP_ONLY), "SENSORS", "Failed to set %s Pin to pullup", name);
     ESP_RETURN_ON_ERROR(pcnt_new_unit(&RPM_UNIT_CFG, &mem->handle), "SENSORS", "Failed to setup %s RPM PCNT Unit", name);
@@ -182,7 +206,7 @@ esp_err_t Sensors::init_sensors(void) {
     ESP_RETURN_ON_ERROR(configure_pcnt("N3", N_SENSOR_PULSES_PER_REV, pcb_gpio_matrix->n3_pin, &mem_data_n3), "SENSORS", "N3 PCNT Setup failed");
 
     // Enable output RPM reading if needed
-    if (VEHICLE_CONFIG.io_0_usage == 1) {
+    if (IO_0_USAGE_VEHICLE_SPEED_SENSOR == VEHICLE_CONFIG.io_0_usage) {
         if (VEHICLE_CONFIG.input_sensor_pulses_per_rev == 0) {
             ESP_LOGE("SENSORS", "Cannot init output sensor with 0 pulses/rev specified");
             return ESP_ERR_INVALID_ARG;

@@ -1,6 +1,6 @@
 #include "all_keys.h"
 
-#define CREATE_NAME(def, str) const char* NVS_KEY_##def = str;
+#define CREATE_NAME(def, str) const char* NVS_KEY_##def = (str);
 FOR_LIST(CREATE_NAME)
 
 #define GET_KEY_NAME(def, str) &NVS_KEY_##def,

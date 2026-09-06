@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define SBW_RS_ISM_EGS53_CAN_ID 0x0073
-#define NM_TSLM_EGS53_CAN_ID 0x042F
+#define SBW_RS_ISM_EGS53_CAN_ID (0x0073)
+#define NM_TSLM_EGS53_CAN_ID (0x042F)
 
 /** Transmission Selector Lever Position / Transmission Logging */
 enum class SBW_RS_ISM_TSL_Posn_ISM_EGS53 : uint16_t {

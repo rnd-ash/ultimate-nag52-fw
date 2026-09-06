@@ -1,0 +1,5 @@
+# expected actuator outputs for sample input trace
+mpc_ma,spc_ma,tcc_pwm_12bit,y3_on,y4_on,y5_on
+0,0,0,0,0,0
+500,350,1024,1,0,0
+850,700,1024,1,1,1

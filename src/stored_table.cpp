@@ -55,7 +55,10 @@ esp_err_t StoredTable::read_from_eeprom(const char *key_name, uint16_t expected_
         if (dest != nullptr)
         {
             ret = EEPROM::read_nvs_map_data(key_name, dest, this->default_data, expected_size);
-			if (ESP_OK != ret)
+            // Apply the data we just read on SUCCESS. Doing it on failure would
+            // push an unpopulated buffer into the live table, and skipping it on
+            // success makes reload_from_eeprom() (the diag undo command) a no-op.
+			if (ESP_OK == ret)
             {
                 if(!this->add_data(dest, expected_size)) {
                     ret = ESP_ERR_INVALID_ARG;

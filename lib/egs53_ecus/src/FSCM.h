@@ -13,8 +13,8 @@
 
 #include <stdint.h>
     
-#define FSCM_STAT_EGS53_CAN_ID 0x02E5
-#define NM_FSCM_EGS53_CAN_ID 0x041F
+#define FSCM_STAT_EGS53_CAN_ID (0x02E5)
+#define NM_FSCM_EGS53_CAN_ID (0x041F)
 
 /** Fuel Pressure Sensor State / Status Fuel pressure sensor */
 enum class FSCM_STAT_FuelPressSens_Stat_V2_EGS53 : uint16_t {

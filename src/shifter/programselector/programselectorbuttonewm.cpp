@@ -38,8 +38,11 @@ ProgramSelectorButtonEwm::ProgramSelectorButtonEwm(TCM_CORE_CONFIG *vehicle_conf
 	if (profile_id >= NUM_PROFILES)
 	{
 		profile_id = 0u;
+		modified_default = true;
 	}
-	ESP_LOGW("EWM PROFILE", "Startup profile is disabled in TCU Program settings, switching to next available profile");
+	if (modified_default) {
+		ESP_LOGW("EWM PROFILE", "Startup profile is disabled in TCU Program settings, switching to next available profile");
+	}
 }
 
 void ProgramSelectorButtonEwm::set_button_pressed(const bool is_pressed)

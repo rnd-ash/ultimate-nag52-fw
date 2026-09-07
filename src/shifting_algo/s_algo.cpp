@@ -126,6 +126,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         else {
             this->timer_mod = 5;
         }
+        this->p_apply_clutch = sid->SPC_MAX;
     }
     if (1 == this->subphase_mod) {
         // End of phase!
@@ -141,7 +142,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
+    this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ_spc, this->timer_mod);
     this->shift_sol_pressure = this->correct_shift_shift_pressure(p_apply_clutch);
 
 calc_mod:

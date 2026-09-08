@@ -7,9 +7,10 @@
 #include "esp_image_format.h"
 #include "ioexpander.h"
 
-Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox) {
+Flasher::Flasher(EgsBaseCan *can_ref, Gearbox* gearbox, Shifter* shifter) {
     this->can_ref = can_ref;
     this->gearbox_ref = gearbox;
+    this->shifter_ref = shifter;
     read_base_addr = 0u;
     read_bytes = 0u;
     read_bytes_total = 0u;
@@ -31,7 +32,7 @@ Flasher::~Flasher() {
 */
 void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can) {
     // Shifter must be Offline (SNV) or P or N
-    if (!is_shifter_passive(this->can_ref)) {
+    if (!is_shifter_passive(this->shifter_ref)) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
         return;
     }
@@ -44,7 +45,6 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     // data format
     // Uncompressed memory size
     // For now we only support 0x00 format (Uncompressed and unencrypted)
-    //printf("Check1\n");
     if (arg_len != 7) { // Request was the wrong size
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         return;
@@ -54,12 +54,11 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
     uint32_t dest_mem_size = args[4] << 16 | args[5] << 8 | args[6];
     // Valid memory regions
     uint32_t flash_size;
-    //printf("Check2\n");
     if (esp_flash_get_size(esp_flash_default_chip, &flash_size) != ESP_OK) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
     }
-    //printf("Check3\n");
+
     if (dest_mem_address+dest_mem_size > flash_size) {
         global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_GENERAL_REJECT);
         return;
@@ -80,7 +79,6 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
         // Erase coredump for an OTA. This stops old coredumps from hanging around
         esp_core_dump_image_erase();
     }
-    //printf("Check6\n");
 
     this->start_addr = dest_mem_address;
     this->to_write = dest_mem_size;
@@ -107,7 +105,7 @@ void Flasher::on_request_download(const uint8_t* args, uint16_t arg_len, DiagMes
 
 void Flasher::on_request_upload(const uint8_t* args, uint16_t arg_len, DiagMessage* dest, bool using_can) {
     // Shifter must be Offline (SNV) or P or N
-    if (!is_shifter_passive(this->can_ref)) {
+    if (!is_shifter_passive(this->shifter_ref)) {
         return global_make_diag_neg_msg(dest, SID_REQ_DOWNLOAD, NRC_UN52_SHIFTER_ACTIVE);
     }
     if (!is_engine_off(this->can_ref)) {
@@ -163,7 +161,7 @@ void Flasher::on_transfer_data(uint8_t* args, uint16_t arg_len, DiagMessage* des
         if (args[0] == this->block_counter+1 || (args[0] == 0x00 && this->block_counter == 0xFF)) {
             // Next block
             this->block_counter++;
-            if (esp_flash_write(esp_flash_default_chip, (const void*)&args[1], this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
+            if (esp_flash_write(esp_flash_default_chip, reinterpret_cast<const void*>(&args[1]), this->start_addr + this->written_data, arg_len-1) != ESP_OK) {
                 global_make_diag_neg_msg(dest, SID_TRANSFER_DATA, NRC_UN52_OTA_WRITE_FAIL);
                 return;
             } else {

@@ -8,7 +8,7 @@
 
 uint8_t crcTable[256]; // For CRC only
 
-Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter){
+Egs53Can::Egs53Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud){
     // Create CRC table
     for (int i = 0; i < 0x100; i++) {
             uint8_t _crc = i;
@@ -172,7 +172,7 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
         int indicated = 0;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
-        if (INT_MAX != ret.m_max && INT_MAX != ret.m_min) {
+        if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
             tmp = MIN(esp, ret.m_max);
         }
         if (tmp <= 0) {

@@ -8,8 +8,8 @@
 * CAN Defintiion for ECU 'HFM'
 */
 
-#ifndef ECU_HFM_H
-#define ECU_HFM_H
+#ifndef __ECU_HFM_H_
+#define __ECU_HFM_H_
 
 #include <stdint.h>
     
@@ -17,6 +17,7 @@
 #define HFM_308_CAN_ID 0x0308
 #define HFM_608_CAN_ID 0x0608
 #define HFM_610_CAN_ID 0x0610
+#define HFM_628_CAN_ID 0x0628
 
 /** shifter module code */
 enum class HFM_210h_WHC : uint16_t {
@@ -52,25 +53,27 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
-		/** throttle valve actual value implausible **/
-		bool DKI_UP_B: 1;
-		/** throttle valve target value implausible **/
-		bool DKV_UP_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 4;
+		uint32_t __PADDING1__: 17;
 		/** vehicle speed signal implausible **/
 		bool VSIG_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 3;
-		/** full throttle **/
-		bool VG_B: 1;
+		uint8_t __PADDING2__: 4;
+		/** throttle valve target value implausible **/
+		bool DKV_UP_B: 1;
+		/** throttle valve actual value implausible **/
+		bool DKI_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING4__: 2;
-		/** brake light switch on **/
-		bool BLS_B: 1;
+		bool __PADDING3__: 1;
 		/** emergency mode **/
 		bool NOTL_B: 1;
+		/** brake light switch on **/
+		bool BLS_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING4__: 2;
+		/** full throttle **/
+		bool VG_B: 1;
+		/** idling (indle speed contact closed) **/
+		bool LL_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		bool __PADDING5__: 1;
 		/** vehicle speed **/
@@ -80,11 +83,11 @@ typedef union {
 		/** throttle valve actual value **/
 		uint8_t DKI: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		bool __PADDING6__: 1;
+		uint8_t __PADDING6__: 3;
 		/** shifter module code **/
 		HFM_210h_WHC WHC: 4;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING7__: 3;
+		bool __PADDING7__: 1;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_210 **/
 	uint32_t get_canid(){ return HFM_210_CAN_ID; }
@@ -97,23 +100,25 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
-		/** starter running **/
-		bool KL50_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 6;
+		uint8_t __PADDING1__: 8;
+		/** load of the engine **/
+		uint8_t LAST: 8;
 		/** air mass signal implausible **/
 		bool HFM_UP_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 6;
+		/** starter running **/
+		bool KL50_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint8_t __PADDING3__: 8;
 		/** engine speed **/
 		uint16_t NMOT: 16;
 		/** HFM coding **/
 		HFM_308h_HFM_COD HFM_COD: 8;
-		/** engine speed implausible **/
-		bool NMOT_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
 		uint8_t __PADDING4__: 7;
+		/** engine speed implausible **/
+		bool NMOT_UP_B: 1;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_308 **/
 	uint32_t get_canid(){ return HFM_308_CAN_ID; }
@@ -130,13 +135,17 @@ typedef union {
 		/** intake air temperature **/
 		uint8_t T_LUFT: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING2__: 22;
-		/** intake air temperature implausible **/
-		bool TFA_UP_B: 1;
+		uint16_t __PADDING2__: 16;
 		/** engine temperature implausible **/
 		bool TFM_UP_B: 1;
+		/** intake air temperature implausible **/
+		bool TFA_UP_B: 1;
+		/** altitude pressure signal implausible **/
+		bool HOH_UP_B: 1;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING3__: 8;
+		uint8_t __PADDING3__: 5;
+		/** altitude pressure **/
+		uint8_t P_HOH: 8;
 		/** engine temperature **/
 		uint8_t T_MOT: 8;
 	} __attribute__((packed));
@@ -151,19 +160,40 @@ typedef union {
 	uint8_t bytes[8];
 	struct {
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint16_t __PADDING1__: 16;
+		uint8_t __PADDING1__: 8;
 		/** air mass flow **/
 		uint8_t MLE: 8;
 		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint8_t __PADDING2__: 8;
-		/** ROZ tempering detection **/
-		bool ROZ_TP_B: 1;
-		 /** BITFIELD PADDING. DO NOT CHANGE **/
-		uint32_t __PADDING3__: 31;
+		uint32_t __PADDING2__: 32;
+		/** ignition time cylinder 1 **/
+		uint8_t ZZP_Z1: 8;
+		/** long-term adaption value partial load **/
+		uint8_t LZA_TL1: 8;
 	} __attribute__((packed));
 	/** Gets CAN ID of HFM_610 **/
 	uint32_t get_canid(){ return HFM_610_CAN_ID; }
 } HFM_610;
+
+
+
+typedef union {
+	uint64_t raw;
+	uint8_t bytes[8];
+	struct {
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint64_t __PADDING1__: 56;
+		/** error throttle valve actuator **/
+		bool DKS_F_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		uint8_t __PADDING2__: 5;
+		/** air conditioning **/
+		bool KLIMA_B: 1;
+		 /** BITFIELD PADDING. DO NOT CHANGE **/
+		bool __PADDING3__: 1;
+	} __attribute__((packed));
+	/** Gets CAN ID of HFM_628 **/
+	uint32_t get_canid(){ return HFM_628_CAN_ID; }
+} HFM_628;
 
 
 
@@ -191,6 +221,9 @@ class ECU_HFM {
                     break;
                 case HFM_610_CAN_ID:
                     idx = 3;
+                    break;
+                case HFM_628_CAN_ID:
+                    idx = 4;
                     break;
                 default:
                     add = false;
@@ -267,8 +300,24 @@ class ECU_HFM {
             return ret;
         }
             
+        /** Sets data in pointer to HFM_628
+          * 
+          * If this function returns false, then the CAN Frame is invalid or has not been seen
+          * on the CANBUS network yet. Meaning it's data cannot be used.
+          *
+          * If the function returns true, then the pointer to 'dest' has been updated with the new CAN data
+          */
+        bool get_HFM_628(const uint32_t now, const uint32_t max_expire_time, HFM_628* dest) const {
+            bool ret = false;
+            if (dest != nullptr && LAST_FRAME_TIMES[4] <= now && now - LAST_FRAME_TIMES[4] < max_expire_time) {
+                dest->raw = FRAME_DATA[4];
+                ret = true;
+            }
+            return ret;
+        }
+            
 	private:
-		uint64_t FRAME_DATA[4];
-		uint32_t LAST_FRAME_TIMES[4];
+		uint64_t FRAME_DATA[5];
+		uint32_t LAST_FRAME_TIMES[5];
 };
-#endif // ECU_HFM_H
+#endif // __ECU_HFM_H_

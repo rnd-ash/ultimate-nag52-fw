@@ -115,7 +115,8 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
+    uint16_t high_fill_p = this->calc_high_filling_p();
+    int targ_spc = this->set_p_apply_clutch_with_spring(high_fill_p);
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
@@ -154,7 +155,9 @@ calc_mod:
     }
     else {
         uint16_t mod_with_freewheeling = this->calc_mod_with_filling_trq_and_freewheeling(targ_spc);
-        uint16_t uVar3 = this->calc_mod_min_abs_trq(targ_spc);
+        // Pass the RAW filling pressure: calc_mod_min_abs_trq adds
+        // release_spring_on_clutch itself, and targ_spc already includes it.
+        uint16_t uVar3 = this->calc_mod_min_abs_trq(high_fill_p);
         this->mod_sol_pressure = MAX(mod_with_freewheeling, uVar3);
     }
     return ret;

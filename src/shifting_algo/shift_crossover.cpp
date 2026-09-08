@@ -481,7 +481,6 @@ uint8_t CrossoverShift::phase_overlap2() {
         if (this->timer_shift == 0 || sid->ptr_r_clutch_speeds->on_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             this->timer_shift = 3;
             this->subphase_shift += 1;
-            sid->tcc->shift_end();
         }
     } else if (4 == subphase_shift) {
         // Waiting (2)

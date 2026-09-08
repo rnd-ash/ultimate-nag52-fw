@@ -164,6 +164,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t targ_mpc = this->max_p_mod_pressure();
     if (0 == this->subphase_shift) {
+        sid->tcc->shift_end();
         this->timer_emergency = -1; // Disable emergency timer for this and end phase
         // Var set
         this->timer_shift = 5; // 100ms for ramp

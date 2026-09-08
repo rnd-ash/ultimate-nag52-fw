@@ -38,6 +38,9 @@
 
 #define RLI_CLUTCH_SPEEDS   0x30
 #define RLI_SHIFTING_ALGO   0x31
+// Header of the high rate shift recorder. The samples themselves are pulled with
+// ReadMemoryByAddress from the `buffer_addr` it publishes - see src/shift_trace.h.
+#define RLI_SHIFT_TRACE     0x33
 #define RLI_DRIVING_DYNAMIC 0x32
 
 #define RLI_EGS_CAL_LEN     0xFB // EGS Calibration structure length

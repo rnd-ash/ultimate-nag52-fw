@@ -150,6 +150,11 @@ esp_err_t configure_pcnt(const char* name, uint16_t pulses_per_rpm, gpio_num_t g
     ESP_RETURN_ON_ERROR(pcnt_unit_set_glitch_filter(mem->handle, &glitch_filter), "SENSORS", "Failed to set glitch filter for PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_enable(mem->handle), "SENSORS", "Failed to enable PCNT unit %s", name);
     ESP_RETURN_ON_ERROR(pcnt_unit_clear_count(mem->handle), "SENSORS", "Failed to clear PCNT unit %s", name);
+    if (0 == pulses_per_rpm) {
+        ESP_LOGE("SENSORS", "Pulses/rev value cannot be configured at 0 for %s", name);
+        return ESP_ERR_INVALID_STATE;
+    }
+
     ESP_RETURN_ON_ERROR(pcnt_unit_start(mem->handle), "SENSORS", "Failed to start PCNT unit %s", name);
     mem->last_time_us = esp_timer_get_time();
     mem->pulses_rev = pulses_per_rpm*2; // Since we count both pos and neg edge

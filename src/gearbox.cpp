@@ -1483,10 +1483,6 @@ void Gearbox::controller_loop()
         int16_t tmp_atf = TCUIO::atf_temperature();
         if (INT16_MAX != tmp_atf)
         {
-            this->sensor_data.atf_temp = tmp_atf;
-        }
-        else
-        {
             if (!temp_cal)
             {
                 temp_cal = true;

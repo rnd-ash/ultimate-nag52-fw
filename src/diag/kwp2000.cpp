@@ -1,4 +1,5 @@
 #include "kwp2000.h"
+#include "shift_trace.h"
 #include <esp_ota_ops.h>
 #include <string>
 #include <time.h>
@@ -599,6 +600,16 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
     } else if (args[0] == RLI_CLUTCH_SPEEDS) {
         ClutchSpeeds r = gearbox->diag_get_clutch_speeds();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CLUTCH_SPEEDS, (uint8_t*)&r, sizeof(ClutchSpeeds));
+    } else if (args[0] == RLI_SHIFT_TRACE) {
+        // Header only. The samples are pulled with ReadMemoryByAddress from
+        // `buffer_addr`, at most 255 bytes per response and paced by the host, so
+        // the USB serial bridge's FIFO is never burst through.
+        const ShiftTraceHeader* h = ShiftTrace::get_header();
+        if (nullptr == h) {
+            make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
+        } else {
+            make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFT_TRACE, (uint8_t*)h, sizeof(ShiftTraceHeader));
+        }
     } else if (args[0] == RLI_SHIFTING_ALGO) {
         ShiftAlgoFeedback r = gearbox->algo_feedback;
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SHIFTING_ALGO, (uint8_t*)&r, sizeof(ShiftAlgoFeedback));

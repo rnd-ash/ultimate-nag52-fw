@@ -1,4 +1,5 @@
 #include "gearbox.h"
+#include "shift_trace.h"
 #include "common_structs_ops.h"
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
@@ -1024,6 +1025,7 @@ void Gearbox::controller_loop()
 {
     ShifterPosition last_position = ShifterPosition::SignalNotAvailable;
     ESP_LOG_LEVEL(ESP_LOG_INFO, "GEARBOX", "GEARBOX START!");
+    ShiftTrace::init();
     uint32_t expire_check = GET_CLOCK_TIME() + 100; // 100ms
     egs_can_hal->set_safe_start(true);
     sol_tcc->isr_enable(); // Safe to enable ISR now that all init is done
@@ -1651,6 +1653,16 @@ void Gearbox::controller_loop()
             }
         }
         portEXIT_CRITICAL(&this->profile_mutex);
+        // High rate shift recorder. This loop is the algorithm's own 20 ms period,
+        // so the capture is lossless; the sampler is O(1) and allocation free.
+        ShiftTrace::sample(&this->sensor_data, &this->algo_feedback, this->shifting,
+            (uint8_t)gear_to_idx_lookup(this->actual_gear), (uint8_t)gear_to_idx_lookup(this->target_gear),
+            this->pressure_mgr->get_corrected_spc_pressure(),
+            this->pressure_mgr->get_corrected_modulating_pressure(),
+            this->pressure_mgr->get_active_shift_circuits(),
+            (this->output_data.ctrl_type == TorqueRequestControlType::None)
+                ? INT16_MAX : (int16_t)this->output_data.torque_req_amount,
+            (int16_t)this->sensor_data.converted_torque);
         uint32_t time = GET_CLOCK_TIME() - start;
         if (time < 20) {
             vTaskDelay((20 - time) / portTICK_PERIOD_MS); // 50 updates/sec!

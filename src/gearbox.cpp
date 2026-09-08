@@ -1198,13 +1198,11 @@ void Gearbox::controller_loop()
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(1000);
         this->pedal_last = this->sensor_data.pedal_pos;
-        if (p_tmp != 0xFF)
+        if (p_tmp == 0xFF)
         {
-            this->sensor_data.pedal_pos = p_tmp;
-        }
-        else {
             p_tmp = 250 / 4; // 25% as a fallback
         }
+        this->sensor_data.pedal_pos = p_tmp;
         this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 
         if (GET_CLOCK_TIME() - start > 100) {

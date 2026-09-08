@@ -12,7 +12,7 @@
 
 #define LOAD_SIZE TCC_SLIP_ADAPT_MAP_SIZE/5
 
-const int16_t rpm_map_x_headers[11] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
+const int16_t rpm_map_x_headers[11] = {0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 100}; // Load %
 const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
 const uint16_t MAX_TCC_P_SAMPLE_COUNT = 100; // 2000ms
 const int16_t SLIP_V_WHEN_OPEN = 100; // 100RPM is the threshold for when we start to activate the converter clutch
@@ -24,6 +24,9 @@ const uint8_t SLIP_SAMPLES_AVG = 25; // 500ms
 const uint16_t SLIP_X_COAST[5] = {1000, 1500, 3500, 4000, 6000};
 const uint16_t SLIP_Z_COAST[5] = {  70,   40,   40,   10,   10};
 
+const uint16_t TCC_P_ADDER_X[5] = {600, 750,  990, 1500, 6000};
+const uint16_t TCC_P_ADDER_Z[5] = {  0,  50,  100,  200,  200};
+
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     if (0 == TCC_CURRENT_SETTINGS.tcc_max_trq_override) {
         this->rated_max_torque = max_gb_rating;
@@ -31,7 +34,7 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         this->rated_max_torque = TCC_CURRENT_SETTINGS.tcc_max_trq_override;
     }
 
-    const int16_t adapt_map_x_headers[LOAD_SIZE] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150}; // Load %
+    const int16_t adapt_map_x_headers[LOAD_SIZE] = {0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100}; // Load %
     const int16_t adapt_map_y_headers[5] = {1,2,3,4,5}; // Gear
     this->tcc_slip_map = new StoredMap(NVS_KEY_TCC_ADAPT_SLIP_MAP, TCC_SLIP_ADAPT_MAP_SIZE, adapt_map_x_headers, adapt_map_y_headers, LOAD_SIZE, 5, TCC_SLIP_ADAPT_MAP);
     if (this->tcc_slip_map->init_status() != ESP_OK) {
@@ -86,11 +89,79 @@ void TorqueConverter::calc_pid_score() {
 
 }
 
+uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
+    int target = SLIP_V_WHEN_OPEN;
+    if (sensors->input_torque > 0) {
+        int pedal_as_percent = (sensors->pedal_pos*100)/250;
+        target = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
+    } else {
+        target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
+    }
+    if (this->upshifting) {
+        target += 10;
+    }
+    // Todo dynamic pedal logic
+    return target;
+}
+
+void TorqueConverter::calculate_min_pressure(SensorData* sensors, GearboxGear current_g) {
+    int min = 0;
+    min = (int)interpolate_linear_array(sensors->input_rpm, 5, TCC_P_ADDER_X, TCC_P_ADDER_Z);
+    if (GearboxGear::First == current_g) {
+        min += 150;
+    }
+    this->min_tcc_pressure = min;
+}
+
+void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
+    const uint8_t FILTER_SIZE = 5;
+    this->filtered_engine_trq = first_order_filter(FILTER_SIZE, sensors->converted_torque*100, this->filtered_engine_trq);
+    this->filtered_pump_trq = first_order_filter(FILTER_SIZE, sensors->pump_torque*100, this->filtered_pump_trq);
+    if (sensors->brake_pressed && 0 == sensors->input_rpm && sensors->atf_temp > 50) {
+        if (0 == this->torque_correction_adapt) {
+            this->torque_correction_adapt = (this->filtered_engine_trq - this->filtered_pump_trq);
+        } else {
+            this->torque_correction_adapt = first_order_filter(FILTER_SIZE, (this->filtered_engine_trq-this->filtered_pump_trq), this->torque_correction_adapt);
+        }
+    }
+    int corr_torque = 0;
+    if (false) {
+        // TODO (M_CORRECTION enabled or not??)
+        corr_torque = 0;
+    } else {
+        corr_torque = (this->torque_correction_adapt/100);
+    }
+    //int f_engine_trq = (this->filtered_engine_trq/100) - corr_torque;
+    //int engine_trq = sensors->converted_torque - corr_torque;
+
+    int lambda_targ = (((int)sensors->input_rpm)*1000) / (int)(sensors->input_rpm + this->slip_target);
+    int pump_trq_targ = (int)interpolate_linear_array((uint16_t)lambda_targ, 11, TCC_CFG_PTR->pump_map_x, TCC_CFG_PTR->pump_map_z);
+    int x = sensors->input_rpm + this->slip_target;
+    pump_trq_targ *= ((x*x) / 10000);
+    pump_trq_targ /= 10000;
+
+    int tcc_engine_torque = sensors->converted_torque;
+    if (tcc_engine_torque <= 0) {
+        tcc_engine_torque += pump_trq_targ;
+        if (tcc_engine_torque > 0) {
+            tcc_engine_torque = 0;
+        }
+    } else {
+        tcc_engine_torque -= pump_trq_targ;
+        if (tcc_engine_torque < 0) {
+            tcc_engine_torque = 0;
+        }
+    }
+    this->converted = MAX(0, tcc_engine_torque);
+    int tcc_input_torque = 595 - (this->filtered_pump_trq/100);
+    if (tcc_input_torque <= 0) {
+        tcc_input_torque = 0;
+    }
+    this->input_side = tcc_input_torque;
+}
+
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     int slip_now = abs((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
-    int motor_torque = sensors->converted_torque;
-    int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
-    this->engine_load_percent = load_as_percent;
 
     // Adapt sample size based on ATF temp
     // this way, as the ATF warms up, simulated response time
@@ -103,6 +174,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         70,
         InterpType::Linear
     );
+    this->calculate_torque_correction(sensors);
+    int motor_torque = abs(this->converted);
+    int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
+    this->engine_load_percent = load_as_percent;
 
     // Conditions for no TCC
     if (
@@ -150,12 +225,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     ) {
         // See if we should slip or close based on maps
         targ = InternalTccState::Open;
-        int pedal_as_percent = (sensors->pedal_pos*100)/250;
-        if (sensors->input_torque > 0) {
-            slipping_rpm_targ = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
-        } else {
-            slipping_rpm_targ = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
-        }
+        slipping_rpm_targ = this->calculate_slip_target(sensors);
         // Can we slip?
         if (SLIP_V_WHEN_OPEN > slipping_rpm_targ) {
             targ = InternalTccState::Slipping;
@@ -237,33 +307,31 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)
     if (!is_shifting){
-        // 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150
-        if (load_as_percent <= 10) {
+        // 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100
+        if (load_as_percent <= 5) {
             load_cell = 0;
-        } else if (load_as_percent <= 20) {
+        } else if (load_as_percent <= 10) {
             load_cell = 1;
-        } else if (load_as_percent <= 30) {
+        } else if (load_as_percent <= 15) {
             load_cell = 2;
-        } else if (load_as_percent <= 40) {
+        } else if (load_as_percent <= 20) {
             load_cell = 3;
-        } else if (load_as_percent <= 50) {
+        } else if (load_as_percent <= 30) {
             load_cell = 4;
-        } else if (load_as_percent <= 60) {
+        } else if (load_as_percent <= 40) {
             load_cell = 5;
-        } else if (load_as_percent <= 70) {
+        } else if (load_as_percent <= 50) {
             load_cell = 6;
-        } else if (load_as_percent <= 80) {
+        } else if (load_as_percent <= 60) {
             load_cell = 7;
-        } else if (load_as_percent <= 90) {
+        } else if (load_as_percent <= 70) {
             load_cell = 8;
-        } else if (load_as_percent <= 100) {
+        } else if (load_as_percent <= 80) {
             load_cell = 9;
-        } else if (load_as_percent <= 125) {
+        } else if (load_as_percent <= 90) {
             load_cell = 10;
-        } else if (load_as_percent <= 150) {
-            load_cell = 11;
         } else {
-            load_cell = 12;
+            load_cell = 11;
         }
     }
     // Prefilling when suddenly increasing state requested
@@ -312,8 +380,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                 if  (load_cell != 0xFF && SLIP_V_UNDERLOCKED < slip_adaptation) {
                     int adder = interpolate_float(slip_adaptation, 1, 50, SLIP_V_UNDERLOCKED, SLIP_V_UNDERLOCKED*2, InterpType::Linear);
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, adder);
-                } else if (load_cell != 0xFF && SLIP_V_OVERLOCKED > slip_adaptation) {
-                    int remover = interpolate_float(slip_adaptation, -5, 0, 0, SLIP_V_OVERLOCKED, InterpType::Linear);
+                } else if (load_cell != 0xFF && SLIP_V_OVERLOCKED >= slip_adaptation) {
+                    int remover = interpolate_float(slip_adaptation, -10, -1, 0, SLIP_V_OVERLOCKED, InterpType::Linear);
                     // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, remover);
 

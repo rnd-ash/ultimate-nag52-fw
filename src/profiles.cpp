@@ -381,7 +381,7 @@ void StandardProfile::update(SensorData* sensors) {
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
-    if (this->upshift_table != nullptr) { // TEST TABLE
+    if (this->downshift_table != nullptr) { // TEST TABLE
         return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
     } else {
         return false;

@@ -1150,7 +1150,7 @@ void Gearbox::controller_loop()
                 this->sensor_data.gear_ratio = 0.0;
                 this->sensor_data.targ_gear_ratio = 0.0;
             }
-            if (!shifting && !stationary && sensor_data.output_rpm > 100)
+            if (!shifting && sensor_data.output_rpm > 100)
             {
                 if (is_fwd_gear(this->actual_gear))
                 {
@@ -1199,13 +1199,11 @@ void Gearbox::controller_loop()
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(1000);
         this->pedal_last = this->sensor_data.pedal_pos;
-        if (p_tmp != 0xFF)
+        if (p_tmp == 0xFF)
         {
-            this->sensor_data.pedal_pos = p_tmp;
-        }
-        else {
             p_tmp = 250 / 4; // 25% as a fallback
         }
+        this->sensor_data.pedal_pos = p_tmp;
         this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 
         if (GET_CLOCK_TIME() - start > 100) {
@@ -1226,7 +1224,17 @@ void Gearbox::controller_loop()
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
         {
-            tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
+            // Substitute the last value for a short while, then treat the engine as
+            // stopped. Substituting indefinitely hides a dead signal, and the
+            // input_rpm == 0 test below cannot catch it while the car is in gear: the
+            // converter drags the turbine to 100-300 rpm at a standstill, so the input
+            // shaft never reads zero there.
+            if (this->engine_rpm_missing_cycles < ENGINE_RPM_MISSING_MAX_CYCLES) {
+                this->engine_rpm_missing_cycles += 1;
+                tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
+            } else {
+                tmp_rpm = 0;
+            }
             if (sensor_data.input_rpm == 0 && this->engine_running) {
                 // Engine is off, and USB is powering the TCU
                 this->engine_running = false;
@@ -1235,6 +1243,10 @@ void Gearbox::controller_loop()
                 this->actual_gear = GearboxGear::Neutral;
                 this->target_gear = GearboxGear::Neutral;
             }
+        }
+        else
+        {
+            this->engine_rpm_missing_cycles = 0;
         }
         this->sensor_data.engine_rpm = tmp_rpm;
         // Update solenoids, only if engine RPM is OK
@@ -1492,10 +1504,6 @@ void Gearbox::controller_loop()
 
         int16_t tmp_atf = TCUIO::atf_temperature();
         if (INT16_MAX != tmp_atf)
-        {
-            this->sensor_data.atf_temp = tmp_atf;
-        }
-        else
         {
             if (!temp_cal)
             {

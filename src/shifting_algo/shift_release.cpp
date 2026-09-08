@@ -427,7 +427,6 @@ uint8_t ReleasingShift::phase_overlap() {
     this->mod_sol_pressure = this->calc_mod_overlap();
 
     if (this->timer_shift == 0) {
-        sid->tcc->shift_end();
         this->trq_req_up_ramp = true;
         this->trq_req_timer = 3;
         ret = PHASE_MAX_PRESSURE;

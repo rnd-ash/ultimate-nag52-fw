@@ -86,6 +86,10 @@ class TorqueConverter {
         }
 
     private:
+        uint16_t calculate_slip_target(SensorData* sensors);
+        void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
+        void calculate_torque_correction(SensorData* sensors);
+
         // Multiplied by 100!
         int tcc_slip_filtered = 0;
         int rated_max_torque;
@@ -117,6 +121,18 @@ class TorqueConverter {
         bool prefill_done = false;
         bool prefill_running = false;
         uint8_t prefill_cycles = 0;
+
+
+        int min_tcc_pressure = 0;
+        // x100
+        int filtered_engine_trq = 0;
+        // x100
+        int filtered_pump_trq = 0;
+        // x100
+        int torque_correction_adapt = 0;
+
+        uint16_t input_side = 0;
+        uint16_t converted = 0;
 };
 
 #endif

@@ -115,7 +115,8 @@ uint8_t ShiftingAlgorithm::step(
 
 uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
     uint8_t ret = STEP_RES_CONTINUE;
-    int targ_spc = this->set_p_apply_clutch_with_spring(this->calc_high_filling_p());
+    uint16_t high_fill_p = this->calc_high_filling_p();
+    int targ_spc = this->set_p_apply_clutch_with_spring(high_fill_p);
     if (0 == this->subphase_mod) {
         // Initial variables set
         this->subphase_mod += 1;
@@ -126,6 +127,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         else {
             this->timer_mod = 5;
         }
+        this->p_apply_clutch = sid->SPC_MAX;
     }
     if (1 == this->subphase_mod) {
         // End of phase!
@@ -141,7 +143,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         ret = STEP_RES_FAILURE;
         goto calc_mod;
     }
-    this->p_apply_clutch = linear_ramp_with_timer(sid->SPC_MAX, targ_spc, this->timer_mod);
+    this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ_spc, this->timer_mod);
     this->shift_sol_pressure = this->correct_shift_shift_pressure(p_apply_clutch);
 
 calc_mod:
@@ -153,7 +155,9 @@ calc_mod:
     }
     else {
         uint16_t mod_with_freewheeling = this->calc_mod_with_filling_trq_and_freewheeling(targ_spc);
-        uint16_t uVar3 = this->calc_mod_min_abs_trq(targ_spc);
+        // Pass the RAW filling pressure: calc_mod_min_abs_trq adds
+        // release_spring_on_clutch itself, and targ_spc already includes it.
+        uint16_t uVar3 = this->calc_mod_min_abs_trq(high_fill_p);
         this->mod_sol_pressure = MAX(mod_with_freewheeling, uVar3);
     }
     return ret;
@@ -163,6 +167,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t targ_mpc = this->max_p_mod_pressure();
     if (0 == this->subphase_shift) {
+        sid->tcc->shift_end();
         this->timer_emergency = -1; // Disable emergency timer for this and end phase
         // Var set
         this->timer_shift = 5; // 100ms for ramp
@@ -460,7 +465,7 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_fill_pressure_adaptation = false;
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
         }
-        bool rpm_in_range = (sd->engine_rpm - 5 <= sd->input_rpm && upshifting) || (sd->input_rpm - 5 <= sd->input_rpm && !upshifting);
+        bool rpm_in_range = (sd->engine_rpm - 20 <= sd->input_rpm && upshifting) || (sd->input_rpm - 20 <= sd->engine_rpm && !upshifting);
         if (
             !rpm_in_range
         ) {

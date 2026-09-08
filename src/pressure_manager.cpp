@@ -278,6 +278,9 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
         default:
             coef = 100.F;
     }
+    if (coef <= 0.F) {
+        coef = 100.F; // Guard a zeroed PRM setting (coefficients are stored x100)
+    }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     if (gear == GearboxGear::Reverse_Second && clutch == Clutch::B3) {
         // Special logic
@@ -304,6 +307,9 @@ int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clut
             break;
         default:
             coef = 100.F;
+    }
+    if (coef <= 0.F) {
+        coef = 100.F; // Guard a zeroed PRM setting (coefficients are stored x100)
     }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     float calc = ((float)torque_nm * friction_val) / coef;
@@ -447,11 +453,17 @@ uint16_t PressureManager::calc_max_torque_for_clutch(GearboxGear gear, Clutch cl
         default:
             coef = 100.F;
     }
+    if (coef <= 0.F) {
+        coef = 100.F; // Guard a zeroed PRM setting (coefficients are stored x100)
+    }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
     if (gear == GearboxGear::Reverse_Second && clutch == Clutch::B3) {
         // Special logic
         friction_val *= MECH_PTR->friction_map[(2*6)+4];
         friction_val /= MECH_PTR->friction_map[(1*6)+4];
+    }
+    if (friction_val <= 0.F) {
+        return 0; // Clutch is not loaded in this gear - avoid dividing by zero
     }
     float calc = ((float)pressure * coef) / (float)friction_val;
     return calc;
@@ -473,7 +485,13 @@ int PressureManager::calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch 
         default:
             coef = 100.F;
     }
+    if (coef <= 0.F) {
+        coef = 100.F; // Guard a zeroed PRM setting (coefficients are stored x100)
+    }
     float friction_val = MECH_PTR->friction_map[(gear_idx*6)+(uint8_t)clutch];
+    if (friction_val <= 0.F) {
+        return 0; // Clutch is not loaded in this gear - avoid dividing by zero
+    }
     float calc =  ((float)pressure * coef) / (float)friction_val;
     return calc;
 }

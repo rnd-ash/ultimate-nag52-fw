@@ -1223,7 +1223,17 @@ void Gearbox::controller_loop()
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
         {
-            tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
+            // Substitute the last value for a short while, then treat the engine as
+            // stopped. Substituting indefinitely hides a dead signal, and the
+            // input_rpm == 0 test below cannot catch it while the car is in gear: the
+            // converter drags the turbine to 100-300 rpm at a standstill, so the input
+            // shaft never reads zero there.
+            if (this->engine_rpm_missing_cycles < ENGINE_RPM_MISSING_MAX_CYCLES) {
+                this->engine_rpm_missing_cycles += 1;
+                tmp_rpm = this->sensor_data.engine_rpm; // Sub last value!
+            } else {
+                tmp_rpm = 0;
+            }
             if (sensor_data.input_rpm == 0 && this->engine_running) {
                 // Engine is off, and USB is powering the TCU
                 this->engine_running = false;
@@ -1232,6 +1242,10 @@ void Gearbox::controller_loop()
                 this->actual_gear = GearboxGear::Neutral;
                 this->target_gear = GearboxGear::Neutral;
             }
+        }
+        else
+        {
+            this->engine_rpm_missing_cycles = 0;
         }
         this->sensor_data.engine_rpm = tmp_rpm;
         // Update solenoids, only if engine RPM is OK

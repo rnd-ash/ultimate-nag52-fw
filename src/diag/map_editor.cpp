@@ -189,7 +189,7 @@ uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
     sol_tcc->isr_disable();
     vTaskDelay(5);
     if (ESP_OK != ptr->reset_from_flash()) {
-        return NRC_GENERAL_REJECT;
+        ret = NRC_GENERAL_REJECT;
     }
     sol_tcc->isr_enable();
     return ret;

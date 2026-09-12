@@ -98,6 +98,14 @@ uint8_t ShiftingAlgorithm::step(
         this->reset_all_subphase_data();
     }
 
+    // SPC reduction logic (EGS52 0xD490)
+    // Reduce MPC based on active shift pressure to avoid pressure flare/spikes during overlap
+    if (sid->inf.pressure_multi_spc_int != 0) {
+        this->mpc_trq_reducer = (this->shift_sol_pressure * sid->inf.pressure_multi_spc_int) / 1000;
+    } else {
+        this->mpc_trq_reducer = 0;
+    }
+
     // Update output variables
     sid->ptr_w_pressures->shift_sol_req = this->shift_sol_pressure;
     sid->ptr_w_pressures->mod_sol_req = this->mod_sol_pressure;

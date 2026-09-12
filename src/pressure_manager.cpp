@@ -159,7 +159,12 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear c
     }
 
     int line_pressure = ((int)HYDR_PTR->lp_reg_spring_pressure + (int)this->target_modulating_pressure)*1000;
-    int wp = extra_p + (line_pressure / factor);
+    int wp;
+    if (factor > 0) {
+        wp = extra_p + (line_pressure / factor);
+    } else {
+        wp = extra_p;
+    }
     if (wp <= 0) {
         wp = 0;
     }
@@ -700,11 +705,19 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
 }
 
 void PressureManager::set_target_shift_pressure(uint16_t targ) {
+    uint16_t max_p = get_max_solenoid_pressure();
+    if (targ > max_p) {
+        targ = max_p;
+    }
     this->target_shift_pressure = targ;
     this->shift_sol_en = true;
 }
 
 void PressureManager::set_target_modulating_pressure(uint16_t targ) {
+    uint16_t max_p = get_max_solenoid_pressure();
+    if (targ > max_p) {
+        targ = max_p;
+    }
     this->target_modulating_pressure = targ;
 }
 

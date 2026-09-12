@@ -1711,12 +1711,12 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     {
         ratio *= -1;
         for (uint8_t i = 0; i < 2; i++)
-        { // Scan the 2 reverse gears
+        { // Scan the 2 reverse gears (stored in bounds[5] and bounds[6])
             GearRatioInfo limits = gearboxConfig.bounds[i + 5];
             if (ratio >= limits.ratio_min_drift && ratio <= limits.ratio_max_drift)
             {
-                //ESP_LOGI("CGFR", "G %d", i+1);
-                this->est_gear_idx = i + 1;
+                // est_gear_idx must match gear_from_idx(): 6 = Reverse_First, 7 = Reverse_Second
+                this->est_gear_idx = i + 6;
                 return true;
             }
         }

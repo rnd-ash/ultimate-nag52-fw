@@ -22,11 +22,11 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 			}
 		};
 
-		i2c_master_bus_handle_t bus_handle;
-		init_status = i2c_new_master_bus(&conf, &bus_handle);
+		i2c_master_bus_handle_t temp_bus_handle;
+		init_status = i2c_new_master_bus(&conf, &temp_bus_handle);
 		if (ESP_OK == init_status)
 		{
-			this->bus_handle = bus_handle;
+			this->bus_handle = temp_bus_handle;
 			i2c_device_config_t dev_cfg = {
 				.dev_addr_length = I2C_ADDR_BIT_LEN_7,
 				.device_address = IO_ADDR,
@@ -36,7 +36,7 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 					.disable_ack_check = 0
 				}
 			};
-			init_status = i2c_master_bus_add_device(bus_handle, &dev_cfg, &this->dev_handle);
+			init_status = i2c_master_bus_add_device(temp_bus_handle, &dev_cfg, &this->dev_handle);
 			if (ESP_OK == init_status)
 			{
 				// set I/O 1 as output

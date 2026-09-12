@@ -15,6 +15,7 @@ const int MAX_LOOKUP_CACHE = 5; // I don't think any map has more than this many
 
 class LookupMap {
     public:
+        virtual ~LookupMap() = default;
         float get_value(const float xValue, const float yValue);
         float get_value(const float xValue, const float yValue, const uint8_t lookup_cache_idx);
         void get_y_headers(uint16_t *size, int16_t **headers);
@@ -41,7 +42,7 @@ class LookupAllocMap : public LookupMap {
         LookupAllocMap(const int16_t* _xHeader, const uint16_t _xHeaderSize, const int16_t* _yHeader, const uint16_t _yHeaderSize, const int16_t* _data, const uint16_t _dataSize);
         bool add_data(const int16_t* map, const uint16_t size);
         bool is_allocated(void) const;
-        ~LookupAllocMap();
+        ~LookupAllocMap() override;
 };
 
 class LookupRefMap : public LookupMap {
@@ -54,7 +55,7 @@ class LookupByteMap : public LookupMap {
         LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uint8_t* _yHeader, const uint16_t _yHeaderSize, uint8_t* _data, const uint16_t _dataSize);
         bool is_allocated(void) const;
         bool add_data(const uint8_t* map, const uint16_t size);
-        ~LookupByteMap();
+        ~LookupByteMap() override;
     private:
         int16_t* x_alloc;
         int16_t* y_alloc;

@@ -614,11 +614,9 @@ void Gearbox::shift_thread()
             uint8_t substage = 0;
             uint8_t timer_s = 0;
             uint8_t timer_m = 0;
-            uint8_t timer_3 = 0;
 
             bool completed_ok = false;
             bool jump_to_pid = false;
-            bool tried_again = false;
             this->algo_feedback.active = true;
             
             while(true) {
@@ -738,7 +736,6 @@ void Gearbox::shift_thread()
                                 } else {
                                     timer_m = timer_s + 80;
                                 }
-                                timer_3 = 80;
                                 substage = 7;
                             }
                         }
@@ -770,7 +767,6 @@ void Gearbox::shift_thread()
                                 } else {
                                     timer_m = timer_s + 80;
                                 }
-                                timer_3 = 80;
                                 substage = 7;
                             }
                         }
@@ -783,10 +779,9 @@ void Gearbox::shift_thread()
                             if (sensor_data.output_rpm < 60) {
                                 timer_m = timer_s + interpolate_float(sensor_data.atf_temp, 40, 7, -30, 20, InterpType::Linear);
                             } else {
-                                timer_m = timer_s + 80;
-                            }
-                            timer_3 = 80;
-                            substage = 7;
+                                                                timer_m = timer_s + 80;
+                                }
+                                substage = 7;
                         }
                     }  else if (substage == 6 || substage == 7) {
                         bool done = false;
@@ -855,7 +850,6 @@ void Gearbox::shift_thread()
                         p_apply_clutch = 0;
                         p_shift = 0;
                         if (0 == timer_s) {
-                            tried_again = true;
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
@@ -1122,7 +1116,7 @@ void Gearbox::controller_loop()
         }
 
         // Set sensors Motor temperature (Always ran)
-        int16_t coolant_temp = egs_can_hal->get_engine_coolant_temp(50);
+        // int16_t coolant_temp = egs_can_hal->get_engine_coolant_temp(50);
 
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
@@ -1717,12 +1711,12 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     {
         ratio *= -1;
         for (uint8_t i = 0; i < 2; i++)
-        { // Scan the 2 reverse gears
+        { // Scan the 2 reverse gears (stored in bounds[5] and bounds[6])
             GearRatioInfo limits = gearboxConfig.bounds[i + 5];
             if (ratio >= limits.ratio_min_drift && ratio <= limits.ratio_max_drift)
             {
-                //ESP_LOGI("CGFR", "G %d", i+1);
-                this->est_gear_idx = i + 1;
+                // est_gear_idx must match gear_from_idx(): 6 = Reverse_First, 7 = Reverse_Second
+                this->est_gear_idx = i + 6;
                 return true;
             }
         }

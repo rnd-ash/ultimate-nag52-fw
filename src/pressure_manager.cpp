@@ -128,6 +128,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     this->target_shift_pressure = this->get_max_solenoid_pressure();
     this->target_modulating_pressure = this->get_max_solenoid_pressure();
     this->target_tcc_pressure = 0;
+    this->currently_open_circuit = ShiftCircuit::None;
 }
 
 uint16_t PressureManager::get_shift_regulator_pressure(void) {

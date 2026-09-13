@@ -442,10 +442,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         else {
             bool is_release = false;
             if (
-                // Load downshift, OR coasting 32/21 (NOT Coasting 54/43)
-                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
-                // (Note - 54/43 is overriden if we did a force-shift)
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0 && !manual_shift)
+                (sensor_data.converted_driver_torque > threshold_torque || (SHIFT_FLAG_COAST == 0 || SHIFT_FLAG_COAST_54_43 == 0))
             ) {
                 is_release = true;
             }

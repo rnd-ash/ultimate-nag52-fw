@@ -440,16 +440,19 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
         else {
-            bool is_release = false;
+            bool is_release = true;
+            if (manual_shift) {
+                threshold_torque *= 2;
+            }
             if (
-                (sensor_data.converted_driver_torque > threshold_torque || 
+                (sensor_data.converted_driver_torque < threshold_torque && 
                     (
                         (sid.shift_flags & SHIFT_FLAG_COAST) == 0 || 
-                        (sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0
+                        (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )
                 )
             ) {
-                is_release = true;
+                is_release = false;
             }
             if (is_release) {
                 algo = new ReleasingShift(&sid);

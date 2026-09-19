@@ -60,6 +60,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .output_rpm = 0,
         .pedal_pos = 0,
         .pedal_pos_smoothed = 0,
+        .pedal_delta_per_second = 0,
         .atf_temp = 0,
         .input_torque = 0,
         .converted_torque = 0,
@@ -1196,11 +1197,15 @@ void Gearbox::controller_loop()
             }
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(1000);
-        this->pedal_last = this->sensor_data.pedal_pos;
         if (p_tmp == 0xFF)
         {
             p_tmp = 250 / 4; // 25% as a fallback
         }
+        int16_t pedal_delta = (p_tmp - this->pedal_last)*50; // Per second
+        this->sensor_data.pedal_delta_per_second = first_order_filter(5, (float)pedal_delta/2.5, this->sensor_data.pedal_delta_per_second);
+        this->pedal_last = p_tmp;
+
+
         this->sensor_data.pedal_pos = p_tmp;
         this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 

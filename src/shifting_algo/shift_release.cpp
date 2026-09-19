@@ -48,7 +48,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2() {
         float torque = torque_min + this->trq_at_apply_clutch;
         // Number of EGS cycles (20ms):
         // 1 20ms. Calc Trq req
-        // 2 20ms. Tx Trq req
+        // 2 20ms. Tx Trq re
         // 3 20ms. Engine to implement Trq req
         float cycles_can = 3.0;
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
@@ -536,12 +536,22 @@ int16_t ReleasingShift::calc_release_clutch_p_signed(int trq, CoefficientTy coef
 
 float ReleasingShift::calculate_freeing_trq_multiplier() {
     float output = 1.0;
-
     if (!this->upshifting) {
-        float adder_pedal = interpolate_float(sd->pedal_pos_smoothed, 0.0, 0.3, 125.0, 250.0, InterpType::Linear);
-        float adder_style = interpolate_float(sid->chars.target_shift_time, 0.5, 1.5, 1000, 100, InterpType::Linear);
-        output = MIN(2.5, 1.0 + adder_pedal + adder_style);
+        if (sd->pedal_delta_per_second < 0) {
+            output = 1.0;
+        } else {
+            output = interpolate_float(sd->pedal_delta_per_second, 1.0, 2.5, 50, 300, InterpType::Linear);
+        }
+        if (manual == sid->profile) {
+            output = 2.5;
+        } else if (race == sid->profile) {
+            output = 4.0;
+        }
     }
+    if (output < this->freeing_torque_multi) {
+        output = this->freeing_torque_multi;
+    }
+    this->freeing_torque_multi = output;
     return output;
 }
 

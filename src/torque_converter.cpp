@@ -153,6 +153,10 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
         }
     }
     this->converted = MAX(0, tcc_engine_torque);
+    if (sensors->pedal_delta_per_second > 0) {
+        this->converted = (float)this->converted * interpolate_float(sensors->pedal_delta_per_second, 1.0, 4.0, 50, 200, InterpType::Linear);
+    }
+
     int tcc_input_torque = 595 - (this->filtered_pump_trq/100);
     if (tcc_input_torque <= 0) {
         tcc_input_torque = 0;

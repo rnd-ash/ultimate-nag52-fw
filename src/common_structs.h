@@ -59,6 +59,8 @@ struct SensorData{
     uint8_t pedal_pos;
     /// Accelerator pedal position. 0-250, smoothed to 500ms
     uint8_t pedal_pos_smoothed;
+    /// Accelerator pedal delta per second (In %/sec),
+    int16_t pedal_delta_per_second;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque

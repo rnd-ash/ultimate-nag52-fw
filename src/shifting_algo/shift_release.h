@@ -47,6 +47,7 @@ private:
     float spc_ramp_val = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
+    float freeing_torque_multi = 1.0;
     uint8_t fill_1_mpc_cycles = 0;
 
     int spc_step_adder = 0;

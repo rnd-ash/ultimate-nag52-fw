@@ -355,7 +355,7 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
             upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
         }
         bool can_upshift = sensors->input_rpm > upshift_map_val;
-        if (sensors->pedal_pos == 0) {
+        if (sensors->pedal_pos == 0 || sensors->pedal_delta_per_second > 10) {
             can_upshift = false;
         }
         if (sensors->brake_pressed) { can_upshift = false; }
@@ -382,7 +382,15 @@ void StandardProfile::update(SensorData* sensors) {
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {
     if (current_gear == GearboxGear::First) { return false; }
     if (this->downshift_table != nullptr) { // TEST TABLE
-        return sensors->input_rpm < this->downshift_table->get_value(sensors->pedal_pos/2.5, (float)current_gear);
+        int adder = 0;
+        if (sensors->pedal_delta_per_second >= 0) {
+            adder = interpolate_float(sensors->pedal_delta_per_second, 0, 50, 1, 200, InterpType::Linear);
+        } else {
+            adder = interpolate_float(sensors->pedal_delta_per_second, -25, 0, -50, 0, InterpType::Linear);
+        }
+        int pedal_percentage = (float)(sensors->pedal_pos)/2.5;
+        pedal_percentage = MAX(0, MIN(pedal_percentage + adder, 100));
+        return sensors->input_rpm < this->downshift_table->get_value(pedal_percentage, (float)current_gear);
     } else {
         return false;
     }

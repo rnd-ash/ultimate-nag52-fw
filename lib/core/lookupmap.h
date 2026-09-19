@@ -15,8 +15,8 @@ const int MAX_LOOKUP_CACHE = 5; // I don't think any map has more than this many
 
 class LookupMap {
     public:
+    	virtual ~LookupMap() = default;
         float get_value(const int16_t x_value, const int16_t y_value);
-        // float get_value(const float xValue, const float yValue);
         float get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx);
         bool add_value(const int16_t sample_point_value, const int16_t x_value, const int16_t y_value, const float threshold);
         void get_y_headers(uint16_t *size, int16_t **headers);
@@ -48,7 +48,7 @@ class LookupAllocMap : public LookupMap {
         LookupAllocMap(const int16_t* _x_header, const uint16_t _x_header_size, const int16_t* _y_header, const uint16_t _y_header_size, const int16_t* _data, const uint16_t _data_size);
         bool add_data(const int16_t* map, const uint16_t size);
         bool is_allocated(void) const;
-        ~LookupAllocMap();
+        ~LookupAllocMap() override;
 };
 
 class LookupRefMap : public LookupMap {
@@ -61,7 +61,7 @@ class LookupByteMap : public LookupMap {
         LookupByteMap(uint8_t* _x_header, const uint16_t _x_header_size, uint8_t* _y_header, const uint16_t _y_header_size, uint8_t* _data, const uint16_t _data_size);
         bool is_allocated(void) const;
         bool add_data(const uint8_t* map, const uint16_t size);
-        ~LookupByteMap();
+        ~LookupByteMap() override;
     private:
         int16_t* x_alloc;
         int16_t* y_alloc;

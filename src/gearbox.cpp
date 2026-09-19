@@ -60,6 +60,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .output_rpm = 0,
         .pedal_pos = 0,
         .pedal_pos_smoothed = 0,
+        .pedal_delta_per_second = 0,
         .atf_temp = 0,
         .input_torque = 0,
         .converted_torque = 0,
@@ -440,14 +441,19 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
         else {
-            bool is_release = false;
+            bool is_release = true;
+            if (manual_shift) {
+                threshold_torque *= 2;
+            }
             if (
-                // Load downshift, OR coasting 32/21 (NOT Coasting 54/43)
-                (sensor_data.converted_driver_torque > threshold_torque || (sid.shift_flags & SHIFT_FLAG_COAST) == 1) &&
-                // (Note - 54/43 is overriden if we did a force-shift)
-                ((sid.shift_flags & SHIFT_FLAG_COAST_54_43) == 0 && !manual_shift)
+                (sensor_data.converted_driver_torque < threshold_torque && 
+                    (
+                        (sid.shift_flags & SHIFT_FLAG_COAST) == 0 || 
+                        (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
+                    )
+                )
             ) {
-                is_release = true;
+                is_release = false;
             }
             if (is_release) {
                 algo = new ReleasingShift(&sid);
@@ -614,11 +620,9 @@ void Gearbox::shift_thread()
             uint8_t substage = 0;
             uint8_t timer_s = 0;
             uint8_t timer_m = 0;
-            uint8_t timer_3 = 0;
 
             bool completed_ok = false;
             bool jump_to_pid = false;
-            bool tried_again = false;
             this->algo_feedback.active = true;
             
             while(true) {
@@ -738,7 +742,6 @@ void Gearbox::shift_thread()
                                 } else {
                                     timer_m = timer_s + 80;
                                 }
-                                timer_3 = 80;
                                 substage = 7;
                             }
                         }
@@ -770,7 +773,6 @@ void Gearbox::shift_thread()
                                 } else {
                                     timer_m = timer_s + 80;
                                 }
-                                timer_3 = 80;
                                 substage = 7;
                             }
                         }
@@ -783,10 +785,9 @@ void Gearbox::shift_thread()
                             if (sensor_data.output_rpm < 60) {
                                 timer_m = timer_s + interpolate_float(sensor_data.atf_temp, 40, 7, -30, 20, InterpType::Linear);
                             } else {
-                                timer_m = timer_s + 80;
-                            }
-                            timer_3 = 80;
-                            substage = 7;
+                                                                timer_m = timer_s + 80;
+                                }
+                                substage = 7;
                         }
                     }  else if (substage == 6 || substage == 7) {
                         bool done = false;
@@ -855,7 +856,6 @@ void Gearbox::shift_thread()
                         p_apply_clutch = 0;
                         p_shift = 0;
                         if (0 == timer_s) {
-                            tried_again = true;
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
@@ -1123,7 +1123,7 @@ void Gearbox::controller_loop()
         }
 
         // Set sensors Motor temperature (Always ran)
-        int16_t coolant_temp = egs_can_hal->get_engine_coolant_temp(50);
+        // int16_t coolant_temp = egs_can_hal->get_engine_coolant_temp(50);
 
         bool speeds_valid = this->process_speed_sensors();
         if (speeds_valid)
@@ -1198,11 +1198,15 @@ void Gearbox::controller_loop()
             }
         }
         uint8_t p_tmp = egs_can_hal->get_pedal_value(1000);
-        this->pedal_last = this->sensor_data.pedal_pos;
         if (p_tmp == 0xFF)
         {
             p_tmp = 250 / 4; // 25% as a fallback
         }
+        int16_t pedal_delta = (p_tmp - this->pedal_last)*50; // Per second
+        this->sensor_data.pedal_delta_per_second = first_order_filter(5, (float)pedal_delta/2.5, this->sensor_data.pedal_delta_per_second);
+        this->pedal_last = p_tmp;
+
+
         this->sensor_data.pedal_pos = p_tmp;
         this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 
@@ -1727,12 +1731,12 @@ bool Gearbox::calcGearFromRatio(bool is_reverse)
     {
         ratio *= -1;
         for (uint8_t i = 0; i < 2; i++)
-        { // Scan the 2 reverse gears
+        { // Scan the 2 reverse gears (stored in bounds[5] and bounds[6])
             GearRatioInfo limits = gearboxConfig.bounds[i + 5];
             if (ratio >= limits.ratio_min_drift && ratio <= limits.ratio_max_drift)
             {
-                //ESP_LOGI("CGFR", "G %d", i+1);
-                this->est_gear_idx = i + 1;
+                // est_gear_idx must match gear_from_idx(): 6 = Reverse_First, 7 = Reverse_Second
+                this->est_gear_idx = i + 6;
                 return true;
             }
         }

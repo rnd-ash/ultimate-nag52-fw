@@ -72,7 +72,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = TCC_PWM_MAP;
     tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
-        delete[] this->tcc_pwm_map;
+        delete this->tcc_pwm_map;
     }
 
     /** Pressure fill time map **/
@@ -88,7 +88,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = LARGE_NAG_FILL_TIME_MAP;
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
-        delete[] this->fill_time_map;
+        delete this->fill_time_map;
     }
 
     /** Pressure fill pressure map **/
@@ -105,7 +105,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_PRESSURE_MAP;
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
     if (this->fill_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_pressure_map;
+        delete this->fill_pressure_map;
     }
 
     /** Pressure fill pressure map **/
@@ -121,13 +121,14 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     default_data = NAG_FILL_LOW_PRESSURE_MAP;
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
     if (this->fill_low_pressure_map->init_status() != ESP_OK) {
-        delete[] this->fill_low_pressure_map;
+        delete this->fill_low_pressure_map;
     }
 
     // Init MPC and SPC req pressures
     this->target_shift_pressure = this->get_max_solenoid_pressure();
     this->target_modulating_pressure = this->get_max_solenoid_pressure();
     this->target_tcc_pressure = 0;
+    this->currently_open_circuit = ShiftCircuit::None;
 }
 
 uint16_t PressureManager::get_shift_regulator_pressure(void) {
@@ -158,7 +159,12 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear c
     }
 
     int line_pressure = ((int)HYDR_PTR->lp_reg_spring_pressure + (int)this->target_modulating_pressure)*1000;
-    int wp = extra_p + (line_pressure / factor);
+    int wp;
+    if (factor > 0) {
+        wp = extra_p + (line_pressure / factor);
+    } else {
+        wp = extra_p;
+    }
     if (wp <= 0) {
         wp = 0;
     }
@@ -236,9 +242,10 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
     uint8_t sel_idx = 0xFF;
     float ret = 0;
     switch (clutch) {
-        // OBSERVE. K1 is missing from this list.
-        // on EGS52, it is listed as 0 for the factor table. Perhaps during
-        // testing, they found calculating this force for K1 created some issues?
+        case Clutch::K1:
+            sel_idx = 0;
+            speed = input;
+            break;
         case Clutch::K2:
             sel_idx = 1;
             speed = input;
@@ -698,11 +705,19 @@ void PressureManager::set_shift_circuit(ShiftCircuit ss, bool enable) {
 }
 
 void PressureManager::set_target_shift_pressure(uint16_t targ) {
+    uint16_t max_p = get_max_solenoid_pressure();
+    if (targ > max_p) {
+        targ = max_p;
+    }
     this->target_shift_pressure = targ;
     this->shift_sol_en = true;
 }
 
 void PressureManager::set_target_modulating_pressure(uint16_t targ) {
+    uint16_t max_p = get_max_solenoid_pressure();
+    if (targ > max_p) {
+        targ = max_p;
+    }
     this->target_modulating_pressure = targ;
 }
 

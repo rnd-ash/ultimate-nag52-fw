@@ -175,7 +175,7 @@ kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
     sol_tcc->isr_disable();
-    vTaskDelay(5);
+    vTaskDelay(10);
     if (ESP_OK != ptr->save_to_eeprom()) {
         ret = NRC_GENERAL_REJECT;
     }
@@ -187,7 +187,7 @@ uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
     uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
     sol_tcc->isr_disable();
-    vTaskDelay(5);
+    vTaskDelay(10);
     if (ESP_OK != ptr->reset_from_flash()) {
         ret = NRC_GENERAL_REJECT;
     }

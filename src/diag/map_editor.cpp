@@ -9,6 +9,7 @@
 #include "gearbox.h"
 #include "tcu_alloc.h"
 #include "clock.hpp"
+#include "engines/hfm_engine.hpp"
 
 static const uint32_t MAP_LOOKUP_CACHE_MAX_AGE_MS = 60000;
 static const uint8_t MAP_LOOKUP_CACHE_ENTRY_SIZE = 1 + sizeof(LookupCache);
@@ -80,6 +81,24 @@ StoredMap* get_map(uint8_t map_id) {
             return manual->get_upshift_time_map();
         case M_DNTIME_MAP_ID:
             return manual->get_downshift_time_map();
+        // case HFM_MAX_TRQ_MAP_ID:
+        //     if (VEHICLE_CONFIG.egs_can_type == 4) {
+        //         return hfm_engine->get_max_torque_table();
+        //     } else {
+        //         return nullptr;
+        //     }
+        case HFM_MAF_MAP_ID:
+            if(VEHICLE_CONFIG.egs_can_type == 4) {
+                return hfm_engine->get_maf_map();
+            } else {
+                return nullptr;
+            }
+        // case HFM_MAX_MAP_ID:
+            // if(VEHICLE_CONFIG.egs_can_type == 4) {
+            //     return hfm_engine->get_max_maf_table();
+            // } else {
+            //     return nullptr;
+            // }
         case TCC_ADAPT_SLIP_MAP_ID:
             return gearbox->tcc->get_slip_map();
         case TCC_ADAPT_LOCK_MAP_ID:

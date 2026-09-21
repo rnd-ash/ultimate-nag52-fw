@@ -5,6 +5,8 @@
 
 class LookupHeader {
     public:
+        LookupHeader(const int16_t* _header, const uint16_t _size);
+        ~LookupHeader(void);
         int16_t get_value(const uint16_t index) const;
         uint16_t get_size(void) const;
         int16_t* get_data(void) const;  

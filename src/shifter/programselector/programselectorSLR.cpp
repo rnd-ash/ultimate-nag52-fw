@@ -6,7 +6,7 @@ ProgramSelectorSLR::ProgramSelectorSLR(BoardGpioMatrix* board) : board(board)
 {
 }
 
-AbstractProfile *ProgramSelectorSLR::get_profile(const uint32_t expire_time_ms)
+AbstractProfile *ProgramSelectorSLR::get_profile(void)
 {
 	AbstractProfile *result = nullptr;
 	// Profile rotate switch is connected to pins
@@ -33,7 +33,7 @@ AbstractProfile *ProgramSelectorSLR::get_profile(const uint32_t expire_time_ms)
 	return result;
 }
 
-DiagProfileInputState ProgramSelectorSLR::get_input_raw() const {
+DiagProfileInputState ProgramSelectorSLR::get_input_raw(void) const {
 	DiagProfileInputState pos = DiagProfileInputState::SNV;
 	uint8_t reg[2];
 	ioexpander->debug_get_registers(&reg[0], &reg[1]);
@@ -53,6 +53,6 @@ DiagProfileInputState ProgramSelectorSLR::get_input_raw() const {
 	return pos;
 }
 
-ProgramSelectorType ProgramSelectorSLR::get_type() const {
+ProgramSelectorType ProgramSelectorSLR::get_type(void) const {
 	return ProgramSelectorType::SLR;
 }

@@ -10,7 +10,7 @@
 
 class CustomCan: public EgsBaseCan {
     public:
-        CustomCan(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        CustomCan(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters

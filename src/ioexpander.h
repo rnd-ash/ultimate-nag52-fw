@@ -6,7 +6,7 @@
 #include "shifter/shifter.h"
 #include "driver/i2c_master.h"
 
-typedef enum {
+enum pca_num_t{
     PCA_NUM_NC = -1,
     PCA_NUM_0 = 0,
     PCA_NUM_1 = 1,
@@ -16,7 +16,7 @@ typedef enum {
     PCA_NUM_5 = 5,
     PCA_NUM_6 = 6,
     PCA_NUM_7 = 7
-} pca_num_t;
+} ;
 
 class IOExpander {
 public:

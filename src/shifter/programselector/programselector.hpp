@@ -57,14 +57,14 @@ public:
 	 * @return Profile that should be in use. nullptr is returned if the current
 	 * switch position could not be determined, in which case, we do not switch profiles.
 	 */
-	virtual AbstractProfile* get_profile(const uint32_t expire_time_ms);
+	virtual AbstractProfile* get_profile(void);
 	/**
 	 * @brief For identification
 	 * @return 
 	 */
-	virtual ProgramSelectorType get_type() const;
+	virtual ProgramSelectorType get_type(void) const;
 
-	virtual DiagProfileInputState get_input_raw() const {
+	virtual DiagProfileInputState get_input_raw(void) const {
 		return DiagProfileInputState::None;
 	};
 protected:

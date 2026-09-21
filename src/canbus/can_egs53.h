@@ -11,7 +11,7 @@
 
 class Egs53Can: public EgsBaseCan {
     public:
-        Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        Egs53Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters

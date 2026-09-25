@@ -206,6 +206,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
     this->engine_load_percent = load_as_percent;
 
+    this->filtered_engine_rpm = first_order_filter(3, (int)sensors->engine_rpm*100, this->filtered_engine_rpm);
+    this->filtered_input_rpm = first_order_filter(3, (int)sensors->input_rpm*100, this->filtered_input_rpm);
+    this->old_actual_slip_abs = this->actual_slip_abs;
+    this->actual_slip_abs = abs(this->filtered_engine_rpm - this->filtered_input_rpm) / 100;
+
     // Conditions for no TCC
     if (
         !this->tcc_solenoid_enabled || // Diagnostic request
@@ -219,14 +224,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->slip_target = SLIP_V_WHEN_OPEN;
         this->prefill_done = false;
         this->prefill_running = false;
-        this->filtered_engine_rpm = sensors->engine_rpm * 100;
-        this->filtered_input_rpm = sensors->input_rpm * 100;
         return;
     }
-    this->filtered_engine_rpm = first_order_filter(3, sensors->engine_rpm*100, this->filtered_engine_rpm);
-    this->filtered_input_rpm = first_order_filter(3, sensors->input_rpm*100, this->filtered_input_rpm);
-    this->old_actual_slip_abs = this->actual_slip_abs;
-    this->actual_slip_abs = abs(this->filtered_engine_rpm - this->filtered_input_rpm) / 100;
+    
 
 
     if (this->tcc_actual_pressure/100 > this->tcc_commanded_pressure) {
@@ -333,10 +333,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
         is_adaptable = false;
     }
-    // Disable adapting when coasting (Some load doesn't map 1:1)
-    if (motor_torque < 0) {
-        is_adaptable = false;
-    }
     uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)
     if (!is_shifting){
         // 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100
@@ -383,15 +379,14 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         this->tcc_commanded_pressure = TCC_CURRENT_SETTINGS.prefill_pressure;
     } else {
-        int slip_adaptation = this->actual_slip_abs/100;
         // Constant logic
         if (this->target_tcc_state == InternalTccState::Open) {
             this->tcc_commanded_pressure = 0;
         } else if (this->target_tcc_state == InternalTccState::Slipping) {
             if (is_adaptable && this->target_tcc_state == this->current_tcc_state) {
                 int slip_min = MAX(slip_target * 0.8, SLIP_V_UNDERLOCKED);
-                if (load_cell != 0xFF && slip_adaptation > slip_target) {
-                    int adder = interpolate_float(slip_adaptation, 1, 100, slip_target, slip_target*2, InterpType::Linear);
+                if (load_cell != 0xFF && this->actual_slip_abs > slip_target) {
+                    int adder = interpolate_float(this->actual_slip_abs, 1, 100, slip_target, slip_target*2, InterpType::Linear);
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, adder);
                     // Adjust the locking map too if we are increasing slipping pressure
                     int16_t slip_v = get_cell_value(this->tcc_slip_map->get_current_data(), curr_gear, load_cell);
@@ -400,8 +395,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
                         int delta = slip_v-lock_v;
                         set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, delta);
                     }
-                } else if (load_cell != 0xFF && slip_adaptation <= slip_min) {
-                    int remover = interpolate_float(slip_adaptation, -10, -1, slip_min/2, slip_min, InterpType::Linear);
+                } else if (load_cell != 0xFF && this->actual_slip_abs <= slip_min) {
+                    int remover = interpolate_float(this->actual_slip_abs, -10, -1, slip_min/2, slip_min, InterpType::Linear);
                     set_adapt_cell(this->tcc_slip_map->get_current_data(), curr_gear, load_cell, remover);
                 }
             }
@@ -409,11 +404,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         } else if (this->target_tcc_state == InternalTccState::Closed) {
             // Closed state now is 10RPM or less delta (Original EGS) (up to +/-10 RPM either way is allowed (so 0-20RPM delta))
             if (is_adaptable && this->target_tcc_state == this->current_tcc_state) {
-                if  (load_cell != 0xFF && SLIP_V_UNDERLOCKED < slip_adaptation) {
-                    int adder = interpolate_float(slip_adaptation, 1, 50, SLIP_V_UNDERLOCKED, SLIP_V_UNDERLOCKED*2, InterpType::Linear);
+                if  (load_cell != 0xFF && SLIP_V_UNDERLOCKED < this->actual_slip_abs) {
+                    int adder = interpolate_float(this->actual_slip_abs, 1, 50, SLIP_V_UNDERLOCKED, SLIP_V_UNDERLOCKED*2, InterpType::Linear);
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, adder);
-                } else if (load_cell != 0xFF && SLIP_V_OVERLOCKED >= slip_adaptation) {
-                    int remover = interpolate_float(slip_adaptation, -10, -1, 0, SLIP_V_OVERLOCKED, InterpType::Linear);
+                } else if (load_cell != 0xFF && SLIP_V_OVERLOCKED >= this->actual_slip_abs) {
+                    int remover = interpolate_float(this->actual_slip_abs, -10, -1, 0, SLIP_V_OVERLOCKED, InterpType::Linear);
                     // RPM Delta is too small, meaning we are over-locking, we can reduce the pressure a bit
                     set_adapt_cell(this->tcc_lock_map->get_current_data(), curr_gear, load_cell, remover);
 
@@ -493,11 +488,11 @@ void TorqueConverter::set_stationary() {
 }
 
 int16_t TorqueConverter::get_slip_filtered() {
-    return this->actual_slip_abs / 100;
+    return this->actual_slip_abs;
 }
 
 int16_t TorqueConverter::get_slip_now() {
-    return this->targ_slip_pid;
+    return this->actual_slip_abs; //this->targ_slip_pid;
 }
 
 uint8_t TorqueConverter::get_current_state() {

@@ -91,16 +91,27 @@ void TorqueConverter::calc_pid_score() {
 
 uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     int target = SLIP_V_WHEN_OPEN;
-    if (sensors->input_torque > 0) {
+    int inc = 0;
+    if (sensors->pedal_pos > 0) {
         int pedal_as_percent = (sensors->pedal_pos*100)/250;
         target = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
+        targ_slip_pid = 0;
     } else {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
     if (this->upshifting) {
         target += 10;
     }
-    // Todo dynamic pedal logic
+
+    if (sensors->pedal_delta_per_second >= 50 || sensors->input_rpm > 1800) {
+        // TODO
+        targ_slip_pid = 0;
+    } else {
+        if (this->actual_slip_abs - this->old_actual_slip_abs > 0 && target + inc < this->actual_slip_abs) {
+            targ_slip_pid = MIN(50, (this->actual_slip_abs - target));
+        }
+        this->timer_inc_slip = 150;
+    }
     return target;
 }
 
@@ -117,7 +128,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     const uint8_t FILTER_SIZE = 5;
     this->filtered_engine_trq = first_order_filter(FILTER_SIZE, sensors->converted_torque*100, this->filtered_engine_trq);
     this->filtered_pump_trq = first_order_filter(FILTER_SIZE, sensors->pump_torque*100, this->filtered_pump_trq);
-    if (sensors->brake_pressed && 0 == sensors->input_rpm && sensors->atf_temp > 50) {
+    if (sensors->brake_pressed && 0 == sensors->input_rpm && sensors->atf_temp > 50 && sensors->pedal_pos == 0) {
         if (0 == this->torque_correction_adapt) {
             this->torque_correction_adapt = (this->filtered_engine_trq - this->filtered_pump_trq);
         } else {
@@ -131,8 +142,8 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     } else {
         corr_torque = (this->torque_correction_adapt/100);
     }
-    //int f_engine_trq = (this->filtered_engine_trq/100) - corr_torque;
-    //int engine_trq = sensors->converted_torque - corr_torque;
+    int f_engine_trq = (this->filtered_engine_trq/100) - corr_torque;
+    int engine_trq = sensors->converted_torque - corr_torque;
 
     int lambda_targ = (((int)sensors->input_rpm)*1000) / (int)(sensors->input_rpm + this->slip_target);
     int pump_trq_targ = (int)interpolate_linear_array((uint16_t)lambda_targ, 11, TCC_CFG_PTR->pump_map_x, TCC_CFG_PTR->pump_map_z);
@@ -140,22 +151,31 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     pump_trq_targ *= ((x*x) / 10000);
     pump_trq_targ /= 10000;
 
-    int tcc_engine_torque = sensors->converted_torque;
-    if (tcc_engine_torque <= 0) {
-        tcc_engine_torque += pump_trq_targ;
-        if (tcc_engine_torque > 0) {
-            tcc_engine_torque = 0;
+    int pedal_spd_abs = abs(sensors->pedal_delta_per_second);
+    if (pedal_spd_abs > 50) {
+        if (sensors->pedal_delta_per_second < 1) {
+            float adder = 0.2 * (float)pedal_spd_abs;
+            adder = MAX(adder, -50);
+            engine_trq += adder;
+        } else {
+            float adder = 0.1 * (float)pedal_spd_abs;
+            adder = MIN(50, adder);
+            engine_trq += adder;
+        }
+    }
+
+    if (engine_trq <= 0) {
+        engine_trq += pump_trq_targ;
+        if (engine_trq > 0) {
+            engine_trq = 0;
         }
     } else {
-        tcc_engine_torque -= pump_trq_targ;
-        if (tcc_engine_torque < 0) {
-            tcc_engine_torque = 0;
+        engine_trq -= pump_trq_targ;
+        if (engine_trq < 0) {
+            engine_trq = 0;
         }
     }
-    this->converted = MAX(0, tcc_engine_torque);
-    if (sensors->pedal_delta_per_second > 0) {
-        this->converted = (float)this->converted * interpolate_float(sensors->pedal_delta_per_second, 1.0, 4.0, 50, 200, InterpType::Linear);
-    }
+    this->converted = MAX(0, engine_trq);
 
     int tcc_input_torque = 595 - (this->filtered_pump_trq/100);
     if (tcc_input_torque <= 0) {
@@ -165,7 +185,10 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
-    int slip_now = abs((int32_t)sensors->engine_rpm-(int32_t)sensors->input_rpm);
+    // Timers
+    if (this->timer_inc_slip > 0) {
+        this->timer_inc_slip -= 1;
+    }
 
     // Adapt sample size based on ATF temp
     // this way, as the ATF warms up, simulated response time
@@ -196,8 +219,15 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->slip_target = SLIP_V_WHEN_OPEN;
         this->prefill_done = false;
         this->prefill_running = false;
+        this->filtered_engine_rpm = sensors->engine_rpm * 100;
+        this->filtered_input_rpm = sensors->input_rpm * 100;
         return;
     }
+    this->filtered_engine_rpm = first_order_filter(3, sensors->engine_rpm*100, this->filtered_engine_rpm);
+    this->filtered_input_rpm = first_order_filter(3, sensors->input_rpm*100, this->filtered_input_rpm);
+    this->old_actual_slip_abs = this->actual_slip_abs;
+    this->actual_slip_abs = abs(this->filtered_engine_rpm - this->filtered_input_rpm) / 100;
+
 
     if (this->tcc_actual_pressure/100 > this->tcc_commanded_pressure) {
         // Drop in pressure
@@ -211,8 +241,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     
     GearboxGear cmp_gear = curr_gear;
-
-    this->tcc_slip_filtered = first_order_filter(SLIP_SAMPLES_AVG, slip_now*100, this->tcc_slip_filtered);
     // See if we should be enabled in gear
     InternalTccState targ = InternalTccState::Open;
     int slipping_rpm_targ = SLIP_V_WHEN_OPEN;
@@ -350,12 +378,12 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (prefill_cycles > 0) {
             prefill_cycles -= 1;
         }
-        if (prefill_cycles == 0 || slip_now <= this->slip_target) {
+        if (prefill_cycles == 0 || this->actual_slip_abs <= this->slip_target) {
             prefill_done = true;
         }
         this->tcc_commanded_pressure = TCC_CURRENT_SETTINGS.prefill_pressure;
     } else {
-        int slip_adaptation = abs(this->tcc_slip_filtered/100);
+        int slip_adaptation = this->actual_slip_abs/100;
         // Constant logic
         if (this->target_tcc_state == InternalTccState::Open) {
             this->tcc_commanded_pressure = 0;
@@ -465,7 +493,11 @@ void TorqueConverter::set_stationary() {
 }
 
 int16_t TorqueConverter::get_slip_filtered() {
-    return this->tcc_slip_filtered/100;
+    return this->actual_slip_abs / 100;
+}
+
+int16_t TorqueConverter::get_slip_now() {
+    return this->targ_slip_pid;
 }
 
 uint8_t TorqueConverter::get_current_state() {

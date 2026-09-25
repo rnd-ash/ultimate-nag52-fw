@@ -783,11 +783,11 @@ void Gearbox::shift_thread()
                         if (0 == timer_s || p_shift > pressure_manager->get_max_solenoid_pressure() - 1500 || rpm_delta < sync_rpm_threshold) {
                             timer_s = 9;
                             if (sensor_data.output_rpm < 60) {
-                                timer_m = timer_s + interpolate_float(sensor_data.atf_temp, 40, 7, -30, 20, InterpType::Linear);
+                                timer_m = timer_s + interpolate_float(sensor_data.atf_temp, 50, 15, -30, 20, InterpType::Linear);
                             } else {
-                                                                timer_m = timer_s + 80;
-                                }
-                                substage = 7;
+                                timer_m = timer_s + 80;
+                            }
+                            substage = 7;
                         }
                     }  else if (substage == 6 || substage == 7) {
                         bool done = false;
@@ -805,6 +805,7 @@ void Gearbox::shift_thread()
                         }
 
                         if (done) {
+                            timer_s = 20;
                             substage = 8;
                         }
                     } else if (substage == 8) {
@@ -825,7 +826,7 @@ void Gearbox::shift_thread()
                             //        stage = 3; // Did not complete OK
                             //    }
                             //}
-                        } else {
+                        } else if (0 == timer_s) {
                             // Did not complete OK
                             stage = 3;
                         }
@@ -850,7 +851,6 @@ void Gearbox::shift_thread()
                         this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
                         timer_s = interpolate_float(sensor_data.atf_temp, 150, 40, -20, 30, InterpType::Linear);
                         substage += 1;
-
                     } else {
                         p_mod = 0;
                         p_apply_clutch = 0;

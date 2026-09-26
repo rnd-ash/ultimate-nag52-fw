@@ -14,7 +14,7 @@
 
 const int16_t rpm_map_x_headers[11] = {0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 100}; // Load %
 const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
-const uint16_t MAX_TCC_P_SAMPLE_COUNT = 100; // 2000ms
+const uint16_t MAX_TCC_P_SAMPLE_COUNT = 20; // 400ms
 const int16_t SLIP_V_WHEN_OPEN = 100; // 100RPM is the threshold for when we start to activate the converter clutch
 const int16_t SLIP_V_WHEN_LOCKED = 10; // 10RPM for locking (Means we can monitor for over locking)
 const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
@@ -189,6 +189,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     if (this->timer_inc_slip > 0) {
         this->timer_inc_slip -= 1;
     }
+    if (this->timer_till_adapt > 0) {
+        this->timer_till_adapt -= 1;
+    }
 
     // Adapt sample size based on ATF temp
     // this way, as the ATF warms up, simulated response time
@@ -196,7 +199,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     uint16_t pressure_samples = interpolate_float(
         sensors->atf_temp,
         MAX_TCC_P_SAMPLE_COUNT,
-        MAX_TCC_P_SAMPLE_COUNT/2,
+        MAX_TCC_P_SAMPLE_COUNT/4,
         -10,
         70,
         InterpType::Linear
@@ -326,13 +329,13 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->absorbed_power_joule = 0;
     }
 
-    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 2;
+    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 2 && this->timer_till_adapt == 0;
     if (!TCC_CURRENT_SETTINGS.adapt_enable) {
         is_adaptable = false;
     }
-    if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
-        is_adaptable = false;
-    }
+    //if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
+    //    is_adaptable = false;
+    //}
     uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)
     if (!is_shifting){
         // 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100
@@ -376,6 +379,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         if (prefill_cycles == 0 || this->actual_slip_abs <= this->slip_target) {
             prefill_done = true;
+            this->timer_till_adapt = 100; // 2 second wait
         }
         this->tcc_commanded_pressure = TCC_CURRENT_SETTINGS.prefill_pressure;
     } else {
@@ -439,10 +443,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     // OEM EGS - Below 60C, TCC pressure is reduced by a factor based on
     // ATF temperature
-    if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
-        float mul = interpolate_float(sensors->atf_temp, &TCC_CURRENT_SETTINGS.tcc_temp_multiplier, InterpType::Linear);
-        this->tcc_commanded_pressure = (float)this->tcc_commanded_pressure*mul;
-    }
+    //if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
+    //    float mul = interpolate_float(sensors->atf_temp, &TCC_CURRENT_SETTINGS.tcc_temp_multiplier, InterpType::Linear);
+    //    this->tcc_commanded_pressure = (float)this->tcc_commanded_pressure*mul;
+    //}
     pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
 }
 

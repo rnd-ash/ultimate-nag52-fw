@@ -9,7 +9,7 @@
 
 class Egs51Can: public EgsBaseCan {
     public:
-        Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -30,7 +30,7 @@ class Egs51Can: public EgsBaseCan {
         // Returns true if engine is in limp mode
         bool get_engine_is_limp(const uint32_t expire_time_ms) override;
         // Returns true if pedal is kickdown 
-         bool get_kickdown(const uint32_t expire_time_ms) override;
+        bool get_kickdown(const uint32_t expire_time_ms) override;        
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets Torque information
@@ -61,7 +61,7 @@ class Egs51Can: public EgsBaseCan {
         // Set the target gear of the gearbox
         void set_target_gear(GearboxGear target) override;
         // // Sets the status bit indicating the car is safe to start
-        void set_safe_start(bool can_start) override;
+        // void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
         void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN

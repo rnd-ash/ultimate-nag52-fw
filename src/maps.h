@@ -143,8 +143,12 @@ extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --
-#define TORQUE_MAP_SIZE 33u
-extern const int16_t ENGINE_TORQUE_MAP[TORQUE_MAP_SIZE];
-extern const int16_t ENGINE_TORQUE_HEADERS_MAP[TORQUE_MAP_SIZE];
+#define HFM_ENGINE_TABLE_SIZE 33u
+extern const int16_t HFM_ENGINE_MAX_TORQUE_MAP[HFM_ENGINE_TABLE_SIZE];
+
+extern const int16_t HFM_ENGINE_MAX_MASS_AIR_FLOW[HFM_ENGINE_TABLE_SIZE];
+
+#define HFM_ENGINE_MAP_SIZE HFM_ENGINE_TABLE_SIZE * HFM_ENGINE_TABLE_SIZE
+extern const int16_t HFM_ENGINE_MASS_AIR_FLOW[HFM_ENGINE_MAP_SIZE];
 
 #endif

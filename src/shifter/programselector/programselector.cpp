@@ -1,4 +1,4 @@
-#include "programselector.h"
+#include "programselector.hpp"
 
 GearboxProfile selectableProfileToProfile(SelectableGearboxProfile p) {
     GearboxProfile ret = GearboxProfile::Standard;

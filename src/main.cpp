@@ -87,6 +87,8 @@ SPEAKER_POST_CODE setup_tcm()
                             ModuleConfiguration::load_all_settings();
                             // init driving profiles
                             Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
+                            // Init GPIO Expander now we are done loading from flash
+                            pcb_gpio_matrix->init_gpio_expander();
 
                             // init the shifter module
                             switch (VEHICLE_CONFIG.shifter_style)

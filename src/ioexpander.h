@@ -74,6 +74,7 @@ private:
 	inline static void set_value(const bool value, const pca_num_t bit, uint8_t* i2c_tx_bytes);
 
 	i2c_master_dev_handle_t dev_handle;
+	i2c_master_bus_handle_t bus_handle;
 };
 
 extern IOExpander* ioexpander;

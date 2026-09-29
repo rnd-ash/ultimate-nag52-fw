@@ -149,7 +149,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox, Shifter*
                 this->diag_var_code = 0x0252;
                 break;
             case 3:
-                this->diag_var_code = 0x0353;
+                this->diag_var_code = 0x0253;
                 break;
             default:
                 this->diag_var_code = 0x0000;

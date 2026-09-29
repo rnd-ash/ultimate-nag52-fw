@@ -6,6 +6,7 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "egs_calibration/calibration_structs.h"
 
 Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) 
 {
@@ -14,6 +15,33 @@ Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBas
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
+    this->gs418.raw = ~0;
+
+    this->gs418.FMRAD = 1.0;
+    this->gs418.KD = false;
+    this->gs418.SCHALT = false; // Auto is 0, manual is 1
+    this->gs418.ESV_BRE = true; // When switching on
+    this->gs418.FMRAD = 0x7FF;
+    // Fix for W220
+    this->gs418.WHST = GS_418h_WHST_EGS51::P;
+
+    // Set profile to N/A for now
+    this->set_drive_profile(GearboxProfile::Underscore);
+    // Set no message
+    this->set_display_msg(GearboxMessage::None);
+    if (VEHICLE_CONFIG.is_four_matic != 0) {
+        this->gs418.ALLRAD = true;
+    } else {
+        this->gs418.ALLRAD = false;
+    }
+    this->gs418.FRONT = false; // Primary rear wheel drive
+    this->gs418.CVT = false; // Not CVT gearbox]
+    if (MECH_PTR->gb_ty == 0) {
+        this->gs418.MECH = GS_418h_MECH_EGS51::GROSS;
+    } else {
+        this->gs418.MECH = GS_418h_MECH_EGS51::KLEIN;
+    }
+
 }
 
 uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -114,7 +142,7 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         ret.m_ind -= m_drg;
 
         m_esp = MAX(0, MIN(m_esp - (int16_t)m_drg, ret.m_max));
-        ret.m_ind = MIN(ret.m_min, MAX(ret.m_ind, ret.m_max)); 
+        ret.m_ind = MAX(ret.m_min, MIN(ret.m_ind, ret.m_max)); 
 
         int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;
@@ -369,6 +397,26 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
     } else {
         this->gs218.PN = false;
     }
+
+    switch (pos) {
+        case ShifterPosition::P:
+            gs418.WHST = GS_418h_WHST_EGS51::P;
+            break;
+        case ShifterPosition::R:
+            gs418.WHST = GS_418h_WHST_EGS51::R;
+            break;
+        case ShifterPosition::N:
+            gs418.WHST = GS_418h_WHST_EGS51::N;
+            break;
+        case ShifterPosition::D:
+            gs418.WHST = GS_418h_WHST_EGS51::D;
+            break;
+        case ShifterPosition::SignalNotAvailable:
+            gs418.WHST = GS_418h_WHST_EGS51::SNV;
+            break;
+        default: 
+            break;
+    }
 }
 
 void Egs51Can::set_gearbox_ok(bool is_ok) {
@@ -401,9 +449,80 @@ void Egs51Can::set_turbine_torque_loss(uint16_t loss_nm) {
 }
 
 void Egs51Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
+    switch(g) {
+        case GearboxDisplayGear::P:
+            this->gs418.FSC = 'P';
+            break;
+        case GearboxDisplayGear::N:
+            this->gs418.FSC = 'N';
+            break;
+        case GearboxDisplayGear::R:
+            this->gs418.FSC = 'R';
+            break;
+        case GearboxDisplayGear::One:
+            this->gs418.FSC = '1';
+            break;
+        case GearboxDisplayGear::Two:
+            this->gs418.FSC = '2';
+            break;
+        case GearboxDisplayGear::Three:
+            this->gs418.FSC = '3';
+            break;
+        case GearboxDisplayGear::Four:
+            this->gs418.FSC = '4';
+            break;
+        case GearboxDisplayGear::Five:
+            this->gs418.FSC = '5';
+            break;
+        case GearboxDisplayGear::A:
+            this->gs418.FSC = 'A';
+            break;
+        case GearboxDisplayGear::D:
+            this->gs418.FSC = 'D';
+            break;
+        case GearboxDisplayGear::Failure:
+            this->gs418.FSC = 'F';
+            break;
+        case GearboxDisplayGear::SNA:
+        default:
+            this->gs418.FSC = ' ';
+            break;
+
+    }
 }
 
 void Egs51Can::set_drive_profile(GearboxProfile p) {
+    switch (p) {
+        case GearboxProfile::Agility:
+            gs418.FPC = 'A';
+            break;
+        case GearboxProfile::Comfort:
+            gs418.FPC = 'C';
+            break;
+        case GearboxProfile::Winter:
+            gs418.FPC = 'W';
+            break;
+        case GearboxProfile::Failure:
+            gs418.FPC = 'F';
+            break;
+        case GearboxProfile::Standard:
+            gs418.FPC = 'S';
+            break;
+        case GearboxProfile::Manual:
+            gs418.FPC = 'M';
+            break;
+        case GearboxProfile::Individual:
+            gs418.FPC = 'I';
+            break;
+        case GearboxProfile::Race:
+            gs418.FPC = 'R';
+            break;
+        case GearboxProfile::Underscore:
+            gs418.FPC = '_';
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs51Can::set_display_msg(GearboxMessage msg) {
@@ -418,16 +537,22 @@ void Egs51Can::set_tcc_trq_multiplier(float multi) {
 }
 
 void Egs51Can::tx_frames() {
-    tx.data_length_code = 6;
     GS_218_EGS51 gs_218tx;
+    GS_418_EGS51 gs_418tx;
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
+    gs_418tx = {gs418.raw};
     // Now set CVN Counter (Increases every frame)
     gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;
     tx.identifier = GS_218_EGS51_CAN_ID;
     to_bytes(gs_218tx.raw, tx.data);
+    tx.data_length_code = 6;
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_418_EGS51_CAN_ID;
+    to_bytes(gs_418tx.raw, tx.data);
+    tx.data_length_code = 8;
     twai_transmit(&tx, 5);
 }
 

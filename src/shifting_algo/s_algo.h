@@ -12,10 +12,10 @@ struct TorqueRequstData {
     float amount;
 };
 
-const uint8_t STEP_RES_CONTINUE = 0;
-const uint8_t STEP_RES_NEXT = 0xFD;
-const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
-const uint8_t STEP_RES_END_SHIFT = 0xFF;
+const DRAM_ATTR uint8_t STEP_RES_CONTINUE = 0;
+const DRAM_ATTR uint8_t STEP_RES_NEXT = 0xFD;
+const DRAM_ATTR uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
+const DRAM_ATTR uint8_t STEP_RES_END_SHIFT = 0xFF;
 
 enum class ShiftStyle {
     Crossover_Up,
@@ -142,7 +142,6 @@ protected:
     virtual uint16_t max_p_mod_pressure() = 0;
     virtual bool is_release_shift() = 0;
     uint16_t threshold_rpm = 0;
-    float spc_p_offset = 0;
     uint16_t torque_req_val = 0;
 
     uint16_t calc_high_filling_p();
@@ -177,7 +176,7 @@ protected:
     uint16_t old_engine_rpm = 0;
 
     // Multiplied by 10x
-    int16_t first_order_pump_trq_filter = 0;
+    int32_t first_order_pump_trq_filter = 0;
 
     int32_t pid_sum = 0;
     int32_t abs_sum = 0;
@@ -194,6 +193,11 @@ namespace ShiftHelpers {
     float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
     void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase);
+
+    uint8_t cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint8_t cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint16_t total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint16_t correct_shift_shift_pressure(PressureManager* pm, int16_t pressure, uint8_t map_idx);
 }
 
 #endif

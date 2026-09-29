@@ -98,7 +98,7 @@ DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     ret.current_pressure = gb_ptr->tcc->get_current_pressure();
     ret.target_pressure = gb_ptr->tcc->get_target_pressure();
     ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();
-    ret.slip_now = (int16_t)gb_ptr->sensor_data.engine_rpm - (int16_t)gb_ptr->sensor_data.input_rpm;
+    ret.slip_now = gb_ptr->tcc->get_slip_now();
     ret.pedal_filtered = gb_ptr->sensor_data.pedal_pos_smoothed;
     ret.pedal_now = gb_ptr->sensor_data.pedal_pos;
     ret.slip_target = gb_ptr->tcc->get_slip_targ();

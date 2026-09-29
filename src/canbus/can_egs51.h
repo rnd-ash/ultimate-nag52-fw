@@ -96,6 +96,7 @@ class Egs51Can: public EgsBaseCan {
         int16_t torque_before_request=0;
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
+        GS_418_EGS51 gs418 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();

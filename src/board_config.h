@@ -6,10 +6,10 @@
 #include <esp_adc/adc_oneshot.h>
 #include "ioexpander.h"
 
-static const uint8_t NUM_TEMP_POINTS = 27u;
+const DRAM_ATTR uint8_t NUM_TEMP_POINTS = 27u;
 
 // https://www.nxp.com/docs/en/data-sheet/KTY83_SER.pdf
-const static int16_t TFT_RESISTANCE_TAB[2][NUM_TEMP_POINTS] = {
+const DRAM_ATTR int16_t TFT_RESISTANCE_TAB[2][NUM_TEMP_POINTS] = {
     // Resistance (Ohm)
     { 500,  525,  577,  632,  691,  754, 820,  889,  962, 1000, 1039, 1118, 1202, 1288, 1379, 1472, 1569, 1670, 1774, 1882, 1937, 1993, 2107, 2225, 2346, 2471, 2535},
     // Temperature
@@ -75,6 +75,7 @@ public:
 	virtual void set_rp_solenoid(const bool rp_solenoid_enabled){};
 	virtual void set_start(const bool start_enabled){};
 	virtual void set_gearbox_protection(const bool gearbox_protection_enabled){};
+    virtual void init_gpio_expander() {};
 };
 
 /**
@@ -109,6 +110,7 @@ public:
 class BoardV12GpioMatrix: public BoardGpioMatrixWithIOExpander {
 public:
     BoardV12GpioMatrix(void);
+    void init_gpio_expander() override;
 };
 
 /**
@@ -118,6 +120,7 @@ public:
 class BoardV13GpioMatrix: public BoardGpioMatrixWithIOExpander {
 public:
     BoardV13GpioMatrix(void);
+    void init_gpio_expander() override;
 };
 
 

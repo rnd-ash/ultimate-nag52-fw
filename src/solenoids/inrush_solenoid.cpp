@@ -9,7 +9,6 @@ const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush an
 const uint16_t INRUSH_TIME_US = 15000; 
 const uint16_t INRUSH_PWM = 4096;
 const uint16_t HOLD_PWM = 1300;
-
 const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10MHz, Hydralic PWM is 100Hz, so 10_000_000/100
 
 
@@ -71,7 +70,9 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = (10u * 1000u * 1000u), // 10MHz
         .flags = {
-            .intr_shared = 0
+            .intr_shared = 0,
+            .allow_pd = 0,
+            .backup_before_sleep = 0
         }
     };
 
@@ -81,7 +82,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
             .alarm_count = 0u,
             .reload_count = 0u,
             .flags = {
-                .auto_reload_on_alarm = 0u
+                .auto_reload_on_alarm = 0u,
             }
         };
         this->ready = gptimer_set_alarm_action(this->timer, &alarm_config);
@@ -94,12 +95,6 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
                 this->ready = gptimer_register_event_callbacks(this->timer, &cbs, reinterpret_cast<void*>(this));
                 if (ESP_OK == ready) {
                     this->ready = gptimer_enable(this->timer);
-                    if (ESP_OK == ready) {
-                        this->ready = gptimer_start(this->timer);
-                        ESP_LOGI("ICSolenoid", "ICSolenoid %s init OK!", this->name);
-                    } else {
-                        ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_start failed: %s", this->name, esp_err_to_name(this->ready));
-                    }
                 } else {
                     ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_enable failed: %s", this->name, esp_err_to_name(this->ready));
                 }
@@ -109,11 +104,33 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
 }
 
 void InrushControlSolenoid::pre_current_test() {
-    gptimer_stop(this->timer);
+    this->isr_disable();
 }
 
 void InrushControlSolenoid::post_current_test() {
-    gptimer_start(this->timer);
+    this->isr_enable();
+}
+
+void InrushControlSolenoid::isr_disable() {
+    gptimer_stop(this->timer);
+    if (GPIO_NUM_NC != this->zener_pin) {
+        gpio_set_level(this->zener_pin, 0);
+    }
+    gpio_set_level(this->pwm_pin, 0);
+    this->isr_disabled = true;
+}
+
+void InrushControlSolenoid::isr_enable() {
+    esp_err_t res = gptimer_start(this->timer);
+    if (ESP_OK == res) {
+        this->isr_disabled = false;
+    } else {
+        ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_start failed: %s", this->name, esp_err_to_name(res));
+    }
+}
+
+bool InrushControlSolenoid::is_disabled() {
+    return this->isr_disabled;
 }
 
 bool on = false;
@@ -121,7 +138,7 @@ bool pwm_on = false;
 bool zener_on = false;
 uint32_t total  = 0;
 bool pwm_en = false;
-uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt_new() {
+uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
     // Control the zener phase
     int ret = TOTAL_PERIOD_TIME_US;
     if (this->inrush_time != 0 || this->hold_time != 0) {
@@ -171,7 +188,7 @@ uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt_new() {
 }
 
 // 100,000 is 10ms of time
-uint32_t IRAM_ATTR InrushControlSolenoid::on_timer_interrupt() {
+uint32_t InrushControlSolenoid::on_timer_interrupt() {
     uint32_t ret = 0;
     uint16_t write_pwm = 0;
     // Special handling for Min/Max PWM

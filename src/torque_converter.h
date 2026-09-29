@@ -45,10 +45,13 @@ class TorqueConverter {
         void diag_toggle_tcc_sol(bool en);
 
         void set_stationary();
+
+        void calc_pid_score();
         
-        void shift_start(bool upshift, bool release_shifting, bool force_unlock);
+        void shift_start(bool upshift, bool release_shifting);
         void shift_end();
         int16_t get_slip_filtered();
+        int16_t get_slip_now();
         InternalTccState __get_internal_state(void);
         uint8_t get_current_state();
         uint8_t get_target_state();
@@ -84,14 +87,15 @@ class TorqueConverter {
         }
 
     private:
-        // Multiplied by 100!
-        int tcc_slip_filtered = 0;
+        uint16_t calculate_slip_target(SensorData* sensors);
+        void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
+        void calculate_torque_correction(SensorData* sensors);
+
         int rated_max_torque;
         bool is_shifting = false;
         bool was_shifting = true;
         bool upshifting = false;
         bool release_shifting = false;
-        bool shift_forces_unlock = false;
         bool tcc_solenoid_enabled = true;
         int tcc_commanded_pressure = 0;
         // Multiplied by 100
@@ -116,6 +120,31 @@ class TorqueConverter {
         bool prefill_done = false;
         bool prefill_running = false;
         uint8_t prefill_cycles = 0;
+
+
+        int min_tcc_pressure = 0;
+        // x100
+        int filtered_engine_trq = 0;
+        // x100
+        int filtered_pump_trq = 0;
+        // x100
+        int torque_correction_adapt = 0;
+        // x100
+        int filtered_engine_rpm = 0;
+        // x100
+        int filtered_input_rpm = 0;
+        // x100
+        int old_actual_slip_abs = 0;
+        // x100
+        int actual_slip_abs = 0;
+
+        uint16_t input_side = 0;
+        uint16_t converted = 0;
+
+        uint8_t timer_inc_slip = 0;
+        uint8_t timer_till_adapt = 0;
+        uint16_t targ_slip_x10 = 0;
+        int targ_slip_pid = 0;
 };
 
 #endif

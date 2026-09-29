@@ -2,12 +2,12 @@
 #include <egs_calibration/calibration_structs.h>
 #include "nvs/module_settings.h"
 
-const uint8_t PHASE_BLEED = 0;
-const uint8_t PHASE_FILL_AND_RELEASE = 1;
-const uint8_t PHASE_OVERLAP = 2;
-const uint8_t PHASE_MAX_PRESSURE = 3;
-const uint8_t PHASE_END_CONTROL = 4;
-
+const DRAM_ATTR uint8_t PHASE_BLEED = 0;
+const DRAM_ATTR uint8_t PHASE_FILL_AND_RELEASE = 1;
+const DRAM_ATTR uint8_t PHASE_OVERLAP = 2;
+const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE = 3;
+const DRAM_ATTR uint8_t PHASE_END_CONTROL = 4;
+ 
 ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->trq_req_timer = 3; // 100ms for torque request down ramp
     this->cycles_high_filling = data->prefill_info.fill_cycles;
@@ -48,7 +48,7 @@ uint16_t ReleasingShift::calc_threshold_rpm_2() {
         float torque = torque_min + this->trq_at_apply_clutch;
         // Number of EGS cycles (20ms):
         // 1 20ms. Calc Trq req
-        // 2 20ms. Tx Trq req
+        // 2 20ms. Tx Trq re
         // 3 20ms. Engine to implement Trq req
         float cycles_can = 3.0;
         float inertia = ShiftHelpers::get_shift_intertia(sid->inf.map_idx);
@@ -206,7 +206,7 @@ void ReleasingShift::phase_fill_release_spc() {
         this->trq_at_apply_clutch = 0;
         this->p_apply_clutch = this->set_p_apply_clutch_with_spring(low_filling_p);
         if (0 == this->timer_shift) {
-            sid->tcc->shift_start(this->upshifting, true, false); // Unlock the TCC here
+            sid->tcc->shift_start(this->upshifting, true); // Unlock the TCC here
             this->subphase_shift += 1; // Next subphase has no time!
         }
     }
@@ -300,11 +300,10 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
     }
     else if (3 == this->subphase_mod) {
         // Reducing until off clutch releases
-        //float x1 = interpolate_float(sd->pedal_pos, &REL_CURRENT_SETTINGS.torque_loss_speed_pedal_pos, InterpType::Linear) * this->loss_torque_tmp;
-        float reduction = this->calculate_freeing_trq_multiplier() * ((1.0 * 2.0) + (5.0*(float)this->loss_torque_tmp)/100.0);
-
-        
-        //float x2 = (this->calculate_freeing_trq_multiplier()) + x1;
+        float x1 = interpolate_float(sid->chars.target_shift_time, 5.0, 10.0, 500, 100, InterpType::Linear);
+        // Fixed value addition
+        float x2 = interpolate_float(sid->chars.target_shift_time, 2.0, 3.0, 500, 100, InterpType::Linear);
+        float reduction = this->calculate_freeing_trq_multiplier() * (x2 + (x1*(float)this->loss_torque_tmp)/100.0);
         this->loss_torque_tmp += reduction/10.0;
         this->loss_torque = this->loss_torque_tmp / 2.0;
 
@@ -428,7 +427,6 @@ uint8_t ReleasingShift::phase_overlap() {
     this->mod_sol_pressure = this->calc_mod_overlap();
 
     if (this->timer_shift == 0) {
-        sid->tcc->shift_end();
         this->trq_req_up_ramp = true;
         this->trq_req_timer = 3;
         ret = PHASE_MAX_PRESSURE;
@@ -538,12 +536,22 @@ int16_t ReleasingShift::calc_release_clutch_p_signed(int trq, CoefficientTy coef
 
 float ReleasingShift::calculate_freeing_trq_multiplier() {
     float output = 1.0;
-
     if (!this->upshifting) {
-        float adder_pedal = interpolate_float(sd->pedal_pos_smoothed, 0.0, 0.3, 125.0, 250.0, InterpType::Linear);
-        float adder_style = interpolate_float(sid->chars.target_shift_time, 0.5, 1.5, 1000, 100, InterpType::Linear);
-        output = MIN(2.5, 1.0 + adder_pedal + adder_style);
+        if (sd->pedal_delta_per_second < 0) {
+            output = 1.0;
+        } else {
+            output = interpolate_float(sd->pedal_delta_per_second, 1.0, 2.5, 50, 300, InterpType::Linear);
+        }
+        if (manual == sid->profile) {
+            output = 2.5;
+        } else if (race == sid->profile) {
+            output = 4.0;
+        }
     }
+    if (output < this->freeing_torque_multi) {
+        output = this->freeing_torque_multi;
+    }
+    this->freeing_torque_multi = output;
     return output;
 }
 

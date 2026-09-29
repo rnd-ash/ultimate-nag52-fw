@@ -1029,8 +1029,8 @@ void Gearbox::controller_loop()
     sol_tcc->isr_enable(); // Safe to enable ISR now that all init is done
     while (GET_CLOCK_TIME() < expire_check)
     {
-        // default behavior: deactivate start
-        is_start_safe = false;
+        // default behavior: enable start
+        is_start_safe = true;
         // Step 1. Aquire ALL Sensors
         TCUIO::update_io_layer();
 
@@ -1045,6 +1045,7 @@ void Gearbox::controller_loop()
         { // Car is in motion forwards!
             this->actual_gear = GearboxGear::Fifth;
             this->target_gear = GearboxGear::Fifth;
+            is_start_safe = false;    
             this->gear_disagree_count = 20; // Set disagree counter to non 0. This way gearbox must calculate ratio
             egs_can_hal->set_safe_start(false);
             break;
@@ -1053,6 +1054,7 @@ void Gearbox::controller_loop()
         { // Car is in motion backwards!
             this->actual_gear = GearboxGear::Reverse_Second;
             this->target_gear = GearboxGear::Reverse_Second;
+            is_start_safe = false;
             egs_can_hal->set_safe_start(false);
             break;
         }
@@ -1276,7 +1278,7 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_target_shift_pressure(4000);
             }
             egs_can_hal->set_safe_start(lock_state);
-            this->shifter_pos = egs_can_hal->get_shifter_position(1000);
+            this->shifter_pos = shifter->get_shifter_position();
             if (
                 this->shifter_pos == ShifterPosition::P ||
                 this->shifter_pos == ShifterPosition::P_R ||

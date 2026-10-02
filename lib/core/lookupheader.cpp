@@ -10,7 +10,6 @@ LookupHeader::LookupHeader(const int16_t *_header, const uint16_t _size)
 
 LookupHeader::~LookupHeader(void)
 {
-    delete[] header;
 }
 
 int16_t LookupHeader::get_value(const uint16_t index) const

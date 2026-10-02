@@ -38,6 +38,12 @@ int calc_input_rpm_from_req_gear(const int output_rpm, const GearboxGear req_gea
     case GearboxGear::Fifth:
         calculated *= gb_config->bounds[4].ratio;
         break;
+    case GearboxGear::Reverse_First:
+        calculated *= abs(gb_config->bounds[5].ratio);
+        break;
+    case GearboxGear::Reverse_Second:
+        calculated *= abs(gb_config->bounds[6].ratio);
+        break;
     default:
         break;
     }
@@ -123,14 +129,14 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .ratio_min_drift = r5 * (float)0.9,
     };
     this->gearboxConfig.bounds[5] = GearRatioInfo{ // R1
-        .ratio_max_drift = rr1 * (float)1.1,
+        .ratio_max_drift = rr1 * (float)0.9,
         .ratio = rr1,
-        .ratio_min_drift = rr1 * (float)0.9,
+        .ratio_min_drift = rr1 * (float)1.1,
     };
     this->gearboxConfig.bounds[6] = GearRatioInfo{ // R2
-        .ratio_max_drift = rr2 * (float)1.1,
+        .ratio_max_drift = rr2 * (float)0.9,
         .ratio = rr2,
-        .ratio_min_drift = rr2 * (float)0.9,
+        .ratio_min_drift = rr2 * (float)1.1,
     };
     // IMPORTANT - Set the Ratio2/Ratio1 multiplier for the sensor RPM reading algorithm!
     TCUIO::set_2_1_ratio(r1 / r2);

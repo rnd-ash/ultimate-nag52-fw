@@ -135,34 +135,13 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
             this->torque_correction_adapt = first_order_filter(FILTER_SIZE, (this->filtered_engine_trq-this->filtered_pump_trq), this->torque_correction_adapt);
         }
     }
-    int corr_torque = 0;
-    if (false) {
-        // TODO (M_CORRECTION enabled or not??)
-        corr_torque = 0;
-    } else {
-        corr_torque = (this->torque_correction_adapt/100);
-    }
-    int f_engine_trq = (this->filtered_engine_trq/100) - corr_torque;
-    int engine_trq = sensors->converted_torque - corr_torque;
+    int engine_trq = sensors->converted_torque;
 
     int lambda_targ = (((int)sensors->input_rpm)*1000) / (int)(sensors->input_rpm + this->slip_target);
     int pump_trq_targ = (int)interpolate_linear_array((uint16_t)lambda_targ, 11, TCC_CFG_PTR->pump_map_x, TCC_CFG_PTR->pump_map_z);
     int x = sensors->input_rpm + this->slip_target;
     pump_trq_targ *= ((x*x) / 10000);
     pump_trq_targ /= 10000;
-
-    int pedal_spd_abs = abs(sensors->pedal_delta_per_second);
-    if (pedal_spd_abs > 50) {
-        if (sensors->pedal_delta_per_second < 1) {
-            float adder = 0.2 * (float)pedal_spd_abs;
-            adder = MAX(adder, -50);
-            engine_trq += adder;
-        } else {
-            float adder = 0.1 * (float)pedal_spd_abs;
-            adder = MIN(50, adder);
-            engine_trq += adder;
-        }
-    }
 
     if (engine_trq <= 0) {
         engine_trq += pump_trq_targ;

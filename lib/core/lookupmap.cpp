@@ -50,6 +50,28 @@ float LookupMap::get_value(const float x_value, const float y_value, const uint8
     return interpolate(f_11f_12_interpolated, f_21f_22_interpolated, y1, y2, (float)y_value);
 }
 
+float LookupMap::get_x_header_interpolated(const float value, const int16_t y) const
+{
+    uint16_t y_idx_min;
+    uint16_t y_idx_max;
+    search_value<int16_t>(y, this->y_header->get_data(), this->y_header->get_size(), &y_idx_min, &y_idx_max);
+    const int16_t y1 = this->y_header->get_value(y_idx_min);
+    const int16_t y2 = this->y_header->get_value(y_idx_max);
+    const int16_t* data = this->table->get_current_data();
+    int16_t row[this->x_header_size];
+    for (uint16_t i = 0; i < this->x_header_size; i++) {
+        row[i] = (int16_t)interpolate(
+            data[y_idx_min * this->x_header_size + i],
+            data[y_idx_max * this->x_header_size + i], y1, y2, y);
+    }
+    uint16_t x_idx_min;
+    uint16_t x_idx_max;
+    search_value<int16_t>(value, row, this->x_header_size, &x_idx_min, &x_idx_max);
+    const float x1 = this->x_header->get_value(x_idx_min);
+    const float x2 = this->x_header->get_value(x_idx_max);
+    return x1 + progress_between_targets(value, row[x_idx_min], row[x_idx_max]) * (x2 - x1);
+}
+
 bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_value, const int16_t y_value, const float threshold)
 {
     // calibration parameter

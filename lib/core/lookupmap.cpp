@@ -95,8 +95,11 @@ bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_valu
 }
 
 void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
+    if (nullptr == size || nullptr == headers) {
+        return;
+    }
     *size = y_header_size;
-    *headers = y_header->get_data();
+    *headers = (nullptr == y_header || nullptr == y_header->get_data()) ? nullptr : y_header->get_data();
 }
 
 int16_t* LookupMap::get_current_data(void) const {

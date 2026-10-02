@@ -205,7 +205,7 @@ bool LookupByteMap::is_allocated(void) const {
 }
 
 bool LookupByteMap::add_data(const uint8_t* map, const uint16_t size) {
-    if (size != this->z_size) {
+    if (nullptr == map || nullptr == this->z_alloc || size != this->z_size) {
         return false;
     } else {
         for (auto i = 0; i < size; i++) {

@@ -78,6 +78,8 @@ void Sensors::update(SensorDataRaw* dest) {
     dest->battery_mv = UINT16_MAX;
     dest->atf_temp_c = INT_MAX;
     dest->parking_lock = UINT8_MAX;
+    dest->atf_adc_raw = -1;
+    dest->atf_conversion_status = ESP_ERR_INVALID_STATE;
 
     // RPM Sensors
     dest->rpm_n2 = calc_rpm(&mem_data_n2);
@@ -98,13 +100,14 @@ void Sensors::update(SensorDataRaw* dest) {
 
     // TFT/PL lock
     if (ESP_OK == adc_oneshot_read(adc2_handle, pcb_gpio_matrix->sensor_data.adc_atf, &adc_res)) {
+        dest->atf_adc_raw = adc_res;
         if (adc_res > 3000) {
             dest->parking_lock = 1;
             dest->atf_temp_c = INT_MAX;
         }
         else {
             dest->parking_lock = 0;
-            adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
+            dest->atf_conversion_status = adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
 
             int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
 

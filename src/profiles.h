@@ -65,9 +65,12 @@ public:
         const int16_t* def_upshift_time_data,
         const int16_t* def_downshift_time_data
     );
+    AbstractProfile(const AbstractProfile&) = delete;
+    AbstractProfile& operator=(const AbstractProfile&) = delete;
     // static AbstractProfile *profile_from_auto_ty(AutoProfile prof);
     virtual void update(SensorData* sensors) {};
     virtual GearboxProfile get_profile(void) const = 0;
+    uint8_t get_profile_id(void) const { return (uint8_t)get_profile(); }
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors) = 0;

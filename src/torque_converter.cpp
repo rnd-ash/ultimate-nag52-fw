@@ -92,7 +92,7 @@ void TorqueConverter::calc_pid_score() {
 uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     int target = SLIP_V_WHEN_OPEN;
     int inc = 0;
-    if (sensors->pedal_pos > 0) {
+    if (sensors->input_torque > 0) {
         int pedal_as_percent = (sensors->pedal_pos*100)/250;
         target = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
         targ_slip_pid = 0;

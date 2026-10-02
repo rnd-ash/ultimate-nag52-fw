@@ -11,6 +11,9 @@ float LookupMap::get_value(const int16_t x_value, const int16_t y_value){
 
 float LookupMap::get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx)
 {
+    if (nullptr == this->table || nullptr == this->x_header || nullptr == this->y_header || nullptr == this->table->get_current_data()) {
+        return 0.0F;
+    }
     uint16_t    idx_min;
     uint16_t    idx_max;
     uint16_t    idy_min;

@@ -128,7 +128,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     const uint8_t FILTER_SIZE = 5;
     this->filtered_engine_trq = first_order_filter(FILTER_SIZE, sensors->converted_torque*100, this->filtered_engine_trq);
     this->filtered_pump_trq = first_order_filter(FILTER_SIZE, sensors->pump_torque*100, this->filtered_pump_trq);
-    if (sensors->brake_pressed && 0 == sensors->input_rpm && sensors->atf_temp > 50 && sensors->pedal_pos == 0) {
+    if (sensors->brake_pressed && 0 == sensors->input_rpm && sensors->atf_temp > 50) {
         if (0 == this->torque_correction_adapt) {
             this->torque_correction_adapt = (this->filtered_engine_trq - this->filtered_pump_trq);
         } else {

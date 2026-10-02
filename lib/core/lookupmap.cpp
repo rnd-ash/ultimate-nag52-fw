@@ -104,6 +104,9 @@ int16_t* LookupMap::get_current_data(void) const {
 }
 
 void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
+    if (nullptr == table || nullptr == size || nullptr == headers) {
+        return;
+    }
     return table->get_x_headers(size, headers);
 }
 

@@ -504,7 +504,11 @@ int PressureManager::calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch 
 }
 
 uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
-    uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * HYDR_PTR->shift_spc_gain[shift_idx];
+    uint16_t gain = HYDR_PTR->shift_spc_gain[shift_idx];
+    if (gain == 0) {
+        gain = 1000; // Match the unity fallback in shift-pressure correction.
+    }
+    uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * gain;
     max_p /= 1000; // shift_spc_gain is *1000;
     return max_p;
 }

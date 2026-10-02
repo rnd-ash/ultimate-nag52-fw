@@ -95,9 +95,10 @@ uint16_t ShiftHelpers::correct_shift_shift_pressure(PressureManager* pm, int16_t
     } else if (pressure >= max_p) {
         pressure = max_p;
     }
-    if (HYDR_PTR->shift_spc_gain[map_idx] == 0) {
-        return HYDR_PTR->shift_reg_spring_pressure;
+    uint16_t gain = HYDR_PTR->shift_spc_gain[map_idx];
+    if (gain == 0) {
+        gain = 1000; // Fall back to unity gain for an invalid calibration.
     }
     // P*1000 as shift_spc_gain is *1000
-    return (uint16_t)(((pressure * 1000) / HYDR_PTR->shift_spc_gain[map_idx]) + HYDR_PTR->shift_reg_spring_pressure);
+    return (uint16_t)(((pressure * 1000) / gain) + HYDR_PTR->shift_reg_spring_pressure);
 }

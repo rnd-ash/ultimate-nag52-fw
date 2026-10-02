@@ -56,8 +56,8 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
     // Neutral handling
     if (actual == GearboxGear::Neutral || target == GearboxGear::Neutral || actual == GearboxGear::Park || target == GearboxGear::Park) {
         GearboxGear t_gear = last_motion_gear;
-        
-        
+
+
         if ((actual == GearboxGear::Neutral && target != GearboxGear::Neutral) || (actual == GearboxGear::Park && target != GearboxGear::Park)) {
             t_gear = target;
         }
@@ -128,7 +128,7 @@ ClutchSpeeds ClutchSpeedModel::get_clutch_speeds_debug(
                 cs.k3 = 0;
                 cs.b1 = 0;
                 cs.b3 = speeds.turbine;
-            } 
+            }
             else if (actual == GearboxGear::Reverse_First) {
                 cs.k1 = (int16_t)speeds.n2 - (int16_t)speeds.n3;
                 cs.k2 = speeds.turbine;

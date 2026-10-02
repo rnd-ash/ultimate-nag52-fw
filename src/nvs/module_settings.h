@@ -1,7 +1,6 @@
 #ifndef __MODULE_SETTINGS_H
 #define __MODULE_SETTINGS_H
 
-#include <cstdint>
 #include <stdint.h>
 #include <tcu_maths.h>
 #include <esp_err.h>
@@ -28,7 +27,7 @@ typedef struct {
     // Open the converter fully, if the engine requests it.
     // This is usually used under very heavy load under low RPM
     bool react_on_engine_open_request;
-    // Scaling for TCC output pressure based on temperature.
+    // Scaling for TCC output pressure based on temperature. 
     //
     // When cold, the ATF is thicker, thus a higher pressure can be commanded
     // with the same TCC solenoid PWM. This scaling is meant to mitigate this
@@ -38,7 +37,7 @@ typedef struct {
     //
     // To disable this scaling, set output_min and output_max to 1.0
     LinearInterpSetting tcc_temp_multiplier;
-    // Prefill pressure for the torque converter. When going from Open->Slipping,
+    // Prefill pressure for the torque converter. When going from Open->Slipping, 
     // a burst of pressure is first sent in order to fill the converter faster
     // UNIT: mBar
     uint16_t prefill_pressure;
@@ -88,7 +87,7 @@ const TCC_MODULE_SETTINGS TCC_DEFAULT_SETTINGS = {
 
 // Solenoid subsystem settings
 typedef struct {
-    // Minimum battery voltage before performing
+    // Minimum battery voltage before performing 
     // the solenoid boot up test on TCU start
     //
     // UNIT: mV
@@ -98,7 +97,7 @@ typedef struct {
     //
     // UNIT: mA
     uint16_t current_threshold_error;
-    // Solenoid reference voltage. DO NOT TOUCH THIS. It is intended
+    // Solenoid reference voltage. DO NOT TOUCH THIS. It is intended 
     // for debugging ONLY!
     //
     // UNIT: mV
@@ -124,7 +123,7 @@ typedef struct {
     // 1.3 boards - (Up to -100mA is recommended)
     // UNIT: mA
     int16_t cc_offset_ma;
-
+    
 } __attribute__ ((packed)) SOL_MODULE_SETTINGS;
 
 const SOL_MODULE_SETTINGS SOL_DEFAULT_SETTINGS = {
@@ -264,7 +263,7 @@ typedef struct {
     // It is disabled by default as this can
     // cause shift latency
     bool adaptation_when_manual_shifting;
-
+    
 } __attribute__ ((packed)) ADP_MODULE_SETTINGS;
 
 const ADP_MODULE_SETTINGS ADP_DEFAULT_SETTINGS = {
@@ -341,10 +340,10 @@ typedef struct {
     bool ewm_enable_m;
     // CAN Shifter button profile selector - Enable Race (Super fast manual) mode
     bool ewm_enable_r;
-    // CAN Shifter button profile selector - Save profile for
+    // CAN Shifter button profile selector - Save profile for 
     // next start - Only applys for auto profiles (This overrides startup profile in basic options)
     bool ewm_save_profile;
-    // CAN Shifter button profile selector - Save profile for
+    // CAN Shifter button profile selector - Save profile for 
     // next start (Including manual profile options)
     bool ewm_save_profile_manual;
     // Check the WIKI. This option allows you to wire up a push button to the TCU Pin 3 (PRG) if you
@@ -459,41 +458,55 @@ const REL_MODULE_SETTINGS REL_DEFAULT_SETTINGS = {
 
 // Garage shift settings
 typedef struct {
-    // Underlying Mod pressure when
-    // garage shifting
-    uint16_t p_mod;
-    // Underlying Mod pressure when
-    // garage shifting during sync phase
-    uint16_t p_mod_sync;
-    // Prefilling pressure of K2 (Constant)
-    uint16_t prefill_k2;
-    // Prefilling pressure of B2+B3 when at -35C
-    uint16_t prefill_b2_b3_cold;
-    // Prefilling pressure of B2+B3 when at 25C
-    uint16_t prefill_b2_b3_hot;
-    // End ramp pressure of K2
-    //
-    // Used for N to D3/D4/D5 shifts
-    uint16_t end_p_k2;
-    // End ramp pressure of B2
-    //
-    // Used for N to D1/D2 shifts
-    uint16_t end_p_b2;
-    // End ramp pressure of B3
-    //
-    // Used in N to R shifts
-    uint16_t end_p_b3;
+    // Number of 20ms cycles before garage shift times out
+    // and the TCU tries again
+    // UNIT: cycles
+    uint16_t timeout_cycles;
+    // Prefilling time for B2 clutch (For N to D shift)
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the number of 20ms cycles for prefilling (so 20 would be 400ms)
+    LinearInterpSetting prefill_time_b2;
+    // Prefilling time for B3 clutch (For N to R shift)
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the number of 20ms cycles for prefilling (so 20 would be 400ms)
+    LinearInterpSetting prefill_time_b3;
+
+    // Apply ramp for B2 clutch
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the pressure added to B2 every 20ms until it engages
+    LinearInterpSetting p_ramp_b2;
+    // Apply ramp for B3 clutch
+    // 'raw' values are the ATF Temperature (In Celcius), 'new' values
+    // are the pressure added to B2 every 20ms until it engages
+    LinearInterpSetting p_ramp_b3;
 } __attribute__ ((packed)) GAR_MODULE_SETTINGS;
 
 const GAR_MODULE_SETTINGS GAR_DEFAULT_SETTINGS = {
-    .p_mod = 3000,
-    .p_mod_sync = 5000,
-    .prefill_k2 = 1200,
-    .prefill_b2_b3_cold = 4000,
-    .prefill_b2_b3_hot = 1200,
-    .end_p_k2 = 7500,
-    .end_p_b2 = 6600,
-    .end_p_b3 = 4500,
+    .timeout_cycles = 250,
+    .prefill_time_b2 = {
+        .new_min = 15,
+        .new_max = 4,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .prefill_time_b3 = {
+        .new_min = 15,
+        .new_max = 4,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .p_ramp_b2 = {
+        .new_min = 20,
+        .new_max = 7,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
+    .p_ramp_b3 = {
+        .new_min = 20,
+        .new_max = 7,
+        .raw_min = -10,
+        .raw_max = 80,
+    },
 };
 
 // Crossover shift settings

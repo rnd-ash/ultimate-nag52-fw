@@ -1,6 +1,7 @@
 #ifndef TORQUE_CONVERTER_H__
 #define TORQUE_CONVERTER_H__
 
+#include <cstdint>
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "common_structs.h"
@@ -14,7 +15,6 @@
 enum class InternalTccState {
     Open = 0,
     Slipping = 1,
-    Closed = 2
 };
 
 
@@ -25,7 +25,7 @@ class TorqueConverter {
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters
          * clutch
-         * 
+         *
          * @param curr_gear The current gear the transmission is in
          * @param max_lockup The maximum allowed lockup type for the torque converter
          * @param sensors Sensor data used as input
@@ -47,7 +47,7 @@ class TorqueConverter {
         void set_stationary();
 
         void calc_pid_score();
-        
+
         void shift_start(bool upshift, bool release_shifting);
         void shift_end();
         int16_t get_slip_filtered();
@@ -73,7 +73,7 @@ class TorqueConverter {
         inline StoredMap* get_rpm_slip_map() {
             return this->slip_rpm_target_map;
         }
-        
+
         inline uint32_t get_engine_power() {
             return this->engine_output_joule;
         }
@@ -81,7 +81,7 @@ class TorqueConverter {
         inline int16_t get_engine_load_percent() {
             return this->engine_load_percent;
         }
-        
+
         inline uint32_t get_absorbed_power() {
             return this->absorbed_power_joule;
         }
@@ -90,23 +90,25 @@ class TorqueConverter {
         uint16_t calculate_slip_target(SensorData* sensors);
         void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
         void calculate_torque_correction(SensorData* sensors);
+        uint16_t calculate_commanded_pressure(SensorData* sensors, GearboxGear current_g);
 
         int rated_max_torque;
+        bool pulling = false;
+        bool was_pulling = false;
         bool is_shifting = false;
         bool was_shifting = true;
         bool upshifting = false;
         bool release_shifting = false;
         bool tcc_solenoid_enabled = true;
+        int tcc_mapval_pressure = 0;
         int tcc_commanded_pressure = 0;
-        // Multiplied by 100
-        int tcc_actual_pressure = 0;
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
         StoredMap* slip_rpm_target_map;
         bool pending_changes = false;
         int16_t engine_load_percent = 0;
-        
+
         bool init_tables_ok = false;
 
         StoredMap* tcc_slip_map = nullptr;
@@ -117,9 +119,12 @@ class TorqueConverter {
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;
 
-        bool prefill_done = false;
-        bool prefill_running = false;
-        uint8_t prefill_cycles = 0;
+
+
+        bool filling = false;
+        bool draining = false;
+        uint8_t command_p_stage = 0;
+        uint8_t timer_command_p = 0;
 
 
         int min_tcc_pressure = 0;

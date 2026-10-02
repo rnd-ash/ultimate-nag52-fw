@@ -103,7 +103,7 @@ uint8_t CrossoverShift::step_internal(
             if (this->trq_req_timer > 0) {
                 this->trq_req_timer -= 1;
             }
-            
+
         } else if (trq_req_down_ramp) {
             // Down ramp or holding
             this->torque_req_val = linear_ramp_with_timer(this->torque_req_val, intervension_out, this->trq_req_timer);
@@ -185,7 +185,7 @@ uint8_t CrossoverShift::phase_fill() {
         if (this->do_fill_pressure_adaptation || (this->fill_via_ramp && this->upshifting)) {
             sid->tcc->shift_start(this->upshifting, false);
         }
-    } 
+    }
     else if (2 == this->subphase_shift) {
         // Ramp to low filling P
         uint16_t targ = this->set_p_apply_clutch_with_spring(low_filling_p);
@@ -554,7 +554,7 @@ uint16_t CrossoverShift::calc_overlap2_mod() {
     p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;
-}   
+}
 
 
 float ramping_mod_multi[8] = { 0.25, 0.20, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1 };
@@ -685,7 +685,7 @@ int8_t CrossoverShift::calc_t_adapt_offset_adv(int8_t cycle_change) {
     float sqrt_low_p = sqrt((float)sid->prefill_info.low_fill_pressure_on_clutch);
     float cycles_high = (float)cycles_high_filling;
 
-    float delta = sqrt_low_p * 
+    float delta = sqrt_low_p *
         (float)((cycle_change - cycles_high) - this->cycles_ramp_to_low_filling - (this->cycles_low_filling/2.0));
     delta /= sqrt_high_p;
 
@@ -712,7 +712,7 @@ void CrossoverShift::offset_adapt_timer_by_clutch_delay() {
 }
 
 int16_t CrossoverShift::calculate_dynamic_inertia() {
-    
+
     // There is filtering logic in EGS logic, but it is always hard coded to 0 (No filtering)
     if (sid->change == GearChange::_1_2) {
         return 0;

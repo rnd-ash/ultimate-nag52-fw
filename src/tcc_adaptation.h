@@ -26,23 +26,6 @@ inline void update_tcc_adaptation_row(
         adjusted = 15000;
     }
     row[load_idx] = (int16_t)adjusted;
-
-    // TCC holding pressure must not decrease as gearbox load increases.
-    // Downward adaptation stops at the lower-load neighbor by design.
-    // Only normalize from the adapted cell onward so unrelated calibration
-    // cells are not modified.
-    for (uint8_t i = load_idx + 1; i < row_size; i++) {
-        int32_t normalized = row[i];
-        if (normalized < row[i - 1]) {
-            normalized = row[i - 1];
-        }
-        if (normalized < 100) {
-            normalized = 100;
-        } else if (normalized > 15000) {
-            normalized = 15000;
-        }
-        row[i] = (int16_t)normalized;
-    }
 }
 
 #endif

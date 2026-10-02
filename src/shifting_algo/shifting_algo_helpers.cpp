@@ -14,7 +14,7 @@ float ShiftHelpers::calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t eng
 
 float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
     float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10);
-    return r;
+    return MAX(1.0F, r); // Used as a divisor by shift algorithms
 }
 
 void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase) {

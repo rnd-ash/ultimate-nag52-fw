@@ -1145,6 +1145,10 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
         int sec_start_addr = (phys_address/SECTOR_SIZE)*SECTOR_SIZE;
         int offset_into_start_sector = phys_address - sec_start_addr;
         uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(SECTOR_SIZE);
+        if (nullptr == buffer) {
+            make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
+            return;
+        }
         esp_flash_read(NULL, buffer, sec_start_addr, SECTOR_SIZE);
         memcpy(&buffer[offset_into_start_sector], src, len);
         esp_flash_erase_region(NULL, sec_start_addr, SECTOR_SIZE);

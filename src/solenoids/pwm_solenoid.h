@@ -64,7 +64,7 @@ public:
     /**
      * @brief Gets the current consumed by the solenoid at the previous I2S sample
      */
-    uint16_t get_current(void) const;
+    virtual uint16_t get_current(void) const;
 
     /**
      * @brief returns the ADC1 channel being used to read

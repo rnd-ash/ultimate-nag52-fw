@@ -41,7 +41,7 @@ class StoredMap : public LookupAllocMap, public StoredData {
         uint16_t get_map_element_count(void) const;
 
         const int16_t* get_default_map_data(void) const;
-        int16_t* get_current_eeprom_map_data(void) const;
+        int16_t* get_current_eeprom_map_data(void);
 
         const char* get_map_name(void) const;
 

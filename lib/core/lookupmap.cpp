@@ -80,7 +80,7 @@ bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_valu
     // deviatation
     const float delta = (float)sample_point_value - interp;
     // rating
-    significant_change = (((float)abs(delta) / interp) > threshold);
+    significant_change = (interp != 0.0F) && (((float)abs(delta) / interp) > threshold);
     // correction calculation
     const float corr = delta * adapt_gain;
 

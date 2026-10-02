@@ -16,7 +16,7 @@ const int MAX_LOOKUP_CACHE = 5; // I don't think any map has more than this many
 class LookupMap {
     public:
         virtual ~LookupMap() = default;
-        float get_value(const int16_t x_value, const int16_t y_value);
+        float get_value(const float x_value, const float y_value);
         // float get_value(const float xValue, const float yValue);
         float get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx);
         bool add_value(const int16_t sample_point_value, const int16_t x_value, const int16_t y_value, const float threshold);

@@ -20,6 +20,7 @@ const int16_t SLIP_V_WHEN_LOCKED = 10; // 10RPM for locking (Means we can monito
 const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
 const int16_t SLIP_V_UNDERLOCKED = SLIP_V_WHEN_LOCKED*2;
 const uint8_t SLIP_SAMPLES_AVG = 25; // 500ms
+const int16_t TCC_STATE_HYST_RPM = 10;
 
 const uint16_t SLIP_X_COAST[5] = {1000, 1500, 3500, 4000, 6000};
 const uint16_t SLIP_Z_COAST[5] = {  70,   40,   40,   10,   10};
@@ -261,11 +262,13 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         // See if we should slip or close based on maps
         targ = InternalTccState::Open;
         slipping_rpm_targ = this->calculate_slip_target(sensors);
+        int open_thresh = (this->target_tcc_state == InternalTccState::Open) ? (SLIP_V_WHEN_OPEN - TCC_STATE_HYST_RPM) : (SLIP_V_WHEN_OPEN + TCC_STATE_HYST_RPM);
+        int lock_thresh = (this->target_tcc_state == InternalTccState::Closed) ? (SLIP_V_WHEN_LOCKED + TCC_STATE_HYST_RPM) : SLIP_V_WHEN_LOCKED;
         // Can we slip?
-        if (SLIP_V_WHEN_OPEN > slipping_rpm_targ) {
+        if (open_thresh > slipping_rpm_targ) {
             targ = InternalTccState::Slipping;
             // Can we lock?
-            if (SLIP_V_WHEN_LOCKED >= slipping_rpm_targ) {
+            if (lock_thresh >= slipping_rpm_targ) {
                 targ = InternalTccState::Closed;
                 slipping_rpm_targ = MAX(SLIP_V_WHEN_LOCKED, slipping_rpm_targ);
             }

@@ -64,6 +64,10 @@ float HfmEngine::get_ML(float mle, int16_t iat, int16_t air_pressure)
     float T_theoretical = (float)iat + 273.15f;
     // pressure [N/m²]
     float p_theoretical = ((float)air_pressure) * 100.F; // conversion from [hPa] to [Pa]
+    if (p_theoretical <= 0.0F)
+    {
+        return 0.0F;
+    }
     rho_theoretical = T_theoretical / p_theoretical;
 
     m_theoretical = rho_theoretical * engine_displacement / ((float)n_cylinders);

@@ -129,6 +129,10 @@ bool IOExpander::is_data_valid(const uint32_t expire_time_ms) const
 
 inline bool IOExpander::get_bool_value(const pca_num_t bit, const uint8_t *i2c_rx_bytes)
 {
+	if (PCA_NUM_NC == bit)
+	{
+		return false;
+	}
 	return (i2c_rx_bytes[0] >> bit) & 0b1;
 }
 

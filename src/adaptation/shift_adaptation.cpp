@@ -10,6 +10,20 @@
 #include "maps.h"
 #include "nvs/all_keys.h"
 
+// Keep learned torque corrections bounded even when a diagnostic request applies
+// a large offset repeatedly.
+static constexpr int16_t MAX_TRQ_ADAPT_OFFSET_NM = 50;
+
+static int16_t clamp_offset(int32_t value, int32_t limit) {
+    if (value > limit) {
+        return (int16_t)limit;
+    }
+    if (value < -limit) {
+        return (int16_t)-limit;
+    }
+    return (int16_t)value;
+}
+
 ShiftAdaptationSystem::ShiftAdaptationSystem()
 {
     const int16_t adpt_map_x[8] = {0,1,2,3,4,5,6,7};
@@ -87,7 +101,7 @@ void ShiftAdaptationSystem::offset_prefill_cycles(uint8_t shift_idx, int8_t offs
 void ShiftAdaptationSystem::offset_spc_pressure(uint8_t shift_idx, int16_t offset) {
     if (nullptr != this->spc_offset_map) {
         int16_t* ptr = this->spc_offset_map->get_current_data();
-        ptr[shift_idx] += offset;
+        ptr[shift_idx] = clamp_offset((int32_t)ptr[shift_idx] + offset, ADP_CURRENT_SETTINGS.prefill_max_pressure_delta);
         ESP_LOGI("ADAPT", "SPC pressure offset by %d to %d", offset, ptr[shift_idx]);
     }
 }
@@ -95,7 +109,7 @@ void ShiftAdaptationSystem::offset_spc_pressure(uint8_t shift_idx, int16_t offse
 void ShiftAdaptationSystem::offset_freeing_trq(uint8_t shift_idx, int16_t offset) {
     if (nullptr != this->freeing_torque_offset) {
         int16_t* ptr = this->freeing_torque_offset->get_current_data();
-        ptr[shift_idx] += offset;
+        ptr[shift_idx] = clamp_offset((int32_t)ptr[shift_idx] + offset, MAX_TRQ_ADAPT_OFFSET_NM);
         ESP_LOGI("ADAPT", "Free. Trq offset by %d to %d", offset, ptr[shift_idx]);
     }
 }
@@ -103,7 +117,7 @@ void ShiftAdaptationSystem::offset_freeing_trq(uint8_t shift_idx, int16_t offset
 void ShiftAdaptationSystem::offset_applying_trq(uint8_t shift_idx, int16_t offset) {
     if (nullptr != this->applying_torque_offset) {
         int16_t* ptr = this->applying_torque_offset->get_current_data();
-        ptr[shift_idx] += offset;
+        ptr[shift_idx] = clamp_offset((int32_t)ptr[shift_idx] + offset, MAX_TRQ_ADAPT_OFFSET_NM);
         ESP_LOGI("ADAPT", "Appl. Trq offset by %d to %d", offset, ptr[shift_idx]);
     }
 }

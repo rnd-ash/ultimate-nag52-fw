@@ -158,7 +158,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         this->redline_rpm = 4000; // just in case
     }
     this->diff_ratio_f = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
-    this->input_rpm_delta = new DeltaTracker(25);
+    this->input_rpm_delta = new DeltaTracker(5);
     this->pedal_delta = new DeltaTracker(25);
 }
 

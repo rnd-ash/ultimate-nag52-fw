@@ -185,6 +185,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
+    int slip_now = abs((int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm);
     // Timers
     if (this->timer_inc_slip > 0) {
         this->timer_inc_slip -= 1;
@@ -377,7 +378,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         if (prefill_cycles > 0) {
             prefill_cycles -= 1;
         }
-        if (prefill_cycles == 0 || this->actual_slip_abs <= this->slip_target) {
+        if (prefill_cycles == 0 || slip_now <= this->slip_target) {
             prefill_done = true;
             this->timer_till_adapt = 100; // 2 second wait
         }

@@ -38,17 +38,20 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     const int16_t adapt_map_y_headers[5] = {1,2,3,4,5}; // Gear
     this->tcc_slip_map = new StoredMap(NVS_KEY_TCC_ADAPT_SLIP_MAP, TCC_SLIP_ADAPT_MAP_SIZE, adapt_map_x_headers, adapt_map_y_headers, LOAD_SIZE, 5, TCC_SLIP_ADAPT_MAP);
     if (this->tcc_slip_map->init_status() != ESP_OK) {
-        delete[] this->tcc_slip_map;
+        delete this->tcc_slip_map;
+        this->tcc_slip_map = nullptr;
     }
 
     this->tcc_lock_map = new StoredMap(NVS_KEY_TCC_ADAPT_LOCK_MAP, TCC_SLIP_ADAPT_MAP_SIZE, adapt_map_x_headers, adapt_map_y_headers, LOAD_SIZE, 5, TCC_LOCK_ADAPT_MAP);
     if (this->tcc_lock_map->init_status() != ESP_OK) {
-        delete[] this->tcc_lock_map;
+        delete this->tcc_lock_map;
+        this->tcc_lock_map = nullptr;
     }
 
     this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
     if (this->slip_rpm_target_map->init_status() != ESP_OK) {
-        delete[] this->slip_rpm_target_map;
+        delete this->slip_rpm_target_map;
+        this->slip_rpm_target_map = nullptr;
     }
 
     this->init_tables_ok = (this->tcc_slip_map != nullptr) && (this->tcc_lock_map != nullptr) && (this->slip_rpm_target_map != nullptr);

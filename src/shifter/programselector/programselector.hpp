@@ -51,6 +51,9 @@ enum class DiagProfileInputState: uint8_t {
 
 class ProgramSelector {
 public:
+	ProgramSelector() = default;
+	ProgramSelector(const ProgramSelector&) = delete;
+	ProgramSelector& operator=(const ProgramSelector&) = delete;
 	/**
 	 * @brief Gets the current selected drive profile based on the profile selector input system
 	 * @param expire_time_ms Expiry time of CAN data

@@ -13,7 +13,10 @@
 
 DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     DATA_GEARBOX_SENSORS ret = {};
-    SpeedSensors speeds = gearbox->speed_sensors;
+    SpeedSensors speeds = {};
+    if (g != nullptr) {
+        speeds = g->speed_sensors;
+    }
     uint8_t pll = TCUIO::parking_lock();
 
     ret.n2_rpm = speeds.n2;
@@ -95,6 +98,10 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     DATA_TCC_PROGRAM ret = {};
+    if (gb_ptr == nullptr) {
+        memset(&ret, 0xFF, sizeof(ret));
+        return ret;
+    }
     ret.current_pressure = gb_ptr->tcc->get_current_pressure();
     ret.target_pressure = gb_ptr->tcc->get_target_pressure();
     ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();

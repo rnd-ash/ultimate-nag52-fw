@@ -100,7 +100,7 @@ void LookupMap::get_y_headers(uint16_t *size, int16_t **headers){
 }
 
 int16_t* LookupMap::get_current_data(void) const {
-    return this->table->get_current_data();
+    return nullptr == this->table ? nullptr : this->table->get_current_data();
 }
 
 void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {

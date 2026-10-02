@@ -66,7 +66,7 @@ public:
     ShiftAdaptationSystem* shift_adapter = nullptr;
     SpeedSensors speed_sensors;
 private:
-    bool is_stationary();
+    bool is_stationary() const;
     ShiftReportSegment collect_report_segment(uint64_t start_time);
     void set_torque_request(TorqueRequestControlType ctrl_type, TorqueRequestBounds bounds, float amount);
     bool elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool manually_requested);

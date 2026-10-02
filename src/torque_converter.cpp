@@ -312,7 +312,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
             slipping_rpm_targ = MAX(this->slip_target, 50);
         } 
         // Engine is requesting full TCC open
-        else if (TCC_CURRENT_SETTINGS.react_on_engine_open_request) {
+        else if (engine_req_state == TccReqState::Open && TCC_CURRENT_SETTINGS.react_on_engine_open_request) {
             targ = InternalTccState::Open;
             slipping_rpm_targ = SLIP_V_WHEN_OPEN;
         }

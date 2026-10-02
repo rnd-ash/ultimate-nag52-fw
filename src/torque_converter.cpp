@@ -145,7 +145,8 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     int f_engine_trq = (this->filtered_engine_trq/100) - corr_torque;
     int engine_trq = sensors->converted_torque - corr_torque;
 
-    int lambda_targ = (((int)sensors->input_rpm)*1000) / (int)(sensors->input_rpm + this->slip_target);
+    int lambda_denominator = (int)sensors->input_rpm + (int)this->slip_target;
+    int lambda_targ = lambda_denominator > 0 ? (((int)sensors->input_rpm)*1000) / lambda_denominator : 0;
     int pump_trq_targ = (int)interpolate_linear_array((uint16_t)lambda_targ, 11, TCC_CFG_PTR->pump_map_x, TCC_CFG_PTR->pump_map_z);
     int x = sensors->input_rpm + this->slip_target;
     pump_trq_targ *= ((x*x) / 10000);

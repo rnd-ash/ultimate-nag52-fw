@@ -104,7 +104,10 @@ void Sensors::update(SensorDataRaw* dest) {
         }
         else {
             dest->parking_lock = 0;
-            adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage);
+            if (ESP_OK != adc_cali_raw_to_voltage(adc2_cal, adc_res, &adc_voltage) ||
+                adc_voltage < 0 || adc_voltage >= 3300) {
+                return; // Leave ATF temperature unavailable on an invalid conversion.
+            }
 
             int resistance = (adc_voltage * pcb_gpio_matrix->sensor_data.atf_r2_resistance) / (3300 - adc_voltage);
 

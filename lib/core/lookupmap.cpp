@@ -52,6 +52,9 @@ float LookupMap::get_value(const float x_value, const float y_value, const uint8
 
 bool LookupMap::add_value(const int16_t sample_point_value, const int16_t x_value, const int16_t y_value, const float threshold)
 {
+    if (nullptr == this->table || nullptr == this->x_header || nullptr == this->y_header || nullptr == this->x_header->get_data() || nullptr == this->y_header->get_data() || nullptr == this->table->get_current_data()) {
+        return false;
+    }
     // calibration parameter
     const float adapt_gain = 0.20F;
     

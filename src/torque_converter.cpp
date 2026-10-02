@@ -336,6 +336,10 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
         is_adaptable = false;
     }
+    // Coast torque does not map to the same pressure/load cells as powered operation.
+    if (motor_torque < 0) {
+        is_adaptable = false;
+    }
     uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)
     if (!is_shifting){
         // 0, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100

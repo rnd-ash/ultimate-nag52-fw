@@ -205,7 +205,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         InterpType::Linear
     );
     this->calculate_torque_correction(sensors);
-    int motor_torque = abs(this->converted);
+    int motor_torque = this->converted;
     int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
     this->engine_load_percent = load_as_percent;
 
@@ -334,6 +334,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         is_adaptable = false;
     }
     if (sensors->atf_temp < TCC_CURRENT_SETTINGS.tcc_temp_multiplier.raw_max) {
+        is_adaptable = false;
+    }
+    if (motor_torque < 0) {
         is_adaptable = false;
     }
     uint8_t load_cell = 0xFF; // Invalid cell (Do not write to adaptation)

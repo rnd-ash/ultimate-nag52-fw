@@ -20,6 +20,16 @@ float LookupTable::get_value(float xValue)
     return interpolate((float)data[idx_min], (float)data[idx_max], x1, x2, xValue);
 }
 
+float LookupTable::get_header_interpolated(const float value) const
+{
+    uint16_t idx_min;
+    uint16_t idx_max;
+    search_value<int16_t>(value, data, dataSize, &idx_min, &idx_max);
+    const float value1 = (float)x_header->get_value(idx_min);
+    const float value2 = (float)x_header->get_value(idx_max);
+    return value1 + progress_between_targets(value, data[idx_min], data[idx_max]) * (value2 - value1);
+}
+
 bool LookupTable::add_value(const int16_t sample_point_value, const int16_t x_value, float threshold)
 {
     // calibration parameter
@@ -150,4 +160,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

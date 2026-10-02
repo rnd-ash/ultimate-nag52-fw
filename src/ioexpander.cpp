@@ -134,6 +134,10 @@ inline bool IOExpander::get_bool_value(const pca_num_t bit, const uint8_t *i2c_r
 
 inline void IOExpander::set_value(const bool value, const pca_num_t bit, uint8_t *i2c_tx_bytes)
 {
+	if (PCA_NUM_NC == bit)
+	{
+		return;
+	}
 	// reset bit and keep existing buffer
 	i2c_tx_bytes[1] &= ~(BIT(bit));
 	// set bit

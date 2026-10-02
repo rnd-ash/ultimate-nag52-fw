@@ -1154,24 +1154,25 @@ void Kwp2000_server::process_write_mem_by_address(uint8_t* args, uint16_t arg_le
             // Read failed
             make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_GENERAL_REJECT);
         }
-        delete[] buffer;
+        TCU_FREE(buffer);
     } else {
         uint32_t start_ptr = 0;
+        uint32_t region_base = 0;
         // Address is somewhere in memory
         if(end <= 0x2FFFF) { // and start >= 0x000000
-            start_ptr = 0x40070000; // SRAM0
+            start_ptr = 0x40070000; region_base = 0x000000; // SRAM0
         } else if(start >= 0x030000 && end <= 0x04FFFF) {
-            start_ptr = 0x400A0000; // SRAM1
+            start_ptr = 0x400A0000; region_base = 0x030000; // SRAM1
         } else if(start >= 0x050000 && end <= 0x071FFF) {
-            start_ptr = 0x3FFAE000; // SRAM2
+            start_ptr = 0x3FFAE000; region_base = 0x050000; // SRAM2
         } else if(start >= 0x100000 && end <= 0x4FFFFF) {
-            start_ptr = 0x3F800000; // PSRAM
+            start_ptr = 0x3F800000; region_base = 0x100000; // PSRAM
         }
         if (0 == start_ptr) { // Invalid address range
             make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
         } else {
             // Interp as pointer
-            memcpy((void*)start_ptr, (void*)src, len);
+            memcpy(reinterpret_cast<void*>(start_ptr + (start - region_base)), src, len);
             make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS, nullptr, 0);
         }
     }

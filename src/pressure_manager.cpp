@@ -29,6 +29,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         if (!this->momentum_upshifts[i]->is_allocated()) {
             ESP_LOGE("PM", "Momentum upshift map %d failed to allocate!", i);
             delete this->momentum_upshifts[i];
+            this->momentum_upshifts[i] = nullptr;
         }
     }
 
@@ -40,6 +41,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         if (!this->momentum_downshifts[i]->is_allocated()) {
             ESP_LOGE("PM", "Momentum downshift map %d failed to allocate!", i);
             delete this->momentum_downshifts[i];
+            this->momentum_downshifts[i] = nullptr;
         }
     }
 
@@ -51,6 +53,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         if (!this->torque_adder_upshifts[i]->is_allocated()) {
             ESP_LOGE("PM", "Torque adder upshift map %d failed to allocate!", i);
             delete this->torque_adder_upshifts[i];
+            this->torque_adder_upshifts[i] = nullptr;
         }
     }
 
@@ -62,6 +65,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
         if (!this->torque_adder_downshifts[i]->is_allocated()) {
             ESP_LOGE("PM", "Torque adder doownshift map %d failed to allocate!", i);
             delete this->torque_adder_downshifts[i];
+            this->torque_adder_downshifts[i] = nullptr;
         }
     }
 
@@ -73,6 +77,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     tcc_pwm_map = new StoredMap(key_name, TCC_PWM_MAP_SIZE, pwm_tcc_x_headers, pwm_tcc_y_headers, 7, 5, default_data);
     if (this->tcc_pwm_map->init_status() != ESP_OK) {
         delete this->tcc_pwm_map;
+        this->tcc_pwm_map = nullptr;
     }
 
     /** Pressure fill time map **/
@@ -89,6 +94,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     fill_time_map = new StoredMap(key_name, FILL_TIME_MAP_SIZE, fill_t_x_headers, fill_t_y_headers, 4, 5, default_data);
     if (this->fill_time_map->init_status() != ESP_OK) {
         delete this->fill_time_map;
+        this->fill_time_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -106,6 +112,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     fill_pressure_map = new StoredMap(key_name, FILL_PRESSURE_MAP_SIZE, fill_p_x_headers, fill_p_y_headers, 1, 6, default_data);
     if (this->fill_pressure_map->init_status() != ESP_OK) {
         delete this->fill_pressure_map;
+        this->fill_pressure_map = nullptr;
     }
 
     /** Pressure fill pressure map **/
@@ -122,6 +129,7 @@ PressureManager::PressureManager(SensorData* sensor_ptr, uint16_t max_torque) {
     fill_low_pressure_map = new StoredMap(key_name, LOW_FILL_PRESSURE_MAP_SIZE, fill_lp_x_headers, fill_lp_y_headers, 1, 5, default_data);
     if (this->fill_low_pressure_map->init_status() != ESP_OK) {
         delete this->fill_low_pressure_map;
+        this->fill_low_pressure_map = nullptr;
     }
 
     // Init MPC and SPC req pressures

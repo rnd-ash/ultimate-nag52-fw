@@ -41,11 +41,20 @@ PwmSolenoid::PwmSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t p
     };
 
     // Set the timer configuration
-    ESP_GOTO_ON_ERROR(ledc_timer_config(&SOLENOID_TIMER_CFG), set_err, "SOLENOID", "Solenoid %s timer init failed", name);
+    ret = ledc_timer_config(&SOLENOID_TIMER_CFG);
+    if (ret != ESP_OK) {
+        ESP_LOGE("SOLENOID", "Solenoid %s timer init failed (%s)", name, esp_err_to_name(ret));
+        this->ready = ret;
+        return;
+    }
     // Set PWM channel configuration
-    ESP_GOTO_ON_ERROR(ledc_channel_config(&channel_cfg), set_err, "SOLENOID", "Failed to set LEDC channel for solenoid %s", name);
+    ret = ledc_channel_config(&channel_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE("SOLENOID", "Failed to set LEDC channel for solenoid %s (%s)", name, esp_err_to_name(ret));
+        this->ready = ret;
+        return;
+    }
     ESP_LOG_LEVEL(ESP_LOG_INFO, "SOLENOID", "Solenoid %s init OK!", name);
-set_err:
     this->ready = ret;
 }
 

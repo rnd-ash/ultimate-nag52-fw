@@ -19,7 +19,7 @@ HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
 {
-    uint16_t result = 0;
+    uint16_t result = UINT16_MAX;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
@@ -41,7 +41,7 @@ uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const
                 // <=> wheel_rpm_double = 2 * ((V_SIGNAL * 20) * (1000 / wheel_circumference))
                 // <=> wheel_rpm_double = (2 * 20 * 1000 * V_SIGNAL) / wheel_circumference
                 // <=> wheel_rpm_double = (40000 * V_SIGNAL) / wheel_circumference
-                result = (uint16_t)((40000.F * ((float)hfm210.V_SIGNAL)) / (float)VEHICLE_CONFIG.wheel_circumference);
+                result = (40000u * (uint32_t)hfm210.V_SIGNAL) / VEHICLE_CONFIG.wheel_circumference;
             }
         }
     }

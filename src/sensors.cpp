@@ -55,6 +55,9 @@ uint16_t calc_rpm(PcntMemData* cb) {
     pcnt_unit_clear_count(cb->handle);
     if (0 != pulses) {
         int t = (now - cb->last_time_us) / pulses;
+        if (t <= 0) {
+            t = 1;
+        }
         val = (int)(60 * 1000 * 1000) / (t * (int)cb->pulses_rev);
         if (val < 60) {
             val = 0;

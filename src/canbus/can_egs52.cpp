@@ -561,6 +561,10 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
+    if (nullptr != ioexpander) {
+        // EGS52/Jeep installations also route the start authorization to the I/O expander.
+        ioexpander->set_start(can_start);
+    }
 }
 
 void Egs52Can::set_gearbox_temperature(int16_t temp) {

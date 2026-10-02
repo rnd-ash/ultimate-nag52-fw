@@ -159,19 +159,19 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
 uint8_t HfmCan::get_pedal_value(const uint32_t expire_time_ms)
 {
     uint8_t result = UINT8_MAX;
-    float dkv = 0.F;
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        if (!hfm210.DKV_UP_B)
+        if (!hfm210.DKI_UP_B)
         {
-            dkv = (float)(hfm210.DKV);
-            dkv *= (float)PEDAL_VALUE_LIMIT;
-            // scale value to max throttle opening angle, so that it can be used for interpolation in the engine class
-            dkv /= (float)VEHICLE_CONFIG.throttlevalve_maxopeningangle;
+            uint8_t dki = hfm210.DKI;
+            if (VEHICLE_CONFIG.throttlevalve_maxopeningangle > dki)
+            {
+                // SensorData pedal position uses the 0-250 EGS scale.
+                result = (uint8_t)(250.F * ((float)dki / (float)VEHICLE_CONFIG.throttlevalve_maxopeningangle));
+            }
         }
     }
-    result = (uint8_t)dkv;
     return result;
 }
 

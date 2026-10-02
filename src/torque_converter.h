@@ -137,6 +137,7 @@ class TorqueConverter {
         int old_actual_slip_abs = 0;
         // x100
         int actual_slip_abs = 0;
+        int tcc_slip_filtered = 0;
 
         uint16_t input_side = 0;
         uint16_t converted = 0;

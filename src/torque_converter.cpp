@@ -205,6 +205,8 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         InterpType::Linear
     );
     this->calculate_torque_correction(sensors);
+    int slip_now = abs((int32_t)sensors->engine_rpm - (int32_t)sensors->input_rpm);
+    this->tcc_slip_filtered = first_order_filter(SLIP_SAMPLES_AVG, slip_now * 100, this->tcc_slip_filtered);
     int motor_torque = abs(this->converted);
     int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
     this->engine_load_percent = load_as_percent;
@@ -492,7 +494,7 @@ void TorqueConverter::set_stationary() {
 }
 
 int16_t TorqueConverter::get_slip_filtered() {
-    return this->actual_slip_abs;
+    return this->tcc_slip_filtered / 100;
 }
 
 int16_t TorqueConverter::get_slip_now() {

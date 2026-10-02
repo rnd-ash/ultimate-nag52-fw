@@ -128,7 +128,9 @@ esp_err_t TCUIO::setup_io_layer() {
 
     // CAN Matrix inputs
     init_onepoll(&onepoll_motor_temperature);
+    onepoll_motor_temperature.e_counter = 254;
     init_onepoll(&onepoll_motor_oil_temperature);
+    onepoll_motor_oil_temperature.e_counter = 254;
 
     DIFF_RATIO_F = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     return ret;
@@ -146,8 +148,8 @@ void update_tft_sensor() {
     bool reset_average = was_reading_from_engine != atf_from_engine_temp; // State change
     int temperature = 25;
     if (atf_from_engine_temp) {
-        // Request value from CAN
-        temperature = onepoll_motor_temperature.current_value;
+        int16_t motor_temp = get_onepoll_sensor_val(&onepoll_motor_temperature, 5);
+        temperature = (INT16_MAX == motor_temp) ? INT_MAX : motor_temp;
     } else {
         // Use TFT value
         temperature = raw_sensors.atf_temp_c;

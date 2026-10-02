@@ -41,6 +41,12 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
     uint16_t prev_current_req = this->saved_current_target;
     if (battery > 9000 && this->current_target != 0) {
         // Assume 14.4V for stability
+        if (SOL_CURRENT_SETTINGS.cc_reference_resistance <= 0.0f || SOL_CURRENT_SETTINGS.cc_vref_solenoid == 0) {
+            this->pwm = 0;
+            ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, 0);
+            ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
+            return;
+        }
         int32_t max_current_ma = SOL_CURRENT_SETTINGS.cc_vref_solenoid / SOL_CURRENT_SETTINGS.cc_reference_resistance;
         uint16_t observed_current = this->get_current();
         this->saved_current_target = this->current_target;

@@ -91,11 +91,9 @@ void TorqueConverter::calc_pid_score() {
 
 uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     int target = SLIP_V_WHEN_OPEN;
-    int inc = 0;
     if (sensors->pedal_pos > 0) {
         int pedal_as_percent = (sensors->pedal_pos*100)/250;
         target = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
-        targ_slip_pid = 0;
     } else {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
@@ -103,15 +101,6 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
         target += 10;
     }
 
-    if (sensors->pedal_delta_per_second >= 50 || sensors->input_rpm > 1800) {
-        // TODO
-        targ_slip_pid = 0;
-    } else {
-        if (this->actual_slip_abs - this->old_actual_slip_abs > 0 && target + inc < this->actual_slip_abs) {
-            targ_slip_pid = MIN(50, (this->actual_slip_abs - target));
-        }
-        this->timer_inc_slip = 150;
-    }
     return target;
 }
 
@@ -186,9 +175,6 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
     // Timers
-    if (this->timer_inc_slip > 0) {
-        this->timer_inc_slip -= 1;
-    }
     if (this->timer_till_adapt > 0) {
         this->timer_till_adapt -= 1;
     }

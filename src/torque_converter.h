@@ -141,10 +141,8 @@ class TorqueConverter {
         uint16_t input_side = 0;
         uint16_t converted = 0;
 
-        uint8_t timer_inc_slip = 0;
         uint8_t timer_till_adapt = 0;
         uint16_t targ_slip_x10 = 0;
-        int targ_slip_pid = 0;
 };
 
 #endif

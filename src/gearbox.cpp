@@ -311,7 +311,7 @@ GearboxGear prev_gear(GearboxGear g)
 #define SHIFT_DELAY_MS 20     // 20ms steps
 #define NUM_SCD_ENTRIES 100 / SHIFT_DELAY_MS // 100ms moving average window
 
-ClutchSpeeds Gearbox::diag_get_clutch_speeds()
+ClutchSpeeds Gearbox::diag_get_clutch_speeds() const
 {
 
     return ClutchSpeedModel::get_clutch_speeds_debug(

@@ -14,7 +14,7 @@
 
 const int16_t rpm_map_x_headers[11] = {0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 100}; // Load %
 const int16_t rpm_map_y_headers[8] = {1000, 1200, 1400, 1600, 1800, 2000, 4000, 6000}; // RPM
-const uint16_t MAX_TCC_P_SAMPLE_COUNT = 20; // 400ms
+const uint16_t MAX_TCC_P_SAMPLE_COUNT = 100; // 2000ms
 const int16_t SLIP_V_WHEN_OPEN = 100; // 100RPM is the threshold for when we start to activate the converter clutch
 const int16_t SLIP_V_WHEN_LOCKED = 10; // 10RPM for locking (Means we can monitor for over locking)
 const int16_t SLIP_V_OVERLOCKED = SLIP_V_WHEN_LOCKED/2;
@@ -199,7 +199,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     uint16_t pressure_samples = interpolate_float(
         sensors->atf_temp,
         MAX_TCC_P_SAMPLE_COUNT,
-        MAX_TCC_P_SAMPLE_COUNT/4,
+        MAX_TCC_P_SAMPLE_COUNT/2,
         -10,
         70,
         InterpType::Linear

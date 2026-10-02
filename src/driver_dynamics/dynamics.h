@@ -5,7 +5,7 @@
 
 class DeltaTracker {
 public:
-    DeltaTracker(uint8_t samples);
+    explicit DeltaTracker(uint8_t samples);
     void update(int32_t val);
     void reset();
     int32_t get_delta();

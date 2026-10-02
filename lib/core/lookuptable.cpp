@@ -112,7 +112,7 @@ LookupAllocTable::~LookupAllocTable()
 
 bool LookupAllocTable::add_data(const int16_t* map, const uint16_t size) {
     bool result = false;
-    if (nullptr != map)
+    if (nullptr != map && nullptr != this->data)
     {
         if (size == dataSize)
         {
@@ -150,4 +150,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

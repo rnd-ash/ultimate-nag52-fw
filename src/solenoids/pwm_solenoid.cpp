@@ -51,11 +51,17 @@ set_err:
 
 uint16_t PwmSolenoid::get_current() const {
     uint32_t raw = this->current_adc_reading;
-    uint16_t ret = 0;
+    int voltage_mv = 0;
     if (0 != raw) {
-        adc_cali_raw_to_voltage(adc1_cal, raw, reinterpret_cast<int*>(&ret));
+        if (ESP_OK != adc_cali_raw_to_voltage(adc1_cal, raw, &voltage_mv)) {
+            voltage_mv = 0;
+        }
     }
-    return ret * pcb_gpio_matrix->sensor_data.current_sense_multi;
+    float scaled = voltage_mv * pcb_gpio_matrix->sensor_data.current_sense_multi;
+    if (scaled < 0) {
+        scaled = 0;
+    }
+    return (uint16_t)scaled;
 }
 
 uint16_t PwmSolenoid::get_pwm_raw() const

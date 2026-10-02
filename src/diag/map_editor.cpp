@@ -139,7 +139,7 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
         memcpy(b, eeprom_data, size*sizeof(int16_t));
         TCU_FREE(eeprom_data);
     } else {
-        TCU_FREE(buffer);
+        TCU_FREE(b);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;

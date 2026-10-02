@@ -189,9 +189,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     if (this->timer_inc_slip > 0) {
         this->timer_inc_slip -= 1;
     }
-    if (this->timer_till_adapt > 0) {
-        this->timer_till_adapt -= 1;
-    }
 
     // Adapt sample size based on ATF temp
     // this way, as the ATF warms up, simulated response time
@@ -329,7 +326,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         this->absorbed_power_joule = 0;
     }
 
-    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 2 && this->timer_till_adapt == 0;
+    bool is_adaptable = abs(this->tcc_commanded_pressure-this->tcc_actual_pressure/100) < 2;
     if (!TCC_CURRENT_SETTINGS.adapt_enable) {
         is_adaptable = false;
     }
@@ -379,7 +376,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         }
         if (prefill_cycles == 0 || this->actual_slip_abs <= this->slip_target) {
             prefill_done = true;
-            this->timer_till_adapt = 100; // 2 second wait
         }
         this->tcc_commanded_pressure = TCC_CURRENT_SETTINGS.prefill_pressure;
     } else {

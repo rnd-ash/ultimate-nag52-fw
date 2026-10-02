@@ -5,8 +5,12 @@
 #include <string.h>
 #include <esp_log.h>
 
-float LookupMap::get_value(const int16_t x_value, const int16_t y_value){
+float LookupMap::get_value(const float x_value, const float y_value){
     return this->get_value(x_value, y_value, 0);
+}
+
+float LookupMap::get_value(const int16_t x_value, const int16_t y_value){
+    return this->get_value((float)x_value, (float)y_value, 0);
 }
 
 float LookupMap::get_value(const float x_value, const float y_value, const uint8_t lookup_cache_idx)

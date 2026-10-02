@@ -74,7 +74,7 @@ void ShiftAdaptationSystem::offset_prefill_cycles(uint8_t shift_idx, int8_t offs
         ptr[shift_idx] += offset;
         if (ptr[shift_idx] > ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
             ptr[shift_idx] = ADP_CURRENT_SETTINGS.prefill_max_time_delta;
-            ESP_LOGW("ADAPT", "Prefill cycles min limit reached");
+            ESP_LOGW("ADAPT", "Prefill cycles max limit reached");
         } else if (ptr[shift_idx] < -ADP_CURRENT_SETTINGS.prefill_max_time_delta) {
             ptr[shift_idx] = -ADP_CURRENT_SETTINGS.prefill_max_time_delta;
             ESP_LOGW("ADAPT", "Prefill cycles min limit reached");

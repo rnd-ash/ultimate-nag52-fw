@@ -9,9 +9,9 @@
 int16_t get_speed_long_eq(const uint16_t output_speed, const uint16_t input, const float r_low, const float r_high, bool invert = false) {
     float num = 0;
     if (invert) {
-        num = r_high * ((r_low * (float)output_speed) + (float)input);
+        num = ((r_low * (float)output_speed) + (float)input);
     } else {
-        num = r_high * ((r_low * (float)output_speed) - (float)input);
+        num = ((r_low * (float)output_speed) - (float)input);
     }
     return num / (r_low - r_high);
 }

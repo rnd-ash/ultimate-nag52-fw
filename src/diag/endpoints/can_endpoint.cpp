@@ -46,6 +46,10 @@ bool CanEndpoint::send_to_twai(DiagCanMessage msg) {
 }
 
 void CanEndpoint::send_data(uint32_t id, uint8_t *buf, uint16_t len) {
+    if (len > DIAG_CAN_MAX_SIZE) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Tx message of %d bytes exceeds the ISO-TP maximum", len);
+        return;
+    }
     this->tmp.curr_pos = 0;
     this->tmp.max_pos = len;
     memcpy(this->tmp.data, buf, len);
@@ -126,10 +130,9 @@ void CanEndpoint::iso_tp_server_loop() {
     
         // if (is_sending && clear_to_send && (now-this->last_tx_time >= KWP_CAN_ST_MIN)) {
         if (is_sending && clear_to_send ) {
-            uint8_t max_cpy = tx_msg.max_pos-tx_msg.curr_pos;
-            if (max_cpy > 7) {
-                max_cpy = 7;
-            }
+            // Keep the full remaining length before limiting it to one frame.
+            uint16_t remaining = tx_msg.max_pos - tx_msg.curr_pos;
+            uint8_t max_cpy = (remaining > 7u) ? 7u : static_cast<uint8_t>(remaining);
             if (max_cpy < 7) {
                 memset(tx_can.data, 0xCC, 8); // So we pad the frame with zeros
             }
@@ -179,9 +182,14 @@ void CanEndpoint::iso_tp_server_loop() {
 }
 
 void CanEndpoint::process_single_frame(DiagCanMessage msg) {
+    const uint8_t len = msg.data[0] & 0x0F;
+    if (0u == len || len > 7u) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Invalid single frame length %d", len);
+        return;
+    }
     CanEndpointMsg m;
-    m.max_pos = msg.data[0];
-    memcpy(m.data, &msg.data[1], msg.data[0]);
+    m.max_pos = len;
+    memcpy(m.data, &msg.data[1], len);
     if (xQueueSend(this->read_msg_queue, &m, 0) != pdTRUE) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
     }
@@ -195,6 +203,11 @@ void CanEndpoint::process_start_frame(DiagCanMessage msg) {
     uint16_t size = (msg.data[0] & 0x0F) << 8 | msg.data[1];
     if (size > DIAG_CAN_MAX_SIZE) {
         send_to_twai(FLOW_CONTROL_OVERFLOW);
+        return;
+    }
+    if (size < 8u) {
+        // A first frame is only valid for payloads that need multiple frames.
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Invalid first frame length %d", size);
         return;
     }
     // Not busy receiving and message size fits
@@ -213,6 +226,9 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
         int max_copy = this->rx_msg.max_pos - this->rx_msg.curr_pos;
         if (7 < max_copy) {
             max_copy = 7;
+        } else if (0 >= max_copy) {
+            this->is_receiving = false;
+            return;
         }
         memcpy(&this->rx_msg.data[rx_msg.curr_pos], &msg.data[1], max_copy);
         rx_msg.curr_pos += max_copy;

@@ -128,6 +128,9 @@ enum class ShifterPosition : uint8_t {
 class Shifter
 {
 public:
+    Shifter() = default;
+    Shifter(const Shifter&) = delete;
+    Shifter& operator=(const Shifter&) = delete;
 	/**
 	 * @brief Gets the current gear selector position
 	 * @param expire_time_ms data expiration period

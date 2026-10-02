@@ -27,9 +27,9 @@ public:
 	void write_to_ioexpander(void);
 	bool is_data_valid(const uint32_t expire_time_ms) const;
 	uint8_t get_trrs(void);
-	bool get_kickdown(void);
-	bool is_program_switch_pressed(void);
-	bool is_brake_light_switch_pressed(void);
+	bool get_kickdown(void) const;
+	bool is_program_switch_pressed(void) const;
+	bool is_brake_light_switch_pressed(void) const;
 	void set_rp_solenoid(const bool rp_solenoid_enabled);
 	void set_start(const bool start_enabled);
 	void set_gearbox_protection(const bool gearbox_protection_enabled);

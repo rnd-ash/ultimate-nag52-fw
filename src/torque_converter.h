@@ -20,7 +20,9 @@ enum class InternalTccState {
 
 class TorqueConverter {
     public:
-        TorqueConverter(uint16_t max_gb_rating);
+        explicit TorqueConverter(uint16_t max_gb_rating);
+        TorqueConverter(const TorqueConverter&) = delete;
+        TorqueConverter& operator=(const TorqueConverter&) = delete;
 
         /**
          * @brief Lets the torque converter code poll and see what is next to do with the converters
@@ -58,7 +60,7 @@ class TorqueConverter {
         uint8_t get_can_req_bits();
         uint16_t get_current_pressure();
         uint16_t get_target_pressure();
-        uint16_t get_slip_targ() {
+        uint16_t get_slip_targ() const {
             return this->slip_target;
         }
 
@@ -74,15 +76,15 @@ class TorqueConverter {
             return this->slip_rpm_target_map;
         }
         
-        inline uint32_t get_engine_power() {
+        inline uint32_t get_engine_power() const {
             return this->engine_output_joule;
         }
 
-        inline int16_t get_engine_load_percent() {
+        inline int16_t get_engine_load_percent() const {
             return this->engine_load_percent;
         }
         
-        inline uint32_t get_absorbed_power() {
+        inline uint32_t get_absorbed_power() const {
             return this->absorbed_power_joule;
         }
 

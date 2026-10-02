@@ -10,6 +10,8 @@ class ShifterTrrs : public Shifter
 {
 public:
     ShifterTrrs(BoardGpioMatrix *board);
+    ShifterTrrs(const ShifterTrrs&) = delete;
+    ShifterTrrs& operator=(const ShifterTrrs&) = delete;
     ShifterPosition get_shifter_position(void) override;    
     AbstractProfile* get_profile(void) override;
     DiagProfileInputState diag_get_profile_input() override;
@@ -45,7 +47,7 @@ private:
 
     ShifterPosition last_valid_position = ShifterPosition::SignalNotAvailable;
     BoardGpioMatrix* board;
-    ProgramSelectorSwitchTRRS* programselector;
+    ProgramSelectorSwitchTRRS* programselector = nullptr;
 };
 
 #endif // SHIFTER_TRRS_H

@@ -56,7 +56,7 @@ bool is_engine_off(EgsBaseCan* can) {
         return true;
     } else {
         // Engine MUST be off (Ignition state)
-        int rpm = egs_can_hal->get_engine_rpm(250);
+        int rpm = can->get_engine_rpm(250);
         return (rpm == 0 || rpm == UINT16_MAX); // 0 = 0RPM, MAX = SNV (Engine ECU is offline)
     }
 }

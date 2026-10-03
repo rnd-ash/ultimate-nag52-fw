@@ -29,6 +29,8 @@
 class Kwp2000_server {
     public:
         Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox, Shifter* shifter);
+        Kwp2000_server(const Kwp2000_server&) = delete;
+        Kwp2000_server& operator=(const Kwp2000_server&) = delete;
         ~Kwp2000_server();
 
         static void start_kwp_server(void *_this) {

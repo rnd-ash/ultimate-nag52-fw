@@ -31,6 +31,8 @@ struct PostShiftTorqueRamp {
 class Gearbox {
 public:
     explicit Gearbox(Shifter* shifter);
+    Gearbox(const Gearbox&) = delete;
+    Gearbox& operator=(const Gearbox&) = delete;
     // Diag test
     ClutchSpeeds diag_get_clutch_speeds();
     void set_profile(AbstractProfile* prof);

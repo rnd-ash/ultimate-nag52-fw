@@ -4,6 +4,9 @@
 
 // Couple of helpful functions
 void global_make_diag_neg_msg(DiagMessage *dest, uint8_t sid, uint8_t nrc) {
+    if (nullptr == dest) {
+        return;
+    }
     dest->id = KWP_ECU_TX_ID;
     dest->data_size = 3;
     dest->data[0] = 0x7F;
@@ -12,6 +15,13 @@ void global_make_diag_neg_msg(DiagMessage *dest, uint8_t sid, uint8_t nrc) {
 }
 
 void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, const uint8_t* resp, uint16_t len) {
+    if (nullptr == dest) {
+        return;
+    }
+    if (nullptr == resp && len != 0) {
+        global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
+        return;
+    }
     if (len + 2 > DIAG_CAN_MAX_SIZE) {
         global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
     } else {
@@ -23,6 +33,13 @@ void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, const uint8_t* res
 }
 
 void global_make_diag_pos_msg(DiagMessage *dest, uint8_t sid, uint8_t pid, const uint8_t* resp, uint16_t len) {
+    if (nullptr == dest) {
+        return;
+    }
+    if (nullptr == resp && len != 0) {
+        global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
+        return;
+    }
     if (len + 3 > DIAG_CAN_MAX_SIZE) {
         global_make_diag_neg_msg(dest, sid, NRC_GENERAL_REJECT);
         return;

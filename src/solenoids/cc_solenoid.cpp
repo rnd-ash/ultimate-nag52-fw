@@ -40,8 +40,11 @@ void ConstantCurrentSolenoid::update_when_reading(uint16_t battery) {
     // Pull in new values
     uint16_t prev_current_req = this->saved_current_target;
     if (battery > 9000 && this->current_target != 0) {
-        // Assume 14.4V for stability
-        int32_t max_current_ma = SOL_CURRENT_SETTINGS.cc_vref_solenoid / SOL_CURRENT_SETTINGS.cc_reference_resistance;
+        float ref_resistance = SOL_CURRENT_SETTINGS.cc_reference_resistance;
+        if (ref_resistance < 0.5F) {
+            ref_resistance = 5.3F;
+        }
+        int32_t max_current_ma = (float)battery / ref_resistance;
         uint16_t observed_current = this->get_current();
         this->saved_current_target = this->current_target;
         int32_t error = 1000 * ((int32_t)prev_current_req - (int32_t)observed_current) / (float)max_current_ma;

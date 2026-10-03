@@ -131,7 +131,7 @@ void update_solenoids(void*) {
     while (true) {
         vbatt = TCUIO::battery_mv();
         atf = TCUIO::atf_temperature();
-        if (UINT16_MAX != vbatt) {
+        if (UINT16_MAX != vbatt && vbatt != 0) {
             voltage = vbatt;
             vref_compensation = (float)SOL_CURRENT_SETTINGS.cc_vref_solenoid / (float)voltage;
         }

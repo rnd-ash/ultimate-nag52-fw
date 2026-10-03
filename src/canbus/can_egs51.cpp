@@ -121,7 +121,6 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
         if (UINT8_MAX != ms310.MAX_TORQUE) {
             ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
-            ret.m_max = (float)ret.m_max * (float)(ms310.MAX_TRQ_FACTOR*0.0078);
         }
         if (UINT8_MAX != ms310.DRG_TORQUE) {
             m_drg = ((int16_t)ms310.DRG_TORQUE)*3;

@@ -138,7 +138,7 @@ const char *StoredMap::get_map_name(void) const
     return this->data_name;
 }
 
-int16_t *StoredMap::get_current_eeprom_map_data(void) const
+int16_t *StoredMap::get_current_eeprom_map_data(void)
 {
     bool succesful_allocation = false;
     int16_t *dest = static_cast<int16_t *>(TCU_HEAP_ALLOC(this->data_element_count * sizeof(int16_t)));

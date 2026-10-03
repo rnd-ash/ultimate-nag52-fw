@@ -140,7 +140,7 @@ void update_solenoids(void*) {
         }
         if (INT16_MAX != atf) {
             atf_temp = atf * 10.0;
-            temp_compensation = (((atf_temp - (SOL_CURRENT_SETTINGS.cc_reference_temp * 10.0)) / 10.0) * SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires) / 10.0;
+            temp_compensation = 1.0 + ((((atf_temp - (SOL_CURRENT_SETTINGS.cc_reference_temp * 10.0)) / 10.0) * SOL_CURRENT_SETTINGS.cc_temp_coefficient_wires) / 100.0);
         }
         if (write_pwm) {
             // MOVED TO CURRENT READING TASK SO READINGS ARE SYNCED

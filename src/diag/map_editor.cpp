@@ -99,10 +99,17 @@ StoredMap* get_map(uint8_t map_id) {
             // } else {
             //     return nullptr;
             // }
-        case TCC_ADAPT_SLIP_MAP_ID:
-            return gearbox->tcc->get_slip_map();
-        case TCC_ADAPT_LOCK_MAP_ID:
-            return gearbox->tcc->get_lock_map();
+        case TCC_ADAPT_D1_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d1();
+        case TCC_ADAPT_D2_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d2();
+        case TCC_ADAPT_D3_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d3();
+        case TCC_ADAPT_D4_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d4();
+        case TCC_ADAPT_D5_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d5();
+        
         case TCC_RPM_SLIP_MAP:
             return gearbox->tcc->get_rpm_slip_map();
         case SHIFT_ADAPT_FILL_T_MAP_ID:
@@ -180,7 +187,7 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     *dest_size_bytes = size;
     return NRC_OK;
 }
-    
+
 kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
     if (ptr->replace_data_content(buffer, dest_size) == ESP_OK) {

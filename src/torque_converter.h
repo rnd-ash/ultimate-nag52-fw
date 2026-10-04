@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <stdint.h>
+#include "canbus/can_defines.h"
 #include "canbus/can_hal.h"
 #include "common_structs.h"
 #include "nvs/eeprom_config.h"
@@ -11,6 +12,7 @@
 #include "pressure_manager.h"
 #include "canbus/can_hal.h"
 #include "nvs/module_settings.h"
+#include "stored_map.h"
 
 enum class InternalTccState {
     Open = 0,
@@ -34,12 +36,22 @@ class TorqueConverter {
         void update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors);
         TccClutchStatus get_clutch_state(void);
         void save() {
-            if (this->tcc_lock_map) {
-                this->tcc_lock_map->save_to_eeprom();
+            if (this->tcc_adapt_map_d1) {
+                this->tcc_adapt_map_d1->save_to_eeprom();
             }
-            if (this->tcc_slip_map) {
-                this->tcc_slip_map->save_to_eeprom();
+            if (this->tcc_adapt_map_d2) {
+                this->tcc_adapt_map_d2->save_to_eeprom();
             }
+            if (this->tcc_adapt_map_d3) {
+                this->tcc_adapt_map_d3->save_to_eeprom();
+            }
+            if (this->tcc_adapt_map_d4) {
+                this->tcc_adapt_map_d4->save_to_eeprom();
+            }
+            if (this->tcc_adapt_map_d5) {
+                this->tcc_adapt_map_d5->save_to_eeprom();
+            }
+
         };
 
         void diag_toggle_tcc_sol(bool en);
@@ -62,12 +74,24 @@ class TorqueConverter {
             return this->slip_target;
         }
 
-        inline StoredMap* get_slip_map() {
-            return this->tcc_slip_map;
+        inline StoredMap* get_adapt_map_d1() {
+            return this->tcc_adapt_map_d1;
         }
 
-        inline StoredMap* get_lock_map() {
-            return this->tcc_lock_map;
+        inline StoredMap* get_adapt_map_d2() {
+            return this->tcc_adapt_map_d2;
+        }
+
+        inline StoredMap* get_adapt_map_d3() {
+            return this->tcc_adapt_map_d3;
+        }
+
+        inline StoredMap* get_adapt_map_d4() {
+            return this->tcc_adapt_map_d4;
+        }
+
+        inline StoredMap* get_adapt_map_d5() {
+            return this->tcc_adapt_map_d5;
         }
 
         inline StoredMap* get_rpm_slip_map() {
@@ -89,19 +113,22 @@ class TorqueConverter {
     private:
         uint16_t calculate_slip_target(SensorData* sensors);
         void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
+        void process_open_or_slip_state(SensorData* sd, GearboxGear current_g);
         void calculate_torque_correction(SensorData* sensors);
-        uint16_t calculate_commanded_pressure(SensorData* sensors, GearboxGear current_g);
+        bool check_if_pulling(SensorData* sensors);
 
         int rated_max_torque;
         bool pulling = false;
-        bool was_pulling = false;
         bool is_shifting = false;
         bool was_shifting = true;
         bool upshifting = false;
         bool release_shifting = false;
         bool tcc_solenoid_enabled = true;
-        int tcc_mapval_pressure = 0;
+
+        
         int tcc_commanded_pressure = 0;
+        int tcc_shift_pressure = 0;
+
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
         InternalTccState target_tcc_state = InternalTccState::Open;
@@ -111,18 +138,19 @@ class TorqueConverter {
 
         bool init_tables_ok = false;
 
-        StoredMap* tcc_slip_map = nullptr;
-        StoredMap* tcc_lock_map = nullptr;
+
+
+        StoredMap* tcc_adapt_map_d1 = nullptr;
+        StoredMap* tcc_adapt_map_d2 = nullptr;
+        StoredMap* tcc_adapt_map_d3 = nullptr;
+        StoredMap* tcc_adapt_map_d4 = nullptr;
+        StoredMap* tcc_adapt_map_d5 = nullptr;
 
         bool was_stationary = true;
         uint16_t slip_target = 100;
         uint32_t absorbed_power_joule = 0;
         uint32_t engine_output_joule = 0;
 
-
-
-        bool filling = false;
-        bool draining = false;
         uint8_t command_p_stage = 0;
         uint8_t timer_command_p = 0;
 
@@ -148,8 +176,38 @@ class TorqueConverter {
 
         uint8_t timer_inc_slip = 0;
         uint8_t timer_till_adapt = 0;
+        uint8_t timer_till_pid = 0;
         uint16_t targ_slip_x10 = 0;
         int targ_slip_pid = 0;
+        // IMPORTANT - 10x value
+        int pid_pressure = 0;
+
+        inline StoredMap* get_tcc_adapt_map(GearboxGear g) {
+            StoredMap* ptr = nullptr;
+            if (GearboxGear::First == g) {
+                ptr = this->tcc_adapt_map_d1;
+            } else if (GearboxGear::Second == g) {
+                ptr = this->tcc_adapt_map_d2;
+            } else if (GearboxGear::Third == g) {
+                ptr = this->tcc_adapt_map_d3;
+            } else if (GearboxGear::Fourth == g) {
+                ptr = this->tcc_adapt_map_d4;
+            } else if (GearboxGear::Fifth == g) {
+                ptr = this->tcc_adapt_map_d5;
+            }
+            return ptr;
+        }
+
+        inline int get_tcc_adapt_map_pressure(GearboxGear g, SensorData* sd) {
+            StoredMap* map = this->get_tcc_adapt_map(g);
+            int ret = 0;
+            if (nullptr != map) {
+                ret = map->get_value(this->engine_load_percent, sd->atf_temp);
+            }
+            return ret;
+        }
+
+        void fill_tcc(GearboxGear g, SensorData* sd);
 };
 
 #endif

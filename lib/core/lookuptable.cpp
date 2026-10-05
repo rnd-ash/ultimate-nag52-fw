@@ -132,9 +132,10 @@ bool LookupAllocTable::set_data(const int16_t* _data, uint16_t _dataSize)
     }
     data = static_cast<int16_t*>(TCU_HEAP_ALLOC(dataSize * sizeof(int16_t)));
     allocation_successful = (nullptr != data);
-    if (allocation_successful)
+    if (allocation_successful && nullptr != _data)
     {
         (void)memcpy(data, _data, dataSize*sizeof(int16_t));
+        result = true;
     }
     return result;
 }
@@ -150,4 +151,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

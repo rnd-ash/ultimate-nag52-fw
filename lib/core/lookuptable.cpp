@@ -51,8 +51,11 @@ bool LookupTable::add_value(const int16_t sample_point_value, const int16_t x_va
 }
 
 void LookupTable::get_x_headers(uint16_t *size, int16_t **headers){
+    if (nullptr == size || nullptr == headers) {
+        return;
+    }
     *size = x_header_size;
-    *headers = x_header->get_data();
+    *headers = nullptr == x_header ? nullptr : x_header->get_data();
 }
 
 int16_t* LookupTable::get_current_data(void) {
@@ -150,4 +153,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

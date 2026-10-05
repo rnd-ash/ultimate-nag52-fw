@@ -40,7 +40,7 @@ bool LookupTable::add_value(const int16_t sample_point_value, const int16_t x_va
     // deviatation
     const float delta = (float)sample_point_value - interp;
     // rating    
-    const bool significant_change = (((float)abs(delta) / interp) > threshold);    
+    const bool significant_change = (interp != 0.0F) && (((float)abs(delta) / interp) > threshold);
     // correction calculation
     const float corr = delta * adapt_gain;
 
@@ -150,4 +150,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

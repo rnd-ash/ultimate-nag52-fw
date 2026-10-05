@@ -7,6 +7,9 @@
 
 float LookupTable::get_value(float xValue)
 {
+    if (nullptr == this->x_header || nullptr == this->data) {
+        return 0.0F;
+    }
     uint16_t    idx_min;
     uint16_t    idx_max;
     
@@ -150,4 +153,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

@@ -161,8 +161,10 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
     this->pedal_delta = new DeltaTracker(25);
 }
 
-bool Gearbox::is_stationary() {
-    return this->sensor_data.output_rpm < 10;
+bool Gearbox::is_stationary() const {
+    // A stationary vehicle can still show converter drag at the turbine.
+    // Use a generous input-speed limit while requiring the output shaft to be stopped.
+    return this->sensor_data.output_rpm < 60 && this->sensor_data.input_rpm < 1000;
 }
 
 void Gearbox::set_profile(AbstractProfile* prof)

@@ -292,11 +292,15 @@ uint16_t PressureManager::p_clutch_with_coef(GearboxGear gear, Clutch clutch, ui
     if (gear == GearboxGear::Reverse_Second && clutch == Clutch::B3) {
         // Special logic
         friction_val *= MECH_PTR->friction_map[(2*6)+4];
-        friction_val /= MECH_PTR->friction_map[(1*6)+4];
+        float reverse_reference = MECH_PTR->friction_map[(1*6)+4];
+        if (reverse_reference <= 0.F) {
+            return 0;
+        }
+        friction_val /= reverse_reference;
     }
 
     float calc = ((float)abs_torque_nm * friction_val) / coef;
-    return calc;
+    return MIN(calc, (float)UINT16_MAX);
 }
 
 int16_t PressureManager::p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t torque_nm, CoefficientTy coef_ty) {

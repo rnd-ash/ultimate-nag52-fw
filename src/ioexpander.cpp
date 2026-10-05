@@ -149,17 +149,17 @@ uint8_t IOExpander::get_trrs(void)
 	return result;
 }
 
-bool IOExpander::get_kickdown(void)
+bool IOExpander::get_kickdown(void) const
 {
 	return get_bool_value(i2c_expander_kickdown_switch, i2c_rx_bytes);
 }
 
-bool IOExpander::is_program_switch_pressed(void)
+bool IOExpander::is_program_switch_pressed(void) const
 {
 	return get_bool_value(i2c_expander_program_button, i2c_rx_bytes);
 }
 
-bool IOExpander::is_brake_light_switch_pressed(void)
+bool IOExpander::is_brake_light_switch_pressed(void) const
 {
 	return get_bool_value(i2c_expander_brake_light_switch, i2c_rx_bytes);
 }

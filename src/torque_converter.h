@@ -62,14 +62,17 @@ class TorqueConverter {
 
         void shift_start(bool upshift, bool release_shifting);
         void shift_end();
-        int16_t get_slip_filtered();
-        int16_t get_slip_now();
+        uint16_t get_slip_now();
         InternalTccState __get_internal_state(void);
         uint8_t get_current_state();
         uint8_t get_target_state();
-        uint8_t get_can_req_bits();
-        uint16_t get_current_pressure();
-        uint16_t get_target_pressure();
+        uint16_t get_command_pressure();
+        uint16_t get_map_pressure();
+        int16_t get_pid_pressure();
+
+        uint8_t get_adapt_timer();
+        uint8_t get_pid_timer();
+        
         uint16_t get_slip_targ() {
             return this->slip_target;
         }
@@ -99,7 +102,7 @@ class TorqueConverter {
         }
 
         inline uint32_t get_engine_power() {
-            return this->engine_output_joule;
+            return 0;
         }
 
         inline int16_t get_engine_load_percent() {
@@ -107,7 +110,7 @@ class TorqueConverter {
         }
 
         inline uint32_t get_absorbed_power() {
-            return this->absorbed_power_joule;
+            return this->timer_till_adapt;
         }
 
     private:
@@ -148,8 +151,6 @@ class TorqueConverter {
 
         bool was_stationary = true;
         uint16_t slip_target = 100;
-        uint32_t absorbed_power_joule = 0;
-        uint32_t engine_output_joule = 0;
 
         uint8_t command_p_stage = 0;
         uint8_t timer_command_p = 0;
@@ -172,15 +173,14 @@ class TorqueConverter {
         int actual_slip_abs = 0;
 
         uint16_t input_side = 0;
-        uint16_t converted = 0;
+        uint16_t tcc_engine_trq = 0;
 
         uint8_t timer_inc_slip = 0;
         uint8_t timer_till_adapt = 0;
         uint8_t timer_till_pid = 0;
-        uint16_t targ_slip_x10 = 0;
         int targ_slip_pid = 0;
-        // IMPORTANT - 10x value
         int pid_pressure = 0;
+        int map_pressure = 0;
 
         inline StoredMap* get_tcc_adapt_map(GearboxGear g) {
             StoredMap* ptr = nullptr;

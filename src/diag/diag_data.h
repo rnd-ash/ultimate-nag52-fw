@@ -1,6 +1,7 @@
 #ifndef __DIAG_DATA_H__
 #define __DIAG_DATA_H__
 
+#include <cstdint>
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "gearbox.h"
@@ -122,7 +123,7 @@ typedef struct {
     int16_t e_coolant_temp;
 } __attribute__ ((packed)) DATA_CANBUS_RX;
 
-/// System usage stats 
+/// System usage stats
 typedef struct {
     uint16_t core1_usage;
     uint16_t core2_usage;
@@ -133,27 +134,23 @@ typedef struct {
     uint32_t num_tasks;
 } __attribute__ ((packed)) DATA_SYS_USAGE;
 
-/// Torque converter program stats 
+/// Torque converter program stats
 typedef struct {
-    uint16_t current_pressure;
-    uint16_t target_pressure;
-    int16_t slip_now;
-    int16_t slip_filtered;
+    uint16_t command_pressure;
+    uint16_t map_pressure;
+    int16_t pid_pressure;
+
+    uint16_t slip;
     uint16_t slip_target;
-    uint16_t pedal_now;
-    uint16_t pedal_filtered;
     // 0 - Open
     // 1 - Slip
-    // 2 - Closed
     uint8_t targ_state;
     uint8_t current_state;
-    // 0b1 - Open request 
-    // 0b01 - Slip request
-    uint8_t can_request_bits;
-    //
-    uint32_t engine_output_joule;
-    uint32_t tcc_absorbed_joule;
-    // Load as a pecentage (Compared to gearbox rating)
+
+    uint8_t timer_adapt_block;
+    uint8_t timer_pid_block;
+
+    // Load as a percentage (Compared to gearbox rating)
     int16_t load_percent;
 } __attribute__ ((packed)) DATA_TCC_PROGRAM;
 

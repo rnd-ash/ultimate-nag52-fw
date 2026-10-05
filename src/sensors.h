@@ -12,6 +12,8 @@ struct SensorDataRaw {
     uint16_t battery_mv;
     int atf_temp_c;
     uint8_t parking_lock;
+    int atf_adc_raw;
+    esp_err_t atf_conversion_status;
 };
 
 namespace Sensors {

@@ -7,6 +7,7 @@ using namespace std;
 
 class LookupTable {
     public:
+        virtual ~LookupTable() = default;
         float get_value(float xValue);
         bool add_value(const int16_t sample_point_value, const int16_t x_value, float threshold);        
         void get_x_headers(uint16_t *size, int16_t **headers);

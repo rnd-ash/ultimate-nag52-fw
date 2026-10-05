@@ -32,6 +32,10 @@ esp_err_t UsbEndpoint::init_state() {
 
 void UsbEndpoint::send_data(uint32_t id, uint8_t *buf, uint16_t len)
 {
+    if (len > DIAG_CAN_MAX_SIZE) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Tx message of %d bytes exceeds the diag buffer", len);
+        return;
+    }
     this->write_buffer[0] = '#';
     this->write_buffer[1] = HEX_DEF[(id >> 12) & 0x0F];
     this->write_buffer[2] = HEX_DEF[(id >> 8) & 0x0F];
@@ -52,10 +56,18 @@ bool UsbEndpoint::read_data(DiagMessage *dest)
     uart_get_buffered_data_len(UART_PORT, &length);
     if (length != 0)
     {
+        if (this->read_pos >= UART_MSG_SIZE) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Rx buffer overflow, discarding message");
+            uart_flush_input(UART_PORT);
+            this->read_pos = 0;
+            return false;
+        }
         max_bytes_left = UART_MSG_SIZE - this->read_pos;
         to_read = MIN(length, max_bytes_left);
-        uart_read_bytes(UART_PORT, &this->read_buffer[this->read_pos], to_read, 0);
-        this->read_pos += length;
+        int bytes_read = uart_read_bytes(UART_PORT, &this->read_buffer[this->read_pos], to_read, 0);
+        if (bytes_read > 0) {
+            this->read_pos += bytes_read;
+        }
         return false;
     }
     else if (this->read_pos != 0)
@@ -77,6 +89,11 @@ bool UsbEndpoint::read_data(DiagMessage *dest)
             }
             else
             {
+                if ((read_size - 2) > DIAG_CAN_MAX_SIZE) {
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Incoming msg of %d bytes exceeds the diag buffer", read_size - 2);
+                    this->read_pos = 0;
+                    return false;
+                }
                 // Valid msg!
                 dest->id = (this->read_buffer[2] << 8) | this->read_buffer[3];
                 dest->data_size = read_size - 2;

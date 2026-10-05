@@ -22,6 +22,9 @@ float LookupTable::get_value(float xValue)
 
 bool LookupTable::add_value(const int16_t sample_point_value, const int16_t x_value, float threshold)
 {
+    if (nullptr == this->x_header || nullptr == this->x_header->get_data() || nullptr == this->data) {
+        return false;
+    }
     // calibration parameter
     const float adapt_gain = 0.20F;
     
@@ -150,4 +153,3 @@ LookupRefTable::LookupRefTable(int16_t* _xHeader, uint16_t _xHeaderSize, int16_t
     this->data = _data;
     this->dataSize = _dataSize;
 }
-

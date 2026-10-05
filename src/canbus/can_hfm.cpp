@@ -14,7 +14,6 @@ HfmCan::HfmCan(const char *name, uint8_t tx_time_ms) : EgsBaseCan(name, tx_time_
     hfm_engine = new HfmEngine();
 
     this->start_enable = true;
-    can_init_status = ESP_OK;
 }
 
 uint16_t HfmCan::generateWheelData(const uint32_t expire_time_ms) const

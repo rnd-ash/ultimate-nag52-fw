@@ -32,29 +32,29 @@ class Gearbox {
 public:
     explicit Gearbox(Shifter* shifter);
     // Diag test
-    ClutchSpeeds diag_get_clutch_speeds();
+    ClutchSpeeds diag_get_clutch_speeds() const;
     void set_profile(AbstractProfile* prof);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
-    bool get_is_start_safe(void) {return this->is_start_safe; }
+    bool get_is_start_safe(void) const {return this->is_start_safe; }
     SensorData sensor_data;
     OutputData output_data;
-    uint16_t get_gear_ratio(void) {
+    uint16_t get_gear_ratio(void) const {
         return this->sensor_data.gear_ratio * 100.0F;
     }
-    uint16_t get_targ_gear_ratio(void) {
+    uint16_t get_targ_gear_ratio(void) const {
         return this->sensor_data.targ_gear_ratio * 100.0F;
     }
     uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool isShifting(void) { return this->shifting; }
-    uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
-    uint8_t get_profile_id(void) {
+    bool isShifting(void) const { return this->shifting; }
+    uint8_t get_targ_curr_gear(void) const { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
+    uint8_t get_profile_id(void) const {
         if (this->current_profile) {
             return this->current_profile->get_profile_id();
         } else {

@@ -108,7 +108,7 @@ void LookupMap::get_x_headers(uint16_t *size, int16_t **headers) {
 }
 
 uint16_t LookupMap::data_size() {
-    return this->table->data_size();
+    return nullptr == this->table ? 0 : this->table->data_size();
 }
 
 void LookupMap::copy_lookup_cache(LookupCache* dest) const {

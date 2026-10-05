@@ -301,7 +301,7 @@ float HfmCan::get_ML(const uint32_t expire_time_ms)
     {
         mle = ((float)(hfm610.MLE)) * AIR_MASS_FACTOR;
     }
-    hfm_engine->get_ML(mle, this->get_engine_iat_temp(expire_time_ms), air_pressure);
+    result = hfm_engine->get_ML(mle, this->get_engine_iat_temp(expire_time_ms), air_pressure);
     return result;
 }
 

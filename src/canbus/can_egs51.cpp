@@ -432,7 +432,8 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
         this->gs218.SE = true;
-        this->gs218.TORQUE_REQ = MIN(0xFD, ((int)(amount_nm/3.0F) + this->drag_trq));
+        int floor = MAX(0, (int)(amount_nm/3.0F) + (this->drag_trq/3));
+        this->gs218.TORQUE_REQ = MIN(0xFD, floor);
     }
 }
 

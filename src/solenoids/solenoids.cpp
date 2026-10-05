@@ -50,7 +50,12 @@ void read_solenoids_i2s(void*) {
         .max_store_buf_size = I2S_DMA_BUF_LEN * 2,
         .conv_frame_size = I2S_DMA_BUF_LEN,
     };
-    adc_continuous_new_handle(&c_cfg, &c_handle);
+    esp_err_t init_status = adc_continuous_new_handle(&c_cfg, &c_handle);
+    if (ESP_OK != init_status || nullptr == c_handle) {
+        ESP_LOGE("SOLENOIDS", "Failed to create continuous ADC handle: %s", esp_err_to_name(init_status));
+        vTaskDelete(nullptr);
+        return;
+    }
     adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = { 0 };
     for (int i = 0; i < NUM_SOLENOIDS; i++) {
         adc_pattern[i].atten = ADC_ATTEN_DB_12;
@@ -60,14 +65,24 @@ void read_solenoids_i2s(void*) {
         CHANNEL_ID_MAP[(uint8_t)sol_order[i]->get_adc_channel() & 0xF] = i;
     }
     adc_continuous_config_t dig_cfg = {
-        .pattern_num = 6,
+        .pattern_num = NUM_SOLENOIDS,
         .adc_pattern = adc_pattern,
         .sample_freq_hz = 732000 * 2, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
         .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
     };
-    adc_continuous_config(c_handle, &dig_cfg);
-    adc_continuous_start(c_handle);
+    init_status = adc_continuous_config(c_handle, &dig_cfg);
+    if (ESP_OK != init_status) {
+        ESP_LOGE("SOLENOIDS", "Failed to configure continuous ADC: %s", esp_err_to_name(init_status));
+        vTaskDelete(nullptr);
+        return;
+    }
+    init_status = adc_continuous_start(c_handle);
+    if (ESP_OK != init_status) {
+        ESP_LOGE("SOLENOIDS", "Failed to start continuous ADC: %s", esp_err_to_name(init_status));
+        vTaskDelete(nullptr);
+        return;
+    }
     esp_err_t ret;
     uint32_t read_len;
     while (true) {
@@ -82,7 +97,7 @@ void read_solenoids_i2s(void*) {
             for (int i = 0; i < read_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 // adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
                 adc_digi_output_data_t* p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
-                uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
+                uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel & 0x0F];
                 if (channel_idx != 0xFF) {
                     if (p->type1.data != 0) {
                         s.peak_total[channel_idx] += p->type1.data;

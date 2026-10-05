@@ -36,7 +36,7 @@ esp_err_t ShiftAdaptationSystem::save(void) {
     return ESP_OK;
 }
 
-int8_t ShiftAdaptationSystem::get_prefill_cycles_offset(uint8_t shift_idx) {
+int16_t ShiftAdaptationSystem::get_prefill_cycles_offset(uint8_t shift_idx) {
     int16_t ret = 0;
     if (nullptr != this->prefill_time_map) {
         ret = this->prefill_time_map->get_current_data()[shift_idx];

@@ -24,7 +24,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
         ret.parking_lock = pll;
         if (pll == 0) {
             int16_t tft = TCUIO::atf_temperature();
-            ret.atf_temp_c = tft;
+            ret.atf_temp_c = tft == INT16_MAX ? 0xFFFF : tft;
         }
     } else {
         ret.parking_lock = 0xFF;

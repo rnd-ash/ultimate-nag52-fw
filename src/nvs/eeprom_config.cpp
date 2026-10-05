@@ -262,9 +262,17 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
 }
 
 esp_err_t EEPROM::ewm_btn_get_saved_profile(uint8_t* dest) {
+    if (nullptr == dest) {
+        return ESP_ERR_INVALID_ARG;
+    }
     nvs_handle_t handle;
-    nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    return nvs_get_u8(handle, NVS_KEY_LAST_PROFILE, dest);
+    esp_err_t e = nvs_open(NVS_PARTITION_USER_CFG, NVS_READONLY, &handle);
+    if (ESP_OK != e) {
+        return e;
+    }
+    e = nvs_get_u8(handle, NVS_KEY_LAST_PROFILE, dest);
+    nvs_close(handle);
+    return e;
 }
 
 esp_err_t EEPROM::ewm_btn_save_profile(uint8_t save_profile) {

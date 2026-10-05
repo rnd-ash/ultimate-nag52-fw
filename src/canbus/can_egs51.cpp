@@ -8,7 +8,7 @@
 #include "shifter/shifter_ewm.h"
 #include "egs_calibration/calibration_structs.h"
 
-Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) 
+Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud)
 {
     ESP_LOGI("EGS51", "SETUP CALLED");
     this->gs218.TORQUE_REQ = 0xFE;
@@ -60,7 +60,7 @@ uint16_t Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
         if (0x3FFF != bs208.DHR) {
             ret = bs208.DHR;
         }
-        
+
     }
     return ret;
 }
@@ -72,7 +72,7 @@ uint16_t Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
         if (0x3FFF != bs208.DHL) {
             ret = bs208.DHL;
         }
-        
+
     }
     return ret;
 }
@@ -109,7 +109,6 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
     MS_310_EGS51 ms310;
     MS_210_EGS51 ms210;
     int16_t m_esp = INT16_MAX;
-    int16_t m_drg = INT16_MAX;
 
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310) &&
         this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
@@ -124,7 +123,8 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
             ret.m_max = (float)ret.m_max * (float)(ms310.MAX_TRQ_FACTOR*0.0078);
         }
         if (UINT8_MAX != ms310.DRG_TORQUE) {
-            m_drg = ((int16_t)ms310.DRG_TORQUE)*3;
+            // Preserve last value, otherwise will be 0
+            this->drag_trq = ((int16_t)ms310.DRG_TORQUE)*3;
         }
         if (UINT8_MAX != ms210.M_ESP) {
             m_esp = ((int16_t)ms210.M_ESP)*3;
@@ -134,15 +134,14 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         INT16_MAX != ret.m_min &&
         INT16_MAX != ret.m_max &&
         INT16_MAX != ret.m_ind &&
-        INT16_MAX != m_drg &&
         INT16_MAX != m_esp
     ) {
-        ret.m_min -= m_drg;
-        ret.m_max -= m_drg;
-        ret.m_ind -= m_drg;
+        ret.m_min -= this->drag_trq;
+        ret.m_max -= this->drag_trq;
+        ret.m_ind -= this->drag_trq;
 
-        m_esp = MAX(0, MIN(m_esp - (int16_t)m_drg, ret.m_max));
-        ret.m_ind = MAX(ret.m_min, MIN(ret.m_ind, ret.m_max)); 
+        m_esp = MAX(0, MIN(m_esp - (int16_t)this->drag_trq, ret.m_max));
+        ret.m_ind = MAX(ret.m_min, MIN(ret.m_ind, ret.m_max));
 
         int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;
@@ -414,7 +413,7 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
         case ShifterPosition::SignalNotAvailable:
             gs418.WHST = GS_418h_WHST_EGS51::SNV;
             break;
-        default: 
+        default:
             break;
     }
 }
@@ -433,7 +432,7 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
         this->gs218.SE = true;
-        this->gs218.TORQUE_REQ = amount_nm/3;
+        this->gs218.TORQUE_REQ = amount_nm/3 + this->drag_trq;
     }
 }
 

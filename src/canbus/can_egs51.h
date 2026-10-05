@@ -6,6 +6,7 @@
 #include "../../egs51_ecus/src/ESP51.h"
 #include "../../egs52_ecus/src/EWM.h"
 #include "shifter/shifter.h"
+#include <cstdint>
 
 class Egs51Can: public EgsBaseCan {
     public:
@@ -102,6 +103,7 @@ class Egs51Can: public EgsBaseCan {
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
         int16_t req_static_torque_delta = 0;
+        uint16_t drag_trq = 0;
 };
 
 #endif // EGS51_CAN_H

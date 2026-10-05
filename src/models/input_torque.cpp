@@ -31,18 +31,18 @@ float InputTorqueModel::get_input_torque_factor(uint16_t engine, uint16_t input)
 }
 
 int16_t InputTorqueModel::get_pump_torque(uint16_t engine, uint16_t input) {
-    if (engine == 0 || engine == INT16_MAX) {
+    if (engine == 0 || engine == INT16_MAX || engine == UINT16_MAX || input == UINT16_MAX) {
         return INT16_MAX;
     } else {
         uint16_t rpm_multi_x1000 = ((int)input*1000) / ((int)engine);
         int lambda = ((float)interpolate_linear_array(rpm_multi_x1000, 11, TCC_CFG_PTR->pump_map_x, TCC_CFG_PTR->pump_map_z));
-        int engine_pow_2 = ((int)engine*(int)engine)/1000;
-        int pump_torque = (lambda * engine_pow_2) / 100000;
+        int64_t engine_pow_2 = ((int64_t)engine*(int64_t)engine)/1000;
+        int64_t pump_torque = ((int64_t)lambda * engine_pow_2) / 100000;
         // Clamp output to 10x drag torque
         if (pump_torque > VEHICLE_CONFIG.engine_drag_torque) {
             pump_torque = VEHICLE_CONFIG.engine_drag_torque;
         }
-        return (int16_t)pump_torque;
+        return (int16_t)MAX(INT16_MIN, MIN(INT16_MAX, pump_torque));
     }
 
 }

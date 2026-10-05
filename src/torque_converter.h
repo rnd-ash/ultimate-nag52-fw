@@ -125,7 +125,7 @@ class TorqueConverter {
         bool release_shifting = false;
         bool tcc_solenoid_enabled = true;
 
-        
+
         int tcc_commanded_pressure = 0;
         int tcc_shift_pressure = 0;
 
@@ -208,6 +208,12 @@ class TorqueConverter {
         }
 
         void fill_tcc(GearboxGear g, SensorData* sd);
+
+        int pid_p_weight = 0;
+        int pid_i_weight = 0;
+
+        int pid_i_val = 0;
+        int pid_i_val_old = 0;
 };
 
 #endif

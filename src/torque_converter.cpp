@@ -30,12 +30,12 @@ const uint16_t SLIP_Z_COAST[5] = {  70,   40,   40,   10,   10};
 const uint16_t TCC_P_ADDER_X[5] = {600, 750,  990, 1500, 6000};
 const uint16_t TCC_P_ADDER_Z[5] = {  0,  50,  100,  200,  200};
 
-const int16_t TCC_PID_X_PUSHING[5] = {-20, 0, 100, 250, 500}; // Act slip - Targ slip
-const int16_t TCC_PID_P_Z_PUSHING[5] = {50, 50, 75, 100, 125}; // P term
-const int16_t TCC_PID_I_Z_PUSHING[5] = {300, 20, 5, 2, 2}; // I term
+const int16_t TCC_PID_X[5] = {-20, 0, 100, 250, 500};
+const int16_t TCC_PID_PZ_PULL[5] = {20, 10, 0, 0, 0};
+const int16_t TCC_PID_IZ_PULL[5] = {300, 200, 100, 30, 3};
 
-const int16_t TCC_PID_P_X_PULLING[5] = {}; // Act slip - Targ slip
-const int16_t TCC_PID_P_Z_PULLING[5] = {};
+const int16_t TCC_PID_PZ_PUSH[5] = {50, 50, 75, 100, 125};
+const int16_t TCC_PID_IZ_PUSH[5] = {300, 20, 5, 2, 2};
 
 TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
     if (0 == TCC_CURRENT_SETTINGS.tcc_max_trq_override) {
@@ -121,7 +121,7 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
         // Exit
         this->timer_command_p = 0;
         this->command_p_stage = 0;
-        this->timer_till_adapt = 100; // Block adaptation for 2 seconds
+        this->timer_till_adapt = 150; // Block adaptation for 3 seconds
         this->timer_till_pid = 25; // Block PID for 1/2 second
         this->current_tcc_state = InternalTccState::Slipping;
         this->tcc_shift_pressure = this->pid_pressure + this->min_tcc_pressure;
@@ -175,6 +175,7 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
         if (torque_low && pedal_low) {
             ret = false;
             this->timer_till_adapt = 150; // 3 seconds
+            this->pid_i_val = 0;
         }
     } else {
         // Pushing, check if we are pulling now
@@ -184,6 +185,8 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
         if (torque_high || pedal_high) {
             ret = true;
             this->timer_till_adapt = 150; // 3 seconds
+            this->pid_i_val = 0;
+            this->pid_i_val_old = 0;
         }
     }
     return ret;
@@ -243,10 +246,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     }
     this->converted = MAX(0, engine_trq);
 
-    int tcc_input_torque = 595 - (this->filtered_pump_trq/100);
-    if (tcc_input_torque <= 0) {
-        tcc_input_torque = 0;
-    }
+    int tcc_input_torque = MAX(0, this->filtered_engine_trq - (this->filtered_pump_trq/100));
     this->input_side = tcc_input_torque;
 }
 
@@ -279,6 +279,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
     if (this->current_tcc_state == InternalTccState::Open && this->target_tcc_state == InternalTccState::Open) {
         // Open
         this->pid_pressure = 0;
+        this->pid_i_val = 0;
         this->command_p_stage = 0;
         // TODO - Engagement RPM is different to slip target RPM threshold
         if (slip_target < SLIP_V_WHEN_OPEN && !should_open) {
@@ -323,10 +324,57 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         }
 
         // Do PID
-        if (0 == this->timer_till_pid && !is_shifting) {
+        this->pid_i_val_old = this->pid_i_val;
+        int16_t slip_delta = (int)this->actual_slip_abs - (int)this->slip_target;
+        if (this->pulling) {
+            this->pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PULL);
+            if (0 == this->timer_till_pid) {
+                    this->pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PULL);
+            } else {
+                this->pid_i_val = ((this->pid_p_weight * slip_delta) / 1000) * -10;
+            }
+
+        } else {
+            pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PUSH);
+            pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PUSH);
+        }
+        int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
+        this->pid_i_val += i_adder;
+        // Dynamic PID modifier
+        if (this->actual_slip_abs < SLIP_V_WHEN_OPEN) {
+            if (sd->pedal_delta_per_second > 10) {
+                this->pid_i_val = 0;
+            }
+        }
+
+        int p = (this->pid_p_weight * slip_delta) / 1000;
+        this->pid_pressure = p + (this->pid_i_weight/655360);
+        this->tcc_commanded_pressure = this->pid_pressure + this->min_tcc_pressure;
+
+        if (this->tcc_commanded_pressure > 15000 || this->tcc_commanded_pressure < 0) {
+            is_adaptable = false;
+            this->pid_i_val = this->pid_i_val_old;
+            this->tcc_commanded_pressure = MIN(15000, MAX(0, this->tcc_commanded_pressure));
+        }
+
+        if (0 == this->timer_till_adapt && is_adaptable) {
+            // Write the adapt value
+            StoredMap* map = this->get_tcc_adapt_map(current_g);
+            if (nullptr != map) {
+                // Correction pressure to reduce reliance on PID
+                int delta = MAX(0, this->tcc_commanded_pressure - this->pid_pressure);
+                map->add_value(delta, this->engine_load_percent, sd->atf_temp, 100.0);
+            }
+            this->timer_till_adapt = 25; // 500ms till the next write is allowed
+        }
+
+        /*
+
+
+        if (0 == this->timer_pid) {
             // TODO - Make actual PID here
             float mod = 0;
-            int slip_delta = (int)this->actual_slip_abs - (int)this->slip_target;
+
             if (slip_delta > 0) {
                 if (pulling) {
                 // Too much slip
@@ -354,6 +402,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             this->pid_pressure /= 2;
             adjusted = 15000;
         }
+
         if (0 == this->timer_till_adapt && is_adaptable) {
             // Write the adapt value
             StoredMap* map = this->get_tcc_adapt_map(current_g);
@@ -362,9 +411,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             }
             this->timer_till_adapt = 25; // 500ms till the next write is allowed
         }
-
-
-        this->tcc_commanded_pressure = this->pid_pressure + this->min_tcc_pressure;
+        */
     } else {
         // Slipping -> Open
         this->pid_pressure = 0;
@@ -400,8 +447,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
 
     this->calculate_torque_correction(sensors);
-    int motor_torque = abs(this->converted);
-    int load_as_percent = abs(((int)motor_torque*100) / this->rated_max_torque);
+    int load_as_percent = abs(((int)input_side*100) / this->rated_max_torque);
     this->engine_load_percent = load_as_percent;
 
     this->filtered_engine_rpm = first_order_filter(3, (int)sensors->engine_rpm*100, this->filtered_engine_rpm);
@@ -440,17 +486,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     this->process_open_or_slip_state(sensors, curr_gear);
 
-    bool is_adaptable = TCC_CURRENT_SETTINGS.adapt_enable && this->target_tcc_state == InternalTccState::Slipping && this->current_tcc_state == InternalTccState::Slipping;
-    if (timer_till_adapt > 0) {
-        is_adaptable = false;
-    }
     if (is_shifting) {
-        is_adaptable = false;
-    }
-    if (!is_shifting && was_shifting) {
-        was_shifting = false;
-        this->timer_till_pid = 10;
-        this->timer_till_adapt = 20;
+        this->timer_till_pid = 50;
+        this->timer_till_adapt = 150;
     }
     pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
 }

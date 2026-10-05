@@ -146,12 +146,9 @@ bool HfmCan::get_kickdown(const uint32_t expire_time_ms)
     HFM_210 hfm210;
     if (this->hfm_ecu.get_HFM_210(GET_CLOCK_TIME(), expire_time_ms, &hfm210))
     {
-        // validity check for DKV
-        if (!hfm210.DKV_UP_B)
-        {
-            result = (hfm210.DKV == VEHICLE_CONFIG.throttlevalve_maxopeningangle);
-        }
-        result |= hfm210.VG_B;
+        // VG_B is the HFM kickdown switch. DKV is a throttle target and can
+        // reach the calibrated maximum without a driver kickdown request.
+        result = hfm210.VG_B;
     }
     return result;
 }

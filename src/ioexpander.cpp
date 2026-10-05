@@ -46,15 +46,21 @@ IOExpander::IOExpander(gpio_num_t sda, gpio_num_t scl)
 				if (ESP_OK == init_status)
 				{
 					// set I/O 0 as inputs
-					i2c_tx_bytes[0] = (uint8_t)PCAReg::CONFIG0;
-					i2c_tx_bytes[1] = 0xFF;
-					init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
-					i2c_tx_bytes[0] = (uint8_t)PCAReg::POLARITY0;
-					i2c_tx_bytes[1] = 0x0u;
-					init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
-					i2c_tx_bytes[0] = (uint8_t)PCAReg::OUTPUT1;
-					i2c_tx_bytes[1] = 0x0u;
-					init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
+						i2c_tx_bytes[0] = (uint8_t)PCAReg::CONFIG0;
+						i2c_tx_bytes[1] = 0xFF;
+						init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
+						if (ESP_OK == init_status)
+						{
+							i2c_tx_bytes[0] = (uint8_t)PCAReg::POLARITY0;
+							i2c_tx_bytes[1] = 0x0u;
+							init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
+						}
+						if (ESP_OK == init_status)
+						{
+							i2c_tx_bytes[0] = (uint8_t)PCAReg::OUTPUT1;
+							i2c_tx_bytes[1] = 0x0u;
+							init_status = i2c_master_transmit(this->dev_handle, i2c_tx_bytes, 2, 50);
+						}
 					if (ESP_OK != init_status)
 					{
 						ESP_LOG_LEVEL(ESP_LOG_ERROR, name, "Failed to set input reg");

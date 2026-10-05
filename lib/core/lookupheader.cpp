@@ -34,7 +34,7 @@ int16_t * LookupHeader::get_data(void) const
 
 LookupAllocHeader::LookupAllocHeader(const int16_t *_header, const uint16_t _size) : LookupHeader(static_cast<int16_t*>(TCU_HEAP_ALLOC(_size * sizeof(int16_t))), _size)
 {
-    allocation_successful = (nullptr != header);
+    allocation_successful = (nullptr != header && nullptr != _header);
     if(allocation_successful){
         (void)memcpy(header, _header, size*sizeof(int16_t));
     }

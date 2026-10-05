@@ -60,7 +60,7 @@ void read_solenoids_i2s(void*) {
         CHANNEL_ID_MAP[(uint8_t)sol_order[i]->get_adc_channel() & 0xF] = i;
     }
     adc_continuous_config_t dig_cfg = {
-        .pattern_num = 6,
+        .pattern_num = NUM_SOLENOIDS,
         .adc_pattern = adc_pattern,
         .sample_freq_hz = 732000 * 2, // Real freq is 600000hz. (Bug with IDF 5.1) 2000000
         .conv_mode = ADC_CONV_SINGLE_UNIT_1,
@@ -82,7 +82,7 @@ void read_solenoids_i2s(void*) {
             for (int i = 0; i < read_len; i += SOC_ADC_DIGI_RESULT_BYTES) {
                 // adc_digi_output_data_t *p = (adc_digi_output_data_t*)&adc_read_buf[i];
                 adc_digi_output_data_t* p = reinterpret_cast<adc_digi_output_data_t*>(&adc_read_buf[i]);
-                uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel];
+                uint8_t channel_idx = CHANNEL_ID_MAP[p->type1.channel & 0xF];
                 if (channel_idx != 0xFF) {
                     if (p->type1.data != 0) {
                         s.peak_total[channel_idx] += p->type1.data;

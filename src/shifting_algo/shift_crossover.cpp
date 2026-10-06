@@ -121,8 +121,11 @@ uint8_t CrossoverShift::step_internal(
 
     // Output to CAN
     if (0 != torque_req_out && sid->trq_req_en) {
-        torque_req_out = MIN(torque_req_out, sd->indicated_torque);
-        sid->ptr_w_trq_req->amount = MAX(0, sd->indicated_torque - torque_req_out);
+        const int reference = this->trq_req_reference_torque(sd);
+        // Preserve at least 20% of the stable reference, including emergency requests.
+        const int retained = reference / 5;
+        torque_req_out = MIN((int)torque_req_out, reference - retained);
+        sid->ptr_w_trq_req->amount = reference - torque_req_out;
         sid->ptr_w_trq_req->bounds = TorqueRequestBounds::LessThan;
         sid->ptr_w_trq_req->ty =  this->trq_req_up_ramp ? TorqueRequestControlType::BackToDemandTorque : TorqueRequestControlType::NormalSpeed;
     } else {

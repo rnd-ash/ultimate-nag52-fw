@@ -143,6 +143,9 @@ protected:
     virtual bool is_release_shift() = 0;
     uint16_t threshold_rpm = 0;
     uint16_t torque_req_val = 0;
+    int16_t trq_req_reference = 0;
+    int16_t trq_req_reference_torque(SensorData* sd);
+
 
     uint16_t calc_high_filling_p();
     uint16_t calc_low_filling_p();

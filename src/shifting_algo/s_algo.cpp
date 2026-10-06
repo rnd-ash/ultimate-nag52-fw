@@ -32,6 +32,18 @@ ShiftingAlgorithm::ShiftingAlgorithm(ShiftInterfaceData* data)  {
     this->sid = data;
 }
 
+int16_t ShiftingAlgorithm::trq_req_reference_torque(SensorData* sd) {
+    // Indicated torque responds to our last request. Using it as the next
+    // reduction baseline creates a feedback loop that can ratchet the limit to zero.
+    // Latch the unreduced reference for this shift, while following a real demand lift.
+    if (0 == this->trq_req_reference) {
+        this->trq_req_reference = MAX((int)sd->indicated_torque, (int)sd->converted_driver_torque);
+    }
+    int reference = MIN((int)this->trq_req_reference, MAX(0, (int)sd->converted_driver_torque));
+    reference = MAX(reference, (int)sd->indicated_torque);
+    return MAX(0, reference);
+}
+
 uint8_t ShiftingAlgorithm::step(
     uint8_t phase_id,
     uint16_t abs_input_torque,

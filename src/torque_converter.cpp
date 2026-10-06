@@ -252,6 +252,8 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
 
 void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g) {
     this->calculate_min_pressure(sd, current_g);
+    bool should_open = false;
+    // Temperature processing
     // A disabled gear is an explicit release request, independent of slip hysteresis.
     const bool gear_enabled =
         (current_g == GearboxGear::First && TCC_CURRENT_SETTINGS.enable_d1) ||
@@ -259,8 +261,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         (current_g == GearboxGear::Third && TCC_CURRENT_SETTINGS.enable_d3) ||
         (current_g == GearboxGear::Fourth && TCC_CURRENT_SETTINGS.enable_d4) ||
         (current_g == GearboxGear::Fifth && TCC_CURRENT_SETTINGS.enable_d5);
-    bool should_open = !gear_enabled;
-    // Temperature processing
+    should_open = should_open || !gear_enabled;
     if (InternalTccState::Open == this->current_tcc_state) {
         if (sd->atf_temp < -10 || sd->atf_temp > 200) {
             should_open = true;

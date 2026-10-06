@@ -57,7 +57,7 @@ static bool ensure_allocated(void) {
     trace_header.version = SHIFT_TRACE_VERSION;
     trace_header.sample_size = (uint8_t)sizeof(ShiftTraceSample);
     trace_header.capacity = (uint16_t)SHIFT_TRACE_CAPACITY;
-    trace_header.buffer_addr = (uint32_t)trace_ring;
+    trace_header.buffer_addr = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(trace_ring));
     trace_header.seq = 0;
     trace_header.dropped = 0;
     trace_header.n_events = 0;
@@ -77,6 +77,9 @@ bool ShiftTrace::set_enabled(bool enabled) {
         trace_enabled = true;
     } else {
         trace_enabled = false;
+        // A disabled interval has no samples: restart event/derivative history on re-enable.
+        was_shifting = false;
+        q = {};
     }
     return true;
 }

@@ -13,7 +13,7 @@ void ShiftingAlgorithm::reset_all_subphase_data() {
 ShiftAlgoFeedback ShiftingAlgorithm::get_diag_feedback(uint8_t phase_id) {
     return ShiftAlgoFeedback{
         .active = 1, // True
-        .shift_phase = 1, // Always (Fix weirdness)
+        .shift_phase = phase_id, // Report the actual phase to diagnostics and tracing
         .subphase_shift = this->subphase_shift,
         .subphase_mod = this->subphase_mod,
         .sync_rpm = this->threshold_rpm,

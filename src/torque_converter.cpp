@@ -12,6 +12,7 @@
 #include "common_structs_ops.h"
 #include "egs_calibration/calibration_structs.h"
 #include <cstdint>
+#include <new>
 
 #define LOAD_SIZE TCC_SLIP_ADAPT_MAP_SIZE/5
 
@@ -44,36 +45,42 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         this->rated_max_torque = TCC_CURRENT_SETTINGS.tcc_max_trq_override;
     }
 
-    this->tcc_adapt_map_d1 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_1, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
-    if (this->tcc_adapt_map_d1->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d1;
+    this->tcc_adapt_map_d1 = new (std::nothrow) StoredMap(NVS_KEY_TCC_ADAPT_MAP_1, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
+    if (this->tcc_adapt_map_d1 == nullptr || this->tcc_adapt_map_d1->init_status() != ESP_OK) {
+        delete this->tcc_adapt_map_d1;
+        this->tcc_adapt_map_d1 = nullptr;
     }
 
-    this->tcc_adapt_map_d2 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_2, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
-    if (this->tcc_adapt_map_d2->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d2;
+    this->tcc_adapt_map_d2 = new (std::nothrow) StoredMap(NVS_KEY_TCC_ADAPT_MAP_2, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
+    if (this->tcc_adapt_map_d2 == nullptr || this->tcc_adapt_map_d2->init_status() != ESP_OK) {
+        delete this->tcc_adapt_map_d2;
+        this->tcc_adapt_map_d2 = nullptr;
     }
 
-    this->tcc_adapt_map_d3 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_3, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
-    if (this->tcc_adapt_map_d3->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d3;
+    this->tcc_adapt_map_d3 = new (std::nothrow) StoredMap(NVS_KEY_TCC_ADAPT_MAP_3, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
+    if (this->tcc_adapt_map_d3 == nullptr || this->tcc_adapt_map_d3->init_status() != ESP_OK) {
+        delete this->tcc_adapt_map_d3;
+        this->tcc_adapt_map_d3 = nullptr;
     }
 
-    this->tcc_adapt_map_d4 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_4, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
-    if (this->tcc_adapt_map_d4->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d4;
+    this->tcc_adapt_map_d4 = new (std::nothrow) StoredMap(NVS_KEY_TCC_ADAPT_MAP_4, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
+    if (this->tcc_adapt_map_d4 == nullptr || this->tcc_adapt_map_d4->init_status() != ESP_OK) {
+        delete this->tcc_adapt_map_d4;
+        this->tcc_adapt_map_d4 = nullptr;
     }
 
-    this->tcc_adapt_map_d5 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_5, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
-    if (this->tcc_adapt_map_d5->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d5;
+    this->tcc_adapt_map_d5 = new (std::nothrow) StoredMap(NVS_KEY_TCC_ADAPT_MAP_5, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
+    if (this->tcc_adapt_map_d5 == nullptr || this->tcc_adapt_map_d5->init_status() != ESP_OK) {
+        delete this->tcc_adapt_map_d5;
+        this->tcc_adapt_map_d5 = nullptr;
     }
 
 
 
-    this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
-    if (this->slip_rpm_target_map->init_status() != ESP_OK) {
-        delete[] this->slip_rpm_target_map;
+    this->slip_rpm_target_map = new (std::nothrow) StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
+    if (this->slip_rpm_target_map == nullptr || this->slip_rpm_target_map->init_status() != ESP_OK) {
+        delete this->slip_rpm_target_map;
+        this->slip_rpm_target_map = nullptr;
     }
 
     this->init_tables_ok =

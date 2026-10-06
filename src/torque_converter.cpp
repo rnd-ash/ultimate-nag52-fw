@@ -253,6 +253,26 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
 void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g) {
     this->calculate_min_pressure(sd, current_g);
     bool should_open = false;
+    if (this->is_shifting) {
+        const bool under_load = sd->pedal_pos > 15;
+        const bool unlock = this->upshifting
+            ? (under_load ? TCC_CURRENT_SETTINGS.unlock_load_upshifts
+                          : TCC_CURRENT_SETTINGS.unlock_coasting_upshifts)
+            : (under_load ? TCC_CURRENT_SETTINGS.unlock_load_downshifts
+                          : TCC_CURRENT_SETTINGS.unlock_coasting_downshifts);
+        // Do not begin a new fill during a shift if the clutch was already open.
+        should_open = unlock || this->target_tcc_state == InternalTccState::Open;
+    }
+    const TccReqState engine_request = egs_can_hal->get_engine_tcc_override_request(500);
+    if (engine_request == TccReqState::Open && TCC_CURRENT_SETTINGS.react_on_engine_open_request) {
+        should_open = true;
+    } else if (engine_request == TccReqState::Slipping &&
+               TCC_CURRENT_SETTINGS.react_on_engine_slip_request &&
+               this->current_tcc_state == InternalTccState::Slipping &&
+               this->target_tcc_state == InternalTccState::Slipping) {
+        // The current controller represents near-lock control as Slipping too.
+        this->slip_target = MAX(this->slip_target, 50);
+    }
     // Temperature processing
     if (InternalTccState::Open == this->current_tcc_state) {
         if (sd->atf_temp < -10 || sd->atf_temp > 200) {

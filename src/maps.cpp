@@ -193,7 +193,7 @@ const int16_t LARGE_NAG_FILL_TIME_MAP[FILL_TIME_MAP_SIZE] = {
 };
 
 const int16_t TCC_PWM_MAP[TCC_PWM_MAP_SIZE] = { // values are in /4096
- /*         TCC PRESSURE (mBar)              */   
+ /*         TCC PRESSURE (mBar)              */
  /* 0   2000  4000  5000  7500  10000  15000 */
     0,   480,  960, 1280, 1920,  2560,  4096, // 0C
     0,   560, 1040, 1280, 1920,  2560,  4096, // 30C
@@ -218,7 +218,7 @@ const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE] = {
 
 const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500,
     /* 25% Redline     */ 1000,  900,  800,  600,  475,  450,
     /* 50% Redline     */  700,  650,  600,  500,  450,  400,
     /* 75% Redline     */  500,  475,  450,  425,  400,  375,
@@ -227,7 +227,7 @@ const int16_t M_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t M_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500,
     /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
     /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
@@ -236,7 +236,7 @@ const int16_t M_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 const int16_t S_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500,
     /* 25% Redline     */ 1000,  900,  800,  600,  475,  450,
     /* 50% Redline     */  700,  650,  600,  500,  450,  400,
     /* 75% Redline     */  500,  475,  450,  425,  400,  375,
@@ -245,7 +245,7 @@ const int16_t S_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t S_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500,
     /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
     /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
@@ -254,7 +254,7 @@ const int16_t S_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 const int16_t A_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1500, 1000,  750,  500,  500,
     /* 25% Redline     */ 1000,  900,  800,  600,  475,  450,
     /* 50% Redline     */  700,  650,  600,  500,  450,  400,
     /* 75% Redline     */  500,  475,  450,  425,  400,  375,
@@ -263,7 +263,7 @@ const int16_t A_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t A_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1000,  750,  500,
     /* 25% Redline     */ 1750, 1500, 1200,  800,  650,  450,
     /* 50% Redline     */ 1500, 1250,  900,  600,  600,  400,
     /* 75% Redline     */ 1000, 1000,  600,  550,  550,  350,
@@ -273,7 +273,7 @@ const int16_t A_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 const int16_t C_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  750, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  750,
     /* 25% Redline     */ 1000,  900,  805,  800,  750,  700,
     /* 50% Redline     */  900,  850,  800,  750,  700,  650,
     /* 75% Redline     */  800,  750,  700,  650,  625,  600,
@@ -282,7 +282,7 @@ const int16_t C_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t C_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800,
     /* 25% Redline     */ 1800, 1600, 1400, 1250,  950,  750,
     /* 50% Redline     */ 1600, 1500, 1400, 1200,  900,  700,
     /* 75% Redline     */ 1400, 1300, 1200, 1100,  800,  650,
@@ -291,7 +291,7 @@ const int16_t C_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 const int16_t W_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  750, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  750,
     /* 25% Redline     */ 1000,  900,  805,  800,  750,  700,
     /* 50% Redline     */  900,  850,  800,  750,  700,  650,
     /* 75% Redline     */  800,  750,  700,  650,  625,  600,
@@ -300,7 +300,7 @@ const int16_t W_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t W_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800, 
+    /* < 1000 RPM (0%) */ 2000, 1750, 1500, 1250, 1000,  800,
     /* 25% Redline     */ 1800, 1600, 1400, 1250,  950,  750,
     /* 50% Redline     */ 1600, 1500, 1400, 1200,  900,  700,
     /* 75% Redline     */ 1400, 1300, 1200, 1100,  800,  650,
@@ -309,7 +309,7 @@ const int16_t W_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 
 const int16_t R_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */  100,  100,  100,  100,  100,  100, 
+    /* < 1000 RPM (0%) */  100,  100,  100,  100,  100,  100,
     /* 25% Redline     */  100,  100,  100,  100,  100,  100,
     /* 50% Redline     */  100,  100,  100,  100,  100,  100,
     /* 75% Redline     */  100,  100,  100,  100,  100,  100,
@@ -318,7 +318,7 @@ const int16_t R_UPSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (ov
 
 const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (overlap duration)
     /*                       0    20    40   60    80  100 <- Pedal % */
-    /* < 1000 RPM (0%) */  100,  100,  100, 100,  100,  100, 
+    /* < 1000 RPM (0%) */  100,  100,  100, 100,  100,  100,
     /* 25% Redline     */  100,  100,  100, 100,  100,  100,
     /* 50% Redline     */  100,  100,  100, 100,  100,  100,
     /* 75% Redline     */  100,  100,  100, 100,  100,  100,
@@ -333,19 +333,38 @@ const int16_t R_DOWNSHIFT_TIME_MAP[] = { // Value = Target time in ms to shift (
 // Values between 10 and 100 - Tcc is slipping with desired target slip
 const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE] = {
     /*  0    10   20   30   40   50   60   70   80   90   100 <- Pedal pos (%) */
-        200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM 
+        200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, // Input 1000 RPM
          50,  50,  50,  55,  60,  65,  70,  75,  80, 100, 100, // Input 1200 RPM
-         10,  20,  40,  40,  50,  50,  55,  60,  60,  70,  80, // Input 1400 RPM 
-          0,  10,  20,  30,  30,  40,  40,  50,  50,  60,  70, // Input 1600 RPM 
-          0,   0,  10,  10,  20,  20,  30,  30,  40,  50,  50, // Input 1800 RPM 
-          0,   0,   0,   0,   0,   0,  20,  20,  25,  30,  30, // Input 2000 RPM 
-          0,   0,   0,   0,   0,   0,   0,   0,  10,  10,  20, // Input 4000 RPM 
-          0,   0,   0,   0,   0,   0,   0,   0,   0,   5,  10, // Input 6000 RPM 
+         10,  20,  40,  40,  50,  50,  55,  60,  60,  70,  80, // Input 1400 RPM
+          0,  10,  20,  30,  30,  40,  40,  50,  50,  60,  70, // Input 1600 RPM
+          0,   0,  10,  10,  20,  20,  30,  30,  40,  50,  50, // Input 1800 RPM
+          0,   0,   0,   0,   0,   0,  20,  20,  25,  30,  30, // Input 2000 RPM
+          0,   0,   0,   0,   0,   0,   0,   0,  10,  10,  20, // Input 4000 RPM
+          0,   0,   0,   0,   0,   0,   0,   0,   0,   5,  10, // Input 6000 RPM
 };
 
 const int16_t GEAR_ADAPT_MAP[] = {
-//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1    
+//  1-2, 2-3, 3-4, 4-5, 5-4, 4-3, 3-2, 2-1
       0,   0,   0,   0,   0,   0,   0,   0
+};
+
+// Adapt map for pulling shifts (Crossover up-shifts, Release down-shifts)
+const int16_t GEAR_PULLING_TRQ_ADAPT_MAP[] = {
+    // 1000, 1500, 2000, 4000 <- Input RPM
+    0, 0, 0, 0, // 0%
+    0, 0, 0, 0, // 20%
+    0, 0, 0, 0, // 50%
+    0, 0, 0, 0, // 100%
+    0, 0, 0, 0, // 150%
+};
+
+// Adapt map for pushing shifts (Crossover down-shifts, Release up-shifts)
+const int16_t GEAR_PUSHING_TRQ_ADAPT_MAP[] = {
+    // 1000, 1500, 2000, 4000 <- Input RPM
+    0, 0, 0, 0, // 0%
+    0, 0, 0, 0, // 5%
+    0, 0, 0, 0, // 10%
+    0, 0, 0, 0, // 20%
 };
 
 // maximum torque at given rpm in [Nm]
@@ -365,7 +384,7 @@ const int16_t HFM_ENGINE_MAX_MASS_AIR_FLOW[HFM_ENGINE_TABLE_SIZE] = { // Value =
 // depicts the mass air flow at a given rpm and throttle position, used for torque calculation
 // values in [kg/h]
 const int16_t HFM_ENGINE_MASS_AIR_FLOW[HFM_ENGINE_MAP_SIZE] = {
-    /* 0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000 rpm */ 
+    /* 0, 250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2250, 2500, 2750, 3000, 3250, 3500, 3750, 4000, 4250, 4500, 4750, 5000, 5250, 5500, 5750, 6000, 6250, 6500, 6750, 7000, 7250, 7500, 7750, 8000 rpm */
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0.0°
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0.7°
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1.05°

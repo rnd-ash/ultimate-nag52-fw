@@ -5,6 +5,7 @@
 #include "../pressure_manager.h"
 #include "torque_converter.h"
 #include "shift_flags.h"
+#include <cstdint>
 
 struct TorqueRequstData {
     TorqueRequestControlType ty;
@@ -47,6 +48,8 @@ struct ShiftInterfaceData {
     bool manual_shift;
     bool trq_req_en;
     float diff_ratio;
+    uint16_t max_gb_trq;
+    float ratio_old_gear;
 };
 
 class ShiftingAlgorithm {
@@ -102,6 +105,8 @@ protected:
     int mpc_trq_reducer = 0;
     int trq_adder = 0;
     uint16_t abs_input_trq;
+    uint16_t abs_load_percentage;
+    uint16_t input_rpm_trq_adapt_map;
 
     int mod_sol_pressure;
     int shift_sol_pressure;
@@ -156,7 +161,7 @@ protected:
     uint8_t trq_req_timer = 0;
 
     bool adaptation_conditions_ok = true;
-    
+
     bool do_fill_time_adaptation = false;
     bool do_fill_pressure_adaptation = false;
     bool do_torque_adaptation = false;
@@ -179,10 +184,12 @@ protected:
     int32_t first_order_pump_trq_filter = 0;
 
     int32_t pid_sum = 0;
-    int32_t abs_sum = 0;
     uint16_t pid_count = 0;
 
     int16_t old_input_trq = 0;
+
+    uint32_t trq_adp_load_percentage_sum = 0;
+    int trq_adp_input_rpm_sum = 0;
 
     bool first_run = true;
     bool torque_jumped = false;

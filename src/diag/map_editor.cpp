@@ -24,11 +24,25 @@ StoredMap* get_adaptation_map(uint8_t map_id) {
             case SHIFT_ADAPT_FILL_P_MAP_ID:
                 ret = adaptation_manager->spc_offset_map;
                 break;
-            case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
-                ret = adaptation_manager->applying_torque_offset;
+            case SHIFT_ADAPT_TRQ_PULL_12_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_23_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_34_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_45_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_21_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_32_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_43_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_54_MAP_ID:
+                ret = adaptation_manager->pulling_trq_map[map_id - SHIFT_ADAPT_TRQ_PULL_12_MAP_ID];
                 break;
-            case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
-                ret = adaptation_manager->freeing_torque_offset;
+            case SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_23_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_34_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_45_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_21_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_32_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_43_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_54_MAP_ID:
+                ret = adaptation_manager->pushing_trq_map[map_id - SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID];
                 break;
             default:
                 break;
@@ -109,13 +123,27 @@ StoredMap* get_map(uint8_t map_id) {
             return gearbox->tcc->get_adapt_map_d4();
         case TCC_ADAPT_D5_MAP_ID:
             return gearbox->tcc->get_adapt_map_d5();
-        
+
         case TCC_RPM_SLIP_MAP:
             return gearbox->tcc->get_rpm_slip_map();
         case SHIFT_ADAPT_FILL_T_MAP_ID:
         case SHIFT_ADAPT_FILL_P_MAP_ID:
-        case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
-        case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_12_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_23_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_34_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_45_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_21_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_32_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_43_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_54_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_23_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_34_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_45_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_21_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_32_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_43_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_54_MAP_ID:
             return get_adaptation_map(map_id);
         default:
             return nullptr;

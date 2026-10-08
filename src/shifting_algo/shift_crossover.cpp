@@ -83,7 +83,8 @@ uint8_t CrossoverShift::step_internal(
             if (intervension_out != 0) {
                 int adapt_val = 0;
                 if (sid->adaptation_mgr) {
-                    adapt_val = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+                    // Always be pulling (Trq request is only active when pulling)
+                    adapt_val = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, sd->input_rpm, this->abs_load_percentage);
                 }
                 if (this->correction_trq + adapt_val <= 0) {
                     int negative_factor = interpolate_float(sid->chars.target_shift_time, 40, 20, 500, 100, InterpType::Linear);
@@ -290,7 +291,11 @@ uint8_t CrossoverShift::phase_overlap() {
     }
 
     if (sid->adaptation_mgr) {
-        this->trq_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+        if (this->upshifting) {
+            this->trq_adder = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+        } else {
+            this->trq_adder = sid->adaptation_mgr->get_pushing_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+        }
     }
     this->trq_adder -= this->calculate_dynamic_inertia();
     this->trq_adder -= this->trq_req_compensate_val;
@@ -404,7 +409,11 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
     int adaptation_adder = 0;
     if (sid->adaptation_mgr) {
-        adaptation_adder = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+        if (this->upshifting) {
+            adaptation_adder = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+        } else {
+            adaptation_adder = sid->adaptation_mgr->get_pushing_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+        }
     }
 
 

@@ -425,7 +425,9 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .adaptation_mgr = this->shift_adapter,
             .manual_shift = manually_requested,
             .trq_req_en = en_trq_req,
-            .diff_ratio = this->diff_ratio_f
+            .diff_ratio = this->diff_ratio_f,
+            .max_gb_trq = this->gearboxConfig.max_torque,
+            .ratio_old_gear = this->gearboxConfig.bounds[gear_to_idx_lookup(this->actual_gear)].ratio
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true);

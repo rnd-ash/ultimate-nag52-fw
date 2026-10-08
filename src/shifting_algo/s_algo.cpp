@@ -1,6 +1,9 @@
 #include "s_algo.h"
 #include <egs_calibration/calibration_structs.h>
+#include "esp_log_level.h"
 #include "nvs/module_settings.h"
+#include "shifting_algo/shift_flags.h"
+#include "stored_map.h"
 
 void ShiftingAlgorithm::reset_all_subphase_data() {
     this->subphase_mod = 0;
@@ -52,6 +55,8 @@ uint8_t ShiftingAlgorithm::step(
     this->centrifugal_force_off_clutch = pm->calculate_centrifugal_force_for_clutch(sid->releasing, sd->input_rpm, abs(sid->ptr_r_clutch_speeds->rear_sun_speed));
     // EGS compatibility vars updated every cycle
     this->abs_input_trq = abs_input_torque;
+    this->abs_load_percentage = ((int)this->abs_input_trq * 100) / sid->max_gb_trq;
+    this->input_rpm_trq_adapt_map = (uint16_t)((float)sd->output_rpm * sid->ratio_old_gear); // Input RPM adjusted based on old gear
     this->pm = pm;
     this->sd = sd;
 
@@ -83,8 +88,8 @@ uint8_t ShiftingAlgorithm::step(
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
     this->adaptation_step();
-    
-    // -1 means not in use, 0 means timeout! 
+
+    // -1 means not in use, 0 means timeout!
     if (this->timer_emergency == 0) {
         // Only if we are continuing the same phase (Stuck)
         // do we override with this
@@ -350,7 +355,7 @@ uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
     // TODO - Move max_p to global constant so it can be referred in other functions
     uint16_t max_p = pm->get_max_shift_pressure(sid->inf.map_idx);
     // Corrections (See below at adapting system for more details why we transform the map idx)
-    
+
     if (sid->adaptation_mgr) {
         pressure += sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
     }
@@ -414,7 +419,7 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     int32_t ret = MAX(INT16_MIN, MIN(INT16_MAX, p_v + i_v + d_v));
     if (this->do_torque_adaptation) {
         this->pid_sum += ret;
-        this->abs_sum += this->abs_input_trq;
+        this->trq_adp_load_percentage_sum += this->abs_load_percentage;
         this->pid_count += 1;
     }
     return (short)ret;
@@ -456,7 +461,7 @@ void ShiftingAlgorithm::adaptation_step() {
     }
 
     // Fill pressure adaptation (Done for all algorithms)
-    
+
     // Boundary conditions (Every cycle)
     int tcc_trq = ((sd->tcc_trq_multiplier*100) * sd->pump_torque); // 100x real value
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
@@ -584,7 +589,7 @@ void ShiftingAlgorithm::adaptation_step() {
         }
 
     }
-    
+
     if (0 == this->torque_adaptation_stage) {
         if (GearChange::_1_2 == sid->change) {
             this->do_torque_adaptation = ADP_CURRENT_SETTINGS.adapt_trq_1_2;
@@ -619,7 +624,7 @@ void ShiftingAlgorithm::adaptation_step() {
 
         ESP_LOGI("ADAPT", "Start adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
     }
-    if (this->do_torque_adaptation) { 
+    if (this->do_torque_adaptation) {
         // Cancel checks
         if (sd->input_rpm < 1000) {
             this->do_torque_adaptation = false;
@@ -627,53 +632,52 @@ void ShiftingAlgorithm::adaptation_step() {
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 || (sid->shift_flags & SHIFT_FLAG_COAST) != 0) {
             this->do_torque_adaptation = false;
         }
-        if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
-            this->do_torque_adaptation = false;
-        }
     }
     if (this->torque_adaptation_stage == 1 && this->do_torque_adaptation) {
+        this->trq_adp_input_rpm_sum += this->input_rpm_trq_adapt_map;
         // PID runs in this phase
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
             this->torque_adaptation_stage = 2;
         }
     } else if (this->torque_adaptation_stage == 2 && this->do_torque_adaptation) {
         // Analyze phase
-        if (this->pid_count != 0 && nullptr != sid->adaptation_mgr) {
-            float avg_pid_torque = this->pid_sum / this->pid_count;
-            float avg_abs_torque = this->abs_input_trq / this->pid_count;
-            float scalar = interpolate_float(
-                avg_abs_torque,
-                0.10, // 10% at low torque
-                0.05, // 5% at higher torque
-                // Drag torque = min
-                VEHICLE_CONFIG.engine_drag_torque / 10.0,
-                // 10x Drag torque = max
-                VEHICLE_CONFIG.engine_drag_torque,
-                InterpType::Linear
-            );
-
-            int old_v = 0;
-            if (is_release_shift()) {
-                old_v = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);
+        if (this->pid_count > 5 && nullptr != sid->adaptation_mgr) { // Pid must run for at least 100ms
+            float avg_pid_torque = (float)this->pid_sum / (float)this->pid_count;
+            float avg_rpm = (float)this->trq_adp_input_rpm_sum / (float)this->pid_count;
+            float avg_load = (float)this->trq_adp_load_percentage_sum / (float)this->pid_count;
+            bool coast_32 = this->is_release_shift() && sid->inf.map_idx == 5 && (sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0;
+            // EGS53 - Special fix for slow 3-2 coast (PID going highly negative should instead modify SPC offset)
+            if (coast_32 && avg_pid_torque < 100) {
+                ESP_LOGI("TRQ_ADAPT", "3-2 coast low negative PID torque, correcting SPC pressure instead");
+                sid->adaptation_mgr->offset_spc_pressure(5, 10);
             } else {
-                old_v = sid->adaptation_mgr->get_applying_torque_offset(sid->inf.map_idx);
+                StoredMap* map = nullptr;
+                if ((this->is_release_shift() && !upshifting) || (!this->is_release_shift() && upshifting)) {
+                    // Pulling shift (Release down, Crossover Up)
+                    map = sid->adaptation_mgr->get_pulling_torque_map(sid->inf.map_idx);
+                } else {
+                    // Pushing shift (Release up, Crossover Dn)
+                    map = sid->adaptation_mgr->get_pushing_torque_map(sid->inf.map_idx);
+                }
+                if (nullptr != map) {
+                    float old_value = map->get_value(avg_rpm, avg_load);
+                    old_value += avg_pid_torque;
+                    ESP_LOGI("TRQ_ADAPT", "New value = %d Nm [%d RPM][%d load percent]", (int)old_value, (int)avg_rpm, (int)avg_load);
+                    if (old_value < -200 || old_value > 200) {
+                        if (coast_32 && old_value < -200) {
+                            ESP_LOGI("TRQ_ADAPT", "3-2 coast low negative PID torque, correcting SPC pressure instead");
+                            sid->adaptation_mgr->offset_spc_pressure(5, 10);
+                        } else {
+                            old_value = MIN(200, MAX(old_value, -200));
+                            ESP_LOGW("TRQ_ADAPT", "Torque adaptation value hit limit (%d Nm)", old_value);
+                        }
+                    }
+                    map->add_value(old_value, avg_rpm,avg_load,  10.0);
+                } else {
+                    ESP_LOGW("TRQ_ADAPT", "Cannot adapt - Map null");
+                }
             }
-
-
-            float clamped_pid = MAX(-VEHICLE_CONFIG.engine_drag_torque / 10.0, MIN(avg_pid_torque, VEHICLE_CONFIG.engine_drag_torque / 10.0));
-            clamped_pid *= scalar;
-
-            int new_v = (int)((float)old_v + clamped_pid);
-            ESP_LOGI("ADAPT", "T_ADAPT end. Avg PID: %.1f Nm, Avg input: %.1f Nm", avg_pid_torque, avg_abs_torque);
-            if (is_release_shift()) {
-                sid->adaptation_mgr->offset_freeing_trq(sid->inf.map_idx, new_v-old_v);
-            } else {
-                sid->adaptation_mgr->offset_applying_trq(sid->inf.map_idx, new_v-old_v);
-            }
-            
         }
-
-
         this->do_torque_adaptation = false;
     }
 

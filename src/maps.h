@@ -101,7 +101,7 @@ extern const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
 
 extern const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE];
 
-// -- Target Shift time maps -- 
+// -- Target Shift time maps --
 
 #define SHIFT_TIME_MAP_SIZE 30
 
@@ -137,6 +137,11 @@ extern const int16_t TCC_RPM_TARGET_MAP[TCC_RPM_TARGET_MAP_SIZE];
 extern const int16_t CLUTCH_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 
+
+#define GEAR_TRQ_PULL_ADAPT_MAP_SIZE 4*5
+#define GEAR_TRQ_PUSH_ADAPT_MAP_SIZE 4*4
+extern const int16_t GEAR_PULLING_TRQ_ADAPT_MAP[];
+extern const int16_t GEAR_PUSHING_TRQ_ADAPT_MAP[];
 
 /**
  * torque tables

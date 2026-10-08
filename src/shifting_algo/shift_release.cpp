@@ -267,7 +267,11 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
             this->timer_emergency = 2500 / 20; // 2.5 seconds when not coasting
         }
         if (nullptr != sid->adaptation_mgr) {
-            this->trq_adder = sid->adaptation_mgr->get_freeing_torque_offset(sid->inf.map_idx);
+            if (this->upshifting) {
+                this->trq_adder = sid->adaptation_mgr->get_pushing_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+            } else {
+                this->trq_adder = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+            }
         }
         this->timer_mod = this->calc_cycles_mod_phase1();
         this->subphase_mod += 1;

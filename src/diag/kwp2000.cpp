@@ -743,8 +743,21 @@ void Kwp2000_server::process_read_mem_address_ext(uint8_t* args, uint16_t arg_le
     //vTaskDelay(40);
     uint8_t len = args[4];
     uint32_t end = start + len;
-    uint8_t* buffer = (uint8_t*)TCU_HEAP_ALLOC(len);
-    memcpy(buffer, (const uint8_t*)start, len);
+    bool addr_ok =
+        (end >= start) &&
+        ((start >= 0x3F800000u && end <= 0x3FC00000u) ||
+         (start >= 0x3FFAE000u && end <= 0x40000000u) ||
+         (start >= 0x40070000u && end <= 0x400A0000u));
+    if (!addr_ok) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS_EXT, NRC_SUB_FUNC_NOT_SUPPORTED_INVALID_FORMAT);
+        return;
+    }
+    uint8_t* buffer = static_cast<uint8_t*>(TCU_HEAP_ALLOC(len));
+    if (nullptr == buffer) {
+        make_diag_neg_msg(SID_READ_MEM_BY_ADDRESS_EXT, NRC_GENERAL_REJECT);
+        return;
+    }
+    memcpy(buffer, reinterpret_cast<const uint8_t*>(start), len);
     make_diag_pos_msg(SID_READ_MEM_BY_ADDRESS_EXT, buffer, len);
     TCU_FREE(buffer);
 }

@@ -4,6 +4,7 @@
 #include <time.h>
 #include "diag_data.h"
 #include "egs_emulation.h"
+#include "freertos/idf_additions.h"
 #include "kwp_utils.h"
 #include "map_editor.h"
 #include "esp_mac.h"
@@ -54,7 +55,7 @@ const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
                 .year = 22,
                 .week = 27
             };
-        
+
         case 3:
             return ECU_Date {
                 .day = 12,
@@ -62,7 +63,7 @@ const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
                 .year = 22,
                 .week = 49
             };
-        
+
         default:
             return ECU_Date {
                 .day = 0,
@@ -388,7 +389,7 @@ void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t ar
 
 void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
     if (
-        this->session_mode == SESSION_EXTENDED || 
+        this->session_mode == SESSION_EXTENDED ||
         this->session_mode == SESSION_REPROGRAMMING ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
@@ -551,7 +552,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
                 c = MAP_READ_TYPE_STO;
             }
             ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
-        } else if (cmd == MAP_CMD_READ_META) { 
+        } else if (cmd == MAP_CMD_READ_META) {
             ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
         } else if (cmd == MAP_CMD_GET_LOOKUP_VALS && map_len_bytes == 0) {
             ret = MapEditor::read_map_lookup_cache(map_id, &read_bytes_size, &buffer);
@@ -628,7 +629,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         uint16_t len = get_egs_calibration_size();
         uint8_t x[2] = { (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF) };
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EGS_CAL_LEN, x, sizeof(uint16_t));
-    } else if (args[0] == RLI_EMBED_FILE_INFO) { 
+    } else if (args[0] == RLI_EMBED_FILE_INFO) {
         PARTITION_INFO r = get_embeded_file_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EMBED_FILE_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     } else if (args[0] == RLI_SETTINGS_EDIT) {
@@ -671,7 +672,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         }
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
-    
+
 }
 
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
@@ -914,7 +915,10 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
+            sol_tcc->isr_disable();
+            vTaskDelay(20);
             esp_err_t res = this->gearbox_ptr->shift_adapter->reset();
+            sol_tcc->isr_enable();
             if (ESP_OK == res) {
                 make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
             } else {
@@ -943,7 +947,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     }
 }
 void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
-    
+
 }
 void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52  && this->session_mode != SESSION_REPROGRAMMING) {

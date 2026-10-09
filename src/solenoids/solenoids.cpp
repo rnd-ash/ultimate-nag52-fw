@@ -153,11 +153,6 @@ void update_solenoids(void*) {
     }
 }
 
-float resistance_mpc = 5.0;
-float resistance_spc = 5.0;
-bool temp_cal = false;
-int16_t temp_at_test = 25;
-
 bool routine = false;
 bool startup_ok = false;
 

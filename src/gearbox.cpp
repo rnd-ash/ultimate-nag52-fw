@@ -1248,12 +1248,17 @@ void Gearbox::controller_loop()
                 tmp_rpm = 0;
             }
             if (sensor_data.input_rpm == 0 && this->engine_running) {
-                // Engine is off, and USB is powering the TCU
-                this->engine_running = false;
-                tmp_rpm = 0;
-                this->last_motion_gear = GearboxGear::Second; // No pressure default
-                this->actual_gear = GearboxGear::Neutral;
-                this->target_gear = GearboxGear::Neutral;
+                this->engine_running_off_counter += 1;
+                if (this->engine_running_off_counter >= 128) { // 2.5 seconds
+                    // Engine is off, and USB is powering the TCU
+                    this->engine_running = false;
+                    tmp_rpm = 0;
+                    this->last_motion_gear = GearboxGear::Second; // No pressure default
+                    this->actual_gear = GearboxGear::Neutral;
+                    this->target_gear = GearboxGear::Neutral;
+                }
+            } else {
+                this->engine_running_off_counter += 0;
             }
         }
         else

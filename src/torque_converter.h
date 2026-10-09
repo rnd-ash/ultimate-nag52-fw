@@ -58,8 +58,6 @@ class TorqueConverter {
 
         void set_stationary();
 
-        void calc_pid_score();
-
         void shift_start(bool upshift, bool release_shifting);
         void shift_end();
         uint16_t get_slip_now();

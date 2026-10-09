@@ -1,4 +1,6 @@
 #include "torque_converter.h"
+#include "canbus/can_defines.h"
+#include "canbus/can_hal.h"
 #include "nvs/eeprom_config.h"
 #include "nvs/module_settings.h"
 #include "solenoids/solenoids.h"
@@ -46,34 +48,40 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
 
     this->tcc_adapt_map_d1 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_1, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
     if (this->tcc_adapt_map_d1->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d1;
+        delete this->tcc_adapt_map_d1;
+        this->tcc_adapt_map_d1 = nullptr;
     }
 
     this->tcc_adapt_map_d2 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_2, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
     if (this->tcc_adapt_map_d2->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d2;
+        delete this->tcc_adapt_map_d2;
+        this->tcc_adapt_map_d2 = nullptr;
     }
 
     this->tcc_adapt_map_d3 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_3, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
     if (this->tcc_adapt_map_d3->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d3;
+        delete this->tcc_adapt_map_d3;
+        this->tcc_adapt_map_d3 = nullptr;
     }
 
     this->tcc_adapt_map_d4 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_4, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
     if (this->tcc_adapt_map_d4->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d4;
+        delete this->tcc_adapt_map_d4;
+        this->tcc_adapt_map_d4 = nullptr;
     }
 
     this->tcc_adapt_map_d5 = new StoredMap(NVS_KEY_TCC_ADAPT_MAP_5, TCC_ADAPT_MAP_Z_SIZE, TCC_ADAPT_MAP_X, TCC_ADAPT_MAP_Y, 6, 6, TCC_ADAPT_MAP_Z);
     if (this->tcc_adapt_map_d5->init_status() != ESP_OK) {
-        delete[] this->tcc_adapt_map_d5;
+        delete this->tcc_adapt_map_d5;
+        this->tcc_adapt_map_d5 = nullptr;
     }
 
 
 
     this->slip_rpm_target_map = new StoredMap(NVS_KEY_TCC_SLIP_TARGET_MAP, TCC_RPM_TARGET_MAP_SIZE, rpm_map_x_headers, rpm_map_y_headers, 11, 8, TCC_RPM_TARGET_MAP);
     if (this->slip_rpm_target_map->init_status() != ESP_OK) {
-        delete[] this->slip_rpm_target_map;
+        delete this->slip_rpm_target_map;
+        this->slip_rpm_target_map = nullptr;
     }
 
     this->init_tables_ok =
@@ -84,17 +92,13 @@ TorqueConverter::TorqueConverter(uint16_t max_gb_rating)  {
         (this->tcc_adapt_map_d5 != nullptr) &&
         (this->slip_rpm_target_map != nullptr);
     if (!init_tables_ok) {
-        ESP_LOGE("TCC", "Adaptation table(s) for TCC failed to load. TCC will be non functional");
+        ESP_LOGE("TCC", "Some table(s) for TCC failed to load. TCC will be non functional");
     }
 }
 
 void TorqueConverter::diag_toggle_tcc_sol(bool en) {
     ESP_LOGI("TCC", "Diag request to set TCC control to %d", en);
     this->tcc_solenoid_enabled = en;
-}
-
-void TorqueConverter::calc_pid_score() {
-
 }
 
 void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
@@ -140,7 +144,28 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     } else {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
-    if (this->is_shifting && this->upshifting) {
+    if (this->is_shifting) {
+        if (this->upshifting) {
+            if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_upshifts) {
+                target = SLIP_V_WHEN_OPEN;
+            } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_upshifts) {
+                target = SLIP_V_WHEN_OPEN;
+            } else {
+                target += 10; // Required
+            }
+        } else {
+            if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_downshifts) {
+                target = SLIP_V_WHEN_OPEN;
+            } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_downshifts) {
+                target = SLIP_V_WHEN_OPEN;
+            }
+        }
+    }
+
+    TccReqState e_req = egs_can_hal->get_engine_tcc_override_request(100);
+    if (TCC_CURRENT_SETTINGS.react_on_engine_open_request && e_req == TccReqState::Open) {
+        target = SLIP_V_WHEN_OPEN;
+    } else if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && e_req == TccReqState::Slipping) {
         target += 10;
     }
 
@@ -461,7 +486,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         pm->set_target_tcc_pressure(this->tcc_commanded_pressure);
         this->current_tcc_state = InternalTccState::Open;
         this->target_tcc_state = InternalTccState::Open;
-        this->slip_target = SLIP_V_WHEN_OPEN;
+        this->slip_target = SLIP_V_WHEN_OPEN*2; // 200RPM = Way out of open range
         this->timer_command_p = 0;
         this->timer_till_adapt = 10;
         this->timer_till_pid = 10;
@@ -478,7 +503,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         (cmp_gear == GearboxGear::Fourth && !TCC_CURRENT_SETTINGS.enable_d4)||
         (cmp_gear == GearboxGear::Fifth && !TCC_CURRENT_SETTINGS.enable_d5))
     ) {
-        this->slip_target = SLIP_V_WHEN_OPEN;
+        this->slip_target = SLIP_V_WHEN_OPEN*2; // 200RPM = Way out of open range
     }
     this->process_open_or_slip_state(sensors, curr_gear);
 

@@ -3,6 +3,7 @@
 #ifndef GEARBOX_H
 #define GEARBOX_H
 
+#include <cstdint>
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "solenoids/solenoids.h"
@@ -114,6 +115,7 @@ private:
     static const uint8_t ENGINE_RPM_MISSING_MAX_CYCLES = 10;
     uint8_t engine_rpm_missing_cycles = 0;
     bool engine_running = false;
+    uint8_t engine_running_off_counter = 0;
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;

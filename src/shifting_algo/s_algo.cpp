@@ -420,6 +420,7 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
     if (this->do_torque_adaptation) {
         this->pid_sum += ret;
         this->trq_adp_load_percentage_sum += this->abs_load_percentage;
+        this->trq_adp_input_rpm_sum += this->input_rpm_trq_adapt_map;
         this->pid_count += 1;
     }
     return (short)ret;
@@ -634,7 +635,6 @@ void ShiftingAlgorithm::adaptation_step() {
         }
     }
     if (this->torque_adaptation_stage == 1 && this->do_torque_adaptation) {
-        this->trq_adp_input_rpm_sum += this->input_rpm_trq_adapt_map;
         // PID runs in this phase
         if (sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
             this->torque_adaptation_stage = 2;

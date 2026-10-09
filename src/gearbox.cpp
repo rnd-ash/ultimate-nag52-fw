@@ -627,6 +627,7 @@ void Gearbox::shift_thread()
             uint8_t timer_m = 0;
 
             bool completed_ok = false;
+            bool tried_again = false;
             bool jump_to_pid = false;
             this->algo_feedback.active = true;
 
@@ -815,7 +816,9 @@ void Gearbox::shift_thread()
                         }
                     } else if (substage == 8) {
                         // Check for completion
-                        if (rpm_delta < 20) {
+                        // Confirm with the same threshold that admitted the clamp ramp.
+                        // Turbine drag at standstill can keep rpm_delta above 20 RPM.
+                        if (rpm_delta < sync_rpm_threshold) {
                             // Sync is OK!
                             //int rpm_delta_engine = abs(sensor_data.engine_rpm - sensor_data.input_rpm);
                             //if (rpm_delta_engine > 150 || rpm_delta < 10) {
@@ -864,6 +867,11 @@ void Gearbox::shift_thread()
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_3_4, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_2_3, false);
                             this->pressure_mgr->set_shift_circuit(ShiftCircuit::sc_1_2, false);
+                            if (tried_again) {
+                                // End this attempt through the existing abort/cleanup path.
+                                break;
+                            }
+                            tried_again = true;
                             stage = 1;
                             substage = 0;
 

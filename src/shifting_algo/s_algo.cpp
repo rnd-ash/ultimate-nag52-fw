@@ -612,9 +612,9 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_torque_adaptation = false;
         }
 
-        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
-            this->do_torque_adaptation = false;
-        }
+        //if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+        //    this->do_torque_adaptation = false;
+        //}
 
         this->torque_adaptation_stage += 1;
         if (race == sid->profile) {

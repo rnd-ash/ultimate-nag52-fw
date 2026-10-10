@@ -1258,7 +1258,7 @@ void Gearbox::controller_loop()
                     this->target_gear = GearboxGear::Neutral;
                 }
             } else {
-                this->engine_running_off_counter += 0;
+                this->engine_running_off_counter = 0;
             }
         }
         else

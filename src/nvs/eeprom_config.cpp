@@ -270,7 +270,11 @@ esp_err_t EEPROM::ewm_btn_get_saved_profile(uint8_t* dest) {
 esp_err_t EEPROM::ewm_btn_save_profile(uint8_t save_profile) {
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    return nvs_set_u8(handle, NVS_KEY_LAST_PROFILE, save_profile);
+    esp_err_t e = nvs_set_u8(handle, NVS_KEY_LAST_PROFILE, save_profile);
+    if (ESP_OK == e) {
+        e = nvs_commit(handle);
+    }
+    return e;
 }
 
 esp_err_t EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {

@@ -11,6 +11,8 @@ class ShifterEwm : public Shifter
 {
 public:
 	ShifterEwm(const ETS_MODULE_SETTINGS* shifter_settings);
+	ShifterEwm(const ShifterEwm&) = delete;
+	ShifterEwm& operator=(const ShifterEwm&) = delete;
 	ShifterPosition get_shifter_position(void) override;
 	AbstractProfile* get_profile(void) override;
 	void set_program_button_pressed(const bool is_pressed, const ProfileSwitchPos pos);
@@ -21,7 +23,7 @@ private:
 	const uint32_t expire_time_ms = 250u;
 	bool state = false;
 	bool esp_toggle = false;
-	ProgramSelector* programselector;
+	ProgramSelector* programselector = nullptr;
 };
 
 #endif // SHIFTER_EWM_H

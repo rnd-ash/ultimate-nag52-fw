@@ -595,7 +595,7 @@ void ShiftingAlgorithm::adaptation_step() {
                     float scalar = interpolate_float(time, 0.25, 0.5, 4, 8, InterpType::Linear);
                     int new_v = (int)((float)old_v + (float)correction_p * scalar);
                     int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
-                    if (new_v > sid->inf.pressure_multi_spc_int) {
+                    if (new_v > lim) {
                         new_v = lim;
                     } else if (new_v < -lim) {
                         new_v = -lim;

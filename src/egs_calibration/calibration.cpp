@@ -83,34 +83,38 @@ esp_err_t EGSCal::reload_egs_calibration() {
                 if (tmp->magic != 0xDEADBEEFu) {
                     // Magic failed
                     ret = ESP_ERR_INVALID_VERSION;
-                    goto exit;
                 }
-                if (tmp->len != sizeof(CalibrationInfo)) {
+                else if (tmp->len != sizeof(CalibrationInfo)) {
                     // Size mismatch (Maybe data is added?)
                     ESP_LOGE("CAL", "Calibration load failed. Length mismatch. Length at info is %d, calibration size is %d", (int)tmp->len, (int)sizeof(CalibrationInfo));
                     ret = ESP_ERR_INVALID_SIZE;
-                    goto exit;
                 }
-                uint16_t crc_calculated = crc(&(reinterpret_cast<uint8_t*>(tmp))[8], sizeof(CalibrationInfo)-8);
-                if (crc_calculated != tmp->crc) {
-                    // CRC Error
-                    ESP_LOGE("CAL", "Calibration load failed. CRC error. Wanted %04X, got %04X", crc_calculated, tmp->crc);
-                    ret = ESP_ERR_INVALID_CRC;
-                    goto exit;
+                else {
+                    uint16_t crc_calculated = crc(&(reinterpret_cast<uint8_t*>(tmp))[8], sizeof(CalibrationInfo)-8);
+                    if (crc_calculated != tmp->crc) {
+                        // CRC Error
+                        ESP_LOGE("CAL", "Calibration load failed. CRC error. Wanted %04X, got %04X", crc_calculated, tmp->crc);
+                        ret = ESP_ERR_INVALID_CRC;
+                    }
+                    else {
+                        // Guard against zeroed CAL (Check the NEW block, not the one already in use)
+                        ret = ESP_OK;
+                        for (int gear = 1; gear <= 5; ++gear) {
+                            if (tmp->mech_cal.ratio_table[gear] == 0) {
+                                ret = ESP_ERR_INVALID_ARG;
+                                break;
+                            }
+                        }
+                        if (ESP_OK == ret) {
+                            // Copy the temporery CalInfo to the in use one!
+                            memcpy(CAL_RAM_PTR, tmp, sizeof(CalibrationInfo));
+                        }
+                    }
                 }
-                // Guard against zeroed mechanical CAL
-                const uint16_t* r_table = CAL_RAM_PTR->mech_cal.ratio_table;
-                if (r_table[1] == 0 || r_table[2] == 0  || r_table[3] == 0  || r_table[4] == 0  || r_table[5] == 0) {
-                    ESP_LOGE("CAL", "Calibration load failed. Ratio table has 0'ed values!");
-                    ret = ESP_ERR_INVALID_ARG;
-                    goto exit;
-                }
-                // Copy the temporery CalInfo to the in use one!
-                memcpy(CAL_RAM_PTR, tmp, sizeof(CalibrationInfo));
             }
+            // Always release the temp buffer (Previously leaked on the early-exit paths)
             TCU_FREE(tmp);
         }
     }
-exit:
     return ret;
 }

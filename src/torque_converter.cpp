@@ -135,6 +135,8 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
 }
 
 uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
+    // Explicit release requests must exceed the state machine's open hysteresis.
+    const int open_request_target = SLIP_V_WHEN_OPEN * 2;
     int target = SLIP_V_WHEN_OPEN;
     int inc = 0;
     if (this->pulling) {
@@ -147,24 +149,24 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     if (this->is_shifting) {
         if (this->upshifting) {
             if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_upshifts) {
-                target = SLIP_V_WHEN_OPEN;
+                target = open_request_target;
             } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_upshifts) {
-                target = SLIP_V_WHEN_OPEN;
+                target = open_request_target;
             } else {
                 target += 10; // Required
             }
         } else {
             if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_downshifts) {
-                target = SLIP_V_WHEN_OPEN;
+                target = open_request_target;
             } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_downshifts) {
-                target = SLIP_V_WHEN_OPEN;
+                target = open_request_target;
             }
         }
     }
 
     TccReqState e_req = egs_can_hal->get_engine_tcc_override_request(100);
     if (TCC_CURRENT_SETTINGS.react_on_engine_open_request && e_req == TccReqState::Open) {
-        target = SLIP_V_WHEN_OPEN;
+        target = open_request_target;
     } else if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && e_req == TccReqState::Slipping) {
         target += 10;
     }

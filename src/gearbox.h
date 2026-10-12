@@ -4,6 +4,7 @@
 #define GEARBOX_H
 
 #include <cstdint>
+#include <atomic>
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "solenoids/solenoids.h"
@@ -110,12 +111,11 @@ private:
     bool show_upshift = false;
     bool show_downshift = false;
     bool flaring = false;
-    // Cycles of missing engine speed tolerated before it is treated as stopped.
-    // The loop runs at 20 ms, so this is 200 ms.
-    static const uint8_t ENGINE_RPM_MISSING_MAX_CYCLES = 10;
-    uint8_t engine_rpm_missing_cycles = 0;
-    bool engine_running = false;
-    uint8_t engine_running_off_counter = 0;
+    std::atomic<bool> engine_running{false};
+    bool engine_rpm_valid = false;
+    std::atomic<bool> pedal_input_valid{false};
+    void update_pedal_state(uint8_t raw);
+    void update_engine_state(uint16_t rpm);
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;

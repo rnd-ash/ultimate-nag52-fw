@@ -159,12 +159,10 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear c
     }
 
     int line_pressure = ((int)HYDR_PTR->lp_reg_spring_pressure + (int)this->target_modulating_pressure)*1000;
-    int wp;
-    if (factor > 0) {
-        wp = extra_p + (line_pressure / factor);
-    } else {
-        wp = extra_p;
+    if (factor <= 0) {
+        factor = 1000;
     }
+    int wp = extra_p + (line_pressure / factor);
     if (wp <= 0) {
         wp = 0;
     }

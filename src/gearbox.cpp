@@ -427,7 +427,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .trq_req_en = en_trq_req,
             .diff_ratio = this->diff_ratio_f,
             .max_gb_trq = this->gearboxConfig.max_torque,
-            .ratio_old_gear = this->gearboxConfig.bounds[gear_to_idx_lookup(this->actual_gear)].ratio
+            .ratio_old_gear = this->gearboxConfig.bounds[gear_to_idx_lookup(this->actual_gear)].ratio,
+            .n3_rpm = this->speed_sensors.n3
         };
         // To set the flag values initially
         ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true);
@@ -444,20 +445,13 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         }
         else {
             bool is_release = true;
-            if (manual_shift) {
-                threshold_torque *= 2;
-            }
             if (
-                (sensor_data.converted_driver_torque < threshold_torque &&
+                (sensor_data.converted_driver_torque < threshold_torque ||
                     (
-                        (sid.shift_flags & SHIFT_FLAG_COAST) == 0 ||
                         (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )
                 )
             ) {
-                is_release = false;
-            }
-            if (is_release && sensor_data.converted_driver_torque < threshold_torque && sid.profile == race) {
                 is_release = false;
             }
             if (is_release) {
@@ -469,6 +463,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
 
         uint8_t algo_phase_id = 0;
         while (process_shift) {
+            sid.n3_rpm = this->speed_sensors.n3;
             uint32_t start_time = GET_CLOCK_TIME();
             bool stationary_shift = this->is_stationary();
             // Shifter moved mid shift!

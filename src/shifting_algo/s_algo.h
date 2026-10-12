@@ -50,6 +50,7 @@ struct ShiftInterfaceData {
     float diff_ratio;
     uint16_t max_gb_trq;
     float ratio_old_gear;
+    uint16_t n3_rpm;
 };
 
 class ShiftingAlgorithm {
@@ -154,6 +155,7 @@ protected:
 
     void adaptation_step();
     uint8_t adapt_p_map_idx();
+    void mark_end_torque_adapt();
 
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
@@ -189,10 +191,18 @@ protected:
     int16_t old_input_trq = 0;
 
     uint32_t trq_adp_load_percentage_sum = 0;
-    int trq_adp_input_rpm_sum = 0;
+    int trq_adapt_rpm = 0;
+    int trq_adapt_engine_load_percent = 0;
+    bool trq_adapt_below_min_trq = false;
 
     bool first_run = true;
     bool torque_jumped = false;
+    bool trq_adapt_completed = false;
+
+    int release_minimum_mod_reduction_trq = 0;
+    bool n3_moving = false;
+    float loss_torque = 0;
+    int pid_err_i = 0;
 };
 
 // Helper functions

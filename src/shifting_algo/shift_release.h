@@ -28,7 +28,6 @@ private:
 
 
     float freeing_trq = 0;
-    float loss_torque = 0;
     float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 
@@ -52,7 +51,7 @@ private:
 
     int spc_step_adder = 0;
     int spc_wait_adder = 0;
-    int minimum_mod_reduction_trq = 0;
+    
 };
 
 #endif

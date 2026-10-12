@@ -11,7 +11,7 @@ const DRAM_ATTR uint8_t PHASE_END_CONTROL      = 5;
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
 float RAMP_LIMITS[8] = {0.325, 0.625, 0.55, 0, 0, 0, 0, 0};
-float ADAPT_LIMITS[8] = {1.0, 1.25, 1.75, 2.75, 0, 0, 0.75, 0.75};
+float ADAPT_LIMITS[8] = {1.5, 2.0, 2.5, 3.0, 0, 0, 1.0, 1.0};
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->adapting_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*ADAPT_LIMITS[sid->inf.map_idx];
@@ -425,6 +425,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->timer_mod = 3;
         this->subphase_shift += 1;
         this->momentum_start_output_rpm = sd->output_rpm;
+        this->trq_adapt_engine_load_percent = this->abs_load_percentage;
         this->target_turbine_speed = sd->input_rpm;
         this->momentum_ctrl = 0;
         this->momentum_ctrl_filtered = 0;
@@ -499,6 +500,7 @@ uint8_t CrossoverShift::phase_overlap2() {
         ) {
             // Analyze adaptations
             ESP_LOGI("ADAPT", "End adaptation flags: %d %d %d", do_fill_time_adaptation, do_fill_pressure_adaptation, do_torque_adaptation);
+            this->mark_end_torque_adapt();
             ret = PHASE_MAX_PRESSURE;
         }
     }

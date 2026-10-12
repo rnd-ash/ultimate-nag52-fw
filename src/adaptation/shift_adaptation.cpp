@@ -163,7 +163,7 @@ void ShiftAdaptationSystem::set_pulling_torque(uint8_t shift_idx, int16_t new_va
     StoredMap* map = this->get_pulling_torque_map(shift_idx);
     if (nullptr != map) {
         map->add_value(new_val, input_rpm, load_percentage, 10.0);
-        ESP_LOGI("ADAPT", "Pulling Trq Adjusted to %d Nm for [%d RPM][%d %]", new_val, input_rpm, load_percentage);
+        ESP_LOGI("ADAPT", "Pulling Trq Adjusted to %d Nm for [%d RPM][%d Load]", new_val, input_rpm, load_percentage);
     } else {
         ESP_LOGW("ADAPT", "Pulling torque could not be adjusted (Null map)");
     }
@@ -173,7 +173,7 @@ void ShiftAdaptationSystem::set_pushing_torque(uint8_t shift_idx, int16_t new_va
     StoredMap* map = this->get_pushing_torque_map(shift_idx);
     if (nullptr != map) {
         map->add_value(new_val, input_rpm, load_percentage, 10.0);
-        ESP_LOGI("ADAPT", "Pushing Trq Adjusted to %d Nm for [%d RPM][%d %]", new_val, input_rpm, load_percentage);
+        ESP_LOGI("ADAPT", "Pushing Trq Adjusted to %d Nm for [%d RPM][%d Load]", new_val, input_rpm, load_percentage);
     } else {
         ESP_LOGW("ADAPT", "Pushing torque could not be adjusted (Null map)");
     }

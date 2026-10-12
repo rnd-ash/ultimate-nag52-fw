@@ -27,6 +27,11 @@ CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
 
     this->send_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for sent messages out of KWP server
     this->read_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for read messages to be pulled by KWP server
+    if (nullptr == this->rx_queue || nullptr == this->send_msg_queue || nullptr == this->read_msg_queue) {
+        ESP_LOGE("CanEndpoint", "Could not allocate ISO-TP queues");
+        this->status = ESP_ERR_NO_MEM;
+        return;
+    }
     this->is_sending = false;
     this->clear_to_send = false;
     this->is_receiving = false;

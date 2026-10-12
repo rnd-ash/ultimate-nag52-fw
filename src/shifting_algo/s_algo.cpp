@@ -1,3 +1,4 @@
+#include "models/egs51_shift_pressure.h"
 #include "s_algo.h"
 #include <egs_calibration/calibration_structs.h>
 #include "esp_log_level.h"
@@ -353,22 +354,16 @@ uint8_t ShiftingAlgorithm::adapt_p_map_idx() {
     return cell_id;
 }
 
-uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int16_t pressure) {
-    // TODO - Move max_p to global constant so it can be referred in other functions
-    uint16_t max_p = pm->get_max_shift_pressure(sid->inf.map_idx);
+uint16_t ShiftingAlgorithm::correct_shift_shift_pressure(int pressure) {
+    if (sid->inf.map_idx >= SHIFT_ARRAY_LEN) return pm->get_max_solenoid_pressure();
     // Corrections (See below at adapting system for more details why we transform the map idx)
 
     if (sid->adaptation_mgr) {
         pressure += sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
     }
 
-    if (pressure <= 0) {
-        pressure = 0;
-    } else if (pressure >= max_p) {
-        pressure = max_p;
-    }
-    // P*1000 as shift_spc_gain is *1000
-    return (uint16_t)(((pressure * 1000) / HYDR_PTR->shift_spc_gain[sid->inf.map_idx]) + HYDR_PTR->shift_reg_spring_pressure);
+    return Egs51ShiftPressure::solenoid(pressure, pm->get_max_solenoid_pressure(),
+        HYDR_PTR->shift_reg_spring_pressure, HYDR_PTR->shift_spc_gain[sid->inf.map_idx]);
 }
 
 

@@ -1,3 +1,4 @@
+#include "models/egs51_shift_pressure.h"
 #include "s_algo.h"
 #include "egs_calibration/calibration_structs.h"
 #include "nvs/eeprom_config.h"
@@ -92,13 +93,7 @@ uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChang
 }
 
 uint16_t ShiftHelpers::correct_shift_shift_pressure(PressureManager* pm, int16_t pressure, uint8_t map_idx) {
-    // TODO - Move max_p to global constant so it can be referred in other functions
-    uint16_t max_p = pm->get_max_shift_pressure(map_idx);
-    if (pressure <= 0) {
-        pressure = 0;
-    } else if (pressure >= max_p) {
-        pressure = max_p;
-    }
-    // P*1000 as shift_spc_gain is *1000
-    return (uint16_t)(((pressure * 1000) / HYDR_PTR->shift_spc_gain[map_idx]) + HYDR_PTR->shift_reg_spring_pressure);
+    if (map_idx >= SHIFT_ARRAY_LEN) return pm->get_max_solenoid_pressure();
+    return Egs51ShiftPressure::solenoid(pressure, pm->get_max_solenoid_pressure(),
+        HYDR_PTR->shift_reg_spring_pressure, HYDR_PTR->shift_spc_gain[map_idx]);
 }

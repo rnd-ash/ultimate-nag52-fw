@@ -14,13 +14,18 @@
 uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
 esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
+    if (nullptr == map_name || nullptr == dest || 0 == map_element_count) {
+        return ESP_ERR_INVALID_ARG;
+    }
     size_t byte_count = map_element_count*sizeof(int16_t);
     esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);
+    bool seeded_from_default = false;
     if (e == ESP_ERR_NVS_NOT_FOUND && default_map != nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
         // Set default map data
         e = write_nvs_map_data(map_name, default_map, map_element_count);
-        memcpy(dest, default_map, byte_count); // As e would be ESP_OK, the memcpy below won't get executed!
+        memcpy(dest, default_map, byte_count);
+        seeded_from_default = true;
     }
     if(e != ESP_OK) {
         if (default_map != nullptr) {
@@ -29,6 +34,8 @@ esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const i
         } else {
             e = ESP_ERR_INVALID_ARG;
         }
+    } else if (seeded_from_default) {
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s active using built-in default map", map_name);
     } else {
         ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s loaded OK from NVS!", map_name);
     }

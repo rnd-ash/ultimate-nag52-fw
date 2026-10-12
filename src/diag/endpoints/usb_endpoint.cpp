@@ -54,8 +54,16 @@ bool UsbEndpoint::read_data(DiagMessage *dest)
     {
         max_bytes_left = UART_MSG_SIZE - this->read_pos;
         to_read = MIN(length, max_bytes_left);
-        uart_read_bytes(UART_PORT, &this->read_buffer[this->read_pos], to_read, 0);
-        this->read_pos += length;
+        if (to_read == 0) {
+            ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Rx buffer overflow, discarding message");
+            uart_flush_input(UART_PORT);
+            this->read_pos = 0;
+            return false;
+        }
+        int received = uart_read_bytes(UART_PORT, &this->read_buffer[this->read_pos], to_read, 0);
+        if (received > 0) {
+            this->read_pos += received;
+        }
         return false;
     }
     else if (this->read_pos != 0)
@@ -77,6 +85,11 @@ bool UsbEndpoint::read_data(DiagMessage *dest)
             }
             else
             {
+                if (read_size < 2 || read_size - 2 > DIAG_CAN_MAX_SIZE) {
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "USBEndpoint", "Incoming diagnostic payload exceeds buffer");
+                    this->read_pos = 0;
+                    return false;
+                }
                 // Valid msg!
                 dest->id = (this->read_buffer[2] << 8) | this->read_buffer[3];
                 dest->data_size = read_size - 2;

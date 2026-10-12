@@ -138,7 +138,7 @@ uint8_t Egs53Can::get_pedal_value(const uint32_t expire_time_ms) {
     if (this->ecm_ecu.get_ENG_RS3_PT(GET_CLOCK_TIME(), expire_time_ms*1000, &eng_rs3)) {
         return eng_rs3.AccelPdlPosn_Raw; // Use RAW position, not 'modified' value from ECM!
     }
-    return 0;
+    return 0xFF;
 }
 
 CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
@@ -151,16 +151,16 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
         this->ecm_ecu.get_ENG_RS2_PT(GET_CLOCK_TIME(), expire_time_ms, &rs2_pt) &&
         this->ecm_ecu.get_ENG_RS1_PT(GET_CLOCK_TIME(), expire_time_ms, &rs1_pt)
     ) {
-        if (rs2_pt.EngTrqStatic != INT16_MAX) {
+        if (rs2_pt.EngTrqStatic != 0x1FFF) {
             sta = (rs2_pt.EngTrqStatic / 4) - 500;
         }
-        if (rs2_pt.EngTrqMaxETC != INT16_MAX) {
+        if (rs2_pt.EngTrqMaxETC != 0x1FFF) {
             ret.m_max = (rs2_pt.EngTrqMaxETC / 4) - 500;
         }
-        if (rs2_pt.EngTrqMinTTC != INT16_MAX) {
+        if (rs2_pt.EngTrqMinTTC != 0x1FFF) {
             ret.m_min = (rs2_pt.EngTrqMinTTC / 4) - 500;
         }
-        if (rs1_pt.EngTrqSel_D_TTC != INT16_MAX) {
+        if (rs1_pt.EngTrqSel_D_TTC != 0x1FFF) {
             esp = (rs1_pt.EngTrqSel_D_TTC / 4) - 500;
         }
     }
@@ -173,7 +173,7 @@ CanTorqueData Egs53Can::get_torque_data(const uint32_t expire_time_ms) {
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
         if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
-            tmp = MIN(esp, ret.m_max);
+            tmp = MAX(MIN(esp, ret.m_max), ret.m_min);
         }
         if (tmp <= 0) {
             tmp = MIN(tmp, static_converted);

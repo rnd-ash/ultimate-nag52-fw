@@ -132,7 +132,7 @@ Gearbox::Gearbox(Shifter* shifter) : shifter(shifter), kickdown(), brake_pedal()
         .ratio_min_drift = rr2 * (float)0.9,
     };
     // IMPORTANT - Set the Ratio2/Ratio1 multiplier for the sensor RPM reading algorithm!
-    TCUIO::set_2_1_ratio(r1 / r2);
+    TCUIO::set_2_1_ratios(MECH_PTR->ratio_table[1], MECH_PTR->ratio_table[2]);
 
     this->pressure_mgr = new PressureManager(&this->sensor_data, this->gearboxConfig.max_torque);
     this->tcc = new TorqueConverter(this->gearboxConfig.max_torque);
@@ -1684,6 +1684,7 @@ bool Gearbox::process_speed_sensors()
 
     if (UINT16_MAX != n2 && UINT16_MAX != n3) {
         uint16_t turbine = TCUIO::calc_turbine_rpm(n2, n3);
+        if (turbine == UINT16_MAX) { ok = false; }
         if (conduct_sanity_check) {
             if (abs(n2 - n3) > 100) {
                 ok = false;

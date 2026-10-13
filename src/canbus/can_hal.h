@@ -36,7 +36,7 @@ class EgsBaseCan {
 
         bool bus_ok() const;
 
-        ~EgsBaseCan();        
+        virtual ~EgsBaseCan();
         bool begin_task();
         esp_err_t init_state() const;
 

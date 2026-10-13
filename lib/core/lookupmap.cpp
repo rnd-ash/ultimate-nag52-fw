@@ -182,16 +182,16 @@ LookupByteMap::LookupByteMap(uint8_t* _xHeader, const uint16_t _xHeaderSize, uin
     this->y_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_yHeaderSize * sizeof(int16_t)));
     this->z_alloc = static_cast<int16_t*>(TCU_HEAP_ALLOC(_dataSize * sizeof(int16_t)));
 
-    for (auto i = 0; i < _xHeaderSize; i++) {
-        this->x_alloc[i] = _xHeader[i];
-    }
-    for (auto i = 0; i < _yHeaderSize; i++) {
-        this->y_alloc[i] = _yHeader[i];
-    }
-    for (auto i = 0; i < _dataSize; i++) {
-        this->z_alloc[i] = _data[i];
-    }
     if (nullptr != this->x_alloc && nullptr != this->y_alloc && nullptr != this->z_alloc) {
+        for (auto i = 0; i < _xHeaderSize; i++) {
+            this->x_alloc[i] = _xHeader[i];
+        }
+        for (auto i = 0; i < _yHeaderSize; i++) {
+            this->y_alloc[i] = _yHeader[i];
+        }
+        for (auto i = 0; i < _dataSize; i++) {
+            this->z_alloc[i] = _data[i];
+        }
         this->table = new LookupRefTable(x_alloc, _xHeaderSize, z_alloc, _dataSize);
         this->x_header = const_cast<LookupHeader*>(this->table->get_header());
         this->x_header_size = _xHeaderSize;    

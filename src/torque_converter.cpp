@@ -144,23 +144,6 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     } else {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
-    if (this->is_shifting) {
-        if (this->upshifting) {
-            if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_upshifts) {
-                target = SLIP_V_WHEN_OPEN;
-            } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_upshifts) {
-                target = SLIP_V_WHEN_OPEN;
-            } else {
-                target += 10; // Required
-            }
-        } else {
-            if (sensors->pedal_pos >= 15  && TCC_CURRENT_SETTINGS.unlock_load_downshifts) {
-                target = SLIP_V_WHEN_OPEN;
-            } else if (sensors->pedal_pos < 15 && TCC_CURRENT_SETTINGS.unlock_coasting_downshifts) {
-                target = SLIP_V_WHEN_OPEN;
-            }
-        }
-    }
 
     TccReqState e_req = egs_can_hal->get_engine_tcc_override_request(100);
     if (TCC_CURRENT_SETTINGS.react_on_engine_open_request && e_req == TccReqState::Open) {
@@ -345,33 +328,38 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             this->target_tcc_state == InternalTccState::Slipping &&
             this->current_tcc_state == InternalTccState::Slipping &&
             !is_shifting;
+        if (TCC_CURRENT_SETTINGS.pid_enable) {
+            // Do PID
+            this->pid_i_val_old = this->pid_i_val;
+            int16_t slip_delta = (int)this->actual_slip_abs - (int)this->slip_target;
+            if (this->pulling) {
+                this->pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PULL);
+                if (0 == this->timer_till_pid) {
+                        this->pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PULL);
+                } else {
+                    this->pid_i_val = ((this->pid_p_weight * slip_delta) / 1000) * -10;
+                }
 
-        // Do PID
-        this->pid_i_val_old = this->pid_i_val;
-        int16_t slip_delta = (int)this->actual_slip_abs - (int)this->slip_target;
-        if (this->pulling) {
-            this->pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PULL);
-            if (0 == this->timer_till_pid) {
-                    this->pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PULL);
             } else {
-                this->pid_i_val = ((this->pid_p_weight * slip_delta) / 1000) * -10;
+                pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PUSH);
+                pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PUSH);
+            }
+            int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
+            this->pid_i_val += i_adder;
+            // Dynamic PID modifier
+            if (this->actual_slip_abs < SLIP_V_WHEN_OPEN) {
+                if (sd->pedal_delta_per_second > 20) {
+                    this->pid_i_val = 0;
+                }
             }
 
+            int p = (this->pid_p_weight * slip_delta) / 1000;
+            this->pid_pressure = p + (this->pid_i_val/10);
         } else {
-            pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PUSH);
-            pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PUSH);
+            this->pid_pressure = 0;
+            this->pid_i_val = 0;
+            this->pid_i_val_old = 0;
         }
-        int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
-        this->pid_i_val += i_adder;
-        // Dynamic PID modifier
-        if (this->actual_slip_abs < SLIP_V_WHEN_OPEN) {
-            if (sd->pedal_delta_per_second > 20) {
-                this->pid_i_val = 0;
-            }
-        }
-
-        int p = (this->pid_p_weight * slip_delta) / 1000;
-        this->pid_pressure = p + (this->pid_i_val/10);
         this->tcc_commanded_pressure = this->pid_pressure + this->min_tcc_pressure + this->map_pressure;
 
         if (this->tcc_commanded_pressure > 15000 || this->tcc_commanded_pressure < 0) {
@@ -380,7 +368,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             this->tcc_commanded_pressure = MIN(15000, MAX(0, this->tcc_commanded_pressure));
         }
 
-        if (0 == this->timer_till_adapt && is_adaptable) {
+        if (0 == this->timer_till_adapt && is_adaptable && TCC_CURRENT_SETTINGS.adapt_enable) {
             // Write the adapt value
             if (abs(sd->pedal_delta_per_second) > 50 || sd->input_rpm > 3500) {
                 this->timer_till_adapt = 150;

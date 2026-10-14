@@ -1,5 +1,6 @@
 #include "s_algo.h"
 #include <egs_calibration/calibration_structs.h>
+#include "adaptation/shift_adaptation.h"
 #include "esp_log_level.h"
 #include "nvs/module_settings.h"
 #include "shifting_algo/shift_flags.h"
@@ -433,9 +434,9 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
             int adder = (inertia*error) / (div*20);
             this->trq_adapt_rpm += adder;
             // Check if min torque is reached (Release shift only) (TODO)
-            //if ( < this->release_minimum_mod_reduction_trq) {
-            //    trq_adapt_below_min_trq |= true;
-            //}
+            if ((((int)abs_input_trq + this->trq_adder) - this->freeing_trq) - this->loss_torque < this->release_minimum_mod_reduction_trq) {
+                trq_adapt_below_min_trq |= true;
+            }
 
         } else {
             if (this->p_apply_clutch < sid->SPC_MAX) {
@@ -700,15 +701,41 @@ void ShiftingAlgorithm::mark_end_torque_adapt() {
                     }
                 }
                 int old = map->get_value(this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
-                old += corr;
-                if (old > 200 || old < -200) {
-                    ESP_LOGW("TRQ_ADAPT", "Torque limit hit %d Nm, clamping", old);
-                    old = MIN(200, MAX(-200, old));
+                if (is_release_shift() && this->trq_adapt_below_min_trq) {
+                    ESP_LOGW("TRQ_ADAPT", "Release torque below minimum, will not adapt");
                 } else {
-                    ESP_LOGI("TRQ_ADAPT", "%d Nm - %d RPM - %d load", (int)old, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
+                    corr += old;
+                    if (corr > 200 || corr < -200) {
+                        ESP_LOGW("TRQ_ADAPT", "Torque limit hit %d Nm, clamping", corr);
+                        old = MIN(200, MAX(-200, corr));
+                    } else {
+                        ESP_LOGI("TRQ_ADAPT", "%d Nm - %d RPM - %d load", (int)corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
+                    }
+                    map->add_value(corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent, 10.0);
+                    if (!is_release_shift() && upshifting) {
+                        // Faster adaptation (Exp.)
+                        for (int i = 0; i < 4; i++) {
+                            int rpm = TRQ_ADAPT_X[i];
+                            int old_value =  map->get_value(rpm, this->trq_adapt_engine_load_percent);
+                            if (this->input_rpm_trq_adapt_map > rpm) {
+                                old_value = MAX(old_value, corr);
+                            } else {
+                                old_value = MIN(old_value, corr);
+                            }
+                            map->add_value(old_value, rpm, this->trq_adapt_engine_load_percent, 10.0);
+                        }
+                        for (int i = 0; i < 5; i++) {
+                            int trq = TRQ_ADAPT_Y_PULL[i];
+                            int old_value =  map->get_value(this->input_rpm_trq_adapt_map, trq);
+                            if (this->trq_adapt_engine_load_percent > trq) {
+                                old_value = MAX(old_value, corr);
+                            } else {
+                                old_value = MIN(old_value, corr);
+                            }
+                            map->add_value(old_value, this->input_rpm_trq_adapt_map, trq, 10.0);
+                        }
+                    }
                 }
-                map->add_value(old, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent, 10.0);
-                // Linear ramp
             }
         } else {
             ESP_LOGI("TRQ_ADAPT", "Too few PID runs to get a result (%d)", this->pid_count);

@@ -41,5 +41,8 @@ private:
 };
 
 extern ShiftAdaptationSystem* adaptation_manager;
+extern const int16_t TRQ_ADAPT_X[4];
+extern const int16_t TRQ_ADAPT_Y_PULL[5];
+extern const int16_t TRQ_ADAPT_Y_PUSH[5];
 
 #endif // ADAPT_MAP_H

@@ -123,6 +123,7 @@ protected:
     short correction_trq = 0;
 
     uint16_t filling_torque = 0;
+    float freeing_trq = 0;
 
     uint16_t emergency_trq_val = 0;
 

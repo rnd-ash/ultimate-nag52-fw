@@ -25,9 +25,6 @@ private:
     uint16_t cycles_mod_ramp_to_sync = 0;
     uint16_t cycles_mod_hold_sync = 0;
 
-
-
-    float freeing_trq = 0;
     float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 

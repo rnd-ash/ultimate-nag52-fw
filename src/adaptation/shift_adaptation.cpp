@@ -11,12 +11,12 @@
 #include "nvs/all_keys.h"
 #include "stored_map.h"
 
-const int16_t adpt_trq_x[4] = {1000, 1500, 2000, 4000};
-const int16_t adpt_trq_y_pull[5] = {0, 20, 50, 100, 150};
-const int16_t adpt_trq_y_push[4] = {0, 5, 10, 20};
+const int16_t TRQ_ADAPT_X[] = {1000, 1500, 2000, 4000};
+const int16_t TRQ_ADAPT_Y_PULL[] = {0, 20, 50, 100, 150};
+const int16_t TRQ_ADAPT_Y_PUSH[] = {0, 5, 10, 20};
 
 StoredMap* make_trq_pull_map(const char* key) {
-    StoredMap* map = new StoredMap(key, GEAR_TRQ_PULL_ADAPT_MAP_SIZE, adpt_trq_x, adpt_trq_y_pull, 4, 5, GEAR_PULLING_TRQ_ADAPT_MAP);
+    StoredMap* map = new StoredMap(key, GEAR_TRQ_PULL_ADAPT_MAP_SIZE, TRQ_ADAPT_X, TRQ_ADAPT_Y_PULL, 4, 5, GEAR_PULLING_TRQ_ADAPT_MAP);
     if (ESP_OK == map->init_status()) {
         return map;
     } else {
@@ -27,7 +27,7 @@ StoredMap* make_trq_pull_map(const char* key) {
 }
 
 StoredMap* make_trq_push_map(const char* key) {
-    StoredMap* map = new StoredMap(key, GEAR_TRQ_PUSH_ADAPT_MAP_SIZE, adpt_trq_x, adpt_trq_y_push, 4, 4, GEAR_PUSHING_TRQ_ADAPT_MAP);
+    StoredMap* map = new StoredMap(key, GEAR_TRQ_PUSH_ADAPT_MAP_SIZE, TRQ_ADAPT_X, TRQ_ADAPT_Y_PUSH, 4, 4, GEAR_PUSHING_TRQ_ADAPT_MAP);
     if (ESP_OK == map->init_status()) {
         return map;
     } else {
@@ -44,7 +44,7 @@ ShiftAdaptationSystem::ShiftAdaptationSystem()
     // Adapt map allocation is non fatal here, since we can substitute 0 values
     this->prefill_time_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_PREFILL_TIME, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
     this->spc_offset_map = new StoredMap(NVS_KEY_MAP_NAME_ADAPT_SPC_OFFSET, 8*1, adpt_map_x, adpt_map_y, 8, 1, GEAR_ADAPT_MAP);
-    
+
     this->pushing_trq_map[0] = make_trq_push_map(NVS_KEY_PUSHING_TRQ_ADP_D12);
     this->pushing_trq_map[1] = make_trq_push_map(NVS_KEY_PUSHING_TRQ_ADP_D23);
     this->pushing_trq_map[2] = make_trq_push_map(NVS_KEY_PUSHING_TRQ_ADP_D34);
@@ -180,7 +180,7 @@ void ShiftAdaptationSystem::set_pushing_torque(uint8_t shift_idx, int16_t new_va
 }
 
 esp_err_t ShiftAdaptationSystem::reset() {
-    
+
     if (nullptr != this->prefill_time_map) {
         this->prefill_time_map->reset_from_flash();
     }

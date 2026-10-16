@@ -3,21 +3,9 @@
 #include "nvs/eeprom_config.h"
 #include "common_structs_ops.h"
 
-float ShiftHelpers::calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm) {
-    uint16_t inertia_factor = MECH_PTR->intertia_factor[shift_idx];
-    if (inertia_factor == 0) {
-        inertia_factor = 1000;
-    }
-    float min_factor = 1.0 / ((float)inertia_factor / 1000.0F);
-    float turbine_factor = (float)input_rpm / (float)engine_rpm;
-    float engine_inertia = (float)(VEHICLE_CONFIG.engine_drag_torque)/10.0;
-    float pump_inertia = MECH_PTR->intertia_torque[shift_idx];
-    float ret = interpolate_float(turbine_factor, pump_inertia, engine_inertia, min_factor, 1, InterpType::Linear);
-    return abs(ret);
-}
 
 float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
-    float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10);
+    float r = (float)(MECH_PTR->intertia_torque[shift_idx]) + (float)(VEHICLE_CONFIG.engine_drag_torque/10.0);
     return MAX(1.0F, r); // Used as a divisor by shift algorithms
 }
 

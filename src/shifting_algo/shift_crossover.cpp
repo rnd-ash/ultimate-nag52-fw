@@ -290,15 +290,16 @@ uint8_t CrossoverShift::phase_overlap() {
         this->calculate_accel_trq_corr();
     }
 
+    int adapt_val = 0;
     if (sid->adaptation_mgr) {
         if (this->upshifting) {
-            this->trq_adder = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+            adapt_val = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
         } else {
-            this->trq_adder = sid->adaptation_mgr->get_pushing_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
+            adapt_val = sid->adaptation_mgr->get_pushing_torque_offset(sid->inf.map_idx, this->input_rpm_trq_adapt_map, this->abs_load_percentage);
         }
     }
-    this->trq_adder -= this->calculate_dynamic_inertia();
-    this->trq_adder -= this->trq_req_compensate_val;
+
+    this->trq_adder = adapt_val - this->trq_req_compensate_val - this->calculate_dynamic_inertia();
 
     uint16_t c_trq_apply = pm->p_clutch_with_coef_signed(
         sid->targ_g,

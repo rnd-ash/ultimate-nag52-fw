@@ -306,7 +306,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
         // Reducing until off clutch releases
         float x1 = interpolate_float(sid->chars.target_shift_time, 5.0, 10.0, 500, 100, InterpType::Linear);
         // Fixed value addition
-        float x2 = interpolate_float(sid->chars.target_shift_time, 2.0, 3.0, 500, 100, InterpType::Linear);
+        float x2 = interpolate_float(sid->chars.target_shift_time, 1.0, 2.0, 500, 100, InterpType::Linear);
         float reduction = this->calculate_freeing_trq_multiplier() * (x2 + (x1*(float)this->loss_torque_tmp)/100.0);
         this->loss_torque_tmp += reduction/10.0;
         this->loss_torque = this->loss_torque_tmp / 2.0;
@@ -549,9 +549,9 @@ float ReleasingShift::calculate_freeing_trq_multiplier() {
             output = interpolate_float(sd->pedal_delta_per_second, 1.0, 2.5, 50, 300, InterpType::Linear);
         }
         if (manual == sid->profile) {
-            output = 2.5;
+            output = MIN(2.5, output * 1.25);
         } else if (race == sid->profile) {
-            output = 4.0;
+            output = MIN(3.0, output * 1.5);
         }
     }
     if (output < this->freeing_torque_multi) {

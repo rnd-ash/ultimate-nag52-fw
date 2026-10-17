@@ -74,19 +74,19 @@ SPEAKER_POST_CODE setup_tcm()
             spkr = new Speaker(pcb_gpio_matrix->spkr_pin);
             if (ESP_OK == EEPROM::init_eeprom())
             {
-                if (ESP_OK == TCUIO::setup_io_layer())
+                // Load EGS Calibration
+                if (ESP_OK == EGSCal::init_egs_calibration())
                 {
+                    // Read device mode!
+                    CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
+                    // Read our configuration (This is allowed to fail as the default opts are always set by default)
+                    ModuleConfiguration::load_all_settings();
+                    // init driving profiles
+                    Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
                     if (ESP_OK == Solenoids::init_all_solenoids())
                     {
-                        // Read device mode!
-                        CURRENT_DEVICE_MODE = EEPROM::read_device_mode();
-                        // Load EGS Calibration
-                        if (ESP_OK == EGSCal::init_egs_calibration())
+                        if (ESP_OK == TCUIO::setup_io_layer())
                         {
-                            // Read our configuration (This is allowed to fail as the default opts are always set by default)
-                            ModuleConfiguration::load_all_settings();
-                            // init driving profiles
-                            Profiles::init_profiles(0 == VEHICLE_CONFIG.engine_type);
                             // Init GPIO Expander now we are done loading from flash
                             pcb_gpio_matrix->init_gpio_expander();
 
@@ -168,8 +168,8 @@ SPEAKER_POST_CODE setup_tcm()
                         }
                         else
                         {
-                            CURRENT_DEVICE_MODE = DEVICE_MODE_NO_CALIBRATION;
-                            ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
+                            CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
+                            ret = SPEAKER_POST_CODE::SENSOR_FAIL;
                         }
                     }
                     else
@@ -180,8 +180,8 @@ SPEAKER_POST_CODE setup_tcm()
                 }
                 else
                 {
-                    CURRENT_DEVICE_MODE = DEVICE_MODE_ERROR;
-                    ret = SPEAKER_POST_CODE::SENSOR_FAIL;
+                    CURRENT_DEVICE_MODE = DEVICE_MODE_NO_CALIBRATION;
+                    ret = SPEAKER_POST_CODE::CALIBRATION_FAIL;
                 }
             }
             else
@@ -368,7 +368,7 @@ extern "C" void app_main(void)
     pressure_manager = nullptr;
     SPEAKER_POST_CODE s = setup_tcm();
     xTaskCreate(err_beep_loop, "PCSPKR", 1024, reinterpret_cast<void*>(s), 2, nullptr);
-    
+
     // Now spin up the KWP2000 server (last thing)
     diag_server = new Kwp2000_server(egs_can_hal, gearbox, shifter);
     xTaskCreatePinnedToCore(Kwp2000_server::start_kwp_server, "KWP2000", 16 * 1024, diag_server, 5, nullptr, 0);

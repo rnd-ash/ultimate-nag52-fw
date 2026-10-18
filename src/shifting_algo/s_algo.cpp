@@ -526,9 +526,9 @@ void ShiftingAlgorithm::adaptation_step() {
         // Init (Same base conditions)
         // Normal EGS just adapts for 1-2, 2-3, and 4-3. It uses the 2-3 adapt result for corrections
         // of 2-3, 3-2, 4-5, 5-4. Since flaring is such an issue on 722.6 lets see how adapting
-        // upshifts separatly affects things (4-3 is still adapted separatly due to its special
+        // upshifts separately affects things (4-3 is still adapted separately due to its special
         // behaviour)
-        // This way we have the following corrections for the shift ciruits (Overlap circuits)
+        // This way we have the following corrections for the shift circuits (Overlap circuits)
         //
         // 1-2 -> 1-2 and 2-1
         // 2-3 -> 2-3 and 3-2
@@ -636,9 +636,9 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_torque_adaptation = false;
         }
 
-        //if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
-        //    this->do_torque_adaptation = false;
-        //}
+        if (sd->atf_temp > ADP_CURRENT_SETTINGS.max_atf_temp || sd->atf_temp < ADP_CURRENT_SETTINGS.min_atf_temp) {
+            this->do_torque_adaptation = false;
+        }
 
         this->torque_adaptation_stage += 1;
         if (race == sid->profile) {
@@ -654,7 +654,7 @@ void ShiftingAlgorithm::adaptation_step() {
         if (sd->input_rpm < 1000) {
             this->do_torque_adaptation = false;
         }
-        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 || (sid->shift_flags & SHIFT_FLAG_COAST) != 0) {
+        if (sid->shift_flags & SHIFT_FLAG_COAST_54_43) {
             this->do_torque_adaptation = false;
         }
         // Dynamics check
@@ -717,20 +717,24 @@ void ShiftingAlgorithm::mark_end_torque_adapt() {
                         for (int i = 0; i < 4; i++) {
                             int rpm = TRQ_ADAPT_X[i];
                             int old_value =  map->get_value(rpm, this->trq_adapt_engine_load_percent);
+                            // EG: Looking at 1000RPM cell value, but the shift happened at 1500RPM
+                            // Lower RPM should be a lower value theoretically
                             if (this->input_rpm_trq_adapt_map > rpm) {
-                                old_value = MAX(old_value, corr);
-                            } else {
                                 old_value = MIN(old_value, corr);
+                            } else {
+                                old_value = MAX(old_value, corr);
                             }
                             map->add_value(old_value, rpm, this->trq_adapt_engine_load_percent, 10.0);
                         }
                         for (int i = 0; i < 5; i++) {
                             int trq = TRQ_ADAPT_Y_PULL[i];
                             int old_value =  map->get_value(this->input_rpm_trq_adapt_map, trq);
+                            // EG: Looking at 10% load cell value, but the shift happened at 15% load
+                            // Lower load should be a lower value theoretically
                             if (this->trq_adapt_engine_load_percent > trq) {
-                                old_value = MAX(old_value, corr);
-                            } else {
                                 old_value = MIN(old_value, corr);
+                            } else {
+                                old_value = MAX(old_value, corr);
                             }
                             map->add_value(old_value, this->input_rpm_trq_adapt_map, trq, 10.0);
                         }

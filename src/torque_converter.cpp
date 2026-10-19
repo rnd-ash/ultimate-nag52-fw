@@ -183,6 +183,7 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
         if (torque_low && pedal_low) {
             ret = false;
             this->timer_till_adapt = 150; // 3 seconds
+            this->timer_till_pid = 50;
             this->pid_i_val = 0;
         }
     } else {
@@ -195,6 +196,7 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
             this->timer_till_adapt = 150; // 3 seconds
             this->pid_i_val = 0;
             this->pid_i_val_old = 0;
+            this->timer_till_pid = 50;
         }
     }
     return ret;
@@ -327,6 +329,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         bool is_adaptable = TCC_CURRENT_SETTINGS.adapt_enable &&
             this->target_tcc_state == InternalTccState::Slipping &&
             this->current_tcc_state == InternalTccState::Slipping &&
+            sd->converted_driver_torque > VEHICLE_CONFIG.engine_drag_torque / 20.0 && // 1/2 drag torque
             !is_shifting;
         if (TCC_CURRENT_SETTINGS.pid_enable) {
             // Do PID

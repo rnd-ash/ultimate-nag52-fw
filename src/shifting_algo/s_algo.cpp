@@ -503,7 +503,7 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_fill_pressure_adaptation = false;
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
         }
-        bool rpm_in_range = (sd->engine_rpm - 20 <= sd->input_rpm && upshifting) || (sd->input_rpm - 20 <= sd->engine_rpm && !upshifting);
+        bool rpm_in_range = (sd->input_rpm <= sd->engine_rpm+5 && upshifting) || (sd->engine_rpm <= sd->input_rpm+5 && !upshifting);
         if (
             !rpm_in_range
         ) {

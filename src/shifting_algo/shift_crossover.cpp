@@ -625,7 +625,7 @@ void CrossoverShift::fill_adapt() {
     if (this->do_fill_time_adaptation && !this->end_of_fill_time_adapt) {
         // Waiting for clutch movement (Checked and verified)
         int16_t rpm_clamped = this->get_and_set_adapt_rpm_off_clutch();
-        bool rpm_in_limits = (sd->input_rpm <= sd->engine_rpm+100 && upshifting) || (sd->engine_rpm <= sd->input_rpm+100 && !upshifting);
+        bool rpm_in_limits = (sd->input_rpm <= sd->engine_rpm && upshifting) || (sd->engine_rpm <= sd->input_rpm && !upshifting);
         if (rpm_clamped > 50 && rpm_in_limits) {
             this->end_of_fill_time_adapt = true;
             this->offset_adapt_timer_by_clutch_delay();
@@ -693,8 +693,8 @@ void CrossoverShift::overlap2_adapt() {
 }
 
 int8_t CrossoverShift::calc_t_adapt_offset_adv(int8_t cycle_change) {
-    float sqrt_high_p = sqrt((float)sid->prefill_info.fill_pressure_on_clutch);
-    float sqrt_low_p = sqrt((float)sid->prefill_info.low_fill_pressure_on_clutch);
+    float sqrt_high_p = sqrt((float)this->calc_high_filling_p());
+    float sqrt_low_p = sqrt((float)this->calc_low_filling_p());
     float cycles_high = (float)cycles_high_filling;
 
     float delta = sqrt_low_p *

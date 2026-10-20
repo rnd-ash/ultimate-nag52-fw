@@ -1,3 +1,4 @@
+#include "models/egs51_turbine.h"
 //
 // Created by ashcon on 9/2/24.
 //
@@ -6,7 +7,8 @@
 #include "sensors.h"
 #include <limits>
 
-float RATIO_2_1 = 1.61;
+static uint16_t turbine_first_ratio = 3932;
+static uint16_t turbine_second_ratio = 2408;
 float DIFF_RATIO_F = 1.00;
 bool INPUT_RPM_SANITY_CHECK = true;
 
@@ -270,12 +272,13 @@ void TCUIO::set_input_rpm_perform_sanity_check(bool conduct) {
     INPUT_RPM_SANITY_CHECK = conduct;
 }
 
-void TCUIO::set_2_1_ratio(float ratio) {
-    RATIO_2_1 = ratio;
+void TCUIO::set_2_1_ratios(uint16_t first, uint16_t second) {
+    turbine_first_ratio = first;
+    turbine_second_ratio = second;
 }
 
 uint16_t TCUIO::calc_turbine_rpm(const uint16_t n2, const uint16_t n3) {
-    return MAX(0,((float)n2 * RATIO_2_1) + ((float)n3 - (RATIO_2_1*(float)n3)));
+    return Egs51Turbine::speed(n2, n3, turbine_first_ratio, turbine_second_ratio);
 }
 
 uint8_t TCUIO::parking_lock() { return get_onepoll_sensor_val(&onepoll_parking_lock, 0); }

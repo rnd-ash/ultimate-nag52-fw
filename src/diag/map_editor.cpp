@@ -228,8 +228,10 @@ kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16
 kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
     uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
-    sol_tcc->isr_disable();
-    vTaskDelay(10);
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(10);
+    }
     if (ESP_OK != ptr->save_to_eeprom()) {
         ret = NRC_GENERAL_REJECT;
     }
@@ -240,12 +242,16 @@ kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
 uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
     uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
-    sol_tcc->isr_disable();
-    vTaskDelay(10);
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(10);
+    }
     if (ESP_OK != ptr->reset_from_flash()) {
         ret = NRC_GENERAL_REJECT;
     }
-    sol_tcc->isr_enable();
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_enable();
+    }
     return ret;
 }
 

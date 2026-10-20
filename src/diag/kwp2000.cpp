@@ -915,10 +915,14 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
-            sol_tcc->isr_disable();
-            vTaskDelay(20);
+            if (nullptr != sol_tcc) {
+                sol_tcc->isr_disable();
+                vTaskDelay(20);
+            }
             esp_err_t res = this->gearbox_ptr->shift_adapter->reset();
-            sol_tcc->isr_enable();
+            if (nullptr != sol_tcc) {
+                sol_tcc->isr_enable();
+            }
             if (ESP_OK == res) {
                 make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
             } else {

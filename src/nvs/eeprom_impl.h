@@ -31,8 +31,10 @@ namespace EEPROM {
 
     template <typename T>
     esp_err_t write_subsystem_settings(const char* key_name, const T* write) {
-        sol_tcc->isr_disable();
-        vTaskDelay(5);
+        if (nullptr != sol_tcc) {
+            sol_tcc->isr_disable();
+            vTaskDelay(5);
+        }
         esp_err_t e = nvs_set_blob(MAP_NVS_HANDLE, key_name, write, sizeof(T));
         if (e != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error writing subsystem settings for %s (%s)", key_name, esp_err_to_name(e));
@@ -42,7 +44,9 @@ namespace EEPROM {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
             }
         }
-        sol_tcc->isr_enable();
+        if (nullptr != sol_tcc) {
+            sol_tcc->isr_enable();
+        }
         return e;
     }
 

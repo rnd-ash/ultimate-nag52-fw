@@ -133,7 +133,7 @@ esp_err_t EEPROM::init_eeprom() {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM init failed! %s", esp_err_to_name(result));
     } else {
         // Flash init OK
-        nvs_handle_t config_handle;    
+        nvs_handle_t config_handle;
         result = nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &config_handle);
         if (result != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(result));
@@ -252,8 +252,10 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     nvs_handle_t handle;
     esp_err_t e;
     size_t s = sizeof(TCM_CORE_CONFIG);
-    sol_tcc->isr_disable();
-    vTaskDelay(5);
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(5);
+    }
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     e = nvs_set_blob(handle, NVS_KEY_CORE_SCN, write, s);
     if (e != ESP_OK) {
@@ -264,7 +266,9 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
         }
     }
-    sol_tcc->isr_enable();
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_enable();
+    }
     return e;
 }
 
@@ -331,7 +335,7 @@ esp_err_t EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
         return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
-    
+
 }
 
 TCM_CORE_CONFIG VEHICLE_CONFIG = {};

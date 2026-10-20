@@ -596,9 +596,11 @@ void ShiftingAlgorithm::adaptation_step() {
                     float scalar = interpolate_float(time, 0.25, 0.5, 4, 8, InterpType::Linear);
                     int new_v = (int)((float)old_v + (float)correction_p * scalar);
                     int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
-                    if (new_v > sid->inf.pressure_multi_spc_int) {
+                    if (new_v > lim) {
+                        ESP_LOGW("P_ADAPT", "Pressure adaptation hit upper limit. Adjust your filling map manually");
                         new_v = lim;
                     } else if (new_v < -lim) {
+                        ESP_LOGW("P_ADAPT", "Pressure adaptation hit lower limit. Adjust your filling map manually");
                         new_v = -lim;
                     }
                     ESP_LOGI("ADAPT", "P_ADAPT end. Res: %d mBar (Timer = %d, AVG_T = %d Nm, Inertia %d Nm)", correction_p, time, avg_trq, d_inertia);
@@ -651,10 +653,11 @@ void ShiftingAlgorithm::adaptation_step() {
     }
     if (this->do_torque_adaptation) {
         // Cancel checks
-        if (sd->input_rpm < 1000) {
+        if (sd->input_rpm < 900) {
             this->do_torque_adaptation = false;
         }
-        if (sid->shift_flags & SHIFT_FLAG_COAST_54_43) {
+        if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0 || (sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0 ) {
+            ESP_LOGW("TRQ_ADAPT","Torque adaptation cancelled (Coasting)");
             this->do_torque_adaptation = false;
         }
         // Dynamics check
@@ -664,7 +667,8 @@ void ShiftingAlgorithm::adaptation_step() {
             (!this->is_release_shift() && this->phase_id < 4))
         ) {
             int pps = abs(sd->pedal_delta_per_second);
-            if (pps > 200) {
+            if (pps > 100) {
+                ESP_LOGW("TRQ_ADAPT","Torque adaptation cancelled due to pedal movement");
                 this->do_torque_adaptation = false;
             }
         }
@@ -700,10 +704,11 @@ void ShiftingAlgorithm::mark_end_torque_adapt() {
                         map = sid->adaptation_mgr->get_pushing_torque_map(sid->inf.map_idx);
                     }
                 }
-                int old = map->get_value(this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
                 if (is_release_shift() && this->trq_adapt_below_min_trq) {
+                    // Coasting downshifts can cause this
                     ESP_LOGW("TRQ_ADAPT", "Release torque below minimum, will not adapt");
                 } else {
+                    int old = map->get_value(this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
                     corr += old;
                     if (corr > 200 || corr < -200) {
                         ESP_LOGW("TRQ_ADAPT", "Torque limit hit %d Nm, clamping", corr);

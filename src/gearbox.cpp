@@ -4,6 +4,7 @@
 #include "adv_opts.h"
 #include <tcu_maths.h>
 #include "nvs/module_settings.h"
+#include "shifting_algo/shift_flags.h"
 #include "speaker.h"
 #include "clock.hpp"
 #include "nvs/device_mode.h"
@@ -447,8 +448,11 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         }
         else {
             bool is_release = true;
+            if (manual_shift) {
+                threshold_torque *= 2;
+            }
             if (
-                (sensor_data.converted_driver_torque < threshold_torque ||
+                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || sid.profile == race)) ||
                     (
                         (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )

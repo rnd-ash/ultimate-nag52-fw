@@ -365,8 +365,14 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
             map_val = MAX(0, map_val - (2*abs_input_trq));
         }
     } else {
-        if (sd->input_torque > 0) {
+        if (sd->input_torque > 0 && sid->profile != race) {
             map_val = MAX(0, map_val - (2*abs_input_trq));
+        }
+        if (sid->profile == race) {
+            if (sd->pedal_pos < 15) {
+                // Coast threshold (Emulate active downshifts)
+                map_val *= 1.5;
+            }
         }
         map_val = MAX(0, map_val + this->torque_accel_corr);
     }

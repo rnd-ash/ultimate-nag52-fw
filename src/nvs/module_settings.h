@@ -145,6 +145,14 @@ typedef struct {
     // actually hitting redline. If your engine stays at the limiter and after
     // a while the car finally upshifts, increase this threshold
     uint16_t redline_offset_auto_upshift;
+    // If the gearbox upshifts while the kickdown switch is still held (Redline
+    // upshift, or a manual upshift), kickdown will not request another downshift
+    // until the lower gear would land at least this far below redline RPM, or until
+    // the kickdown switch is released. This stops the gearbox bouncing between gears
+    // at redline whilst still allowing kickdown again if the car slows down (EG: Uphill).
+    //
+    // UNIT: RPM
+    uint16_t kickdown_rearm_rpm_offset;
 } __attribute__ ((packed)) SBS_MODULE_SETTINGS;
 
 const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
@@ -159,7 +167,8 @@ const SBS_MODULE_SETTINGS SBS_DEFAULT_SETTINGS = {
     .en_trq_req_3_2 = true,
     .en_trq_req_4_3 = true,
     .en_trq_req_5_4 = true,
-    .redline_offset_auto_upshift = 100
+    .redline_offset_auto_upshift = 100,
+    .kickdown_rearm_rpm_offset = 500
 
 };
 

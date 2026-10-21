@@ -1,49 +1,20 @@
 #include "inrush_solenoid.h"
 #include "esp_check.h"
 #include "tcu_maths.h"
-#include "soc/gpio_struct.h"
+#include "hal/ledc_ll.h"
+#include "soc/ledc_struct.h"
 
-// AT 12.0V
-const uint16_t INRUSH_START_PWM = 224; // Any PWM below this will just write 0 to solenoid (Not enough open time for arm to move)
-const uint16_t INRUSH_SKIP_PWM = 3220; // Any PWM above this will skip inrush and just go to hold as there is enough current
-const uint16_t INRUSH_TIME_US = 15000; 
-const uint16_t INRUSH_PWM = 4096;
-const uint16_t HOLD_PWM = 1300;
-const uint32_t TOTAL_PERIOD_TIME_US = 100000; // Timer runs at 10MHz, Hydralic PWM is 100Hz, so 10_000_000/100
+#include <cmath>
 
-
-static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    InrushControlSolenoid* solenoid = reinterpret_cast<InrushControlSolenoid*>(user_data);
-    uint32_t next_alarm_in = solenoid->on_timer_interrupt();
-    gptimer_alarm_config_t alarm_config = {
-        .alarm_count = edata->alarm_value + next_alarm_in,
-        .reload_count = 0u,
-        .flags = {
-            .auto_reload_on_alarm = 0u
-        }
-    };
-    gptimer_set_alarm_action(timer, &alarm_config);
-    return true;
-}
-
-static bool IRAM_ATTR inrush_solenoid_timer_isr_new(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_data) {
-    InrushControlSolenoid* solenoid = (InrushControlSolenoid*)user_data;
-    uint32_t next_alarm_in = solenoid->on_timer_interrupt_new();
-    gptimer_alarm_config_t alarm_config = {
-        .alarm_count = edata->alarm_value + next_alarm_in,
-        .reload_count = 0u,
-        .flags = {
-            .auto_reload_on_alarm = 0u
-        }
-    };
-    gptimer_set_alarm_action(timer, &alarm_config);
-    return true;
+static bool IRAM_ATTR inrush_solenoid_timer_isr(gptimer_handle_t timer,
+        const gptimer_alarm_event_data_t* event, void* user_data) {
+    return static_cast<InrushControlSolenoid*>(user_data)->on_alarm(timer, event);
 }
 
 InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, gpio_num_t zener_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms)
 : PwmSolenoid(name, ledc_timer, pwm_pin, channel, read_channel, phase_duration_ms) {
-    this->ledc_timer = ledc_timer;
-    this->target_hold_current = target_hold_current_ma;
+    (void)period_hz;
+    (void)target_hold_current_ma;
     this->zener_pin = zener_pin;
     this->pwm_pin = pwm_pin;
     // Old defaults
@@ -51,13 +22,11 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
     gptimer_alarm_cb_t callback = inrush_solenoid_timer_isr;
     if (GPIO_NUM_NC != this->zener_pin) { // Override! New mechanics
         freq = 1000;
-        callback = inrush_solenoid_timer_isr_new;
         ledc_stop(LEDC_HIGH_SPEED_MODE, channel, 0);
         gpio_set_direction(pwm_pin, gpio_mode_t::GPIO_MODE_OUTPUT);
         gpio_set_direction(zener_pin, gpio_mode_t::GPIO_MODE_OUTPUT);
-        this->inrush_time = 0;
-        this->hold_time = 0;
-        this->off_time = TOTAL_PERIOD_TIME_US;
+        gpio_set_level(pwm_pin, 0);
+        gpio_set_level(zener_pin, 0);
     } else {
         ledc_set_freq(LEDC_HIGH_SPEED_MODE, ledc_timer, freq);
     }
@@ -79,7 +48,7 @@ InrushControlSolenoid::InrushControlSolenoid(const char *name, ledc_timer_t ledc
     this->ready = gptimer_new_timer(&timer_config, &this->timer);
     if (ESP_OK == ready) {
         const gptimer_alarm_config_t alarm_config = {
-            .alarm_count = 0u,
+            .alarm_count = 1000u,
             .reload_count = 0u,
             .flags = {
                 .auto_reload_on_alarm = 0u,
@@ -111,164 +80,137 @@ void InrushControlSolenoid::post_current_test() {
     this->isr_enable();
 }
 
-void InrushControlSolenoid::isr_disable() {
-    gptimer_stop(this->timer);
-    if (GPIO_NUM_NC != this->zener_pin) {
-        gpio_set_level(this->zener_pin, 0);
+// This channel is owned by the TCC ISR, or by a diagnostic test while paused.
+// IDF 5.5 ledc_set_duty() is in flash even with LEDC_CTRL_FUNC_IN_IRAM enabled;
+// use the channel-local LL operations here, with no blocking fade semaphore.
+void IRAM_ATTR InrushControlSolenoid::write_legacy_duty_locked(uint16_t duty) {
+    ledc_ll_set_duty_int_part(&LEDC, LEDC_HIGH_SPEED_MODE, channel, duty);
+    ledc_ll_set_duty_direction(&LEDC, LEDC_HIGH_SPEED_MODE, channel, LEDC_DUTY_DIR_INCREASE);
+    ledc_ll_set_duty_num(&LEDC, LEDC_HIGH_SPEED_MODE, channel, 1);
+    ledc_ll_set_duty_cycle(&LEDC, LEDC_HIGH_SPEED_MODE, channel, 1);
+    ledc_ll_set_duty_scale(&LEDC, LEDC_HIGH_SPEED_MODE, channel, 0);
+    ledc_ll_set_sig_out_en(&LEDC, LEDC_HIGH_SPEED_MODE, channel, true);
+    ledc_ll_set_duty_start(&LEDC, LEDC_HIGH_SPEED_MODE, channel, true);
+}
+
+// Called with output_lock held, including from the ISR error path.
+void IRAM_ATTR InrushControlSolenoid::force_off_locked() {
+    if (zener_pin != GPIO_NUM_NC) {
+        gpio_set_level(zener_pin, 0);
+        gpio_set_level(pwm_pin, 0);
+    } else {
+        // GPIO writes do not override a pin still routed to the LEDC peripheral.
+        ledc_stop(LEDC_HIGH_SPEED_MODE, channel, 0);
     }
-    gpio_set_level(this->pwm_pin, 0);
-    this->isr_disabled = true;
+}
+
+void InrushControlSolenoid::isr_disable() {
+    portENTER_CRITICAL(&output_lock);
+    isr_disabled = true;
+    if (timer) gptimer_stop(timer);
+    force_off_locked();
+    pulse.reset();
+    portEXIT_CRITICAL(&output_lock);
 }
 
 void InrushControlSolenoid::isr_enable() {
-    esp_err_t res = gptimer_start(this->timer);
-    if (ESP_OK == res) {
-        this->isr_disabled = false;
-    } else {
-        ESP_LOGE("ICSolenoid", "ICSolenoid %s gptimer_start failed: %s", this->name, esp_err_to_name(res));
+    esp_err_t res = ESP_OK;
+    portENTER_CRITICAL(&output_lock);
+    if (isr_disabled) {
+        pulse.reset();
+        uint64_t count = 0;
+        res = timer ? gptimer_get_raw_count(timer, &count) : ESP_ERR_INVALID_STATE;
+        gptimer_alarm_config_t alarm = {};
+        alarm.alarm_count = count + 1000; // fresh future deadline after a pause
+        if (res == ESP_OK) res = gptimer_set_alarm_action(timer, &alarm);
+        if (res == ESP_OK) res = gptimer_start(timer);
+        isr_disabled = res != ESP_OK;
+        if (isr_disabled) force_off_locked();
     }
+    portEXIT_CRITICAL(&output_lock);
+    if (res != ESP_OK) ESP_LOGE("ICSolenoid", "%s timer resume failed: %s", name, esp_err_to_name(res));
 }
 
 bool InrushControlSolenoid::is_disabled() {
-    return this->isr_disabled;
+    portENTER_CRITICAL(&output_lock);
+    bool disabled = isr_disabled;
+    portEXIT_CRITICAL(&output_lock);
+    return disabled;
 }
 
-bool on = false;
-bool pwm_on = false;
-bool zener_on = false;
-uint32_t total  = 0;
-bool pwm_en = false;
-uint32_t InrushControlSolenoid::on_timer_interrupt_new() {
-    // Control the zener phase
-    int ret = TOTAL_PERIOD_TIME_US;
-    if (this->inrush_time != 0 || this->hold_time != 0) {
-        if (this->phase_id == 0) { // Off -> Inrush
-            pwm_on = true;
-            zener_on = false;
-            ret = this->inrush_time;
-            if (this->hold_time != 0) {
-                this->phase_id = 1; // Inrush -> hold
-                pwm_en = false;
-                total = 0;
-            } else {
-                this->phase_id = 2; // Inrush -> off (No hold)
-            }
-        } else if (this->phase_id == 1) { // Inrush -> Hold
-            zener_on = false;
-            pwm_on = pwm_en;
-            pwm_en = !pwm_en;
-            // Phase on/off for pwm
-
-            uint32_t remaining = (total < this->hold_time) ? (this->hold_time - total) : 0;
-            ret = MIN(!pwm_en ? this->pwm_on_time : this->pwm_off_time, remaining);
-            if (total+ret >= this->hold_time) {
-                if (this->off_time == 0) {
-                    // We go back to this phase (Constant hold)
-                    total = 0;
-                } else {
-                    this->phase_id = 2; // Done, turn off!
-                }
-            }
-            total += ret;
-        } else { // Hold -> Off
-            zener_on = true;
-            pwm_on = false;
-            this->phase_id = 0;
-            ret = this->off_time;
-        }
+bool IRAM_ATTR InrushControlSolenoid::on_alarm(gptimer_handle_t handle,
+        const gptimer_alarm_event_data_t* event) {
+    portENTER_CRITICAL_ISR(&output_lock);
+    if (isr_disabled) {
+        force_off_locked();
+        portEXIT_CRITICAL_ISR(&output_lock);
+        return false;
+    }
+    const auto edge = pulse.next(zener_pin != GPIO_NUM_NC);
+    esp_err_t res = ESP_OK;
+    if (zener_pin != GPIO_NUM_NC) {
+        gpio_set_level(zener_pin, edge.zener);
+        gpio_set_level(pwm_pin, edge.duty != 0);
     } else {
-        zener_on = false;
-        pwm_on = false;
-        this->phase_id = 0; // Off
+        write_legacy_duty_locked(edge.duty);
+        // Do not busy-wait inside an ISR for a peripheral update.
     }
-    volatile uint32_t* reg_pwm = pwm_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
-    volatile uint32_t* reg_zen = zener_on ? &GPIO.out_w1ts : &GPIO.out_w1tc;
-    *reg_pwm = (uint32_t)1 << (this->pwm_pin);
-    *reg_zen = (uint32_t)1 << (this->zener_pin);
-    return ret;
+    uint64_t now = 0;
+    if (res == ESP_OK) res = gptimer_get_raw_count(handle, &now);
+    gptimer_alarm_config_t alarm = {};
+    alarm.alarm_count = event->alarm_value + edge.ticks;
+    // Leave 100 us to arm the comparator. Never schedule in the past after
+    // interrupt latency, a critical section, or an empty phase.
+    if (alarm.alarm_count < now + 1000) alarm.alarm_count = now + 1000;
+    if (res == ESP_OK) res = gptimer_set_alarm_action(handle, &alarm);
+    if (res != ESP_OK) {
+        isr_disabled = true;
+        force_off_locked();
+    }
+    portEXIT_CRITICAL_ISR(&output_lock);
+    return false; // no task was woken
 }
-
-// 100,000 is 10ms of time
-uint32_t InrushControlSolenoid::on_timer_interrupt() {
-    uint32_t ret = 0;
-    uint16_t write_pwm = 0;
-    // Special handling for Min/Max PWM
-    if (this->pwm_raw < INRUSH_START_PWM) {
-        write_pwm = 0;
-        ret = TOTAL_PERIOD_TIME_US;
-    } else if (this->pwm_raw > INRUSH_SKIP_PWM) {
-        write_pwm = this->calc_hold_pwm;
-        ret = TOTAL_PERIOD_TIME_US;
-    } else {
-        if (this->phase_id == 0) { // Off -> Inrush
-            write_pwm = 4096;
-            // Grab all values now
-            this->inrush_time_this_cycle = this->inrush_time;
-            this->hold_time_this_cycle = this->hold_time;
-            this->off_time_this_cycle = this->off_time;
-            ret = this->inrush_time_this_cycle;
-            this->phase_id = this->hold_time_this_cycle == 0 ? 2 : 1;
-        } else if (this->phase_id == 1) { // Inrush -> hold
-            ret = this->hold_time_this_cycle;
-            this->phase_id = 2;
-            write_pwm = this->calc_hold_pwm;
-        } else { // Hold -> Off
-            write_pwm = 0;
-            this->phase_id = 0;
-            ret = this->off_time_this_cycle;
-        }
-    }
-    ledc_set_duty(LEDC_HIGH_SPEED_MODE, this->channel, write_pwm);
-    while (ledc_get_duty(LEDC_HIGH_SPEED_MODE, this->channel) != write_pwm) {
-        ledc_update_duty(LEDC_HIGH_SPEED_MODE, this->channel);
-    }
-    return ret;
-}
-
-const float TOTAL_PERIOD_PWM = TOTAL_PERIOD_TIME_US/10; // Per cycle
 
 void InrushControlSolenoid::__write_pwm(float vref_compensation, float temperature_factor) {
-    if (this->hold_time != 0) {
-        float on_pwm_ratio = 0.35 * vref_compensation;
-        if (inrush_time == 0) {
-            on_pwm_ratio = 0.5;
-        }
-        this->pwm_on_time = (int)(TOTAL_PERIOD_PWM * on_pwm_ratio);
-        this->pwm_off_time = TOTAL_PERIOD_PWM - this->pwm_on_time;
-    }
+    (void)temperature_factor;
+    float ratio = 0.35f * vref_compensation;
+    if (!std::isfinite(ratio)) ratio = 0.35f;
+    // Keep both carrier phases nonzero even with invalid/low supply readings.
+    ratio = fmaxf(0.05f, fminf(0.95f, ratio));
+    portENTER_CRITICAL(&output_lock);
+    pulse.command.on_ticks = pulse.command.inrush == 0 ? 5000 : uint32_t(10000 * ratio);
+    pulse.command.off_ticks = 10000 - pulse.command.on_ticks;
+    portEXIT_CRITICAL(&output_lock);
 }
 
 void InrushControlSolenoid::set_duty(uint16_t duty) {
-    this->pwm_raw = duty;
-    this->pwm = duty;
-    if (GPIO_NUM_NC != this->zener_pin) {
-        // NEW! TCC Zener mode
-        int total_on_time = (float)TOTAL_PERIOD_TIME_US * ((float)duty / 4096.0);
-        if (total_on_time < TOTAL_PERIOD_TIME_US/20) { // < 5%
-            this->inrush_time = 0;
-            this->hold_time = 0;
-            this->off_time = TOTAL_PERIOD_TIME_US;
-        } else if (total_on_time > TOTAL_PERIOD_TIME_US*0.95) { // > 95%
-            this->inrush_time = 0;
-            this->hold_time = TOTAL_PERIOD_TIME_US;
-            this->off_time = 0;
+    if (duty > 4096) duty = 4096;
+    portENTER_CRITICAL(&output_lock);
+    pwm_raw = pwm = duty;
+    auto& c = pulse.command;
+    c.duty = duty;
+    const uint32_t on = uint32_t(duty) * TccPulse::period / 4096;
+    if (zener_pin != GPIO_NUM_NC) {
+        if (on < TccPulse::period / 20) {
+            c.duty = 0;
+            c.inrush = c.hold = 0;
+            c.off = TccPulse::period;
+        } else if (on > TccPulse::period * 95 / 100) {
+            c.inrush = 0;
+            c.hold = TccPulse::period;
+            c.off = 0;
+            c.on_ticks = c.off_ticks = 5000;
         } else {
-            this->inrush_time = MIN(total_on_time, 25000); // MIN period, 2.5ms (Inrush phase)
-            this->hold_time = 0;
-            if (total_on_time > this->inrush_time) {
-                this->hold_time = total_on_time - this->inrush_time;
-            }
-            this->off_time = TOTAL_PERIOD_TIME_US - (this->inrush_time + this->hold_time); 
+            c.inrush = on < 25000 ? on : 25000;
+            c.hold = on - c.inrush;
+            c.off = TccPulse::period - on;
         }
     } else {
-        this->period_on_time = ((float)duty / 4096.0) * ((float)TOTAL_PERIOD_TIME_US/2);
-        if (this->period_on_time > INRUSH_TIME_US) {
-            this->hold_time = this->period_on_time - (INRUSH_TIME_US);
-            this->inrush_time = INRUSH_TIME_US;
-        } else {
-            this->inrush_time = this->period_on_time;
-            this->hold_time = 0;
-        }
-        this->off_time = TOTAL_PERIOD_TIME_US - this->period_on_time;
+        c.inrush = on / 2 < 15000 ? on / 2 : 15000;
+        c.hold = on / 2 - c.inrush;
+        c.off = TccPulse::period - on / 2;
     }
+    // A zero command must not wait for a possibly delayed alarm.
+    if (c.duty == 0) { force_off_locked(); pulse.reset(); }
+    portEXIT_CRITICAL(&output_lock);
 }

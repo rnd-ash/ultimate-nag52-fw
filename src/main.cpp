@@ -260,7 +260,7 @@ void input_manager(void)
             {
                 // Same position is ignored
                 // Process last request of the user
-                switch (paddle_pos_last)
+                switch (paddle)
                 {
                 case PaddlePosition::Plus:
                     gearbox->inc_gear_request();
@@ -279,7 +279,7 @@ void input_manager(void)
             {
                 // Same position, ignore
                 // Process last request of the user
-                switch (shifter_pos_last)
+                switch (spos)
                 {
                 case ShifterPosition::PLUS:
                     gearbox->inc_gear_request();

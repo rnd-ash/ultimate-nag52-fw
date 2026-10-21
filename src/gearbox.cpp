@@ -1233,6 +1233,10 @@ void Gearbox::controller_loop()
 
         sensor_data.brake_pressed = brake_pedal.is_brake_pedal_pressed(egs_can_hal, 250);
         sensor_data.kickdown_pressed = kickdown.is_kickdown_pressed(egs_can_hal, 250);
+        if (!sensor_data.kickdown_pressed) {
+            // Driver has let go of the kickdown switch, so it is re-armed
+            this->kickdown_rearm_pending = false;
+        }
         int tmp_rpm = 0;
         tmp_rpm = egs_can_hal->get_engine_rpm(1000);
         if (tmp_rpm == UINT16_MAX)
@@ -1457,13 +1461,29 @@ void Gearbox::controller_loop()
                         if (next == GearboxGear::Second || calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, next, &this->gearboxConfig) > 900)
                         {
                             this->target_gear = next;
+                            if (sensor_data.kickdown_pressed) {
+                                // Upshifting with kickdown held (EG: Redline). Don't let kickdown
+                                // immediately pull us back into the gear we just left
+                                this->kickdown_rearm_pending = true;
+                            }
                         }
                     }
                     else if ((this->ask_downshift || sensor_data.kickdown_pressed) && this->actual_gear > GearboxGear::First)
                     {
                         // Check RPMs
                         GearboxGear prev = prev_gear(this->actual_gear);
-                        if (calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, &this->gearboxConfig) <= this->redline_rpm - 100)
+                        int prev_rpm = calc_input_rpm_from_req_gear(this->sensor_data.output_rpm, prev, &this->gearboxConfig);
+                        bool can_downshift = prev_rpm <= (int)this->redline_rpm - 100;
+                        if (can_downshift && !this->ask_downshift && this->kickdown_rearm_pending) {
+                            // Kickdown is the only reason for this downshift, and we upshifted with kickdown
+                            // still held. Only re-arm once the lower gear is well clear of redline
+                            if (prev_rpm <= (int)this->redline_rpm - (int)SBS_CURRENT_SETTINGS.kickdown_rearm_rpm_offset) {
+                                this->kickdown_rearm_pending = false;
+                            } else {
+                                can_downshift = false;
+                            }
+                        }
+                        if (can_downshift)
                         {
                             this->target_gear = prev;
                         }

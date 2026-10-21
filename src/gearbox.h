@@ -157,6 +157,9 @@ private:
     int32_t acceleration_ms2 = 0;
 
     bool tcu_restarted = true;
+    // Set when an upshift happens with kickdown held. Kickdown cannot request a
+    // downshift again until it is re-armed (See kickdown_rearm_rpm_offset)
+    bool kickdown_rearm_pending = false;
 
 };
 

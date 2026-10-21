@@ -1,4 +1,5 @@
 #include "shift_crossover.h"
+#include "tcu_maths.h"
 #include <egs_calibration/calibration_structs.h>
 #include <math.h>
 
@@ -75,6 +76,9 @@ uint8_t CrossoverShift::step_internal(
 
             float multi_engine_trq;
             multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.2, 0, trq_max, InterpType::Linear);
+            if (sid->profile == race) {
+                multi_engine_trq *= interpolate_float(sd->pedal_pos, 1.0, 3.0, 15, 200, InterpType::Linear);
+            }
 
             float out = (float)sd->indicated_torque * (multi_engine_trq);
             intervension_out = MIN(out, (float)sd->indicated_torque*0.9);
@@ -173,10 +177,12 @@ uint8_t CrossoverShift::phase_fill() {
                 this->subphase_shift = 2;
                 this->fill_via_ramp = false;
                 this->cycles_ramp_to_low_filling = 3;
+                this->cycles_low_filling = 5;
                 if (race == sid->profile) {
                     this->cycles_ramp_to_low_filling = 1;
+                    this->cycles_low_filling = 2;
                 }
-                this->cycles_low_filling = 5;
+
                 this->timer_shift = cycles_ramp_to_low_filling;
             }
         }
@@ -188,6 +194,11 @@ uint8_t CrossoverShift::phase_fill() {
         }
     }
     else if (2 == this->subphase_shift) {
+        // Porsche SW in most aggressive mode cuts torque here
+        if (race == sid->profile) {
+            this->trq_req_timer = 3;
+            this->trq_req_down_ramp = true;
+        }
         // Ramp to low filling P
         uint16_t targ = this->set_p_apply_clutch_with_spring(low_filling_p);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
@@ -513,7 +524,7 @@ uint8_t CrossoverShift::phase_overlap2() {
     }
 
     if (!this->trq_req_up_ramp && sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm && subphase_shift >= 2) {
-        this->trq_req_timer = 3;
+        this->trq_req_timer = 6;
         this->trq_req_up_ramp = true;
     }
 

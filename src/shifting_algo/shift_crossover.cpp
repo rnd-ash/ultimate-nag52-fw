@@ -91,11 +91,17 @@ uint8_t CrossoverShift::step_internal(
                     adapt_val = sid->adaptation_mgr->get_pulling_torque_offset(sid->inf.map_idx, sd->input_rpm, this->abs_load_percentage);
                 }
                 if (this->correction_trq + adapt_val <= 0) {
-                    int negative_factor = interpolate_float(sid->chars.target_shift_time, 40, 20, 500, 100, InterpType::Linear);
+                    int negative_factor = 40;
+                    if (sid->chars.extra_speed) {
+                        negative_factor = 10;
+                    }
                     int min = (negative_factor * (this->correction_trq + adapt_val)) / 100;
                     this->trq_req_compensate_val = MAX(min, -intervension_out);
                 } else {
-                    int positive_factor = interpolate_float(sid->chars.target_shift_time, 40, 80, 500, 100, InterpType::Linear);
+                    int positive_factor = 55;
+                    if (sid->chars.extra_speed) {
+                        positive_factor = 80;
+                    }
                     this->trq_req_compensate_val = MAX(0, ((55 * sd->indicated_torque) / 100) - intervension_out);
                     this->trq_req_compensate_val = MIN(this->trq_req_compensate_val, (positive_factor * (this->correction_trq + adapt_val))/100);
                 }
@@ -478,7 +484,11 @@ uint8_t CrossoverShift::phase_overlap2() {
             if ((sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)) {
                 // Skip phase 2
                 this->subphase_shift += 1;
-                this->timer_shift = 3;
+                this->timer_shift = 4;
+                if (!this->trq_req_up_ramp) {
+                    this->trq_req_timer = 8;
+                    this->trq_req_up_ramp = true;
+                }
             }
         }
     } else if (2 == subphase_shift) {
@@ -489,8 +499,11 @@ uint8_t CrossoverShift::phase_overlap2() {
         this->correction_trq = this->calc_correction_trq(this->upshifting ? ShiftStyle::Crossover_Up : ShiftStyle::Crossover_Dn, this->momentum_ctrl_filtered);
         if (sid->ptr_r_clutch_speeds->on_clutch_speed <= this->threshold_rpm) {
             // Next phase
-            this->timer_shift = 3;
-            this->trq_req_timer = 6;
+            this->timer_shift = 4;
+            if (!this->trq_req_up_ramp) {
+                this->trq_req_timer = 8;
+                this->trq_req_up_ramp = true;
+            }
             this->subphase_shift += 1;
         }
     } else if (3 == subphase_shift) {
@@ -521,11 +534,6 @@ uint8_t CrossoverShift::phase_overlap2() {
             this->mark_end_torque_adapt();
             ret = PHASE_MAX_PRESSURE;
         }
-    }
-
-    if (!this->trq_req_up_ramp && sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm && subphase_shift >= 2) {
-        this->trq_req_timer = 6;
-        this->trq_req_up_ramp = true;
     }
 
     int torque = MAX(0, (int)abs_input_trq + this->trq_adder + this->correction_trq);

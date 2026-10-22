@@ -1,4 +1,5 @@
 #include "gearbox.h"
+#include "canbus/can_defines.h"
 #include "common_structs_ops.h"
 #include "nvs/eeprom_config.h"
 #include "adv_opts.h"
@@ -452,7 +453,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
                 threshold_torque *= 2;
             }
             if (
-                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || sid.chars.extra_speed)) ||
+                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || (sid.chars.extra_speed && target_gear == GearboxGear::Second))) ||
                     (
                         (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )

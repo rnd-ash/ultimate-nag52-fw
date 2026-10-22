@@ -452,7 +452,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
                 threshold_torque *= 2;
             }
             if (
-                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || sid.profile == race)) ||
+                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || sid.chars.extra_speed)) ||
                     (
                         (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )
@@ -1430,6 +1430,7 @@ void Gearbox::controller_loop()
                     if ((standard == this->current_profile ||
                         comfort == this->current_profile ||
                         agility == this->current_profile ||
+                        manual == this->current_profile ||
                         winter == this->current_profile) &&
                         this->actual_gear != GearboxGear::Fifth && // Already checked if in FWD gear
                         !this->ask_upshift &&

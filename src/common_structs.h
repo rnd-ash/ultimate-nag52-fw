@@ -189,8 +189,9 @@ struct GearboxConfiguration{
     GearRatioInfo bounds[7];
 };
 
-struct ShiftCharacteristics{
+struct ShiftCharacteristics {
     uint16_t target_shift_time;
+    bool extra_speed;
 };
 
 struct   __attribute__ ((packed)) ShiftReportSegment {

@@ -288,12 +288,12 @@ uint16_t ShiftingAlgorithm::calc_low_filling_p() {
     }
     else {
         ret = sid->prefill_info.low_fill_pressure_on_clutch;
-        //if (this->upshifting && !this->is_release_shift() && race == sid->profile) {
-        //    // Crossover upshift - Add pressure based on torque and RPM
-        //    int rpm_adder = interpolate_float(sd->engine_rpm, 0, 250, 1200, 6000, InterpType::Linear);
-        //    int torque_adder = interpolate_float(sd->input_torque,  0, 250, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
-        //    ret += rpm_adder + torque_adder;
-        //}
+        if (this->upshifting && !this->is_release_shift() && sid->chars.extra_speed) {
+            // Crossover upshift - Add pressure based on torque and RPM
+            int rpm_adder = interpolate_float(sd->engine_rpm, 0, 100, 1200, 6000, InterpType::Linear);
+            int torque_adder = interpolate_float(sd->input_torque,  0, 100, VEHICLE_CONFIG.engine_drag_torque/5.0, VEHICLE_CONFIG.engine_drag_torque, InterpType::Linear);
+            ret += rpm_adder + torque_adder;
+        }
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
             if (sid->targ_g == GearboxGear::Third) {
                 // 4-3
@@ -470,7 +470,7 @@ void ShiftingAlgorithm::adaptation_step() {
         if (sid->manual_shift && !ADP_CURRENT_SETTINGS.adaptation_when_manual_shifting) {
             this->do_fill_time_adaptation = false;
         }
-        if (sid->profile == race) {
+        if (sid->chars.extra_speed) {
             this->do_fill_time_adaptation = false;
         }
 
@@ -643,7 +643,7 @@ void ShiftingAlgorithm::adaptation_step() {
         }
 
         this->torque_adaptation_stage += 1;
-        if (race == sid->profile) {
+        if (sid->chars.extra_speed) {
             this->do_fill_pressure_adaptation = false;
             this->do_fill_time_adaptation = false;
             this->do_torque_adaptation = false;

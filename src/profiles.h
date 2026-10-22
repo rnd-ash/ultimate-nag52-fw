@@ -39,7 +39,7 @@ enum class GearboxProfile : uint8_t{
     // Reserved for 'no profile' (_)
     Underscore = 7u,
     // Failure (F)
-    Failure = 8u    
+    Failure = 8u
 };
 
 /**
@@ -50,11 +50,11 @@ public:
     static const uint8_t MAX_PROFILES = 4u;
 
     AbstractProfile(
-        bool is_diesel, 
-        const char* tag_id, 
-        const char* upshift_map_name_diesel, 
-        const char* downshift_map_name_diesel, 
-        const char* upshift_map_name_petrol, 
+        bool is_diesel,
+        const char* tag_id,
+        const char* upshift_map_name_diesel,
+        const char* downshift_map_name_diesel,
+        const char* upshift_map_name_petrol,
         const char* downshift_map_name_petrol,
         const char* upshift_time_map_name,
         const char* downshift_time_map_name,
@@ -72,8 +72,11 @@ public:
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
     virtual bool should_downshift(GearboxGear current_gear, SensorData* sensors) = 0;
     ShiftCharacteristics get_shift_characteristics(GearChange requested, SensorData* sensors);
-    
-    
+    virtual bool extra_shift_dynamics(void) {
+        return false;
+    }
+
+
     StoredMap* get_upshift_map(void) {
         return this->upshift_table;
     }
@@ -113,7 +116,7 @@ protected:
     StoredMap* upshift_time_map = nullptr;
     StoredMap* downshift_time_map = nullptr;
 private:
-    bool is_diesel; 
+    bool is_diesel;
     const char* tag_id;
 };
 
@@ -124,6 +127,9 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    bool extra_shift_dynamics(void) override {
+        return true;
+    }
 };
 
 class ComfortProfile : public AbstractProfile {
@@ -180,6 +186,9 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
+    bool extra_shift_dynamics(void) override {
+        return true;
+    }
 };
 
 extern AgilityProfile* agility;

@@ -25,11 +25,6 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
     this->cycles_mod_ramp_to_sync = 5;
     this->cycles_mod_hold_sync = 5;
 
-    if (race == data->profile) {
-        this->cycles_ramp_filling = 2;
-        this->cycles_low_filling = 3;
-    }
-
     this->release_minimum_mod_reduction_trq = -VEHICLE_CONFIG.engine_drag_torque / 5.0;// 2x Drag trq
 }
 
@@ -74,7 +69,7 @@ uint8_t ReleasingShift::step_internal(
 
     // Set ramp value on first iteration
     if (this->spc_ramp_val == 0) {
-        this->spc_ramp_val = 8;
+        this->spc_ramp_val = 10;
     }
 
     if (phase_id == PHASE_BLEED) {
@@ -550,7 +545,7 @@ float ReleasingShift::calculate_freeing_trq_multiplier() {
         }
         if (manual == sid->profile) {
             output = MIN(2.5, output * 1.25);
-        } else if (race == sid->profile) {
+        } else if (sid->chars.extra_speed) {
             output = MIN(3.0, output * 1.5);
         }
     }

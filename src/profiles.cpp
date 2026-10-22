@@ -8,11 +8,11 @@
 #include <tcu_maths_impl.h>
 static_assert(SHIFT_MAP_X_SIZE*SHIFT_MAP_Y_SIZE == SHIFT_MAP_SIZE);
 
-AbstractProfile::AbstractProfile(bool is_diesel, 
-        const char* tag_id, 
-        const char* upshift_map_name_diesel, 
-        const char* downshift_map_name_diesel, 
-        const char* upshift_map_name_petrol, 
+AbstractProfile::AbstractProfile(bool is_diesel,
+        const char* tag_id,
+        const char* upshift_map_name_diesel,
+        const char* downshift_map_name_diesel,
+        const char* upshift_map_name_petrol,
         const char* downshift_map_name_petrol,
         const char* upshift_time_map_name,
         const char* downshift_time_map_name,
@@ -70,7 +70,10 @@ AbstractProfile::AbstractProfile(bool is_diesel,
 }
 
 ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange requested, SensorData* sensors) {
-    ShiftCharacteristics result;
+    ShiftCharacteristics result = {
+        .target_shift_time = 500,
+        .extra_speed = this->extra_shift_dynamics()
+    };
     switch (requested) {
         case GearChange::_1_2:
         case GearChange::_2_3:
@@ -88,16 +91,17 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange reque
             result.target_shift_time = 500;
             break;
     }
+
     return result;
 }
 
 
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "WINTER", 
-        NVS_KEY_MAP_NAME_A_DIESEL_UPSHIFT, 
+        "WINTER",
+        NVS_KEY_MAP_NAME_A_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_A_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_A_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_A_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_A_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_A_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_A_DOWNSHIFT_TIME,
@@ -127,7 +131,7 @@ GearboxDisplayGear AgilityProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
                 // Safety - GearboxGear for 1-5 = DisplayGear -3
-                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+                return (GearboxDisplayGear)(((uint8_t)target) + 4);
             } else {
                 return GearboxDisplayGear::D;
             }
@@ -162,10 +166,10 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 ComfortProfile::ComfortProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "COMFORT", 
-        NVS_KEY_MAP_NAME_C_DIESEL_UPSHIFT, 
+        "COMFORT",
+        NVS_KEY_MAP_NAME_C_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_C_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_C_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_C_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_C_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_C_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_C_DOWNSHIFT_TIME,
@@ -194,7 +198,7 @@ GearboxDisplayGear ComfortProfile::get_display_gear(GearboxGear target, GearboxG
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
                 // Safety - GearboxGear for 1-5 = DisplayGear -3
-                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+                return (GearboxDisplayGear)(((uint8_t)target) + 4);
             } else {
                 return GearboxDisplayGear::D;
             }
@@ -239,10 +243,10 @@ bool ComfortProfile::should_downshift(GearboxGear current_gear, SensorData* sens
 
 WinterProfile::WinterProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "WINTER", 
-        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        "WINTER",
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_C_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_C_DOWNSHIFT_TIME,
@@ -294,10 +298,10 @@ bool WinterProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 
 StandardProfile::StandardProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "STANDARD", 
-        NVS_KEY_MAP_NAME_S_DIESEL_UPSHIFT, 
+        "STANDARD",
+        NVS_KEY_MAP_NAME_S_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_S_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_S_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_S_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_S_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_S_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_S_DOWNSHIFT_TIME,
@@ -326,7 +330,7 @@ GearboxDisplayGear StandardProfile::get_display_gear(GearboxGear target, Gearbox
         case GearboxGear::Fifth:
             if (ETS_CURRENT_SETTINGS.auto_show_gears_always) {
                 // Safety - GearboxGear for 1-5 = DisplayGear -4
-                return (GearboxDisplayGear)(((uint8_t)target) + 4); 
+                return (GearboxDisplayGear)(((uint8_t)target) + 4);
             } else {
                 return GearboxDisplayGear::D;
             }
@@ -423,10 +427,10 @@ GearboxDisplayGear ManualProfile::get_display_gear(GearboxGear target, GearboxGe
 
 ManualProfile::ManualProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
-        "MANUAL", 
-        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        "MANUAL",
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_M_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_M_DOWNSHIFT_TIME,
@@ -456,10 +460,10 @@ bool ManualProfile::should_downshift(GearboxGear current_gear, SensorData* senso
 
 RaceProfile::RaceProfile(bool is_diesel): AbstractProfile(
         is_diesel,
-        "RACE", 
-        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT, 
+        "RACE",
+        NVS_KEY_MAP_NAME_M_DIESEL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_DIESEL_DOWNSHIFT,
-        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT, 
+        NVS_KEY_MAP_NAME_M_PETROL_UPSHIFT,
         NVS_KEY_MAP_NAME_M_PETROL_DOWNSHIFT,
         NVS_KEY_MAP_NAME_R_UPSHIFT_TIME,
         NVS_KEY_MAP_NAME_R_DOWNSHIFT_TIME,

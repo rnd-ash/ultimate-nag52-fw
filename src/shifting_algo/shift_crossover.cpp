@@ -76,7 +76,7 @@ uint8_t CrossoverShift::step_internal(
 
             float multi_engine_trq;
             multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.2, 0, trq_max, InterpType::Linear);
-            if (sid->profile == race) {
+            if (sid->chars.extra_speed) {
                 multi_engine_trq *= interpolate_float(sd->pedal_pos, 1.0, 3.0, 15, 200, InterpType::Linear);
             }
 
@@ -355,7 +355,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
     if (upshifting) {
         if (sid->profile == manual) {
             map_val *= 1.25;
-        } else if (sid->profile == race) {
+        } else if (sid->chars.extra_speed) {
             map_val *= 1.5;
         }
     } else {
@@ -365,7 +365,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
         }
         if (sid->profile == manual) {
             map_val *= 1.25;
-        } else if (sid->profile == race) {
+        } else if (sid->chars.extra_speed) {
             map_val *= 1.5;
         }
     }
@@ -379,7 +379,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
         if (sd->input_torque > 0 && sid->profile != race) {
             map_val = MAX(0, map_val - (2*abs_input_trq));
         }
-        if (sid->profile == race) {
+        if (sid->chars.extra_speed) {
             if (sd->pedal_pos < 15) {
                 // Coast threshold (Emulate active downshifts)
                 map_val *= 1.5;

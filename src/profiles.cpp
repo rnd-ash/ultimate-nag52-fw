@@ -355,11 +355,11 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
         int mmax = sensors->max_torque;
         if (0 != mmax) {
             // Score of 0-1
-            float engine_load_percent = (float)sensors->converted_driver_torque / (float)sensors->max_torque;
+            float engine_load_percent = (float)MAX(0, sensors->converted_driver_torque) / (float)sensors->max_torque;
             upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
         }
         bool can_upshift = sensors->input_rpm > upshift_map_val;
-        if (sensors->pedal_pos == 0 || sensors->pedal_delta_per_second > 10) {
+        if (sensors->pedal_pos == 0 || sensors->pedal_delta_per_second < -5) {
             can_upshift = false;
         }
         if (sensors->brake_pressed) { can_upshift = false; }

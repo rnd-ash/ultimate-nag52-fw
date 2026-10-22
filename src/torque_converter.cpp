@@ -199,6 +199,9 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
             this->timer_till_pid = 50;
         }
     }
+    if (abs(sensors->pedal_delta_per_second) > 50) {
+        this->timer_till_adapt = 150; // 3 seconds
+    }
     return ret;
 }
 

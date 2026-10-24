@@ -1447,7 +1447,7 @@ void Gearbox::controller_loop()
                         }
                         int cycles_to_shift = ShiftHelpers::total_time_crossover_shift(this->pressure_mgr, this->shift_adapter, change, abs(sensor_data.input_torque), sensor_data.input_rpm);
                         int delta_est = (this->engine_spd_flt - this->engine_spd_flt_prev) / 10; // Per 20ms cycle
-                        int est_rpm_when_shifting = this->engine_spd_flt + (delta_est * cycles_to_shift);
+                        int est_rpm_when_shifting = (this->engine_spd_flt/10) + (delta_est * cycles_to_shift);
                         if (
                             est_rpm_when_shifting > this->redline_rpm - SBS_CURRENT_SETTINGS.redline_offset_auto_upshift &&
                             sensor_data.pedal_pos > 50

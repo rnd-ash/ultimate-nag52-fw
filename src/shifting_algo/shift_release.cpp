@@ -25,7 +25,14 @@ ReleasingShift::ReleasingShift(ShiftInterfaceData* data) : ShiftingAlgorithm(dat
     this->cycles_mod_ramp_to_sync = 6;
     this->cycles_mod_hold_sync = 6;
 
-    this->release_minimum_mod_reduction_trq = (-VEHICLE_CONFIG.engine_drag_torque / 10.0)*1.5;// 1.5x Drag trq
+    if (data->chars.extra_speed) {
+        this->spc_ramp_val = 10;
+    } else {
+        this->spc_ramp_val = 5;
+    }
+
+
+    this->release_minimum_mod_reduction_trq = MIN((-VEHICLE_CONFIG.engine_drag_torque / 10.0)*2.0, -90);// 2.0x Drag trq
 }
 
 ReleasingShift::~ReleasingShift() {
@@ -66,11 +73,6 @@ uint8_t ReleasingShift::step_internal(
     uint8_t ret = STEP_RES_CONTINUE;
     // Freeing torque, multiplied by scalar based on pedal position
     this->freeing_trq = MIN(abs_input_trq, (float)pm->find_freeing_torque(sid->change, abs_input_trq, sd->output_rpm) * this->calculate_freeing_trq_multiplier());
-
-    // Set ramp value on first iteration
-    if (this->spc_ramp_val == 0) {
-        this->spc_ramp_val = 10;
-    }
 
     if (phase_id == PHASE_BLEED) {
         ret = this->phase_bleed(pm);
@@ -229,9 +231,9 @@ void ReleasingShift::phase_fill_release_spc() {
         this->p_apply_clutch = MIN(this->p_apply_clutch, sid->SPC_MAX);
         this->trq_at_apply_clutch = this->calc_max_trq_on_clutch(this->p_apply_clutch, CoefficientTy::Sliding);
         if (
-            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) != 0)) ||
+            (sid->ptr_r_clutch_speeds->off_clutch_speed > REL_CURRENT_SETTINGS.clutch_stationary_rpm && ((sid->shift_flags & SHIFT_FLAG_COAST_32_21) == 0)) ||
             (sid->ptr_r_clutch_speeds->on_clutch_speed < this->threshold_rpm)
-            ) {
+        ) {
             this->subphase_shift += 1;
             this->spc_wait_adder = 0;
         }
@@ -428,7 +430,7 @@ uint8_t ReleasingShift::phase_overlap() {
 
     if (this->timer_shift == 0) {
         this->trq_req_up_ramp = true;
-        this->trq_req_timer = 3;
+        this->trq_req_timer = 6;
         this->mark_end_torque_adapt();
         ret = PHASE_MAX_PRESSURE;
     }

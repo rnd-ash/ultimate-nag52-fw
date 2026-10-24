@@ -67,16 +67,22 @@ uint8_t ShiftHelpers::cycles_crossover_overlap2(GearChange change, uint16_t abs_
     return ret;
 }
 
-uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm) {
+uint16_t ShiftHelpers::total_time_crossover_shift(PressureManager* pm, ShiftAdaptationSystem* adp, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm) {
     Clutch applying = get_clutch_to_apply(change);
     PrefillData info = pm->make_fill_data(applying);
 
-    return 5 + // Bleed phase time
+    int ret = 5 + // Bleed phase time
         info.fill_cycles + // High fill time
         3 + // Cycles to low filling P
         5 + // Cycles held at low filling P
     (uint16_t)ShiftHelpers::cycles_crossover_overlap(change, abs_input_torque, input_rpm) +
     (uint16_t)ShiftHelpers::cycles_crossover_overlap2(change, abs_input_torque, input_rpm);
+
+    if (nullptr != adp) {
+        ret += adp->get_prefill_cycles_offset(((uint8_t)change)-1); // Safety - Same order, just with IDLE being 0
+    }
+
+    return MAX(0, ret);
 }
 
 uint16_t ShiftHelpers::correct_shift_shift_pressure(PressureManager* pm, int16_t pressure, uint8_t map_idx) {

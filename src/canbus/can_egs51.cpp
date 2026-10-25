@@ -6,14 +6,42 @@
 #include "nvs/eeprom_config.h"
 #include "shifter/shifter_trrs.h"
 #include "shifter/shifter_ewm.h"
+#include "egs_calibration/calibration_structs.h"
 
-Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) 
+Egs51Can::Egs51Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud)
 {
     ESP_LOGI("EGS51", "SETUP CALLED");
     this->gs218.TORQUE_REQ = 0xFE;
     this->gs218.bytes[7] = 0xFE;
     this->gs218.bytes[4] = 0x48;
     this->gs218.bytes[3] = 0x64;
+    this->gs418.raw = ~0;
+
+    this->gs418.FMRAD = 1.0;
+    this->gs418.KD = false;
+    this->gs418.SCHALT = false; // Auto is 0, manual is 1
+    this->gs418.ESV_BRE = true; // When switching on
+    this->gs418.FMRAD = 0x7FF;
+    // Fix for W220
+    this->gs418.WHST = GS_418h_WHST_EGS51::P;
+
+    // Set profile to N/A for now
+    this->set_drive_profile(GearboxProfile::Underscore);
+    // Set no message
+    this->set_display_msg(GearboxMessage::None);
+    if (VEHICLE_CONFIG.is_four_matic != 0) {
+        this->gs418.ALLRAD = true;
+    } else {
+        this->gs418.ALLRAD = false;
+    }
+    this->gs418.FRONT = false; // Primary rear wheel drive
+    this->gs418.CVT = false; // Not CVT gearbox]
+    if (MECH_PTR->gb_ty == 0) {
+        this->gs418.MECH = GS_418h_MECH_EGS51::GROSS;
+    } else {
+        this->gs418.MECH = GS_418h_MECH_EGS51::KLEIN;
+    }
+
 }
 
 uint16_t Egs51Can::get_front_right_wheel(const uint32_t expire_time_ms)
@@ -32,7 +60,7 @@ uint16_t Egs51Can::get_rear_right_wheel(const uint32_t expire_time_ms) {
         if (0x3FFF != bs208.DHR) {
             ret = bs208.DHR;
         }
-        
+
     }
     return ret;
 }
@@ -44,7 +72,7 @@ uint16_t Egs51Can::get_rear_left_wheel(const uint32_t expire_time_ms) {
         if (0x3FFF != bs208.DHL) {
             ret = bs208.DHL;
         }
-        
+
     }
     return ret;
 }
@@ -80,7 +108,8 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
     CanTorqueData ret = TORQUE_NDEF;
     MS_310_EGS51 ms310;
     MS_210_EGS51 ms210;
-    uint16_t m_esp = INT16_MAX;
+    int16_t m_esp = INT16_MAX;
+
     if (this->ms51.get_MS_310(GET_CLOCK_TIME(), expire_time_ms, &ms310) &&
         this->ms51.get_MS_210(GET_CLOCK_TIME(), expire_time_ms, &ms210)) {
         if (UINT8_MAX != ms310.IND_TORQUE) {
@@ -91,7 +120,11 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         }
         if (UINT8_MAX != ms310.MAX_TORQUE) {
             ret.m_max = ((int16_t)ms310.MAX_TORQUE)*3;
-            // TODO -> ms310.MAX_TRQ_FACTOR
+            ret.m_max = (float)ret.m_max * (float)(ms310.MAX_TRQ_FACTOR*0.0078);
+        }
+        if (UINT8_MAX != ms310.DRG_TORQUE) {
+            // Preserve last value, otherwise will be 0
+            this->drag_trq = ((int16_t)ms310.DRG_TORQUE)*3;
         }
         if (UINT8_MAX != ms210.M_ESP) {
             m_esp = ((int16_t)ms210.M_ESP)*3;
@@ -103,18 +136,15 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         INT16_MAX != ret.m_ind &&
         INT16_MAX != m_esp
     ) {
-        ret.m_ind = MIN(ret.m_ind, ret.m_max); // Limit indicated torque to max torque
-        ret.m_ind = MAX(ret.m_min, ret.m_ind); // Floor indicated torque to min torque
+        ret.m_min -= this->drag_trq;
+        ret.m_max -= this->drag_trq;
+        ret.m_ind -= this->drag_trq;
 
-        m_esp = MIN(m_esp, ret.m_max); // Limit ESP torque to max torque
-        m_esp = MAX(ret.m_min, m_esp); // Floor ESP torque to min torque
+        m_esp = MAX(0, MIN(m_esp - (int16_t)this->drag_trq, ret.m_max));
+        ret.m_ind = MAX(ret.m_min, MIN(ret.m_ind, ret.m_max));
 
-        int16_t driver_converted = ret.m_ind;
+        int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;
-
-        if (m_esp > ret.m_ind) {
-            driver_converted = m_esp;
-        }
 
         bool freeze = this->gs218.TORQUE_REQ_EN;
         // Change torque values based on freezing or not
@@ -122,9 +152,8 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
             ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;
+            ret.m_converted_driver = driver_converted;
         }
-
-        ret.m_converted_driver = driver_converted;
         ret.m_converted_static = static_converted;
     }
     return ret;
@@ -181,7 +210,12 @@ bool Egs51Can::get_is_starting(const uint32_t expire_time_ms) { // TODO
 }
 
 bool Egs51Can::get_is_brake_pressed(const uint32_t expire_time_ms) {
-    return false;
+    BS_200_EGS51 bs200;
+    if (this->esp51.get_BS_200(GET_CLOCK_TIME(), expire_time_ms, &bs200)) {
+        return bs200.BLS == BS_200h_BLS_EGS51::BREMSE_BET;
+    } else {
+        return false;
+    }
 }
 
 bool Egs51Can::get_profile_btn_press(const uint32_t expire_time_ms) {
@@ -362,6 +396,26 @@ void Egs51Can::set_shifter_position(ShifterPosition pos) {
     } else {
         this->gs218.PN = false;
     }
+
+    switch (pos) {
+        case ShifterPosition::P:
+            gs418.WHST = GS_418h_WHST_EGS51::P;
+            break;
+        case ShifterPosition::R:
+            gs418.WHST = GS_418h_WHST_EGS51::R;
+            break;
+        case ShifterPosition::N:
+            gs418.WHST = GS_418h_WHST_EGS51::N;
+            break;
+        case ShifterPosition::D:
+            gs418.WHST = GS_418h_WHST_EGS51::D;
+            break;
+        case ShifterPosition::SignalNotAvailable:
+            gs418.WHST = GS_418h_WHST_EGS51::SNV;
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs51Can::set_gearbox_ok(bool is_ok) {
@@ -378,7 +432,8 @@ void Egs51Can::set_torque_request(TorqueRequestControlType control_type, TorqueR
         // Just enable the request
         this->gs218.TORQUE_REQ_EN = true;
         this->gs218.SE = true;
-        this->gs218.TORQUE_REQ = amount_nm/3;
+        int floor = MAX(0, (int)(amount_nm/3.0F) + (this->drag_trq/3));
+        this->gs218.TORQUE_REQ = MIN(0xFD, floor);
     }
 }
 
@@ -394,9 +449,80 @@ void Egs51Can::set_turbine_torque_loss(uint16_t loss_nm) {
 }
 
 void Egs51Can::set_display_gear(GearboxDisplayGear g, bool manual_mode) {
+    switch(g) {
+        case GearboxDisplayGear::P:
+            this->gs418.FSC = 'P';
+            break;
+        case GearboxDisplayGear::N:
+            this->gs418.FSC = 'N';
+            break;
+        case GearboxDisplayGear::R:
+            this->gs418.FSC = 'R';
+            break;
+        case GearboxDisplayGear::One:
+            this->gs418.FSC = '1';
+            break;
+        case GearboxDisplayGear::Two:
+            this->gs418.FSC = '2';
+            break;
+        case GearboxDisplayGear::Three:
+            this->gs418.FSC = '3';
+            break;
+        case GearboxDisplayGear::Four:
+            this->gs418.FSC = '4';
+            break;
+        case GearboxDisplayGear::Five:
+            this->gs418.FSC = '5';
+            break;
+        case GearboxDisplayGear::A:
+            this->gs418.FSC = 'A';
+            break;
+        case GearboxDisplayGear::D:
+            this->gs418.FSC = 'D';
+            break;
+        case GearboxDisplayGear::Failure:
+            this->gs418.FSC = 'F';
+            break;
+        case GearboxDisplayGear::SNA:
+        default:
+            this->gs418.FSC = ' ';
+            break;
+
+    }
 }
 
 void Egs51Can::set_drive_profile(GearboxProfile p) {
+    switch (p) {
+        case GearboxProfile::Agility:
+            gs418.FPC = 'A';
+            break;
+        case GearboxProfile::Comfort:
+            gs418.FPC = 'C';
+            break;
+        case GearboxProfile::Winter:
+            gs418.FPC = 'W';
+            break;
+        case GearboxProfile::Failure:
+            gs418.FPC = 'F';
+            break;
+        case GearboxProfile::Standard:
+            gs418.FPC = 'S';
+            break;
+        case GearboxProfile::Manual:
+            gs418.FPC = 'M';
+            break;
+        case GearboxProfile::Individual:
+            gs418.FPC = 'I';
+            break;
+        case GearboxProfile::Race:
+            gs418.FPC = 'R';
+            break;
+        case GearboxProfile::Underscore:
+            gs418.FPC = '_';
+            break;
+        default:
+            break;
+    }
 }
 
 void Egs51Can::set_display_msg(GearboxMessage msg) {
@@ -405,29 +531,28 @@ void Egs51Can::set_display_msg(GearboxMessage msg) {
 void Egs51Can::set_wheel_torque_multi_factor(float ratio) {
 }
 
-void Egs51Can::set_safe_start(bool can_start) {
-    this->gs218.CAN_START = can_start;
-    if (ioexpander) { // Do this in CAN HAL - When Gearbox commands it
-        ioexpander->set_start(can_start);
-    }
-}
-
 void Egs51Can::set_tcc_trq_multiplier(float multi) {
     float clamped = MAX(100, MIN(254, multi*100));
     gs218.TCC_MULTI = (uint8_t)clamped;
 }
 
 void Egs51Can::tx_frames() {
-    tx.data_length_code = 6;
     GS_218_EGS51 gs_218tx;
+    GS_418_EGS51 gs_418tx;
     // Copy current CAN frame values to here so we don't
     // accidentally modify parity calculations
     gs_218tx = {gs218.raw};
+    gs_418tx = {gs418.raw};
     // Now set CVN Counter (Increases every frame)
     gs_218tx.FEHLER = cvn_counter;
     cvn_counter++;
     tx.identifier = GS_218_EGS51_CAN_ID;
     to_bytes(gs_218tx.raw, tx.data);
+    tx.data_length_code = 6;
+    twai_transmit(&tx, 5);
+    tx.identifier = GS_418_EGS51_CAN_ID;
+    to_bytes(gs_418tx.raw, tx.data);
+    tx.data_length_code = 8;
     twai_transmit(&tx, 5);
 }
 

@@ -69,6 +69,9 @@ BoardV12GpioMatrix::BoardV12GpioMatrix() {
         .atf_r2_resistance = 2000,
         .current_sense_multi = 1.0,
     };
+}
+
+void BoardV12GpioMatrix::init_gpio_expander() {
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 
     // I/O expander inputs
@@ -118,6 +121,10 @@ BoardV13GpioMatrix::BoardV13GpioMatrix() {
         .atf_r2_resistance = 2000,
         .current_sense_multi = 1.0,
     };
+}
+
+
+void BoardV13GpioMatrix::init_gpio_expander() {
     ioexpander = new IOExpander(this->i2c_sda, this->i2c_scl);
 
     // I/O expander inputs

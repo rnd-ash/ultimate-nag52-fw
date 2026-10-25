@@ -6,10 +6,11 @@
 #include "../../egs51_ecus/src/ESP51.h"
 #include "../../egs52_ecus/src/EWM.h"
 #include "shifter/shifter.h"
+#include <cstdint>
 
 class Egs51Can: public EgsBaseCan {
     public:
-        Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud, Shifter* shifter);
+        Egs51Can(const char* name, uint8_t tx_time_ms, uint32_t baud);
 
         /**
          * Getters
@@ -30,7 +31,7 @@ class Egs51Can: public EgsBaseCan {
         // Returns true if engine is in limp mode
         bool get_engine_is_limp(const uint32_t expire_time_ms) override;
         // Returns true if pedal is kickdown 
-         bool get_kickdown(const uint32_t expire_time_ms) override;
+        bool get_kickdown(const uint32_t expire_time_ms) override;        
         // Returns the pedal percentage. Range 0-250
          uint8_t get_pedal_value(const uint32_t expire_time_ms) override;
         // Gets Torque information
@@ -61,7 +62,7 @@ class Egs51Can: public EgsBaseCan {
         // Set the target gear of the gearbox
         void set_target_gear(GearboxGear target) override;
         // // Sets the status bit indicating the car is safe to start
-        void set_safe_start(bool can_start) override;
+        // void set_safe_start(bool can_start) override;
         // Sets the gerabox ATF temperature. Offset by +50C
         void set_gearbox_temperature(int16_t temp) override;
         // Sets the RPM of the input shaft of the gearbox on CAN
@@ -96,11 +97,13 @@ class Egs51Can: public EgsBaseCan {
         int16_t torque_before_request=0;
         // CAN Frames to Tx
         GS_218_EGS51 gs218 = {0};
+        GS_418_EGS51 gs418 = {0};
         ECU_MS51 ms51 = ECU_MS51();
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
         int16_t req_static_torque_delta = 0;
+        uint16_t drag_trq = 0;
 };
 
 #endif // EGS51_CAN_H

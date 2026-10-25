@@ -4,6 +4,7 @@
 #include <time.h>
 #include "diag_data.h"
 #include "egs_emulation.h"
+#include "freertos/idf_additions.h"
 #include "kwp_utils.h"
 #include "map_editor.h"
 #include "esp_mac.h"
@@ -54,7 +55,7 @@ const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
                 .year = 22,
                 .week = 27
             };
-        
+
         case 3:
             return ECU_Date {
                 .day = 12,
@@ -62,7 +63,7 @@ const ECU_Date pcb_ver_to_date(TCM_EFUSE_CONFIG* cfg) {
                 .year = 22,
                 .week = 49
             };
-        
+
         default:
             return ECU_Date {
                 .day = 0,
@@ -123,7 +124,7 @@ ECU_Date fw_date_to_bcd(char* date) {
     };
 }
 
-Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
+Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox, Shifter* shifter) {
     // Init SPIRAM (We will need this!)
     this->next_tp_time = 0;
     this->session_mode = SESSION_DEFAULT;
@@ -131,6 +132,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
     this->reboot_pending = false;
     this->can_layer = can_layer;
     this->gearbox_ptr = gearbox;
+    this->shifter_ptr = shifter;
     this->can_endpoint = new CanEndpoint(can_layer);
     if (this->can_endpoint->init_state() == ESP_OK) {
         // Start ISO-TP endpoint
@@ -148,7 +150,7 @@ Kwp2000_server::Kwp2000_server(EgsBaseCan* can_layer, Gearbox* gearbox) {
                 this->diag_var_code = 0x0252;
                 break;
             case 3:
-                this->diag_var_code = 0x0353;
+                this->diag_var_code = 0x0253;
                 break;
             default:
                 this->diag_var_code = 0x0000;
@@ -387,7 +389,7 @@ void Kwp2000_server::process_start_diag_session(const uint8_t* args, uint16_t ar
 
 void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
     if (
-        this->session_mode == SESSION_EXTENDED || 
+        this->session_mode == SESSION_EXTENDED ||
         this->session_mode == SESSION_REPROGRAMMING ||
         this->session_mode == SESSION_CUSTOM_UN52
     ) {
@@ -398,7 +400,7 @@ void Kwp2000_server::process_ecu_reset(const uint8_t* args, uint16_t arg_len) {
             // 1 arg, process the reset type
             if (args[0] == 0x01 || args[1] == 0x82) {
                 if (nullptr != gearbox) {
-                    if (this->can_layer != nullptr && !is_shifter_passive(this->can_layer)) {
+                    if (this->can_layer != nullptr && !is_shifter_passive(this->shifter_ptr)) {
                         // P or R, we CANNOT reset the ECU!
                         make_diag_neg_msg(SID_ECU_RESET, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
                         return;
@@ -550,7 +552,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
                 c = MAP_READ_TYPE_STO;
             }
             ret = MapEditor::read_map_data(map_id, c, &read_bytes_size, &buffer);
-        } else if (cmd == MAP_CMD_READ_META) { 
+        } else if (cmd == MAP_CMD_READ_META) {
             ret = MapEditor::read_map_metadata(map_id, &read_bytes_size, &buffer);
         } else if (cmd == MAP_CMD_GET_LOOKUP_VALS && map_len_bytes == 0) {
             ret = MapEditor::read_map_lookup_cache(map_id, &read_bytes_size, &buffer);
@@ -568,7 +570,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
             buf[1] = read_bytes_size >> 8;
             memcpy(&buf[2], buffer, read_bytes_size);
             make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, buf, 2+read_bytes_size);
-            delete[] buf;
+            TCU_FREE(buf);
             TCU_FREE(buffer); // DELETE MapEditor allocation
             return;
         } else {
@@ -582,7 +584,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         DATA_SOLENOIDS r = get_solenoid_data(this->gearbox_ptr);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_SOLENOID_STATUS, (uint8_t*)&r, sizeof(DATA_SOLENOIDS));
     } else if (args[0] == RLI_CAN_DATA_DUMP) {
-        DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal);
+        DATA_CANBUS_RX r = get_rx_can_data(egs_can_hal, shifter);
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_CAN_DATA_DUMP, (uint8_t*)&r, sizeof(DATA_CANBUS_RX));
     } else if (args[0] == RLI_SYS_USAGE) {
         DATA_SYS_USAGE r = get_sys_usage();
@@ -627,7 +629,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         uint16_t len = get_egs_calibration_size();
         uint8_t x[2] = { (uint8_t)(len & 0xFF), (uint8_t)((len >> 8) & 0xFF) };
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EGS_CAL_LEN, x, sizeof(uint16_t));
-    } else if (args[0] == RLI_EMBED_FILE_INFO) { 
+    } else if (args[0] == RLI_EMBED_FILE_INFO) {
         PARTITION_INFO r = get_embeded_file_info();
         make_diag_pos_msg(SID_READ_DATA_LOCAL_IDENT, RLI_EMBED_FILE_INFO, (uint8_t*)&r, sizeof(PARTITION_INFO));
     } else if (args[0] == RLI_SETTINGS_EDIT) {
@@ -670,7 +672,7 @@ void Kwp2000_server::process_read_data_local_ident(uint8_t* args, uint16_t arg_l
         }
         make_diag_neg_msg(SID_READ_DATA_LOCAL_IDENT, NRC_REQUEST_OUT_OF_RANGE);
     }
-    
+
 }
 
 void Kwp2000_server::process_read_data_ident(uint8_t* args, uint16_t arg_len) {
@@ -913,7 +915,14 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
                 make_diag_neg_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, NRC_CONDITIONS_NOT_CORRECT_REQ_SEQ_ERROR);
             }
         } else if (args[0] == ROUTINE_ADAPTATION_RESET) {
+            if (nullptr != sol_tcc) {
+                sol_tcc->isr_disable();
+                vTaskDelay(20);
+            }
             esp_err_t res = this->gearbox_ptr->shift_adapter->reset();
+            if (nullptr != sol_tcc) {
+                sol_tcc->isr_enable();
+            }
             if (ESP_OK == res) {
                 make_diag_pos_msg(SID_START_ROUTINE_BY_LOCAL_IDENT, nullptr, 0);
             } else {
@@ -942,7 +951,7 @@ void Kwp2000_server::process_start_routine_by_local_ident(uint8_t* args, uint16_
     }
 }
 void Kwp2000_server::process_stop_routine_by_local_ident(uint8_t* args, uint16_t arg_len) {
-    
+
 }
 void Kwp2000_server::process_request_routine_results_by_local_ident(const uint8_t* args, uint16_t arg_len) {
     if (this->session_mode != SESSION_EXTENDED && this->session_mode != SESSION_CUSTOM_UN52  && this->session_mode != SESSION_REPROGRAMMING) {
@@ -976,7 +985,7 @@ void Kwp2000_server::process_request_download(uint8_t* args, uint16_t arg_len) {
         delete this->flash_handler;
     }
     // Make a new flash handler!
-    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr, this->shifter_ptr);
     this->flash_handler->on_request_download(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }
@@ -990,7 +999,7 @@ void Kwp2000_server::process_request_upload(uint8_t* args, uint16_t arg_len) {
     if (this->flash_handler != nullptr) {
         delete this->flash_handler;
     }
-    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr);
+    this->flash_handler = new Flasher(this->can_layer, this->gearbox_ptr, this->shifter_ptr);
     this->flash_handler->on_request_upload(args, arg_len, &this->tx_msg, !this->diag_on_usb);
     this->send_resp = true;
 }

@@ -19,7 +19,7 @@ DATA_GEARBOX_SENSORS get_gearbox_sensors(Gearbox* g) {
     ret.n2_rpm = speeds.n2;
     ret.n3_rpm = speeds.n3;
     ret.calculated_rpm = speeds.turbine;
-    
+
     if (UINT8_MAX != pll) {
         ret.parking_lock = pll;
         if (pll == 0) {
@@ -65,7 +65,7 @@ DATA_SOLENOIDS get_solenoid_data(Gearbox* gb_ptr) {
     ret.y5_pwm = sol_y5->get_pwm_compensated();
     ret.targ_mpc_current = sol_mpc->get_current_target();
     ret.targ_spc_current = sol_spc->get_current_target();
-    
+
     return ret;
 }
 
@@ -95,29 +95,32 @@ DATA_PRESSURES get_pressure_data(Gearbox* gb_ptr) {
 
 DATA_TCC_PROGRAM get_tcc_program_data(Gearbox* gb_ptr) {
     DATA_TCC_PROGRAM ret = {};
-    ret.current_pressure = gb_ptr->tcc->get_current_pressure();
-    ret.target_pressure = gb_ptr->tcc->get_target_pressure();
-    ret.slip_filtered = gb_ptr->tcc->get_slip_filtered();
-    ret.slip_now = (int16_t)gb_ptr->sensor_data.engine_rpm - (int16_t)gb_ptr->sensor_data.input_rpm;
-    ret.pedal_filtered = gb_ptr->sensor_data.pedal_pos_smoothed;
-    ret.pedal_now = gb_ptr->sensor_data.pedal_pos;
+    ret.command_pressure = gb_ptr->tcc->get_command_pressure();
+    ret.map_pressure = gb_ptr->tcc->get_map_pressure();
+    ret.pid_pressure = gb_ptr->tcc->get_pid_pressure();
+
+    ret.slip = gb_ptr->tcc->get_slip_now();
     ret.slip_target = gb_ptr->tcc->get_slip_targ();
+    // 0 - Open
+    // 1 - Slip
     ret.targ_state = gb_ptr->tcc->get_target_state();
     ret.current_state = gb_ptr->tcc->get_current_state();
-    ret.can_request_bits = 0; // TODO
-    ret.tcc_absorbed_joule = gb_ptr->tcc->get_absorbed_power();
-    ret.engine_output_joule = gb_ptr->tcc->get_engine_power();
+
+    ret.timer_adapt_block = gb_ptr->tcc->get_adapt_timer();
+    ret.timer_pid_block = gb_ptr->tcc->get_pid_timer();
+
+    // Load as a percentage (Compared to gearbox rating)
     ret.load_percent = gb_ptr->tcc->get_engine_load_percent();
     return ret;
 }
 
-DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
+DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer, Shifter* shifter) {
     DATA_CANBUS_RX ret = {};
     if (can_layer == nullptr || gearbox == nullptr) {
         memset(&ret, 0xFF, sizeof(ret));
         return ret;
     }
-    
+
     ret.left_rear_rpm = TCUIO::wheel_rl_2x_rpm();
     if (UINT16_MAX != ret.left_rear_rpm) {
         ret.left_rear_rpm /= 2;
@@ -137,8 +140,8 @@ DATA_CANBUS_RX get_rx_can_data(EgsBaseCan* can_layer) {
     ret.min_torque = (torque+500)*4;
     ret.driver_torque = (gearbox->sensor_data.converted_driver_torque+500)*4;
     ret.static_torque = (gearbox->sensor_data.converted_torque+500)*4;
-    ret.profile_input_raw = can_layer->shifter->diag_get_profile_input();
-    ret.shifter_position = can_layer->get_shifter_position(250);
+    ret.profile_input_raw = shifter->diag_get_profile_input();
+    ret.shifter_position = shifter->get_shifter_position();
     ret.engine_rpm = can_layer->get_engine_rpm(250);
     ret.fuel_rate = can_layer->get_fuel_flow_rate(250);
     ret.torque_req_ctrl_type = gearbox->output_data.ctrl_type;
@@ -189,7 +192,7 @@ SHIFT_LIVE_INFO get_shift_live_Data(const EgsBaseCan* can_layer, Gearbox* g) {
     ret.atf_temp = g->sensor_data.atf_temp+40;
     ret.profile = g->get_profile_id();
     ret.targ_act_gear = g->get_targ_curr_gear();
-    return ret;   
+    return ret;
 }
 
 
@@ -200,7 +203,7 @@ TCM_CORE_CONFIG get_tcm_config(void) {
 }
 
 kwp_result_t set_tcm_config(TCM_CORE_CONFIG cfg) {
-    ShifterPosition pos = (egs_can_hal == nullptr || gearbox == nullptr) ? ShifterPosition::SignalNotAvailable : egs_can_hal->get_shifter_position(250);
+    ShifterPosition pos = (shifter == nullptr || gearbox == nullptr) ? ShifterPosition::SignalNotAvailable : shifter->get_shifter_position();
     if (
         pos == ShifterPosition::D || pos == ShifterPosition::MINUS || pos == ShifterPosition::PLUS || pos == ShifterPosition::R || // Stationary positions
         pos == ShifterPosition::N_D || pos == ShifterPosition::P_R || pos == ShifterPosition::R_N // Intermediate positions

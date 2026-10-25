@@ -3,8 +3,10 @@
 
 #include "../src/common_structs.h"
 #include "../pressure_manager.h"
+#include "adaptation/shift_adaptation.h"
 #include "torque_converter.h"
 #include "shift_flags.h"
+#include <cstdint>
 
 struct TorqueRequstData {
     TorqueRequestControlType ty;
@@ -12,10 +14,10 @@ struct TorqueRequstData {
     float amount;
 };
 
-const uint8_t STEP_RES_CONTINUE = 0;
-const uint8_t STEP_RES_NEXT = 0xFD;
-const uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
-const uint8_t STEP_RES_END_SHIFT = 0xFF;
+const DRAM_ATTR uint8_t STEP_RES_CONTINUE = 0;
+const DRAM_ATTR uint8_t STEP_RES_NEXT = 0xFD;
+const DRAM_ATTR uint8_t STEP_RES_FAILURE = 0xFE; // Shift failed. Abort!!
+const DRAM_ATTR uint8_t STEP_RES_END_SHIFT = 0xFF;
 
 enum class ShiftStyle {
     Crossover_Up,
@@ -46,6 +48,10 @@ struct ShiftInterfaceData {
     ShiftAdaptationSystem* adaptation_mgr;
     bool manual_shift;
     bool trq_req_en;
+    float diff_ratio;
+    uint16_t max_gb_trq;
+    float ratio_old_gear;
+    uint16_t n3_rpm;
 };
 
 class ShiftingAlgorithm {
@@ -101,6 +107,8 @@ protected:
     int mpc_trq_reducer = 0;
     int trq_adder = 0;
     uint16_t abs_input_trq;
+    uint16_t abs_load_percentage;
+    uint16_t input_rpm_trq_adapt_map;
 
     int mod_sol_pressure;
     int shift_sol_pressure;
@@ -114,6 +122,9 @@ protected:
     short target_turbine_speed = 0;
     short momentum_start_output_rpm = 0;
     short correction_trq = 0;
+
+    uint16_t filling_torque = 0;
+    float freeing_trq = 0;
 
     uint16_t emergency_trq_val = 0;
 
@@ -139,7 +150,6 @@ protected:
     virtual uint16_t max_p_mod_pressure() = 0;
     virtual bool is_release_shift() = 0;
     uint16_t threshold_rpm = 0;
-    float spc_p_offset = 0;
     uint16_t torque_req_val = 0;
 
     uint16_t calc_high_filling_p();
@@ -147,6 +157,7 @@ protected:
 
     void adaptation_step();
     uint8_t adapt_p_map_idx();
+    void mark_end_torque_adapt();
 
     bool trq_req_up_ramp = false;
     uint16_t torque_req_out = 0;
@@ -154,7 +165,7 @@ protected:
     uint8_t trq_req_timer = 0;
 
     bool adaptation_conditions_ok = true;
-    
+
     bool do_fill_time_adaptation = false;
     bool do_fill_pressure_adaptation = false;
     bool do_torque_adaptation = false;
@@ -173,18 +184,38 @@ protected:
     uint8_t torque_adaptation_stage = 0;
     uint16_t old_engine_rpm = 0;
 
-    int16_t first_order_pump_trq_filter = 0;
+    // Multiplied by 10x
+    int32_t first_order_pump_trq_filter = 0;
 
     int32_t pid_sum = 0;
-    int32_t abs_sum = 0;
     uint16_t pid_count = 0;
+
+    int16_t old_input_trq = 0;
+
+    uint32_t trq_adp_load_percentage_sum = 0;
+    int trq_adapt_rpm = 0;
+    int trq_adapt_engine_load_percent = 0;
+    bool trq_adapt_below_min_trq = false;
+
+    bool first_run = true;
+    bool torque_jumped = false;
+    bool trq_adapt_completed = false;
+
+    int release_minimum_mod_reduction_trq = 0;
+    bool n3_moving = false;
+    float loss_torque = 0;
+    int pid_err_i = 0;
 };
 
 // Helper functions
 namespace ShiftHelpers {
-    float calcualte_abs_engine_inertia(uint8_t shift_idx, uint16_t engine_rpm, uint16_t input_rpm);
     float get_shift_intertia(uint8_t shift_idx);
-    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase);
+
+    uint8_t cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint8_t cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint16_t total_time_crossover_shift(PressureManager* pm, ShiftAdaptationSystem* adp, GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
+    uint16_t correct_shift_shift_pressure(PressureManager* pm, int16_t pressure, uint8_t map_idx);
 }
 
 #endif

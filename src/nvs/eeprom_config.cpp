@@ -14,13 +14,18 @@
 uint16_t CURRENT_DEVICE_MODE = DEVICE_MODE_NORMAL;
 
 esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const int16_t* default_map, size_t map_element_count) {
+    if (nullptr == map_name || nullptr == dest || 0 == map_element_count) {
+        return ESP_ERR_INVALID_ARG;
+    }
     size_t byte_count = map_element_count*sizeof(int16_t);
     esp_err_t e = nvs_get_blob(MAP_NVS_HANDLE, map_name, dest, &byte_count);
+    bool seeded_from_default = false;
     if (e == ESP_ERR_NVS_NOT_FOUND && default_map != nullptr) {
         ESP_LOG_LEVEL(ESP_LOG_WARN, "EEPROM", "Map %s not found in NVS. Setting to default map from prog flash", map_name);
         // Set default map data
         e = write_nvs_map_data(map_name, default_map, map_element_count);
-        memcpy(dest, default_map, byte_count); // As e would be ESP_OK, the memcpy below won't get executed!
+        memcpy(dest, default_map, byte_count);
+        seeded_from_default = true;
     }
     if(e != ESP_OK) {
         if (default_map != nullptr) {
@@ -29,6 +34,8 @@ esp_err_t EEPROM::read_nvs_map_data(const char* map_name, int16_t* dest, const i
         } else {
             e = ESP_ERR_INVALID_ARG;
         }
+    } else if (seeded_from_default) {
+        ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s active using built-in default map", map_name);
     } else {
         ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "Map %s loaded OK from NVS!", map_name);
     }
@@ -126,7 +133,7 @@ esp_err_t EEPROM::init_eeprom() {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM init failed! %s", esp_err_to_name(result));
     } else {
         // Flash init OK
-        nvs_handle_t config_handle;    
+        nvs_handle_t config_handle;
         result = nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &config_handle);
         if (result != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "EEPROM NVS handle failed! %s", esp_err_to_name(result));
@@ -232,11 +239,11 @@ esp_err_t EEPROM::read_core_config(TCM_CORE_CONFIG* dest) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(result));
             } else {
                 ESP_LOG_LEVEL(ESP_LOG_INFO, "EEPROM", "New SCN  creation OK!");
-                memcpy(dest, &s, sizeof(s));
+                memcpy(dest, &c, sizeof(c));
                 result = ESP_OK;
             }
         }
-        return true;
+        return result;
     }
     return result;
 }
@@ -245,6 +252,10 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
     nvs_handle_t handle;
     esp_err_t e;
     size_t s = sizeof(TCM_CORE_CONFIG);
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(5);
+    }
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
     e = nvs_set_blob(handle, NVS_KEY_CORE_SCN, write, s);
     if (e != ESP_OK) {
@@ -254,6 +265,9 @@ esp_err_t EEPROM::save_core_config(TCM_CORE_CONFIG* write) {
         if (e != ESP_OK) {
             ESP_LOG_LEVEL(ESP_LOG_ERROR, "EEPROM", "Error calling nvs_commit: %s", esp_err_to_name(e));
         }
+    }
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_enable();
     }
     return e;
 }
@@ -267,7 +281,11 @@ esp_err_t EEPROM::ewm_btn_get_saved_profile(uint8_t* dest) {
 esp_err_t EEPROM::ewm_btn_save_profile(uint8_t save_profile) {
     nvs_handle_t handle;
     nvs_open(NVS_PARTITION_USER_CFG, NVS_READWRITE, &handle); // Must succeed as we have already opened it!
-    return nvs_set_u8(handle, NVS_KEY_LAST_PROFILE, save_profile);
+    esp_err_t e = nvs_set_u8(handle, NVS_KEY_LAST_PROFILE, save_profile);
+    if (ESP_OK == e) {
+        e = nvs_commit(handle);
+    }
+    return e;
 }
 
 esp_err_t EEPROM::read_efuse_config(TCM_EFUSE_CONFIG* dest) {
@@ -317,7 +335,7 @@ esp_err_t EEPROM::write_efuse_config(TCM_EFUSE_CONFIG* dest) {
         return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
-    
+
 }
 
 TCM_CORE_CONFIG VEHICLE_CONFIG = {};

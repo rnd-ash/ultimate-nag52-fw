@@ -117,7 +117,7 @@ public:
      * @return ShiftData 
      */
     void notify_shift_end();
-    CircuitInfo get_basic_shift_data(GearboxConfiguration* cfg, GearChange shift_request, ShiftCharacteristics chars);
+    CircuitInfo get_basic_shift_data(GearChange shift_request);
     uint16_t p_clutch_with_coef(GearboxGear gear, Clutch clutch, uint16_t abs_torque_nm, CoefficientTy coef_ty);
     int16_t p_clutch_with_coef_signed(GearboxGear gear, Clutch clutch, int16_t abs_torque_nm, CoefficientTy coef_ty);
 

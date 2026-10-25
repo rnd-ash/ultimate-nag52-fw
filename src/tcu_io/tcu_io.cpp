@@ -128,7 +128,9 @@ esp_err_t TCUIO::setup_io_layer() {
 
     // CAN Matrix inputs
     init_onepoll(&onepoll_motor_temperature);
+    onepoll_motor_temperature.e_counter = 254;
     init_onepoll(&onepoll_motor_oil_temperature);
+    onepoll_motor_oil_temperature.e_counter = 254;
 
     DIFF_RATIO_F = (float)VEHICLE_CONFIG.diff_ratio / 1000.0;
     return ret;

@@ -101,7 +101,7 @@ extern const int16_t NAG_FILL_PRESSURE_MAP[FILL_PRESSURE_MAP_SIZE];
 
 extern const int16_t NAG_FILL_LOW_PRESSURE_MAP[LOW_FILL_PRESSURE_MAP_SIZE];
 
-// -- Target Shift time maps -- 
+// -- Target Shift time maps --
 
 #define SHIFT_TIME_MAP_SIZE 30
 
@@ -138,13 +138,22 @@ extern const int16_t CLUTCH_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 extern const int16_t GEAR_ADAPT_MAP[GEAR_ADAPT_MAP_SIZE];
 
 
+#define GEAR_TRQ_PULL_ADAPT_MAP_SIZE 4*5
+#define GEAR_TRQ_PUSH_ADAPT_MAP_SIZE 4*4
+extern const int16_t GEAR_PULLING_TRQ_ADAPT_MAP[];
+extern const int16_t GEAR_PUSHING_TRQ_ADAPT_MAP[];
+
 /**
  * torque tables
  */
 
 // -- Engine torque table for Hfm-ECUs or custom ECUs without torque models --
-#define TORQUE_MAP_SIZE 33u
-extern const int16_t ENGINE_TORQUE_MAP[TORQUE_MAP_SIZE];
-extern const int16_t ENGINE_TORQUE_HEADERS_MAP[TORQUE_MAP_SIZE];
+#define HFM_ENGINE_TABLE_SIZE 33u
+extern const int16_t HFM_ENGINE_MAX_TORQUE_MAP[HFM_ENGINE_TABLE_SIZE];
+
+extern const int16_t HFM_ENGINE_MAX_MASS_AIR_FLOW[HFM_ENGINE_TABLE_SIZE];
+
+#define HFM_ENGINE_MAP_SIZE HFM_ENGINE_TABLE_SIZE * HFM_ENGINE_TABLE_SIZE
+extern const int16_t HFM_ENGINE_MASS_AIR_FLOW[HFM_ENGINE_MAP_SIZE];
 
 #endif

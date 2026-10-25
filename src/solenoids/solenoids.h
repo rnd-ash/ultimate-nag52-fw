@@ -38,10 +38,4 @@ extern ConstantCurrentSolenoid *sol_mpc;
 extern ConstantCurrentSolenoid *sol_spc;
 extern InrushControlSolenoid *sol_tcc;
 
-extern float resistance_spc;
-extern float resistance_mpc;
-
-extern bool temp_cal;
-extern int16_t temp_at_test;
-
 #endif // SOLENOID_H

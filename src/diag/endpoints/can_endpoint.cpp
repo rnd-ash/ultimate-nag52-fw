@@ -27,6 +27,11 @@ CanEndpoint::CanEndpoint(EgsBaseCan* can_layer) {
 
     this->send_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for sent messages out of KWP server
     this->read_msg_queue = xQueueCreate(2, sizeof(CanEndpointMsg)); // Queue for read messages to be pulled by KWP server
+    if (nullptr == this->rx_queue || nullptr == this->send_msg_queue || nullptr == this->read_msg_queue) {
+        ESP_LOGE("CanEndpoint", "Could not allocate ISO-TP queues");
+        this->status = ESP_ERR_NO_MEM;
+        return;
+    }
     this->is_sending = false;
     this->clear_to_send = false;
     this->is_receiving = false;
@@ -41,11 +46,15 @@ esp_err_t CanEndpoint::init_state() {
 }
 
 bool CanEndpoint::send_to_twai(DiagCanMessage msg) {
-    memcpy(tx_can.data, msg, 8);
+    memcpy(tx_can.data, msg.data, 8);
     return twai_transmit(&this->tx_can, 5) == ESP_OK;
 }
 
 void CanEndpoint::send_data(uint32_t id, uint8_t *buf, uint16_t len) {
+    if (len > DIAG_CAN_MAX_SIZE) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Tx message of %d bytes exceeds the ISO-TP maximum", len);
+        return;
+    }
     this->tmp.curr_pos = 0;
     this->tmp.max_pos = len;
     memcpy(this->tmp.data, buf, len);
@@ -68,12 +77,11 @@ void CanEndpoint::iso_tp_server_loop() {
     // This loop deals with sending and receiving data from ISO-TP
     DiagCanMessage rx;
     esp_err_t res;
-    uint32_t now;
     while(1) {
-        now = GET_CLOCK_TIME();
-        while (xQueueReceive(this->rx_queue, rx, 0) == pdTRUE) {
+        uint32_t now = GET_CLOCK_TIME();
+        while (xQueueReceive(this->rx_queue, rx.data, 0) == pdTRUE) {
             this->last_rx_time = now;
-            switch (rx[0] & 0xF0) { // Check incoming frame PCI
+            switch (rx.data[0] & 0xF0) { // Check incoming frame PCI
                 case 0x00: // Single frame
                     this->process_single_frame(rx);
                     break;
@@ -87,7 +95,7 @@ void CanEndpoint::iso_tp_server_loop() {
                     this->process_flow_control(rx);
                     break;
                 default:
-                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", rx[0]);
+                    ESP_LOG_LEVEL(ESP_LOG_ERROR, "CAN_ENDPOINT", "Invalid ISO-TP PCI %02X", rx.data[0]);
                     break;
             }
             if (GET_CLOCK_TIME() - now > 1) {
@@ -127,10 +135,9 @@ void CanEndpoint::iso_tp_server_loop() {
     
         // if (is_sending && clear_to_send && (now-this->last_tx_time >= KWP_CAN_ST_MIN)) {
         if (is_sending && clear_to_send ) {
-            uint8_t max_cpy = tx_msg.max_pos-tx_msg.curr_pos;
-            if (max_cpy > 7) {
-                max_cpy = 7;
-            }
+            // Keep the full remaining length before limiting it to one frame.
+            uint16_t remaining = tx_msg.max_pos - tx_msg.curr_pos;
+            uint8_t max_cpy = (remaining > 7u) ? 7u : static_cast<uint8_t>(remaining);
             if (max_cpy < 7) {
                 memset(tx_can.data, 0xCC, 8); // So we pad the frame with zeros
             }
@@ -180,9 +187,14 @@ void CanEndpoint::iso_tp_server_loop() {
 }
 
 void CanEndpoint::process_single_frame(DiagCanMessage msg) {
+    const uint8_t len = msg.data[0] & 0x0F;
+    if (0u == len || len > 7u) {
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Invalid single frame length %d", len);
+        return;
+    }
     CanEndpointMsg m;
-    m.max_pos = msg[0];
-    memcpy(m.data, &msg[1], msg[0]);
+    m.max_pos = len;
+    memcpy(m.data, &msg.data[1], len);
     if (xQueueSend(this->read_msg_queue, &m, 0) != pdTRUE) {
         ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
     }
@@ -190,12 +202,17 @@ void CanEndpoint::process_single_frame(DiagCanMessage msg) {
 
 void CanEndpoint::process_start_frame(DiagCanMessage msg) {
     if (this->is_receiving) {
-        send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL_BUSY));
+        send_to_twai(FLOW_CONTROL_BUSY);
         return;
     }
-    uint16_t size = (msg[0] & 0x0F) << 8 | msg[1];
+    uint16_t size = (msg.data[0] & 0x0F) << 8 | msg.data[1];
     if (size > DIAG_CAN_MAX_SIZE) {
-        send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL_OVERFLOW));
+        send_to_twai(FLOW_CONTROL_OVERFLOW);
+        return;
+    }
+    if (size < 8u) {
+        // A first frame is only valid for payloads that need multiple frames.
+        ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint", "Invalid first frame length %d", size);
         return;
     }
     // Not busy receiving and message size fits
@@ -203,8 +220,8 @@ void CanEndpoint::process_start_frame(DiagCanMessage msg) {
     this->rx_msg.curr_pos = 6;
     this->rx_msg.max_pos = size;
     this->frames_received = 0;
-    memcpy(rx_msg.data, &msg[2], 6);
-    if (!this->send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL))) {
+    memcpy(rx_msg.data, &msg.data[2], 6);
+    if (!this->send_to_twai(FLOW_CONTROL)) {
         this->is_receiving = false; // Set if could not send Tx Frame
     }
 }
@@ -214,8 +231,11 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
         int max_copy = this->rx_msg.max_pos - this->rx_msg.curr_pos;
         if (7 < max_copy) {
             max_copy = 7;
+        } else if (0 >= max_copy) {
+            this->is_receiving = false;
+            return;
         }
-        memcpy(&this->rx_msg.data[rx_msg.curr_pos], &msg[1], max_copy);
+        memcpy(&this->rx_msg.data[rx_msg.curr_pos], &msg.data[1], max_copy);
         rx_msg.curr_pos += max_copy;
         this->frames_received++;
         if (rx_msg.curr_pos >= rx_msg.max_pos) {
@@ -225,7 +245,7 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
                 ESP_LOG_LEVEL(ESP_LOG_ERROR, "CanEndpoint_psf", "Tx queue is full!?");
             }
         } else if ((this->frames_received >= KWP_CAN_BS) && KWP_CAN_BS != 0) { // Send flow control when we overflow
-            if (!this->send_to_twai(const_cast<uint8_t*>(FLOW_CONTROL))) {
+            if (!this->send_to_twai(FLOW_CONTROL)) {
                 this->is_receiving = false; // Set if could not send Tx Frame
             }
             this->frames_received = 0;
@@ -235,10 +255,10 @@ void CanEndpoint::process_multi_frame(DiagCanMessage msg) {
 
 void CanEndpoint::process_flow_control(DiagCanMessage msg) {
     //ESP_LOGI("CAN_ENDPOINT", "FC Received! BS %d STMIN %d", msg[1], msg[2]);
-    if (msg[0] == 0x30 && this->is_sending) {
+    if (msg.data[0] == 0x30 && this->is_sending) {
         this->clear_to_send = true;
-        this->tx_bs = msg[1];
-        this->tx_stmin = msg[2];
+        this->tx_bs = msg.data[1];
+        this->tx_stmin = msg.data[2];
         if (this->tx_stmin > 127) {
             this->tx_stmin = 0; // Microseconds so < 1ms
         }

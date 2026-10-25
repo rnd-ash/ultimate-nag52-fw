@@ -85,7 +85,6 @@ float interpolate(const float f_1, const float f_2, const int16_t x_1, const int
     return (x_1 != x_2) ? f_1 + ((f_2 - f_1) / (x_2_f - x_1_f)) * (x - x_1_f) : f_1;
 }
 
-
 float progress_between_targets(const float current, const float start, const float end) {
     return ((100.0F * (current - start)) / (end - start));
 }
@@ -114,11 +113,31 @@ int32_t first_order_filter(uint8_t sample_count, int32_t new_val, int32_t last_v
     if (sample_count == 0xFF) {
         sample_count = 0xFE;
     }
-    return (new_val + (sample_count*last_val)) / (sample_count + 1);
+    return (new_val + (sample_count*last_val)) / (int32_t)(sample_count + 1);
 }
 
 short linear_interp_with_percentage(uint16_t percentage, short new_value, short last_filtered_val) {
     int x1 = ((int)percentage * (int)new_value) / 100;
     int x2 = ((int)(100 - percentage) * (int)last_filtered_val) / 100;
     return x1+x2;
+}
+
+int16_t clampint16(int32_t value)
+{
+    int16_t result;
+
+    if (value < INT16_MIN)
+    {
+        result = INT16_MIN;
+    }
+    else if (value > INT16_MAX)
+    {
+        result = INT16_MAX;
+    }
+    else
+    {
+        result = (int16_t)value;
+    }
+
+    return result;
 }

@@ -2,12 +2,9 @@
 #include "driver/twai.h"
 #include "board_config.h"
 #include "nvs/eeprom_config.h"
-#include "../shifter/shifter_ewm.h"
-#include "../shifter/shifter_trrs.h"
-#include "ioexpander.h"
 #include "egs_calibration/calibration_structs.h"
 
-Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud, Shifter *shifter) : EgsBaseCan(name, tx_time_ms, baud, shifter) {
+Egs52Can::Egs52Can(const char *name, uint8_t tx_time_ms, uint32_t baud) : EgsBaseCan(name, tx_time_ms, baud) {
     // Set default values
     this->gs218.raw = 0;
     this->gs338.raw = ~0;
@@ -195,8 +192,7 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
     if (INT16_MAX != ret.m_converted_static && INT16_MAX != ret.m_converted_driver) {
         int static_converted = ret.m_converted_static;
         int tmp = ret.m_converted_driver;
-        int driver_converted = static_converted;
-        int indicated = 0;
+        int driver_converted;
         // Calculate converted torque from ESP
         // Chrysler cars don't seem to report MAX/MIN
         if (INT16_MAX != ret.m_max && INT16_MAX != ret.m_min) {
@@ -215,9 +211,6 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
         } else {
             this->req_static_torque_delta = driver_converted - static_converted;
         }
-        if (driver_converted > 0) {
-            indicated = driver_converted;
-        }
         KLA_410_EGS52 kl410;
         if (this->ezs_ecu.get_KLA_410(GET_CLOCK_TIME(), expire_time_ms, &kl410)) {
             if (UINT8_MAX != kl410.M_KOMP) {
@@ -225,7 +218,7 @@ CanTorqueData Egs52Can::get_torque_data(const uint32_t expire_time_ms) {
                 static_converted -= (kl410.M_KOMP / 4);
             }
         }
-        ret.m_ind = indicated;
+        ret.m_ind = MAX(0, driver_converted);
         ret.m_converted_driver = driver_converted;
         ret.m_converted_static = static_converted;
     }
@@ -568,10 +561,6 @@ void Egs52Can::set_target_gear(GearboxGear target) {
 
 void Egs52Can::set_safe_start(bool can_start) {
     this->gs218.ALF = can_start;
-    if (nullptr != ioexpander) {
-        // For Jeep/Chrysler cars
-        ioexpander->set_start(can_start);
-    }
 }
 
 void Egs52Can::set_gearbox_temperature(int16_t temp) {
@@ -882,6 +871,7 @@ void Egs52Can::tx_frames() {
 
 void Egs52Can::on_rx_frame(uint32_t id,  uint8_t dlc, uint64_t data, const uint32_t timestamp) {
     if(this->ecu_ms.import_frames(data, id, timestamp)) {
+
         //if (this->fake_rpm != 0 && id == MS_308_CAN_ID) {
         //    uint64_t d = (data & 0xff0000ffffffffff) | ((uint64_t)this->fake_rpm & 0xffff) << 40;
         //    twai_message_t tx;

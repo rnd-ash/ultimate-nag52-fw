@@ -3,6 +3,7 @@
 #ifndef GEARBOX_H
 #define GEARBOX_H
 
+#include <cstdint>
 #include <stdint.h>
 #include "canbus/can_hal.h"
 #include "solenoids/solenoids.h"
@@ -32,28 +33,29 @@ class Gearbox {
 public:
     explicit Gearbox(Shifter* shifter);
     // Diag test
-    ClutchSpeeds diag_get_clutch_speeds();
+    ClutchSpeeds diag_get_clutch_speeds() const;
     void set_profile(AbstractProfile* prof);
     esp_err_t start_controller(void);
     void inc_gear_request(void);
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
+    bool get_is_start_safe(void) const {return this->is_start_safe; }
     SensorData sensor_data;
     OutputData output_data;
-    uint16_t get_gear_ratio(void) {
+    uint16_t get_gear_ratio(void) const {
         return this->sensor_data.gear_ratio * 100.0F;
     }
-    uint16_t get_targ_gear_ratio(void) {
+    uint16_t get_targ_gear_ratio(void) const {
         return this->sensor_data.targ_gear_ratio * 100.0F;
     }
     uint16_t redline_rpm;
     bool shifting = false;
     PressureManager* pressure_mgr = nullptr;
 
-    bool isShifting(void) { return this->shifting; }
-    uint8_t get_targ_curr_gear(void) { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
-    uint8_t get_profile_id(void) {
+    bool isShifting(void) const { return this->shifting; }
+    uint8_t get_targ_curr_gear(void) const { return (((uint8_t)this->target_gear) & 0x0F) << 4 | ((uint8_t)this->actual_gear & 0x0F); }
+    uint8_t get_profile_id(void) const {
         if (this->current_profile) {
             return this->current_profile->get_profile_id();
         } else {
@@ -77,6 +79,8 @@ private:
     GearboxGear actual_gear = GearboxGear::Park;
     GearboxGear last_fwd_gear = GearboxGear::Second;
     bool process_speed_sensors();
+    void process_acceleration();
+    void process_motor_spd_filtered();
     [[noreturn]]
     void controller_loop(void);
 
@@ -106,6 +110,12 @@ private:
     bool show_upshift = false;
     bool show_downshift = false;
     bool flaring = false;
+    // Cycles of missing engine speed tolerated before it is treated as stopped.
+    // The loop runs at 20 ms, so this is 200 ms.
+    static const uint8_t ENGINE_RPM_MISSING_MAX_CYCLES = 10;
+    uint8_t engine_rpm_missing_cycles = 0;
+    bool engine_running = false;
+    uint8_t engine_running_off_counter = 0;
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
@@ -130,12 +140,27 @@ private:
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 
+    bool is_start_safe = false;
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
 
-    int32_t cached_input_rpm = 0;
-    int32_t cached_engine_rpm = 0;
-    int32_t cached_output_rpm = 0;
+    // 10x value
+    uint32_t wheel_spd = 0;
+    uint32_t wheel_spd_prev = 0;
+
+    // 10x value
+    uint32_t engine_spd_flt = 0;
+    // 10x value
+    uint32_t engine_spd_flt_prev = 0;
+
+    // 100x real value
+    int32_t acceleration_ms2 = 0;
+
+    bool tcu_restarted = true;
+    // Set when an upshift happens with kickdown held. Kickdown cannot request a
+    // downshift again until it is re-armed (See kickdown_rearm_rpm_offset)
+    bool kickdown_rearm_pending = false;
+
 };
 
 extern Gearbox* gearbox;

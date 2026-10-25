@@ -9,6 +9,7 @@
 #include "gearbox.h"
 #include "tcu_alloc.h"
 #include "clock.hpp"
+#include "engines/hfm_engine.hpp"
 
 static const uint32_t MAP_LOOKUP_CACHE_MAX_AGE_MS = 60000;
 static const uint8_t MAP_LOOKUP_CACHE_ENTRY_SIZE = 1 + sizeof(LookupCache);
@@ -23,11 +24,25 @@ StoredMap* get_adaptation_map(uint8_t map_id) {
             case SHIFT_ADAPT_FILL_P_MAP_ID:
                 ret = adaptation_manager->spc_offset_map;
                 break;
-            case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
-                ret = adaptation_manager->applying_torque_offset;
+            case SHIFT_ADAPT_TRQ_PULL_12_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_23_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_34_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_45_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_21_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_32_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_43_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PULL_54_MAP_ID:
+                ret = adaptation_manager->pulling_trq_map[map_id - SHIFT_ADAPT_TRQ_PULL_12_MAP_ID];
                 break;
-            case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
-                ret = adaptation_manager->freeing_torque_offset;
+            case SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_23_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_34_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_45_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_21_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_32_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_43_MAP_ID:
+            case SHIFT_ADAPT_TRQ_PUSH_54_MAP_ID:
+                ret = adaptation_manager->pushing_trq_map[map_id - SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID];
                 break;
             default:
                 break;
@@ -80,16 +95,55 @@ StoredMap* get_map(uint8_t map_id) {
             return manual->get_upshift_time_map();
         case M_DNTIME_MAP_ID:
             return manual->get_downshift_time_map();
-        case TCC_ADAPT_SLIP_MAP_ID:
-            return gearbox->tcc->get_slip_map();
-        case TCC_ADAPT_LOCK_MAP_ID:
-            return gearbox->tcc->get_lock_map();
+        // case HFM_MAX_TRQ_MAP_ID:
+        //     if (VEHICLE_CONFIG.egs_can_type == 4) {
+        //         return hfm_engine->get_max_torque_table();
+        //     } else {
+        //         return nullptr;
+        //     }
+        case HFM_MAF_MAP_ID:
+            if(VEHICLE_CONFIG.egs_can_type == 4) {
+                return hfm_engine->get_maf_map();
+            } else {
+                return nullptr;
+            }
+        // case HFM_MAX_MAP_ID:
+            // if(VEHICLE_CONFIG.egs_can_type == 4) {
+            //     return hfm_engine->get_max_maf_table();
+            // } else {
+            //     return nullptr;
+            // }
+        case TCC_ADAPT_D1_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d1();
+        case TCC_ADAPT_D2_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d2();
+        case TCC_ADAPT_D3_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d3();
+        case TCC_ADAPT_D4_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d4();
+        case TCC_ADAPT_D5_MAP_ID:
+            return gearbox->tcc->get_adapt_map_d5();
+
         case TCC_RPM_SLIP_MAP:
             return gearbox->tcc->get_rpm_slip_map();
         case SHIFT_ADAPT_FILL_T_MAP_ID:
         case SHIFT_ADAPT_FILL_P_MAP_ID:
-        case SHIFT_ADAPT_TRQ_APPL_MAP_ID:
-        case SHIFT_ADAPT_TRQ_FREE_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_12_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_23_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_34_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_45_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_21_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_32_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_43_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PULL_54_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_12_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_23_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_34_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_45_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_21_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_32_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_43_MAP_ID:
+        case SHIFT_ADAPT_TRQ_PUSH_54_MAP_ID:
             return get_adaptation_map(map_id);
         default:
             return nullptr;
@@ -120,7 +174,7 @@ kwp_result_t MapEditor::read_map_data(uint8_t map_id, uint8_t read_type, uint16_
         memcpy(b, eeprom_data, size*sizeof(int16_t));
         TCU_FREE(eeprom_data);
     } else {
-        TCU_FREE(buffer);
+        TCU_FREE(b);
         return NRC_GENERAL_REJECT;
     }
     *buffer = b;
@@ -161,7 +215,7 @@ kwp_result_t MapEditor::read_map_metadata(uint8_t map_id, uint16_t *dest_size_by
     *dest_size_bytes = size;
     return NRC_OK;
 }
-    
+
 kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16_t* buffer) {
     CHECK_MAP(map_id)
     if (ptr->replace_data_content(buffer, dest_size) == ESP_OK) {
@@ -172,21 +226,33 @@ kwp_result_t MapEditor::write_map_data(uint8_t map_id, uint16_t dest_size, int16
 }
 
 kwp_result_t MapEditor::burn_to_eeprom(uint8_t map_id) {
+    uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
-    if (ptr->save_to_eeprom() == ESP_OK) {
-        return NRC_OK;
-    } else {
-        return NRC_GENERAL_REJECT;
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(10);
     }
+    if (ESP_OK != ptr->save_to_eeprom()) {
+        ret = NRC_GENERAL_REJECT;
+    }
+    sol_tcc->isr_enable();
+    return ret;
 }
 
 uint8_t MapEditor::reset_to_program_default(uint8_t map_id) {
+    uint8_t ret = NRC_OK;
     CHECK_MAP(map_id)
-    if (ESP_OK == ptr->reset_from_flash()) {
-        return 0;
-    } else {
-        return NRC_GENERAL_REJECT;
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_disable();
+        vTaskDelay(10);
     }
+    if (ESP_OK != ptr->reset_from_flash()) {
+        ret = NRC_GENERAL_REJECT;
+    }
+    if (nullptr != sol_tcc) {
+        sol_tcc->isr_enable();
+    }
+    return ret;
 }
 
 kwp_result_t MapEditor::undo_changes(uint8_t map_id) {

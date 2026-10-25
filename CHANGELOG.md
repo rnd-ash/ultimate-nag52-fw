@@ -2,7 +2,34 @@
 # IMPORTANT - 19/10/23 and newer FW
 This firmware contains initial EGS52 calibration data. You will need to select the correct settings for your car in the configuration app under
 `TCU Program settings -> CAL`
-You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explination on calibration settings
+You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explanation on calibration settings
+
+# 25/10/26
+
+## Added
+* New adaptation system for torque adaptations - 2D maps are used now for Load vs RPM, for a much more accurate adaptation result
+* Overhauled the torque converter control code
+  * A new 2D map adaptation system is used for each gear now (Load vs RPM)
+  * Realtime PID is used to correct pressures - Adaptations should over 20x faster from scratch with a fresh TCU
+* Auto-upshift when approaching redline RPM based on how long the next upshift should take (To avoid bouncing off the limiter when accelerating quickly) - This is enabled for all profiles except (R)ace mode, so (R)ace mode becomes true manual mode
+* New garage shift system - Should result in a far more smoother garage shift into R or D.
+* Added torque request support for HFM CAN Layer
+* Added air flow mass adaptation for HFM CAN Layer
+
+## Changed
+* (A)gility mode and (R)ace mode now have special shift logic to dramatically speed up gear changes (Derived from a mixture of Porsche and SLR firmware - along with some custom tweaks). This however is not compatible with adaptations, so adaptations are disabled when in these modes
+* Shift paddles and TipTronic selector +/- inputs are now registered at the start of the press, rather than when released. This speeds up perceived shift latency
+
+## Fixed
+* EGS51 CAN - Torque request calculations
+* EGS51 CAN - Factor in engine drag torque when calculation input torque
+* Multiple bugs fixed that could cause the TCU to crash when saving maps
+* Various hardenings against improper calibrations
+
+## External contributors
+
+* @trampas - Loads of low-level bug fixes and guards
+* @chrissivo - Implemented the HFM CAN Layer and mass air flow adaptation system
 
 # 08/06/26
 

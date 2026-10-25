@@ -21,6 +21,7 @@ void OnOffSolenoid::__write_pwm(float vref_compensation, float temperature_facto
             calc_pwm = 0xFFFF;
         }
     }
+    this->pwm_raw = calc_pwm;
     ledc_set_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel, calc_pwm);
     ledc_update_duty(ledc_mode_t::LEDC_HIGH_SPEED_MODE, this->channel);
 }

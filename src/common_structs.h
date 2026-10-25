@@ -6,9 +6,6 @@
 #include "solenoids/solenoids.h"
 #include "canbus/can_defines.h"
 
-typedef int16_t pressure_map[11];
-typedef float rpm_modifier_map[9];
-
 enum class Clutch {
     K1 = 0,
     K2 = 1,
@@ -59,6 +56,8 @@ struct SensorData{
     uint8_t pedal_pos;
     /// Accelerator pedal position. 0-250, smoothed to 500ms
     uint8_t pedal_pos_smoothed;
+    /// Accelerator pedal delta per second (In %/sec),
+    int16_t pedal_delta_per_second;
     /// Transmission oil temperature in Celcius
     int16_t atf_temp;
     // Input shaft torque
@@ -81,6 +80,9 @@ struct SensorData{
     float tcc_trq_multiplier;
     bool kickdown_pressed;
     bool brake_pressed;
+
+    uint16_t wheel_speed_mps;
+    int16_t acceleration_ms2;
 };
 
 struct OutputData {
@@ -187,8 +189,9 @@ struct GearboxConfiguration{
     GearRatioInfo bounds[7];
 };
 
-struct ShiftCharacteristics{
+struct ShiftCharacteristics {
     uint16_t target_shift_time;
+    bool extra_speed;
 };
 
 struct   __attribute__ ((packed)) ShiftReportSegment {

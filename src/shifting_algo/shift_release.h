@@ -25,10 +25,6 @@ private:
     uint16_t cycles_mod_ramp_to_sync = 0;
     uint16_t cycles_mod_hold_sync = 0;
 
-
-
-    float freeing_trq = 0;
-    float loss_torque = 0;
     float loss_torque_tmp = 0;
     uint16_t torque_adder = 0;
 
@@ -47,11 +43,12 @@ private:
     float spc_ramp_val = 0;
     float p_overlap_begin = 0;
     float overlap_torque = 0;
+    float freeing_torque_multi = 1.0;
     uint8_t fill_1_mpc_cycles = 0;
 
     int spc_step_adder = 0;
     int spc_wait_adder = 0;
-    int minimum_mod_reduction_trq = 0;
+    
 };
 
 #endif

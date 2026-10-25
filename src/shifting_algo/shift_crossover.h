@@ -46,6 +46,7 @@ private:
     bool fill_via_ramp = false;
     uint16_t torque_req_val = 0;
     int16_t torque_adapt_val = 0;
+    // Positive when increasing torque request, negative when reducing torque request
     int16_t trq_req_compensate_val = 0;
     
     uint16_t fill_time_adapt_timer = 0;
@@ -56,8 +57,12 @@ private:
 
     int8_t result_fill_time_adaptation = 0;
 
-    uint16_t get_and_set_adapt_rpm_off_clutch();
+    int16_t torque_accel_corr = 0;
+    int16_t dyn_inertia_filtered = 0;
+
+    int16_t get_and_set_adapt_rpm_off_clutch();
     void offset_adapt_timer_by_clutch_delay();
+    void calculate_accel_trq_corr();
 };
 
 #endif

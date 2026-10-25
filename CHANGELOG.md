@@ -4,7 +4,7 @@ This firmware contains initial EGS52 calibration data. You will need to select t
 `TCU Program settings -> CAL`
 You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configuration/calibration) for an explanation on calibration settings
 
-# Unreleased
+# 25/10/26
 
 ## Added
 * New adaptation system for torque adaptations - 2D maps are used now for Load vs RPM, for a much more accurate adaptation result
@@ -24,6 +24,7 @@ You can see [here](https://docs.ultimate-nag52.net/en/gettingstarted/configurati
 * EGS51 CAN - Torque request calculations
 * EGS51 CAN - Factor in engine drag torque when calculation input torque
 * Multiple bugs fixed that could cause the TCU to crash when saving maps
+* Various hardenings against improper calibrations
 
 ## External contributors
 

@@ -453,7 +453,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
                 threshold_torque *= 2;
             }
             if (
-                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || (sid.chars.extra_speed && target_gear == GearboxGear::Second))) ||
+                ((sensor_data.converted_driver_torque <= threshold_torque && ((sid.shift_flags & SHIFT_FLAG_COAST) == 0 || (sid.chars.extra_speed && manually_requested))) ||
                     (
                         (sid.shift_flags & SHIFT_FLAG_COAST_54_43) != 0
                     )

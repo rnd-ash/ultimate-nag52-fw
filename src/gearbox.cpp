@@ -1213,7 +1213,7 @@ void Gearbox::controller_loop()
             p_tmp = 250 / 4; // 25% as a fallback
         }
         int16_t pedal_delta = (p_tmp - this->pedal_last)*50; // Per second
-        this->sensor_data.pedal_delta_per_second = first_order_filter(5, (float)pedal_delta/2.5, this->sensor_data.pedal_delta_per_second);
+        this->sensor_data.pedal_delta_per_second = first_order_filter(3, (float)pedal_delta/2.5, this->sensor_data.pedal_delta_per_second);
         this->pedal_last = p_tmp;
 
 

@@ -76,8 +76,9 @@ uint8_t CrossoverShift::step_internal(
 
             float multi_engine_trq;
             multi_engine_trq = interpolate_float(sd->indicated_torque, 0.0, 0.2, 0, trq_max, InterpType::Linear);
+            multi_engine_trq *= interpolate_float(sd->engine_rpm, 1.0, 2.0, 1500, 6000, InterpType::Linear);
             if (sid->chars.extra_speed) {
-                multi_engine_trq *= interpolate_float(sd->pedal_pos, 1.0, 3.0, 15, 200, InterpType::Linear);
+                multi_engine_trq *= 1.25;
             }
 
             float out = (float)sd->indicated_torque * (multi_engine_trq);
@@ -184,7 +185,7 @@ uint8_t CrossoverShift::phase_fill() {
                 this->fill_via_ramp = false;
                 this->cycles_ramp_to_low_filling = 3;
                 this->cycles_low_filling = 5;
-                if (race == sid->profile) {
+                if (sid->chars.extra_speed) {
                     this->cycles_ramp_to_low_filling = 1;
                     this->cycles_low_filling = 2;
                 }
@@ -201,8 +202,8 @@ uint8_t CrossoverShift::phase_fill() {
     }
     else if (2 == this->subphase_shift) {
         // Porsche SW in most aggressive mode cuts torque here
-        if (race == sid->profile) {
-            this->trq_req_timer = 3;
+        if (sid->chars.extra_speed && !trq_req_down_ramp) {
+            this->trq_req_timer = 6;
             this->trq_req_down_ramp = true;
         }
         // Ramp to low filling P
@@ -382,7 +383,7 @@ uint16_t CrossoverShift::get_trq_adder_map_val() {
             map_val = MAX(0, map_val - (2*abs_input_trq));
         }
     } else {
-        if (sd->input_torque > 0 && sid->profile != race) {
+        if (sd->input_torque > 0 && !sid->chars.extra_speed) {
             map_val = MAX(0, map_val - (2*abs_input_trq));
         }
         if (sid->chars.extra_speed) {

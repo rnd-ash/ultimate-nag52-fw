@@ -138,10 +138,16 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
         this->subphase_mod += 1;
         // Release downshift only (EGS53)
         if (this->is_release_shift() && !upshifting) {
-            this->timer_mod = interpolate_float(sd->atf_temp, 20, 5, -45, -10, InterpType::Linear);
+            this->timer_mod = interpolate_float(sd->atf_temp, 5, 4, 70, 80, InterpType::Linear);
+        }
+        else if (sid->tcc->get_current_state() == 0) { // Open TCC
+            this->timer_mod = 5;
         }
         else {
-            this->timer_mod = 5;
+            this->timer_mod = 4;
+        }
+        if (sid->chars.extra_speed) {
+            this->timer_mod += 1;
         }
         this->p_apply_clutch = sid->SPC_MAX;
     }

@@ -103,7 +103,7 @@ void TorqueConverter::diag_toggle_tcc_sol(bool en) {
 
 void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
     this->map_pressure = this->get_tcc_adapt_map_pressure(g, sd);
-    int end = MAX(this->map_pressure + this->min_tcc_pressure, 0);
+    int end = MAX(this->map_pressure, 0);
     if (0 == this->command_p_stage) {
         // Init
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
@@ -454,10 +454,6 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     // Pulling / Pushing check
     this->pulling = this->check_if_pulling(sensors);
 
-    if (curr_gear != targ_gear) {
-        this->timer_till_adapt = MAX(this->timer_till_adapt, 50); // Wait 1 second after shifting to adapt (Also don't adapt during shifts)
-    }
-
     this->calculate_torque_correction(sensors);
     int load_as_percent = abs(((int)this->tcc_engine_trq*100) / this->rated_max_torque);
     this->engine_load_percent = load_as_percent;
@@ -487,7 +483,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         return;
     }
 
-    GearboxGear cmp_gear = curr_gear;
+    GearboxGear cmp_gear = targ_gear;
     this->slip_target = this->calculate_slip_target(sensors);
     // TCC Disable check
     if (
@@ -499,7 +495,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     ) {
         this->slip_target = SLIP_V_WHEN_OPEN*2; // 200RPM = Way out of open range
     }
-    this->process_open_or_slip_state(sensors, curr_gear);
+    this->process_open_or_slip_state(sensors, cmp_gear);
 
     if (is_shifting) {
         this->timer_till_pid = 50;

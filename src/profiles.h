@@ -5,6 +5,7 @@
 
 #include "common_structs.h"
 #include "stored_map.h"
+#include <cstdint>
 
 const uint8_t NUM_PROFILES = 6u; // S, C, W, A, M, R
 const uint8_t PROFILE_IDX_S = 0u;
@@ -66,7 +67,7 @@ public:
         const int16_t* def_downshift_time_data
     );
     // static AbstractProfile *profile_from_auto_ty(AutoProfile prof);
-    virtual void update(SensorData* sensors) {};
+    void update(SensorData* sensors);
     virtual GearboxProfile get_profile(void) const = 0;
     virtual GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) = 0;
     virtual bool should_upshift(GearboxGear current_gear, SensorData* sensors) = 0;
@@ -115,6 +116,7 @@ protected:
     StoredMap* downshift_table = nullptr;
     StoredMap* upshift_time_map = nullptr;
     StoredMap* downshift_time_map = nullptr;
+    uint32_t last_pedal_off_time = 0;
 private:
     bool is_diesel;
     const char* tag_id;
@@ -163,7 +165,6 @@ public:
     GearboxDisplayGear get_display_gear(GearboxGear target, GearboxGear actual) override;
     bool should_upshift(GearboxGear current_gear, SensorData* sensors) override;
     bool should_downshift(GearboxGear current_gear, SensorData* sensors) override;
-    void update(SensorData *sd) override;
 };
 
 class ManualProfile : public AbstractProfile {

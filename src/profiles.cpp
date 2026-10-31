@@ -1,5 +1,6 @@
 #include "profiles.h"
 #include "adv_opts.h"
+#include "clock.h"
 #include "tcu_maths.h"
 #include "gearbox.h"
 #include "maps.h"
@@ -95,6 +96,12 @@ ShiftCharacteristics AbstractProfile::get_shift_characteristics(GearChange reque
     return result;
 }
 
+void AbstractProfile::update(SensorData* sensors) {
+    if (sensors->pedal_pos == 0) {
+        this->last_pedal_off_time = GET_CLOCK_TIME();
+    }
+}
+
 
 AgilityProfile::AgilityProfile(bool is_diesel) : AbstractProfile(
         is_diesel,
@@ -160,6 +167,10 @@ bool AgilityProfile::should_upshift(GearboxGear current_gear, SensorData* sensor
             // Score of 0-1
             float engine_load_percent = (float)MAX(0, sensors->converted_driver_torque) / (float)sensors->max_torque;
             upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
+        }
+        if (sensors->pedal_pos != 0) {
+            int dt = GET_CLOCK_TIME() - this->last_pedal_off_time;
+            upshift_map_val += interpolate_float(dt, 3000, 0, 1000, 5000, InterpType::Linear);
         }
         bool can_upshift = sensors->input_rpm > upshift_map_val;
         if (sensors->pedal_pos == 0 || sensors->pedal_delta_per_second < -5) {
@@ -383,6 +394,12 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
             float engine_load_percent = (float)MAX(0, sensors->converted_driver_torque) / (float)sensors->max_torque;
             upshift_map_val += interpolate_float(engine_load_percent, 1000, 0, 0.8, 0.2, InterpType::Linear);
         }
+        if (sensors->pedal_pos != 0) {
+            int dt = GET_CLOCK_TIME() - this->last_pedal_off_time;
+            upshift_map_val += interpolate_float(dt, 3000, 0, 1000, 5000, InterpType::Linear);
+        }
+
+
         bool can_upshift = sensors->input_rpm > upshift_map_val;
         if (sensors->pedal_pos == 0 || sensors->pedal_delta_per_second < -5) {
             can_upshift = false;
@@ -392,9 +409,6 @@ bool StandardProfile::should_upshift(GearboxGear current_gear, SensorData* senso
     } else {
         return false;
     }
-}
-
-void StandardProfile::update(SensorData* sensors) {
 }
 
 bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sensors) {

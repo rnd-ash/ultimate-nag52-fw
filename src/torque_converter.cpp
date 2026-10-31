@@ -114,7 +114,7 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
         if (0 == this->timer_command_p) {
             this->command_p_stage = 2;
-            this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles/2;
+            this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles;
         }
     } else if (2 == this->command_p_stage) {
         this->tcc_shift_pressure = linear_ramp_with_timer(TCC_CURRENT_SETTINGS.prefill_pressure, end, this->timer_command_p) + this->min_tcc_pressure;
@@ -294,7 +294,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         this->pid_i_val = 0;
         this->command_p_stage = 0;
         // TODO - Engagement RPM is different to slip target RPM threshold
-        if (slip_target < SLIP_V_WHEN_OPEN && !should_open) {
+        if (slip_target < SLIP_V_WHEN_OPEN && !should_open && !this->is_shifting) {
             this->target_tcc_state = InternalTccState::Slipping;
             // Start filling!
             this->fill_tcc(current_g, sd);

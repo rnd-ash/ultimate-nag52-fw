@@ -177,6 +177,7 @@ uint8_t CrossoverShift::phase_fill() {
                 this->subphase_shift = 4;
                 // Switch adapting filling time
                 this->do_fill_time_adaptation = false;
+                this->do_fill_pressure_adaptation = false;
                 this->fill_via_ramp = true;
             } else {
                 // Non ramp filling

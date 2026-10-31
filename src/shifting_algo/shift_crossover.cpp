@@ -11,7 +11,7 @@ const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE     = 4;
 const DRAM_ATTR uint8_t PHASE_END_CONTROL      = 5;
 
 uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
-float RAMP_LIMITS[8] = {0.325, 0.625, 0.55, 0, 0, 0, 0, 0};
+float RAMP_LIMITS[8] = {0.5, 0.625, 0.75, 0, 0, 0, 0, 0};
 float ADAPT_LIMITS[8] = {1.5, 2.0, 2.5, 3.0, 0, 0, 1.0, 1.0};
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
@@ -175,9 +175,8 @@ uint8_t CrossoverShift::phase_fill() {
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;
-                // Switch adapting to pressure
+                // Switch adapting filling time
                 this->do_fill_time_adaptation = false;
-                this->do_fill_pressure_adaptation = false;
                 this->fill_via_ramp = true;
             } else {
                 // Non ramp filling
@@ -196,9 +195,6 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t p_mod_1 = this->calc_mod_with_filling_trq_and_freewheeling(this->p_apply_clutch);
         uint16_t p_mod_2 = this->calc_mod_min_abs_trq(low_filling_p);
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
-        if (this->do_fill_pressure_adaptation || (this->fill_via_ramp && this->upshifting)) {
-            sid->tcc->shift_start(this->upshifting, false);
-        }
     }
     else if (2 == this->subphase_shift) {
         // Porsche SW in most aggressive mode cuts torque here
@@ -248,7 +244,7 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t targ = this->set_p_apply_clutch_with_spring(500);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
         this->mod_sol_pressure = this->calc_overlap2_mod();
-        if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        if (0 == this->timer_shift) {
             this->timer_shift = 12;
             this->subphase_shift += 1;
         }
@@ -257,7 +253,7 @@ uint8_t CrossoverShift::phase_fill() {
         uint16_t targ = this->set_p_apply_clutch_with_spring(700);
         this->p_apply_clutch = linear_ramp_with_timer(this->p_apply_clutch, targ, this->timer_shift);
         this->mod_sol_pressure = this->calc_overlap2_mod();
-        if (0 == this->timer_shift || sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
+        if (0 == this->timer_shift) {
             ret = PHASE_OVERLAP;
         }
     }

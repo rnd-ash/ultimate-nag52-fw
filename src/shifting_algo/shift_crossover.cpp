@@ -345,8 +345,6 @@ uint8_t CrossoverShift::phase_overlap() {
         0 == this->timer_shift ||
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
-        // Next phase on clutch movement or timeout
-        sid->tcc->shift_start(this->upshifting, false);
         ret = PHASE_OVERLAP2;
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);

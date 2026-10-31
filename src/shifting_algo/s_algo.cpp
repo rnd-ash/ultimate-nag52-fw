@@ -64,7 +64,7 @@ uint8_t ShiftingAlgorithm::step(
     this->sd = sd;
 
     if (this->first_run) {
-        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier* 100 * sd->pump_torque);
+        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier * sd->pump_torque);
         this->old_engine_rpm = sd->engine_rpm;
         this->old_input_trq = sd->input_torque;
         this->first_run = false;
@@ -150,6 +150,7 @@ uint8_t ShiftingAlgorithm::phase_bleed(PressureManager* pm) {
             this->timer_mod += 1;
         }
         this->p_apply_clutch = sid->SPC_MAX;
+        sid->tcc->shift_start(this->upshifting, this->is_release_shift());
     }
     if (1 == this->subphase_mod) {
         // End of phase!
@@ -189,7 +190,6 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t targ_mpc = this->max_p_mod_pressure();
     if (0 == this->subphase_shift) {
-        sid->tcc->shift_end();
         this->timer_emergency = -1; // Disable emergency timer for this and end phase
         // Var set
         this->timer_shift = 5; // 100ms for ramp
@@ -202,6 +202,7 @@ uint8_t ShiftingAlgorithm::phase_maxp(SensorData* sd) {
             ret = STEP_RES_NEXT;
             // End of max pressure (Shut of shift valve)
             pm->set_shift_circuit(sid->inf.shift_circuit, false);
+            sid->tcc->shift_end();
         }
     }
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
@@ -496,10 +497,11 @@ void ShiftingAlgorithm::adaptation_step() {
     // Boundary conditions (Every cycle)
     int tcc_trq = ((sd->tcc_trq_multiplier*100) * sd->pump_torque); // 100x real value
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter);
+        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*100);
     } else {
-        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter);
+        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter*100);
     }
+    this->first_order_pump_trq_filter /= 100.0;
     if (this->timer_p_adapt > 0) {
         this->timer_p_adapt -= 1;
     }
@@ -566,7 +568,7 @@ void ShiftingAlgorithm::adaptation_step() {
         }
     } else if (3 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
         // Analysis running (Monitoring realtime torque capability of the clutch vs pressure capability)
-        if (sid->ptr_r_clutch_speeds->off_clutch_speed < 100) {
+        if (sid->ptr_r_clutch_speeds->off_clutch_speed <= 100) {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
         } else if (this->timer_p_adapt == 0) {
             // Time expired. Cancel adaptation
@@ -576,8 +578,8 @@ void ShiftingAlgorithm::adaptation_step() {
             // Add up turbine torque (AVG calculated later)
             int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
             int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
-            this->adapting_p_adapt_trq += (theoretical_t - (this->first_order_pump_trq_filter/100));
-            if (this->phase_id > 4 || sid->ptr_r_clutch_speeds->on_clutch_speed < 100) {
+            this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
+            if (this->phase_id > 4 || sid->ptr_r_clutch_speeds->on_clutch_speed <= 100) {
                 // On clutch is applied or we moved to boost pressure phase in crossover shift.
                 // (Jump to analysis)
                 fill_pressure_adaptation_stage = 4;
@@ -599,7 +601,7 @@ void ShiftingAlgorithm::adaptation_step() {
                 if (sid->adaptation_mgr) {
                     int old_v = sid->adaptation_mgr->get_adapt_spc_offset(this->adapt_p_map_idx());
 
-                    float scalar = interpolate_float(time, 0.25, 0.5, 4, 8, InterpType::Linear);
+                    float scalar = interpolate_float(time, 0.1, 0.5, 5, 20, InterpType::Linear);
                     int new_v = (int)((float)old_v + (float)correction_p * scalar);
                     int lim = (2000*sid->inf.pressure_multi_spc_int)/1000;
                     if (new_v > lim) {
@@ -609,7 +611,7 @@ void ShiftingAlgorithm::adaptation_step() {
                         ESP_LOGW("P_ADAPT", "Pressure adaptation hit lower limit. Adjust your filling map manually");
                         new_v = -lim;
                     }
-                    ESP_LOGI("ADAPT", "P_ADAPT end. Res: %d mBar (Timer = %d, AVG_T = %d Nm, Inertia %d Nm)", correction_p, time, avg_trq, d_inertia);
+                    ESP_LOGI("ADAPT", "P_ADAPT end. Res: %d mBar (Timer = %d, Torque required = %d Nm, Theoretically required %d Nm)", correction_p, time, avg_trq, d_inertia);
                     sid->adaptation_mgr->offset_spc_pressure(this->adapt_p_map_idx(), new_v-old_v);
                 }
                 fill_pressure_adaptation_stage = 5;

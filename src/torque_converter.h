@@ -176,7 +176,6 @@ class TorqueConverter {
         uint8_t timer_inc_slip = 0;
         uint8_t timer_till_adapt = 0;
         uint8_t timer_till_pid = 0;
-        int targ_slip_pid = 0;
         int pid_pressure = 0;
         int map_pressure = 0;
 

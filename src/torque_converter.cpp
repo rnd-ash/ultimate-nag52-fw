@@ -140,7 +140,6 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     if (this->pulling) {
         int pedal_as_percent = (sensors->pedal_pos*100)/250;
         target = this->slip_rpm_target_map->get_value(pedal_as_percent, sensors->input_rpm);
-        targ_slip_pid = 0;
     } else {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
@@ -151,17 +150,16 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     } else if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && e_req == TccReqState::Slipping) {
         target += 10;
     }
+    if (this->upshifting) {
+        target += 10;
+    }
 
-    if (sensors->pedal_delta_per_second >= 50 || sensors->input_rpm > 1800) {
-        // TODO
-        targ_slip_pid = 0;
+    if (sensors->pedal_delta_per_second >= 20) {
+        inc = linear_ramp_with_timer(50, 0, this->timer_inc_slip);
     } else {
-        if (this->actual_slip_abs - this->old_actual_slip_abs > 0 && target + inc < this->actual_slip_abs) {
-            targ_slip_pid = MIN(50, (this->actual_slip_abs - target));
-        }
         this->timer_inc_slip = 150;
     }
-    return MAX(target, SLIP_V_WHEN_LOCKED);
+    return MAX(target + inc, SLIP_V_WHEN_LOCKED);
 }
 
 void TorqueConverter::calculate_min_pressure(SensorData* sensors, GearboxGear current_g) {
@@ -341,7 +339,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             if (this->pulling) {
                 this->pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PULL);
                 if (0 == this->timer_till_pid) {
-                        this->pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PULL);
+                    this->pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PULL);
                 } else {
                     this->pid_i_val = ((this->pid_p_weight * slip_delta) / 1000) * -10;
                 }

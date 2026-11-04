@@ -174,6 +174,7 @@ protected:
     uint8_t timer_p_adapt = 0;
     uint16_t adapting_trq_limit = 0;
     uint16_t adapting_turbine_spd = 0;
+    uint16_t adapting_turbine_spd_end = 0;
     int adapting_p_adapt_trq = 0;
     int adapting_p_adapt_pressure = 0;
 
@@ -205,6 +206,8 @@ protected:
     bool n3_moving = false;
     float loss_torque = 0;
     int pid_err_i = 0;
+
+    int p_apply_overlap_begin = 0;
 };
 
 // Helper functions

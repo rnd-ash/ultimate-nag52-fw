@@ -1,6 +1,7 @@
 #include "s_algo.h"
 #include <egs_calibration/calibration_structs.h>
 #include "adaptation/shift_adaptation.h"
+#include "common_structs.h"
 #include "esp_log_level.h"
 #include "nvs/module_settings.h"
 #include "shifting_algo/shift_flags.h"
@@ -415,6 +416,14 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
         d = 0;
         break;
     }
+
+    if (ShiftStyle::Crossover_Up == style) {
+        if (sid->ptr_r_clutch_speeds->off_clutch_speed < CRS_CURRENT_SETTINGS.clutch_stationary_rpm && sid->change == GearChange::_1_2 && sd->atf_temp > 20) {
+            i = 0;
+            d = 0;
+        }
+    }
+
     int16_t error = ((int16_t)sd->input_rpm - this->target_turbine_speed);
 
     int32_t p_v = (p * error) / 1000;
@@ -440,13 +449,19 @@ short ShiftingAlgorithm::calc_correction_trq(ShiftStyle style, short momentum) {
             int div = MAX(this->pid_count, 20);
             int adder = (inertia*error) / (div*20);
             this->trq_adapt_rpm += adder;
-            // Check if min torque is reached (Release shift only) (TODO)
+            // Check if min torque is reached
             if ((((int)abs_input_trq + this->trq_adder) - this->freeing_trq) - this->loss_torque < this->release_minimum_mod_reduction_trq) {
                 trq_adapt_below_min_trq |= true;
             }
 
         } else {
-            if (this->p_apply_clutch < sid->SPC_MAX) {
+            int last_filling_p = this->p_apply_overlap_begin - this->centrifugal_force_on_clutch;
+            if (this->p_apply_clutch <= last_filling_p) {
+                // Pressure fell below filling pressure, problem is with filling pressure!
+                trq_adapt_below_min_trq |= true;
+            }
+
+            if (this->p_apply_clutch < sid->SPC_MAX && pid_count < 40) {
                 this->pid_count += 1;
                 int div = MAX(this->pid_count, 20);
                 int adder = (inertia*error) / (div*20);
@@ -513,8 +528,9 @@ void ShiftingAlgorithm::adaptation_step() {
         }
         bool rpm_in_range = (sd->input_rpm <= sd->engine_rpm+10 && upshifting) || (sd->engine_rpm <= sd->input_rpm+10 && !upshifting);
         if (
-            !rpm_in_range
+            !rpm_in_range && this->fill_pressure_adaptation_stage <= 2
         ) {
+            // Only check delta when waiting for clutch to move. Once the clutch moves, we don't check the delta anymore
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine/Input RPM delta too high)");
             this->do_fill_pressure_adaptation = false;
         }
@@ -525,6 +541,11 @@ void ShiftingAlgorithm::adaptation_step() {
         if (this->torque_jumped) {
             this->do_fill_pressure_adaptation = false;
         }
+        if (!this->upshifting && !this->is_release_shift() && sd->pedal_pos > 15) {
+            // Coast 4-3 adapt, cancel if pedal is pressed
+            this->do_fill_pressure_adaptation = false;
+        }
+
         if (!this->do_fill_pressure_adaptation) {
             this->fill_pressure_adaptation_stage = 4; // Jump to analysis if cancelled early
         }
@@ -575,21 +596,23 @@ void ShiftingAlgorithm::adaptation_step() {
             ESP_LOGI("ADAPT", "Pressure adapt cancelled. Timer expired");
             this->do_fill_pressure_adaptation = false;
         } else {
-            // Add up turbine torque (AVG calculated later)
-            int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
-            int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
-            this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
-            if (this->phase_id > 4 || sid->ptr_r_clutch_speeds->on_clutch_speed <= 100) {
+            if (this->phase_id > 3 || sid->ptr_r_clutch_speeds->on_clutch_speed <= 100) {
                 // On clutch is applied or we moved to boost pressure phase in crossover shift.
                 // (Jump to analysis)
                 fill_pressure_adaptation_stage = 4;
+            } else {
+                // Add up turbine torque (AVG calculated later)
+                int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
+                int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
+                this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
+                this->adapting_turbine_spd_end = sd->input_rpm;
             }
         }
     } else if (4 == fill_pressure_adaptation_stage) {
         int time = 0xFF - this->timer_p_adapt;
-        if (time > 1 && this->adapting_turbine_spd != 0) {
+        if (time > 1 && this->adapting_turbine_spd != 0 && this->adapting_turbine_spd_end != 0) {
             int avg_trq = this->adapting_p_adapt_trq / time; // AVG Trq/20ms cycle
-            int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - sd->input_rpm)) / (time*20);
+            int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - this->adapting_turbine_spd_end)) / (time*20);
             int correction_p = 0;
             if (this->upshifting) {
                 correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);
@@ -712,45 +735,43 @@ void ShiftingAlgorithm::mark_end_torque_adapt() {
                         map = sid->adaptation_mgr->get_pushing_torque_map(sid->inf.map_idx);
                     }
                 }
-                if (is_release_shift() && this->trq_adapt_below_min_trq) {
-                    // Coasting downshifts can cause this
-                    ESP_LOGW("TRQ_ADAPT", "Release torque below minimum, will not adapt");
+                if (this->trq_adapt_below_min_trq) {
+                    corr = 0;
+                }
+                int old = map->get_value(this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
+                corr += old;
+                if (corr > 200 || corr < -200) {
+                    ESP_LOGW("TRQ_ADAPT", "Torque limit hit %d Nm, clamping", corr);
+                    old = MIN(200, MAX(-200, corr));
                 } else {
-                    int old = map->get_value(this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
-                    corr += old;
-                    if (corr > 200 || corr < -200) {
-                        ESP_LOGW("TRQ_ADAPT", "Torque limit hit %d Nm, clamping", corr);
-                        old = MIN(200, MAX(-200, corr));
-                    } else {
-                        ESP_LOGI("TRQ_ADAPT", "%d Nm - %d RPM - %d load", (int)corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
+                    ESP_LOGI("TRQ_ADAPT", "%d Nm - %d RPM - %d load", (int)corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent);
+                }
+                map->add_value(corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent, 10.0);
+                if (!is_release_shift() && upshifting) {
+                    // Faster adaptation (Exp.)
+                    for (int i = 0; i < 4; i++) {
+                        int rpm = TRQ_ADAPT_X[i];
+                        int old_value =  map->get_value(rpm, this->trq_adapt_engine_load_percent);
+                        // EG: Looking at 1000RPM cell value, but the shift happened at 1500RPM
+                        // Lower RPM should be a lower value theoretically
+                        if (this->input_rpm_trq_adapt_map > rpm) {
+                            old_value = MIN(old_value, corr);
+                        } else {
+                            old_value = MAX(old_value, corr);
+                        }
+                        map->add_value(old_value, rpm, this->trq_adapt_engine_load_percent, 10.0);
                     }
-                    map->add_value(corr, this->input_rpm_trq_adapt_map, this->trq_adapt_engine_load_percent, 10.0);
-                    if (!is_release_shift() && upshifting) {
-                        // Faster adaptation (Exp.)
-                        for (int i = 0; i < 4; i++) {
-                            int rpm = TRQ_ADAPT_X[i];
-                            int old_value =  map->get_value(rpm, this->trq_adapt_engine_load_percent);
-                            // EG: Looking at 1000RPM cell value, but the shift happened at 1500RPM
-                            // Lower RPM should be a lower value theoretically
-                            if (this->input_rpm_trq_adapt_map > rpm) {
-                                old_value = MIN(old_value, corr);
-                            } else {
-                                old_value = MAX(old_value, corr);
-                            }
-                            map->add_value(old_value, rpm, this->trq_adapt_engine_load_percent, 10.0);
+                    for (int i = 0; i < 5; i++) {
+                        int trq = TRQ_ADAPT_Y_PULL[i];
+                        int old_value =  map->get_value(this->input_rpm_trq_adapt_map, trq);
+                        // EG: Looking at 10% load cell value, but the shift happened at 15% load
+                        // Lower load should be a lower value theoretically
+                        if (this->trq_adapt_engine_load_percent > trq) {
+                            old_value = MIN(old_value, corr);
+                        } else {
+                            old_value = MAX(old_value, corr);
                         }
-                        for (int i = 0; i < 5; i++) {
-                            int trq = TRQ_ADAPT_Y_PULL[i];
-                            int old_value =  map->get_value(this->input_rpm_trq_adapt_map, trq);
-                            // EG: Looking at 10% load cell value, but the shift happened at 15% load
-                            // Lower load should be a lower value theoretically
-                            if (this->trq_adapt_engine_load_percent > trq) {
-                                old_value = MIN(old_value, corr);
-                            } else {
-                                old_value = MAX(old_value, corr);
-                            }
-                            map->add_value(old_value, this->input_rpm_trq_adapt_map, trq, 10.0);
-                        }
+                        map->add_value(old_value, this->input_rpm_trq_adapt_map, trq, 10.0);
                     }
                 }
             }

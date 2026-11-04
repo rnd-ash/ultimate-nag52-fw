@@ -390,7 +390,7 @@ uint8_t ReleasingShift::phase_overlap() {
     uint16_t low_filling_p = this->calc_low_filling_p();
     if (0 == this->subphase_shift) {
         // Variable set
-        this->p_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
+        this->p_apply_overlap_begin = this->p_apply_clutch + centrifugal_force_on_clutch;
         int idx = sid->inf.map_idx;
         if (idx >= 4) {
             idx -= 4;
@@ -407,7 +407,7 @@ uint8_t ReleasingShift::phase_overlap() {
         this->subphase_shift += 1;
     }
     int end = this->set_p_apply_clutch_with_spring(pm->p_clutch_with_coef(sid->targ_g, sid->applying, abs_input_trq, CoefficientTy::Release));
-    this->p_apply_clutch = MAX(linear_ramp_with_timer(this->p_apply_clutch, end, this->timer_shift), this->p_overlap_begin - centrifugal_force_on_clutch);
+    this->p_apply_clutch = MAX(linear_ramp_with_timer(this->p_apply_clutch, end, this->timer_shift), this->p_apply_overlap_begin - centrifugal_force_on_clutch);
     this->shift_sol_pressure = this->correct_shift_shift_pressure(this->p_apply_clutch);
     if (sid->change == GearChange::_4_3) {
         if (0 == this->timer_mod) {
@@ -444,14 +444,14 @@ uint16_t ReleasingShift::calc_mod_overlap() {
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod = MAX(p_mod, 0);
             p_mod *= 0.8;
-            int p_shift = MAX(0, this->p_overlap_begin - centrifugal_force_on_clutch);
+            int p_shift = MAX(0, this->p_apply_overlap_begin - centrifugal_force_on_clutch);
             return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
         }
         else {
             int trq = MAX(0, abs_input_trq + this->trq_adder + this->correction_trq - this->loss_torque - trq_req);
             float p_mod = pm->p_clutch_with_coef_signed(sid->curr_g, sid->releasing, trq, CoefficientTy::Sliding) + sid->release_spring_off_clutch - centrifugal_force_off_clutch;
             p_mod *= 0.8;
-            int p_shift = MAX(0, this->p_overlap_begin - centrifugal_force_on_clutch);
+            int p_shift = MAX(0, this->p_apply_overlap_begin - centrifugal_force_on_clutch);
             return this->calc_mpc_sol_shift_ps(p_shift, p_mod);
         }
     }

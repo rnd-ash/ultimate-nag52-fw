@@ -26,8 +26,6 @@ private:
     void overlap_adapt();
     void overlap2_adapt();
     int8_t calc_t_adapt_offset_adv(int8_t cycle_change);
-    
-    uint16_t p_apply_overlap_begin = 0;
 
     int16_t calculate_dynamic_inertia();
     uint16_t calc_overlap_mod();

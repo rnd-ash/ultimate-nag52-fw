@@ -1,3 +1,4 @@
+#include "models/egs51_mpc_flush.h"
 #ifndef PRESSURE_MANAGER_H
 #define PRESSURE_MANAGER_H
 
@@ -191,8 +192,7 @@ private:
     uint8_t c_gear = 0;
     uint8_t t_gear = 0;
     bool init_ss_recovery = false;
-    bool mpc_flushing = false;
-    uint8_t mpc_flush_timer = 0;
+    Egs51MpcFlush::State mpc_flush;
     uint64_t last_ss_on_time = 0;
     ShiftPressures* ptr_shift_pressures = nullptr;
 

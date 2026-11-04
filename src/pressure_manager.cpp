@@ -1,3 +1,7 @@
+#include "models/egs51_centrifugal.h"
+#include "models/egs51_line_coupling.h"
+#include "models/egs51_inlet_pressure.h"
+#include "models/egs51_shift_pressure.h"
 #include "pressure_manager.h"
 #include <tcu_maths.h>
 #include "solenoids/solenoids.h"
@@ -159,37 +163,26 @@ uint16_t PressureManager::calc_current_linear_sol(uint16_t p_targ, GearboxGear c
     }
 
     int line_pressure = ((int)HYDR_PTR->lp_reg_spring_pressure + (int)this->target_modulating_pressure)*1000;
-    int wp;
-    if (factor > 0) {
-        wp = extra_p + (line_pressure / factor);
-    } else {
-        wp = extra_p;
+    if (factor <= 0) {
+        factor = 1000; // Guard (Calibration loader also rejects a zeroed p_multi)
     }
+    int wp = extra_p + (line_pressure / factor);
     if (wp <= 0) {
         wp = 0;
     }
+    wp = Egs51LineCoupling::working_pressure(wp, change_state == GearChange::_1_2,
+        this->target_shift_pressure, HYDR_PTR->shift_pressure_factor_percent);
     this->calculated_working_pressure = wp;
 
-    int interpolated = interpolate_float(
-        wp,
-        HYDR_PTR->inlet_pressure_output_min,
-        HYDR_PTR->inlet_pressure_output_max,
+    const uint16_t interpolated = Egs51InletPressure::inlet(wp,
         HYDR_PTR->inlet_pressure_input_min,
         HYDR_PTR->inlet_pressure_input_max,
-        InterpType::Linear
-    );
+        HYDR_PTR->inlet_pressure_output_min,
+        HYDR_PTR->inlet_pressure_output_max);
     this->calculated_inlet_pressure = interpolated;
-
-    int inlet_factor = HYDR_PTR->shift_pressure_addr_percent * (HYDR_PTR->inlet_pressure_output_max - interpolated);
-    inlet_factor /= 1000;
-    uint16_t output_p = get_max_solenoid_pressure();
-    if (p_targ < interpolated) {
-        float with_inlet = p_targ + HYDR_PTR->inlet_pressure_offset;
-        inlet_factor *= with_inlet;
-        inlet_factor /= 1000;
-        output_p = p_targ + inlet_factor;
-    }
-    return output_p;
+    return Egs51InletPressure::corrected(p_targ, interpolated,
+        HYDR_PTR->inlet_pressure_output_max, HYDR_PTR->shift_pressure_addr_percent,
+        HYDR_PTR->inlet_pressure_offset, get_max_solenoid_pressure());
 }
 
 /*
@@ -238,14 +231,13 @@ void PressureManager::update_pressures(GearboxGear current_gear, GearChange chan
 }
 
 float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uint16_t input, uint16_t rear_sun) {
-    float speed = 0;
+    uint16_t speed = 0;
     uint8_t sel_idx = 0xFF;
     float ret = 0;
     switch (clutch) {
-        case Clutch::K1:
-            sel_idx = 0;
-            speed = input;
-            break;
+        // OBSERVE. K1 is missing from this list.
+        // on EGS52, it is listed as 0 for the factor table. Perhaps during
+        // testing, they found calculating this force for K1 created some issues?
         case Clutch::K2:
             sel_idx = 1;
             speed = input;
@@ -258,13 +250,9 @@ float PressureManager::calculate_centrifugal_force_for_clutch(Clutch clutch, uin
             break;
     }
     if (sel_idx != 0xFF) {
-        int clutch_factor = MECH_PTR->atf_density_centrifugal_force_factor[sel_idx];
-        if (clutch_factor != 0) {
-            float drop = (MECH_PTR->atf_density_drop_per_c * (sensor_data->atf_temp + 50))/100.0;
-            float density_now = MECH_PTR->atf_density_minus_50c - drop;
-            ret = (((speed*speed)/1000.0)*density_now) / clutch_factor;
-            ret /= 10.0; // To convert to mbar
-        }
+        ret = Egs51Centrifugal::pressure(speed, sensor_data->atf_temp + 50,
+            MECH_PTR->atf_density_minus_50c, MECH_PTR->atf_density_drop_per_c,
+            MECH_PTR->atf_density_centrifugal_force_factor[sel_idx]);
     }
     return ret;
 }
@@ -504,16 +492,15 @@ int PressureManager::calc_max_torque_for_clutch_signed(GearboxGear gear, Clutch 
 }
 
 uint16_t PressureManager::get_max_shift_pressure(uint8_t shift_idx) {
-    uint32_t max_p = (this->get_max_solenoid_pressure() - HYDR_PTR->shift_reg_spring_pressure) * HYDR_PTR->shift_spc_gain[shift_idx];
-    max_p /= 1000; // shift_spc_gain is *1000;
-    return max_p;
+    if (shift_idx >= SHIFT_ARRAY_LEN) return 0;
+    return Egs51ShiftPressure::available(this->get_max_solenoid_pressure(),
+        HYDR_PTR->shift_reg_spring_pressure, HYDR_PTR->shift_spc_gain[shift_idx]);
 }
 
 uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flush_logic) {
     if (flush_logic) {
-        if (0 != this->mpc_flush_timer) {
-            this->mpc_flush_timer -= 1;
-        }
+        // Preserve the local idle-call timebase; calibration durations are words.
+        this->mpc_flush.tick();
     }
     uint8_t gear_idx = gear_to_idx_lookup(curr_g);
     uint16_t output = 0;
@@ -540,36 +527,19 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     if (output > get_max_solenoid_pressure()) {
         output = get_max_solenoid_pressure();
     }
-    // MPC pressure surge reduction
-    // - Reduces the slow buildup of pressure when we are working
-    //   below min MPC pressure
-    if (
-        flush_logic &&
-        (this->target_modulating_pressure < HYDR_PTR->min_mpc_pressure) && // Last call was below min
-        (0 == output) && // Current call is 0 pressure
-        ((sensor_data->atf_temp+50) >= HYDR_PTR->mpc_flush_temp_threshold) && // +50 to convert between our temperature and EGS Cal
-        (0 != HYDR_PTR->mpc_no_flush_time)// MPC Flushing is enabled for this box
-    ) {
-        if (!this->mpc_flushing) {
-            if (0 == this->mpc_flush_timer) {
-                this->mpc_flushing = true;
-                this->mpc_flush_timer = HYDR_PTR->mpc_flush_time;
-            }
-        } else if (0 == this->mpc_flush_timer) {
-            this->mpc_flushing = false;
-            this->mpc_flush_timer = HYDR_PTR->mpc_no_flush_time;
-        }
-    } else {
-        this->mpc_flushing = false;
-        this->mpc_flush_timer = 0;
-    }
-
-    if (false == this->mpc_flushing) {
+    // OEM eligibility uses the previous commanded pressure, including equality
+    // at minimum. A flush bypasses both the minimum and the decrease filter.
+    const bool flushing = this->mpc_flush.update(
+        flush_logic, output, this->target_modulating_pressure,
+        HYDR_PTR->min_mpc_pressure, sensor_data->atf_temp + 50,
+        HYDR_PTR->mpc_flush_temp_threshold, HYDR_PTR->mpc_no_flush_time,
+        HYDR_PTR->mpc_flush_time);
+    if (!flushing) {
         output = MAX(output, HYDR_PTR->min_mpc_pressure);
-    }
-    if (output < this->target_modulating_pressure) {
-        // Filter when decreasing pressure, instant rise in pressure
-        output = first_order_filter(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
+        if (output < this->target_modulating_pressure) {
+            // Filter when decreasing pressure, instant rise in pressure.
+            output = first_order_filter(HYDR_PTR->filter_factor, output, this->target_modulating_pressure);
+        }
     }
 
     return output;

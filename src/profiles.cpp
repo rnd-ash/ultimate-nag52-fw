@@ -1,5 +1,6 @@
 #include "profiles.h"
 #include "adv_opts.h"
+#include "canbus/can_defines.h"
 #include "clock.h"
 #include "tcu_maths.h"
 #include "gearbox.h"
@@ -188,7 +189,9 @@ bool AgilityProfile::should_downshift(GearboxGear current_gear, SensorData* sens
     if (this->downshift_table != nullptr) { // TEST TABLE
         int adder = 0;
         if (sensors->pedal_delta_per_second >= 0) {
-            adder = interpolate_float(sensors->pedal_delta_per_second, 0, 100, 1, 500, InterpType::Linear);
+            if (sensors->output_rpm > 100) {
+                adder = interpolate_float(sensors->pedal_delta_per_second, 0, 100, 1, 500, InterpType::Linear);
+            }
         } else {
             adder = interpolate_float(sensors->pedal_delta_per_second, -25, 0, -50, 0, InterpType::Linear);
         }
@@ -416,7 +419,9 @@ bool StandardProfile::should_downshift(GearboxGear current_gear, SensorData* sen
     if (this->downshift_table != nullptr) { // TEST TABLE
         int adder = 0;
         if (sensors->pedal_delta_per_second >= 0) {
-            adder = interpolate_float(sensors->pedal_delta_per_second, 0, 50, 1, 200, InterpType::Linear);
+            if (sensors->output_rpm > 100) {
+                adder = interpolate_float(sensors->pedal_delta_per_second, 0, 50, 1, 200, InterpType::Linear);
+            }
         } else {
             adder = interpolate_float(sensors->pedal_delta_per_second, -25, 0, -50, 0, InterpType::Linear);
         }

@@ -468,6 +468,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             }
         }
 
+        pressure_manager->notify_shift_start(sid.change, is_upshift && !algo->is_release_shift());
         uint8_t algo_phase_id = 0;
         while (process_shift) {
             sid.n3_rpm = this->speed_sensors.n3;
@@ -1307,7 +1308,7 @@ void Gearbox::controller_loop()
                 this->shifter_pos == ShifterPosition::TWO ||
                 this->shifter_pos == ShifterPosition::ONE)
             {
-                
+
                 if (this->shifter_pos != last_position)
                 {
                     if (lock_state)

@@ -47,10 +47,10 @@ public:
     void set_shift_circuit(ShiftCircuit ss, bool enable);
 
     /**
-     * @brief Set the target modulating pressure of the gearbox. 
-     * This pressure affects the actively engaged clutches in any gear, 
+     * @brief Set the target modulating pressure of the gearbox.
+     * This pressure affects the actively engaged clutches in any gear,
      * as well as hydralic elements in the valve body
-     * 
+     *
      * @param targ Target Working pressure to achieve in mBar
      */
     void set_target_modulating_pressure(uint16_t targ);
@@ -59,14 +59,14 @@ public:
      * @brief Set the target Shift pressure clutch pressure.
      * Via means of the overlap valve, when a shift command solenoid is engaged,
      * this pressure is sent to the engaging clutch in the gearbox
-     * 
+     *
      * @param targ Target shift pressure to achieve in mBar
      */
     void set_target_shift_pressure(uint16_t targ);
 
     /**
      * @brief Set the target TCC pressure (Torque converter)
-     * 
+     *
      * @param targ Target TCC pressure to achieve in mBar
      */
     void set_target_tcc_pressure(uint16_t targ);
@@ -108,13 +108,15 @@ public:
 
     PressureManager(SensorData* sensor_ptr, uint16_t max_torque);
 
+
+    void notify_shift_start(GearChange change, bool is_crossover_up);
     /**
      * @brief Get the shift data object for the requested gear change
-     * 
+     *
      * @param shift_request Which gear shift is being requested
      * @param chars Shift requested characteristics
      * @param curr_mpc Current MPC working pressure at the time of shift
-     * @return ShiftData 
+     * @return ShiftData
      */
     void notify_shift_end();
     CircuitInfo get_basic_shift_data(GearChange shift_request);
@@ -166,7 +168,7 @@ private:
     uint8_t shift_circuit_flag = 0;
 
     SensorData* sensor_data;
-    
+
     // Shift pressure
     uint16_t target_shift_pressure = 0;
     bool shift_sol_en = false;
@@ -205,6 +207,9 @@ private:
     LookupByteMap* torque_adder_upshifts[4];
     // 2-1, 3-2, 4-3, 5-4
     LookupByteMap* torque_adder_downshifts[4];
+
+    bool crossover_upshift = false;
+    GearChange change = GearChange::_IDLE;
 };
 
 extern PressureManager* pressure_manager;

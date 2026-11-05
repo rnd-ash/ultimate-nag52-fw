@@ -1,5 +1,6 @@
 #include "pressure_manager.h"
 #include <tcu_maths.h>
+#include "common_structs.h"
 #include "solenoids/solenoids.h"
 #include "maps.h"
 #include "common_structs_ops.h"
@@ -350,14 +351,21 @@ uint16_t PressureManager::find_pressure_holding_other_clutches_in_change(GearCha
 }
 
 float PressureManager::sliding_coefficient() const {
-    return interpolate_float(
-        sensor_data->atf_temp,
-        PRM_CURRENT_SETTINGS.applying_coefficient_cold,
-        PRM_CURRENT_SETTINGS.applying_coefficient_hot,
-        79,
-        115,
-        InterpType::Linear
-    );
+    int ret = PRM_CURRENT_SETTINGS.applying_coefficient_hot;
+
+    if (!crossover_upshift || this->change != GearChange::_1_2) {
+        ret = PRM_CURRENT_SETTINGS.applying_coefficient_hot;
+    } else {
+        ret = interpolate_float(
+            sensor_data->atf_temp,
+            PRM_CURRENT_SETTINGS.applying_coefficient_cold,
+            PRM_CURRENT_SETTINGS.applying_coefficient_hot,
+            79,
+            115,
+            InterpType::Linear
+        );
+    }
+    return ret;
 }
 
 float PressureManager::release_coefficient() const {
@@ -575,9 +583,16 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     return output;
 }
 
+void PressureManager::notify_shift_start(GearChange change, bool is_crossover_up) {
+    this->crossover_upshift = is_crossover_up;
+    this->change = change;
+}
+
 void PressureManager::notify_shift_end() {
     this->c_gear = 0;
     this->t_gear = 0;
+    this->change = GearChange::_IDLE;
+    this->crossover_upshift = false;
     this->ptr_shift_pressures = nullptr;
 }
 

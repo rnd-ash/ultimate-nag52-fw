@@ -1216,7 +1216,6 @@ void Gearbox::controller_loop()
         this->sensor_data.pedal_delta_per_second = first_order_filter(3, (float)pedal_delta/2.5, this->sensor_data.pedal_delta_per_second);
         this->pedal_last = p_tmp;
 
-
         this->sensor_data.pedal_pos = p_tmp;
         this->sensor_data.pedal_pos_smoothed = linear_interp_with_percentage(80, p_tmp, this->sensor_data.pedal_pos_smoothed);
 
@@ -1308,6 +1307,7 @@ void Gearbox::controller_loop()
                 this->shifter_pos == ShifterPosition::TWO ||
                 this->shifter_pos == ShifterPosition::ONE)
             {
+                
                 if (this->shifter_pos != last_position)
                 {
                     if (lock_state)
@@ -1347,8 +1347,13 @@ void Gearbox::controller_loop()
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {
-                            this->target_gear = GearboxGear::Neutral;
-                            last_position = this->shifter_pos;
+                            if (this->timer_shifter_n > 0) {
+                                this->timer_shifter_n -= 1;
+                            }
+                            if (0 == this->timer_shifter_n) {
+                                this->target_gear = GearboxGear::Neutral;
+                                last_position = this->shifter_pos;
+                            }
                         }
                     }
                     else
@@ -1370,6 +1375,7 @@ void Gearbox::controller_loop()
                                 this->target_gear = this->last_motion_gear;
                             }
                             last_position = this->shifter_pos;
+                            this->timer_shifter_n = 10;
                         }
                     }
                 }

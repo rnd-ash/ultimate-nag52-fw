@@ -160,6 +160,7 @@ private:
     // Set when an upshift happens with kickdown held. Kickdown cannot request a
     // downshift again until it is re-armed (See kickdown_rearm_rpm_offset)
     bool kickdown_rearm_pending = false;
+    uint8_t timer_shifter_n = 0;
 
 };
 

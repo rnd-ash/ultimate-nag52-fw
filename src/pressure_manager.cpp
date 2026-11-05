@@ -360,8 +360,8 @@ float PressureManager::sliding_coefficient() const {
             sensor_data->atf_temp,
             PRM_CURRENT_SETTINGS.applying_coefficient_cold,
             PRM_CURRENT_SETTINGS.applying_coefficient_hot,
+            29,
             79,
-            115,
             InterpType::Linear
         );
     }

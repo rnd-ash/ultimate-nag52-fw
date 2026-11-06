@@ -155,7 +155,7 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
     }
 
     if (sensors->pedal_delta_per_second >= 20) {
-        inc = linear_ramp_with_timer(50, 0, this->timer_inc_slip);
+        inc = linear_ramp_with_timer(10, 0, this->timer_inc_slip);
     } else {
         this->timer_inc_slip = 150;
     }

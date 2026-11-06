@@ -183,6 +183,7 @@ bool TorqueConverter::check_if_pulling(SensorData* sensors) {
             this->timer_till_adapt = 150; // 3 seconds
             this->timer_till_pid = 50;
             this->pid_i_val = 0;
+            this->pid_i_val_old = 0;
         }
     } else {
         // Pushing, check if we are pulling now
@@ -327,11 +328,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         this->tcc_shift_pressure = 0;
         this->map_pressure = this->get_tcc_adapt_map_pressure(current_g, sd);
 
-        bool is_adaptable = TCC_CURRENT_SETTINGS.adapt_enable &&
-            this->target_tcc_state == InternalTccState::Slipping &&
-            this->current_tcc_state == InternalTccState::Slipping &&
-            sd->converted_driver_torque > VEHICLE_CONFIG.engine_drag_torque / 20.0 && // 1/2 drag torque
-            !is_shifting;
+        bool is_adaptable = TCC_CURRENT_SETTINGS.adapt_enable && !is_shifting;
         if (TCC_CURRENT_SETTINGS.pid_enable) {
             // Do PID
             this->pid_i_val_old = this->pid_i_val;
@@ -353,7 +350,12 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
             // Dynamic PID modifier
             if (this->actual_slip_abs < SLIP_V_WHEN_OPEN) {
                 if (sd->pedal_delta_per_second > 20) {
-                    this->pid_i_val = 0;
+                    this->pid_i_val -= sd->pedal_delta_per_second;
+                    this->timer_till_adapt = 150;
+                }
+                if (sd->pedal_delta_per_second < -10) {
+                    this->pid_i_val -= abs(sd->pedal_delta_per_second/10);
+                     this->timer_till_adapt = 150;
                 }
             }
 

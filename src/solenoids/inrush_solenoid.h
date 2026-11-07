@@ -3,12 +3,13 @@
 
 #include "pwm_solenoid.h"
 #include "driver/gptimer.h"
+#include "freertos/FreeRTOS.h"
+#include "tcc_pulse.h"
 class InrushControlSolenoid : public PwmSolenoid {
 public:
     explicit InrushControlSolenoid(const char *name, ledc_timer_t ledc_timer, gpio_num_t pwm_pin, gpio_num_t zener_pin, ledc_channel_t channel, adc_channel_t read_channel, uint16_t period_hz, uint16_t target_hold_current_ma, uint16_t phase_duration_ms);
     void __write_pwm(float vref_compensation, float temperature_factor);
-    uint32_t on_timer_interrupt();
-    uint32_t on_timer_interrupt_new();
+    bool on_alarm(gptimer_handle_t timer, const gptimer_alarm_event_data_t* event);
     void set_duty(uint16_t duty);
     void pre_current_test() override;
     void post_current_test() override;
@@ -16,30 +17,15 @@ public:
     void isr_enable();
     bool is_disabled();
 private:
-    ledc_timer_t ledc_timer;
-    float vref = 1.0;
-    // 0 - Inrush
-    // 1 - Hold
-    // 2 - Off
-    uint8_t phase_id = 2; // So we start at 0 again
-    uint32_t period_on_time = 0;
-    uint16_t target_hold_current = 0;
-    uint16_t calc_hold_pwm = 1024;
-    uint32_t inrush_time = 20000; // at 12V and 25C
-    uint32_t hold_time = 0; 
-    uint32_t off_time  = 0;
-
-    uint32_t inrush_time_this_cycle = 0;
-    uint32_t hold_time_this_cycle = 0;
-    uint32_t off_time_this_cycle = 0;
-    uint32_t pwm_on_time = 0;
-    uint32_t pwm_off_time = 0;
-
-    gptimer_handle_t timer;
-    bool off = false;
+    void force_off_locked();
+    void write_legacy_duty_locked(uint16_t duty);
+    portMUX_TYPE output_lock = portMUX_INITIALIZER_UNLOCKED;
+    TccPulse pulse;
+    gptimer_handle_t timer = nullptr;
     gpio_num_t zener_pin = GPIO_NUM_NC;
     gpio_num_t pwm_pin = GPIO_NUM_NC;
-    bool isr_disabled = false;
+    // Initial hold is released by the gearbox after all initialization is done.
+    bool isr_disabled = true;
 };
 
 #endif

@@ -579,9 +579,9 @@ void ShiftingAlgorithm::adaptation_step() {
         // Analysis running (Monitoring realtime torque capability of the clutch vs pressure capability)
         if (sid->ptr_r_clutch_speeds->off_clutch_speed <= 100) {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
-        } else if (this->timer_p_adapt == 0) {
+        } else if (this->timer_p_adapt == 0xFF) {
             // Time expired. Cancel adaptation
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled. Timer expired");
+            ESP_LOGW("ADAPT", "Pressure adapt cancelled. Timer expired");
             this->do_fill_pressure_adaptation = false;
         } else {
             if (this->phase_id > 3 || sid->ptr_r_clutch_speeds->on_clutch_speed <= 100) {

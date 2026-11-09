@@ -1,6 +1,7 @@
 #ifndef EGS51_CAN_H
 #define EGS51_CAN_H
 #include "can_hal.h"
+#include "egs51_demand.h"
 #include "../../egs51_ecus/src/GS51.h"
 #include "../../egs51_ecus/src/MS51.h"
 #include "../../egs51_ecus/src/ESP51.h"
@@ -102,7 +103,7 @@ class Egs51Can: public EgsBaseCan {
         ECU_EWM ewm = ECU_EWM();        
         ECU_ESP51 esp51 = ECU_ESP51();
         uint8_t cvn_counter = 0; 
-        int16_t req_static_torque_delta = 0;
+        Egs51Torque::DemandCorrection demand_correction;
         uint16_t drag_trq = 0;
 };
 

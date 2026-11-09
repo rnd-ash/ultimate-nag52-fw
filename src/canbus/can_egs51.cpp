@@ -146,14 +146,11 @@ CanTorqueData Egs51Can::get_torque_data(const uint32_t expire_time_ms) {
         int16_t driver_converted = m_esp;
         int16_t static_converted = ret.m_ind;
 
-        bool freeze = this->gs218.TORQUE_REQ_EN;
-        // Change torque values based on freezing or not
-        if (freeze) {
-            ret.m_converted_driver = MAX(driver_converted - this->req_static_torque_delta, static_converted);
-        } else {
-            this->req_static_torque_delta = driver_converted - static_converted;
-            ret.m_converted_driver = driver_converted;
-        }
+        // Update only after all torque inputs were accepted; unavailable frames must
+        // neither relearn the baseline nor extend the request-recovery interval.
+        ret.m_converted_driver = this->demand_correction.update(
+            GET_CLOCK_TIME(), this->gs218.TORQUE_REQ_EN,
+            driver_converted, static_converted, ret.m_max);
         ret.m_converted_static = static_converted;
     }
     return ret;

@@ -87,7 +87,7 @@ uint8_t ShiftingAlgorithm::step(
     }
     this->filling_torque = MAX(abs_input_torque, VEHICLE_CONFIG.engine_drag_torque/10.0);
     // Continuously check shift flags
-    ShiftHelpers::calc_shift_flags(this->sid, this->sd, this->phase_id == 0);
+    ShiftHelpers::calc_shift_flags(this->sid, this->sd, this->phase_id == 0, sid->manual_shift);
 
     // Sequence the inner shift logic
     uint8_t step_res = this->step_internal(stationary, is_upshift);
@@ -522,7 +522,11 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_fill_pressure_adaptation = false;
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
         }
-        bool rpm_in_range = (sd->input_rpm <= sd->engine_rpm+10 && upshifting) || (sd->engine_rpm <= sd->input_rpm+10 && !upshifting);
+        // Upshift -> Pulling (Engine >= input RPM), Downshift -> Pushing (Input >= Engine RPM)
+        // 20RPM tolerance allowed
+        bool rpm_in_range =
+            (sd->engine_rpm >= sd->input_rpm-10 && upshifting) ||
+            (sd->input_rpm >= sd->engine_rpm-10 && !upshifting);
         if (
             !rpm_in_range && this->fill_pressure_adaptation_stage <= 2
         ) {

@@ -435,7 +435,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .n3_rpm = this->speed_sensors.n3
         };
         // To set the flag values initially
-        ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true);
+        ShiftHelpers::calc_shift_flags(&sid, &this->sensor_data, true, sid.manual_shift);
 
         float threshold_torque = VEHICLE_CONFIG.engine_drag_torque/10.0;
         ShiftingAlgorithm* algo;

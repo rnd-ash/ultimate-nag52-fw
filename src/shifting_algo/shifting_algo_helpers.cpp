@@ -9,13 +9,13 @@ float ShiftHelpers::get_shift_intertia(uint8_t shift_idx) {
     return MAX(1.0F, r); // Used as a divisor by shift algorithms
 }
 
-void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase) {
+void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase, bool manual_shift) {
     // Set to 0 at the start of the shift, so we just keep OR'ing it
-    if ((uint8_t)sid->targ_g < (uint8_t)sid->curr_g) {
+    if ((uint8_t)sid->targ_g < (uint8_t)sid->curr_g && !manual_shift) {
         // Downshift detected
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
             // Check if pedal has jumped, and only then clear the 54_43 coast flag
-            if (sd->pedal_pos > 30) {
+            if (sd->pedal_pos > 22) {
                 sid->shift_flags &= ~(SHIFT_FLAG_COAST | SHIFT_FLAG_COAST_54_43);
             }
         }
@@ -32,10 +32,6 @@ void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, boo
     // 3-2/2-1 is always evaluated
     if ((sid->shift_flags & SHIFT_FLAG_COAST) != 0 && (sid->change == GearChange::_2_1 || sid->change == GearChange::_3_2)) {
         sid->shift_flags |= SHIFT_FLAG_COAST_32_21;
-    }
-
-    if (sd->input_rpm < 400) {
-        sid->shift_flags |= SHIFT_FLAG_STATIONARY;
     }
 }
 

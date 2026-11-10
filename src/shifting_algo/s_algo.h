@@ -214,7 +214,7 @@ protected:
 // Helper functions
 namespace ShiftHelpers {
     float get_shift_intertia(uint8_t shift_idx);
-    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase);
+    void calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, bool bleed_phase, bool manual_shift);
 
     uint8_t cycles_crossover_overlap(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);
     uint8_t cycles_crossover_overlap2(GearChange change, uint16_t abs_input_torque, uint16_t input_rpm);

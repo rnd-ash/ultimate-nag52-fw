@@ -10,9 +10,8 @@ const DRAM_ATTR uint8_t PHASE_OVERLAP2         = 3;
 const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE     = 4;
 const DRAM_ATTR uint8_t PHASE_END_CONTROL      = 5;
 
-uint8_t FAC_TABLE[8] = {90, 90, 85, 70, 100, 100, 100, 100};
-float RAMP_LIMITS[8] = {0.5, 0.625, 0.75, 0, 0, 0, 0, 0};
-float ADAPT_LIMITS[8] = {1.5, 2.0, 2.5, 3.0, 0, 0, 1.0, 1.0};
+float RAMP_LIMITS[8] = {0.4, 0.625, 0.75, 0, 0, 0, 0, 0};
+float ADAPT_LIMITS[8] = {1.0, 1.25, 1.75, 2.75, 0, 0, 1.0, 1.0};
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->adapting_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*ADAPT_LIMITS[sid->inf.map_idx];

@@ -56,7 +56,7 @@ namespace TCUIO {
     esp_err_t setup_io_layer();
     void update_io_layer();
 
-    void set_2_1_ratio(float ratio);
+    void set_2_1_ratios(uint16_t first, uint16_t second);
     void set_input_rpm_perform_sanity_check(bool conduct);
 
     uint16_t calc_turbine_rpm(const uint16_t n2, const uint16_t n3);

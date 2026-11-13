@@ -381,6 +381,7 @@ uint8_t ReleasingShift::phase_fill_release_mpc() {
 }
 
 const uint8_t OVERLAP_TIMES[4] = { 17, 15, 15, 6 };
+const uint8_t OVERLAP_TIMES_FAST[4] = { 10, 7, 6, 5 };
 uint8_t ReleasingShift::phase_overlap() {
     uint8_t ret = STEP_RES_CONTINUE;
     uint16_t low_filling_p = this->calc_low_filling_p();
@@ -392,6 +393,9 @@ uint8_t ReleasingShift::phase_overlap() {
             idx -= 4;
         }
         this->timer_shift = OVERLAP_TIMES[idx];
+        if (sid->chars.extra_speed) {
+          this->timer_shift = OVERLAP_TIMES_FAST[idx];
+        }
         this->timer_mod = 3;
 
         // Use direct PM call since we don't need to factor in Spring or centrifugal force

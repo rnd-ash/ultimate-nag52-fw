@@ -15,11 +15,11 @@ void ShiftHelpers::calc_shift_flags(ShiftInterfaceData* sid, SensorData* sd, boo
         // Downshift detected
         if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
             // Check if pedal has jumped, and only then clear the 54_43 coast flag
-            if (sd->pedal_pos > 22) {
+            if (sd->pedal_pos > 22 || sd->pedal_delta_per_second > 20) {
                 sid->shift_flags &= ~(SHIFT_FLAG_COAST | SHIFT_FLAG_COAST_54_43);
             }
         }
-        if (sd->pedal_pos < 15 && ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && (((sid->shift_flags & SHIFT_FLAG_COAST_54_43) == 0) && bleed_phase)) {
+        if (sd->pedal_pos < 15 && sd->pedal_delta_per_second < 5 && ((sid->shift_flags & SHIFT_FLAG_COAST) == 0) && (((sid->shift_flags & SHIFT_FLAG_COAST_54_43) == 0) && bleed_phase)) {
             if (sid->change == GearChange::_5_4 || sid->change == GearChange::_4_3) {
                 sid->shift_flags &= ~SHIFT_FLAG_COAST;
                 sid->shift_flags |= SHIFT_FLAG_COAST_54_43;

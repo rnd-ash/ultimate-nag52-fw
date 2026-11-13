@@ -65,7 +65,11 @@ uint8_t ShiftingAlgorithm::step(
     this->sd = sd;
 
     if (this->first_run) {
-        this->first_order_pump_trq_filter = (sd->tcc_trq_multiplier * sd->pump_torque);
+        float engine_trq = abs(sd->indicated_torque - sid->tcc->get_measured_stationary_trq());
+        float tcc_trq = (sd->tcc_trq_multiplier * (float)sd->pump_torque);
+        tcc_trq = (tcc_trq + engine_trq) - sd->pump_torque;
+        this->first_order_pump_trq_filter = tcc_trq;
+
         this->old_engine_rpm = sd->engine_rpm;
         this->old_input_trq = sd->input_torque;
         this->first_run = false;
@@ -509,12 +513,15 @@ void ShiftingAlgorithm::adaptation_step() {
 
     // Fill pressure adaptation (Done for all algorithms)
 
-    // Boundary conditions (Every cycle)
-    int tcc_trq = ((sd->tcc_trq_multiplier*100) * sd->pump_torque); // 100x real value
+    float engine_trq = abs(sd->indicated_torque - sid->tcc->get_measured_stationary_trq());
+    float tcc_trq = (sd->tcc_trq_multiplier * (float)sd->pump_torque);
+    tcc_trq = (tcc_trq + engine_trq) - sd->pump_torque;
+    int tcc_trq_mul = tcc_trq * 100;
+
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*100);
+        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq_mul, this->first_order_pump_trq_filter*100);
     } else {
-        this->first_order_pump_trq_filter = first_order_filter(10, tcc_trq, this->first_order_pump_trq_filter*100);
+        this->first_order_pump_trq_filter = first_order_filter(8, tcc_trq_mul, this->first_order_pump_trq_filter*100);
     }
     this->first_order_pump_trq_filter /= 100.0;
     if (this->do_fill_pressure_adaptation) {
@@ -571,6 +578,7 @@ void ShiftingAlgorithm::adaptation_step() {
         }
         this->fill_pressure_adaptation_stage = 1;
     } else if (1 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
+        sid->tcc->set_shift_prefill_adapting(true);
         // Waiting for clutch release
         if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
             fill_pressure_adaptation_stage = 2;

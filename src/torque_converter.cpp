@@ -280,6 +280,9 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         should_open = true;
         this->tcc_commanded_pressure = 0; // Just in case
     }
+    if (this->is_shifting && this->shift_prefill_adapt_en) {
+      should_open = true;
+    }
 
     // Open on very low torque
     if (InternalTccState::Open == this->current_tcc_state && sd->converted_torque < VEHICLE_CONFIG.engine_drag_torque/10.0) {
@@ -345,8 +348,13 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
                 pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PUSH);
                 pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PUSH);
             }
-            int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
-            this->pid_i_val += i_adder;
+            // Drop PID value whilst we are shifting
+            if (this->is_shifting && !upshifting && this->release_shifting) {
+              this->pid_i_val -= 1;
+            } else {
+              int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
+              this->pid_i_val += i_adder;
+            }
             // Dynamic PID modifier
             if (this->actual_slip_abs < SLIP_V_WHEN_OPEN) {
                 if (sd->pedal_delta_per_second > 20) {
@@ -435,6 +443,10 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         }
     }
 
+}
+
+void TorqueConverter::set_shift_prefill_adapting(bool adapting) {
+  this->shift_prefill_adapt_en = true;
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {
@@ -578,4 +590,5 @@ void TorqueConverter::shift_end() {
     this->is_shifting = false;
     this->upshifting = false;
     this->release_shifting = false;
+    this->shift_prefill_adapt_en = false;
 }

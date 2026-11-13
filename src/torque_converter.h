@@ -111,6 +111,12 @@ class TorqueConverter {
             return this->timer_till_adapt;
         }
 
+        int get_measured_stationary_trq() {
+          return this->torque_correction_adapt/100;
+        }
+
+        void set_shift_prefill_adapting(bool adapting);
+
     private:
         uint16_t calculate_slip_target(SensorData* sensors);
         void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
@@ -122,6 +128,7 @@ class TorqueConverter {
         bool pulling = false;
         bool is_shifting = false;
         bool was_shifting = true;
+        bool shift_prefill_adapt_en = false;
         bool upshifting = false;
         bool release_shifting = false;
         bool tcc_solenoid_enabled = true;

@@ -10,8 +10,8 @@ const DRAM_ATTR uint8_t PHASE_OVERLAP2         = 3;
 const DRAM_ATTR uint8_t PHASE_MAX_PRESSURE     = 4;
 const DRAM_ATTR uint8_t PHASE_END_CONTROL      = 5;
 
-float RAMP_LIMITS[8] = {0.4, 0.625, 0.75, 0, 0, 0, 0, 0};
-float ADAPT_LIMITS[8] = {1.0, 1.25, 1.75, 2.75, 0, 0, 1.0, 1.0};
+float RAMP_LIMITS[8] = {0.4, 0.625, 0.75, 0.75, 0, 0, 0, 0};
+float ADAPT_LIMITS[8] = {1.2, 1.2, 1.75, 3, 0, 0, 1.4, 1.9};
 
 CrossoverShift::CrossoverShift(ShiftInterfaceData* data) : ShiftingAlgorithm(data) {
     this->adapting_trq_limit = ((float)VEHICLE_CONFIG.engine_drag_torque/10.0)*ADAPT_LIMITS[sid->inf.map_idx];
@@ -170,7 +170,7 @@ uint8_t CrossoverShift::phase_fill() {
         this->p_apply_clutch = set_p_apply_clutch_with_spring(high_filling_p);
         if (0 == this->timer_shift) {
             if (
-                abs_input_trq < this->ramp_filling_trq_limit && upshifting
+                abs_input_trq < this->ramp_filling_trq_limit && upshifting && !sid->manual_shift
             ) {
                 // Ramp filling
                 this->subphase_shift = 4;
@@ -331,7 +331,7 @@ uint8_t CrossoverShift::phase_overlap() {
     // Mod pressure depends on the current situation
     if (abs_input_trq < this->ramp_filling_trq_limit*1.5 && fill_via_ramp) {
         this->mod_sol_pressure = this->calc_overlap2_mod();
-    } else if (abs_input_trq < this->adapting_trq_limit && (this->do_fill_time_adaptation || (sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
+    } else if ((abs_input_trq < this->adapting_trq_limit && this->do_fill_time_adaptation) || ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0)) {
         this->fill_via_ramp = false;
         this->mod_sol_pressure = this->calc_overlap2_mod();
     } else {
@@ -567,22 +567,12 @@ uint16_t CrossoverShift::calc_overlap_mod_min(int p_shift) {
 }
 
 uint16_t CrossoverShift::calc_overlap2_mod() {
-    int p_shift = (int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int;
-    p_shift /= 1000;
-    int centrifugal = sid->inf.pressure_multi_mpc_int * sid->inf.centrifugal_factor_off_clutch_int;
-    centrifugal /= 1000;
-    centrifugal += (((this->centrifugal_force_off_clutch * sid->inf.pressure_multi_mpc_int) / 1000) * sid->inf.centrifugal_factor_off_clutch_int) / 100;
+    int p_shift = ((int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int) / 1000;
     int base = 250 * sid->inf.pressure_multi_mpc_int;
     base /= 1000;
+    int centrigual = (((this->centrifugal_force_off_clutch * sid->inf.pressure_multi_spc_int) / 1000) * sid->inf.centrifugal_factor_off_clutch_int) / 100 + base;
+    int p_mod = MAX(0, p_shift - centrigual);
 
-    centrifugal += base;
-
-    int p_mod = 0;
-    if (centrifugal < p_shift) {
-        p_mod = p_shift - centrifugal;
-    } else {
-        p_mod = 0;
-    }
     p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);
     return p_mod;

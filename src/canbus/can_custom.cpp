@@ -100,7 +100,7 @@ int16_t CustomCan::get_engine_coolant_temp(const uint32_t expire_time_ms) {
     int16_t ret = INT16_MAX;
     if (this->engine.get_ENGINE_100(GET_CLOCK_TIME(), expire_time_ms, &engine_data)) {
         if (engine_data.T_COOLANT != UINT8_MAX) {
-            ret = (int16_t)engine_data.PEDAL - 40;
+            ret = (int16_t)engine_data.T_COOLANT - 40;
         }
     }
     return ret;

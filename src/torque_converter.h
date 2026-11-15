@@ -136,6 +136,7 @@ class TorqueConverter {
 
         int tcc_commanded_pressure = 0;
         int tcc_shift_pressure = 0;
+        int observed_fill_time = 0;
 
         uint32_t prefill_start_time = 0;
         InternalTccState current_tcc_state = InternalTccState::Open;
@@ -177,7 +178,7 @@ class TorqueConverter {
         // x100
         int actual_slip_abs = 0;
 
-        uint16_t input_side = 0;
+        uint16_t clutch_torque = 0;
         uint16_t tcc_engine_trq = 0;
 
         uint8_t timer_inc_slip = 0;

@@ -1,6 +1,7 @@
 #include "torque_converter.h"
 #include "canbus/can_defines.h"
 #include "canbus/can_hal.h"
+#include "esp_log.h"
 #include "nvs/eeprom_config.h"
 #include "nvs/module_settings.h"
 #include "solenoids/solenoids.h"
@@ -109,17 +110,25 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
         this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles;
         this->command_p_stage = 1;
+        this->observed_fill_time = 0;
     }
     if (1 == this->command_p_stage) {
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
         if (0 == this->timer_command_p) {
             this->command_p_stage = 2;
-            this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles;
+            this->timer_command_p = 10;
         }
     } else if (2 == this->command_p_stage) {
         this->tcc_shift_pressure = linear_ramp_with_timer(TCC_CURRENT_SETTINGS.prefill_pressure, end, this->timer_command_p) + this->min_tcc_pressure;
-        if (0 == this->timer_command_p || this->actual_slip_abs < 10) {
+        if (0 == this->timer_command_p) {
             this->command_p_stage = 3;
+            this->timer_command_p = 10;
+        }
+    } else if (3 == this->command_p_stage) {
+        this->tcc_shift_pressure = end + this->min_tcc_pressure;
+        if (0 == this->timer_command_p) {
+            this->command_p_stage = 4;
+            ESP_LOGI("TCC", "Fill end without application");
         }
     } else {
         // Exit
@@ -129,7 +138,12 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
         this->timer_till_pid = 25; // Block PID for 1/2 second
         this->current_tcc_state = InternalTccState::Slipping;
         this->tcc_shift_pressure = end;
-
+    }
+    // Adaptation (TODO)
+    this->observed_fill_time += 1;
+    if (this->clutch_torque > VEHICLE_CONFIG.engine_drag_torque/8.0) { // 1.2x drag torque = slip
+      ESP_LOGI("TCC", "Fill completed after %d cycles", this->observed_fill_time);
+      this->command_p_stage = 4;
     }
 
 }
@@ -215,13 +229,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
             this->torque_correction_adapt = first_order_filter(FILTER_SIZE, (this->filtered_engine_trq-this->filtered_pump_trq), this->torque_correction_adapt);
         }
     }
-    int corr_torque = 0;
-    if (false) {
-        // TODO (M_CORRECTION enabled or not??)
-        corr_torque = 0;
-    } else {
-        corr_torque = (this->torque_correction_adapt/100);
-    }
+    int corr_torque = (this->torque_correction_adapt/100);
 
     int engine_trq = sensors->converted_torque - corr_torque;
 
@@ -259,7 +267,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     this->tcc_engine_trq = MAX(0, engine_trq);
 
     int tcc_input_torque = MAX(0, this->filtered_engine_trq - (this->filtered_pump_trq/100));
-    this->input_side = tcc_input_torque;
+    this->clutch_torque = tcc_input_torque;
 }
 
 void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g) {
@@ -282,10 +290,11 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
     }
     if (this->is_shifting && this->shift_prefill_adapt_en) {
       should_open = true;
+      this->tcc_commanded_pressure = 0; // Unlock as fast as possible so adaptation is not affected
     }
 
     // Open on very low torque
-    if (InternalTccState::Open == this->current_tcc_state && sd->converted_torque < VEHICLE_CONFIG.engine_drag_torque/10.0) {
+    if (InternalTccState::Open == this->current_tcc_state && sd->converted_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) {
         should_open = true;
     }
     // Todo friction wattage calc (unsure of relevance)
@@ -303,9 +312,8 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         }
     } else if (this->current_tcc_state == InternalTccState::Open && this->target_tcc_state == InternalTccState::Slipping) {
         // Open -> Slipping
-        if (slip_target > SLIP_V_WHEN_OPEN*1.1 || should_open) {
+        if (slip_target > SLIP_V_WHEN_OPEN*1.1 || should_open || is_shifting) {
             this->target_tcc_state = InternalTccState::Open;
-            this->tcc_commanded_pressure = 0;
         } else {
             this->fill_tcc(current_g, sd);
         }
@@ -343,14 +351,17 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
                 } else {
                     this->pid_i_val = ((this->pid_p_weight * slip_delta) / 1000) * -10;
                 }
-
             } else {
                 pid_p_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_PZ_PUSH);
                 pid_i_weight = (int)interpolate_linear_array(slip_delta, 5, TCC_PID_X, TCC_PID_IZ_PUSH);
             }
-            // Drop PID value whilst we are shifting
-            if (this->is_shifting && !upshifting && this->release_shifting) {
-              this->pid_i_val -= 1;
+            // PID handling when shifting
+            if (this->is_shifting) {
+              if (this->upshifting) {
+                this->pid_i_val = this->pid_i_val_old;
+              } else if (!this->upshifting && this->release_shifting) {
+                this->pid_i_val = MIN(0, this->pid_i_val);
+              }
             } else {
               int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
               this->pid_i_val += i_adder;
@@ -495,7 +506,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         return;
     }
 
-    GearboxGear cmp_gear = targ_gear;
+    GearboxGear cmp_gear = curr_gear;
     this->slip_target = this->calculate_slip_target(sensors);
     // TCC Disable check
     if (

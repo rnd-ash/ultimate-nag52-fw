@@ -513,15 +513,15 @@ void ShiftingAlgorithm::adaptation_step() {
 
     // Fill pressure adaptation (Done for all algorithms)
 
-    float engine_trq = abs(sd->indicated_torque - sid->tcc->get_measured_stationary_trq());
+    //float engine_trq = abs(sd->indicated_torque - sid->tcc->get_measured_stationary_trq());
     float tcc_trq = (sd->tcc_trq_multiplier * (float)sd->pump_torque);
-    tcc_trq = (tcc_trq + engine_trq) - sd->pump_torque;
-    int tcc_trq_mul = tcc_trq * 100;
+    //tcc_trq = (tcc_trq + engine_trq) - sd->pump_torque;
+    //int tcc_trq_mul = tcc_trq * 100;
 
     if ((sid->shift_flags & SHIFT_FLAG_COAST_54_43) != 0) {
-        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq_mul, this->first_order_pump_trq_filter*100);
+        this->first_order_pump_trq_filter = first_order_filter(2, tcc_trq, this->first_order_pump_trq_filter*100);
     } else {
-        this->first_order_pump_trq_filter = first_order_filter(8, tcc_trq_mul, this->first_order_pump_trq_filter*100);
+        this->first_order_pump_trq_filter = first_order_filter(8, tcc_trq, this->first_order_pump_trq_filter*100);
     }
     this->first_order_pump_trq_filter /= 100.0;
     if (this->do_fill_pressure_adaptation) {
@@ -529,16 +529,14 @@ void ShiftingAlgorithm::adaptation_step() {
             this->do_fill_pressure_adaptation = false;
             ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
         }
-        // Upshift -> Pulling (Engine >= input RPM), Downshift (4-3 coast) -> Pushing (Input >= Engine RPM)
-        // 20RPM tolerance allowed
-        bool rpm_in_range =
-            (sd->engine_rpm >= sd->input_rpm+10 && upshifting) ||
-            (sd->input_rpm >= sd->engine_rpm+10 && !upshifting);
-        if (
-            !rpm_in_range && this->fill_pressure_adaptation_stage <= 2
+        // Check the TCC
+        bool tcc_slip_ok =
+          (upshifting && sd->engine_rpm > sd->input_rpm + 10) ||
+           (!upshifting && sd->engine_rpm < sd->input_rpm - 10);
+        if(
+            tcc_slip_ok && this->phase_id > 0 && this->fill_pressure_adaptation_stage < 2
         ) {
-            // Only check delta when waiting for clutch to move. Once the clutch moves, we don't check the delta anymore
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine/Input RPM delta too high)");
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (TCC not open)");
             this->do_fill_pressure_adaptation = false;
         }
         if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
@@ -578,41 +576,45 @@ void ShiftingAlgorithm::adaptation_step() {
         }
         this->fill_pressure_adaptation_stage = 1;
     } else if (1 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
-        sid->tcc->set_shift_prefill_adapting(true);
         // Waiting for clutch release
         if (sid->ptr_r_clutch_speeds->off_clutch_speed > 100) {
             fill_pressure_adaptation_stage = 2;
-            this->timer_p_adapt = 0; // Start cycle counting
+            this->timer_p_adapt = 1; // Stabilization first (1 cycle)
             this->adapting_p_adapt_trq = 0;
-            adapting_turbine_spd = sd->input_rpm;
+            this->p_adapting_turbine_spd_start = sd->input_rpm;
 
         }
     } else if (2 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
+       this->timer_p_adapt -= 1;
+       if (this->timer_p_adapt == 0) {
+         this->fill_pressure_adaptation_stage = 3;
+       }
+    } else if (3 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
         // Analysis running (Monitoring realtime torque capability of the clutch vs pressure capability)
-        if (sid->ptr_r_clutch_speeds->off_clutch_speed <= 100) {
+        if (sid->ptr_r_clutch_speeds->off_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
             fill_pressure_adaptation_stage = 1; // Clutch jumped back, reset to waiting
         } else if (this->timer_p_adapt == 0xFF) {
             // Time expired. Cancel adaptation
             ESP_LOGW("ADAPT", "Pressure adapt cancelled. Timer expired");
             this->do_fill_pressure_adaptation = false;
         } else {
-            if (this->phase_id > 3 || sid->ptr_r_clutch_speeds->on_clutch_speed <= 100) {
+            if (this->phase_id > 3 || sid->ptr_r_clutch_speeds->on_clutch_speed <= CRS_CURRENT_SETTINGS.clutch_stationary_rpm) {
                 // On clutch is applied or we moved to boost pressure phase in crossover shift.
                 // (Jump to analysis)
-                fill_pressure_adaptation_stage = 3;
+                fill_pressure_adaptation_stage = 4;
             } else {
                 // Add up turbine torque (AVG calculated later)
                 this->timer_p_adapt += 1;
                 int theoretical_p = MAX(0, this->p_apply_clutch + this->centrifugal_force_on_clutch - sid->release_spring_on_clutch);
                 int theoretical_t = pm->calc_max_torque_for_clutch(sid->targ_g, sid->applying, theoretical_p, CoefficientTy::Sliding);
                 this->adapting_p_adapt_trq += (theoretical_t - this->first_order_pump_trq_filter);
-                this->adapting_turbine_spd_end = sd->input_rpm;
+                this->p_adapting_turbine_spd_end = sd->input_rpm;
             }
         }
-    } else if (3 == fill_pressure_adaptation_stage) {
-        if (this->timer_p_adapt > 1 && this->adapting_turbine_spd != 0 && this->adapting_turbine_spd_end != 0) {
+    } else if (4 == fill_pressure_adaptation_stage) {
+        if (this->timer_p_adapt > 1 && this->p_adapting_turbine_spd_start != 0 && this->p_adapting_turbine_spd_end != 0) {
             int avg_trq = this->adapting_p_adapt_trq / this->timer_p_adapt; // AVG Trq/20ms cycle
-            int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->adapting_turbine_spd - this->adapting_turbine_spd_end)) / (this->timer_p_adapt*20);
+            int d_inertia = ((MECH_PTR->intertia_torque[sid->inf.map_idx]) * (this->p_adapting_turbine_spd_start - this->p_adapting_turbine_spd_end)) / (this->timer_p_adapt*20);
             int correction_p = 0;
             if (this->upshifting) {
                 correction_p = pm->p_clutch_with_coef_signed(sid->targ_g, sid->applying, avg_trq - d_inertia, CoefficientTy::Sliding);

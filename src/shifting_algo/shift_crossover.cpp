@@ -342,7 +342,7 @@ uint8_t CrossoverShift::phase_overlap() {
         this->mod_sol_pressure = MAX(p_mod_1, p_mod_2);
     }
     if (
-        0 == this->timer_shift ||
+        1 == this->timer_shift || // Not a bug (Next phase will have full overlap torque, rather than 2 phases with the same torque value)
         sid->ptr_r_clutch_speeds->off_clutch_speed > CRS_CURRENT_SETTINGS.clutch_stationary_rpm
     ) {
         ret = PHASE_OVERLAP2;
@@ -570,8 +570,8 @@ uint16_t CrossoverShift::calc_overlap2_mod() {
     int p_shift = ((int)this->p_apply_clutch * sid->inf.pressure_multi_spc_int) / 1000;
     int base = 250 * sid->inf.pressure_multi_mpc_int;
     base /= 1000;
-    int centrigual = (((this->centrifugal_force_off_clutch * sid->inf.pressure_multi_spc_int) / 1000) * sid->inf.centrifugal_factor_off_clutch_int) / 100 + base;
-    int p_mod = MAX(0, p_shift - centrigual);
+    int centrifugal = (((this->centrifugal_force_off_clutch * sid->inf.pressure_multi_spc_int) / 1000) * sid->inf.centrifugal_factor_off_clutch_int) / 100 + base;
+    int p_mod = MAX(0, p_shift - centrifugal);
 
     p_mod += sid->inf.mpc_pressure_spring_reduction;
     p_mod = MIN(MAX(p_mod, 0), sid->MOD_MAX);

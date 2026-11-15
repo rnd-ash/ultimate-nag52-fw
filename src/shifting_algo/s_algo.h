@@ -174,8 +174,8 @@ protected:
 
     uint8_t timer_p_adapt = 0;
     uint16_t adapting_trq_limit = 0;
-    uint16_t adapting_turbine_spd = 0;
-    uint16_t adapting_turbine_spd_end = 0;
+    uint16_t p_adapting_turbine_spd_start = 0;
+    uint16_t p_adapting_turbine_spd_end = 0;
     int adapting_p_adapt_trq = 0;
     int adapting_p_adapt_pressure = 0;
 

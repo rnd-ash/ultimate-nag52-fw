@@ -514,7 +514,7 @@ void ShiftingAlgorithm::adaptation_step() {
     // Fill pressure adaptation (Done for all algorithms)
 
     //float engine_trq = abs(sd->indicated_torque - sid->tcc->get_measured_stationary_trq());
-    float tcc_trq = (sd->tcc_trq_multiplier * (float)sd->pump_torque);
+    float tcc_trq = (sd->tcc_trq_multiplier * (float)sd->pump_torque) * 100;
     //tcc_trq = (tcc_trq + engine_trq) - sd->pump_torque;
     //int tcc_trq_mul = tcc_trq * 100;
 

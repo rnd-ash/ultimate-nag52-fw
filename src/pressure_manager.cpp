@@ -548,12 +548,14 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     if (output > get_max_solenoid_pressure()) {
         output = get_max_solenoid_pressure();
     }
+    // On newer EGS modules, the min pressure is always 1500 across all calibrations
+    int min = MAX(HYDR_PTR->min_mpc_pressure, 1500);
     // MPC pressure surge reduction
     // - Reduces the slow buildup of pressure when we are working
     //   below min MPC pressure
     if (
         flush_logic &&
-        (this->target_modulating_pressure < HYDR_PTR->min_mpc_pressure) && // Last call was below min
+        (this->target_modulating_pressure < min) && // Last call was below min
         (0 == output) && // Current call is 0 pressure
         ((sensor_data->atf_temp+50) >= HYDR_PTR->mpc_flush_temp_threshold) && // +50 to convert between our temperature and EGS Cal
         (0 != HYDR_PTR->mpc_no_flush_time)// MPC Flushing is enabled for this box
@@ -573,7 +575,7 @@ uint16_t PressureManager::find_working_mpc_pressure(GearboxGear curr_g, bool flu
     }
 
     if (false == this->mpc_flushing) {
-        output = MAX(output, HYDR_PTR->min_mpc_pressure);
+        output = MAX(output, min);
     }
     if (output < this->target_modulating_pressure) {
         // Filter when decreasing pressure, instant rise in pressure

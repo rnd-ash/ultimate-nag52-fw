@@ -379,6 +379,7 @@ ShifterPosition Egs51Can::internal_can_shifter_get_shifter_position(const uint32
 }
 
 void Egs51Can::set_gearbox_temperature(int16_t temp) {
+	this->gs418.T_GET = (MAX(temp, -50) + 50) & 0xFF;
 }
 
 void Egs51Can::set_input_shaft_speed(uint16_t rpm) {

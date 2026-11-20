@@ -1324,7 +1324,6 @@ void Gearbox::controller_loop()
                                 this->shift_adapter->save();
                             }
                             this->tcc->save();
-                            sol_tcc->isr_enable();
                             // Save profile
                             if (ShifterStyle::EWM == shifter->get_shifter_type()) {
                                 if (ETS_CURRENT_SETTINGS.ewm_save_profile) {
@@ -1345,6 +1344,7 @@ void Gearbox::controller_loop()
                                     }
                                 }
                             }
+                            sol_tcc->isr_enable();
                         }
                         else if (this->shifter_pos == ShifterPosition::N)
                         {

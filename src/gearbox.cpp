@@ -1129,6 +1129,7 @@ void Gearbox::controller_loop()
         }
         if (this->diag_stop_control)
         {
+            egs_can_hal->set_safe_start(false);
             vTaskDelay(50);
             continue;
         }
@@ -1293,7 +1294,8 @@ void Gearbox::controller_loop()
                 this->pressure_mgr->set_target_modulating_pressure(this->mpc_working);
                 this->pressure_mgr->set_target_shift_pressure(4000);
             }
-            egs_can_hal->set_safe_start(lock_state);
+            this->is_start_safe = lock_state;
+            egs_can_hal->set_safe_start(this->get_is_start_safe());
             this->shifter_pos = shifter->get_shifter_position();
             if (
                 this->shifter_pos == ShifterPosition::P ||

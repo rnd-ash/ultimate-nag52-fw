@@ -3,6 +3,7 @@
 #ifndef GEARBOX_H
 #define GEARBOX_H
 
+#include <atomic>
 #include <cstdint>
 #include <stdint.h>
 #include "canbus/can_hal.h"
@@ -40,7 +41,7 @@ public:
     void dec_gear_request(void);
     void diag_inhibit_control(void) { this->diag_stop_control = true; }
     void diag_regain_control(void) { this->diag_stop_control = false; }
-    bool get_is_start_safe(void) const {return this->is_start_safe; }
+    bool get_is_start_safe(void) const { return this->is_start_safe && !this->diag_stop_control; }
     SensorData sensor_data;
     OutputData output_data;
     uint16_t get_gear_ratio(void) const {
@@ -119,7 +120,7 @@ private:
     int gear_disagree_count = 0;
     unsigned long last_tcc_adjust_time = 0;
     int mpc_working = 0;
-    bool diag_stop_control = false;
+    std::atomic<bool> diag_stop_control{false};
     Shifter* shifter = nullptr;
     ShifterPosition shifter_pos = ShifterPosition::SignalNotAvailable;
     GearboxConfiguration gearboxConfig;
@@ -140,7 +141,7 @@ private:
     int req_static_torque_delta = 0;
     bool freeze_torque = false;
 
-    bool is_start_safe = false;
+    std::atomic<bool> is_start_safe{false};
     KickdownSwitch kickdown;
     BrakePedal brake_pedal;
 

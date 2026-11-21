@@ -266,7 +266,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     }
     this->tcc_engine_trq = MAX(0, engine_trq);
 
-    int tcc_input_torque = MAX(0, this->filtered_engine_trq - (this->filtered_pump_trq/100));
+    int tcc_input_torque = MAX(0, engine_trq - (this->filtered_pump_trq/100));
     this->clutch_torque = tcc_input_torque;
 }
 

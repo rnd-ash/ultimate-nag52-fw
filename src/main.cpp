@@ -231,11 +231,9 @@ void err_beep_loop(void *a)
 
 inline void set_start_enable(void)
 {
-    bool is_start_safe = gearbox->get_is_start_safe();
-    egs_can_hal->set_safe_start(is_start_safe);
     if (ioexpander != nullptr)
     {
-        ioexpander->set_start(is_start_safe);
+        ioexpander->set_start(gearbox->get_is_start_safe());
     }
 }
 

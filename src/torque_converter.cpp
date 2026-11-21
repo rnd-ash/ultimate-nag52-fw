@@ -253,6 +253,9 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
         }
     }
 
+    int tcc_input_torque = MAX(0, engine_trq - (this->filtered_pump_trq/100));
+    this->clutch_torque = tcc_input_torque;
+    
     if (engine_trq <= 0) {
         engine_trq += pump_trq_targ;
         if (engine_trq > 0) {
@@ -266,8 +269,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     }
     this->tcc_engine_trq = MAX(0, engine_trq);
 
-    int tcc_input_torque = MAX(0, engine_trq - (this->filtered_pump_trq/100));
-    this->clutch_torque = tcc_input_torque;
+    
 }
 
 void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g) {

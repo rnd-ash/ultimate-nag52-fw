@@ -432,6 +432,7 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
             .max_gb_trq = this->gearboxConfig.max_torque,
             // -1 since bounds table starts at 1st gear, but gear_to_idx_lookup returns 0 as N, not D1
             .ratio_old_gear = this->gearboxConfig.bounds[gear_to_idx_lookup(this->actual_gear)-1].ratio,
+            .ratio_new_gear = this->gearboxConfig.bounds[gear_to_idx_lookup(this->target_gear)-1].ratio,
             .n3_rpm = this->speed_sensors.n3
         };
         // To set the flag values initially

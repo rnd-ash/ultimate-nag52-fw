@@ -524,37 +524,6 @@ void ShiftingAlgorithm::adaptation_step() {
         this->first_order_pump_trq_filter = first_order_filter(8, tcc_trq, this->first_order_pump_trq_filter*100);
     }
     this->first_order_pump_trq_filter /= 100.0;
-    if (this->do_fill_pressure_adaptation) {
-        if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
-            this->do_fill_pressure_adaptation = false;
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
-        }
-        // Check the TCC
-        bool tcc_slip_ok =
-          (upshifting && sd->engine_rpm > sd->input_rpm + 10) ||
-           (!upshifting && sd->engine_rpm < sd->input_rpm - 10);
-        if(
-            tcc_slip_ok && this->phase_id > 0 && this->fill_pressure_adaptation_stage < 2
-        ) {
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (TCC not open)");
-            this->do_fill_pressure_adaptation = false;
-        }
-        if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
-            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine RPM too high)");
-            this->do_fill_pressure_adaptation = false;
-        }
-        if (this->torque_jumped) {
-            this->do_fill_pressure_adaptation = false;
-        }
-        if (!this->upshifting && !this->is_release_shift() && sd->pedal_pos > 15) {
-            // Coast 4-3 adapt, cancel if pedal is pressed
-            this->do_fill_pressure_adaptation = false;
-        }
-
-        if (!this->do_fill_pressure_adaptation) {
-            this->fill_pressure_adaptation_stage = 4; // Jump to analysis if cancelled early
-        }
-    }
     // Stages
     if (0 == fill_pressure_adaptation_stage) {
         // Init (Same base conditions)
@@ -582,7 +551,6 @@ void ShiftingAlgorithm::adaptation_step() {
             this->timer_p_adapt = 1; // Stabilization first (1 cycle)
             this->adapting_p_adapt_trq = 0;
             this->p_adapting_turbine_spd_start = sd->input_rpm;
-
         }
     } else if (2 == fill_pressure_adaptation_stage && this->do_fill_pressure_adaptation) {
        this->timer_p_adapt -= 1;
@@ -647,7 +615,40 @@ void ShiftingAlgorithm::adaptation_step() {
         } else {
             fill_pressure_adaptation_stage = 5;
         }
+    }
+    if (this->do_fill_pressure_adaptation) {
+        if (abs_input_trq > this->adapting_trq_limit && this->phase_id < 3) {
+            this->do_fill_pressure_adaptation = false;
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine torque too high) %d > %d", abs_input_trq, this->adapting_trq_limit);
+        }
+        // Check the TCC
+        bool tcc_slip_ok =
+          (upshifting && sd->engine_rpm > sd->input_rpm + 10) ||
+           (!upshifting && sd->engine_rpm < sd->input_rpm - 10);
+        if(
+            !tcc_slip_ok && this->fill_pressure_adaptation_stage > 1 && this->fill_pressure_adaptation_stage < 4
+        ) {
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (TCC not open)");
+            this->do_fill_pressure_adaptation = false;
+        }
+        if (sd->engine_rpm > ADP_CURRENT_SETTINGS.max_input_rpm) {
+            ESP_LOGI("ADAPT", "Pressure adapt cancelled (Engine RPM too high)");
+            this->do_fill_pressure_adaptation = false;
+        }
+        if (this->torque_jumped) {
+            this->do_fill_pressure_adaptation = false;
+        }
+        if (!this->upshifting && !this->is_release_shift() && sd->pedal_pos > 15) {
+            // Coast 4-3 adapt, cancel if pedal is pressed
+            this->do_fill_pressure_adaptation = false;
+        }
 
+        if (!this->do_fill_pressure_adaptation) {
+            this->fill_pressure_adaptation_stage = 4; // Jump to analysis if cancelled early
+        }
+    }
+    if (this->fill_pressure_adaptation_stage >= 1) {
+      sid->tcc->set_shift_prefill_adapting(this->do_fill_pressure_adaptation);
     }
 
     if (0 == this->torque_adaptation_stage) {

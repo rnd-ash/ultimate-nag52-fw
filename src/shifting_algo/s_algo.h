@@ -12,6 +12,7 @@ struct TorqueRequstData {
     TorqueRequestControlType ty;
     TorqueRequestBounds bounds;
     float amount;
+    uint16_t fake_engine_rpm;
 };
 
 const DRAM_ATTR uint8_t STEP_RES_CONTINUE = 0;
@@ -51,6 +52,7 @@ struct ShiftInterfaceData {
     float diff_ratio;
     uint16_t max_gb_trq;
     float ratio_old_gear;
+    float ratio_new_gear;
     uint16_t n3_rpm;
 };
 

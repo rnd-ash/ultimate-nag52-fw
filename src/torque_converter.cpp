@@ -108,7 +108,7 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
     if (0 == this->command_p_stage) {
         // Init
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
-        this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles;
+        this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles/2;
         this->command_p_stage = 1;
         this->observed_fill_time = 0;
     }
@@ -116,7 +116,7 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
         this->tcc_shift_pressure = TCC_CURRENT_SETTINGS.prefill_pressure + this->min_tcc_pressure;
         if (0 == this->timer_command_p) {
             this->command_p_stage = 2;
-            this->timer_command_p = 10;
+            this->timer_command_p = TCC_CURRENT_SETTINGS.prefill_cycles/2;
         }
     } else if (2 == this->command_p_stage) {
         this->tcc_shift_pressure = linear_ramp_with_timer(TCC_CURRENT_SETTINGS.prefill_pressure, end, this->timer_command_p) + this->min_tcc_pressure;
@@ -290,10 +290,6 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         should_open = true;
         this->tcc_commanded_pressure = 0; // Just in case
     }
-    if (this->is_shifting && this->shift_prefill_adapt_en) {
-      should_open = true;
-      this->tcc_commanded_pressure = 0; // Unlock as fast as possible so adaptation is not affected
-    }
 
     // Open on very low torque
     if (InternalTccState::Open == this->current_tcc_state && sd->converted_torque <= VEHICLE_CONFIG.engine_drag_torque/10.0) {
@@ -307,7 +303,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         this->pid_i_val = 0;
         this->command_p_stage = 0;
         // TODO - Engagement RPM is different to slip target RPM threshold
-        if (slip_target < SLIP_V_WHEN_OPEN && !should_open && !this->is_shifting) {
+        if (slip_target < SLIP_V_WHEN_OPEN && !should_open && !is_shifting && this->timer_block_slipping == 0) {
             this->target_tcc_state = InternalTccState::Slipping;
             // Start filling!
             this->fill_tcc(current_g, sd);
@@ -316,6 +312,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         // Open -> Slipping
         if (slip_target > SLIP_V_WHEN_OPEN*1.1 || should_open || is_shifting) {
             this->target_tcc_state = InternalTccState::Open;
+            this->timer_block_slipping = 10;
         } else {
             this->fill_tcc(current_g, sd);
         }
@@ -323,7 +320,13 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
         // Slipping
         if (slip_target > SLIP_V_WHEN_OPEN*1.1 || should_open) {
             this->target_tcc_state = InternalTccState::Open;
+            this->timer_block_slipping = 10;
         }
+    }
+
+    if (this->is_shifting && this->shift_prefill_adapt_en) {
+      this->current_tcc_state = InternalTccState::Open;
+      this->timer_block_slipping = 10;
     }
 
     // Now process output pressures
@@ -475,6 +478,9 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     }
     if (this->timer_till_pid > 0) {
         this->timer_till_pid -= 1;
+    }
+    if (this->timer_block_slipping > 0) {
+        this->timer_block_slipping -= 1;
     }
     // Pulling / Pushing check
     this->pulling = this->check_if_pulling(sensors);

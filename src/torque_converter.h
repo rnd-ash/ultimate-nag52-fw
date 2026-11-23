@@ -160,6 +160,7 @@ class TorqueConverter {
 
         uint8_t command_p_stage = 0;
         uint8_t timer_command_p = 0;
+        uint8_t timer_block_slipping = 0;
 
 
         int min_tcc_pressure = 0;

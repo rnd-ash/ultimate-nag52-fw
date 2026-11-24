@@ -570,6 +570,8 @@ bool Gearbox::elapse_shift(GearChange req_lookup, AbstractProfile* profile, bool
         pressure_manager->set_spc_p_max();
         pressure_manager->set_shift_circuit(sd.shift_circuit, false);
         pressure_manager->notify_shift_end();
+        // Also clear the TCC shift flags if the shift aborted before the normal handoff.
+        sid.tcc->shift_end();
         this->set_torque_request(TorqueRequestControlType::None, TorqueRequestBounds::LessThan, 0);
         this->abort_shift = false;
         this->sensor_data.last_shift_time = GET_CLOCK_TIME();

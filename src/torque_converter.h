@@ -118,9 +118,9 @@ class TorqueConverter {
         void set_shift_prefill_adapting(bool adapting);
 
     private:
-        uint16_t calculate_slip_target(SensorData* sensors);
+        uint16_t calculate_slip_target(SensorData* sensors, TccReqState engine_request);
         void calculate_min_pressure(SensorData* sensors, GearboxGear current_g);
-        void process_open_or_slip_state(SensorData* sd, GearboxGear current_g);
+        void process_open_or_slip_state(SensorData* sd, GearboxGear current_g, bool engine_requests_open);
         void calculate_torque_correction(SensorData* sensors);
         bool check_if_pulling(SensorData* sensors);
 

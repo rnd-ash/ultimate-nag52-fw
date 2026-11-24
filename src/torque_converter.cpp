@@ -364,7 +364,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
               } else if (!this->upshifting && this->release_shifting) {
                 this->pid_i_val = MIN(0, this->pid_i_val);
               }
-            } else {
+            } else if (!this->pulling || 0 == this->timer_till_pid) {
               int i_adder = (((this->pid_i_weight * slip_delta) / 100) * 20) / 100;
               this->pid_i_val += i_adder;
             }

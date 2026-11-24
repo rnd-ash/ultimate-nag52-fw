@@ -148,7 +148,7 @@ void TorqueConverter::fill_tcc(GearboxGear g, SensorData* sd) {
 
 }
 
-uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
+uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors, TccReqState engine_request) {
     int target = SLIP_V_WHEN_OPEN;
     int inc = 0;
     if (this->pulling) {
@@ -158,10 +158,7 @@ uint16_t TorqueConverter::calculate_slip_target(SensorData* sensors) {
         target = (int)interpolate_linear_array(sensors->input_rpm, 5, SLIP_X_COAST, SLIP_Z_COAST);
     }
 
-    TccReqState e_req = egs_can_hal->get_engine_tcc_override_request(100);
-    if (TCC_CURRENT_SETTINGS.react_on_engine_open_request && e_req == TccReqState::Open) {
-        target = SLIP_V_WHEN_OPEN;
-    } else if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && e_req == TccReqState::Slipping) {
+    if (TCC_CURRENT_SETTINGS.react_on_engine_slip_request && engine_request == TccReqState::Slipping) {
         target += 10;
     }
     if (this->upshifting) {
@@ -272,9 +269,9 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     
 }
 
-void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g) {
+void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear current_g, bool engine_requests_open) {
     this->calculate_min_pressure(sd, current_g);
-    bool should_open = false;
+    bool should_open = engine_requests_open;
     // Temperature processing
     if (InternalTccState::Open == this->current_tcc_state) {
         if (sd->atf_temp < -10 || sd->atf_temp > 200) {
@@ -514,8 +511,11 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
         return;
     }
 
+    const TccReqState engine_request = egs_can_hal->get_engine_tcc_override_request(100);
+    const bool engine_requests_open = TCC_CURRENT_SETTINGS.react_on_engine_open_request &&
+                                      engine_request == TccReqState::Open;
     GearboxGear cmp_gear = curr_gear;
-    this->slip_target = this->calculate_slip_target(sensors);
+    this->slip_target = this->calculate_slip_target(sensors, engine_request);
     // TCC Disable check
     if (
         ((cmp_gear == GearboxGear::First && !TCC_CURRENT_SETTINGS.enable_d1)||
@@ -526,7 +526,7 @@ void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, Press
     ) {
         this->slip_target = SLIP_V_WHEN_OPEN*2; // 200RPM = Way out of open range
     }
-    this->process_open_or_slip_state(sensors, cmp_gear);
+    this->process_open_or_slip_state(sensors, cmp_gear, engine_requests_open);
 
     if (is_shifting) {
         this->timer_till_pid = 50;

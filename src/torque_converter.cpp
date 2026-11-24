@@ -459,7 +459,7 @@ void TorqueConverter::process_open_or_slip_state(SensorData* sd, GearboxGear cur
 }
 
 void TorqueConverter::set_shift_prefill_adapting(bool adapting) {
-  this->shift_prefill_adapt_en = true;
+    this->shift_prefill_adapt_en = adapting && this->is_shifting;
 }
 
 void TorqueConverter::update(GearboxGear curr_gear, GearboxGear targ_gear, PressureManager* pm, AbstractProfile* profile, SensorData* sensors) {

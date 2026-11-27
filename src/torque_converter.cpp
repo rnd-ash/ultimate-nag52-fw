@@ -240,7 +240,7 @@ void TorqueConverter::calculate_torque_correction(SensorData* sensors) {
     int pedal_spd_abs = abs(sensors->pedal_delta_per_second);
     if (pedal_spd_abs > 50) {
         if (sensors->pedal_delta_per_second < 1) {
-            float adder = 0.2 * (float)pedal_spd_abs;
+            float adder = -0.2 * (float)pedal_spd_abs;
             adder = MAX(adder, -50);
             engine_trq += adder;
         } else {
